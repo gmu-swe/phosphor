@@ -103,34 +103,36 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 //				super.visitMethodInsn(opcode, owner, name, desc,itfc);
 
 			}
-		} else if (owner.equals(Type.getInternalName(Integer.class)) && name.equals("parseInt$$INVIVO_PC")) {
-			if (nArgs == 2) {
-				super.visitInsn(Opcodes.DUP);
-				super.visitMethodInsn(opcode, owner, name, desc,itfc);
-				super.visitInsn(DUP_X1);
-				super.visitInsn(SWAP);
-				retrieveTopOfStackTaintAndPop();
-			} else if (nArgs == 4) {
-				//S I I
-				super.visitInsn(DUP2_X1);
-				//				//I I S II
-				super.visitInsn(POP2);
-				//				//II S
-				retrieveTopOfStackTaint(true, true);
-				int tmpInt = lvs.getTmpLV(Type.INT_TYPE);
-
-				super.visitVarInsn(ISTORE, tmpInt);
-				super.visitInsn(DUP_X2);
-				super.visitInsn(POP);
-				super.visitMethodInsn(opcode, owner, name, desc,itfc);
-				super.visitInsn(DUP);
-				super.visitVarInsn(ILOAD, tmpInt);
-				lvs.freeTmpLV(tmpInt);
-
-			}
-			//stack is now <Integer Integer taint TOP>
-			super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedInt.class), "taint", "I");
-		} else
+		} 
+//		else if (owner.equals(Type.getInternalName(Integer.class)) && name.equals("parseInt$$INVIVO_PC")) {
+//			if (nArgs == 2) {
+//				super.visitInsn(Opcodes.DUP);
+//				super.visitMethodInsn(opcode, owner, name, desc,itfc);
+//				super.visitInsn(DUP_X1);
+//				super.visitInsn(SWAP);
+//				retrieveTopOfStackTaintAndPop();
+//			} else if (nArgs == 4) {
+//				//S I I
+//				super.visitInsn(DUP2_X1);
+//				//				//I I S II
+//				super.visitInsn(POP2);
+//				//				//II S
+//				retrieveTopOfStackTaint(true, true);
+//				int tmpInt = lvs.getTmpLV(Type.INT_TYPE);
+//
+//				super.visitVarInsn(ISTORE, tmpInt);
+//				super.visitInsn(DUP_X2);
+//				super.visitInsn(POP);
+//				super.visitMethodInsn(opcode, owner, name, desc,itfc);
+//				super.visitInsn(DUP);
+//				super.visitVarInsn(ILOAD, tmpInt);
+//				lvs.freeTmpLV(tmpInt);
+//
+//			}
+//			//stack is now <Integer Integer taint TOP>
+//			super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedInt.class), "taint", "I");
+//		} 
+			else
 			super.visitMethodInsn(opcode, owner, name, desc,itfc);
 
 		//O T

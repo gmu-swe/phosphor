@@ -794,6 +794,20 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 								an.visitVarInsn(Opcodes.ALOAD, retIdx);
 								ga.visitInsn(Opcodes.ICONST_0);
+								
+								for (Type t : argTypes) {
+									if (t.getSort() == Type.ARRAY) {
+										if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
+											idx++;
+										}
+									} else if (t.getSort() != Type.OBJECT) {
+										ga.visitVarInsn(Opcodes.ILOAD, idx);
+										ga.visitInsn(Opcodes.IOR);
+										idx++;
+									}
+									idx += t.getSize();
+								}
+								
 								ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "I");
 								an.visitVarInsn(Opcodes.ALOAD, retIdx);
 							}
@@ -807,6 +821,21 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 								an.visitVarInsn(Opcodes.ALOAD, retIdx);
 								ga.visitInsn(Opcodes.ICONST_0);
+								
+								//IOR all of the primitive args in too
+								for (Type t : argTypes) {
+									if (t.getSort() == Type.ARRAY) {
+										if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
+											idx++;
+										}
+									} else if (t.getSort() != Type.OBJECT) {
+										ga.visitVarInsn(Opcodes.ILOAD, idx);
+										ga.visitInsn(Opcodes.IOR);
+										idx++;
+									}
+									idx += t.getSize();
+								}
+								
 								ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "I");
 								an.visitVarInsn(Opcodes.ALOAD, retIdx);
 //								ga.visitInsn(Opcodes.ARETURN);
