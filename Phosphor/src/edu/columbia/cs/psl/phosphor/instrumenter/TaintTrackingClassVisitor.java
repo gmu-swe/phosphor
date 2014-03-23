@@ -794,7 +794,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 								an.visitVarInsn(Opcodes.ALOAD, retIdx);
 								ga.visitInsn(Opcodes.ICONST_0);
-								
+								idx = 0;
+								if ((m.access & Opcodes.ACC_STATIC) == 0) {
+									idx++;
+								}
 								for (Type t : argTypes) {
 									if (t.getSort() == Type.ARRAY) {
 										if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
@@ -821,7 +824,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 								an.visitVarInsn(Opcodes.ALOAD, retIdx);
 								ga.visitInsn(Opcodes.ICONST_0);
-								
+								idx = 0;
+								if ((m.access & Opcodes.ACC_STATIC) == 0) {
+									idx++;
+								}
+
 								//IOR all of the primitive args in too
 								for (Type t : argTypes) {
 									if (t.getSort() == Type.ARRAY) {
