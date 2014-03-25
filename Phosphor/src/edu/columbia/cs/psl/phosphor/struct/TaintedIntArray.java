@@ -4,7 +4,6 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedIntArray;
 
 public final class TaintedIntArray extends TaintedPrimitiveArray{
 	public int[] val;
-	public int[] taint;
 
 	@Override
 	public Object toStackType() {

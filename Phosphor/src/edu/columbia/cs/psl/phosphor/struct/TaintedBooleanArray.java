@@ -4,7 +4,6 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArray;
 
 public final class TaintedBooleanArray extends TaintedPrimitiveArray{
 	public boolean[] val;
-	public int[] taint;
 
 	@Override
 	public Object toStackType() {

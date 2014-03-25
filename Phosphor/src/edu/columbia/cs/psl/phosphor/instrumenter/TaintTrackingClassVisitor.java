@@ -196,6 +196,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 //			if(className.equals("sun/misc/URLClassPath$JarLoader"))
 //				System.out.println("\t\t:"+name+newDesc);
 			MethodVisitor mv = super.visitMethod(access, name, newDesc, signature, exceptions);
+			mv = new SourceSinkTaintingMV(mv, access, className, name, newDesc, desc);
 			//			mv = new CheckMethodAdapter(mv);
 
 			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className);

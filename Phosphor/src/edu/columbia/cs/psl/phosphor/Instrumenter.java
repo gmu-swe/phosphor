@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -194,39 +195,39 @@ public class Instrumenter {
 
 	public static void finishedAnalysis() {
 		int iter = 0;
-		do {
-			System.out.println("iterating.." + nChanges);
-			nChanges = 0;
-			analysisInvalidated = false;
-			if (iter > 0) {
-				for (MethodInformation m : callgraph.getMethods()) {
-					m.setCalculated(false);
-				}
-			}
-			for (MethodInformation m : callgraph.getMethods()) {
-				callsTaintSourceMethods(m);
-				iter++;
-				//				if(m.isPure())
-				//				{
-				//					System.out.println("pure: " + m);
-				//				}
-				//				if (m.getOwner().startsWith("java/io/FileOutput") || m.getOwner().startsWith("java/io/OutputStream")) {
-				//					System.out.println((m.isPure() ? "Pure: " : "") + (m.callsTaintSourceMethods() ? " SOURCE " : "" ) + m.toString());
-				//				}
-			}
-		} while (analysisInvalidated);
+//		do {
+//			System.out.println("iterating.." + nChanges);
+//			nChanges = 0;
+//			analysisInvalidated = false;
+//			if (iter > 0) {
+//				for (MethodInformation m : callgraph.getMethods()) {
+//					m.setCalculated(false);
+//				}
+//			}
+//			for (MethodInformation m : callgraph.getMethods()) {
+//				callsTaintSourceMethods(m);
+//				iter++;
+//				//				if(m.isPure())
+//				//				{
+//				//					System.out.println("pure: " + m);
+//				//				}
+//				//				if (m.getOwner().startsWith("java/io/FileOutput") || m.getOwner().startsWith("java/io/OutputStream")) {
+//				//					System.out.println((m.isPure() ? "Pure: " : "") + (m.callsTaintSourceMethods() ? " SOURCE " : "" ) + m.toString());
+//				//				}
+//			}
+//		} while (analysisInvalidated);
 		//System.exit(-1);
-		//		File graphDir = new File("pc-graphs");
-		//		if (!graphDir.exists())
-		//			graphDir.mkdir();
-		//				File outFile = new File("pc-graphs/graph-" + System.currentTimeMillis());
-		//				try {
-		//					ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(outFile));
-		//					oos.writeObject(callgraph);
-		//					oos.close();
-		//				} catch (Exception ex) {
-		//					ex.printStackTrace();
-		//				}
+				File graphDir = new File("pc-graphs");
+				if (!graphDir.exists())
+					graphDir.mkdir();
+//						File outFile = new File("pc-graphs/graph-" + System.currentTimeMillis());
+//						try {
+//							ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(outFile));
+//							oos.writeObject(callgraph);
+//							oos.close();
+//						} catch (Exception ex) {
+//							ex.printStackTrace();
+//						}
 		System.out.println("Analysis Completed: Beginning Instrumentation Phase");
 
 	}

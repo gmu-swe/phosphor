@@ -13,6 +13,20 @@ public abstract class MultiDTaintedArray {
 	public int sort;
 	public int length;
 
+	public boolean hasTaints()
+	{
+		for(int i : taint)
+			if(i != 0)
+				return true;
+		return false;
+	}
+	public void setTaints(int t)
+	{
+		for(int i = 0; i < taint.length; i++)
+		{
+			taint[i] = t;
+		}
+	}
 	public MultiDTaintedArray() {
 
 	}
