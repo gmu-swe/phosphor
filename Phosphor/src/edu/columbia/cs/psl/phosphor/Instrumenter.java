@@ -270,6 +270,8 @@ public class Instrumenter {
 	public static boolean isCollection(String internalName) {
 		try {
 			Class c;
+			if(TaintTrackingClassVisitor.IS_RUNTIME_INST && ! internalName.startsWith("java/"))
+				return false;
 			if (loader == null)
 				c = Class.forName(internalName.replace("/", "."));
 			else

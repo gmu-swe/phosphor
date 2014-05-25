@@ -11,6 +11,7 @@
         </sealing>
     </manifest>
     <selectedElements exportClassFiles="true" exportJavaFiles="false" exportOutputFolder="false">
-        <javaElement handleIdentifier="=PCLogger/src"/>
+        <javaElement handleIdentifier="=Phosphor/src"/>
+        <file path="/Phosphor/.classpath"/>
     </selectedElements>
 </jardesc>

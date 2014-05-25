@@ -29,6 +29,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
 public class PreMain {
     private static Instrumentation instrumentation;
 
+    static boolean DEBUG = false;
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
 	public static final class PCLoggingTransformer implements ClassFileTransformer {
 		private final class HackyClassWriter extends ClassWriter {
@@ -54,7 +55,6 @@ public class PreMain {
 			}
 			protected String getCommonSuperClass(String type1, String type2) {
 				Class<?> c, d;
-//				System.out.println(type1 + " and " + type2);
 				try {
 					c = getClass(type1);
 					d = getClass(type2);
@@ -198,7 +198,7 @@ public class PreMain {
 			if(shouldBeDoneBetter[0])
 				return classfileBuffer;
 //			System.out.println("Instrumenting: " + className);
-
+//			System.out.println(classBeingRedefined);
 			TraceClassVisitor cv =null;
 			try {
 				
@@ -206,29 +206,30 @@ public class PreMain {
 				
 				try{
 					cr.accept(
-//							new CheckClassAdapter(
+							new CheckClassAdapter(
 									new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cw))
-//									)
+									)
 							, ClassReader.EXPAND_FRAMES);
 				}
 				catch(ClassFormatError ex)
 				{
 					upgradeToForceFrames(cr, cw);
 				}
-				File debugDir = new File("debug");
-				if(!debugDir.exists())
-					debugDir.mkdir();
-				File f = new File("debug/"+className.replace("/", ".")+".class");
-				FileOutputStream fos = new FileOutputStream(f);
-				fos.write(cw.toByteArray());
-				fos.close();
-				
+				if (DEBUG) {
+					File debugDir = new File("debug");
+					if (!debugDir.exists())
+						debugDir.mkdir();
+					File f = new File("debug/" + className.replace("/", ".") + ".class");
+					FileOutputStream fos = new FileOutputStream(f);
+					fos.write(cw.toByteArray());
+					fos.close();
+				}
 				{
 //					if(TaintUtils.DEBUG_FRAMES)
 //						System.out.println("NOW IN CHECKCLASSADAPTOR");
-					if(TaintUtils.VERIFY_CLASS_GENERATION && ! className.endsWith("org/codehaus/janino/UnitCompiler")){
-					cr = new ClassReader(cw.toByteArray());
-					cr.accept(new CheckClassAdapter(new ClassWriter(0)), 0);
+					if (TaintUtils.VERIFY_CLASS_GENERATION && !className.endsWith("org/codehaus/janino/UnitCompiler")) {
+						cr = new ClassReader(cw.toByteArray());
+						cr.accept(new CheckClassAdapter(new ClassWriter(0)), 0);
 					}
 				}
 //				System.out.println("Succeeded w " + className);

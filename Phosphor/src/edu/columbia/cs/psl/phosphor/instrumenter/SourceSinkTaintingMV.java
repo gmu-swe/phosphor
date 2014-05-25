@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.BasicSourceSinkManager;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.NullSourceSinkManager;
 import edu.columbia.cs.psl.phosphor.SourceSinkManager;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
@@ -16,7 +17,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class SourceSinkTaintingMV extends InstructionAdapter implements Opcodes{
-	static SourceSinkManager sourceSinkManager = BasicSourceSinkManager.getInstance(Instrumenter.callgraph);
+	static SourceSinkManager sourceSinkManager = new NullSourceSinkManager();//BasicSourceSinkManager.getInstance(Instrumenter.callgraph);
 
 	String owner;
 	String name;
@@ -133,7 +134,7 @@ public class SourceSinkTaintingMV extends InstructionAdapter implements Opcodes{
 	}
 	@Override
 	public void visitInsn(int opcode) {
-		if(opcode == ARETURN)
+		if(opcode == ARETURN && this.thisIsASource)
 		{
 			Type returnType = Type.getReturnType(this.origDesc);
 			if(returnType.getSort() == Type.OBJECT)
