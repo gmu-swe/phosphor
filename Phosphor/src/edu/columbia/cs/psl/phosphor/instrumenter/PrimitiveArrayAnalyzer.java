@@ -316,14 +316,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 										output1Top = outFrames.get(labelToMerge).stack.get(outFrames.get(labelToMerge).stack.size() - 2);
 									if (inputTop == Opcodes.TOP)
 										inputTop = inFrames.get(labelToSuccessor).stack.get(inFrames.get(labelToSuccessor).stack.size() - 2);
-									//										System.out.println("IN"+inputTop +" OUT " + output1Top);
+//									System.out.println(className+"."+name+ " IN"+inputTop +" OUT " + output1Top);
 									if (output1Top != null && output1Top != inputTop) {
 										Type inputTopType = TaintAdapter.getTypeForStackType(inputTop);
 										Type outputTopType = TaintAdapter.getTypeForStackType(output1Top);
 										if ((output1Top == Opcodes.NULL) && inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() != Type.OBJECT
 												&& inputTopType.getDimensions() == 1) {
 											insertACONSTNULLBEFORE.add(toMerge);
-										} else if (inputTopType.getSort() == Type.OBJECT && outputTopType.getSort() == Type.ARRAY && outputTopType.getElementType().getSort() != Type.OBJECT
+										} else if ((inputTopType.getSort() == Type.OBJECT || (inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() == Type.OBJECT)) && outputTopType.getSort() == Type.ARRAY && outputTopType.getElementType().getSort() != Type.OBJECT
 												&& inputTopType.getDimensions() == 1) {
 											insertACHECKCASTBEFORE.add(toMerge);
 										}
@@ -333,7 +333,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 									for (int i = 0; i < Math.min(outFrames.get(labelToMerge).local.size(), inFrames.get(labelToSuccessor).local.size()); i++) {
 										Object out = outFrames.get(labelToMerge).local.get(i);
 										Object in = inFrames.get(labelToSuccessor).local.get(i);
-										//											System.out.println(out + " out, " + in + " In" + " i "+i);
+//										System.out.println(name +" " +out + " out, " + in + " In" + " i "+i);
 										if (out instanceof String && in instanceof String) {
 											Type tout = Type.getObjectType((String) out);
 											Type tin = Type.getObjectType((String) in);

@@ -166,7 +166,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 					public void visitEnd() {
 						AbstractInsnNode insn = this.instructions.getFirst();
 						if (hasNonConstantOps && this.instructions.size() > 30000) {
-							System.out.println("Bailing on " + className + "." + name + "cuz it's already got " + this.instructions.size());
+//							System.out.println("Bailing on " + className + "." + name + "cuz it's already got " + this.instructions.size());
 							uninstrumented.instructions.insertBefore(uninstrumented.instructions.getFirst(), new InsnNode(TaintUtils.IGNORE_EVERYTHING));
 							uninstrumented.instructions.add(new InsnNode(TaintUtils.IGNORE_EVERYTHING));
 							uninstrumented.accept(cmv);

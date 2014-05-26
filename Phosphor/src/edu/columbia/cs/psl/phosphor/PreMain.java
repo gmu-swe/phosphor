@@ -206,14 +206,18 @@ public class PreMain {
 				
 				try{
 					cr.accept(
-							new CheckClassAdapter(
+//							new CheckClassAdapter(
 									new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cw))
-									)
+//									)
 							, ClassReader.EXPAND_FRAMES);
 				}
 				catch(ClassFormatError ex)
 				{
 					upgradeToForceFrames(cr, cw);
+				}
+				catch(ArrayIndexOutOfBoundsException ex)
+				{
+					
 				}
 				if (DEBUG) {
 					File debugDir = new File("debug");

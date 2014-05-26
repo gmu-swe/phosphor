@@ -1475,7 +1475,7 @@ class MethodWriter extends MethodVisitor {
                     }
                     catch(Throwable t )
                     {
-                    	t.printStackTrace();
+//                    	t.printStackTrace();
                     }
                     e = e.next;
                 }

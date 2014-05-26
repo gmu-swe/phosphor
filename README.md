@@ -6,7 +6,37 @@ Phosphor is a system for performing dynamic taint analysis in the JVM, on commod
 
 Running
 -------
-(WiP to be writen)
+Phosphor works by modifying your application's bytecode to perform data flow tracking. To be complete, Phosphor also modifies the bytecode of JRE-provided classes, too. The first step to using Phosphor is generating an instrumented version of your runtime environment. We have tested Phosphor with versions 7 and 8 of both Oracle's HotSpot JVM and OpenJDK's IcedTea JVM.
+
+We'll assume that in all of the code examples below, we're in the same directory (which has a copy of [phosphor.jar](https://github.com/Programming-Systems-Lab/phosphor/raw/master/phosphor.jar)), and that the JRE is located here: `/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/jre` (modify this path in the commands below to match your environment).
+
+Then, to instrument the JRE we'll run:
+`java -jar phosphor.jar /Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/jre jre-inst`
+
+The instrumenter takes two primary arguments: first a path containing the classes to instrument, and then a destination for the instrumented classes. Optionally, you can specify additional classpath dependencies referenced from your code (may or may not be necessary, and explained in further below).
+
+The next step is to instrument the code which you would like to track. We'll start off by instrumenting the demo suite provided under the PhosphorTests project. This suite includes a slightly modified version of [DroidBench](http://sseblog.ec-spride.de/tools/droidbench/), a test suite that simulates application data leaks. We'll instrument the [phosphortests.jar](https://github.com/Programming-Systems-Lab/phosphor/raw/master/phosphortests.jar) file:
+`java -jar phosphor.jar phosphortests.jar inst`
+
+This will create the folder inst, and place in it the instrumented version of the demo suite jar.
+
+We can now run the instrumented demo suite using our instrumented JRE, as such:
+`JAVA_HOME=jre-inst/ $JAVA_HOME/bin/java  -Xbootclasspath/a:phosphor.jar -cp inst/phosphortests.jar -ea phosphor.test.DroidBenchTest`
+The result should be a list of test cases, with assertion errors for each "testImplicitFlow" test case.
+
+Interacting with Phosphor
+-----
+Phosphor exposes a simple API to allow you to mark data with tags, and to retrieve those tags. The class ``edu.columbia.cs.psl.phosphor.runtime.Tainter`` contains all relevant methods (ignore the methods ending with the suffix $$INVIVO_PC, they are used internally), namely, getTaint(...) and taintedX(...) (with one X for each data type: taintedByte, taintedBoolean, etc).
+
+We suggest that when you instrument your project, you pass any directories containing classes to the Phosphor instrumenter so that it can [properly resolve class hierarchies](http://chrononsystems.com/blog/java-7-design-flaw-leads-to-huge-backward-step-for-the-jvm). For example, if we were instrumenting our "PhosphorTest" folder, we would pass the "PhosphorTest/bin" as an additional argument to our instrumenter.
+
+Support for Android
+----
+We have preliminary results that show that we can apply Phosphor to Android devices running the Dalvik VM, by instrumenting all Android libraries prior to dex'ing them, then dex'ing them, and deploying to the device. In principle, we could pull .dex files off of a device, de-dex, instrument, and re-dex, but at time of writing, no de-dex'ing tool is sufficiently complete (for example, [dex2jar does not currently support the int-to char opcode](https://code.google.com/p/dex2jar/issues/detail?id=214&can=1&q=i2c)). For more information on applying Phosphor to Dalvik, please contact us.
+
+Questions, concerns, comments
+----
+Please email [Jonathan Bell](mailto:jbell@cs.columbia.edu) with any feedback. This project is still under heavy development, and we are working on many extensions (for example, tagging data with arbitrary types of tags, rather than just integer tags), and would very much welcome any feedback.
 
 License
 -------

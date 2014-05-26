@@ -1602,10 +1602,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(opcode);
 			break;
 		case Opcodes.AASTORE:
-			if(className.contains("ArrayBuilder"))
-			{
-				System.out.println(className+"."+name+" - AASTORE: " + this.analyzer.stack);
-			}
+//			if(className.contains("ArrayBuilder"))
+//			{
+//				System.out.println(className+"."+name+" - AASTORE: " + this.analyzer.stack);
+//			}
 			if (isTaintlessArrayStore) {
 				isTaintlessArrayStore = false;
 				super.visitInsn(opcode);

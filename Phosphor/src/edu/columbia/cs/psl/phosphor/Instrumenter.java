@@ -32,10 +32,13 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import com.sun.xml.internal.ws.org.objectweb.asm.Type;
+
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassReader;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
+import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.CallGraph;
 import edu.columbia.cs.psl.phosphor.struct.MethodInformation;
 import edu.columbia.cs.psl.phosphor.struct.MiniClassNode;
@@ -321,7 +324,7 @@ public class Instrumenter {
 					|| owner.startsWith("java/lang/ref/FinalizerReference")
 					//																|| owner.startsWith("java/awt/image/BufferedImage")
 					//																|| owner.equals("java/awt/Image")
-					|| owner.startsWith("edu/columbia/cs/psl/phosphor")
+				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
 					||owner.startsWith("sun/awt/image/codec/");
 		}
 		else
@@ -332,7 +335,7 @@ public class Instrumenter {
 				|| owner.startsWith("java/lang/Number") || owner.startsWith("java/lang/Comparable") || owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
 				//																|| owner.startsWith("java/awt/image/BufferedImage")
 				//																|| owner.equals("java/awt/Image")
-				|| owner.startsWith("edu/columbia/cs/psl/phosphor") 
+				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
 				||owner.startsWith("sun/awt/image/codec/");
 	}
 
@@ -341,6 +344,7 @@ public class Instrumenter {
 
 	public static void analyzeClass(InputStream is) {
 		ClassReader cr;
+		nTotal++;
 		try {
 			cr = new ClassReader(is);
 			if (callgraph.containsClass(cr.getClassName()))
@@ -360,8 +364,13 @@ public class Instrumenter {
 
 	}
 
+	static int nTotal = 0;
+	static int n = 0;
 	public static byte[] instrumentClass(String path, InputStream is, boolean renameInterfaces) {
 		try {
+			n++;
+			if(n % 1000 ==0)
+				System.out.println("Processed: " + n + "/"+nTotal);
 			curPath = path;
 			ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
@@ -385,13 +394,22 @@ public class Instrumenter {
 	}
 
 	public static void main(String[] args) {
+		if(args.length < 2)
+		{
+			 System.err.println("Usage: java -jar phosphor.jar [source] [dest] {additional-classpath-entries}");
+			 return;
+		}
 		TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
 		ANALYZE_ONLY = true;
-		preAnalysis();
+		System.out.println("Starting analysis");
+//		preAnalysis();
 		_main(args);
-		finishedAnalysis();
+		System.out.println("Analysis Completed: Beginning Instrumentation Phase");
+//		finishedAnalysis();
 		ANALYZE_ONLY = false;
 		_main(args);
+		System.out.println("Done");
+
 	}
 
 	static boolean ANALYZE_ONLY;
@@ -448,10 +466,14 @@ public class Instrumenter {
 		if (args.length == 3) {
 			System.out.println("Using extra classpath file: " + args[2]);
 			try {
-				Scanner s = new Scanner(new File(args[2]));
-				while (s.hasNextLine()) {
-					urls.add(new File(s.nextLine()).getCanonicalFile().toURI().toURL());
-				}
+				File f = new File(args[2]);
+				if (f.exists() && f.isFile()) {
+					Scanner s = new Scanner(f);
+					while (s.hasNextLine()) {
+						urls.add(new File(s.nextLine()).getCanonicalFile().toURI().toURL());
+					}
+				} else if (f.isDirectory())
+					urls.add(f.toURI().toURL());
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -462,24 +484,25 @@ public class Instrumenter {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+		} else if (args.length > 3) {
+			for (int i = 2; i < args.length; i++) {
+				File f = new File(args[i]);
+				if (!f.exists()) {
+					System.err.println("Unable to read path " + args[i]);
+					System.exit(-1);
+				}
+				if (f.isDirectory() && !f.getAbsolutePath().endsWith("/"))
+					f = new File(f.getAbsolutePath() + "/");
+				try {
+					if (f.isDirectory()) {
+
+					}
+					urls.add(f.getCanonicalFile().toURI().toURL());
+				} catch (Exception ex) {
+					ex.printStackTrace();
+				}
+			}
 		}
-		//		for (int i = 2; i < args.length; i++) {
-		//			File f = new File(args[i]);
-		//			if (!f.exists()) {
-		//				System.err.println("Unable to read path " + args[i]);
-		//				System.exit(-1);
-		//			}
-		//			if (f.isDirectory() && !f.getAbsolutePath().endsWith("/"))
-		//				f = new File(f.getAbsolutePath() + "/");
-		//			try {
-		//				if (f.isDirectory()) {
-		//
-		//				}
-		//				urls.add(f.getCanonicalFile().toURI().toURL());
-		//			} catch (Exception ex) {
-		//				ex.printStackTrace();
-		//			}
-		//		}
 		URL[] urlArray = new URL[urls.size()];
 		urlArray = urls.toArray(urlArray);
 		loader = new URLClassLoader(urlArray, Instrumenter.class.getClassLoader());
@@ -534,6 +557,7 @@ public class Instrumenter {
 				bos.writeTo(fos);
 				fos.close();
 			}
+			is.close();
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
