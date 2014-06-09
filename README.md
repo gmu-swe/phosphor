@@ -32,7 +32,17 @@ We suggest that when you instrument your project, you pass any directories conta
 
 Support for Android
 ----
-We have preliminary results that show that we can apply Phosphor to Android devices running the Dalvik VM, by instrumenting all Android libraries prior to dex'ing them, then dex'ing them, and deploying to the device. In principle, we could pull .dex files off of a device, de-dex, instrument, and re-dex, but at time of writing, no de-dex'ing tool is sufficiently complete (for example, [dex2jar does not currently support the int-to char opcode](https://code.google.com/p/dex2jar/issues/detail?id=214&can=1&q=i2c)). For more information on applying Phosphor to Dalvik, please contact us.
+We have preliminary results that show that we can apply Phosphor to Android devices running the Dalvik VM, by instrumenting all Android libraries prior to dex'ing them, then dex'ing them, and deploying to the device. Note that we have only evaluated this process with several small benchmarks, and the process for using Phosphor on the Dalvik VM is far from streamlined. It is not suggested that the faint of heart try this.
+
+In principle, we could pull .dex files off of a device, de-dex, instrument, and re-dex, but at time of writing, no de-dex'ing tool is sufficiently complete (for example, [dex2jar does not currently support the int-to char opcode](https://code.google.com/p/dex2jar/issues/detail?id=214&can=1&q=i2c)). Therefore, to use Phosphor on an Android device, you will need to [compile the Android OS](https://source.android.com) yourself, so that you get the intermediate .class files to instrument.
+
+Once you have compiled Android, the next step will be to instrument all of the core framework libraries. For each library *X*, the classses are found within the file `out/target/common/obj/JAVA_LIBRARIES/X_intermediates/classes.jar`. Copy each of these jar's to a temporary directory, renaming them to *X.jar*. Then instrument each of these jar's following the instructions from the section above, *Running*. Then, use the `dx` tool provided with the Android SDK to convert each jar to dex:
+`dx -JXmx3g --dex --core-library --output=dex/X.jar instrumented-jars/X.jar`. For the file, *framework.jar*, you will find that the jar now contains too many classes. Use the flag `--multi-dex` here, and assemble all of the output classes.dex files into a single jar.  
+
+Next, use `dx` to also convert phosphor.jar to a dex file, and then copy all of the completed .dex files to the Android device. Use the same procedure to instrument each application. Then, using an `adb shell`, change the boot classpath to point to the instrumented core libraries, and invoke your application using the `dalvikvm` command.
+
+
+For more information on applying Phosphor to Dalvik, please contact us.
 
 Questions, concerns, comments
 ----
