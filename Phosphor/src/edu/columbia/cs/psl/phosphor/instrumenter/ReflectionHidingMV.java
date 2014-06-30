@@ -39,7 +39,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			if (owner.equals("java/lang/reflect/Method")) {
 				//method owner [Args
 				//Try the fastpath where we know we don't change the method
-				if(!Instrumenter.IS_ANDROID_INST){
+				if(!Instrumenter.IS_ANDROID_INST && !Instrumenter.IS_KAFFE_INST){
 				Label slow = new Label();
 				Label done = new Label();
 				int argsVar = lvs.getTmpLV(Type.getType("[Ljava/lang/Object;"));

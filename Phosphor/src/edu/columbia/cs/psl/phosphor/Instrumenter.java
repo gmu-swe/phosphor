@@ -307,6 +307,7 @@ public class Instrumenter {
 		//		notInterfaces.add(internalName);
 		return false;
 	}
+    public static boolean IS_KAFFE_INST = Boolean.valueOf(System.getProperty("KAFFE", "false"));
 	public static boolean IS_ANDROID_INST = Boolean.valueOf(System.getProperty("ANDROID", "false"));
 	public static boolean isClassWithHashmapTag(String clazz) {
 		if(IS_ANDROID_INST)
@@ -325,6 +326,25 @@ public class Instrumenter {
 					//																|| owner.startsWith("java/awt/image/BufferedImage")
 					//																|| owner.equals("java/awt/Image")
 				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
+					||owner.startsWith("sun/awt/image/codec/");
+		}
+		else if(IS_KAFFE_INST)
+		{
+			return owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
+					|| owner.startsWith("java/lang/Byte")
+					|| owner.startsWith("java/lang/Short")
+//					|| owner.startsWith("edu/columbia/cs/psl/microbench")
+//					|| owner.startsWith("java/lang/Number") 
+					|| owner.startsWith("java/lang/VMObject")
+					|| owner.startsWith("java/lang/VMString")
+					|| owner.startsWith("java/lang/reflect")
+//					|| owner.startsWith("gnu/")
+										|| owner.startsWith("java/lang/VMClass")
+
+					|| owner.startsWith("java/lang/Comparable") || owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
+					//																|| owner.startsWith("java/awt/image/BufferedImage")
+					//																|| owner.equals("java/awt/Image")
+					|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
 					||owner.startsWith("sun/awt/image/codec/");
 		}
 		else
@@ -676,8 +696,14 @@ public class Instrumenter {
 				} else {
 					JarEntry outEntry = new JarEntry(e.getName());
 					if (e.isDirectory()) {
+						try{
 						jos.putNextEntry(outEntry);
 						jos.closeEntry();
+						}
+						catch(ZipException exxx)
+						{
+							System.out.println("Ignoring exception: " + exxx);
+						}
 					} else if (e.getName().startsWith("META-INF") && (e.getName().endsWith(".SF") || e.getName().endsWith(".RSA"))) {
 						// don't copy this
 					} else if (e.getName().equals("META-INF/MANIFEST.MF")) {
@@ -842,8 +868,14 @@ public class Instrumenter {
 				} else {
 					ZipEntry outEntry = new ZipEntry(e.getName());
 					if (e.isDirectory()) {
+						try{
 						zos.putNextEntry(outEntry);
 						zos.closeEntry();
+						}
+						catch(ZipException exxxx)
+						{
+							System.out.println("Ignoring exception: " + exxxx.getMessage());
+						}
 					} else if (e.getName().startsWith("META-INF") && (e.getName().endsWith(".SF") || e.getName().endsWith(".RSA"))) {
 						// don't copy this
 					} else if (e.getName().equals("META-INF/MANIFEST.MF")) {

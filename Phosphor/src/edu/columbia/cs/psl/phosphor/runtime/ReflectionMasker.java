@@ -35,6 +35,7 @@ public class ReflectionMasker {
 
 //	static WeakHashMap<Method, Method> methodCache = new WeakHashMap<Method, Method>();
 
+	public static final boolean IS_KAFFE = false;
 	@SuppressWarnings("rawtypes")
 	public static Method getTaintMethod(Method m) {
 //		if (m.INVIVO_PC_TAINTmarked)
@@ -52,6 +53,7 @@ public class ReflectionMasker {
 				x++;
 			}
 			if (isEq) {
+				if(!IS_KAFFE)
 				m.INVIVO_PC_TAINTmarked = true;
 				return m;
 			}
@@ -539,8 +541,16 @@ public class ReflectionMasker {
 //		System.out.println("Making slow call to  " + m);
 		MethodInvoke ret = new MethodInvoke();
 		m.setAccessible(true);
-		if (!m.INVIVO_PC_TAINTmarked)
-			m = getTaintMethod(m);
+		if ((IS_KAFFE) || !m.INVIVO_PC_TAINTmarked)
+		{
+			if(IS_KAFFE)
+			{
+				if(in.length > 0)
+					m = getTaintMethod(m);
+			}
+			else
+				m = getTaintMethod(m);
+		}
 		m.setAccessible(true);
 		ret.a = in;
 		ret.o = owner;

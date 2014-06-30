@@ -30,6 +30,7 @@ public class PreMain {
     private static Instrumentation instrumentation;
 
     static boolean DEBUG = false;
+
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
 	public static final class PCLoggingTransformer implements ClassFileTransformer {
 		private final class HackyClassWriter extends ClassWriter {
@@ -183,6 +184,8 @@ public class PreMain {
 //				System.out.println("Premain.java ignore: " + className);
 				return classfileBuffer;
 			}
+//			if(className.equals("java/lang/Integer"))
+//				System.out.println(className);
 			final boolean[] shouldBeDoneBetter = new boolean[1];
 			shouldBeDoneBetter[0]=false;
 			cr.accept(new ClassVisitor(Opcodes.ASM5) {

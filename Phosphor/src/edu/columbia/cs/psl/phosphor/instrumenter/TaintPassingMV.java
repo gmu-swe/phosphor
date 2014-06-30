@@ -497,6 +497,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			shadowType = TaintUtils.getShadowTaintType(desc);
 			if (shadowType != null) {
 				if (isIgnoredTaint) {
+					System.out.println(owner+"."+name+desc);
 					super.visitFieldInsn(opcode, owner, name, desc);
 					retrieveTopOfStackTaintArray();
 					super.visitInsn(SWAP);
@@ -1111,12 +1112,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);
 			//todo
 		}
-		if (owner.equals("java/lang/System") && name.equals("arraycopy")) {
+		if ((owner.equals("java/lang/System") || owner.equals("java/lang/VMSystem"))&& name.equals("arraycopy")) {
+			if(Instrumenter.IS_KAFFE_INST)
+				name = "arraycopyVM";
 			owner = Type.getInternalName(TaintUtils.class);
 			//We have several scenarios here. src/dest may or may not have shadow arrays on the stack
 			boolean destIsPrimitve = false;
 			Type destType = getStackTypeAtOffset(4);
-
 			destIsPrimitve = destType.getSort() != Type.OBJECT && destType.getElementType().getSort() != Type.OBJECT;
 			int srcOffset = 7;
 			if (destIsPrimitve)

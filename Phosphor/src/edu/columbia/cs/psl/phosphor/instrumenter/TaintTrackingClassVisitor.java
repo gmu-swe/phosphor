@@ -70,6 +70,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			throw new ClassFormatError("Bad version, " + version);
 		addTaintField = true;
 		addTaintMethod = true;
+		if(Instrumenter.IS_KAFFE_INST && name.endsWith("java/lang/VMSystem"))
+			access = access | Opcodes.ACC_PUBLIC;
 		if ((access & Opcodes.ACC_ABSTRACT) != 0) {
 			isAbstractClass = true;
 		}
@@ -127,7 +129,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 		if (TaintUtils.DEBUG_CALLS || TaintUtils.DEBUG_FIELDS || TaintUtils.DEBUG_FRAMES || TaintUtils.DEBUG_LOCAL)
 			System.out.println("Instrumenting " + name + "\n\n\n\n\n\n");
-
+		if(Instrumenter.IS_KAFFE_INST && className.equals("java/lang/VMSystem"))
+			access = access | Opcodes.ACC_PUBLIC;
 		if (name.equals("equals") && desc.equals("(Ljava/lang/Object;)Z"))
 			generateEquals = false;
 		if (name.equals("hashCode") && desc.equals("()I"))
