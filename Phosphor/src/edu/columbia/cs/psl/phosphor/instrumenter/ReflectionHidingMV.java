@@ -32,14 +32,13 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		Type[] args = Type.getArgumentTypes(desc);
 //TESTING
 		boolean origAndroidInst = Instrumenter.IS_ANDROID_INST;
-
 		Instrumenter.IS_ANDROID_INST = true;
 		if ((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && (name.equals("invoke") || name.equals("newInstance"))) {
 
 			if (owner.equals("java/lang/reflect/Method")) {
 				//method owner [Args
 				//Try the fastpath where we know we don't change the method
-				if(!Instrumenter.IS_ANDROID_INST && !Instrumenter.IS_KAFFE_INST){
+				if(!Instrumenter.IS_ANDROID_INST && !Instrumenter.IS_KAFFE_INST && !Instrumenter.IS_HARMONY_INST){
 				Label slow = new Label();
 				Label done = new Label();
 				int argsVar = lvs.getTmpLV(Type.getType("[Ljava/lang/Object;"));
@@ -150,7 +149,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 						|| name.equals("getByte$$INVIVO_PC") || name.equals("getFloat$$INVIVO_PC") || name.equals("getLong$$INVIVO_PC") || name.equals("getShort$$INVIVO_PC")
 						|| name.equals("setAccessible$$INVIVO_PC") || name.equals("set") || name.equals("setInt$$INVIVO_PC") || name.equals("setBoolean$$INVIVO_PC")
 						|| name.equals("setChar$$INVIVO_PC") || name.equals("setDouble$$INVIVO_PC") || name.equals("setByte$$INVIVO_PC") || name.equals("setFloa$$INVIVO_PCt")
-						|| name.equals("setLong$$INVIVO_PC") || name.equals("setShort$$INVIVO_PC"))) {
+						|| name.equals("setLong$$INVIVO_PC") || name.equals("setShort$$INVIVO_PC"))
+						|| name.equals("getType")) {
 			owner = Type.getInternalName(RuntimeReflectionPropogator.class);
 			opcode = Opcodes.INVOKESTATIC;
 			desc = "(Ljava/lang/reflect/Field;" + desc.substring(1);

@@ -72,6 +72,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		addTaintMethod = true;
 		if(Instrumenter.IS_KAFFE_INST && name.endsWith("java/lang/VMSystem"))
 			access = access | Opcodes.ACC_PUBLIC;
+		else if(Instrumenter.IS_HARMONY_INST && name.endsWith("java/lang/VMMemoryManager"))
+		{
+			access = access & ~Opcodes.ACC_PRIVATE;
+			access = access | Opcodes.ACC_PUBLIC;
+		}
 		if ((access & Opcodes.ACC_ABSTRACT) != 0) {
 			isAbstractClass = true;
 		}
@@ -131,6 +136,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			System.out.println("Instrumenting " + name + "\n\n\n\n\n\n");
 		if(Instrumenter.IS_KAFFE_INST && className.equals("java/lang/VMSystem"))
 			access = access | Opcodes.ACC_PUBLIC;
+		else if(Instrumenter.IS_HARMONY_INST && className.endsWith("java/lang/VMMemoryManager"))
+		{
+			access = access & ~Opcodes.ACC_PRIVATE;
+			access = access | Opcodes.ACC_PUBLIC;
+		}
 		if (name.equals("equals") && desc.equals("(Ljava/lang/Object;)Z"))
 			generateEquals = false;
 		if (name.equals("hashCode") && desc.equals("()I"))

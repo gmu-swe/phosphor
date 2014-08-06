@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.util.WeakHashMap;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByte;
@@ -21,9 +22,32 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedLongArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitive;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShort;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArray;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class RuntimeReflectionPropogator {
 
+	public static Class<?> getType(Field f)
+	{
+		Class<?> ret = f.getType();
+		Class<?> component = ret;
+		while(component.isArray())
+			component = component.getComponentType();
+		if(MultiDTaintedArray.class.isAssignableFrom(component))
+		{
+			Type t = Type.getType(ret);
+			String newType = "[";
+			for(int i = 0; i < t.getDimensions(); i++)
+				newType += "[";
+			newType += MultiDTaintedArray.getPrimitiveTypeForWrapper(component);
+			try {
+				ret = Class.forName(newType);
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return ret;
+	}
 	public static Object get(Field f, Object obj) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		Object ret = f.get(obj);

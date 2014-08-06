@@ -12,6 +12,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Printer;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Textifier;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStore;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
@@ -151,7 +152,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 		int shadowVar = -1;
 		if (TaintUtils.DEBUG_LOCAL)
-			System.out.println(this.name + " " + opcode + " on " + var + " last arg" + lastArg);
+			System.out.println(this.name + " " + Printer.OPCODES[opcode] + " on " + var + " last arg" + lastArg +", stack: " + analyzer.stack);
 
 		if (opcode == Opcodes.ASTORE && TaintUtils.DEBUG_FRAMES) {
 			System.out.println(this.name + " ASTORE " + var + ", shadowvar contains " + varToShadowVar.get(var) + " oldvartype " + varTypes.get(var));
@@ -184,7 +185,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			Object oldVarType = varTypes.get(var);
 			if (varToShadowVar.containsKey(var))
 				shadowVar = varToShadowVar.get(var);
-			//			System.out.println(Printer.OPCODES[opcode] + " "+var + " old " + oldVarType + " shadow " + shadowVar);
+//						System.out.println(Printer.OPCODES[opcode] + " "+var + " old " + oldVarType + " shadow " + shadowVar);
 
 			if (oldVarType != null) {
 				//In this case, we already have a shadow for this. Make sure that it's the right kind of shadow though.
@@ -260,12 +261,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						}
 					}
 				} else {
-					if (TaintUtils.DEBUG_LOCAL)
-						System.out.println("creating shadow for " + var);
+//					if (TaintUtils.DEBUG_LOCAL)
 					varToShadowVar.put(var, lvs.newLocal(Type.INT_TYPE));
 					varTypes.put(var, Opcodes.INTEGER);
 					shadowVar = varToShadowVar.get(var);
-					if (opcode == ILOAD || opcode == FLOAD || opcode == DLOAD || opcode == DLOAD) {
+//					System.out.println("creating shadow for " + var + " - " + shadowVar);
+					if (opcode == ILOAD || opcode == FLOAD || opcode == DLOAD || opcode == LLOAD) {
 						if (shadowVar == analyzer.locals.size())
 							analyzer.locals.add(Opcodes.INTEGER);
 					}
@@ -294,10 +295,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			case Opcodes.FLOAD:
 			case Opcodes.LLOAD:
 			case Opcodes.DLOAD:
-				//				System.out.println("PRE LOAD" + var + analyzer.stack);
+//				System.out.println("PRE LOAD" + var + analyzer.stack + "; " + analyzer.locals);
 				super.visitVarInsn(ILOAD, shadowVar);
 				super.visitVarInsn(opcode, var);
-				//				System.out.println("POST LOAD" + var + analyzer.stack);
+//				System.out.println("POST LOAD" + var + analyzer.stack);
 				return;
 			case Opcodes.ALOAD:
 				if (TaintUtils.DEBUG_LOCAL)
@@ -483,7 +484,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			if (shadowType != null) {
 				if (isIgnoredTaint) {
 					super.visitFieldInsn(opcode, owner, name, desc);
-					retrieveTopOfStackTaintArray();
+					if(desc.startsWith("["))
+						retrieveTopOfStackTaintArray();
+					else
+						super.visitInsn(ICONST_0);
 					super.visitInsn(SWAP);
 				} else {
 					super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, shadowType);
@@ -497,9 +501,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			shadowType = TaintUtils.getShadowTaintType(desc);
 			if (shadowType != null) {
 				if (isIgnoredTaint) {
-					System.out.println(owner+"."+name+desc);
 					super.visitFieldInsn(opcode, owner, name, desc);
-					retrieveTopOfStackTaintArray();
+					if(desc.startsWith("["))
+						retrieveTopOfStackTaintArray();
+					else
+						super.visitInsn(ICONST_0);
 					super.visitInsn(SWAP);
 				} else {
 					super.visitInsn(DUP);
@@ -1112,9 +1118,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);
 			//todo
 		}
-		if ((owner.equals("java/lang/System") || owner.equals("java/lang/VMSystem"))&& name.equals("arraycopy")) {
+		if ((owner.equals("java/lang/System") || owner.equals("java/lang/VMSystem") || owner.equals("java/lang/VMMemoryManager"))&& name.equals("arraycopy")) {
 			if(Instrumenter.IS_KAFFE_INST)
 				name = "arraycopyVM";
+			else if(Instrumenter.IS_HARMONY_INST)
+				name= "arraycopyHarmony";
 			owner = Type.getInternalName(TaintUtils.class);
 			//We have several scenarios here. src/dest may or may not have shadow arrays on the stack
 			boolean destIsPrimitve = false;

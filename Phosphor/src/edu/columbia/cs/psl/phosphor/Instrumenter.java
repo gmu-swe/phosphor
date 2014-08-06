@@ -308,6 +308,8 @@ public class Instrumenter {
 		return false;
 	}
     public static boolean IS_KAFFE_INST = Boolean.valueOf(System.getProperty("KAFFE", "false"));
+    public static boolean IS_HARMONY_INST = Boolean.valueOf(System.getProperty("HARMONY", "false"));
+
 	public static boolean IS_ANDROID_INST = Boolean.valueOf(System.getProperty("ANDROID", "false"));
 	public static boolean isClassWithHashmapTag(String clazz) {
 		if(IS_ANDROID_INST)
@@ -328,16 +330,18 @@ public class Instrumenter {
 				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
 					||owner.startsWith("sun/awt/image/codec/");
 		}
-		else if(IS_KAFFE_INST)
+		else if(IS_KAFFE_INST || IS_HARMONY_INST)
 		{
 			return owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
 					|| owner.startsWith("java/lang/Byte")
 					|| owner.startsWith("java/lang/Short")
+//					|| owner.startsWith("java/lang/System")
+//					|| owner.startsWith("org/apache/harmony/drlvm/gc_gen/GCHelper")
 //					|| owner.startsWith("edu/columbia/cs/psl/microbench")
 //					|| owner.startsWith("java/lang/Number") 
 					|| owner.startsWith("java/lang/VMObject")
 					|| owner.startsWith("java/lang/VMString")
-					|| owner.startsWith("java/lang/reflect")
+					|| (IS_KAFFE_INST && owner.startsWith("java/lang/reflect"))
 //					|| owner.startsWith("gnu/")
 										|| owner.startsWith("java/lang/VMClass")
 
@@ -345,12 +349,13 @@ public class Instrumenter {
 					//																|| owner.startsWith("java/awt/image/BufferedImage")
 					//																|| owner.equals("java/awt/Image")
 					|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
-					||owner.startsWith("sun/awt/image/codec/");
+					||owner.startsWith("sun/awt/image/codec/") || (IS_HARMONY_INST && (owner.equals("java/io/Serializable")));
 		}
 		else
 		return owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
 				|| owner.startsWith("java/lang/Byte")
 				|| owner.startsWith("java/lang/Short")
+				|| owner.startsWith("org/jikesrvm") || owner.startsWith("com/ibm/tuningfork") || owner.startsWith("org/mmtk") || owner.startsWith("org/vmmagic")
 //				|| owner.startsWith("edu/columbia/cs/psl/microbench")
 				|| owner.startsWith("java/lang/Number") || owner.startsWith("java/lang/Comparable") || owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
 				//																|| owner.startsWith("java/awt/image/BufferedImage")

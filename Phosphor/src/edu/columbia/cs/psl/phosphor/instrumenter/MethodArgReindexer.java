@@ -191,7 +191,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 				}
 				
 				remappedLocals[newIdx] = local[i];
-				if (local[i] != Opcodes.TOP && local[i] instanceof String && ((String) local[i]).charAt(1) == '[' && Type.getObjectType((String) local[i]).getElementType().getSort() != Type.OBJECT) {
+				if (local[i] != Opcodes.TOP && local[i] instanceof String &&((String) local[i]).length() > 1 && ((String) local[i]).charAt(1) == '[' && Type.getObjectType((String) local[i]).getElementType().getSort() != Type.OBJECT) {
 					remappedLocals[newIdx] = MultiDTaintedArray.getTypeForType(Type.getObjectType((String) local[i])).getInternalName();
 				}
 				newIdx++;
