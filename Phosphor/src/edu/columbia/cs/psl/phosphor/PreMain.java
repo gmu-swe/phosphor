@@ -29,7 +29,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
 public class PreMain {
     private static Instrumentation instrumentation;
 
-    static boolean DEBUG = false;
+    static boolean DEBUG = true;
 
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
 	public static final class PCLoggingTransformer implements ClassFileTransformer {
@@ -93,6 +93,8 @@ public class PreMain {
 				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 //					System.out.println("old was " + version);
 					version = 50;
+					access = access & ~Opcodes.ACC_SUPER;
+
 					if((access & Opcodes.ACC_INTERFACE) != 0)
 						access |= Opcodes.ACC_ABSTRACT;
 					super.visit(version, access, name, signature, superName, interfaces);
