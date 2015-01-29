@@ -38,7 +38,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	public static boolean GEN_HAS_TAINTS_METHOD = false;
 	public static final boolean NATIVE_BOX_UNBOX = true;
 	
-	static boolean DO_OPT = true;
+	static boolean DO_OPT = false;
 	static {
 		if (!DO_OPT && !IS_RUNTIME_INST)
 			System.err.println("WARN: OPT DISABLED");
@@ -298,7 +298,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	@Override
 	public void visitEnd() {
-
 		boolean goLightOnGeneratedStuff = !Instrumenter.IS_ANDROID_INST && className.equals("java/lang/Byte");
 		if (isAnnotation) {
 			super.visitEnd();

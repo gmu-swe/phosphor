@@ -148,7 +148,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 						|| name.equals("getByte$$INVIVO_PC") || name.equals("getFloat$$INVIVO_PC") || name.equals("getLong$$INVIVO_PC") || name.equals("getShort$$INVIVO_PC")
 						|| name.equals("setAccessible$$INVIVO_PC") || name.equals("set") || name.equals("setInt$$INVIVO_PC") || name.equals("setBoolean$$INVIVO_PC")
 						|| name.equals("setChar$$INVIVO_PC") || name.equals("setDouble$$INVIVO_PC") || name.equals("setByte$$INVIVO_PC") || name.equals("setFloa$$INVIVO_PCt")
-						|| name.equals("setLong$$INVIVO_PC") || name.equals("setShort$$INVIVO_PC")) || name.equals("getType")) {
+						|| name.equals("setLong$$INVIVO_PC") || name.equals("setShort$$INVIVO_PC"))) {
 			owner = Type.getInternalName(RuntimeReflectionPropogator.class);
 			opcode = Opcodes.INVOKESTATIC;
 			desc = "(Ljava/lang/reflect/Field;" + desc.substring(1);
@@ -178,10 +178,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				super.visitLdcInsn(Type.getObjectType(className));
 			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeExtraStackTraceElements",
 					"(" + stackTraceElDesc + "Ljava/lang/Class;)" + stackTraceElDesc, false);
-		} else if (owner.equals("java/lang/Object") && name.equals("getClass")) {
-			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeTaintClass", "(Ljava/lang/Class;)Ljava/lang/Class;", false);
-
-		}
+		} 
 
 		if ((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && (name.equals("invoke") || name.equals("newInstance"))) {
 			//Unbox if necessary
@@ -202,6 +199,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(TaintedPrimitiveArray.class), "toStackType", "()Ljava/lang/Object;", false);
 			super.visitLabel(isOK);
 		}
+		Instrumenter.IS_ANDROID_INST=origAndroidInst;
 	}
 
 }

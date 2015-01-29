@@ -217,10 +217,6 @@ public class PreMain {
 				{
 					upgradeToForceFrames(cr, cw);
 				}
-				catch(ArrayIndexOutOfBoundsException ex)
-				{
-					
-				}
 				if (DEBUG) {
 					File debugDir = new File("debug");
 					if (!debugDir.exists())

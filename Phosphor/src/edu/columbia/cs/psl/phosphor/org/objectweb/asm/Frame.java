@@ -1340,14 +1340,7 @@ final class Frame {
 
         int nInputStack = inputStack.length + owner.inputStackTop;
         if (frame.inputStack == null) {
-        	try{
             frame.inputStack = new int[nInputStack + outputStackTop];
-        	}
-        	catch(NegativeArraySizeException ex)
-        	{
-        		frame.inputStack = new int[0];
-        		ex.printStackTrace();
-        	}
             changed = true;
         }
 

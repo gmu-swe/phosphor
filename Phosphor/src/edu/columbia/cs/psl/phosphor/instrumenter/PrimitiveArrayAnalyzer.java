@@ -321,7 +321,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 										Type inputTopType = TaintAdapter.getTypeForStackType(inputTop);
 										Type outputTopType = TaintAdapter.getTypeForStackType(output1Top);
 										if ((output1Top == Opcodes.NULL) && inputTopType.getSort() == Type.ARRAY 
-												&& inputTopType.getDimensions() == 1) {
+												&& inputTopType.getDimensions() == 1 && inputTopType.getElementType().getSort() != Type.OBJECT) {
 											insertACONSTNULLBEFORE.add(toMerge);
 										} else if ((inputTopType.getSort() == Type.OBJECT || (inputTopType.getSort() == Type.ARRAY)) && outputTopType.getSort() == Type.ARRAY 
 												&& inputTopType.getDimensions() == 1) {
@@ -337,7 +337,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 										if (out instanceof String && in instanceof String) {
 											Type tout = Type.getObjectType((String) out);
 											Type tin = Type.getObjectType((String) in);
-											if (tout.getSort() == Type.ARRAY && tout.getDimensions() == 1 && tin.getSort() == Type.OBJECT) {
+											if (tout.getSort() == Type.ARRAY && tout.getDimensions() == 1 && tout.getElementType().getSort() != Type.OBJECT && tin.getSort() == Type.OBJECT) {
 												int insnN = getLastInsnByLabel(labelToMerge);
 //												System.out.println(name+desc);
 //																							System.out.println(outFrames + " out, " + in + " In" + " i "+i);
@@ -547,7 +547,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		super.visitMethodInsn(opcode, owner, name, desc,itfc);
 		Type returnType = Type.getReturnType(desc);
 		Type newReturnType = TaintUtils.getContainerReturnType(returnType);
-		if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY && returnType.getDimensions() > 1))
+		if(newReturnType != returnType)
 			wrapperTypesToPreAlloc.add(newReturnType);
 	}
 

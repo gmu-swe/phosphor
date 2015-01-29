@@ -21,7 +21,6 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedDouble;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloat;
 import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLong;
-import edu.columbia.cs.psl.phosphor.struct.TaintedMisc;
 
 public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
@@ -132,8 +131,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		if (opcode == TaintUtils.ALWAYS_AUTOBOX && analyzer.locals.size() > var && analyzer.locals.get(var) instanceof String) {
 			Type t = Type.getType((String) analyzer.locals.get(var));
-			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
-				//				System.out.println("Restoring " + var + " to be boxed");
+			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && varToShadowVar.containsKey(var)) {
+
 				super.visitVarInsn(ALOAD, varToShadowVar.get(var));
 				super.visitVarInsn(ALOAD, var);
 				registerTaintedArray(getTopOfStackType().getDescriptor());
@@ -177,7 +176,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			Type localType = paramTypes[var];
 			if (TaintUtils.DEBUG_LOCAL)
 				System.out.println(Arrays.toString(paramTypes) + ",,," + var);
-			if (!TaintUtils.getContainerReturnType(localType).equals(localType))
+			if (TaintUtils.getShadowTaintType(localType.getDescriptor()) != null)
 				shadowVar = var - 1;
 		} else {
 			//not accessing an arg
@@ -388,7 +387,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 				//				if (TaintUtils.DEBUG_LOCAL)
 				//					System.out.println("ASTORE " + var + ": stack is " + analyzer.stack + " StackType is " + stackType + " lvs " + analyzer.locals);
-				if (stackType.getSort() == Type.ARRAY) {
+				if (stackType.getSort() == Type.ARRAY && stackType.getDimensions() == 1) {
 					switch (stackType.getElementType().getSort()) {
 					case Type.ARRAY:
 						super.visitVarInsn(opcode, var);
@@ -513,7 +512,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			break;
 		case Opcodes.PUTFIELD:
 			//get an extra copy of the field owner
-			//			System.out.println("PUTFIELD " + owner+"."+name+desc + analyzer.stack);
+//						System.out.println("PUTFIELD " + owner+"."+name+desc +" "+ analyzer.stack);
+//						new Exception().printStackTrace();
 			if (getTopOfStackType().getSort() == Type.OBJECT && descType.getSort() == Type.ARRAY && descType.getDimensions() == 1 && descType.getElementType().getSort() != Type.OBJECT)
 				retrieveTaintedArray(desc);
 			shadowType = TaintUtils.getShadowTaintType(desc);
@@ -560,7 +560,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 			} else {
 				onStack = getTopOfStackType();
-				if (shadowType == null && onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT) {
+				if (shadowType == null && onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT && onStack.getDimensions() == 1) {
 					registerTaintedArray(onStack.getDescriptor());
 					super.visitFieldInsn(opcode, owner, name, desc);
 				} else {
@@ -679,9 +679,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		case Opcodes.CHECKCAST:
 
 			t = Type.getType(type);
+//			System.out.println("Pre cc "+type+": " + analyzer.stack);
+			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
 
-			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
-				if (t.getDimensions() == 1) {
 					//what is on the top of the stack that we are checkcast'ing?
 					Object o = analyzer.stack.get(analyzer.stack.size() - 1);
 					if (o instanceof String) {
@@ -692,25 +692,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						}
 					}
 					//cast of Object[] or Object to char[] or int[] etc.
-					retrieveTaintedArray(type);
+					if(o == Opcodes.NULL)
+					{
+						super.visitInsn(ACONST_NULL);
+						super.visitTypeInsn(CHECKCAST,"[I");
+						super.visitInsn(SWAP);
+					}
+					else
+						retrieveTaintedArray(type);
 					super.visitTypeInsn(opcode, type);
-				}
-				//			} else if (t.getSort() == Type.ARRAY && t.getElementType().getSort() == Type.OBJECT) {
-				//				Object o = analyzer.stack.get(analyzer.stack.size() - 1);
-				//				if (o instanceof String) {
-				//					Type zz = getTypeForStackType(o);
-				//					if (zz.getSort() == Type.OBJECT) {
-				//						//casting object to Object[]
-				//						super.visitTypeInsn(opcode, type);
-				//						break;
-				//					}
-				//				}
-				//				if (topStackElCarriesTaints()) {
-				//					//Casting array to non-array type
-				//
-				//					//Register the taint array for later.
-				//					registerTaintedArray(t.getDescriptor());
-				//				}
+				
 			} else {
 
 				//What if we are casting an array to Object?
@@ -722,6 +713,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 				super.visitTypeInsn(opcode, type);
 			}
+//			System.out.println("post cc " + analyzer.stack);
 			break;
 		case Opcodes.INSTANCEOF:
 			t = Type.getType(type);
@@ -754,9 +746,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	 * @param type
 	 */
 	protected void retrieveTaintedArray(String type) {
+		if(getTopOfStackObject() == Opcodes.NULL)
+		{
+//			super.visitInsn(ACONST_NULL);
+		}
+		else{
 		super.visitInsn(DUP);
 		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ArrayHelper.class), "getTags", "(Ljava/lang/Object;)[I", false);
 		super.visitInsn(SWAP);
+		}
 	}
 
 	/**
@@ -996,11 +994,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 		//		Type ownerType = Type.getType(owner + ";");
 		boolean isCallToPrimitiveArrayClone = opcode == INVOKEVIRTUAL && desc.equals("()Ljava/lang/Object;") && name.equals("clone") && getTopOfStackType().getSort() == Type.ARRAY
-				&& getTopOfStackType().getElementType().getSort() != Type.OBJECT;
+				&& getTopOfStackType().getElementType().getSort() != Type.OBJECT && getTopOfStackType().getDimensions() == 1;
 		//When you call primitive array clone, we should first clone the taint array, then register that taint array to the cloned object after calling clone
 		Type primitiveArrayType = null;
 		if (isCallToPrimitiveArrayClone) {
-			//			System.out.println("Call to primitive array clone: " + analyzer.stack + " " + owner);
 			primitiveArrayType = getTopOfStackType();
 			//TA A
 			super.visitInsn(SWAP);
@@ -1019,13 +1016,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			//We have several scenarios here. src/dest may or may not have shadow arrays on the stack
 			boolean destIsPrimitve = false;
 			Type destType = getStackTypeAtOffset(4);
-			destIsPrimitve = destType.getSort() != Type.OBJECT && destType.getElementType().getSort() != Type.OBJECT;
+			destIsPrimitve = destType.getSort() == Type.ARRAY && destType.getElementType().getSort() != Type.OBJECT && destType.getDimensions() == 1;
 			int srcOffset = 7;
 			if (destIsPrimitve)
 				srcOffset++;
-			//			System.out.println("Sysarracopy with " + analyzer.stack);
+//						System.out.println("Sysarracopy with " + analyzer.stack);
 			Type srcType = getStackTypeAtOffset(srcOffset);
-			boolean srcIsPrimitive = srcType.getSort() != Type.OBJECT && srcType.getElementType().getSort() != Type.OBJECT;
+			boolean srcIsPrimitive = srcType.getSort() == Type.ARRAY && srcType.getElementType().getSort() != Type.OBJECT && srcType.getDimensions() == 1;
 			if (srcIsPrimitive) {
 				if (destIsPrimitve) {
 					desc = "(Ljava/lang/Object;Ljava/lang/Object;IILjava/lang/Object;Ljava/lang/Object;IIII)V";
@@ -1079,7 +1076,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				Type callee = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - argsSize - 1));
 				if (TaintUtils.DEBUG_CALLS)
 					System.out.println("CALLEE IS " + callee);
-				if (callee.getSort() == Type.ARRAY && callee.getElementType().getSort() != Type.OBJECT)
+				if (callee.getSort() == Type.ARRAY && callee.getElementType().getSort() != Type.OBJECT && callee.getDimensions() == 1)
 					isCalledOnAPrimitiveArrayType = true;
 			}
 
@@ -1201,7 +1198,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			Type callee = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - argsSize - 1));
 			if (TaintUtils.DEBUG_CALLS)
 				System.out.println("CALLEE IS " + callee);
-			if (callee.getSort() == Type.ARRAY && callee.getElementType().getSort() != Type.OBJECT)
+			if (callee.getSort() == Type.ARRAY && callee.getElementType().getSort() != Type.OBJECT && callee.getDimensions() == 1)
 				isCalledOnAPrimitiveArrayType = true;
 		}
 
@@ -1212,9 +1209,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			//Now we have cloned (but not casted) array, and a clopned( but not casted) taint array
 			//TA A
 			//			System.out.println(owner + name + newDesc + ": " + analyzer.stack);
-			super.visitTypeInsn(CHECKCAST, primitiveArrayType.getInternalName());
-			//			System.out.println(owner + name + newDesc + ": " + analyzer.stack);
+//			super.visitTypeInsn(CHECKCAST, primitiveArrayType.getInternalName());
+//						System.out.println(owner + name + newDesc + ": " + analyzer.stack);
 			registerTaintedArray(primitiveArrayType.getDescriptor());
+//			System.out.println(owner + name + newDesc + ": " + analyzer.stack);
 		} else if (isCalledOnAPrimitiveArrayType) {
 			if (TaintUtils.DEBUG_CALLS)
 				System.out.println("Post invoke stack: " + analyzer.stack);
@@ -1235,23 +1233,20 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		String taintType = TaintUtils.getShadowTaintType(Type.getReturnType(desc).getDescriptor());
 		if (taintType != null) {
-			super.visitInsn(DUP);
-			if (Type.getReturnType(desc).getSort() == Type.ARRAY && Type.getReturnType(desc).getDimensions() > 1) {
-				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "taint", "Ljava/lang/Object;");
-				super.visitTypeInsn(CHECKCAST, Type.getReturnType(desc).getDescriptor().substring(0, Type.getReturnType(desc).getDescriptor().length() - 1) + "I");
-			} else {
+			if(Type.getReturnType(desc).getSort() == Type.ARRAY)
+			{
+				retrieveTaintedArray(Type.getReturnType(desc).getDescriptor());
+			}
+			else {
+				super.visitInsn(DUP);
 				String taintTypeRaw = "I";
 				if (Type.getReturnType(desc).getSort() == Type.ARRAY)
 					taintTypeRaw = "[I";
 				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "taint", taintTypeRaw);
-			}
-			super.visitInsn(SWAP);
-			if (returnType.equals(Type.getType(TaintedMisc.class))) {
-				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "val", "Ljava/lang/Object;");
-				super.visitTypeInsn(CHECKCAST, origReturnType.getDescriptor());
-			} else
-				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "val", origReturnType.getDescriptor());
 
+				super.visitInsn(SWAP);
+				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "val", origReturnType.getDescriptor());
+			}
 		}
 		if (TaintUtils.DEBUG_CALLS)
 			System.out.println("Post invoke stack post swap pop maybe: " + analyzer.stack);
@@ -1510,62 +1505,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
 				if (TaintUtils.DEBUG_FRAMES)
 					System.out.println("PRE-AASTORE w/ mutlid array " + t + ": " + analyzer.stack);
+				registerTaintedArray(t.getDescriptor());
 				//We don't know if we're storing it in a multi-d array of this type, or of type Object[]. If it's
 				//type Object[] then we will not be storing the taint! Let's find out what the array beneath us is.
-				if (analyzer.stack.size() >= 5) {
-					Object wayBelow = analyzer.stack.get(analyzer.stack.size() - 5);
-					Type wayBelowType = getTypeForStackType(wayBelow);
-					if (TaintUtils.DEBUG_FRAMES)
-						System.out.println("Type we are storing into: " + wayBelowType + " --- " + analyzer.stack);
-					if (wayBelowType.getSort() == Type.OBJECT || wayBelowType.getElementType().getSort() == Type.OBJECT) {
-						//In this case, we want to drop the taint on the index and the taint array too.
-						//Also, since there's a taint, we need to wrap that up.
-						//And right here, it looks like:
-						//A TI I T V
-						super.visitInsn(DUP2_X2);
-						super.visitInsn(POP2);
-						//A T V TI I
-						super.visitInsn(SWAP);
-						super.visitInsn(POP);
-						//A T V I
-						super.visitInsn(DUP_X2);
-						super.visitInsn(POP);
-						//A I T V
-						registerTaintedArray(getTopOfStackType().getDescriptor());
-						//						System.out.println(analyzer.stack);
-						//A I V
-						super.visitInsn(AASTORE);
-						if (TaintUtils.DEBUG_FRAMES)
-							System.out.println("POST-AASTORE w/ mutlid array " + t + ": " + analyzer.stack);
-						//						throw new IllegalStateException(analyzer.stack.toString());
-						return;
-					}
-				}
-				//this is a multi-d array. make it work, even if it's nasty.
-				//				System.out.println("PRE-AASTORE w/ multid array: " + t + " : " + analyzer.stack);
-				super.visitInsn(SWAP);
-				super.visitInsn(TaintUtils.IS_TMP_STORE);
-				int tmpLocal = lvs.getTmpLV();
-				super.visitVarInsn(ASTORE, tmpLocal);
-				super.visitInsn(DUP2_X1);
-				super.visitInsn(POP2);
-				super.visitInsn(POP);
-				super.visitInsn(SWAP);
-				super.visitInsn(DUP_X2);
-				super.visitInsn(SWAP);
-				super.visitInsn(AASTORE);
-				super.visitVarInsn(ALOAD, tmpLocal);
-				lvs.freeTmpLV(tmpLocal);
-				super.visitInsn(opcode);
-				if (TaintUtils.DEBUG_FRAMES)
-					System.out.println("POST-AASTORE w/ mutlid array " + t + ": " + analyzer.stack);
-
-			} else {
-				super.visitInsn(DUP2_X1);
-				super.visitInsn(POP2);
-				super.visitInsn(POP);
-				super.visitInsn(opcode);
+				
 			}
+				super.visitInsn(DUP2_X1);
+				super.visitInsn(POP2);
+				super.visitInsn(POP);
+				super.visitInsn(opcode);
 			break;
 		case Opcodes.IASTORE:
 		case Opcodes.LASTORE:
@@ -2405,56 +2353,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			break;
 		case Opcodes.ARETURN:
 			Type onStack = getTopOfStackType();
-			if (originalMethodReturnType.getSort() == Type.ARRAY) {
-				if (onStack.getElementType().getSort() == Type.OBJECT && onStack.getElementType().getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
-					super.visitInsn(opcode);
-					return;
-				} else if (originalMethodReturnType.getDimensions() > 1 && (onStack.getSort() != Type.ARRAY || onStack.getElementType().getSort() == Type.OBJECT)) {
-					super.visitInsn(opcode);
-					return;
-				}
-				switch (originalMethodReturnType.getElementType().getSort()) {
-				case Type.INT:
-				case Type.LONG:
-				case Type.BOOLEAN:
-				case Type.BYTE:
-				case Type.CHAR:
-				case Type.DOUBLE:
-				case Type.FLOAT:
-				case Type.SHORT:
-					//If we are returning and there is a NULL on the top of the stack, we need another!
-					if (topStackElIsNull()) {
-						super.visitInsn(ACONST_NULL);
-					}
-					//					//T V
-					//					//					System.out.println("zzzNEW " + newReturnType);
-					//					super.visitTypeInsn(NEW, newReturnType.getInternalName()); //T V N
-					//					super.visitInsn(DUP_X2); //N T V N
-					//					super.visitInsn(DUP_X2); //N N T V N
-					//					super.visitInsn(POP); //N N T V
-					//					if (originalMethodReturnType.getDimensions() > 1) {
-					//						super.visitTypeInsn(CHECKCAST, "java/lang/Object"); // NNTV
-					//						super.visitInsn(SWAP);//NNVT
-					//						super.visitTypeInsn(CHECKCAST, "java/lang/Object");
-					//						super.visitInsn(SWAP);//NNTV
-					//						super.visitMethodInsn(INVOKESPECIAL, newReturnType.getInternalName(), "<init>", "(Ljava/lang/Object;Ljava/lang/Object;)V");
-					//					} else
-					//						super.visitMethodInsn(INVOKESPECIAL, newReturnType.getInternalName(), "<init>", "([I" + originalMethodReturnType.getDescriptor() + ")V");
-					//					super.visitInsn(opcode);
-					retIdx = lvs.getPreAllocedReturnTypeVar(newReturnType);
-					super.visitVarInsn(ALOAD, retIdx);
-					super.visitInsn(SWAP);
-					super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());
-					super.visitVarInsn(ALOAD, retIdx);
-					super.visitInsn(SWAP);
-					super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", "[I");
-					super.visitVarInsn(ALOAD, retIdx);
-					super.visitInsn(ARETURN);
-					break;
-				default:
-					super.visitInsn(opcode);
-				}
-			} else if (onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT) {
+			if (onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT && onStack.getDimensions() == 1) {
 				registerTaintedArray(getTopOfStackType().getDescriptor());
 				super.visitInsn(opcode);
 			} else
@@ -2464,10 +2363,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(opcode);
 			break;
 		case Opcodes.ARRAYLENGTH:
-
 			Type arrType = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 1));
-			{
-				if (arrType.getElementType().getSort() != Type.OBJECT) {
+
+				if (arrType.getElementType().getSort() != Type.OBJECT && arrType.getDimensions() == 1) {
 					//TA A
 					super.visitInsn(SWAP);
 					super.visitInsn(POP);
@@ -2477,7 +2375,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(ICONST_0);
 				super.visitInsn(SWAP);
 
-			}
+
 			//			System.out.println("post arraylength " + analyzer.stack);
 			break;
 		case Opcodes.ATHROW:
@@ -2513,7 +2411,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	@Override
 	public void visitJumpInsn(int opcode, Label label) {
-		//		System.out.println(Printer.OPCODES[opcode]);
 		if (isIgnoreAllInstrumenting) {
 			super.visitJumpInsn(opcode, label);
 			return;
@@ -2579,6 +2476,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		case Opcodes.IF_ACMPNE:
 		case Opcodes.IF_ACMPEQ:
 			//Logic for dealing with the taints on the stack is now in JumpLoggingMV
+//			System.out.println(Textifier.OPCODES[opcode] + analyzer.stack);
 			super.visitJumpInsn(opcode, label);
 			break;
 		case Opcodes.GOTO:

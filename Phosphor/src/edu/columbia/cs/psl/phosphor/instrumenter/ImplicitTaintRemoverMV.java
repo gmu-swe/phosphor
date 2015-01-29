@@ -80,13 +80,13 @@ public class ImplicitTaintRemoverMV extends TaintAdapter implements Opcodes {
 		case Opcodes.IF_ACMPNE:
 
 			Type typeOnStack = getTopOfStackType();
-			if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
+			if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT && typeOnStack.getDimensions() == 1) {
 				super.visitInsn(SWAP);
 				super.visitInsn(POP);
 			}
 			//O1 O2 (t2?)
 			Type secondOnStack = getStackTypeAtOffset(1);
-			if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT) {
+			if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT && secondOnStack.getDimensions() == 1) {
 				//O1 O2 T2
 				super.visitInsn(DUP2_X1);
 				super.visitInsn(POP2);
@@ -103,7 +103,7 @@ public class ImplicitTaintRemoverMV extends TaintAdapter implements Opcodes {
 		case Opcodes.IFNONNULL:
 
 			typeOnStack = getTopOfStackType();
-			if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
+			if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT && typeOnStack.getDimensions() == 1) {
 				//O1 T1
 				super.visitInsn(SWAP);
 				super.visitInsn(POP);

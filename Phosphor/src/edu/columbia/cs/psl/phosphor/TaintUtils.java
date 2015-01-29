@@ -60,7 +60,7 @@ public class TaintUtils {
 	public static final boolean DEBUG_FRAMES = false || DEBUG_ALL;
 	public static final boolean DEBUG_FIELDS = false || DEBUG_ALL;
 	public static final boolean DEBUG_LOCAL = false || DEBUG_ALL;
-	public static final boolean DEBUG_CALLS = true|| DEBUG_ALL;
+	public static final boolean DEBUG_CALLS = false|| DEBUG_ALL;
 	public static final boolean DEBUG_OPT = false;
 	public static final boolean DEBUG_PURE = false;
 
@@ -240,9 +240,6 @@ public class TaintUtils {
 		return "I";
 	}
 
-	public static Type getContainerReturnType(String originalReturnType) {
-		return getContainerReturnType(Type.getType(originalReturnType));
-	}
 
 	public static Type getContainerReturnType(Type originalReturnType) {
 		switch (originalReturnType.getSort()) {
