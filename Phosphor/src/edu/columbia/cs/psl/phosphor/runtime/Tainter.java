@@ -4,22 +4,13 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByte;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedChar;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDouble;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloat;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLong;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShort;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArray;
 
 public class Tainter {
 	static class Entry
@@ -100,97 +91,97 @@ public class Tainter {
 	{
 		return ca;
 	}
-	public static TaintedCharArray taintedCharArray$$INVIVO_PC(int[] oldCA, char[] ca, int b, int tag, TaintedCharArray ret)
+	public static char[] taintedCharArray$$INVIVO_PC(int[] oldCA, char[] ca, int b, int tag)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
+		int[] taint = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+			taint[i] = tag;
+		ArrayHelper.setTags(ca, taint);
+		return ca;
 	}
 	public static boolean[] taintedBooleanArray(boolean[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedBooleanArray taintedBooleanArray$$INVIVO_PC(int[] oldCA, boolean[] ca, int b, int tag, TaintedBooleanArray ret)
+	public static boolean[] taintedBooleanArray$$INVIVO_PC(int[] oldCA, boolean[] ca, int b, int tag)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
+		int[] taint = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+			taint[i] = tag;
+		ArrayHelper.setTags(ca, taint);
+		return ca;
 	}
 	public static byte[] taintedByteArray(byte[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedByteArray taintedByteArray$$INVIVO_PC(int[] oldCA, byte[] ca, int b, int tag, TaintedByteArray ret)
+	public static byte[] taintedByteArray$$INVIVO_PC(int[] oldCA, byte[] ca, int b, int tag)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
+		int[] taint = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+			taint[i] = tag;
+		ArrayHelper.setTags(ca, taint);
+		return ca;
 	}
 	public static double[] taintedDoubleArray(double[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedDoubleArray taintedDoubleArray$$INVIVO_PC(int[] oldCA, double[] ca, int b, int tag, TaintedDoubleArray ret)
+	public static double[] taintedDoubleArray$$INVIVO_PC(int[] oldCA, double[] ca, int b, int tag)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
+		int[] taint = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+			taint[i] = tag;
+		ArrayHelper.setTags(ca, taint);
+		return ca;
 	}
 	public static float[] taintedFloatArray(float[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedFloatArray taintedFloatArray$$INVIVO_PC(int[] oldCA, float[] ca, int b, int tag, TaintedFloatArray ret)
+	public static float[] taintedFloatArray$$INVIVO_PC(int[] oldCA, float[] ca, int b, int tag)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
+		int[] taint = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+			taint[i] = tag;
+		ArrayHelper.setTags(ca, taint);
+		return ca;
 	}
 	public static int[] taintedIntArray(int[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedIntArray taintedIntArray$$INVIVO_PC(int[] oldCA, int[] ca, int b, int tag, TaintedIntArray ret)
+	public static int[] taintedIntArray$$INVIVO_PC(int[] oldCA, int[] ca, int b, int tag)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
+		int[] taint = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+			taint[i] = tag;
+		ArrayHelper.setTags(ca, taint);
+		return ca;
 	}
 	public static long[] taintedLongArray(long[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedLongArray taintedLongArray$$INVIVO_PC(int[] oldCA, long[] ca, int b, int tag, TaintedLongArray ret)
+	public static long[] taintedLongArray$$INVIVO_PC(int[] oldCA, long[] ca, int b, int tag)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
+		int[] taint = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+			taint[i] = tag;
+		ArrayHelper.setTags(ca, taint);
+		return ca;
 	}
 	public static short[] taintedShortArray(short[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedShortArray taintedShortArray$$INVIVO_PC(int[] oldCA, short[] ca, int b, int tag, TaintedShortArray ret)
+	public static short[] taintedShortArray$$INVIVO_PC(int[] oldCA, short[] ca, int b, int tag)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
+		int[] taint = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+			taint[i] = tag;
+		ArrayHelper.setTags(ca, taint);
+		return ca;
 	}
 	public static void dumpTaint(byte i)
 	{
@@ -313,7 +304,7 @@ public class Tainter {
 	{
 		System.out.println("char c:" + c);
 	}
-	public static void dumpTaint$$INVIVO_PC(MultiDTaintedCharArray[][] ar)
+	public static void dumpTaint$$INVIVO_PC(char[][] ar)
 	{
 		System.out.println("its boxed");
 	}

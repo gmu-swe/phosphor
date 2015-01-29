@@ -13,7 +13,6 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.InstructionAdapter
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class MethodArgReindexer extends InstructionAdapter {
 	int originalLastArgIdx;
@@ -191,9 +190,9 @@ public class MethodArgReindexer extends InstructionAdapter {
 				}
 				
 				remappedLocals[newIdx] = local[i];
-				if (local[i] != Opcodes.TOP && local[i] instanceof String &&((String) local[i]).length() > 1 && ((String) local[i]).charAt(1) == '[' && Type.getObjectType((String) local[i]).getElementType().getSort() != Type.OBJECT) {
-					remappedLocals[newIdx] = MultiDTaintedArray.getTypeForType(Type.getObjectType((String) local[i])).getInternalName();
-				}
+//				if (local[i] != Opcodes.TOP && local[i] instanceof String &&((String) local[i]).length() > 1 && ((String) local[i]).charAt(1) == '[' && Type.getObjectType((String) local[i]).getElementType().getSort() != Type.OBJECT) {
+//					remappedLocals[newIdx] = MultiDTaintedArray.getTypeForType(Type.getObjectType((String) local[i])).getInternalName();
+//				}
 				newIdx++;
 
 				
@@ -229,9 +228,9 @@ public class MethodArgReindexer extends InstructionAdapter {
 					nStack++;
 				}
 			}
-			if (stack[i] != Opcodes.TOP && stack[i] instanceof String && ((String) stack[i]).charAt(1) == '[' && Type.getObjectType((String) stack[i]).getElementType().getSort() != Type.OBJECT) {
-				newStack.add(MultiDTaintedArray.getTypeForType(Type.getObjectType((String) stack[i])).getInternalName());
-			} else
+//			if (stack[i] != Opcodes.TOP && stack[i] instanceof String && ((String) stack[i]).charAt(1) == '[' && Type.getObjectType((String) stack[i]).getElementType().getSort() != Type.OBJECT) {
+//				newStack.add(MultiDTaintedArray.getTypeForType(Type.getObjectType((String) stack[i])).getInternalName());
+//			} else
 				newStack.add(stack[i]);
 		}
 		Object[] stack2 = new Object[newStack.size()];

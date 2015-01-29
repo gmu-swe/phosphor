@@ -17,7 +17,6 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodInsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MultiANewArrayInsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.TypeInsnNode;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class ConstantValueNullTaintGenerator extends MethodVisitor implements Opcodes {
 	public ConstantValueNullTaintGenerator(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv) {
@@ -192,61 +191,17 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 										isRaw = !isRaw;
 										break;
 									case Opcodes.MULTIANEWARRAY:
-										MultiANewArrayInsnNode main = (MultiANewArrayInsnNode) insn;
-
-										Type arrayType = Type.getType(main.desc);
-										Type origType = Type.getType(main.desc);
-										boolean needToHackDims = false;
-										if (arrayType.getElementType().getSort() != Type.OBJECT) {
-											if (main.dims == arrayType.getDimensions()) {
-												needToHackDims = true;
-											}
-											arrayType = MultiDTaintedArray.getTypeForType(arrayType);
-											//Type.getType(MultiDTaintedArray.getClassForComponentType(arrayType.getElementType().getSort()));
-											main.desc = arrayType.getInternalName();
-										}
-										if (needToHackDims) {
-											if (main.dims == 2) {
-												uninstrumented.instructions.insertBefore(insn, new InsnNode(SWAP));
-											} else if (main.dims == 3) {
-												uninstrumented.instructions.insertBefore(insn, new InsnNode(DUP_X2));
-												uninstrumented.instructions.insertBefore(insn, new InsnNode(POP));
-											} else {
-												throw new IllegalArgumentException();
-											}
-											//Stack has Capacity repeated dims times
-											main.dims--;
-											//NB that this is backwards
-											uninstrumented.instructions.insert(insn, new MethodInsnNode(INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "initLastDim",
-													"([Ljava/lang/Object;I)V",false));
-											uninstrumented.instructions.insert(insn, new IntInsnNode(BIPUSH, origType.getSort()));
-											uninstrumented.instructions.insert(insn, new InsnNode(DUP));
-
-										}
 										break;
 									case Opcodes.ANEWARRAY:
-										TypeInsnNode tin = (TypeInsnNode) insn;
-										Type t = Type.getType(tin.desc);
-										if (t.getElementType().getDescriptor().length() == 1) {
-											//e.g. [I for a 2 D array -> MultiDTaintedIntArray
-											tin.desc = MultiDTaintedArray.getTypeForType(t).getInternalName();
-										}
 										break;
 									case Opcodes.GETSTATIC:
 									case Opcodes.GETFIELD:
-										FieldInsnNode fin = (FieldInsnNode) insn;
-										t = Type.getType(fin.desc);
-										if (!isRaw && t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() > 1) {
-											//											uninstrumented.instructions.insert(fin, new TypeInsnNode(Opcodes.CHECKCAST, t.getDescriptor()));
-											//											uninstrumented.instructions.insert(fin, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxRaw",
-											//													"(Ljava/lang/Object;)Ljava/lang/Object;"));
-											fin.desc = MultiDTaintedArray.getTypeForType(Type.getType(fin.desc)).getDescriptor();
-										}
+
 										break;
 									case Opcodes.PUTSTATIC:
 									case Opcodes.PUTFIELD:
-										fin = (FieldInsnNode) insn;
-										t = Type.getType(fin.desc);
+										FieldInsnNode fin = (FieldInsnNode) insn;
+										Type t = Type.getType(fin.desc);
 										switch (t.getSort()) {
 										case Type.INT:
 										case Type.BOOLEAN:
@@ -273,15 +228,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 											case Type.LONG:
 											case Type.SHORT:
 //												String taintDesc = t.getDescriptor().substring(0, t.getDescriptor().length() - 1) + "I";
-												if (t.getDimensions() > 1) {
-													uninstrumented.instructions.insertBefore(fin, new IntInsnNode(Opcodes.BIPUSH, t.getSort()));
-													uninstrumented.instructions.insertBefore(fin, new IntInsnNode(Opcodes.BIPUSH, t.getDimensions()));
-													uninstrumented.instructions.insertBefore(fin, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
-															"initWithEmptyTaints", "([Ljava/lang/Object;II)[Ljava/lang/Object;",false));
-													uninstrumented.instructions.insertBefore(fin, new TypeInsnNode(Opcodes.CHECKCAST, t.getDescriptor()));
-
-													fin.desc = MultiDTaintedArray.getTypeForType(Type.getType(fin.desc)).getDescriptor();
-												} else {
+												if (t.getDimensions() == 1) {
 													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
 													//Initialize a new 1D array of the right length
 													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
@@ -304,14 +251,6 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 
 										break;
 									case Opcodes.AASTORE:
-										if (an.stack.get(an.stack.size() - 1) instanceof String) {
-											Type storeType = Type.getObjectType((String) an.stack.get(an.stack.size() - 1));
-											if (storeType.getSort() == Type.ARRAY && storeType.getElementType().getSort() != Type.OBJECT) {
-												uninstrumented.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
-														"boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;",false));
-												uninstrumented.instructions.insertBefore(insn, new TypeInsnNode(Opcodes.CHECKCAST, MultiDTaintedArray.getTypeForType(storeType).getInternalName()));
-											}
-										}
 										break;
 									case Opcodes.ARETURN:
 										//WOOOOOAHHHH we are assuming that we can *only* be putstatic'ing on objects or arrays, so always 1 word

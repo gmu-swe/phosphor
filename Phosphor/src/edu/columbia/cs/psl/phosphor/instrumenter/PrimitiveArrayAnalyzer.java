@@ -320,10 +320,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 									if (output1Top != null && output1Top != inputTop) {
 										Type inputTopType = TaintAdapter.getTypeForStackType(inputTop);
 										Type outputTopType = TaintAdapter.getTypeForStackType(output1Top);
-										if ((output1Top == Opcodes.NULL) && inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() != Type.OBJECT
+										if ((output1Top == Opcodes.NULL) && inputTopType.getSort() == Type.ARRAY 
 												&& inputTopType.getDimensions() == 1) {
 											insertACONSTNULLBEFORE.add(toMerge);
-										} else if ((inputTopType.getSort() == Type.OBJECT || (inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() == Type.OBJECT)) && outputTopType.getSort() == Type.ARRAY && outputTopType.getElementType().getSort() != Type.OBJECT
+										} else if ((inputTopType.getSort() == Type.OBJECT || (inputTopType.getSort() == Type.ARRAY)) && outputTopType.getSort() == Type.ARRAY 
 												&& inputTopType.getDimensions() == 1) {
 											insertACHECKCASTBEFORE.add(toMerge);
 										}
@@ -337,7 +337,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 										if (out instanceof String && in instanceof String) {
 											Type tout = Type.getObjectType((String) out);
 											Type tin = Type.getObjectType((String) in);
-											if (tout.getSort() == Type.ARRAY && tout.getElementType().getSort() != Type.OBJECT && tout.getDimensions() == 1 && tin.getSort() == Type.OBJECT) {
+											if (tout.getSort() == Type.ARRAY && tout.getDimensions() == 1 && tin.getSort() == Type.OBJECT) {
 												int insnN = getLastInsnByLabel(labelToMerge);
 //												System.out.println(name+desc);
 //																							System.out.println(outFrames + " out, " + in + " In" + " i "+i);
@@ -537,11 +537,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		boolean covered;
 		HashSet<Integer> varsAccessed = new HashSet<Integer>();
 	}
-	private static boolean isPrimitiveArrayType(BasicValue v) {
-		if (v == null || v.getType() == null)
-			return false;
-		return v.getType().getSort() == Type.ARRAY && v.getType().getElementType().getSort() != Type.OBJECT;
-	}
+
 
 	static final boolean DEBUG = false;
 	public HashSet<Type> wrapperTypesToPreAlloc = new HashSet<Type>();

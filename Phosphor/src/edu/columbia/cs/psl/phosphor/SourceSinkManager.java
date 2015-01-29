@@ -3,22 +3,13 @@ package edu.columbia.cs.psl.phosphor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodInsnNode;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByte;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedChar;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDouble;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloat;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLong;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShort;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public abstract class SourceSinkManager {
 	public abstract boolean isSource(String str);
@@ -51,10 +42,6 @@ public abstract class SourceSinkManager {
 					r += t.getDescriptor();
 					isSkipping = !isSkipping;
 				}
-			} else if (t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
-				r += MultiDTaintedArray.getPrimitiveTypeForWrapper(t.getDescriptor()).getDescriptor();
-			} else if (t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct")) {
-				//ignore
 			} else
 				r += t;
 		}
@@ -64,41 +51,22 @@ public abstract class SourceSinkManager {
 
 	private static String remapReturnType(Type returnType) {
 		if (returnType.getSort() == Type.OBJECT) {
-			if (returnType.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
-				return MultiDTaintedArray.getPrimitiveTypeForWrapper(returnType.getInternalName()).getDescriptor();
-			}
 			if (returnType.getInternalName().equals(Type.getInternalName(TaintedByte.class)))
-				return "B";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteArray.class)))
 				return "B";
 			if (returnType.getInternalName().equals(Type.getInternalName(TaintedBoolean.class)))
 				return "Z";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanArray.class)))
-				return "[Z";
 			if (returnType.getInternalName().equals(Type.getInternalName(TaintedChar.class)))
 				return "C";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharArray.class)))
-				return "[C";
 			if (returnType.getInternalName().equals(Type.getInternalName(TaintedDouble.class)))
 				return "D";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleArray.class)))
-				return "[D";
 			if (returnType.getInternalName().equals(Type.getInternalName(TaintedInt.class)))
 				return "I";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntArray.class)))
-				return "[I";
 			if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloat.class)))
 				return "F";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatArray.class)))
-				return "[F";
 			if (returnType.getInternalName().equals(Type.getInternalName(TaintedLong.class)))
 				return "J";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongArray.class)))
-				return "[J";
 			if (returnType.getInternalName().equals(Type.getInternalName(TaintedShort.class)))
 				return "S";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortArray.class)))
-				return "[S";
 		}
 		return returnType.getDescriptor();
 	}

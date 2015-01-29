@@ -5,7 +5,6 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
@@ -16,11 +15,6 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	@Override
 	public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
 		Type descType = Type.getType(desc);
-		if(descType.getSort() == Type.ARRAY && descType.getDimensions() > 1 && descType.getElementType().getSort() != Type.OBJECT)
-		{
-			//remap!
-			desc = MultiDTaintedArray.getTypeForType(descType).getDescriptor();
-		}
 		super.visitLocalVariable(name, desc, signature, start, end, index);
 	}
 	@Override

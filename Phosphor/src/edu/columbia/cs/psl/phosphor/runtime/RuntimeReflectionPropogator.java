@@ -4,50 +4,19 @@ import java.lang.reflect.Field;
 import java.util.WeakHashMap;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByte;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedChar;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDouble;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloat;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLong;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitive;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShort;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class RuntimeReflectionPropogator {
 
-	public static Class<?> getType(Field f)
-	{
-		Class<?> ret = f.getType();
-		Class<?> component = ret;
-		while(component.isArray())
-			component = component.getComponentType();
-		if(MultiDTaintedArray.class.isAssignableFrom(component))
-		{
-			Type t = Type.getType(ret);
-			String newType = "[";
-			for(int i = 0; i < t.getDimensions(); i++)
-				newType += "[";
-			newType += MultiDTaintedArray.getPrimitiveTypeForWrapper(component);
-			try {
-				ret = Class.forName(newType);
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		return ret;
-	}
+
 	public static Object get(Field f, Object obj) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		Object ret = f.get(obj);
@@ -61,24 +30,9 @@ public class RuntimeReflectionPropogator {
 					taintField.setAccessible(true);
 					fieldToField.put(f, taintField);
 				}
-				Object taint = taintField.get(obj);
-				if (f.getType().getComponentType() == Boolean.TYPE) {
-					return new TaintedBooleanArray((int[]) taint, (boolean[]) ret);
-				} else if (f.getType().getComponentType() == Byte.TYPE) {
-					return new TaintedByteArray((int[]) taint, (byte[]) ret);
-				} else if (f.getType().getComponentType() == Character.TYPE) {
-					return new TaintedCharArray((int[]) taint, (char[]) ret);
-				} else if (f.getType().getComponentType() == Double.TYPE) {
-					return new TaintedDoubleArray((int[]) taint, (double[]) ret);
-				} else if (f.getType().getComponentType() == Float.TYPE) {
-					return new TaintedFloatArray((int[]) taint, (float[]) ret);
-				} else if (f.getType().getComponentType() == Integer.TYPE) {
-					return new TaintedIntArray((int[]) taint, (int[]) ret);
-				} else if (f.getType().getComponentType() == Long.TYPE) {
-					return new TaintedLongArray((int[]) taint, (long[]) ret);
-				} else if (f.getType().getComponentType() == Short.TYPE) {
-					return new TaintedShortArray((int[]) taint, (short[]) ret);
-				}
+				int[] taint = (int[]) taintField.get(obj);
+				ArrayHelper.setTags(ret, taint);
+				return ret;
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -484,6 +438,16 @@ public class RuntimeReflectionPropogator {
 					e.printStackTrace();
 				}
 				return;
+			} else if(val.getClass().isArray() && val.getClass().getComponentType().isPrimitive())
+			{
+				int[] taint = ArrayHelper.getTags(val);
+				try {
+					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, taint);
+				} catch (NoSuchFieldException e) {
+					e.printStackTrace();
+				} catch (SecurityException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		f.setAccessible(true);

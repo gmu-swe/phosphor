@@ -5,29 +5,21 @@ import java.lang.reflect.Array;
 import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStore;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByte;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedChar;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDouble;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloat;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLong;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitive;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShort;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class TaintUtils {
 	static Object lock = new Object();
@@ -68,7 +60,7 @@ public class TaintUtils {
 	public static final boolean DEBUG_FRAMES = false || DEBUG_ALL;
 	public static final boolean DEBUG_FIELDS = false || DEBUG_ALL;
 	public static final boolean DEBUG_LOCAL = false || DEBUG_ALL;
-	public static final boolean DEBUG_CALLS = false || DEBUG_ALL;
+	public static final boolean DEBUG_CALLS = true|| DEBUG_ALL;
 	public static final boolean DEBUG_OPT = false;
 	public static final boolean DEBUG_PURE = false;
 
@@ -95,8 +87,6 @@ public class TaintUtils {
 		Type retType = Type.getReturnType(methodDescriptor);
 		if(retType.getSort() == Type.OBJECT || retType.getSort() == Type.VOID)
 			return false;
-		if(retType.getSort() == Type.ARRAY && retType.getElementType().getSort() != Type.OBJECT && retType.getDimensions() == 1)
-			return true;
 		else if(retType.getSort() == Type.ARRAY)
 			return false;
 		return true;
@@ -195,25 +185,17 @@ public class TaintUtils {
 	public static int OKtoDebugINVIVO_PC_TAINT;
 
 	public static void arraycopy(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
-		if(!src.getClass().isArray())
+		System.arraycopy(src, srcPos, dest, destPos, length);
+		if(src.getClass().getComponentType().isPrimitive())
 		{
-			System.arraycopy(((MultiDTaintedArray)src).getVal(), srcPos, ((MultiDTaintedArray)dest).getVal(), destPos, length);
-			System.arraycopy(((MultiDTaintedArray)src).taint, srcPos, ((MultiDTaintedArray)dest).taint, destPos, length);
+			//Also copy the taint arrays
+			int[] newTags = new int[length];
+			System.arraycopy(ArrayHelper.getTags(src), srcPos, newTags, destPos, length);
+			ArrayHelper.setTags(dest, newTags);
 		}
-		else
-			System.arraycopy(src, srcPos, dest, destPos, length);
 	}
 
-	public static void arraycopyVM(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
-		if(!src.getClass().isArray())
-		{
-			VMSystem.arraycopy0(((MultiDTaintedArray)src).getVal(), srcPos, ((MultiDTaintedArray)dest).getVal(), destPos, length);
-			VMSystem.arraycopy0(((MultiDTaintedArray)src).taint, srcPos, ((MultiDTaintedArray)dest).taint, destPos, length);
-		}
-		else
-			VMSystem.arraycopy0(src, srcPos, dest, destPos, length);
-	}
-	
+
 	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		throw new ArrayStoreException("Can't copy from src with taint to dest w/o taint!");
 	}
@@ -233,53 +215,8 @@ public class TaintUtils {
 		}
 
 	}
-	public static void arraycopyVM(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
-		VMSystem.arraycopy0(src, srcPos, dest, destPos, length);
-		
-//		if (VM.isBooted$$INVIVO_PC(new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
-//			if(srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
-//		System.out.println(src);
-//		System.out.println(srcTaint);
-		if(srcTaint != null && destTaint != null && srcTaint.getClass() == destTaint.getClass())
-			VMSystem.arraycopy0(srcTaint, srcPos, destTaint, destPos, length);
-//		}
+	
 
-	}
-	static int bar;
-	static void truep()
-	{
-		bar++;
-	}
-	static void falsep()
-	{
-		bar++;
-	}
-	public static void arraycopyHarmony(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
-		if(!src.getClass().isArray())
-		{
-			VMMemoryManager.arrayCopy(((MultiDTaintedArray)src).getVal(), srcPos, ((MultiDTaintedArray)dest).getVal(), destPos, length);
-			VMMemoryManager.arrayCopy(((MultiDTaintedArray)src).taint, srcPos, ((MultiDTaintedArray)dest).taint, destPos, length);
-		}
-		else
-		{
-			VMMemoryManager.arrayCopy(src, srcPos, dest, destPos, length);
-		}
-//		dest = src;
-	}
-	public static void arraycopyHarmony(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
-//		System.err.println("OK");
-		VMMemoryManager.arrayCopy(src, srcPos, dest, destPos, length);
-//		System.arraycopy(src, srcPos, dest, destPos, length);
-//		dest = src;
-//		if (VM.isBooted$$INVIVO_PC(new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
-//			if(srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
-//		System.out.println(src);
-//		System.out.println(srcTaint);
-		if(srcTaint != null && destTaint != null && srcTaint.getClass() == destTaint.getClass())
-			VMMemoryManager.arrayCopy(srcTaint, srcPos, destTaint, destPos, length);
-//		}
-
-	}
 	public static Object getShadowTaintTypeForFrame(String typeDesc) {
 		Type t = Type.getType(typeDesc);
 		if (t.getSort() == Type.OBJECT || t.getSort() == Type.VOID)
@@ -296,10 +233,8 @@ public class TaintUtils {
 		Type t = Type.getType(typeDesc);
 		if (t.getSort() == Type.OBJECT || t.getSort() == Type.VOID)
 			return null;
-		if(t.getSort() == Type.ARRAY && t.getDimensions() > 1)
-			return null;
-		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT)
-			return typeDesc.substring(0, typeDesc.length() - 1) + "I";
+		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1)
+			return "[I";
 		if (t.getSort() == Type.ARRAY)
 			return null;
 		return "I";
@@ -328,45 +263,6 @@ public class TaintUtils {
 		case Type.SHORT:
 			return Type.getType(TaintedShort.class);
 		case Type.ARRAY:
-			if (originalReturnType.getDimensions() > 1)
-			{
-				
-				switch (originalReturnType.getElementType().getSort()) {
-				case Type.BYTE:
-				case Type.BOOLEAN:
-				case Type.CHAR:
-				case Type.DOUBLE:
-				case Type.FLOAT:
-				case Type.INT:
-				case Type.LONG:
-				case Type.SHORT:
-					return MultiDTaintedArray.getTypeForType(originalReturnType);
-				case Type.OBJECT:
-					return originalReturnType;
-				}
-			}
-			switch (originalReturnType.getElementType().getSort()) {
-			case Type.OBJECT:
-				return originalReturnType;
-			case Type.BYTE:
-				return Type.getType(TaintedByteArray.class);
-			case Type.BOOLEAN:
-				return Type.getType(TaintedBooleanArray.class);
-			case Type.CHAR:
-				return Type.getType(TaintedCharArray.class);
-			case Type.DOUBLE:
-				return Type.getType(TaintedDoubleArray.class);
-			case Type.FLOAT:
-				return Type.getType(TaintedFloatArray.class);
-			case Type.INT:
-				return Type.getType(TaintedIntArray.class);
-			case Type.LONG:
-				return Type.getType(TaintedLongArray.class);
-			case Type.SHORT:
-				return Type.getType(TaintedShortArray.class);
-			default:
-				return Type.getType("[" + getContainerReturnType(originalReturnType.getElementType()).getDescriptor());
-			}
 		default:
 			return originalReturnType;
 		}
@@ -381,12 +277,7 @@ public class TaintUtils {
 			} else if (t.getSort() != Type.OBJECT) {
 				r += getShadowTaintType(t.getDescriptor());
 			}
-			if(t.getSort() == Type.ARRAY && t.getElementType().getSort()!= Type.OBJECT && t.getDimensions() > 1)
-			{
-				r += MultiDTaintedArray.getTypeForType(t);
-			}
-			else
-				r += t;
+			r += t;
 		}
 		r += ")" + getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
 		return r;

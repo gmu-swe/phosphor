@@ -24,7 +24,6 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.SerialVersionUIDAd
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.CheckClassAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.TraceClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
 
 public class PreMain {
     private static Instrumentation instrumentation;
@@ -165,16 +164,14 @@ public class PreMain {
 
 		static boolean innerException = false;
 		
-		public TaintedByteArray transform$$INVIVO_PC(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint, byte[] classfileBuffer, TaintedByteArray ret) throws IllegalClassFormatException
+		public byte[] transform$$INVIVO_PC(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint, byte[] classfileBuffer) throws IllegalClassFormatException
 		{
 	        bigLoader = loader;
 	        Instrumenter.loader = bigLoader;
 			if(className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-				ret.val = classfileBuffer;
+				return classfileBuffer;
 			else
-				ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
-			ret.taint = new int[ret.val.length];
-			return ret;
+				return transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 		}
 		
 		public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
