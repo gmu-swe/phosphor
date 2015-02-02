@@ -69,37 +69,37 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "(I" + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V",false);
 				nonInstrumentingMV.visitLabel(isOK);
 			} else {
-								//T V V <top>
-								super.visitInsn(DUP2_X1);
-								super.visitInsn(POP2);
-								//VV T
-								nonInstrumentingMV.visitInsn(DUP);
-								Label makeNew = new Label();
-								Label isOK = new Label();
-								nonInstrumentingMV.visitJumpInsn(IFNE, makeNew);
-								//T VV 
-								nonInstrumentingMV.visitInsn(DUP_X2);
-								nonInstrumentingMV.visitInsn(POP);
-								nonInstrumentingMV.visitMethodInsn(opcode, owner, name, desc,false);
-								nonInstrumentingMV.visitJumpInsn(GOTO, isOK);
-								nonInstrumentingMV.visitLabel(makeNew);
-								//VV T
-								int tmp = lvs.getTmpLV(argT);
-								int tmpT = lvs.getTmpLV(Type.getType("I"));
-								super.visitVarInsn(ISTORE, tmpT);
-								super.visitVarInsn(argT.getOpcode(ISTORE), tmp);
-								super.visitTypeInsn(Opcodes.NEW, owner);
-								super.visitInsn(Opcodes.DUP);
-								//T I N N
-								
-								super.visitVarInsn(ILOAD, tmpT);
-								super.visitVarInsn(argT.getOpcode(ILOAD), tmp);
-				
-								super.visitInsn(Opcodes.ACONST_NULL);
-								super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "(I" + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V",false);
-								nonInstrumentingMV.visitLabel(isOK);
-								lvs.freeTmpLV(tmp);
-								lvs.freeTmpLV(tmpT);
+				//T V V <top>
+				super.visitInsn(DUP2_X1);
+				super.visitInsn(POP2);
+				//VV T
+				nonInstrumentingMV.visitInsn(DUP);
+				Label makeNew = new Label();
+				Label isOK = new Label();
+				nonInstrumentingMV.visitJumpInsn(IFNE, makeNew);
+				//T VV 
+				nonInstrumentingMV.visitInsn(DUP_X2);
+				nonInstrumentingMV.visitInsn(POP);
+				nonInstrumentingMV.visitMethodInsn(opcode, owner, name, desc, false);
+				nonInstrumentingMV.visitJumpInsn(GOTO, isOK);
+				nonInstrumentingMV.visitLabel(makeNew);
+				//VV T
+				int tmp = lvs.getTmpLV(argT);
+				int tmpT = lvs.getTmpLV(Type.getType("I"));
+				super.visitVarInsn(ISTORE, tmpT);
+				super.visitVarInsn(argT.getOpcode(ISTORE), tmp);
+				super.visitTypeInsn(Opcodes.NEW, owner);
+				super.visitInsn(Opcodes.DUP);
+				//T I N N
+
+				super.visitVarInsn(ILOAD, tmpT);
+				super.visitVarInsn(argT.getOpcode(ILOAD), tmp);
+
+				super.visitInsn(Opcodes.ACONST_NULL);
+				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "(I" + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V", false);
+				nonInstrumentingMV.visitLabel(isOK);
+				lvs.freeTmpLV(tmp);
+				lvs.freeTmpLV(tmpT);
 //				super.visitMethodInsn(opcode, owner, name, desc,itfc);
 
 			}

@@ -43,10 +43,16 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		if (!DO_OPT && !IS_RUNTIME_INST)
 			System.err.println("WARN: OPT DISABLED");
 	}
-
-	public TaintTrackingClassVisitor(ClassVisitor cv) {
+	
+	private boolean ignoreFrames;
+	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames) {
 		super(Opcodes.ASM5, cv);
 		DO_OPT = DO_OPT && !IS_RUNTIME_INST;
+		this.ignoreFrames = skipFrames;
+	}
+	
+	public boolean isIgnoreFrames() {
+		return ignoreFrames;
 	}
 
 	private LinkedList<MethodNode> methodsToAddWrappersFor = new LinkedList<MethodNode>();
@@ -64,8 +70,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-		if (version == 196653 || version < 50)
-			throw new ClassFormatError("Bad version, " + version);
+
 		addTaintField = true;
 		addTaintMethod = true;
 		if(Instrumenter.IS_KAFFE_INST && name.endsWith("java/lang/VMSystem"))
@@ -214,7 +219,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			optimizer = mv;
 			if (DO_OPT)
 				optimizer = new PopOptimizingMV(mv, access, className, name, newDesc, signature, exceptions);
-			mv = new SpecialOpcodeRemovingMV(optimizer);
+			mv = new SpecialOpcodeRemovingMV(optimizer,ignoreFrames, className);
 			mv = new StringTaintVerifyingMV(mv,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio"))); //TODO - how do we handle directbytebuffers?
 			optimizer = new PopOptimizingMV(mv, access,className, name, newDesc, signature, exceptions);
 

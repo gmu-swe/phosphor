@@ -83,84 +83,7 @@ public class PreMain {
 				}
 			}
 		}
-		private void upgradeToForceFrames(ClassReader cr, ClassWriter cw) throws Throwable
-		{
-//			System.out.println("upgrading: " + cr.getClassName());
-			ClassWriter cw2 = new HackyClassWriter(cr,ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-			cr.accept(new ClassVisitor(Opcodes.ASM5,cw2) {
-				@Override
-				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-//					System.out.println("old was " + version);
-					version = 50;
-					access = access & ~Opcodes.ACC_SUPER;
-
-					if((access & Opcodes.ACC_INTERFACE) != 0)
-						access |= Opcodes.ACC_ABSTRACT;
-					super.visit(version, access, name, signature, superName, interfaces);
-				}
-				@Override
-				public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-					return new JSRInlinerAdapter(super.visitMethod(access, name, desc, signature, exceptions), access, name, desc, signature, exceptions);
-				}
-			}, ClassReader.EXPAND_FRAMES);
-			byte[] newClass = cw2.toByteArray();
-			cr = new ClassReader(newClass);
-
-			try{
-			cr.accept(
-//					new CheckClassAdapter(
-							new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cw))
-//							)
-					, ClassReader.EXPAND_FRAMES);
-			}
-			catch(Throwable ex)
-			{
-				PrintWriter pw = null;
-				try {
-					pw = new PrintWriter(new FileWriter("lastClass.txt"));
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				TraceClassVisitor cv= new TraceClassVisitor(null,pw);
-				try{
-					ex.printStackTrace();
-					System.err.println("running again to trace it");
-					cr = new ClassReader(cw2.toByteArray());
-				cr.accept(
-						new CheckClassAdapter(
-								new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cv))
-								)
-						, ClassReader.EXPAND_FRAMES);
-				}
-				catch(Throwable ex2)
-				{
-					innerException = true;
-					System.err.println("writing out to " + cr.getClassName());
-					
-					cv.p.print(pw);
-					pw.flush();
-					pw.close();
-					System.err.println("written");
-					File f = new File("debug/" + cr.getClassName().replace("/", ".") + ".class");
-					try {
-						FileOutputStream fos = new FileOutputStream(f);
-						fos.write(cr.b);
-						fos.close();
-					} catch (Exception ex5) {
-						ex5.printStackTrace();
-					}
-					System.err.println("ex2");
-					ex2.printStackTrace();
-					System.out.println("exiting");
-					System.exit(-1);
-					System.out.println("ASDHFASKJFALDSFJALSDFJADSLKFJADSF STUPID");
-				}
-				System.err.println("ex1");
-				ex.printStackTrace();
-				throw ex;
-			}
-		}
+		
 
 		static boolean innerException = false;
 		
@@ -185,9 +108,16 @@ public class PreMain {
 			}
 //			if(className.equals("java/lang/Integer"))
 //				System.out.println(className);
-			final boolean[] shouldBeDoneBetter = new boolean[1];
+			final boolean[] shouldBeDoneBetter = new boolean[2];
 			shouldBeDoneBetter[0]=false;
+			shouldBeDoneBetter[1]=false;
 			cr.accept(new ClassVisitor(Opcodes.ASM5) {
+				@Override
+				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+					super.visit(version, access, name, signature, superName, interfaces);
+					if (version == 196653 || version < 50)
+						shouldBeDoneBetter[1] = true;
+				}
 				@Override
 				public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
 					if(desc.equals(Type.getDescriptor(TaintInstrumented.class)))
@@ -199,24 +129,28 @@ public class PreMain {
 			}, ClassReader.SKIP_CODE);
 			if(shouldBeDoneBetter[0])
 				return classfileBuffer;
+			boolean skipFrames = shouldBeDoneBetter[1];
+			if(skipFrames)
+			{
+				//This class is old enough to not guarantee frames. Generate new frames for analysis reasons, then make sure to not emit ANY frames.
+				ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+				cr.accept(cw, ClassReader.SKIP_FRAMES);
+				cr = new ClassReader(cw.toByteArray());
+			}
 //			System.out.println("Instrumenting: " + className);
 //			System.out.println(classBeingRedefined);
+			//Find out if this class already has frames
 			TraceClassVisitor cv =null;
 			try {
 				
-				ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+				ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
+
+				cr.accept(
+				//							new CheckClassAdapter(
+						new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cw, skipFrames))
+						//									)
+						, ClassReader.EXPAND_FRAMES);
 				
-				try{
-					cr.accept(
-//							new CheckClassAdapter(
-									new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cw))
-//									)
-							, ClassReader.EXPAND_FRAMES);
-				}
-				catch(ClassFormatError ex)
-				{
-					upgradeToForceFrames(cr, cw);
-				}
 				if (DEBUG) {
 					File debugDir = new File("debug");
 					if (!debugDir.exists())
@@ -241,7 +175,7 @@ public class PreMain {
 				try{
 					cr.accept(
 //							new CheckClassAdapter(
-									new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cv))
+									new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cv,skipFrames))
 //									)
 							, ClassReader.EXPAND_FRAMES);
 				}

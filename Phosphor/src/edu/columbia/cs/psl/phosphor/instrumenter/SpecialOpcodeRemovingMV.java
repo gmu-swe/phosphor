@@ -8,14 +8,37 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 
 public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
-	public SpecialOpcodeRemovingMV(MethodVisitor sup) {
+	private boolean ignoreFrames;
+	private String clazz;
+	public SpecialOpcodeRemovingMV(MethodVisitor sup, boolean ignoreFrames, String clazz) {
 		super(Opcodes.ASM5, sup);
+		this.ignoreFrames = ignoreFrames;
+		this.clazz = clazz;
 	}
 	
 	@Override
 	public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
 		Type descType = Type.getType(desc);
 		super.visitLocalVariable(name, desc, signature, start, end, index);
+	}
+	@Override
+	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
+		if(!ignoreFrames)
+			super.visitFrame(type, nLocal, local, nStack, stack);
+	}
+	@Override
+	public void visitLdcInsn(Object cst) {
+		if(cst instanceof Type && ignoreFrames)
+		{
+			super.visitLdcInsn(cst.toString().replace("/", "."));
+			super.visitInsn(Opcodes.ICONST_0);
+			super.visitLdcInsn(clazz.replace("/", "."));
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
+			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;", false);
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", false);
+		}
+		else
+			super.visitLdcInsn(cst);
 	}
 	@Override
 	public void visitInsn(int opcode) {
