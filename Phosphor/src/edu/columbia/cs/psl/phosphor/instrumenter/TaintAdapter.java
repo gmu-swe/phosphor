@@ -10,21 +10,21 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.AnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.InstructionAdapter;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
 
 public class TaintAdapter extends InstructionAdapter implements Opcodes {
 
 	protected LocalVariableManager lvs;
 	protected NeverNullArgAnalyzerAdapter analyzer;
-	protected MethodVisitor nonInstrumentingMV;
 	protected String className;
 
-	public TaintAdapter(int api, String className, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor nonInstrumentingMV) {
+	public TaintAdapter(int api, String className, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
 		super(api, mv);
 		this.analyzer = analyzer;
 		this.className = className;
-		this.nonInstrumentingMV = nonInstrumentingMV;
 	}
 
 	public void setLocalVariableSorter(LocalVariableManager lvs) {
@@ -98,165 +98,10 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 		//		nonInstrumentingMV.visitLabel(end);
 	}
 
-	protected void retrievePrimitiveArrayTaint(boolean leaveTAOnStack) {
-//		System.out.println("Finding taint on " + getTopOfStackObject());
-		//A TA
-		super.visitInsn(SWAP);//TA A
-		Label bailTo = new Label();
-		Label end = new Label();
-		nonInstrumentingMV.visitInsn(DUP);
-		nonInstrumentingMV.visitJumpInsn(IFNULL, bailTo);
-		super.visitInsn(DUP); //TA TA A
-		if (leaveTAOnStack)
-			super.visitInsn(DUP);
-		super.visitInsn(ARRAYLENGTH);
 
-		//Idx TA A
-		super.visitInsn(IALOAD);//T A
-		if (leaveTAOnStack) {
-			super.visitInsn(DUP_X2);//T TA A T
-			super.visitInsn(POP); //TA A T
-			super.visitInsn(SWAP); //A TA T
-			super.visitInsn(DUP2_X1);//A TA T A TA
-			super.visitInsn(POP2);
-		}
-		nonInstrumentingMV.visitJumpInsn(GOTO, end);
-		nonInstrumentingMV.visitLabel(bailTo);
-		if (leaveTAOnStack)
-			nonInstrumentingMV.visitInsn(SWAP);
-		else
-			nonInstrumentingMV.visitInsn(POP);
-		nonInstrumentingMV.visitInsn(ICONST_0);
-		nonInstrumentingMV.visitLabel(end);
-	}
 
-	protected void retrievePrimitiveArrayTaintFromTopArray(boolean leaveTAOnStack) {
-		Label bailTo = new Label();
-		Label end = new Label();
-		nonInstrumentingMV.visitInsn(DUP);
-		nonInstrumentingMV.visitJumpInsn(IFNULL, bailTo);
-		super.visitInsn(DUP); //TA TA
-		if (leaveTAOnStack)
-			super.visitInsn(DUP); //TA TA TA
-		super.visitInsn(ARRAYLENGTH);
-		super.visitInsn(ICONST_M1);
-		super.visitInsn(IADD);
-		//Idx TA A
-		super.visitInsn(IALOAD);//T TA 
-		nonInstrumentingMV.visitJumpInsn(GOTO, end);
-		nonInstrumentingMV.visitLabel(bailTo);
-		if (!leaveTAOnStack)
-			nonInstrumentingMV.visitInsn(POP);
-		nonInstrumentingMV.visitInsn(ICONST_0);
-		nonInstrumentingMV.visitLabel(end);
-	}
 
-	protected void retrieveTopOfStackTaint() {
-		retrieveTopOfStackTaint(false, true);
-	}
 
-	protected void retrieveTopOfStackTaint(boolean leavePrimitiveArrayOnStack, boolean onlyRemoveTaintArrays) {
-//				System.out.println("getting taint for " + getTopOfStackObject() + " _ " + getTopOfStackType().getInternalName() + (leavePrimitiveArrayOnStack ? "T":"F") + (onlyRemoveTaintArrays ? "T" :"F"));
-
-		if (getTopOfStackType().getInternalName().equals("java/lang/Object")) {
-			if(leavePrimitiveArrayOnStack)
-			super.visitInsn(DUP);
-			safelyFetchObjectTaint();
-			//			System.out.println(analyzer.stack);
-		} else if (Instrumenter.isIgnoredClass(getTopOfStackType().getInternalName())) {
-			if (!leavePrimitiveArrayOnStack)
-				super.visitInsn(POP);
-			super.visitInsn(ICONST_0);//TODO make a sentinel to make this unique
-		} else if (getTopOfStackType().getSort() == Type.ARRAY) {
-
-			if (onlyRemoveTaintArrays && getTopOfStackType().getElementType().getSort() != Type.OBJECT && getTopOfStackType().getDimensions() > 1) {
-				super.visitInsn(SWAP);
-				super.visitInsn(POP);
-			}
-			if (getTopOfStackType().getElementType().getSort() != Type.OBJECT && getTopOfStackType().getDimensions() == 1) {
-				if(onlyRemoveTaintArrays)
-				{
-					super.visitInsn(SWAP);
-					super.visitInsn(POP);
-					unconditionallyRetrieveTopOfStackTaintArray(leavePrimitiveArrayOnStack);
-				}
-//				retrievePrimitiveArrayTaint(!onlyRemoveTaintArrays);
-			} else {
-				unconditionallyRetrieveTopOfStackTaintArray(leavePrimitiveArrayOnStack);
-			}
-
-		} else {
-			//			System.out.println(getTopOfStackType());
-			//			System.out.println("top of stack is " + getTopOfStackType() + nonInstrumentingMV);
-			//			System.out.println(analyzer.stack);
-			Label isNull = new Label();
-			Label continu = new Label();
-			nonInstrumentingMV.visitInsn(DUP);
-			if(leavePrimitiveArrayOnStack)
-				super.visitInsn(DUP);
-			nonInstrumentingMV.visitJumpInsn(IFNULL, isNull);
-			if (Instrumenter.isInterface(getTopOfStackType().getInternalName()))
-				super.visitMethodInsn(Opcodes.INVOKEINTERFACE, getTopOfStackType().getInternalName(), "get" + TaintUtils.TAINT_FIELD, "()I",true);
-			else
-				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, getTopOfStackType().getInternalName(), "get" + TaintUtils.TAINT_FIELD, "()I",false);
-			nonInstrumentingMV.visitJumpInsn(GOTO, continu);
-			nonInstrumentingMV.visitLabel(isNull);
-			nonInstrumentingMV.visitInsn(POP);
-			nonInstrumentingMV.visitInsn(ICONST_0);
-			nonInstrumentingMV.visitJumpInsn(GOTO, continu);
-			nonInstrumentingMV.visitLabel(continu);
-			//			System.out.println(analyzer.stack);
-		}
-	}
-
-	protected void retrieveTopOfStackTaintAndPop() {
-		if (getTopOfStackType().getInternalName().equals("java/lang/Object")) {
-			safelyFetchObjectTaint();
-			//			System.out.println(analyzer.stack);
-		} else if (Instrumenter.isIgnoredClass(getTopOfStackType().getInternalName())) {
-			super.visitInsn(POP);
-			super.visitInsn(ICONST_0);//TODO make a sentinel to make this unique
-		} else if (getTopOfStackType().getSort() == Type.ARRAY) {
-
-			if (getTopOfStackType().getElementType().getSort() != Type.OBJECT && getTopOfStackType().getDimensions() > 1) {
-				super.visitInsn(SWAP);
-				super.visitInsn(POP);
-			}
-			//			super.visitInsn(ICONST_0);//TODO
-			//			System.out.println(getTopOfStackType());
-			if (getTopOfStackType().getElementType().getSort() != Type.OBJECT && getTopOfStackType().getDimensions() == 1) {
-//				retrievePrimitiveArrayTaint(false);
-				super.visitInsn(SWAP);
-				super.visitInsn(POP);
-				unconditionallyRetrieveTopOfStackTaintArray(false);
-				//				super.visitInsn(POP);
-				//				super.visitInsn(ICONST_0);
-
-			} else {
-				unconditionallyRetrieveTopOfStackTaintArray(false);
-			}
-
-		} else {
-			//			System.out.println(getTopOfStackType());
-			//			System.out.println("top of stack is " + getTopOfStackType() + nonInstrumentingMV);
-			//			System.out.println(analyzer.stack);
-			Label isNull = new Label();
-			Label continu = new Label();
-			nonInstrumentingMV.visitInsn(DUP);
-			nonInstrumentingMV.visitJumpInsn(IFNULL, isNull);
-			if (Instrumenter.isInterface(getTopOfStackType().getInternalName()))
-				super.visitMethodInsn(Opcodes.INVOKEINTERFACE, getTopOfStackType().getInternalName(), "get" + TaintUtils.TAINT_FIELD, "()I",true);
-			else
-				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, getTopOfStackType().getInternalName(), "get" + TaintUtils.TAINT_FIELD, "()I",false);
-			nonInstrumentingMV.visitJumpInsn(GOTO, continu);
-			nonInstrumentingMV.visitLabel(isNull);
-			nonInstrumentingMV.visitInsn(POP);
-			nonInstrumentingMV.visitInsn(ICONST_0);
-			nonInstrumentingMV.visitJumpInsn(GOTO, continu);
-			nonInstrumentingMV.visitLabel(continu);
-			//			System.out.println(analyzer.stack);
-		}
-	}
 
 	protected void generateUnconstrainedTaint(int reason) {
 			super.visitInsn(ICONST_0);
@@ -273,55 +118,68 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 		Label done = new Label();
 		if (arrayType.getDimensions() == 2) {
 			
-			nonInstrumentingMV.visitInsn(DUP);
-			nonInstrumentingMV.visitJumpInsn(IFNULL, isNull);
-			nonInstrumentingMV.visitInsn(DUP);
-			nonInstrumentingMV.visitInsn(DUP);
-			nonInstrumentingMV.visitInsn(ARRAYLENGTH);
-			nonInstrumentingMV.visitMultiANewArrayInsn("[[I", 1);
-			nonInstrumentingMV.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[I)[[I",false);
+			FrameNode fn = getCurrentFrameNode();
+			super.visitInsn(DUP);
+			super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
+			super.visitJumpInsn(IFNULL, isNull);
+			super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
+			super.visitInsn(DUP);
+			super.visitInsn(DUP);
+			super.visitInsn(ARRAYLENGTH);
+			super.visitMultiANewArrayInsn("[[I", 1);
+			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[I)[[I",false);
 			
-			nonInstrumentingMV.visitInsn(SWAP);
-			nonInstrumentingMV.visitJumpInsn(GOTO, done);
-
-			nonInstrumentingMV.visitLabel(isNull);
-
+			super.visitInsn(SWAP);
+			super.visitJumpInsn(GOTO, done);
+			super.visitLabel(isNull);
+			fn.accept(this);
 			super.visitInsn(ACONST_NULL);
 			super.visitInsn(SWAP);
-			nonInstrumentingMV.visitLabel(done);
-			
+			FrameNode fn2 = getCurrentFrameNode();
+			super.visitLabel(done);
+			fn2.accept(this);
 			
 		} else if (arrayType.getDimensions() == 3) {
-			nonInstrumentingMV.visitInsn(DUP);
-			nonInstrumentingMV.visitJumpInsn(IFNULL, isNull);
-			nonInstrumentingMV.visitInsn(DUP);
-			nonInstrumentingMV.visitInsn(DUP);
-			nonInstrumentingMV.visitInsn(ARRAYLENGTH);
-			nonInstrumentingMV.visitMultiANewArrayInsn("[[[I", 1);
-			nonInstrumentingMV.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[I)[[[I",false);
+			FrameNode fn = getCurrentFrameNode();
+			super.visitInsn(DUP);
+			super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
+			super.visitJumpInsn(IFNULL, isNull);
+			super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
+			super.visitInsn(DUP);
+			super.visitInsn(DUP);
+			super.visitInsn(ARRAYLENGTH);
+			super.visitMultiANewArrayInsn("[[[I", 1);
+			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[I)[[[I",false);
 			
-			nonInstrumentingMV.visitInsn(SWAP);
-			nonInstrumentingMV.visitJumpInsn(GOTO, done);
+			super.visitInsn(SWAP);
+			super.visitJumpInsn(GOTO, done);
 
-			nonInstrumentingMV.visitLabel(isNull);
-
+			super.visitLabel(isNull);
+			fn.accept(this);
 			super.visitInsn(ACONST_NULL);
 			super.visitInsn(SWAP);
-			nonInstrumentingMV.visitLabel(done);
+			FrameNode fn2 = getCurrentFrameNode();
+			super.visitLabel(done);
+			fn2.accept(this);
 		} else if (arrayType.getDimensions() == 1) {
-			nonInstrumentingMV.visitInsn(DUP);
-			nonInstrumentingMV.visitJumpInsn(IFNULL, isNull);
-			nonInstrumentingMV.visitInsn(DUP);
-			nonInstrumentingMV.visitInsn(ARRAYLENGTH);
-			nonInstrumentingMV.visitIntInsn(NEWARRAY, T_INT);
-			nonInstrumentingMV.visitInsn(SWAP);
-			nonInstrumentingMV.visitJumpInsn(GOTO, done);
+			FrameNode fn = getCurrentFrameNode();
+			super.visitInsn(DUP);
+			super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
+			super.visitJumpInsn(IFNULL, isNull);
+			super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
+			super.visitInsn(DUP);
+			super.visitInsn(ARRAYLENGTH);
+			super.visitIntInsn(NEWARRAY, T_INT);
+			super.visitInsn(SWAP);
+			super.visitJumpInsn(GOTO, done);
 
-			nonInstrumentingMV.visitLabel(isNull);
-
+			super.visitLabel(isNull);
+			fn.accept(this);
 			super.visitInsn(ACONST_NULL);
 			super.visitInsn(SWAP);
-			nonInstrumentingMV.visitLabel(done);
+			FrameNode fn2 = getCurrentFrameNode();
+			super.visitLabel(done);
+			fn2.accept(this);
 		} else {
 			throw new IllegalStateException("Can't handle casts to multi-d array type of dimension " + arrayType.getDimensions());
 		}
@@ -365,15 +223,23 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 		}
 		return ret;
 	}
+	public FrameNode getCurrentFrameNode()
+	{
+		return getCurrentFrameNode(analyzer);
+	}
+	public static FrameNode getCurrentFrameNode(NeverNullArgAnalyzerAdapter a)
+	{
+		Object[] locals = removeLongsDoubleTopVal(a.locals);
+		Object[] stack = removeLongsDoubleTopVal(a.stack);
+		FrameNode ret = new FrameNode(Opcodes.F_NEW, locals.length, locals, stack.length, stack);
+		return ret;
+	}
 	public static void createNewTaintArray(String arrayDesc, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor mv, LocalVariableManager lvs) {
 		Type arrayType = Type.getType(arrayDesc);
 		Label isNull = new Label();
 		Label done = new Label();
-//		Object[] locals1 = removeLongsDoubleTopVal(analyzer.locals);
-//		int localSize1 = locals1.length;
 
-//		Object[] stack1 = removeLongsDoubleTopVal(analyzer.stack);
-//		int stackSize1 = stack1.length;
+		FrameNode fn = getCurrentFrameNode(analyzer);
 
 		mv.visitInsn(Opcodes.DUP);
 		mv.visitJumpInsn(Opcodes.IFNULL, isNull);
@@ -430,14 +296,16 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 //		Object[] stack = removeLongsDoubleTopVal(analyzer.stack);
 //		int stackSize = stack.length;
 
+		FrameNode fn2 = getCurrentFrameNode(analyzer);
 		mv.visitJumpInsn(Opcodes.GOTO, done);
-//		mv.visitFrame(Opcodes.F_NEW, localSize1, locals1, stackSize1, stack1);
+		fn.accept(mv);
 
 		mv.visitLabel(isNull);
 
 		mv.visitInsn(Opcodes.ACONST_NULL);
 		mv.visitInsn(Opcodes.SWAP);
 		mv.visitLabel(done);
+		fn2.accept(mv);
 //		mv.visitFrame(Opcodes.F_NEW, localSize, locals, stackSize, stack);
 	}
 

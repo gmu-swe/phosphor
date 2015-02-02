@@ -9,8 +9,8 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 
 public class ImplicitTaintRemoverMV extends TaintAdapter implements Opcodes {
 
-	public ImplicitTaintRemoverMV(int api, String className, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor nonInstrumentingMV) {
-		super(api, className, mv, analyzer, nonInstrumentingMV);
+	public ImplicitTaintRemoverMV(int api, String className, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
+		super(api, className, mv, analyzer);
 	}
 
 	@Override

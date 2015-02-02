@@ -212,25 +212,26 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv = new SourceSinkTaintingMV(mv, access, className, name, newDesc, desc);
 			//			mv = new CheckMethodAdapter(mv);
 
-			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className);
-			mv = reflectionMasker;
+			
 			//			PropertyDebug debug = new PropertyDebug(Opcodes.ASM4, mv, access, name, newDesc,className);
 			MethodVisitor optimizer;
 			optimizer = mv;
 			if (DO_OPT)
 				optimizer = new PopOptimizingMV(mv, access, className, name, newDesc, signature, exceptions);
 			mv = new SpecialOpcodeRemovingMV(optimizer,ignoreFrames, className);
-			mv = new StringTaintVerifyingMV(mv,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio"))); //TODO - how do we handle directbytebuffers?
+			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className);
+			mv = reflectionMasker;
 			optimizer = new PopOptimizingMV(mv, access,className, name, newDesc, signature, exceptions);
 
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
+			StringTaintVerifyingMV stvmv = new StringTaintVerifyingMV(analyzer,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")),analyzer); //TODO - how do we handle directbytebuffers?
 
-			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(Opcodes.ASM5, className, analyzer, analyzer, mv);
+			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(Opcodes.ASM5, className, stvmv, analyzer);
 			LocalVariableManager lvs;
 			TaintPassingMV tmv;
 			MethodVisitor nextMV;
 			{
-				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(Opcodes.ASM5, className, boxFixer, analyzer, mv);
+				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(Opcodes.ASM5, className, boxFixer, analyzer);
 				tmv = new TaintPassingMV(implicitCleanup, mv, access, className, name, newDesc, desc, analyzer);
 				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv);
 				nextMV = new ConstantValueNullTaintGenerator(className, access, name, newDesc, signature, exceptions, lvs);

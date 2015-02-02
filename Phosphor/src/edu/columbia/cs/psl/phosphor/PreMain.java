@@ -21,18 +21,23 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.JSRInlinerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.SerialVersionUIDAdder;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.AbstractInsnNode;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.AnnotationNode;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.ClassNode;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.CheckClassAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.TraceClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
+import edu.columbia.cs.psl.phosphor.struct.Tainted;
 
 public class PreMain {
     private static Instrumentation instrumentation;
 
-    static boolean DEBUG = true;
+    static boolean DEBUG = false;
 
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
 	public static final class PCLoggingTransformer implements ClassFileTransformer {
-		private final class HackyClassWriter extends ClassWriter {
+		private class HackyClassWriter extends ClassWriter {
 			
 			private HackyClassWriter(ClassReader classReader, int flags) {
 				super(classReader, flags);
@@ -108,33 +113,38 @@ public class PreMain {
 			}
 //			if(className.equals("java/lang/Integer"))
 //				System.out.println(className);
-			final boolean[] shouldBeDoneBetter = new boolean[2];
-			shouldBeDoneBetter[0]=false;
-			shouldBeDoneBetter[1]=false;
-			cr.accept(new ClassVisitor(Opcodes.ASM5) {
-				@Override
-				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-					super.visit(version, access, name, signature, superName, interfaces);
-					if (version == 196653 || version < 50)
-						shouldBeDoneBetter[1] = true;
-				}
-				@Override
-				public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-					if(desc.equals(Type.getDescriptor(TaintInstrumented.class)))
-					{
-						shouldBeDoneBetter[0] = true;
+			
+			ClassNode cn = new ClassNode();
+			cr.accept(cn, ClassReader.SKIP_CODE);
+			boolean skipFrames = false;
+			if (cn.version >= 100 || cn.version <= 50)
+				skipFrames = true;
+			if (cn.visibleAnnotations != null)
+				for (AnnotationNode an : cn.visibleAnnotations) {
+					if (an.desc.equals(Type.getDescriptor(TaintInstrumented.class))) {
+						return classfileBuffer;
 					}
-					return super.visitAnnotation(desc, visible);
 				}
-			}, ClassReader.SKIP_CODE);
-			if(shouldBeDoneBetter[0])
-				return classfileBuffer;
-			boolean skipFrames = shouldBeDoneBetter[1];
-			if(skipFrames)
+			if(cn.interfaces != null)
+				for(String s : cn.interfaces)
+				{
+					if(s.equals(Type.getInternalName(Tainted.class)))
+						return classfileBuffer;
+				}
+			for(MethodNode mn : cn.methods)
+				if(mn.name.equals("getINVIVO_PC_TAINT"))
+					return classfileBuffer;
+			if (skipFrames)
 			{
+				cn = null;
 				//This class is old enough to not guarantee frames. Generate new frames for analysis reasons, then make sure to not emit ANY frames.
 				ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-				cr.accept(cw, ClassReader.SKIP_FRAMES);
+				cr.accept(new ClassVisitor(Opcodes.ASM5, cw) {
+					@Override
+					public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+						return new JSRInlinerAdapter(super.visitMethod(access, name, desc, signature, exceptions), access, name, desc, signature, exceptions);
+					}
+				}, 0);
 				cr = new ClassReader(cw.toByteArray());
 			}
 //			System.out.println("Instrumenting: " + className);
@@ -146,9 +156,9 @@ public class PreMain {
 				ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
 
 				cr.accept(
-				//							new CheckClassAdapter(
+//											new CheckClassAdapter(
 						new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cw, skipFrames))
-						//									)
+//															)
 						, ClassReader.EXPAND_FRAMES);
 				
 				if (DEBUG) {

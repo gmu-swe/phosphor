@@ -323,8 +323,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 										if ((output1Top == Opcodes.NULL) && inputTopType.getSort() == Type.ARRAY 
 												&& inputTopType.getDimensions() == 1 && inputTopType.getElementType().getSort() != Type.OBJECT) {
 											insertACONSTNULLBEFORE.add(toMerge);
-										} else if ((inputTopType.getSort() == Type.OBJECT || (inputTopType.getSort() == Type.ARRAY)) && outputTopType.getSort() == Type.ARRAY 
-												&& inputTopType.getDimensions() == 1) {
+										} else if ((inputTopType.getSort() == Type.OBJECT) 
+												&& outputTopType.getSort() == Type.ARRAY 
+												&& outputTopType.getDimensions() == 1 && outputTopType.getElementType().getSort() != Type.OBJECT) {
 											insertACHECKCASTBEFORE.add(toMerge);
 										}
 									}

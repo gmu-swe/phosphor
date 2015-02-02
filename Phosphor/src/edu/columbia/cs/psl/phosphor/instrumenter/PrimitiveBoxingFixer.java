@@ -6,13 +6,14 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
 
 public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 
-	public PrimitiveBoxingFixer(int api, String className, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor nonInstrumenting) {
-		super(api, className, mv, analyzer, nonInstrumenting);
+	public PrimitiveBoxingFixer(int api, String className, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
+		super(api, className, mv, analyzer);
 	}
 
 	int tmpInt = -1;;
@@ -50,14 +51,16 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				//stack is currently T I <top>
 				//we'll support (Integer) 1 == (Integer) 1 as long as there is no taint on it.
 				super.visitInsn(SWAP);
-				nonInstrumentingMV.visitInsn(DUP);
+				FrameNode fn = getCurrentFrameNode();
+				super.visitInsn(DUP);
 				Label makeNew = new Label();
 				Label isOK = new Label();
-				nonInstrumentingMV.visitJumpInsn(IFNE, makeNew);
+				super.visitJumpInsn(IFNE, makeNew);
 				super.visitInsn(SWAP);
-				nonInstrumentingMV.visitMethodInsn(opcode, owner, name, desc, itfc);
-				nonInstrumentingMV.visitJumpInsn(GOTO, isOK);
-				nonInstrumentingMV.visitLabel(makeNew);
+				super.visitMethodInsn(opcode, owner, name, desc, itfc);
+				super.visitJumpInsn(GOTO, isOK);
+				super.visitLabel(makeNew);
+				fn.accept(this);
 				super.visitInsn(SWAP);
 				super.visitTypeInsn(Opcodes.NEW, owner);
 				super.visitInsn(Opcodes.DUP);
@@ -67,22 +70,27 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				//N N T I
 				super.visitInsn(Opcodes.ACONST_NULL);
 				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "(I" + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V",false);
-				nonInstrumentingMV.visitLabel(isOK);
+				FrameNode fn2 = getCurrentFrameNode();
+				super.visitLabel(isOK);
+				fn2.accept(this);
 			} else {
 				//T V V <top>
 				super.visitInsn(DUP2_X1);
 				super.visitInsn(POP2);
 				//VV T
-				nonInstrumentingMV.visitInsn(DUP);
+				FrameNode fn = getCurrentFrameNode();
+				super.visitInsn(DUP);
 				Label makeNew = new Label();
 				Label isOK = new Label();
-				nonInstrumentingMV.visitJumpInsn(IFNE, makeNew);
+				super.visitJumpInsn(IFNE, makeNew);
 				//T VV 
-				nonInstrumentingMV.visitInsn(DUP_X2);
-				nonInstrumentingMV.visitInsn(POP);
-				nonInstrumentingMV.visitMethodInsn(opcode, owner, name, desc, false);
-				nonInstrumentingMV.visitJumpInsn(GOTO, isOK);
-				nonInstrumentingMV.visitLabel(makeNew);
+				super.visitInsn(DUP_X2);
+				super.visitInsn(POP);
+				super.visitMethodInsn(opcode, owner, name, desc, false);
+				super.visitJumpInsn(GOTO, isOK);
+				super.visitLabel(makeNew);
+				fn.accept(this);
+
 				//VV T
 				int tmp = lvs.getTmpLV(argT);
 				int tmpT = lvs.getTmpLV(Type.getType("I"));
@@ -97,7 +105,9 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 
 				super.visitInsn(Opcodes.ACONST_NULL);
 				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "(I" + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V", false);
-				nonInstrumentingMV.visitLabel(isOK);
+				FrameNode fn2 = getCurrentFrameNode();
+				super.visitLabel(isOK);
+				fn2.accept(this);
 				lvs.freeTmpLV(tmp);
 				lvs.freeTmpLV(tmpT);
 //				super.visitMethodInsn(opcode, owner, name, desc,itfc);

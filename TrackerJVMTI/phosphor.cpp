@@ -90,6 +90,10 @@ JNIEXPORT static void JNICALL setObjExpression(JNIEnv *env, jclass klass,
 	if (gdata->vmDead) {
 		return;
 	}
+	if(!o)
+	{
+		return;
+	}
 	jvmtiError error;
 	if (expr) {
 		error = gdata->jvmti->SetTag(o,	(jlong) (ptrdiff_t) (void*) env->NewGlobalRef(expr));
