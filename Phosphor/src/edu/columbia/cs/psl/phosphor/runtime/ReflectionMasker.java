@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.WeakHashMap;
 
 import sun.reflect.ReflectionFactory;
@@ -431,6 +432,7 @@ public class ReflectionMasker {
 
 	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in) {
 //		System.out.println("Making slow call to  " + m);
+//		System.out.println("With: " + Arrays.toString(in));
 		MethodInvoke ret = new MethodInvoke();
 		m.setAccessible(true);
 		if ((IS_KAFFE) || !m.INVIVO_PC_TAINTmarked)
@@ -459,9 +461,10 @@ public class ReflectionMasker {
 						ret.a[j] = 0;
 					j++;
 				} else if (m.getParameterTypes()[j].isArray() && m.getParameterTypes()[j].getComponentType().isPrimitive()) {
-					ret.a[j] = in[i];
-					j++;
 					ret.a[j] = ArrayHelper.getTags(in[i]);
+					j++;
+
+					ret.a[j] = in[i];
 					j++;
 					continue;
 				}

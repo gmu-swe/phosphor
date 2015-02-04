@@ -238,8 +238,8 @@ public class Instrumenter {
 	static String curPath;
 
 	static HashSet<String> notInterfaces = new HashSet<String>();
-	static HashSet<String> annotations = new HashSet<String>();
-	static HashSet<String> notAnnotations = new HashSet<String>();
+	public static HashSet<String> annotations = new HashSet<String>();
+	public static HashSet<String> notAnnotations = new HashSet<String>();
 
 	public static boolean isAnnotation(String owner) {
 		if (annotations.contains(owner))
@@ -380,6 +380,10 @@ public class Instrumenter {
 					super.visit(version, access, name, signature, superName, interfaces);
 					if ((access & Opcodes.ACC_INTERFACE) != 0)
 						Instrumenter.interfaces.add(name);
+					if ((access & Opcodes.ACC_ANNOTATION) != 0)
+						Instrumenter.annotations.add(name);
+					else
+						Instrumenter.notAnnotations.add(name);
 				}
 			}, callgraph), 0);
 		} catch (IOException e) {

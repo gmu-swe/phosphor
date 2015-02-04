@@ -49,9 +49,11 @@ public class StringTaintVerifyingMV extends InstructionAdapter implements Opcode
 			return;
 		}
 		Type t = Type.getType(desc);
-		if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && t.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_FIELD) && !name.equals("taint") && 
-				t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1 && !checkedThisFrame.contains(owner+"."+name)
-				&& (owner.equals("java/lang/String") || implementsSerializable)
+		if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && 
+				t.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_FIELD) && !name.equals("taint") && 
+				t.getElementType().getSort() != Type.OBJECT && 
+				t.getDimensions() == 1 && !checkedThisFrame.contains(owner+"."+name)
+				&& (owner.equals("java/lang/String") || implementsSerializable || owner.equals("com/sun/security/auth/module/UnixSystem"))
 				)
 		{
 //			checkedThisFrame.add(owner+"."+name);

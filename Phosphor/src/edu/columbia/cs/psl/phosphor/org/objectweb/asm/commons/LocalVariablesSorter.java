@@ -29,6 +29,8 @@
  */
 package edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons;
 
+import java.util.Arrays;
+
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.AnnotationVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
@@ -50,7 +52,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.TypePath;
  */
 public class LocalVariablesSorter extends MethodVisitor {
 
-    private static final Type OBJECT_TYPE = Type
+    protected static final Type OBJECT_TYPE = Type
             .getObjectType("java/lang/Object");
 
     /**
@@ -58,12 +60,12 @@ public class LocalVariablesSorter extends MethodVisitor {
      * i of size 1 is remapped to 'mapping[2*i]', while a local variable at
      * index i of size 2 is remapped to 'mapping[2*i+1]'.
      */
-    private int[] mapping = new int[40];
+    protected int[] mapping = new int[40];
 
     /**
      * Array used to store stack map local variable types after remapping.
      */
-    private Object[] newLocals = new Object[20];
+    protected Object[] newLocals = new Object[20];
 
     /**
      * Index of the first local variable, after formal parameters.
@@ -78,7 +80,7 @@ public class LocalVariablesSorter extends MethodVisitor {
     /**
      * Indicates if at least one local variable has moved due to remapping.
      */
-    private boolean changed;
+    protected boolean changed;
 
     /**
      * Creates a new {@link LocalVariablesSorter}. <i>Subclasses must not use
@@ -178,7 +180,7 @@ public class LocalVariablesSorter extends MethodVisitor {
         mv.visitLocalVariable(name, desc, signature, start, end, newIndex);
     }
 
-    boolean isFirstFrame = true;
+    protected boolean isFirstFrame = true;
     @Override
     public AnnotationVisitor visitLocalVariableAnnotation(int typeRef,
             TypePath typePath, Label[] start, Label[] end, int[] index,
@@ -205,6 +207,8 @@ public class LocalVariablesSorter extends MethodVisitor {
         }
         isFirstFrame = false;
       
+//        System.out.println(Arrays.toString(local));
+//        System.out.println(Arrays.toString(newLocals));
         // creates a copy of newLocals
         Object[] oldLocals = new Object[newLocals.length];
         System.arraycopy(newLocals, 0, oldLocals, 0, oldLocals.length);
@@ -374,7 +378,7 @@ public class LocalVariablesSorter extends MethodVisitor {
     protected void setLocalType(final int local, final Type type) {
     }
 
-    private void setFrameLocal(final int local, final Object type) {
+    protected void setFrameLocal(final int local, final Object type) {
         int l = newLocals.length;
         if (local >= l) {
             Object[] a = new Object[Math.max(2 * l, local + 1)];
@@ -384,7 +388,7 @@ public class LocalVariablesSorter extends MethodVisitor {
         newLocals[local] = type;
     }
 
-    private int remap(final int var, final Type type) {
+    protected int remap(final int var, final Type type) {
         if (var + type.getSize() <= firstLocal) {
             return var;
         }

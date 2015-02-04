@@ -116,7 +116,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		return getTypeForStackType(t);
 	}
 
-	HashMap<Integer, Integer> varToShadowVar = new HashMap<Integer, Integer>();
 	HashMap<Integer, Object> varTypes = new HashMap<Integer, Object>();
 	HashSet<Integer> questionableShadows = new HashSet<Integer>();
 
@@ -132,9 +131,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		if (opcode == TaintUtils.ALWAYS_AUTOBOX && analyzer.locals.size() > var && analyzer.locals.get(var) instanceof String) {
 			Type t = Type.getType((String) analyzer.locals.get(var));
-			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && varToShadowVar.containsKey(var)) {
+			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && lvs.varToShadowVar.containsKey(var)) {
 
-				super.visitVarInsn(ALOAD, varToShadowVar.get(var));
+				super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
 				super.visitVarInsn(ALOAD, var);
 				registerTaintedArray(getTopOfStackType().getDescriptor());
 				super.visitVarInsn(ASTORE, var);
@@ -155,7 +154,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			System.out.println(this.name + " " + Printer.OPCODES[opcode] + " on " + var + " last arg" + lastArg +", stack: " + analyzer.stack);
 
 		if (opcode == Opcodes.ASTORE && TaintUtils.DEBUG_FRAMES) {
-			System.out.println(this.name + " ASTORE " + var + ", shadowvar contains " + varToShadowVar.get(var) + " oldvartype " + varTypes.get(var));
+			System.out.println(this.name + " ASTORE " + var + ", shadowvar contains " + lvs.varToShadowVar.get(var) + " oldvartype " + varTypes.get(var));
 		}
 		boolean boxIt = false;
 
@@ -183,8 +182,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			//not accessing an arg
 
 			Object oldVarType = varTypes.get(var);
-			if (varToShadowVar.containsKey(var))
-				shadowVar = varToShadowVar.get(var);
+			if (lvs.varToShadowVar.containsKey(var))
+				shadowVar = lvs.varToShadowVar.get(var);
 //						System.out.println(Printer.OPCODES[opcode] + " "+var + " old " + oldVarType + " shadow " + shadowVar);
 
 			if (oldVarType != null) {
@@ -202,6 +201,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					else
 						varTypes.put(var, Opcodes.INTEGER);
 					if (shadowVar > -1) {
+						while(shadowVar >= analyzer.locals.size())
+						{
+							analyzer.locals.add(Opcodes.TOP);
+						}
 						analyzer.locals.set(shadowVar, Opcodes.INTEGER);
 						lvs.remapLocal(shadowVar, Type.getType("I"));
 					}
@@ -212,7 +215,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					else
 						varTypes.put(var, "Lunidentified;");
 
-					if (shadowVar > -1)
+					if (shadowVar > -1) {
+						while(shadowVar >= analyzer.locals.size())
+						{
+							analyzer.locals.add(Opcodes.TOP);
+						}
 						if (opcode == ASTORE) {
 							String shadow = TaintUtils.getShadowTaintType(getTopOfStackType().getDescriptor());
 							if (shadow == null) {
@@ -227,6 +234,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 							lvs.remapLocal(shadowVar, Type.getType("[I"));
 							analyzer.locals.set(shadowVar, "[I");
 						}
+					}
 				}
 
 				if (opcode == ASTORE && !topOfStackIsNull() && !oldVarType.equals(getTopOfStackObject())) {
@@ -239,32 +247,32 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if (analyzer.locals.size() > var && analyzer.locals.get(var) instanceof String) {
 						Type localType = Type.getObjectType((String) analyzer.locals.get(var));
 						if (localType.getSort() == Type.ARRAY && localType.getElementType().getSort() != Type.OBJECT && localType.getDimensions() == 1) {
-							varToShadowVar.put(var, lvs.newLocal(Type.getType("[I")));
+							lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.getType("[I"),var));
 							varTypes.put(var, Opcodes.NULL);
-							shadowVar = varToShadowVar.get(var);
+							shadowVar = lvs.varToShadowVar.get(var);
 							if (shadowVar == analyzer.locals.size())
 								analyzer.locals.add(Opcodes.NULL);
 						}
 					}
 				} else if (opcode == ASTORE) {
 					if (topOfStackIsNull()) {
-						varToShadowVar.put(var, lvs.newLocal(Type.getType("[I")));
+						lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.getType("[I"),var));
 						varTypes.put(var, Opcodes.NULL);
-						shadowVar = varToShadowVar.get(var);
+						shadowVar = lvs.varToShadowVar.get(var);
 					} else {
 						Type onStack = getTopOfStackType();
 						if (onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT && onStack.getDimensions() == 1) {
 							//That's easy.
-							varToShadowVar.put(var, lvs.newLocal(Type.getType(TaintUtils.getShadowTaintType(onStack.getDescriptor()))));
+							lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.getType(TaintUtils.getShadowTaintType(onStack.getDescriptor())),var));
 							varTypes.put(var, getTopOfStackObject());
-							shadowVar = varToShadowVar.get(var);
+							shadowVar = lvs.varToShadowVar.get(var);
 						}
 					}
 				} else {
 //					if (TaintUtils.DEBUG_LOCAL)
-					varToShadowVar.put(var, lvs.newLocal(Type.INT_TYPE));
+					lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.INT_TYPE, var));
 					varTypes.put(var, Opcodes.INTEGER);
-					shadowVar = varToShadowVar.get(var);
+					shadowVar = lvs.varToShadowVar.get(var);
 //					System.out.println("creating shadow for " + var + " - " + shadowVar);
 					if (opcode == ILOAD || opcode == FLOAD || opcode == DLOAD || opcode == LLOAD) {
 						if (shadowVar == analyzer.locals.size())
@@ -274,7 +282,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 
 			if (opcode == Opcodes.ASTORE && TaintUtils.DEBUG_FRAMES) {
-				System.out.println("ASTORE " + var + ", shadowvar contains " + varToShadowVar.get(var));
+				System.out.println("ASTORE " + var + ", shadowvar contains " + lvs.varToShadowVar.get(var));
 			}
 			if (shadowVar > -1 && TaintUtils.DEBUG_LOCAL) {
 				System.out.println("using shadow " + shadowVar + "for " + var + (boxIt ? " boxit" : " notboxit"));
@@ -651,10 +659,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);
 		}
 		super.visitInsn(POP);
-		if (dims == 1) {
-			//It's possible that we dropped down to a 1D object type array
-			super.visitTypeInsn(ANEWARRAY, arrayType.getElementType().getInternalName());
-		} else
+//		if (dims == 1) {
+//			//It's possible that we dropped down to a 1D object type array
+//			super.visitTypeInsn(ANEWARRAY, arrayType.getElementType().getInternalName());
+//		} else
 			super.visitMultiANewArrayInsn(desc, dims);
 
 		lvs.freeTmpLV(tempArrayIdx);
@@ -1154,7 +1162,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		int n = 1;
 		boolean ignoreNext = false;
 
-		//								System.out.println("12dw23 Calling "+owner+"."+name+newDesc + "with " + analyzer.stack);
+//										System.out.println("12dw23 "+this.name+"Calling "+owner+"."+name+newDesc + "with " + analyzer.stack);
 		for (Type t : argsInReverse) {
 			if (analyzer.stack.get(analyzer.stack.size() - i) == Opcodes.TOP)
 				i++;
@@ -1182,7 +1190,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					System.err.println("removing taint array in call at " + n);
 				storeTaintArrayAt(n, onStack.getDescriptor());
 			}
-			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT)
+			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1)
 				ignoreNext = !ignoreNext;
 			n++;
 			i++;
@@ -2420,7 +2428,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitLabel(newDest);
 			fn.accept(this);
 			for (Integer var : boxAtNextJump) {
-				super.visitVarInsn(ALOAD, varToShadowVar.get(var));
+				super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
 				super.visitVarInsn(ALOAD, var);
 				registerTaintedArray("[I");
 				super.visitInsn(POP);
