@@ -1,14 +1,23 @@
 Phosphor: Dynamic Taint Tracking for the JVM
 ========
 
-
 Phosphor is a system for performing dynamic taint analysis in the JVM, on commodity JVMs (e.g. Oracle's HotSpot or OpenJDK's IcedTea). This repository contains the source for Phosphor. For more information about how Phosphor works and what it could be useful for, please refer to our [Technical Report](https://mice.cs.columbia.edu/getTechreport.php?techreportID=1569) or email [Jonathan Bell](mailto:jbell@cs.columbia.edu).
+
+JVMTI Fork Information
+-------
+This branch contains a different version of Phosphor than was described in our OOPSLA paper. While the previously discussed version of Phosphor handled multi-dimension arrays by wrapping each inner dimension in an object (with one field of the object storing the contents for that array and another field storing the taint tags), this version maintains taint tags for multi-dimension arrays by using [JVMTI object tagging](http://docs.oracle.com/javase/7/docs/platform/jvmti/jvmti.html). Please note that the instructions for building and running this branch are slightly different than the main branch as it also includes a native component.
+
+This implementation re-balances some tradeoffs. JVMTI is a standard, but several of the JVMs that we evaluated do not support it (mainly the old ones: OpenJDK and Oracle's JVM both do); the Dalvik VM definitely does not support it. However, it greatly increases Phosphor's resilience to native interoperability. A key limitation of Phosphor previously was that if native code accessed a field of an object which was a multi-dimension array, the application would crash (because Phosphor removed all multi-dimnsion arrays, replacing them with those wrappers and because the native code couldn't be modified to be aware of this). In our experiments (i.e. with the applications in DaCapo) this was not a problem. Nonetheless, supporting these applications would be nice. In this implementation, if native code directly accessed these fields, taints would not be propogated, but the application wouldn't crash. We haven't yet, but it would be possible to add a warning feature to Phosphor to detect when native code is directly accessing fields of objects (and not propogating taints), again, using JVMTI.
+
+We have performed some cursory evaluations of the runtime overhead of the two approaches, finding that each approach has its ups and downs in terms of performance. The object wrapping approach puts much more pressure on the garbage collector (since these wrapper objects are created and discarded frequently), but the JVMTI approach can lead to slowdowns every time that the JVM-JNI barrier is crossed to get/set a taint tag. Something of a hybrid approach may be most effective, but unfortunately we do not have time to investigate this further right now.
 
 Running
 -------
 Phosphor works by modifying your application's bytecode to perform data flow tracking. To be complete, Phosphor also modifies the bytecode of JRE-provided classes, too. The first step to using Phosphor is generating an instrumented version of your runtime environment. We have tested Phosphor with versions 7 and 8 of both Oracle's HotSpot JVM and OpenJDK's IcedTea JVM.
 
 We'll assume that in all of the code examples below, we're in the same directory (which has a copy of [phosphor.jar](https://github.com/Programming-Systems-Lab/phosphor/raw/master/phosphor.jar)), and that the JRE is located here: `/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/jre` (modify this path in the commands below to match your environment).
+
+First, you'll need to build the native tracking library. Check out the Phosphor source (or at least, the `TrackerJVMTI` folder). Set `JAVA_HOME` to point to your JDK (preferably the same one that you plan to use for an execution environment), then run `make` in the `TrackerJVMTI` folder. You should get a libphosphor.so or libphosphor.dylib (for linux or mac, respectively).
 
 Then, to instrument the JRE we'll run:
 `java -jar phosphor.jar /Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/jre jre-inst`
@@ -20,29 +29,29 @@ The next step is to instrument the code which you would like to track. We'll sta
 
 This will create the folder inst, and place in it the instrumented version of the demo suite jar.
 
-We can now run the instrumented demo suite using our instrumented JRE, as such:
-`JAVA_HOME=jre-inst/ $JAVA_HOME/bin/java  -Xbootclasspath/a:phosphor.jar -cp inst/phosphortests.jar -ea phosphor.test.DroidBenchTest`
-The result should be a list of test cases, with assertion errors for each "testImplicitFlow" test case.
+We can now run the instrumented demo suite using our instrumented JRE, as such (note: you will likely need to make the binaries in your generated JAVA_HOME/bin executable, and in some cases, there may also be binaries in JAVA_HOME/lib/):
+`JAVA_HOME=jre-inst/ $JAVA_HOME/bin/java  -Xbootclasspath/a:phosphor.jar -cp inst/phosphortests.jar -agentpath:libphosphor.so -ea phosphor.test.DroidBenchTest`
+The result should be a list of test cases, with assertion errors for each "testImplicitFlow" test case. Note the `agentpath` argument, which was not needed in previous versions of phosphor, which must point to the compiled JVMTI library from the first step.
+
+If you are running an application that might be defining its own classes, you can also use Phosphor as a just-in-time instrumenter by passing it as a java agent to the JVM when you run your application (e.g. `java -javaagent:phosphor.jar`).
+
+Note that the JVMTI version of Phosphor does *not* require classpath information for instrumentation purposes - its stack frame map modifications are much less invasive and does not need to completely recalculate them.
 
 Interacting with Phosphor
 -----
 Phosphor exposes a simple API to allow you to mark data with tags, and to retrieve those tags. The class ``edu.columbia.cs.psl.phosphor.runtime.Tainter`` contains all relevant methods (ignore the methods ending with the suffix $$INVIVO_PC, they are used internally), namely, getTaint(...) and taintedX(...) (with one X for each data type: taintedByte, taintedBoolean, etc).
 
-We suggest that when you instrument your project, you pass any directories containing classes to the Phosphor instrumenter so that it can [properly resolve class hierarchies](http://chrononsystems.com/blog/java-7-design-flaw-leads-to-huge-backward-step-for-the-jvm). For example, if we were instrumenting our "PhosphorTest" folder, we would pass the "PhosphorTest/bin" as an additional argument to our instrumenter.
+Building from Source
+-----
+Phosphor consists of a Java project and a C++ project.
+
+We suggest that you build the Java project in Eclipse (it contains an eclipse project file), and use the included Eclipse jar export wizard file (jar-descriptor.jardesc) to export a jar for Phosphor. If you would like to export the jar manually, please be sure to use the included MANFIEST.MF file (which specifies both the main class and information for the java agent).
+
+To build the native agent, we have included simple makefiles for both Mac OS X and Linux. Before running the makefile, please be sure that `JAVA_HOME` is set to point to your JDK. I strongly recommend building the library against the same JDK that you plan to instrument and run.
 
 Support for Android
 ----
-We have preliminary results that show that we can apply Phosphor to Android devices running the Dalvik VM, by instrumenting all Android libraries prior to dex'ing them, then dex'ing them, and deploying to the device. Note that we have only evaluated this process with several small benchmarks, and the process for using Phosphor on the Dalvik VM is far from streamlined. It is not suggested that the faint of heart try this.
-
-In principle, we could pull .dex files off of a device, de-dex, instrument, and re-dex, but at time of writing, no de-dex'ing tool is sufficiently complete (for example, [dex2jar does not currently support the int-to char opcode](https://code.google.com/p/dex2jar/issues/detail?id=214&can=1&q=i2c)). Therefore, to use Phosphor on an Android device, you will need to [compile the Android OS](https://source.android.com) yourself, so that you get the intermediate .class files to instrument.
-
-Once you have compiled Android, the next step will be to instrument all of the core framework libraries. For each library *X*, the classses are found within the file `out/target/common/obj/JAVA_LIBRARIES/X_intermediates/classes.jar`. Copy each of these jar's to a temporary directory, renaming them to *X.jar*. Then instrument each of these jar's following the instructions from the section above, *Running*. Then, use the `dx` tool provided with the Android SDK to convert each jar to dex:
-`dx -JXmx3g --dex --core-library --output=dex/X.jar instrumented-jars/X.jar`. For the file, *framework.jar*, you will find that the jar now contains too many classes. Use the flag `--multi-dex` here, and assemble all of the output classes.dex files into a single jar.  
-
-Next, use `dx` to also convert phosphor.jar to a dex file, and then copy all of the completed .dex files to the Android device. Use the same procedure to instrument each application. Then, using an `adb shell`, change the boot classpath to point to the instrumented core libraries, and invoke your application using the `dalvikvm` command.
-
-
-For more information on applying Phosphor to Dalvik, please contact us.
+If you are interested in applying Phosphor to Android, please look at the other branch (not the JVMTI one).
 
 Questions, concerns, comments
 ----
