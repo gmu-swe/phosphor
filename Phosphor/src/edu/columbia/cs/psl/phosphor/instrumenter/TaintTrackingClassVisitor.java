@@ -509,7 +509,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						String[] exceptions = new String[m.exceptions.size()];
 						exceptions = m.exceptions.toArray(exceptions);
 						MethodVisitor mv = super.visitMethod(m.access, m.name, m.desc, m.signature, exceptions);
-						
+//						System.out.println("gen wrapper " + m.name);
 						//TODO maybe re-enable this
 						if(fullMethod != null)
 						{
@@ -553,7 +553,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 									if (t.getDimensions() == 1) {
 										newDesc += "[I";
 										ga.visitVarInsn(Opcodes.ALOAD, idx);
-										TaintAdapter.createNewTaintArray(t.getDescriptor(), an, ga, lvs);
+										TaintAdapter.createNewTaintArray(t.getDescriptor(), an, lvs, lvs);
 										loaded = true;
 									} 
 								}

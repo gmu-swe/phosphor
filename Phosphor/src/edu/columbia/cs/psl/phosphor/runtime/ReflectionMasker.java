@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.WeakHashMap;
 
+import sun.misc.VM;
 import sun.reflect.ReflectionFactory;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
@@ -357,9 +358,9 @@ public class ReflectionMasker {
 						ret[j] = 0;
 					j++;
 				} else if (c.getParameterTypes()[j].isArray() && c.getParameterTypes()[j].getComponentType().isPrimitive()) {
-					ret[j] = in[i];
-					j++;
 					ret[j] = ArrayHelper.getTags(in[i]);
+					j++;
+					ret[j] = in[i];
 					j++;
 					continue;
 				}

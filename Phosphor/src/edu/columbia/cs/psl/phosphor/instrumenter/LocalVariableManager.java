@@ -293,6 +293,12 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 	@Override
     public void visitFrame(final int type, final int nLocal,
             final Object[] local, final int nStack, final Object[] stack) {
+		if(type == TaintUtils.RAW_INSN)
+		{
+//			System.out.println("ZZ");
+			mv.visitFrame(Opcodes.F_NEW, nLocal, local, nStack, stack);
+			return;
+		}
         if (type != Opcodes.F_NEW) { // uncompressed frame
             throw new IllegalStateException(
                     "ClassReader.accept() should be called with EXPAND_FRAMES flag");
@@ -319,14 +325,17 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 
         for(Type t : preAllocedReturnTypes.keySet())
         {
+//        	System.out.println(t);
         	if(t.getSort() != Type.OBJECT)
         		continue;
         	int idx = preAllocedReturnTypes.get(t);
         	if(idx >= 0)
         	{
-        	setFrameLocal(idx, t.getInternalName());
+//        		System.out.println(idx + "->" + t);
+        		setFrameLocal(idx, t.getInternalName());
         	}
         }
+//        System.out.println(Arrays.toString(newLocals));
         int index = 0; // old local variable index
         int number = 0; // old local variable number
         for (; number < nLocal; ++number) {

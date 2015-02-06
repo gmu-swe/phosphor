@@ -231,7 +231,7 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 	{
 		Object[] locals = removeLongsDoubleTopVal(a.locals);
 		Object[] stack = removeLongsDoubleTopVal(a.stack);
-		FrameNode ret = new FrameNode(Opcodes.F_NEW, locals.length, locals, stack.length, stack);
+		FrameNode ret = new FrameNode(TaintUtils.RAW_INSN, locals.length, locals, stack.length, stack);
 		return ret;
 	}
 	public static void createNewTaintArray(String arrayDesc, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor mv, LocalVariableManager lvs) {

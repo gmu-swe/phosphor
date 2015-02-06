@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 
@@ -112,6 +113,7 @@ public class FrameNode extends AbstractInsnNode {
         switch (type) {
         case Opcodes.F_NEW:
         case Opcodes.F_FULL:
+        case TaintUtils.RAW_INSN:
             this.local = asList(nLocal, local);
             this.stack = asList(nStack, stack);
             break;
@@ -145,6 +147,7 @@ public class FrameNode extends AbstractInsnNode {
         switch (type) {
         case Opcodes.F_NEW:
         case Opcodes.F_FULL:
+        case TaintUtils.RAW_INSN:
             mv.visitFrame(type, local.size(), asArray(local), stack.size(),
                     asArray(stack));
             break;
