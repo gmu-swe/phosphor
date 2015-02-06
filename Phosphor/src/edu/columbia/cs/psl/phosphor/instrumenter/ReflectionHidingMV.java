@@ -149,8 +149,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 						|| name.equals("getByte$$INVIVO_PC") || name.equals("getFloat$$INVIVO_PC") || name.equals("getLong$$INVIVO_PC") || name.equals("getShort$$INVIVO_PC")
 						|| name.equals("setAccessible$$INVIVO_PC") || name.equals("set") || name.equals("setInt$$INVIVO_PC") || name.equals("setBoolean$$INVIVO_PC")
 						|| name.equals("setChar$$INVIVO_PC") || name.equals("setDouble$$INVIVO_PC") || name.equals("setByte$$INVIVO_PC") || name.equals("setFloa$$INVIVO_PCt")
-						|| name.equals("setLong$$INVIVO_PC") || name.equals("setShort$$INVIVO_PC"))
-						|| name.equals("getType")) {
+						|| name.equals("setLong$$INVIVO_PC") || name.equals("setShort$$INVIVO_PC")
+						|| name.equals("getType"))) {
 			owner = Type.getInternalName(RuntimeReflectionPropogator.class);
 			opcode = Opcodes.INVOKESTATIC;
 			desc = "(Ljava/lang/reflect/Field;" + desc.substring(1);
