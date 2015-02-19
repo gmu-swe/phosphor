@@ -25,6 +25,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 
 	Type returnType;
 	int lastArg;
+	ArrayList<Type> oldArgTypes = new ArrayList<Type>();
 	
 	public HashMap<Integer, Integer> varToShadowVar = new HashMap<Integer, Integer>();
 	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV) {
@@ -33,9 +34,18 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 		this.uninstMV = uninstMV;
 		returnType = Type.getReturnType(desc);
 		Type[] args = Type.getArgumentTypes(desc);
-		if((access & Opcodes.ACC_STATIC) == 0) lastArg++;
+		if((access & Opcodes.ACC_STATIC) == 0){
+			lastArg++;
+			oldArgTypes.add(Type.getType("Lthis;"));
+		}
 		for (int i = 0; i < args.length; i++) {
 			lastArg += args[i].getSize();
+			oldArgTypes.add(args[i]);
+			if(args[i].getSize() > 1)
+			{
+				oldArgTypes.add(Type.getType("Ltop;"));
+			}
+			
 		}
 		lastArg--;
 		end = new Label();
@@ -378,6 +388,33 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 							shadowVar = varToShadowVar.get(newVar);
 						//            		System.out.println("Adding storage for " + newVar + " at  " + shadowVar);
 						setFrameLocal(shadowVar, shadowType);
+					}
+					else
+					{
+						//Check to make sure that we already allocated a shadow LV for this in the methodargreindexer
+//						System.out.println(index);
+//						System.out.println(oldArgTypes);
+						Type oldT = oldArgTypes.get(index);
+						if(t instanceof Integer && (oldT.getSort() == Type.ARRAY && oldT.getDimensions() == 1 && oldT.getElementType().getSort() != Type.OBJECT))
+						{
+							//Had a shodow array, need shadow int
+							setFrameLocal(index-1, Opcodes.INTEGER);
+						}
+						else if(t instanceof String && oldT.getSort() != Type.ARRAY && oldT.getSort() != Type.OBJECT)
+						{
+							//Had shadow int, need shadow array
+							setFrameLocal(index-1, "[I");
+						}
+						else
+						{
+							//Had nothing, need something
+							if (!varToShadowVar.containsKey(newVar))
+								shadowVar = newShadowLV(typ, newVar);
+							else
+								shadowVar = varToShadowVar.get(newVar);
+							//            		System.out.println("Adding storage for " + newVar + " at  " + shadowVar);
+							setFrameLocal(shadowVar, shadowType);
+						}
 					}
             	}
             }

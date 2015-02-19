@@ -171,7 +171,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			//accessing "this" so no-op, die here so we never have to worry about uninitialized this later on.
 			super.visitVarInsn(opcode, var);
 			return;
-		} else if (var < lastArg) {
+		} else if (var < lastArg && TaintUtils.getShadowTaintType(paramTypes[var].getDescriptor()) != null) {
 			//accessing an arg; remap it
 			Type localType = paramTypes[var];
 			if (TaintUtils.DEBUG_LOCAL)
@@ -687,6 +687,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			break;
 		case Opcodes.CHECKCAST:
 
+			if(ignoreLoadingNextTaint)
+			{
+				super.visitTypeInsn(opcode, type);
+				return;
+			}
 			t = Type.getType(type);
 //			System.out.println("Pre cc "+type+": " + analyzer.stack);
 			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {

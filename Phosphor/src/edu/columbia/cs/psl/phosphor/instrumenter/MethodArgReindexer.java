@@ -55,8 +55,8 @@ public class MethodArgReindexer extends InstructionAdapter {
 			oldArgTypesList.add(Type.getType("Lthis;"));
 		for (Type t : Type.getArgumentTypes(originalDesc)) {
 			oldArgTypesList.add(t);
-			if (t.getSize() == 2)
-				oldArgTypesList.add(Type.getType("LTOP;"));
+//			if (t.getSize() == 2)
+//				oldArgTypesList.add(Type.getType("LTOP;"));
 		}
 
 		boolean hasBeenRemapped = false;
@@ -66,8 +66,10 @@ public class MethodArgReindexer extends InstructionAdapter {
 			if (oldArgTypes[i].getSort() == Type.ARRAY) {
 				if (oldArgTypes[i].getElementType().getSort() != Type.OBJECT) {
 					if (oldArgTypes[i].getDimensions() == 1)
+					{
 						newArgOffset++;
-					hasBeenRemapped = true;
+						hasBeenRemapped = true;
+					}
 				}
 			} else if (oldArgTypes[i].getSort() != Type.OBJECT) {
 				hasBeenRemapped = true;
@@ -152,43 +154,33 @@ public class MethodArgReindexer extends InstructionAdapter {
 //				System.out.println("Start " + i);
 //				System.out.println(newIdx +" :"+local[i]);
 				if (i < origNumArgs) {
-					if (local[i] == Opcodes.NULL) {
+//					if (local[i] == Opcodes.NULL || local[i] == Opcodes.TOP) {
 						Type t = oldArgTypesList.get(i);
-						if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-							remappedLocals[newIdx] = TaintUtils.getShadowTaintType(t.getDescriptor());
+						if ((t.getSort() != Type.OBJECT && t.getSort() != Type.ARRAY) || 
+								(t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1))
+						{
+							if(t.getSort() == Type.ARRAY)
+							remappedLocals[newIdx] = "[I";
+							else
+								remappedLocals[newIdx] = Opcodes.INTEGER;
 							if (TaintUtils.DEBUG_FRAMES)
-								System.out.println("Adding taint storage for local type " + local[i]);
+								System.out.println("Adding taint storage for local type " + local[i] + " aka " + t);
 							newIdx++;
 							nLocal++;
-							remappedLocals[newIdx] = t.getInternalName();
-							newIdx++;
-							continue;
+//							remappedLocals[newIdx] = t.getInternalName();
+//							newIdx++;
+//							continue;
 						}
-					} else if (TaintAdapter.isPrimitiveStackType(local[i])) {
-						if (!(local[i] != Opcodes.TOP && local[i] instanceof String && ((String) local[i]).charAt(1) == '[')) {
-							if (local[i] != Opcodes.TOP) {
-								try {
-									Type argType = TaintAdapter.getTypeForStackType(local[i]);
-									remappedLocals[newIdx] = TaintUtils.getShadowTaintTypeForFrame(argType.getDescriptor());
-									//									if (TaintUtils.DEBUG_FRAMES)
-
-									newIdx++;
-									nLocal++;
-//									System.out.println("Adding taint storage for local type " + local[i]);
-								} catch (IllegalArgumentException ex) {
-									System.err.println("Locals were: " + Arrays.toString(local) + ", curious about " + i);
-									throw ex;
-								}
-							}
-						}
-					}
 				}
 				if (i == origNumArgs && hasTaintSentinalAddedToDesc) {
+//					System.out.println("Added sentinel");
 					remappedLocals[newIdx] = Type.getInternalName(TaintSentinel.class);
 					newIdx++;
 					nLocal++;
 				}
-				
+//				System.out.println("New " + newIdx + " and " + i);
+//				System.out.println(Arrays.toString(remappedLocals));
+//				System.out.println(Arrays.toString(local));
 				remappedLocals[newIdx] = local[i];
 //				if (local[i] != Opcodes.TOP && local[i] instanceof String &&((String) local[i]).length() > 1 && ((String) local[i]).charAt(1) == '[' && Type.getObjectType((String) local[i]).getElementType().getSort() != Type.OBJECT) {
 //					remappedLocals[newIdx] = MultiDTaintedArray.getTypeForType(Type.getObjectType((String) local[i])).getInternalName();
