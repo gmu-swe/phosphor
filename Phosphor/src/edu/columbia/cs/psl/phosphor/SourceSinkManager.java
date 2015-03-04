@@ -59,6 +59,8 @@ public abstract class SourceSinkManager {
 				r += t;
 		}
 		r += ")" + remapReturnType(Type.getReturnType(desc));
+		if(Type.getReturnType(desc).getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct"))
+			r = r.replace(Type.getReturnType(desc).getDescriptor(), "");
 		return r;
 	}
 

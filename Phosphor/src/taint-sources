@@ -1,3 +1,9 @@
 #java/io/InputStream.read()I
 #java/io/InputStream.read([B)I
 #java/io/InputStream.read([BII)I
+phosphor/test/SourceSinkTest.sourceArgs(Ljava/lang/Object;)V
+phosphor/test/SourceSinkTest.sourceArgs2([I)V
+phosphor/test/SourceSinkTest.sourceRet1()I
+phosphor/test/SourceSinkTest.sourceRet2()[I
+phosphor/test/SourceSinkTest.sourceRet3()Ljava/lang/Object;
+phosphor/test/SourceSinkTest.sourceRet4()[I
