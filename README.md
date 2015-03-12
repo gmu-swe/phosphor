@@ -15,6 +15,8 @@ Then, to instrument the JRE we'll run:
 
 The instrumenter takes two primary arguments: first a path containing the classes to instrument, and then a destination for the instrumented classes. Optionally, you can specify additional classpath dependencies referenced from your code (may or may not be necessary, and explained in further below).
 
+After you do this, make sure to chmod +x the binaries in the new folder, e.g. `chmod +x jre-inst/bin/*`
+
 The next step is to instrument the code which you would like to track. We'll start off by instrumenting the demo suite provided under the PhosphorTests project. This suite includes a slightly modified version of [DroidBench](http://sseblog.ec-spride.de/tools/droidbench/), a test suite that simulates application data leaks. We'll instrument the [phosphortests.jar](https://github.com/Programming-Systems-Lab/phosphor/raw/master/phosphortests.jar) file:
 `java -jar phosphor.jar phosphortests.jar inst`
 
