@@ -87,7 +87,7 @@ public class TaintUtils {
 
 	public static final int UNCONSTRAINED_NEW_STRING = 4;
 
-	public static final boolean VERIFY_CLASS_GENERATION = false;
+	public static final boolean VERIFY_CLASS_GENERATION = true;
 
 
 	public static boolean isPreAllocReturnType(String methodDescriptor)

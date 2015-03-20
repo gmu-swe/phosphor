@@ -29,14 +29,14 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	}
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-		if(!ignoreFrames)
+		if(!ignoreFrames && type != TaintUtils.RAW_INSN)
 			super.visitFrame(type, nLocal, local, nStack, stack);
 	}
 	@Override
 	public void visitLdcInsn(Object cst) {
 		if(cst instanceof Type && ignoreFrames)
 		{
-			super.visitLdcInsn(cst.toString().replace("/", "."));
+			super.visitLdcInsn(((Type)cst).getInternalName().replace("/", "."));
 			super.visitInsn(Opcodes.ICONST_0);
 			super.visitLdcInsn(clazz.replace("/", "."));
 			super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);

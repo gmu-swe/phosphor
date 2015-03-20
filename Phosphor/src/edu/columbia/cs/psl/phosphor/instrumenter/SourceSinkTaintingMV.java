@@ -78,8 +78,19 @@ public class SourceSinkTaintingMV extends InstructionAdapter implements Opcodes{
 			{
 				if(args[i].getSort() == Type.OBJECT || args[i].getSort() == Type.ARRAY)
 				{
+					if(args[i].getSort() == Type.ARRAY && args[i].getElementType().getSort() != Type.OBJECT && args[i].getDimensions() == 1)
+					{
+						if(!skipNextPrimitive)
+						{
+							super.visitVarInsn(ALOAD, idx);
+							super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "checkTaint", "(Ljava/lang/Object;)V", false);
+						}
+						skipNextPrimitive = !skipNextPrimitive;
+					}
+					else{
 					super.visitVarInsn(ALOAD, idx);
 					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "checkTaint", "(Ljava/lang/Object;)V", false);
+					}
 				}
 				else if(!skipNextPrimitive)
 				{

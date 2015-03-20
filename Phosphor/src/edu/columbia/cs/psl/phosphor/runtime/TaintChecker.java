@@ -3,6 +3,8 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import java.lang.reflect.Array;
 
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArray;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class TaintChecker {
 	public static void checkTaint(int tag)
@@ -11,15 +13,24 @@ public class TaintChecker {
 			throw new IllegalAccessError("Argument carries taint");
 	}
 	public static void checkTaint(Object obj) {
+
 		if(obj == null)
 			return;
 		if (obj instanceof Tainted) {
 			if (((Tainted) obj).getINVIVO_PC_TAINT() != 0)
 				throw new IllegalAccessError("Argument carries taint");
 		}
-		else if(obj.getClass().isArray() && obj.getClass().getComponentType().isPrimitive())
+		else if(obj instanceof int[])
 		{
-			int[] tags = ArrayHelper.getTags(obj);
+			for(int i : ((int[])obj))
+			{
+				if(i > 0)
+					throw new IllegalAccessError("Argument carries taints");
+			}
+		}
+		else if(obj instanceof MultiDTaintedArray)
+		{
+			int[] tags = ((MultiDTaintedArray) obj).taint;
 			for(int i : tags)
 			{
 				if(i > 0)
@@ -48,16 +59,18 @@ public class TaintChecker {
 			return;
 		if (obj instanceof Tainted) {
 			((Tainted) obj).setINVIVO_PC_TAINT(tag);
+		} else if (obj instanceof TaintedPrimitiveArray){
+			((TaintedPrimitiveArray)obj).setTaints(tag);
+		}else if (obj instanceof MultiDTaintedArray) {
+			int[] taints = ((MultiDTaintedArray) obj).taint;
+			for (int i = 0; i < taints.length; i++)
+				taints[i] = tag;
 		} else if (obj.getClass().isArray()) {
-			if (obj.getClass().getComponentType().isPrimitive()) {
-				int[] taints = ArrayHelper.getTags(obj);
-				for (int i = 0; i < taints.length; i++)
-					taints[i] = tag;
-			} else {
+			
 				Object[] ar = (Object[]) obj;
 				for (Object o : ar)
 					setTaints(o, tag);
-			}
+			
 		}
 	}
 

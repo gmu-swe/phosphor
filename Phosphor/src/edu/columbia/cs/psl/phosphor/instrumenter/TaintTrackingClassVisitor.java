@@ -40,7 +40,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	public static boolean GEN_HAS_TAINTS_METHOD = false;
 	public static final boolean NATIVE_BOX_UNBOX = true;
 	
-	static boolean DO_OPT = true;
+	static boolean DO_OPT = false;
 	static {
 		if (!DO_OPT && !IS_RUNTIME_INST)
 			System.err.println("WARN: OPT DISABLED");
@@ -230,13 +230,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 
-			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(Opcodes.ASM5, className, analyzer, analyzer, mv);
+			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(Opcodes.ASM5, className, analyzer, analyzer);
 			LocalVariableManager lvs;
 			TaintPassingMV tmv;
 			MethodVisitor nextMV;
 			{
-				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(Opcodes.ASM5, className, boxFixer, analyzer, mv);
-				tmv = new TaintPassingMV(implicitCleanup, mv, access, className, name, newDesc, desc, analyzer);
+				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(Opcodes.ASM5, className, boxFixer, analyzer);
+				tmv = new TaintPassingMV(implicitCleanup, access, className, name, newDesc, desc, analyzer);
 				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv);
 				nextMV = new ConstantValueNullTaintGenerator(className, access, name, newDesc, signature, exceptions, lvs);
 			}

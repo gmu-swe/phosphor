@@ -50,7 +50,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.TypePath;
  */
 public class LocalVariablesSorter extends MethodVisitor {
 
-    private static final Type OBJECT_TYPE = Type
+    protected static final Type OBJECT_TYPE = Type
             .getObjectType("java/lang/Object");
 
     /**
@@ -63,7 +63,7 @@ public class LocalVariablesSorter extends MethodVisitor {
     /**
      * Array used to store stack map local variable types after remapping.
      */
-    private Object[] newLocals = new Object[20];
+    protected Object[] newLocals = new Object[20];
 
     /**
      * Index of the first local variable, after formal parameters.
@@ -78,7 +78,7 @@ public class LocalVariablesSorter extends MethodVisitor {
     /**
      * Indicates if at least one local variable has moved due to remapping.
      */
-    private boolean changed;
+    protected boolean changed;
 
     /**
      * Creates a new {@link LocalVariablesSorter}. <i>Subclasses must not use
@@ -178,7 +178,7 @@ public class LocalVariablesSorter extends MethodVisitor {
         mv.visitLocalVariable(name, desc, signature, start, end, newIndex);
     }
 
-    boolean isFirstFrame = true;
+    protected boolean isFirstFrame = true;
     @Override
     public AnnotationVisitor visitLocalVariableAnnotation(int typeRef,
             TypePath typePath, Label[] start, Label[] end, int[] index,
@@ -374,7 +374,7 @@ public class LocalVariablesSorter extends MethodVisitor {
     protected void setLocalType(final int local, final Type type) {
     }
 
-    private void setFrameLocal(final int local, final Object type) {
+    protected void setFrameLocal(final int local, final Object type) {
         int l = newLocals.length;
         if (local >= l) {
             Object[] a = new Object[Math.max(2 * l, local + 1)];
@@ -384,7 +384,7 @@ public class LocalVariablesSorter extends MethodVisitor {
         newLocals[local] = type;
     }
 
-    private int remap(final int var, final Type type) {
+    protected int remap(final int var, final Type type) {
         if (var + type.getSize() <= firstLocal) {
             return var;
         }

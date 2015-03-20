@@ -24,16 +24,27 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 
 	Type returnType;
 	int lastArg;
-	
+	ArrayList<Type> oldArgTypes = new ArrayList<Type>();
+
+	public HashMap<Integer, Integer> varToShadowVar = new HashMap<Integer, Integer>();
 	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV) {
 		super(ASM5, access, desc, mv);
 		this.analyzer = analyzer;
 		this.uninstMV = uninstMV;
 		returnType = Type.getReturnType(desc);
 		Type[] args = Type.getArgumentTypes(desc);
-		if((access & Opcodes.ACC_STATIC) == 0) lastArg++;
+		if((access & Opcodes.ACC_STATIC) == 0){
+			lastArg++;
+			oldArgTypes.add(Type.getType("Lthis;"));
+		}
 		for (int i = 0; i < args.length; i++) {
 			lastArg += args[i].getSize();
+			oldArgTypes.add(args[i]);
+			if(args[i].getSize() > 1)
+			{
+				oldArgTypes.add(Type.getType("Ltop;"));
+			}
+			
 		}
 		lastArg--;
 		end = new Label();
@@ -71,6 +82,51 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 		return idx;
 	}
 
+	HashMap<Integer, Integer> origLVMap = new HashMap<Integer, Integer>();
+	HashMap<Integer, Integer> shadowLVMap = new HashMap<Integer, Integer>();
+
+	HashMap<Integer, Object> shadowLVMapType = new HashMap<Integer, Object>();
+	public int newShadowLV(Type type, int shadows) {
+		int idx = super.newLocal(type);
+		Label lbl = new Label();
+		super.visitLabel(lbl);
+		
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorShadowLVFor" + shadows+"XX"+createdLVIdx, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), idx);
+		createdLVs.add(newLVN);
+		curLocalIdxToLVNode.put(idx, newLVN);
+		createdLVIdx++;
+		shadowLVMap.put(idx, origLVMap.get(shadows));
+		
+		varToShadowVar.put(shadows, idx);
+		return idx;
+	}
+
+	@Override
+	protected int remap(int var, Type type) {
+		
+		int ret = super.remap(var, type);
+//		System.out.println("var -> " + ret);
+		origLVMap.put(ret, var);
+		Object objType = "[I";
+		switch(type.getSort()){
+		case Type.BOOLEAN:
+		case Type.SHORT:
+		case Type.INT:
+			objType = Opcodes.INTEGER;
+			break;
+		case Type.LONG:
+			objType= Opcodes.LONG;
+			break;
+		case Type.DOUBLE:
+			objType= Opcodes.DOUBLE;
+			break;
+		case Type.FLOAT:
+			objType= Opcodes.FLOAT;
+			break;
+		}
+		shadowLVMapType.put(ret, objType);
+		return ret;
+	}
 	private int newPreAllocedReturnType(Type type) {
 		int idx = super.newLocal(type);
 		Label lbl = new Label();
@@ -241,4 +297,150 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 			throw new IllegalArgumentException("Got " + newReturnType + " but have " + preAllocedReturnTypes);
 		return preAllocedReturnTypes.get(newReturnType);
 	}
+	@Override
+    public void visitFrame(final int type, final int nLocal,
+            final Object[] local, final int nStack, final Object[] stack) {
+		if(type == TaintUtils.RAW_INSN)
+		{
+//			System.out.println("ZZ");
+			mv.visitFrame(Opcodes.F_NEW, nLocal, local, nStack, stack);
+			return;
+		}
+        if (type != Opcodes.F_NEW) { // uncompressed frame
+            throw new IllegalStateException(
+                    "ClassReader.accept() should be called with EXPAND_FRAMES flag");
+        }
+        if (!changed && !isFirstFrame) { // optimization for the case where mapping = identity
+            mv.visitFrame(type, nLocal, local, nStack, stack);
+            return;
+        }
+        isFirstFrame = false;
+//        System.out.println("nlocal " + nLocal);
+//        System.out.println(Arrays.toString(local));
+//        System.out.println(Arrays.toString(newLocals));
+        // creates a copy of newLocals
+        Object[] oldLocals = new Object[newLocals.length];
+        System.arraycopy(newLocals, 0, oldLocals, 0, oldLocals.length);
+
+        updateNewLocals(newLocals);
+       
+        for(int i = 0; i < newLocals.length; i++)
+        	newLocals[i] = Opcodes.TOP;
+      
+        // copies types from 'local' to 'newLocals'
+        // 'newLocals' currently empty
+
+        for(Type t : preAllocedReturnTypes.keySet())
+        {
+//        	System.out.println(t);
+        	if(t.getSort() != Type.OBJECT)
+        		continue;
+        	int idx = preAllocedReturnTypes.get(t);
+        	if(idx >= 0)
+        	{
+//        		System.out.println(idx + "->" + t);
+        		setFrameLocal(idx, t.getInternalName());
+        	}
+        }
+//        System.out.println(Arrays.toString(newLocals));
+        int index = 0; // old local variable index
+        int number = 0; // old local variable number
+        for (; number < nLocal; ++number) {
+            Object t = local[number];
+            int size = t == Opcodes.LONG || t == Opcodes.DOUBLE ? 2 : 1;
+            if (t != Opcodes.TOP) {
+                Type typ = OBJECT_TYPE;
+                if (t == Opcodes.INTEGER) {
+                    typ = Type.INT_TYPE;
+                } else if (t == Opcodes.FLOAT) {
+                    typ = Type.FLOAT_TYPE;
+                } else if (t == Opcodes.LONG) {
+                    typ = Type.LONG_TYPE;
+                } else if (t == Opcodes.DOUBLE) {
+                    typ = Type.DOUBLE_TYPE;
+                } else if (t instanceof String) {
+                    typ = Type.getObjectType((String) t);
+                }
+                setFrameLocal(remap(index, typ), t);
+                Object shadowType = null;
+            	if(t instanceof Integer)
+            	{
+            		shadowType = Opcodes.INTEGER;
+            	}
+            	else if(t instanceof String)
+            	{
+            		Type _t = Type.getType((String) t);
+            		if(_t.getSort() == Type.ARRAY && _t.getDimensions() == 1 && _t.getElementType().getSort() != Type.OBJECT)
+            			shadowType = "[I";
+            	}
+            	if(shadowType != null)
+            	{
+
+            		int newVar = remap(index, typ);
+            		int shadowVar = 0;
+					if (newVar > lastArg) {
+						if (!varToShadowVar.containsKey(newVar))
+							shadowVar = newShadowLV(typ, newVar);
+						else
+							shadowVar = varToShadowVar.get(newVar);
+						//            		System.out.println("Adding storage for " + newVar + " at  " + shadowVar);
+						setFrameLocal(shadowVar, shadowType);
+					}
+					else
+					{
+						//Check to make sure that we already allocated a shadow LV for this in the methodargreindexer
+//						System.out.println(index);
+//						System.out.println(oldArgTypes);
+						Type oldT = oldArgTypes.get(index);
+						if(t instanceof Integer && (oldT.getSort() == Type.ARRAY && oldT.getDimensions() == 1 && oldT.getElementType().getSort() != Type.OBJECT))
+						{
+							//Had a shodow array, need shadow int
+							setFrameLocal(index-1, Opcodes.INTEGER);
+						}
+						else if(t instanceof String && oldT.getSort() != Type.ARRAY && oldT.getSort() != Type.OBJECT)
+						{
+							//Had shadow int, need shadow array
+							setFrameLocal(index-1, "[I");
+						}
+						else
+						{
+							//Had nothing, need something
+							if (!varToShadowVar.containsKey(newVar))
+								shadowVar = newShadowLV(typ, newVar);
+							else
+								shadowVar = varToShadowVar.get(newVar);
+							//            		System.out.println("Adding storage for " + newVar + " at  " + shadowVar);
+							setFrameLocal(shadowVar, shadowType);
+						}
+					}
+            	}
+            }
+            index += size;
+        }
+
+        // removes TOP after long and double types as well as trailing TOPs
+
+        index = 0;
+        number = 0;
+        for (int i = 0; index < newLocals.length; ++i) {
+            Object t = newLocals[index++];
+            if (t != null && t != Opcodes.TOP) {
+                newLocals[i] = t;
+                number = i + 1;
+                if (t == Opcodes.LONG || t == Opcodes.DOUBLE) {
+                    index += 1;
+                }
+            } else {
+                newLocals[i] = Opcodes.TOP;
+            }
+        }
+   
+
+        // visits remapped frame
+        mv.visitFrame(type, number, newLocals, nStack, stack);
+//        System.out.println(Arrays.toString(newLocals));
+        
+        // restores original value of 'newLocals'
+        newLocals = oldLocals;
+    }
 }
