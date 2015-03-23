@@ -1474,6 +1474,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	@Override
 	public void visitInsn(int opcode) {
+//		System.out.println(name+Printer.OPCODES[opcode]);
 		if (opcode == TaintUtils.NEXTLOAD_IS_NOT_TAINTED) {
 			nextLoadIsNotTainted = true;
 			return;

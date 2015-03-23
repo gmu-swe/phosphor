@@ -44,10 +44,13 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 					public void visitInsn(int opcode) {
 						if (opcode == TaintUtils.DONT_LOAD_TAINT || opcode == TaintUtils.IGNORE_EVERYTHING) {
 							dontLoadTaint = !dontLoadTaint;
+//							System.out.println(name);
+//							System.out.println("A skip");
 							super.visitInsn(opcode);
 							return;
 						}
 						if (dontLoadTaint) {
+//							System.out.println("222A skip");
 							super.visitInsn(opcode);
 							return;
 						}
@@ -127,6 +130,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 							super.visitInsn(Opcodes.ICONST_0);
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Double) {
+//							System.out.println("CVNT"+name+"LDC " + cst);
 							super.visitInsn(Opcodes.ICONST_0);
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof String) {
@@ -331,6 +335,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 
 						} else {
 							boolean isIgnore = false;
+//							System.err.println("ZZZZZ"+name);
 							while (insn != null) {
 
 								switch (insn.getOpcode()) {
@@ -481,13 +486,13 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 								case Opcodes.LAND:
 								case Opcodes.LOR:
 								case Opcodes.LXOR:
-									previous = insn.getPrevious();
-									while (previous.getType() == AbstractInsnNode.LINE || previous.getType() == AbstractInsnNode.LABEL)
-										previous = previous.getPrevious(); //haha linebreaks suck
-									if (previous.getOpcode() == TaintUtils.RAW_INSN) {
-										this.instructions.remove(previous.getPrevious().getPrevious());
-										this.instructions.insertBefore(insn, new InsnNode(TaintUtils.NO_TAINT_STORE_INSN));
-									}
+//									previous = insn.getPrevious();
+//									while (previous.getType() == AbstractInsnNode.LINE || previous.getType() == AbstractInsnNode.LABEL)
+//										previous = previous.getPrevious(); //haha linebreaks suck
+//									if (previous.getOpcode() == TaintUtils.RAW_INSN) {
+//										this.instructions.remove(previous.getPrevious().getPrevious());
+//										this.instructions.insertBefore(insn, new InsnNode(TaintUtils.NO_TAINT_STORE_INSN));
+//									}
 									break;
 								}
 								insn = insn.getNext();

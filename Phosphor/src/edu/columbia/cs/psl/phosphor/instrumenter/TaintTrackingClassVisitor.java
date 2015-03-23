@@ -72,7 +72,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-
 		addTaintField = true;
 		addTaintMethod = true;
 		if(Instrumenter.IS_KAFFE_INST && name.endsWith("java/lang/VMSystem"))
@@ -216,17 +215,18 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			MethodVisitor mv = super.visitMethod(access, name, newDesc, signature, exceptions);
 			mv = new SourceSinkTaintingMV(mv, access, className, name, newDesc, desc);
 			//			mv = new CheckMethodAdapter(mv);
+			mv = new SpecialOpcodeRemovingMV(mv,ignoreFrames, className);
 
 			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className);
 			mv = reflectionMasker;
 			//			PropertyDebug debug = new PropertyDebug(Opcodes.ASM4, mv, access, name, newDesc,className);
 			MethodVisitor optimizer;
 			optimizer = mv;
-			if (DO_OPT)
-				optimizer = new PopOptimizingMV(mv, access, className, name, newDesc, signature, exceptions);
+//			if (DO_OPT)
+//				optimizer = new PopOptimizingMV(mv, access, className, name, newDesc, signature, exceptions);
 			mv = new SpecialOpcodeRemovingMV(optimizer,ignoreFrames, className);
 			mv = new StringTaintVerifyingMV(mv,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio"))); //TODO - how do we handle directbytebuffers?
-			optimizer = new PopOptimizingMV(mv, access,className, name, newDesc, signature, exceptions);
+//			optimizer = new PopOptimizingMV(mv, access,className, name, newDesc, signature, exceptions);
 
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 

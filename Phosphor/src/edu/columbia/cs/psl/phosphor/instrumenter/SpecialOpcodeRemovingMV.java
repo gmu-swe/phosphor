@@ -29,7 +29,9 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	}
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-		if(!ignoreFrames && type != TaintUtils.RAW_INSN)
+		if(type == TaintUtils.RAW_INSN)
+			type = Opcodes.F_NEW;
+		if(!ignoreFrames)
 			super.visitFrame(type, nLocal, local, nStack, stack);
 	}
 	@Override

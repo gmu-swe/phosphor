@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import java.util.Arrays;
+
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
@@ -87,6 +89,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitInsn(DUP_X2);
 				super.visitInsn(POP);
 				super.visitMethodInsn(opcode, owner, name, desc, false);
+				FrameNode fn2 = getCurrentFrameNode();
 				super.visitJumpInsn(GOTO, isOK);
 				super.visitLabel(makeNew);
 				fn.accept(this);
@@ -105,11 +108,10 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 
 				super.visitInsn(Opcodes.ACONST_NULL);
 				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "(I" + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V", false);
-				FrameNode fn2 = getCurrentFrameNode();
-				super.visitLabel(isOK);
-				fn2.accept(this);
 				lvs.freeTmpLV(tmp);
 				lvs.freeTmpLV(tmpT);
+				super.visitLabel(isOK);
+				fn2.accept(this);
 //				super.visitMethodInsn(opcode, owner, name, desc,itfc);
 
 			}

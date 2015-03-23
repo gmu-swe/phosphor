@@ -225,6 +225,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         }
     }
 
+    boolean noInsnsSinceListFrame = false;
     public List<Object> frameLocals;
     @Override
     public void visitFrame(final int type, final int nLocal,
@@ -233,6 +234,9 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             throw new IllegalStateException(
                     "ClassReader.accept() should be called with EXPAND_FRAMES flag");
         }
+        if(noInsnsSinceListFrame)
+        	return;
+        noInsnsSinceListFrame = true;
         if (mv != null) {
             mv.visitFrame(type, nLocal, local, nStack, stack);
         }
@@ -613,6 +617,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             labels = null;
             return;
         }
+        noInsnsSinceListFrame = false;
         Object t1, t2, t3, t4;
         switch (opcode) {
         case Opcodes.INEG:
