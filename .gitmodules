@@ -1,0 +1,6 @@
+[submodule "OraclePolish-WALA"]
+	path = OraclePolish-WALA
+	url = https://bitbucket.org/udse/oraclepolish-wala
+[submodule "OraclePolish-JPF"]
+	path = OraclePolish-JPF
+	url = https://bitbucket.org/udse/oraclepolish-jpf

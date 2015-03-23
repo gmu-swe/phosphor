@@ -6,6 +6,7 @@ import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStore;
+import edu.columbia.cs.psl.phosphor.runtime.SimpleMultiTaintHandler;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
@@ -40,7 +41,9 @@ public class TaintUtils {
 	public static final boolean OPT_CONSTANT_ARITHMETIC = true;
 	public static final boolean OPT_USE_STACK_ONLY = false; //avoid using LVs where possible if true
 	
-	public static final boolean MULTI_TAINT = false;
+	public static final boolean MULTI_TAINT = true;
+	public static final String MULTI_TAINT_HANDLER_CLASS = Type.getInternalName(SimpleMultiTaintHandler.class);
+	public static final boolean IMPLICIT_TRACKING = MULTI_TAINT && true; //must have multi-tainting on to do implicit flow tracking
 	
 	public static final int RAW_INSN = 201;
 	public static final int NO_TAINT_STORE_INSN = 202;

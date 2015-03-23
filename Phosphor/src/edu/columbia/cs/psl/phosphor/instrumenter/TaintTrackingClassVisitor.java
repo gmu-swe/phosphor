@@ -824,7 +824,14 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 										}
 									} else if (t.getSort() != Type.OBJECT) {
 										ga.visitVarInsn(Opcodes.ILOAD, idx);
-										ga.visitInsn(Opcodes.IOR);
+										if(TaintUtils.MULTI_TAINT)
+										{
+											ga.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+										}
+										else
+										{
+											ga.visitInsn(Opcodes.IOR);
+										}
 										idx++;
 									}
 									idx += t.getSize();
@@ -856,7 +863,14 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 										}
 									} else if (t.getSort() != Type.OBJECT) {
 										ga.visitVarInsn(Opcodes.ILOAD, idx);
-										ga.visitInsn(Opcodes.IOR);
+										if(TaintUtils.MULTI_TAINT)
+										{
+											ga.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+										}
+										else
+										{
+											ga.visitInsn(Opcodes.IOR);
+										}
 										idx++;
 									}
 									idx += t.getSize();

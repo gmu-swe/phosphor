@@ -2250,7 +2250,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					//T T V
 					super.visitInsn(DUP_X2);
 					super.visitInsn(POP);
-					super.visitInsn(IOR);
+					if(TaintUtils.MULTI_TAINT)
+					{
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+					}
+					else
+					{
+						super.visitInsn(Opcodes.IOR);
+					}
 					super.visitInsn(SWAP);
 					lvs.freeTmpLV(tmp);
 				}
@@ -2299,7 +2306,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					//T T V
 					super.visitInsn(DUP_X2);
 					super.visitInsn(POP);
-					super.visitInsn(IOR);
+					if(TaintUtils.MULTI_TAINT)
+					{
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+					}
+					else
+					{
+						super.visitInsn(Opcodes.IOR);
+					}
 					super.visitInsn(SWAP);
 				}
 			}
@@ -2331,7 +2345,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					// T T VV
 					super.visitInsn(DUP2_X2);
 					super.visitInsn(POP2);
-					super.visitInsn(IOR);
+					if(TaintUtils.MULTI_TAINT)
+					{
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+					}
+					else
+					{
+						super.visitInsn(Opcodes.IOR);
+					}
 					// VV T
 					super.visitInsn(DUP_X2);
 					super.visitInsn(POP);
@@ -2355,7 +2376,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						super.visitInsn(POP);
 					} else {
 						//T T
-						super.visitInsn(IOR);
+						if(TaintUtils.MULTI_TAINT)
+						{
+							super.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+						}
+						else
+						{
+							super.visitInsn(Opcodes.IOR);
+						}
 					}
 					//T 
 					super.visitVarInsn(DLOAD, tmp2);
@@ -2385,7 +2413,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				// T T VV
 				super.visitInsn(DUP2_X2);
 				super.visitInsn(POP2);
-				super.visitInsn(IOR);
+				if(TaintUtils.MULTI_TAINT)
+				{
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+				}
+				else
+				{
+					super.visitInsn(Opcodes.IOR);
+				}
 				// VV T
 				super.visitInsn(DUP_X2);
 				super.visitInsn(POP);
@@ -2420,7 +2455,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					// T T VV
 					super.visitInsn(DUP2_X2);
 					super.visitInsn(POP2);
-					super.visitInsn(IOR);
+					if(TaintUtils.MULTI_TAINT)
+					{
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+					}
+					else
+					{
+						super.visitInsn(Opcodes.IOR);
+					}
 					// VV T
 					super.visitInsn(DUP_X2);
 					super.visitInsn(POP);
@@ -2471,7 +2513,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				// T T V
 				super.visitInsn(DUP_X2);
 				super.visitInsn(POP);
-				super.visitInsn(IOR);
+				if(TaintUtils.MULTI_TAINT)
+				{
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+				}
+				else
+				{
+					super.visitInsn(Opcodes.IOR);
+				}
 				// V T
 				super.visitInsn(SWAP);
 			}
@@ -2493,7 +2542,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				// T T V
 				super.visitInsn(DUP_X2);
 				super.visitInsn(POP);
-				super.visitInsn(IOR);
+				if(TaintUtils.MULTI_TAINT)
+				{
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+				}
+				else
+				{
+					super.visitInsn(Opcodes.IOR);
+				}
 				// V T
 				super.visitInsn(SWAP);
 			}
@@ -2515,7 +2571,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				// T T V
 				super.visitInsn(DUP_X2);
 				super.visitInsn(POP);
-				super.visitInsn(IOR);
+				if(TaintUtils.MULTI_TAINT)
+				{
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+				}
+				else
+				{
+					super.visitInsn(Opcodes.IOR);
+				}
 				// VV T
 				super.visitInsn(SWAP);
 			}
@@ -2536,7 +2599,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				//T T V
 				super.visitInsn(DUP_X2);
 				super.visitInsn(POP);
-				super.visitInsn(IOR);
+				if(TaintUtils.MULTI_TAINT)
+				{
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+				}
+				else
+				{
+					super.visitInsn(Opcodes.IOR);
+				}
 				super.visitInsn(SWAP);
 			}
 			break;
@@ -2556,7 +2626,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				//T T V
 				super.visitInsn(DUP_X2);
 				super.visitInsn(POP);
-				super.visitInsn(IOR);
+				if(TaintUtils.MULTI_TAINT)
+				{
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+				}
+				else
+				{
+					super.visitInsn(Opcodes.IOR);
+				}
 				super.visitInsn(SWAP);
 			}
 			break;
