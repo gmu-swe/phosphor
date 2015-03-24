@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -90,8 +91,9 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 		int idx = super.newLocal(type);
 		Label lbl = new Label();
 		super.visitLabel(lbl);
-		
+
 		LocalVariableNode newLVN = new LocalVariableNode("phosphorShadowLVFor" + shadows+"XX"+createdLVIdx, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), idx);
+
 		createdLVs.add(newLVN);
 		curLocalIdxToLVNode.put(idx, newLVN);
 		createdLVIdx++;
@@ -285,6 +287,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 
 	HashMap<Type, Integer> preAllocedReturnTypes = new HashMap<Type, Integer>();
 	PrimitiveArrayAnalyzer primitiveArrayFixer;
+	public HashMap<Integer,Integer> varsToRemove = new HashMap<Integer, Integer>();
 
 	public void setPrimitiveArrayAnalyzer(PrimitiveArrayAnalyzer primitiveArrayFixer) {
 		this.primitiveArrayFixer = primitiveArrayFixer;
@@ -298,11 +301,18 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 		return preAllocedReturnTypes.get(newReturnType);
 	}
 	@Override
+	public void visitLineNumber(int line, Label start) {
+//		System.out.println("LVM Line " + line);
+		super.visitLineNumber(line, start);
+	}
+	@Override
     public void visitFrame(final int type, final int nLocal,
             final Object[] local, final int nStack, final Object[] stack) {
+//		System.out.println("VF");
 		if(type == TaintUtils.RAW_INSN)
 		{
 //			System.out.println("ZZ");
+//			System.out.println("Raw frame from " + Arrays.toString(local));
 			mv.visitFrame(Opcodes.F_NEW, nLocal, local, nStack, stack);
 			return;
 		}
@@ -314,6 +324,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
             mv.visitFrame(type, nLocal, local, nStack, stack);
             return;
         }
+
         isFirstFrame = false;
 //        System.out.println("nlocal " + nLocal);
 //        System.out.println(Arrays.toString(local));
@@ -327,6 +338,34 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
         for(int i = 0; i < newLocals.length; i++)
         	newLocals[i] = Opcodes.TOP;
       
+        ArrayList<Object> locals = new ArrayList<Object>();
+        for(Object o : local)
+        {
+        	locals.add(o);
+        	if(o == Opcodes.DOUBLE || o == Opcodes.LONG)
+        		locals.add(Opcodes.TOP);
+        }
+        boolean[] varsToSetToTop = new boolean[newLocals.length];
+        for(int var : varsToRemove.keySet())
+        {
+        	//var is the var that we want to see if it's a taint-carrying type
+        	if(var < locals.size())
+        	{
+        		Object v = locals.get(var);
+        		if(v instanceof String)
+        		{
+        			Type t = Type.getObjectType(((String)v));
+        			if(t.getSort() == Type.OBJECT || (t.getSort() == Type.ARRAY && (t.getDimensions() > 1 || t.getElementType().getSort() == Type.OBJECT)))
+        			{
+//        				System.out.println("Prob w " + var );
+//        				System.out.println(Arrays. toString(local));
+//        				System.out.println(Arrays.toString(oldLocals));
+        				varsToSetToTop[varsToRemove.get(var)] = true;
+        			}
+        		}
+        	}
+//        	if(var)
+        }
         // copies types from 'local' to 'newLocals'
         // 'newLocals' currently empty
 
@@ -338,7 +377,6 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
         	int idx = preAllocedReturnTypes.get(t);
         	if(idx >= 0)
         	{
-//        		System.out.println(idx + "->" + t);
         		setFrameLocal(idx, t.getInternalName());
         	}
         }
@@ -363,7 +401,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
                 }
                 setFrameLocal(remap(index, typ), t);
                 Object shadowType = null;
-            	if(t instanceof Integer)
+            	if(t instanceof Integer && t != Opcodes.NULL && t != Opcodes.UNINITIALIZED_THIS)
             	{
             		shadowType = Opcodes.INTEGER;
             	}
@@ -383,16 +421,26 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 							shadowVar = newShadowLV(typ, newVar);
 						else
 							shadowVar = varToShadowVar.get(newVar);
-						//            		System.out.println("Adding storage for " + newVar + " at  " + shadowVar);
+//						            		System.out.println("Adding storage for " + newVar + " at  " + shadowVar);
 						setFrameLocal(shadowVar, shadowType);
 					}
 					else
 					{
 						//Check to make sure that we already allocated a shadow LV for this in the methodargreindexer
+//						System.out.println("Reusing local storage for " + newVar + " at " + (newVar -1));
 //						System.out.println(index);
 //						System.out.println(oldArgTypes);
 						Type oldT = oldArgTypes.get(index);
-						if(t instanceof Integer && (oldT.getSort() == Type.ARRAY && oldT.getDimensions() == 1 && oldT.getElementType().getSort() != Type.OBJECT))
+//						System.out.println(t + " vs " + oldT);
+						if(t instanceof Integer && oldT.getSort() != Type.OBJECT && oldT.getSort() != Type.ARRAY)
+						{
+							//Had shadow int, still need that, still OK
+						}
+						else if(t instanceof String  && oldT.getSort() == Type.ARRAY && oldT.getDimensions() == 1 && oldT.getElementType().getSort() != Type.OBJECT)
+						{
+							//Had shadow array still ok
+						}
+						else if(t instanceof Integer && (oldT.getSort() == Type.ARRAY && oldT.getDimensions() == 1 && oldT.getElementType().getSort() != Type.OBJECT))
 						{
 							//Had a shodow array, need shadow int
 							setFrameLocal(index-1, Opcodes.INTEGER);
@@ -434,8 +482,6 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
                 newLocals[i] = Opcodes.TOP;
             }
         }
-   
-
         // visits remapped frame
         mv.visitFrame(type, number, newLocals, nStack, stack);
 //        System.out.println(Arrays.toString(newLocals));

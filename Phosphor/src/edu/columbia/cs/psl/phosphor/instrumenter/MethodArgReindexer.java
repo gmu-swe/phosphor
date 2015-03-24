@@ -185,7 +185,9 @@ public class MethodArgReindexer extends InstructionAdapter {
 					}
 				}
 				if (i == origNumArgs && hasTaintSentinalAddedToDesc) {
-					remappedLocals[newIdx] = Type.getInternalName(TaintSentinel.class);
+//					remappedLocals[newIdx] = Type.getInternalName(TaintSentinel.class);
+					remappedLocals[newIdx] = Opcodes.TOP;
+
 					newIdx++;
 					nLocal++;
 				}

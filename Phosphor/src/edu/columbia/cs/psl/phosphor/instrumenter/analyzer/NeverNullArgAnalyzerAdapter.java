@@ -145,8 +145,9 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     public NeverNullArgAnalyzerAdapter(final String owner, final int access,
             final String name, final String desc, final MethodVisitor mv) {
         this(Opcodes.ASM5, owner, access, name, desc, mv);
+        this.name = name;
     }
-
+    public String name;
     private List<Object> args;
     /**
      * Creates a new {@link NeverNullArgAnalyzerAdapter}.
@@ -234,8 +235,10 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             throw new IllegalStateException(
                     "ClassReader.accept() should be called with EXPAND_FRAMES flag");
         }
-        if(noInsnsSinceListFrame)
+        if(noInsnsSinceListFrame && this.locals != null)
+        {
         	return;
+        }
         noInsnsSinceListFrame = true;
         if (mv != null) {
             mv.visitFrame(type, nLocal, local, nStack, stack);
@@ -277,6 +280,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if (mv != null) {
             mv.visitInsn(opcode);
         }
+    	noInsnsSinceListFrame = false;
         if(opcode > 200)
         	return;
         execute(opcode, 0, null);
@@ -344,6 +348,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     	  if (mv != null) {
               mv.visitMethodInsn(opcode, owner, name, desc,itf);
           }
+    	  noInsnsSinceListFrame = false;
           if (this.locals == null) {
               labels = null;
               return;
@@ -378,6 +383,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     @Override
     public void visitInvokeDynamicInsn(String name, String desc, Handle bsm,
             Object... bsmArgs) {
+    	noInsnsSinceListFrame = false;
         if (mv != null) {
             mv.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
         }
@@ -392,6 +398,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
 
     @Override
     public void visitJumpInsn(final int opcode, final Label label) {
+    	noInsnsSinceListFrame = false;
         if (mv != null) {
             mv.visitJumpInsn(opcode, label);
         }
@@ -419,6 +426,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if (mv != null) {
             mv.visitLdcInsn(cst);
         }
+        noInsnsSinceListFrame=false;
         if (this.locals == null) {
             labels = null;
             return;
@@ -613,11 +621,12 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     }
 
     private void execute(final int opcode, final int iarg, final String sarg) {
+        noInsnsSinceListFrame = false;
+
         if (this.locals == null) {
             labels = null;
             return;
         }
-        noInsnsSinceListFrame = false;
         Object t1, t2, t3, t4;
         switch (opcode) {
         case Opcodes.INEG:

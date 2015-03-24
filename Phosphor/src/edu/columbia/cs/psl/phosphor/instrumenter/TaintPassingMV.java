@@ -183,12 +183,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				shadowVar = var - 1;
 		} else {
 			//not accessing an arg
-
+			
 			Object oldVarType = varTypes.get(var);
 			if (lvs.varToShadowVar.containsKey(var))
 				shadowVar = lvs.varToShadowVar.get(var);
-//						System.out.println(Printer.OPCODES[opcode] + " "+var + " old " + oldVarType + " shadow " + shadowVar);
-
+//						System.out.println(name+" "+Printer.OPCODES[opcode] + " "+var + " old " + oldVarType + " shadow " + shadowVar + " Last " + lastArg);
+//						System.out.println(Arrays.toString(paramTypes));
 			if (oldVarType != null) {
 				//In this case, we already have a shadow for this. Make sure that it's the right kind of shadow though.
 				if (TaintUtils.DEBUG_LOCAL)
@@ -223,11 +223,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						{
 							analyzer.locals.add(Opcodes.TOP);
 						}
+//						if(shadowVar == 9)
+//							System.err.println("Setting the local type for " + shadowVar + analyzer.stack);
 						if (opcode == ASTORE) {
 							String shadow = TaintUtils.getShadowTaintType(getTopOfStackType().getDescriptor());
 							if (shadow == null) {
 								shadow = "[I";
-								analyzer.locals.set(shadowVar, "[I");
+								analyzer.locals.set(shadowVar, Opcodes.TOP);
 							} else if (shadow.equals("I"))
 								analyzer.locals.set(shadowVar, Opcodes.INTEGER);
 							else
@@ -259,9 +261,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					}
 				} else if (opcode == ASTORE) {
 					if (topOfStackIsNull()) {
+//						System.out.println("Storing null. maybe its a primitive int array? at " + var);
+//						if(analyzer.locals.size() > var)
+//						System.out.println(analyzer.locals.get(var));
 						lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.getType("[I"),var));
 						varTypes.put(var, Opcodes.NULL);
 						shadowVar = lvs.varToShadowVar.get(var);
+						lvs.varsToRemove.put(var,shadowVar);
 					} else {
 						Type onStack = getTopOfStackType();
 						if (onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT && onStack.getDimensions() == 1) {
@@ -919,6 +925,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		fn.accept(this);
 		super.visitInsn(POP);
 		super.visitLabel(isDone);
+		fn2.stack.set(fn2.stack.size()-1, "java/lang/Object");
 		fn2.accept(this);
 
 		//A

@@ -16,6 +16,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.GeneratorAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.AnnotationNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FieldNode;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LabelNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
@@ -217,20 +218,21 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			//			mv = new CheckMethodAdapter(mv);
 			mv = new SpecialOpcodeRemovingMV(mv,ignoreFrames, className);
 
-			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className);
-			mv = reflectionMasker;
+//			mv = reflectionMasker;
 			//			PropertyDebug debug = new PropertyDebug(Opcodes.ASM4, mv, access, name, newDesc,className);
 			MethodVisitor optimizer;
 			optimizer = mv;
 //			if (DO_OPT)
 //				optimizer = new PopOptimizingMV(mv, access, className, name, newDesc, signature, exceptions);
 			mv = new SpecialOpcodeRemovingMV(optimizer,ignoreFrames, className);
-			mv = new StringTaintVerifyingMV(mv,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio"))); //TODO - how do we handle directbytebuffers?
 //			optimizer = new PopOptimizingMV(mv, access,className, name, newDesc, signature, exceptions);
 
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
+			mv = new StringTaintVerifyingMV(analyzer,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")),analyzer); //TODO - how do we handle directbytebuffers?
 
-			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(Opcodes.ASM5, className, analyzer, analyzer);
+			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className,analyzer);
+
+			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(Opcodes.ASM5, className, reflectionMasker, analyzer);
 			LocalVariableManager lvs;
 			TaintPassingMV tmv;
 			MethodVisitor nextMV;
@@ -551,6 +553,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 							ga.visitVarInsn(Opcodes.ALOAD, 0);
 							idx++;
 						}
+						
 						String newDesc = "(";
 						for (Type t : argTypes) {
 							boolean loaded = false;
@@ -560,7 +563,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 									if (t.getDimensions() == 1) {
 										newDesc += t.getDescriptor().substring(0, t.getDescriptor().length() - 1) + "I";
 										ga.visitVarInsn(Opcodes.ALOAD, idx);
-										TaintAdapter.createNewTaintArray(t.getDescriptor(), an, ga, lvs);
+										TaintAdapter.createNewTaintArray(t.getDescriptor(), an, lvs, lvs);
 										loaded = true;
 									} else {
 										newDesc += MultiDTaintedArray.getTypeForType(t).getDescriptor();
@@ -589,12 +592,16 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitIntInsn(Opcodes.BIPUSH, t.getElementType().getSort());
 								ga.visitIntInsn(Opcodes.BIPUSH, t.getDimensions());
 								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;",false);
+								FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
+								fn.stack.set(fn.stack.size() -1,"java/lang/Object");
 								ga.visitLabel(isDone);
+								fn.accept(lvs);		
 								ga.visitTypeInsn(Opcodes.CHECKCAST, MultiDTaintedArray.getTypeForType(t).getDescriptor());
 
 							}
 							idx += t.getSize();
 						}
+						
 						if (m.name.equals("<init>")) {
 							newDesc += Type.getDescriptor(TaintSentinel.class);
 							ga.visitInsn(Opcodes.ACONST_NULL);
@@ -654,7 +661,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getElementType().getSort());
 								ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getDimensions()-1);
 								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxVal", "(Ljava/lang/Object;II)Ljava/lang/Object;",false);
+								FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
+								fn.stack.set(fn.stack.size() -1,"java/lang/Object");
 								ga.visitLabel(isDone);
+								fn.accept(lvs);
 								ga.visitTypeInsn(Opcodes.CHECKCAST, origReturn.getInternalName());
 
 							}
@@ -750,7 +760,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
 							if(t.getSort() == Type.ARRAY)
 								ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
+							FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
 							ga.visitLabel(isOK);
+							fn.accept(lvs);
 						}
 						else if(t.getSort() == Type.ARRAY && t.getDimensions() > 1 && t.getElementType().getSort() != Type.OBJECT)
 						{
@@ -783,10 +795,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getElementType().getSort());
 								ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getDimensions());
 								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;",false);
+								FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
+								fn.stack.set(fn.stack.size() -1,"java/lang/Object");
 								ga.visitLabel(isOK);
+								fn.accept(lvs);
 								ga.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getDescriptor());
 							} else {
-								TaintAdapter.createNewTaintArray(origReturn.getDescriptor(), an, ga, lvs);
+								TaintAdapter.createNewTaintArray(origReturn.getDescriptor(), an, lvs, lvs);
 
 //								//						ga.visitInsn(Opcodes.SWAP);
 //								ga.visitTypeInsn(Opcodes.NEW, newReturn.getInternalName()); //T V N
