@@ -540,7 +540,7 @@ public class Instrumenter {
 		}
 		if (f.isDirectory())
 			processDirectory(f, rootOutputDir, true);
-		else if (inputFolder.endsWith(".jar"))
+		else if (inputFolder.endsWith(".jar") || inputFolder.endsWith(".war"))
 			//				try {
 			//					FileOutputStream fos =  new FileOutputStream(rootOutputDir.getPath() + File.separator + f.getName());
 			processJar(f, rootOutputDir);
@@ -609,7 +609,7 @@ public class Instrumenter {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-			else if (fi.getName().endsWith(".jar"))
+			else if (fi.getName().endsWith(".jar") || fi.getName().endsWith(".war"))
 				//				try {
 				//					FileOutputStream fos = new FileOutputStream(thisOutputDir.getPath() + File.separator + f.getName());
 				processJar(fi, thisOutputDir);
