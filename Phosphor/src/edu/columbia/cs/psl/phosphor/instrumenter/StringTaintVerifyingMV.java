@@ -1,20 +1,26 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import java.util.Arrays;
 import java.util.HashSet;
 
 import com.sun.xml.internal.ws.org.objectweb.asm.Type;
 
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.AnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.InstructionAdapter;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 
 public class StringTaintVerifyingMV extends InstructionAdapter implements Opcodes{
 boolean implementsSerializable;
-	public StringTaintVerifyingMV(MethodVisitor mv,boolean implementsSerializable) {
+NeverNullArgAnalyzerAdapter analyzer;
+	public StringTaintVerifyingMV(MethodVisitor mv,boolean implementsSerializable, NeverNullArgAnalyzerAdapter analyzer) {
 		super(Opcodes.ASM5,mv);
+		this.analyzer = analyzer;
 		this.implementsSerializable=implementsSerializable;
 	}
 	HashSet<String> checkedThisFrame = new HashSet<String>();
@@ -23,6 +29,7 @@ boolean implementsSerializable;
 		checkedThisFrame = new HashSet<String>();
 		super.visitFrame(type, nLocal, local, nStack, stack);
 	}
+	
 	boolean ignoretaints = false;
 	@Override
 	public void visitInsn(int opcode) {
@@ -52,6 +59,7 @@ boolean implementsSerializable;
 			Label isOK = new Label();
 			Label doInit = new Label();
 			
+			FrameNode fn1 = TaintAdapter.getCurrentFrameNode(analyzer);
 			super.visitInsn(DUP);
 			super.visitFieldInsn(opcode, owner, name,desc);
 			super.visitJumpInsn(IFNULL, isOK); //if value is null, do nothing
@@ -69,6 +77,7 @@ boolean implementsSerializable;
 			super.visitInsn(ARRAYLENGTH);
 			super.visitJumpInsn(IF_ICMPLE, isOK); //if taint is shorter than value, reinit it
 			super.visitLabel(doInit);
+			fn1.accept(this);
 			super.visitInsn(DUP); // O O
 			super.visitInsn(DUP); // O O O
 			super.visitFieldInsn(opcode, owner, name, desc); //O O A
@@ -76,6 +85,7 @@ boolean implementsSerializable;
 			super.visitIntInsn(NEWARRAY, T_INT);//O O A
 			super.visitFieldInsn(PUTFIELD, owner, name+TaintUtils.TAINT_FIELD, "[I"); // O
 			super.visitLabel(isOK);
+			fn1.accept(this);
 			//O
 			super.visitInsn(DUP);
 			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, "[I");
@@ -93,7 +103,9 @@ boolean implementsSerializable;
 			//Make sure that it's been initialized
 			Label isOK = new Label();
 			Label doInit = new Label();
-			
+
+			FrameNode fn1 = TaintAdapter.getCurrentFrameNode(analyzer);
+
 			super.visitInsn(DUP);
 			super.visitFieldInsn(opcode, owner, name,desc);
 			super.visitJumpInsn(IFNULL, isOK); //if value is null, do nothing
@@ -111,6 +123,7 @@ boolean implementsSerializable;
 			super.visitInsn(ARRAYLENGTH);
 			super.visitJumpInsn(IF_ICMPLE, isOK); //if taint is shorter than value, reinit it
 			super.visitLabel(doInit);
+			fn1.accept(this);
 			super.visitInsn(DUP); // O O
 			super.visitInsn(DUP); // O O O
 			super.visitFieldInsn(opcode, owner, name, desc); //O O A
@@ -120,6 +133,7 @@ boolean implementsSerializable;
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[I)[[I",false);
 			super.visitFieldInsn(PUTFIELD, owner, name+TaintUtils.TAINT_FIELD, "[[I"); // O
 			super.visitLabel(isOK);
+			fn1.accept(this);
 			//O
 			super.visitInsn(DUP);
 			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, "[[I");
@@ -137,6 +151,7 @@ boolean implementsSerializable;
 			Label isOK = new Label();
 			Label doInit = new Label();
 			
+			FrameNode fn1 = TaintAdapter.getCurrentFrameNode(analyzer);
 			super.visitInsn(DUP);
 			super.visitFieldInsn(opcode, owner, name,desc);
 			super.visitJumpInsn(IFNULL, isOK); //if value is null, do nothing
@@ -154,6 +169,7 @@ boolean implementsSerializable;
 			super.visitInsn(ARRAYLENGTH);
 			super.visitJumpInsn(IF_ICMPLE, isOK); //if taint is shorter than value, reinit it
 			super.visitLabel(doInit);
+			fn1.accept(this);
 			super.visitInsn(DUP); // O O
 			super.visitInsn(DUP); // O O O
 			super.visitFieldInsn(opcode, owner, name, desc); //O O A
@@ -163,6 +179,7 @@ boolean implementsSerializable;
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[I)[[[I",false);
 			super.visitFieldInsn(PUTFIELD, owner, name+TaintUtils.TAINT_FIELD, "[[[I"); // O
 			super.visitLabel(isOK);
+			fn1.accept(this);
 			//O
 			super.visitInsn(DUP);
 			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, "[[[I");

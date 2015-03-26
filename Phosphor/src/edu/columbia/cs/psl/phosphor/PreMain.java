@@ -118,7 +118,7 @@ public class PreMain {
 			ClassNode cn = new ClassNode();
 			cr.accept(cn, ClassReader.SKIP_CODE);
 			boolean skipFrames = false;
-			if (cn.version >= 100 || cn.version <= 50)
+			if (cn.version >= 100 || cn.version < 50)
 				skipFrames = true;
 			if (cn.visibleAnnotations != null)
 				for (AnnotationNode an : cn.visibleAnnotations) {
@@ -180,6 +180,29 @@ public class PreMain {
 						cr.accept(new CheckClassAdapter(new ClassWriter(0)), 0);
 					}
 				}
+//				cv= new TraceClassVisitor(null,null);
+//				try{
+//					System.err.println("WARN LOGGING CLASS TO ASCII");
+//					cr = new ClassReader(cw.toByteArray());
+//					cr.accept(
+////							new CheckClassAdapter(
+//									cv	
+////									)
+//							, 0);
+//					PrintWriter pw = null;
+//					try {
+//						pw = new PrintWriter(new FileWriter("lastClass.txt"));
+//					} catch (IOException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+//					cv.p.print(pw);
+//					pw.flush();
+//				}
+//				catch(Throwable t)
+//				{
+//					t.printStackTrace();
+//				}
 //				System.out.println("Succeeded w " + className);
 				return cw.toByteArray();
 			} catch (Throwable ex) {

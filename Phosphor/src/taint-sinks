@@ -3,6 +3,6 @@
 #java/io/OutputStream.write([BII)V
 #java/io/PrintStream.println(Ljava/lang/String;)V
 #java/io/PrintStream.println(Ljava/lang/Object;)V
-phosphor/test/SourceSinkTest.sink(Ljava/lang/Object;)V
-phosphor/test/SourceSinkTest.sink2([I)V
-phosphor/test/SourceSinkTest.sink(I)V
+#phosphor/test/SourceSinkTest.sink(Ljava/lang/Object;)V
+#phosphor/test/SourceSinkTest.sink2([I)V
+#phosphor/test/SourceSinkTest.sink(I)V

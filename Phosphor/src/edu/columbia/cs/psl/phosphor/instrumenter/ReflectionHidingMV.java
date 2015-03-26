@@ -2,10 +2,12 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
@@ -17,10 +19,11 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
 	private String className;
 	private LocalVariableManager lvs;
-
-	public ReflectionHidingMV(MethodVisitor mv, String className) {
+	private NeverNullArgAnalyzerAdapter analyzer;
+	public ReflectionHidingMV(MethodVisitor mv, String className, NeverNullArgAnalyzerAdapter analyzer) {
 		super(Opcodes.ASM5, mv);
 		this.className = className;
+		this.analyzer = analyzer;
 	}
 
 	public void setLvs(LocalVariableManager lvs) {
@@ -186,22 +189,29 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
 		if ((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && (name.equals("invoke") || name.equals("newInstance"))) {
 			//Unbox if necessary
+			FrameNode fn = TaintAdapter.getCurrentFrameNode(analyzer);
+			fn.type = Opcodes.F_NEW;
 			super.visitInsn(Opcodes.DUP);
 			super.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName(TaintedPrimitive.class));
 			Label notPrimitive = new Label();
 			Label isOK = new Label();
 //			Label notPrimitiveArray = new Label();
+
 			super.visitJumpInsn(Opcodes.IFEQ, notPrimitive);
+			FrameNode fn2 = TaintAdapter.getCurrentFrameNode(analyzer);
+			fn2.type = Opcodes.F_NEW;
 			super.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName(TaintedPrimitive.class));
 			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(TaintedPrimitive.class), "toPrimitiveType", "()Ljava/lang/Object;",false);
 			super.visitJumpInsn(Opcodes.GOTO, isOK);
 			super.visitLabel(notPrimitive);
+			fn2.accept(this);
 			super.visitInsn(Opcodes.DUP);
 			super.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName(TaintedPrimitiveArray.class));
 			super.visitJumpInsn(Opcodes.IFEQ, isOK);
 			super.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName(TaintedPrimitiveArray.class));
 			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(TaintedPrimitiveArray.class), "toStackType", "()Ljava/lang/Object;",false);
 			super.visitLabel(isOK);
+			fn.accept(this);
 		}
 		Instrumenter.IS_ANDROID_INST = origAndroidInst;
 	}

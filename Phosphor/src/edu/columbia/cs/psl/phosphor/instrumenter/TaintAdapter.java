@@ -383,11 +383,11 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 		Type arrayType = Type.getType(arrayDesc);
 		Label isNull = new Label();
 		Label done = new Label();
-//		Object[] locals1 = removeLongsDoubleTopVal(analyzer.locals);
-//		int localSize1 = locals1.length;
+		Object[] locals1 = removeLongsDoubleTopVal(analyzer.locals);
+		int localSize1 = locals1.length;
 
-//		Object[] stack1 = removeLongsDoubleTopVal(analyzer.stack);
-//		int stackSize1 = stack1.length;
+		Object[] stack1 = removeLongsDoubleTopVal(analyzer.stack);
+		int stackSize1 = stack1.length;
 
 		mv.visitInsn(Opcodes.DUP);
 		mv.visitJumpInsn(Opcodes.IFNULL, isNull);
@@ -438,21 +438,21 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			mv.visitInsn(Opcodes.SWAP);
 		}
 
-//		Object[] locals = removeLongsDoubleTopVal(analyzer.locals);
-//		int localSize = locals.length;
+		Object[] locals = removeLongsDoubleTopVal(analyzer.locals);
+		int localSize = locals.length;
 
-//		Object[] stack = removeLongsDoubleTopVal(analyzer.stack);
-//		int stackSize = stack.length;
+		Object[] stack = removeLongsDoubleTopVal(analyzer.stack);
+		int stackSize = stack.length;
 
 		mv.visitJumpInsn(Opcodes.GOTO, done);
-//		mv.visitFrame(Opcodes.F_NEW, localSize1, locals1, stackSize1, stack1);
+		mv.visitFrame(TaintUtils.RAW_INSN, localSize1, locals1, stackSize1, stack1);
 
 		mv.visitLabel(isNull);
 
 		mv.visitInsn(Opcodes.ACONST_NULL);
 		mv.visitInsn(Opcodes.SWAP);
 		mv.visitLabel(done);
-//		mv.visitFrame(Opcodes.F_NEW, localSize, locals, stackSize, stack);
+		mv.visitFrame(TaintUtils.RAW_INSN, localSize, locals, stackSize, stack);
 	}
 
 	public static Type getTypeForStackType(Object obj) {

@@ -34,6 +34,10 @@ public class SourceSinkTaintingMV extends InstructionAdapter implements Opcodes{
 		this.thisIsASource = sourceSinkManager.isSource(owner,name,desc);
 		this.thisIsASink = sourceSinkManager.isSink(owner, name, desc);
 		this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
+		if(this.thisIsASource)
+			System.out.println("Source: " + owner+"."+name+desc);
+		if(this.thisIsASink)
+			System.out.println("Sink: " + owner+"."+name+desc);
 	}
 
 	@Override

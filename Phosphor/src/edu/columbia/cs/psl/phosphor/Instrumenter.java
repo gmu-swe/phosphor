@@ -421,7 +421,7 @@ public class Instrumenter {
 	public static void main(String[] args) {
 		if(args.length < 2)
 		{
-			 System.err.println("Usage: java -jar phosphor.jar [source] [dest] {additional-classpath-entries}");
+			 System.err.println("Usage: java {-DTAINT_SINKS=... -DTAINT_SOURCES=...} -jar phosphor.jar [source] [dest] {additional-classpath-entries}");
 			 return;
 		}
 		TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
@@ -540,7 +540,7 @@ public class Instrumenter {
 		}
 		if (f.isDirectory())
 			processDirectory(f, rootOutputDir, true);
-		else if (inputFolder.endsWith(".jar"))
+		else if (inputFolder.endsWith(".jar") || inputFolder.endsWith(".war"))
 			//				try {
 			//					FileOutputStream fos =  new FileOutputStream(rootOutputDir.getPath() + File.separator + f.getName());
 			processJar(f, rootOutputDir);
@@ -609,7 +609,7 @@ public class Instrumenter {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-			else if (fi.getName().endsWith(".jar"))
+			else if (fi.getName().endsWith(".jar") || fi.getName().endsWith(".war"))
 				//				try {
 				//					FileOutputStream fos = new FileOutputStream(thisOutputDir.getPath() + File.separator + f.getName());
 				processJar(fi, thisOutputDir);
