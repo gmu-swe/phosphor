@@ -16,14 +16,28 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	static HashSet<String> sources = new HashSet<String>();
 
 	static {
+		if(System.getProperty("TAINT_SOURCES") == null && System. getProperty("TAINT_SINKS") == null)
+		{
+			System.err.println("No taint sources or sinks specified. To specify, add option -DTAINT_SOURCES=file and/or -DTAINT_SINKS=file where file is a file listing taint sources/sinks. See files taint-sinks and taint-samples in source for examples. Lines beginning with # are ignored.");
+		}
 		URL f = BasicSourceSinkManager.class.getResource("/taint-sources");
 		//		if(f.exists())
 		{
 			Scanner s;
 			try {
-				s = new Scanner(f.openStream());
+				if(System.getProperty("TAINT_SOURCES") != null)
+				{
+					System.out.println("Using taint sources file: " + System.getProperty("TAINT_SOURCES"));
+					s = new Scanner(new File(System.getProperty("TAINT_SOURCES")));
+				}
+				else
+					s = new Scanner(f.openStream());
 				while (s.hasNextLine())
-					sources.add(s.nextLine());
+				{
+					String line = s.nextLine();
+					if(!line.startsWith("#"))
+						sources.add(line);
+				}
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -37,9 +51,18 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		{
 			Scanner s;
 			try {
-				s = new Scanner(f.openStream());
-				while (s.hasNextLine())
-					sinks.add(s.nextLine());
+				if(System.getProperty("TAINT_SINKS") != null)
+				{
+					System.out.println("Using taint sinks file: " + System.getProperty("TAINT_SINKS"));
+					s = new Scanner(new File(System.getProperty("TAINT_SINKS")));
+				}
+				else
+					s = new Scanner(f.openStream());
+				while (s.hasNextLine()) {
+					String line = s.nextLine();
+					if (!line.startsWith("#"))
+						sinks.add(line);
+				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

@@ -421,7 +421,7 @@ public class Instrumenter {
 	public static void main(String[] args) {
 		if(args.length < 2)
 		{
-			 System.err.println("Usage: java -jar phosphor.jar [source] [dest] {additional-classpath-entries}");
+			 System.err.println("Usage: java {-DTAINT_SINKS=... -DTAINT_SOURCES=...} -jar phosphor.jar [source] [dest] {additional-classpath-entries}");
 			 return;
 		}
 		TaintTrackingClassVisitor.IS_RUNTIME_INST = false;

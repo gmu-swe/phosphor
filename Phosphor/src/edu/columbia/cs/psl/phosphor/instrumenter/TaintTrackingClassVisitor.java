@@ -21,6 +21,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LabelNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
+import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
@@ -411,6 +412,14 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				mv.visitVarInsn(Opcodes.ALOAD, 0);
 				mv.visitVarInsn(Opcodes.ILOAD, 1);
 				mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, "I");
+				if(className.equals("java/lang/String"))
+				{
+					//Also overwrite the taint tag of all of the chars behind this string
+					mv.visitVarInsn(Opcodes.ALOAD, 0);
+					mv.visitFieldInsn(Opcodes.GETFIELD, className, "value"+TaintUtils.TAINT_FIELD, "[I");
+					mv.visitVarInsn(Opcodes.ILOAD, 1);
+					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
+				}
 				mv.visitInsn(Opcodes.RETURN);
 				mv.visitMaxs(0, 0);
 				mv.visitEnd();

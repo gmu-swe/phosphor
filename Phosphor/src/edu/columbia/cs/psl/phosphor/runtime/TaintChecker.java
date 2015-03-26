@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.lang.reflect.Array;
+import java.util.Enumeration;
 
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArray;
@@ -53,7 +54,6 @@ public class TaintChecker {
 		}
 		return false;
 	}
-
 	public static void setTaints(Object obj, int tag) {
 		if(obj == null)
 			return;
@@ -71,6 +71,11 @@ public class TaintChecker {
 				for (Object o : ar)
 					setTaints(o, tag);
 			
+		}
+		if(obj instanceof Iterable)
+		{
+			for(Object o : ((Iterable)obj))
+				setTaints(o, tag);
 		}
 	}
 
