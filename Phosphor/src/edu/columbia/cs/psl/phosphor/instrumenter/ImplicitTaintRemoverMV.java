@@ -41,7 +41,7 @@ public class ImplicitTaintRemoverMV extends TaintAdapter implements Opcodes {
 	}
 	@Override
 	public void visitJumpInsn(int opcode, Label label) {
-		if(this.isIgnoreEverything)
+		if(this.isIgnoreEverything || TaintUtils.IMPLICIT_TRACKING)
 		{
 			super.visitJumpInsn(opcode, label);
 			return;

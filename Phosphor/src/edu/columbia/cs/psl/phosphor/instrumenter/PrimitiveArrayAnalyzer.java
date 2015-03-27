@@ -587,10 +587,23 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //						System.out.println(b.insn + " dom: "  + b.domBlocks +", antidom: " + b.antiDomBlocks);
 					}
 					calculatePostDominators(implicitAnalysisblocks.get(0));
+					HashMap<BasicBlock, Integer> jumpIDs = new HashMap<PrimitiveArrayAnalyzer.BasicBlock, Integer>();
+					int jumpID = 0;
 					for(BasicBlock b : implicitAnalysisblocks.values())
 					{
-						System.out.println(b.insn + " - " + b.domBlocks + "-" + b.antiDomBlocks);
+						if(b.isJump)
+						{
+							jumpID++;
+							instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
+							jumpIDs.put(b, jumpID);
+						}
+						for(BasicBlock r : b.resolvedHereBlocks)
+						{
+							instructions.insert(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
+						}
+//						System.out.println(b.insn + " - " + b.domBlocks + "-" + b.antiDomBlocks);
 					}
+					nJumps = jumpID;
 				} catch (AnalyzerException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -645,7 +658,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 	static final boolean DEBUG = false;
 	public HashSet<Type> wrapperTypesToPreAlloc = new HashSet<Type>();
-	
+	public int nJumps;
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
 		super.visitMethodInsn(opcode, owner, name, desc,itfc);

@@ -270,6 +270,11 @@ public class MethodArgReindexer extends InstructionAdapter {
 	}
 
 	public void visitVarInsn(int opcode, int var) {
+		if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START)
+		{
+			super.visitVarInsn(opcode, var);
+			return;
+		}
 		int origVar = var;
 		if (!isStatic && var == 0)
 			var = 0;

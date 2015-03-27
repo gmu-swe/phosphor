@@ -249,7 +249,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, primitiveArrayFixer);
 
 			MethodVisitor mvNext;
-			if (!IS_RUNTIME_INST && TaintUtils.OPT_IGNORE_EXTRA_TAINTS)
+			if (!IS_RUNTIME_INST && TaintUtils.OPT_IGNORE_EXTRA_TAINTS && !TaintUtils.IMPLICIT_TRACKING)
 				mvNext = new UnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, preAnalyzer);
 			else
 				mvNext = preAnalyzer;

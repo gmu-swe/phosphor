@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,6 +19,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Printer;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Textifier;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStore;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
+import edu.columbia.cs.psl.phosphor.struct.ImplicitTaintStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDouble;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloat;
 import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
@@ -43,6 +45,24 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public void visitCode() {
 //		System.out.println("TPMVStart" + name);
 		super.visitCode();
+		if(TaintUtils.IMPLICIT_TRACKING)
+		{
+			for(int i = 0; i <= arrayAnalyzer.nJumps; i++)
+			{
+				int tmpLV  = lvs.newControlTaintLV();
+				jumpControlTaintLVs.add(tmpLV);
+				super.visitTypeInsn(NEW, Type.getInternalName(ImplicitTaintStack.class));
+				super.visitInsn(DUP);
+				if(i > 0)
+				{
+					super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
+					super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ImplicitTaintStack.class), "<init>", "("+Type.getDescriptor(ImplicitTaintStack.class)+")V", false);
+				}
+				else
+					super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ImplicitTaintStack.class), "<init>", "()V", false);
+				super.visitVarInsn(ASTORE, tmpLV);
+			}
+		}
 		//		if (arrayAnalyzer != null) {
 		//			this.bbsToAddACONST_NULLto = arrayAnalyzer.getbbsToAddACONST_NULLto();
 		//			this.bbsToAddChecktypeObjectto = arrayAnalyzer.getBbsToAddChecktypeObject();
@@ -123,12 +143,27 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	HashSet<Integer> boxAtNextJump = new HashSet<Integer>();
 
+	ArrayList<Integer> jumpControlTaintLVs = new ArrayList<Integer>();
+	int branchStarting;
 	@SuppressWarnings("unused")
 	@Override
 	public void visitVarInsn(int opcode, int var) {
 		if (opcode == TaintUtils.NEVER_AUTOBOX) {
 			System.out.println("Never autobox: " + var);
 			varsNeverToForceBox.add(var);
+			return;
+		}
+		
+		//Following 2 special cases are notes left by the post-dominator analysis for implicit taint tracking
+		if(opcode == TaintUtils.BRANCH_START)
+		{
+			branchStarting = var;
+		}
+		if(opcode == TaintUtils.BRANCH_END)
+		{
+			int branchLVEnded = jumpControlTaintLVs.get(var);
+			super.visitVarInsn(ALOAD, branchLVEnded);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ImplicitTaintStack.class), "pop", "()V", false);
 			return;
 		}
 		if (opcode == TaintUtils.ALWAYS_AUTOBOX && analyzer.locals.size() > var && analyzer.locals.get(var) instanceof String) {
@@ -2788,47 +2823,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 
-//		if (boxAtNextJump.size() > 0) {
-//			Label origDest = label;
-//			Label newDest = new Label();
-//			Label origFalseLoc = new Label();
-//
-//			super.visitJumpInsn(opcode, newDest);
-//			nonInstrumentingMV.visitJumpInsn(GOTO, origFalseLoc);
-//			//			System.out.println("taint passing mv monkeying with jump");
-//			super.visitLabel(newDest);
-//			for (Integer var : boxAtNextJump) {
-//				nonInstrumentingMV.visitVarInsn(ALOAD, varToShadowVar.get(var));
-//				nonInstrumentingMV.visitVarInsn(ALOAD, var);
-//				Type onStack = Type.getObjectType((String) analyzer.locals.get(var));
-//				//TA A
-//				Type wrapperType = Type.getType(MultiDTaintedArray.getClassForComponentType(onStack.getElementType().getSort()));
-//				//				System.out.println("Boxing " + var + " to " + wrapperType);
-//
-//				//				System.out.println("zzzNEW " + wrapperType);
-//				Label isNull = new Label();
-//				nonInstrumentingMV.visitInsn(DUP);
-//				nonInstrumentingMV.visitJumpInsn(IFNULL, isNull);
-//				nonInstrumentingMV.visitTypeInsn(NEW, wrapperType.getInternalName());
-//				//TA A N
-//				nonInstrumentingMV.visitInsn(DUP_X2);
-//				nonInstrumentingMV.visitInsn(DUP_X2);
-//				nonInstrumentingMV.visitInsn(POP);
-//				//N N TA A 
-//				nonInstrumentingMV.visitMethodInsn(INVOKESPECIAL, wrapperType.getInternalName(), "<init>", "([I" + onStack.getDescriptor() + ")V",false);
-//				Label isDone = new Label();
-//				nonInstrumentingMV.visitJumpInsn(GOTO, isDone);
-//				nonInstrumentingMV.visitLabel(isNull);
-//				nonInstrumentingMV.visitInsn(POP);
-//				nonInstrumentingMV.visitLabel(isDone);
-//				nonInstrumentingMV.visitVarInsn(ASTORE, var);
-//
-//			}
-//			nonInstrumentingMV.visitJumpInsn(GOTO, origDest);
-//			nonInstrumentingMV.visitLabel(origFalseLoc);
-//			boxAtNextJump.clear();
-//			return;
-//		}
 		if (boxAtNextJump.size() > 0) {
 			Label origDest = label;
 			Label newDest = new Label();
@@ -2854,6 +2848,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			boxAtNextJump.clear();
 			return;
 		}
+		if(!TaintUtils.IMPLICIT_TRACKING)
+		{
+			super.visitJumpInsn(opcode, label); //If we aren't doing implicit tracking, let ImplicitTaintRemovingMV handle this
+			return;
+		}
 		switch (opcode) {
 		case Opcodes.IFEQ:
 		case Opcodes.IFNE:
@@ -2861,34 +2860,76 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		case Opcodes.IFGE:
 		case Opcodes.IFGT:
 		case Opcodes.IFLE:
+			super.visitInsn(SWAP);
+			super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
+			super.visitInsn(SWAP);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ImplicitTaintStack.class), "appendTag", "(I)V", false);
+			super.visitJumpInsn(opcode, label);
+
+			break;
 		case Opcodes.IFNULL:
 		case Opcodes.IFNONNULL:
+			Type typeOnStack = getTopOfStackType();
+			if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
+				//O1 T1
+				super.visitInsn(SWAP);
+				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
+				super.visitInsn(SWAP);
+				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ImplicitTaintStack.class), "appendTag", "(Ljava/lang/Object;)V", false);
+			}
+			else
+			{
+				super.visitInsn(DUP);
+				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ImplicitTaintStack.class), "appendTag", "(Ljava/lang/Object;)V", false);
+			}
+			super.visitJumpInsn(opcode, label);
+
+			break;
 		case Opcodes.IF_ICMPEQ:
 		case Opcodes.IF_ICMPNE:
 		case Opcodes.IF_ICMPLT:
 		case Opcodes.IF_ICMPGE:
 		case Opcodes.IF_ICMPGT:
 		case Opcodes.IF_ICMPLE:
+			//T V T V
+			int tmp = lvs.getTmpLV(Type.INT_TYPE);
+			//T V T V
+			super.visitInsn(SWAP);
+			super.visitInsn(TaintUtils.IS_TMP_STORE);
+			super.visitVarInsn(ISTORE, tmp);
+			//T V V
+			super.visitInsn(DUP2_X1);
+			super.visitInsn(POP2);
+			//V V T  
+			super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
+			super.visitInsn(SWAP);
+			//V V C T
+			super.visitVarInsn(ILOAD, tmp);
+			lvs.freeTmpLV(tmp);
+			//V V T T
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ImplicitTaintStack.class), "appendTag", "(II)V", false);
+
+			super.visitJumpInsn(opcode, label);
+
+			break;
 		case Opcodes.IF_ACMPNE:
 		case Opcodes.IF_ACMPEQ:
-			//Logic for dealing with the taints on the stack is now in JumpLoggingMV
+			 typeOnStack = getTopOfStackType();
+			if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
+				super.visitInsn(SWAP);
+				super.visitInsn(POP);
+			}
+			//O1 O2 (t2?)
+			Type secondOnStack = getStackTypeAtOffset(1);
+			if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT) {
+				//O1 O2 T2
+				super.visitInsn(DUP2_X1);
+				super.visitInsn(POP2);
+				super.visitInsn(POP);
+			}
 			super.visitJumpInsn(opcode, label);
 			break;
 		case Opcodes.GOTO:
-			//			if (curLabel >= 0 && curLabel < bbsToAddACONST_NULLto.length && bbsToAddACONST_NULLto[curLabel] == 2) {
-			//				//There seems to be a bug where we are adding extra NULL because in the analysis pass we find that NULL is on the top
-			//				//but for other reasons we've loaded an extra null already (e.g. from an LV that was null but we had type inference for)
-			//				//Find out if that's the case.
-			//				if(TaintUtils.DEBUG_FRAMES)
-			//								System.out.println("Pre add extra null" + analyzer.stack);
-			//				if (analyzer.stack.size() == 0 || topStackElIsNull())
-			//					super.visitInsn(ACONST_NULL);
-			//				bbsToAddACONST_NULLto[curLabel] = 0;
-			//			}
-			//			if (curLabel >= 0 && curLabel < bbsToAddChecktypeObjectto.length && bbsToAddChecktypeObjectto[curLabel] == 2) {
-			//				visitTypeInsn(CHECKCAST, "java/lang/Object");
-			//				bbsToAddChecktypeObjectto[curLabel] = 0;
-			//			}
 			super.visitJumpInsn(opcode, label);
 			break;
 		default:

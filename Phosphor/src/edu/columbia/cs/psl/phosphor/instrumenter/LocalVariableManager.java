@@ -14,6 +14,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.LocalVariablesSorter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LabelNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
+import edu.columbia.cs.psl.phosphor.struct.ImplicitTaintStack;
 
 public class LocalVariableManager extends LocalVariablesSorter implements Opcodes {
 	private NeverNullArgAnalyzerAdapter analyzer;
@@ -27,6 +28,15 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 	int lastArg;
 	ArrayList<Type> oldArgTypes = new ArrayList<Type>();
 
+	@Override
+	public void visitVarInsn(int opcode, int var) {
+		if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START)
+		{
+			mv.visitVarInsn(opcode, var);
+			return;
+		}
+		super.visitVarInsn(opcode, var);
+	}
 	public HashMap<Integer, Integer> varToShadowVar = new HashMap<Integer, Integer>();
 	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV) {
 		super(ASM5, access, desc, mv);
@@ -103,6 +113,19 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 		return idx;
 	}
 
+	int jumpIdx;
+	public int newControlTaintLV()
+	{
+		int idx = super.newLocal(Type.getType(ImplicitTaintStack.class));
+		Label lbl = new Label();
+		super.visitLabel(lbl);
+
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(ImplicitTaintStack.class), null, new LabelNode(lbl), new LabelNode(end), idx);
+		createdLVs.add(newLVN);
+		
+		jumpIdx++;
+		return idx;
+	}
 	@Override
 	protected int remap(int var, Type type) {
 		

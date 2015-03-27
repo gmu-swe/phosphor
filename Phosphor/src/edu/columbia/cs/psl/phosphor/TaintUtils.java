@@ -59,7 +59,9 @@ public class TaintUtils {
 	public static final int ALWAYS_BOX_JUMP = 211;
 	public static final int ALWAYS_UNBOX_JUMP = 212;
 	public static final int IS_TMP_STORE = 213;
-
+	
+	public static final int BRANCH_START = 214;
+	public static final int BRANCH_END = 215;
 	
 	public static final String TAINT_FIELD = "INVIVO_PC_TAINT";
 	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
