@@ -69,14 +69,8 @@ public class CheckAnnotationAdapter extends AnnotationVisitor {
             throw new IllegalArgumentException("Invalid annotation value");
         }
         if (value instanceof Type) {
-        	//TODO this is the version 5 code - not sure why we don't use this instead? what was the patch below for?
-//            int sort = ((Type) value).getSort();
-//            if (sort == Type.METHOD) {
-//                throw new IllegalArgumentException("Invalid annotation value");
-//            }
-        	//COLUMBIA tmp workaround
             int sort = ((Type) value).getSort();
-            if (sort != Type.OBJECT && sort != Type.ARRAY) {
+            if (sort == Type.METHOD) {
                 throw new IllegalArgumentException("Invalid annotation value");
             }
         }

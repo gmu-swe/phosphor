@@ -253,12 +253,10 @@ public class LocalVariablesSorter extends MethodVisitor {
                 newLocals[i] = Opcodes.TOP;
             }
         }
-   
 
         // visits remapped frame
         mv.visitFrame(type, number, newLocals, nStack, stack);
 
-        
         // restores original value of 'newLocals'
         newLocals = oldLocals;
     }
