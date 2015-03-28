@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Stack;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
@@ -376,6 +377,44 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						outEdges.put(insn, new LinkedList<Integer>());
 					if (!outEdges.get(insn).contains(successor))
 						outEdges.get(insn).add(successor);
+					
+					BasicBlock fromBlock;
+					if(!implicitAnalysisblocks.containsKey(insn))
+					{
+						//insn not added yet
+						fromBlock = new BasicBlock();
+						fromBlock.idx = insn;
+						fromBlock.insn = instructions.get(insn);
+						implicitAnalysisblocks.put(insn,fromBlock);
+					}
+					else
+						fromBlock = implicitAnalysisblocks.get(insn);
+					AbstractInsnNode insnN = instructions.get(insn);
+					fromBlock.isJump = (insnN.getType()== AbstractInsnNode.JUMP_INSN && insnN.getOpcode() != Opcodes.GOTO)
+							|| insnN.getType() == AbstractInsnNode.LOOKUPSWITCH_INSN || insnN.getType() == AbstractInsnNode.TABLESWITCH_INSN;
+					BasicBlock succesorBlock;
+					if(implicitAnalysisblocks.containsKey(successor))
+						succesorBlock = implicitAnalysisblocks.get(successor);
+					else
+					{
+						succesorBlock = new BasicBlock();
+						succesorBlock.idx = successor;
+						succesorBlock.insn = instructions.get(successor);
+						implicitAnalysisblocks.put(successor, succesorBlock);
+					}
+					fromBlock.successors.add(succesorBlock);
+					succesorBlock.predecessors.add(fromBlock);
+					
+					if(fromBlock.isJump)
+						{
+						if(fromBlock.covered)
+							succesorBlock.antiDomBlocks.add(fromBlock);
+						else
+						{
+							succesorBlock.domBlocks.add(fromBlock);
+							fromBlock.covered = true;
+						}
+						}
 					super.newControlFlowEdge(insn, successor);
 				}
 			};
@@ -517,63 +556,32 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			} catch (AnalyzerException e) {
 				e.printStackTrace();
 			}
-			
-			if(TaintUtils.IMPLICIT_TRACKING)
-			{
-				final InsnList insns = instructions;
-				Analyzer<BasicValue> domA = new Analyzer<BasicValue>(new BasicInterpreter()){
 
-					@Override
-					protected void newControlFlowEdge(int insn, int successor) {
-						super.newControlFlowEdge(insn, successor);
-						BasicBlock fromBlock;
-						if(!implicitAnalysisblocks.containsKey(insn))
-						{
-							//insn not added yet
-							fromBlock = new BasicBlock();
-							fromBlock.idx = insn;
-							fromBlock.insn = insns.get(insn);
-							implicitAnalysisblocks.put(insn,fromBlock);
+			if (TaintUtils.IMPLICIT_TRACKING) {
+				if (implicitAnalysisblocks.size() > 1) {
+					Stack<BasicBlock> stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
+					stack.add(implicitAnalysisblocks.get(0));
+					while (!stack.isEmpty()) {
+						BasicBlock b = stack.pop();
+						if (b.visited)
+							continue;
+						b.visited = true;
+						b.domBlocks.removeAll(b.resolvedBlocks);
+						b.domBlocks.removeAll(b.resolvedBlocks);
+						//Propogate markings to successors
+						for (BasicBlock s : b.successors) {
+							s.domBlocks.addAll(b.domBlocks);
+							s.antiDomBlocks.addAll(b.antiDomBlocks);
+							s.resolvedBlocks.addAll(b.resolvedBlocks);
+							if (!s.visited)
+								stack.add(s);
 						}
-						else
-							fromBlock = implicitAnalysisblocks.get(insn);
-						AbstractInsnNode insnN = insns.get(insn);
-						fromBlock.isJump = (insnN.getType()== AbstractInsnNode.JUMP_INSN && insnN.getOpcode() != Opcodes.GOTO);
-						BasicBlock succesorBlock;
-						if(implicitAnalysisblocks.containsKey(successor))
-							succesorBlock = implicitAnalysisblocks.get(successor);
-						else
-						{
-							succesorBlock = new BasicBlock();
-							succesorBlock.idx = successor;
-							succesorBlock.insn = insns.get(successor);
-							implicitAnalysisblocks.put(successor, succesorBlock);
-						}
-						fromBlock.successors.add(succesorBlock);
-						succesorBlock.predecessors.add(fromBlock);
-						
-						if(fromBlock.isJump)
-							{
-							if(fromBlock.covered)
-								succesorBlock.antiDomBlocks.add(fromBlock);
-							else
-							{
-								succesorBlock.domBlocks.add(fromBlock);
-								fromBlock.covered = true;
-							}
-							}
 					}
-				};
-				try {
-					domA.analyze(className, this);
-					calculatePostDominators(implicitAnalysisblocks.get(0));
-					for(BasicBlock b : implicitAnalysisblocks.values())
-					{
-//						System.out.println(b.domBlocks);
-						for(BasicBlock d : b.domBlocks)
-						{
-							if(b.antiDomBlocks.contains(d))
-							{
+					//						calculatePostDominators(implicitAnalysisblocks.get(0));
+					for (BasicBlock b : implicitAnalysisblocks.values()) {
+						//						System.out.println(b.domBlocks);
+						for (BasicBlock d : b.domBlocks) {
+							if (b.antiDomBlocks.contains(d)) {
 								b.resolvedBlocks.add(d);
 								b.resolvedHereBlocks.add(d);
 							}
@@ -581,33 +589,68 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						if (b.resolvedBlocks.size() > 0) {
 							b.antiDomBlocks.removeAll(b.resolvedBlocks);
 							b.domBlocks.removeAll(b.resolvedBlocks);
-//							System.out.println("!!Remove " + b.resolvedBlocks + " at " + b.idx + " - " + b.insn);
+							//							System.out.println("!!Remove " + b.resolvedBlocks + " at " + b.idx + " - " + b.insn);
 						}
-						b.visited =false;
-//						System.out.println(b.insn + " dom: "  + b.domBlocks +", antidom: " + b.antiDomBlocks);
+						b.visited = false;
+						//						System.out.println(b.insn + " dom: "  + b.domBlocks +", antidom: " + b.antiDomBlocks);
 					}
-					calculatePostDominators(implicitAnalysisblocks.get(0));
+					stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
+					stack.add(implicitAnalysisblocks.get(0));
+					while (!stack.isEmpty()) {
+						BasicBlock b = stack.pop();
+						if (b.visited)
+							continue;
+						b.visited = true;
+						b.domBlocks.removeAll(b.resolvedBlocks);
+						b.domBlocks.removeAll(b.resolvedBlocks);
+						//Propogate markings to successors
+						for (BasicBlock s : b.successors) {
+							s.domBlocks.addAll(b.domBlocks);
+							s.antiDomBlocks.addAll(b.antiDomBlocks);
+							s.resolvedBlocks.addAll(b.resolvedBlocks);
+							if (!s.visited)
+								stack.add(s);
+						}
+					}
+					//						calculatePostDominators(implicitAnalysisblocks.get(0));
+					boolean hadChanges = true;
+					while (hadChanges) {
+						hadChanges = false;
+						for (BasicBlock b : implicitAnalysisblocks.values()) {
+							HashSet<BasicBlock> remove = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
+							for (BasicBlock r : b.resolvedHereBlocks) {
+								for (BasicBlock p : b.predecessors)
+									if (p.resolvedBlocks.contains(r)) {
+										remove.add(r);
+										hadChanges = true;
+									}
+							}
+							b.resolvedHereBlocks.removeAll(remove);
+						}
+					}
 					HashMap<BasicBlock, Integer> jumpIDs = new HashMap<PrimitiveArrayAnalyzer.BasicBlock, Integer>();
 					int jumpID = 0;
-					for(BasicBlock b : implicitAnalysisblocks.values())
-					{
-						if(b.isJump)
-						{
+					for (BasicBlock b : implicitAnalysisblocks.values()) {
+						if (b.isJump) {
 							jumpID++;
 							instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
 							jumpIDs.put(b, jumpID);
 						}
-						for(BasicBlock r : b.resolvedHereBlocks)
-						{
-							instructions.insert(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
+					}
+					for (BasicBlock b : implicitAnalysisblocks.values()) {
+						for (BasicBlock r : b.resolvedHereBlocks) {
+							//								System.out.println("Resolved: " + jumpIDs.get(r) + " at " + b.idx);
+							//								System.out.println("GOt" + jumpIDs);
+							AbstractInsnNode insn = b.insn;
+							while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
+								insn = insn.getNext();
+							instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
 						}
-//						System.out.println(b.insn + " - " + b.domBlocks + "-" + b.antiDomBlocks);
+						//						System.out.println(b.insn + " - " + b.domBlocks + "-" + b.antiDomBlocks);
 					}
 					nJumps = jumpID;
-				} catch (AnalyzerException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				}
+
 			}
 			this.accept(cmv);
 		}
@@ -615,6 +658,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 		void calculatePostDominators(BasicBlock b)
 		{
+			if(b.visited)
+				return;
 			b.visited = true;
 			b.domBlocks.removeAll(b.resolvedBlocks);
 			b.domBlocks.removeAll(b.resolvedBlocks);

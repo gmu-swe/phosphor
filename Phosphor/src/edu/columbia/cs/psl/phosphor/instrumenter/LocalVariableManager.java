@@ -14,7 +14,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.LocalVariablesSorter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LabelNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
-import edu.columbia.cs.psl.phosphor.struct.ImplicitTaintStack;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 
 public class LocalVariableManager extends LocalVariablesSorter implements Opcodes {
 	private NeverNullArgAnalyzerAdapter analyzer;
@@ -116,11 +116,11 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 	int jumpIdx;
 	public int newControlTaintLV()
 	{
-		int idx = super.newLocal(Type.getType(ImplicitTaintStack.class));
+		int idx = super.newLocal(Type.getType(ControlTaintTagStack.class));
 		Label lbl = new Label();
 		super.visitLabel(lbl);
 
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(ImplicitTaintStack.class), null, new LabelNode(lbl), new LabelNode(end), idx);
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(lbl), new LabelNode(end), idx);
 		createdLVs.add(newLVN);
 		
 		jumpIdx++;
@@ -208,6 +208,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 
 	}
 
+	HashSet<Integer> tmpLVIdices = new HashSet<Integer>();
 	public int getTmpLV(Type t) {
 		if (t.getDescriptor().equals("java/lang/Object;"))
 			throw new IllegalArgumentException();
@@ -233,6 +234,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 		newLV.type = t;
 		newLV.inUse = true;
 		tmpLVs.add(newLV);
+		tmpLVIdices.add(newLV.idx);
 		if (DEBUG) {
 			newLV.owner = new IllegalStateException("Unclosed tmp lv created at:");
 			newLV.owner.fillInStackTrace();
@@ -347,7 +349,6 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
             mv.visitFrame(type, nLocal, local, nStack, stack);
             return;
         }
-
         isFirstFrame = false;
 //        System.out.println("nlocal " + nLocal);
 //        System.out.println(Arrays.toString(local));
@@ -359,7 +360,11 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
         updateNewLocals(newLocals);
        
         for(int i = 0; i < newLocals.length; i++)
-        	newLocals[i] = Opcodes.TOP;
+        {
+        	//Ignore tmp lv's in the stack frames.
+        	if(tmpLVIdices.contains(i))
+        		newLocals[i] = Opcodes.TOP;
+        }
       
         ArrayList<Object> locals = new ArrayList<Object>();
         for(Object o : local)

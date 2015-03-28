@@ -22,7 +22,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -38,6 +40,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassReader;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.ClassNode;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.CallGraph;
 import edu.columbia.cs.psl.phosphor.struct.MethodInformation;
@@ -361,12 +364,25 @@ public class Instrumenter {
 				//																|| owner.startsWith("java/awt/image/BufferedImage")
 				//																|| owner.equals("java/awt/Image")
 				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
-				||owner.startsWith("sun/awt/image/codec/");
+				||owner.startsWith("sun/awt/image/codec/")
+								|| (owner.startsWith("sun/reflect/Reflection")) //was on last
+//				|| owner.equals("java/lang/reflect/Proxy") //was on last
+//				|| owner.startsWith("sun/reflection/annotation/AnnotationParser") //was on last
+//				|| owner.startsWith("sun/reflect/MethodAccessor") //was on last
+//				|| owner.startsWith("org/apache/jasper/runtime/JspSourceDependent")
+//				|| owner.startsWith("sun/reflect/ConstructorAccessor") //was on last
+//				|| owner.startsWith("sun/reflect/SerializationConstructorAccessor")
+//
+//				|| owner.startsWith("sun/reflect/GeneratedMethodAccessor") || owner.startsWith("sun/reflect/GeneratedConstructorAccessor")
+//				|| owner.startsWith("sun/reflect/GeneratedSerializationConstructor") || owner.startsWith("sun/awt/image/codec/")
+//				|| owner.startsWith("java/lang/invoke/LambdaForm")
+				;
 	}
 
 	public static HashSet<String> interfaces = new HashSet<String>();
 	public static CallGraph callgraph = new CallGraph();
 
+	public static HashMap<String, ClassNode> classes = new HashMap<String, ClassNode>();
 	public static void analyzeClass(InputStream is) {
 		ClassReader cr;
 		nTotal++;
@@ -378,6 +394,14 @@ public class Instrumenter {
 				@Override
 				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 					super.visit(version, access, name, signature, superName, interfaces);
+					ClassNode cn = new ClassNode();
+					cn.name = name;
+					cn.methods = new LinkedList();
+					cn.superName = superName;
+					cn.interfaces = new ArrayList<String>();
+					for(String s : interfaces)
+						cn.interfaces.add(s);
+					Instrumenter.classes.put(name, cn);
 					if ((access & Opcodes.ACC_INTERFACE) != 0)
 						Instrumenter.interfaces.add(name);
 				}

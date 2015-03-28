@@ -9,6 +9,7 @@ import sun.reflect.ReflectionFactory;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.ArrayList;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
@@ -103,6 +104,11 @@ public class ReflectionMasker {
 				newArgs.add(c);
 				continue;
 			}
+		}
+		if(TaintUtils.IMPLICIT_TRACKING)
+		{
+			madeChange = true;
+			newArgs.add(ControlTaintTagStack.class);
 		}
 		final Class returnType = m.getReturnType();
 		if (returnType.isArray()) {
@@ -217,7 +223,7 @@ public class ReflectionMasker {
 						origArgs.add(c);
 					dontIgnorePrimitive = !dontIgnorePrimitive;
 				} else {
-					if (!TaintedPrimitive.class.isAssignableFrom(c) && !TaintedPrimitiveArray.class.isAssignableFrom(c))
+					if (!TaintedPrimitive.class.isAssignableFrom(c) && !TaintedPrimitiveArray.class.isAssignableFrom(c) && !c.equals(ControlTaintTagStack.class))
 						origArgs.add(c);
 				}
 			}
@@ -281,7 +287,7 @@ public class ReflectionMasker {
 				dontIgnorePrimitive = !dontIgnorePrimitive;
 			} else if (c.equals(TaintSentinel.class)) {
 				hasSentinel = true;
-			} else
+			} else if(!c.equals(ControlTaintTagStack.class))
 				origArgs.add(c);
 		}
 		if (hasSentinel) {
@@ -459,10 +465,20 @@ public class ReflectionMasker {
 				ret[j] = in[i];
 				j++;
 			}
+			if(TaintUtils.IMPLICIT_TRACKING)
+			{
+				ret[ret.length-2] = new ControlTaintTagStack();
+			}
 			return ret;
 		} else if (in == null && c.getParameterTypes().length == 1) {
 			Object[] ret = new Object[1];
 			ret[0] = null;
+			return ret;
+		} else if( in == null && c.getParameterTypes().length == 2)
+		{
+			Object[] ret = new Object[2];
+			ret[0] = new ControlTaintTagStack();
+			ret[1] = null;
 			return ret;
 		}
 
@@ -582,7 +598,12 @@ public class ReflectionMasker {
 				j++;
 			}
 		}
-		if ((in == null && m != null && m.getParameterTypes().length == 1) || (in != null && j != in.length - 1)) {
+		if(TaintUtils.IMPLICIT_TRACKING)
+		{
+			ret.a[j] = new ControlTaintTagStack();
+			j++;
+		}
+		if ((in == null && m != null && (m.getParameterTypes().length == 1 || (TaintUtils.IMPLICIT_TRACKING && m.getParameterTypes().length == 2))) || (in != null && j != in.length - 1)) {
 			if (in == null)
 				ret.a = new Object[1];
 			final Class returnType = m.getReturnType();

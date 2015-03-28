@@ -9,6 +9,7 @@ import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStore;
 import edu.columbia.cs.psl.phosphor.runtime.SimpleMultiTaintHandler;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArray;
@@ -38,12 +39,13 @@ public class TaintUtils {
 	public static final boolean GENERATE_FASTPATH_VERSIONS = false;
 
 	public static final boolean OPT_IGNORE_EXTRA_TAINTS = true;
-	public static final boolean OPT_CONSTANT_ARITHMETIC = true;
+
 	public static final boolean OPT_USE_STACK_ONLY = false; //avoid using LVs where possible if true
 	
 	public static final boolean MULTI_TAINT = true;
-	public static final String MULTI_TAINT_HANDLER_CLASS = Type.getInternalName(SimpleMultiTaintHandler.class);
+	public static final String MULTI_TAINT_HANDLER_CLASS = "edu/columbia/cs/psl/phosphor/runtime/SimpleMultiTaintHandler";
 	public static final boolean IMPLICIT_TRACKING = MULTI_TAINT && true; //must have multi-tainting on to do implicit flow tracking
+	public static final boolean OPT_CONSTANT_ARITHMETIC = true && !IMPLICIT_TRACKING;
 	
 	public static final int RAW_INSN = 201;
 	public static final int NO_TAINT_STORE_INSN = 202;
@@ -231,10 +233,16 @@ public class TaintUtils {
 
 	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
-
-		if (VM.isBooted$$INVIVO_PC(new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
-			if(srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
-				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
+		if (IMPLICIT_TRACKING) {
+			if (VM.isBooted$$INVIVO_PC(new ControlTaintTagStack(), new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
+				if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
+					System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
+			}
+		} else {
+			if (VM.isBooted$$INVIVO_PC(new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
+				if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
+					System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
+			}
 		}
 
 	}
@@ -393,6 +401,8 @@ public class TaintUtils {
 			else
 				r += t;
 		}
+		if(TaintUtils.IMPLICIT_TRACKING)
+			r += Type.getDescriptor(ControlTaintTagStack.class);
 		r += ")" + getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
 		return r;
 	}

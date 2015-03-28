@@ -206,6 +206,7 @@ public class PreMain {
 //				System.out.println("Succeeded w " + className);
 				return cw.toByteArray();
 			} catch (Throwable ex) {
+				ex.printStackTrace();
 				cv= new TraceClassVisitor(null,null);
 				try{
 					cr.accept(

@@ -13,6 +13,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.InstructionAdapter
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class MethodArgReindexer extends InstructionAdapter {
@@ -79,6 +80,8 @@ public class MethodArgReindexer extends InstructionAdapter {
 				System.out.println(">>>>" + oldVarCount + "->" + oldArgMappings[oldVarCount]);
 			oldVarCount += oldArgTypes[i].getSize();
 		}
+		if(TaintUtils.IMPLICIT_TRACKING)
+			newArgOffset++;
 		if (name.equals("<init>") && hasBeenRemapped) {
 			hasTaintSentinalAddedToDesc = true;
 			newArgOffset++;
@@ -119,11 +122,15 @@ public class MethodArgReindexer extends InstructionAdapter {
 			if (shadow != null)
 				super.visitLocalVariable(name + "_TAINT", shadow, null, start, end, oldArgMappings[index] - 1);
 			super.visitLocalVariable(name, desc, signature, start, end, oldArgMappings[index]);
+			if(index == originalLastArgIdx - 1 && TaintUtils.IMPLICIT_TRACKING)
+			{
+				super.visitLocalVariable("PhopshorImplicitTaintTrackingFromParent", Type.getDescriptor(ControlTaintTagStack.class), null, start, end, oldArgMappings[index]+1);
+			}
 			if (index == originalLastArgIdx - 1 && this.name.equals("<init>") && hasTaintSentinalAddedToDesc) {
-				super.visitLocalVariable("TAINT_STUFF_TO_IGNORE_HAHA", "Ljava/lang/Object;", null, start, end, oldArgMappings[index] + 1);
+				super.visitLocalVariable("TAINT_STUFF_TO_IGNORE_HAHA", "Ljava/lang/Object;", null, start, end, oldArgMappings[index] + (TaintUtils.IMPLICIT_TRACKING ? 2 : 1));
 			}
 			if ((index == originalLastArgIdx - Type.getType(desc).getSize()) && hasPreAllocedReturnAddr) {
-				super.visitLocalVariable("PHOSPHORPREALLOCRETURNHAHA", newReturnType.getDescriptor(), null, start, end, oldArgMappings[index] + 1);
+				super.visitLocalVariable("PHOSPHORPREALLOCRETURNHAHA", newReturnType.getDescriptor(), null, start, end, oldArgMappings[index] + (TaintUtils.IMPLICIT_TRACKING ? 2 : 1));
 			}
 		} else {
 			super.visitLocalVariable(name, desc, signature, start, end, index + newArgOffset);
@@ -140,6 +147,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 
 		int newIdx = 0;
 		int origNLocal = nLocal;
+//		System.out.println("MAR stac " + Arrays.toString(stack));
 //		System.out.println("Orig locals: " + Arrays.toString(local));
 		if (type == Opcodes.F_FULL || type == Opcodes.F_NEW) {
 			if(origNumArgs == 0 && hasPreAllocedReturnAddr)
@@ -183,6 +191,12 @@ public class MethodArgReindexer extends InstructionAdapter {
 							}
 						}
 					}
+				}
+				if(i == origNumArgs)
+				{
+					remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
+					newIdx++;
+					nLocal++;
 				}
 				if (i == origNumArgs && hasTaintSentinalAddedToDesc) {
 //					remappedLocals[newIdx] = Type.getInternalName(TaintSentinel.class);

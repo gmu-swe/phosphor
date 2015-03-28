@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import java.lang.reflect.Array;
 
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByte;
 import edu.columbia.cs.psl.phosphor.struct.TaintedChar;
@@ -37,6 +38,9 @@ public class ArrayReflectionMasker {
 			return ret;
 		}
 		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
+	}
+	public static Object newInstance$$INVIVO_PC(Class clazz, int lenTaint, int len,ControlTaintTagStack zz) {
+		return newInstance$$INVIVO_PC(clazz, lenTaint, len);
 	}
 	public static Object newInstance$$INVIVO_PC(Class clazz, int lenTaint, int len) {
 		Class tmp = clazz;

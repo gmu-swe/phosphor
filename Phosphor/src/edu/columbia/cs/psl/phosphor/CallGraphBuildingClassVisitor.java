@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.struct.CallGraph;
 import edu.columbia.cs.psl.phosphor.struct.MethodInformation;
 import edu.columbia.cs.psl.phosphor.struct.MiniClassNode;
@@ -27,6 +28,7 @@ public class CallGraphBuildingClassVisitor extends ClassVisitor {
 	@Override
 	public MethodVisitor visitMethod(int access, final String name, final String desc, String signature, String[] exceptions) {
 		final MethodInformation thisMIN = graph.getMethodNode(className, name, desc);
+		Instrumenter.classes.get(className).methods.add(new MethodNode(access, name, desc, signature, exceptions));
 		thisMIN.setVisited(true);
 		if((access & Opcodes.ACC_NATIVE) != 0)
 			thisMIN.setPure(false);
