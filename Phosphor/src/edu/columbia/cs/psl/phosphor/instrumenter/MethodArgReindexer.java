@@ -192,7 +192,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 						}
 					}
 				}
-				if(i == origNumArgs)
+				if(i == origNumArgs && TaintUtils.IMPLICIT_TRACKING)
 				{
 					remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
 					newIdx++;

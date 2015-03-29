@@ -1307,6 +1307,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			if (srcIsPrimitive) {
 				if (destIsPrimitve) {
 					desc = "(Ljava/lang/Object;Ljava/lang/Object;IILjava/lang/Object;Ljava/lang/Object;IIII)V";
+					if(TaintUtils.IMPLICIT_TRACKING)
+						name = "arraycopyControlTrack";
 				} else {
 					desc = "(Ljava/lang/Object;Ljava/lang/Object;IILjava/lang/Object;IIII)V";
 				}
@@ -2948,85 +2950,84 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 
-		switch (opcode) {
-		case Opcodes.IFEQ:
-		case Opcodes.IFNE:
-		case Opcodes.IFLT:
-		case Opcodes.IFGE:
-		case Opcodes.IFGT:
-		case Opcodes.IFLE:
+		if (TaintUtils.IMPLICIT_TRACKING) {
+			switch (opcode) {
+			case Opcodes.IFEQ:
+			case Opcodes.IFNE:
+			case Opcodes.IFLT:
+			case Opcodes.IFGE:
+			case Opcodes.IFGT:
+			case Opcodes.IFLE:
 
-			super.visitInsn(SWAP);
-			super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
-			super.visitInsn(SWAP);
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(I)V", false);
-
-			break;
-		case Opcodes.IFNULL:
-		case Opcodes.IFNONNULL:
-			Type typeOnStack = getTopOfStackType();
-			if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT && typeOnStack.getDimensions() == 1) {
-				//O1 T1
 				super.visitInsn(SWAP);
 				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
 				super.visitInsn(SWAP);
-				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(Ljava/lang/Object;)V", false);
-			}
-			else
-			{
-				super.visitInsn(DUP);
-				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
+				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(I)V", false);
+
+				break;
+			case Opcodes.IFNULL:
+			case Opcodes.IFNONNULL:
+				Type typeOnStack = getTopOfStackType();
+				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT && typeOnStack.getDimensions() == 1) {
+					//O1 T1
+					super.visitInsn(SWAP);
+					super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
+					super.visitInsn(SWAP);
+					super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(Ljava/lang/Object;)V", false);
+				} else {
+					super.visitInsn(DUP);
+					super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
+					super.visitInsn(SWAP);
+					super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(Ljava/lang/Object;)V", false);
+				}
+
+				break;
+			case Opcodes.IF_ICMPEQ:
+			case Opcodes.IF_ICMPNE:
+			case Opcodes.IF_ICMPLT:
+			case Opcodes.IF_ICMPGE:
+			case Opcodes.IF_ICMPGT:
+			case Opcodes.IF_ICMPLE:
+				//T V T V
+				int tmp = lvs.getTmpLV(Type.INT_TYPE);
+				//T V T V
 				super.visitInsn(SWAP);
-				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(Ljava/lang/Object;)V", false);
-			}
-
-			break;
-		case Opcodes.IF_ICMPEQ:
-		case Opcodes.IF_ICMPNE:
-		case Opcodes.IF_ICMPLT:
-		case Opcodes.IF_ICMPGE:
-		case Opcodes.IF_ICMPGT:
-		case Opcodes.IF_ICMPLE:
-			//T V T V
-			int tmp = lvs.getTmpLV(Type.INT_TYPE);
-			//T V T V
-			super.visitInsn(SWAP);
-			super.visitInsn(TaintUtils.IS_TMP_STORE);
-			super.visitVarInsn(ISTORE, tmp);
-			//T V V
-			super.visitInsn(DUP2_X1);
-			super.visitInsn(POP2);
-			//V V T  
-			super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
-			super.visitInsn(SWAP);
-			//V V C T
-			super.visitVarInsn(ILOAD, tmp);
-			lvs.freeTmpLV(tmp);
-			//V V T T
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(II)V", false);
-
-
-			break;
-		case Opcodes.IF_ACMPNE:
-		case Opcodes.IF_ACMPEQ:
-			 typeOnStack = getTopOfStackType();
-			if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
-				super.visitInsn(SWAP);
-				super.visitInsn(POP);
-			}
-			//O1 O2 (t2?)
-			Type secondOnStack = getStackTypeAtOffset(1);
-			if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT) {
-				//O1 O2 T2
+				super.visitInsn(TaintUtils.IS_TMP_STORE);
+				super.visitVarInsn(ISTORE, tmp);
+				//T V V
 				super.visitInsn(DUP2_X1);
 				super.visitInsn(POP2);
-				super.visitInsn(POP);
+				//V V T  
+				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
+				super.visitInsn(SWAP);
+				//V V C T
+				super.visitVarInsn(ILOAD, tmp);
+				lvs.freeTmpLV(tmp);
+				//V V T T
+				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(II)V", false);
+
+				break;
+			case Opcodes.IF_ACMPNE:
+			case Opcodes.IF_ACMPEQ:
+				typeOnStack = getTopOfStackType();
+				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
+					super.visitInsn(SWAP);
+					super.visitInsn(POP);
+				}
+				//O1 O2 (t2?)
+				Type secondOnStack = getStackTypeAtOffset(1);
+				if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT) {
+					//O1 O2 T2
+					super.visitInsn(DUP2_X1);
+					super.visitInsn(POP2);
+					super.visitInsn(POP);
+				}
+				break;
+			case Opcodes.GOTO:
+				break;
+			default:
+				throw new IllegalStateException("Unimplemented: " + opcode);
 			}
-			break;
-		case Opcodes.GOTO:
-			break;
-		default:
-			throw new IllegalStateException("Unimplemented: " + opcode);
 		}
 		if (boxAtNextJump.size() > 0) {
 			Label origDest = label;

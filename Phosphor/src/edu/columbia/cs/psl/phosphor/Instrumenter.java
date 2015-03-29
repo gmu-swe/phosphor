@@ -448,6 +448,16 @@ public class Instrumenter {
 			 System.err.println("Usage: java {-DTAINT_SINKS=... -DTAINT_SOURCES=...} -jar phosphor.jar [source] [dest] {additional-classpath-entries}");
 			 return;
 		}
+		if(TaintUtils.IMPLICIT_TRACKING)
+			System.out.println("Implicit flow tracking: enabled");
+		else
+			System.out.println("Implicit flow tracking: disabled (enable with -DIMPLICIT_FLOW=true)");
+		
+		if(TaintUtils.MULTI_TAINT)
+			System.out.println("Multi taint: enabled");
+		else
+			System.out.println("Taints will be combined with logical-or. To enable multi-tainting and 2^32 distinct markings, use -DMULTI_TAINT=true");
+		
 		TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
 		ANALYZE_ONLY = true;
 		System.out.println("Starting analysis");
