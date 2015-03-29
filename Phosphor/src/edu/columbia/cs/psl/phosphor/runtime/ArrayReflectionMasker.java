@@ -39,6 +39,10 @@ public class ArrayReflectionMasker {
 		}
 		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
 	}
+	public static TaintedInt getLength$$INVIVO_PC(Object obj, ControlTaintTagStack ctlr, TaintedInt ret)
+	{
+		return getLength$$INVIVO_PC(obj, ret);
+	}
 	public static Object newInstance$$INVIVO_PC(Class clazz, int lenTaint, int len,ControlTaintTagStack zz) {
 		return newInstance$$INVIVO_PC(clazz, lenTaint, len);
 	}
@@ -81,7 +85,9 @@ public class ArrayReflectionMasker {
 		}
 		return Array.newInstance(clazz, len);
 	}
-
+	public static Object newInstance$$INVIVO_PC(Class clazz, int[] dimsTaint, int[] dims, ControlTaintTagStack ctrl) {
+		return newInstance$$INVIVO_PC(clazz, dimsTaint, dims);
+	}
 	public static Object newInstance$$INVIVO_PC(Class clazz, int[] dimsTaint, int[] dims) {
 //		System.out.println("22Creating array instance of type " + clazz);
 		Type t = Type.getType(clazz);
@@ -143,6 +149,31 @@ public class ArrayReflectionMasker {
 		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
 	}
 
+	public static TaintedBoolean getBoolean$$INVIVO_PC(Object obj, int idxTaint, int idx,ControlTaintTagStack ctrl, TaintedBoolean ret) {
+		return getBoolean$$INVIVO_PC(obj, idxTaint, idx, ret);
+	}
+	public static TaintedInt getInt$$INVIVO_PC(Object obj, int idxTaint, int idx,ControlTaintTagStack ctrl, TaintedInt ret) {
+		return getInt$$INVIVO_PC(obj, idxTaint, idx, ret);
+	}
+	public static TaintedChar getChar$$INVIVO_PC(Object obj, int idxTaint, int idx,ControlTaintTagStack ctrl, TaintedChar ret) {
+		return getChar$$INVIVO_PC(obj, idxTaint, idx, ret);
+	}
+	public static TaintedDouble getDouble$$INVIVO_PC(Object obj, int idxTaint, int idx,ControlTaintTagStack ctrl, TaintedDouble ret) {
+		return getDouble$$INVIVO_PC(obj, idxTaint, idx, ret);
+	}
+	public static TaintedFloat getFloat$$INVIVO_PC(Object obj, int idxTaint, int idx,ControlTaintTagStack ctrl, TaintedFloat ret) {
+		return getFloat$$INVIVO_PC(obj, idxTaint, idx, ret);
+	}
+	public static TaintedShort getShort$$INVIVO_PC(Object obj, int idxTaint, int idx,ControlTaintTagStack ctrl, TaintedShort ret) {
+		return getShort$$INVIVO_PC(obj, idxTaint, idx, ret);
+	}
+	public static TaintedLong getLong$$INVIVO_PC(Object obj, int idxTaint, int idx,ControlTaintTagStack ctrl, TaintedLong ret) {
+		return getLong$$INVIVO_PC(obj, idxTaint, idx, ret);
+	}
+	public static TaintedByte getByte$$INVIVO_PC(Object obj, int idxTaint, int idx,ControlTaintTagStack ctrl, TaintedByte ret) {
+		return getByte$$INVIVO_PC(obj, idxTaint, idx, ret);
+	}
+	
 	public static TaintedBoolean getBoolean$$INVIVO_PC(Object obj, int idxTaint, int idx,TaintedBoolean ret) {
 		if (obj instanceof MultiDTaintedBooleanArray) {
 			MultiDTaintedBooleanArray ar = (MultiDTaintedBooleanArray) obj;
@@ -232,6 +263,10 @@ public class ArrayReflectionMasker {
 			return getShort$$INVIVO_PC(obj, idxTaint, idx, new TaintedShort()).toPrimitiveType();
 		return Array.get(obj, idx);
 	}
+	
+	public static Object get$$INVIVO_PC(Object obj, int idxTaint, int idx,ControlTaintTagStack ctrl) {
+		return get$$INVIVO_PC(obj, idxTaint, idx);
+	}
 
 	public static int tryToGetTaint(Object val) {
 		try {
@@ -267,6 +302,64 @@ public class ArrayReflectionMasker {
 			Array.set(obj, idx, val);
 	}
 
+	public static void set$$INVIVO_PC(Object obj, int idxtaint, int idx, Object val,ControlTaintTagStack ctrl) {
+		if (obj != null && !obj.getClass().isArray()) {
+			//in this case obj will be boxed, and we need to pull the taint out of val when we unbox it
+			if (obj instanceof MultiDTaintedBooleanArray)
+				setBoolean$$INVIVO_PC(obj, idxtaint, idx, tryToGetTaint(val), (Boolean) val, ctrl);
+			else if (obj instanceof MultiDTaintedByteArray)
+				setByte$$INVIVO_PC(obj, idxtaint, idx, tryToGetTaint(val), (Byte) val, ctrl);
+			else if (obj instanceof MultiDTaintedCharArray)
+				setChar$$INVIVO_PC(obj, idxtaint, idx, tryToGetTaint(val), (Character) val, ctrl);
+			else if (obj instanceof MultiDTaintedDoubleArray)
+				setDouble$$INVIVO_PC(obj, idxtaint, idx, tryToGetTaint(val), (Double) val, ctrl);
+			else if (obj instanceof MultiDTaintedFloatArray)
+				setFloat$$INVIVO_PC(obj, idxtaint, idx, tryToGetTaint(val), (Float) val, ctrl);
+			else if (obj instanceof MultiDTaintedIntArray)
+				setInt$$INVIVO_PC(obj, idxtaint, idx, tryToGetTaint(val), (Integer) val, ctrl);
+			else if (obj instanceof MultiDTaintedLongArray)
+				setLong$$INVIVO_PC(obj, idxtaint, idx, tryToGetTaint(val), (Long) val, ctrl);
+			else if (obj instanceof MultiDTaintedShortArray)
+				setShort$$INVIVO_PC(obj, idxtaint, idx, tryToGetTaint(val), (Short) val, ctrl);
+			else
+				throw new ArrayStoreException("Got passed an obj of type "+obj + " to store to");
+		} else
+			Array.set(obj, idx, val);
+	}
+	public static void setBoolean$$INVIVO_PC(Object obj, int idxtaint, int idx, int taint, boolean val, ControlTaintTagStack ctrl) {
+		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		setBoolean$$INVIVO_PC(obj, idxtaint, idx, taint, val);
+	}
+	public static void setByte$$INVIVO_PC(Object obj, int idxtaint, int idx, int taint, byte val, ControlTaintTagStack ctrl) {
+		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		setByte$$INVIVO_PC(obj, idxtaint, idx, taint, val);
+	}
+	public static void setChar$$INVIVO_PC(Object obj, int idxtaint, int idx, int taint, char val, ControlTaintTagStack ctrl) {
+		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		setChar$$INVIVO_PC(obj, idxtaint, idx, taint, val);
+	}
+	public static void setDouble$$INVIVO_PC(Object obj, int idxtaint, int idx, int taint, double val, ControlTaintTagStack ctrl) {
+		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		setDouble$$INVIVO_PC(obj, idxtaint, idx, taint, val);
+	}
+	public static void setFloat$$INVIVO_PC(Object obj, int idxtaint, int idx, int taint, float val, ControlTaintTagStack ctrl) {
+		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		setFloat$$INVIVO_PC(obj, idxtaint, idx, taint, val);
+	}
+	public static void setInt$$INVIVO_PC(Object obj, int idxtaint, int idx, int taint, int val, ControlTaintTagStack ctrl) {
+		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		setInt$$INVIVO_PC(obj, idxtaint, idx, taint, val);
+	}
+	public static void setLong$$INVIVO_PC(Object obj, int idxtaint, int idx, int taint, long val, ControlTaintTagStack ctrl) {
+		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		setLong$$INVIVO_PC(obj, idxtaint, idx, taint, val);
+	}
+	public static void setShort$$INVIVO_PC(Object obj, int idxtaint, int idx, int taint, short val, ControlTaintTagStack ctrl) {
+		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		setShort$$INVIVO_PC(obj, idxtaint, idx, taint, val);
+	}
+	
+	
 	public static void setBoolean$$INVIVO_PC(Object obj, int idxtaint, int idx, int taint, boolean val) {
 		if (obj instanceof MultiDTaintedBooleanArray) {
 			MultiDTaintedBooleanArray a = (MultiDTaintedBooleanArray) obj;

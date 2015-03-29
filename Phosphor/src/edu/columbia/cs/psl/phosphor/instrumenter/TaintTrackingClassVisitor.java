@@ -72,10 +72,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	private boolean implementsSerializable;
 
+	private boolean fixLdcClass;
+	
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		addTaintField = true;
 		addTaintMethod = true;
+		this.fixLdcClass = (version & 0xFFFF) < Opcodes.V1_5;
 		if(Instrumenter.IS_KAFFE_INST && name.endsWith("java/lang/VMSystem"))
 			access = access | Opcodes.ACC_PUBLIC;
 		else if(Instrumenter.IS_HARMONY_INST && name.endsWith("java/lang/VMMemoryManager"))
@@ -289,7 +292,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 //			if (DO_OPT)
 //				optimizer = new PopOptimizingMV(mv, access, className, name, newDesc, signature, exceptions);
-			mv = new SpecialOpcodeRemovingMV(optimizer,ignoreFrames, className);
+			mv = new SpecialOpcodeRemovingMV(optimizer,ignoreFrames, className, fixLdcClass);
 //			optimizer = new PopOptimizingMV(mv, access,className, name, newDesc, signature, exceptions);
 
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);

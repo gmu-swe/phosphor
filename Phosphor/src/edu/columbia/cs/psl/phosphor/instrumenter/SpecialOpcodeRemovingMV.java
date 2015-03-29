@@ -12,10 +12,12 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	private boolean ignoreFrames;
 	private String clazz;
 
-	public SpecialOpcodeRemovingMV(MethodVisitor sup, boolean ignoreFrames, String clazz) {
+	private boolean fixLdcClass;
+	public SpecialOpcodeRemovingMV(MethodVisitor sup, boolean ignoreFrames, String clazz, boolean fixLdcClass) {
 		super(Opcodes.ASM5, sup);
 		this.ignoreFrames = ignoreFrames;
 		this.clazz = clazz;
+		this.fixLdcClass = fixLdcClass;
 	}
 
 	@Override
@@ -49,7 +51,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
 	@Override
 	public void visitLdcInsn(Object cst) {
-		if (cst instanceof Type && ignoreFrames) {
+		if (cst instanceof Type && fixLdcClass) {
 			super.visitLdcInsn(((Type) cst).getInternalName().replace("/", "."));
 			super.visitInsn(Opcodes.ICONST_0);
 			super.visitLdcInsn(clazz.replace("/", "."));

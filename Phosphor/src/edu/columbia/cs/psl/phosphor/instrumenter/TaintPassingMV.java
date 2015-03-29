@@ -48,7 +48,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		{
 			for(int i = 0; i <= arrayAnalyzer.nJumps; i++)
 			{
-				int tmpLV  = lvs.newControlTaintLV();
+				int tmpLV  = lvs.newControlTaintLV(i);
 				jumpControlTaintLVs.add(tmpLV);
 				super.visitTypeInsn(NEW, Type.getInternalName(ControlTaintTagStack.class));
 				super.visitInsn(DUP);

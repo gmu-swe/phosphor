@@ -114,7 +114,8 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 	}
 
 	int jumpIdx;
-	public int newControlTaintLV()
+	int idxOfMasterControlLV;
+	public int newControlTaintLV(int depth)
 	{
 		int idx = super.newLocal(Type.getType(ControlTaintTagStack.class));
 		Label lbl = new Label();
@@ -122,7 +123,8 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 
 		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(lbl), new LabelNode(end), idx);
 		createdLVs.add(newLVN);
-		
+		if(depth == 0)
+			idxOfMasterControlLV = idx;
 		jumpIdx++;
 		return idx;
 	}

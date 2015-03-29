@@ -484,6 +484,50 @@ public class ReflectionMasker {
 
 		return in;
 	}
+	
+	public static Object[] fixAllArgs(Object[] in, Constructor c, ControlTaintTagStack ctrl) {
+//		if(VM.isBooted())
+//		System.out.println("Making constructo rcall to " + c);
+		if (c != null && in != null && c.getParameterTypes().length != in.length) {
+			Object[] ret = new Object[c.getParameterTypes().length];
+			int j = 0;
+			for (int i = 0; i < in.length; i++) {
+				if (c.getParameterTypes()[j].isPrimitive()) {
+					if (in[i] instanceof Tainted)
+						ret[j] = ((Tainted) in[i]).getINVIVO_PC_TAINT();
+					else
+						ret[j] = 0;
+					j++;
+				} else if (c.getParameterTypes()[j].isArray() && c.getParameterTypes()[j].getComponentType().isPrimitive()) {
+					MultiDTaintedArray arr = ((MultiDTaintedArray) in[i]);
+					ret[j] = arr.taint;
+					j++;
+					ret[j] = arr.getVal();
+					j++;
+					continue;
+				}
+				ret[j] = in[i];
+				j++;
+			}
+			if(TaintUtils.IMPLICIT_TRACKING)
+			{
+				ret[ret.length-2] = ctrl;
+			}
+			return ret;
+		} else if (in == null && c.getParameterTypes().length == 1) {
+			Object[] ret = new Object[1];
+			ret[0] = null;
+			return ret;
+		} else if( in == null && c.getParameterTypes().length == 2)
+		{
+			Object[] ret = new Object[2];
+			ret[0] = ctrl;
+			ret[1] = null;
+			return ret;
+		}
+
+		return in;
+	}
 
 	@SuppressWarnings("rawtypes")
 	public static Object[] fixAllArgsFast(Method m, Object[] in) {
@@ -649,6 +693,108 @@ public class ReflectionMasker {
 		return ret;
 	}
 
+	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, ControlTaintTagStack ctrl) {
+//		System.out.println("Making slow call to  " + m);
+		MethodInvoke ret = new MethodInvoke();
+		m.setAccessible(true);
+		if ((IS_KAFFE) || !m.INVIVO_PC_TAINTmarked)
+		{
+			if(IS_KAFFE)
+			{
+				if(in.length > 0)
+					m = getTaintMethod(m);
+			}
+			else
+				m = getTaintMethod(m);
+		}
+		m.setAccessible(true);
+		ret.a = in;
+		ret.o = owner;
+		ret.m = m;
+		//		System.out.println("FAA: " +m + " "+owner + " " + in);
+		int j = 0;
+		if (in != null && m.getParameterTypes().length != in.length) {
+			ret.a = new Object[m.getParameterTypes().length];
+			for (int i = 0; i < in.length; i++) {
+				if (m.getParameterTypes()[j].isPrimitive()) {
+					if (in[i] instanceof Tainted)
+						ret.a[j] = ((Tainted) in[i]).getINVIVO_PC_TAINT();
+					else
+						ret.a[j] = 0;
+					j++;
+				} else if (m.getParameterTypes()[j].isArray() && m.getParameterTypes()[j].getComponentType().isPrimitive()) {
+					MultiDTaintedArray arr = ((MultiDTaintedArray) in[i]);
+					ret.a[j] = arr.taint;
+					j++;
+					ret.a[j] = arr.getVal();
+					j++;
+					continue;
+				}
+				ret.a[j] = in[i];
+				j++;
+			}
+		}
+		if(ret.a != null && TaintUtils.IMPLICIT_TRACKING)
+		{
+			ret.a[j] = ctrl;
+			j++;
+		}
+		if(in == null && m != null && m.getParameterTypes().length == 1)
+		{
+			ret.a = new Object[1];
+			ret.a[0] = ctrl;
+			
+		}
+		else if ((in == null && m != null && (m.getParameterTypes().length == 1 || (TaintUtils.IMPLICIT_TRACKING && m.getParameterTypes().length == 2))) || (in != null && j != in.length - 1)) {
+			if (in == null)
+			{
+				ret.a = new Object[2];
+				ret.a[0] = ctrl;
+				j++;
+			}
+			final Class returnType = m.getReturnType();
+			if (TaintedPrimitiveArray.class.isAssignableFrom(returnType)) {
+				if (returnType == TaintedIntArray.class)
+					ret.a[j] = new TaintedIntArray();
+				else if (returnType == TaintedShortArray.class)
+					ret.a[j] = new TaintedShortArray();
+				else if (returnType == TaintedFloatArray.class)
+					ret.a[j] = new TaintedFloatArray();
+				else if (returnType == TaintedDoubleArray.class)
+					ret.a[j] = new TaintedDoubleArray();
+				else if (returnType == TaintedLongArray.class)
+					ret.a[j] = new TaintedLongArray();
+				else if (returnType == TaintedCharArray.class)
+					ret.a[j] = new TaintedCharArray();
+				else if (returnType == TaintedByteArray.class)
+					ret.a[j] = new TaintedByteArray();
+				else if (returnType == TaintedBooleanArray.class)
+					ret.a[j] = new TaintedBooleanArray();
+			} else if (TaintedPrimitive.class.isAssignableFrom(returnType)) {
+				if (returnType == TaintedInt.class)
+					ret.a[j] = new TaintedInt();
+				else if (returnType == TaintedShort.class)
+					ret.a[j] = new TaintedShort();
+				else if (returnType == TaintedFloat.class)
+					ret.a[j] = new TaintedFloat();
+				else if (returnType == TaintedDouble.class)
+					ret.a[j] = new TaintedDouble();
+				else if (returnType == TaintedLong.class)
+					ret.a[j] = new TaintedLong();
+				else if (returnType == TaintedChar.class)
+					ret.a[j] = new TaintedChar();
+				else if (returnType == TaintedByte.class)
+					ret.a[j] = new TaintedByte();
+				else if (returnType == TaintedBoolean.class)
+					ret.a[j] = new TaintedBoolean();
+			}
+		}
+		//		if(VM.isBooted())
+		//			System.out.println(Arrays.toString(m.getParameterTypes()) + " and OUT " + Arrays.toString(ret.a));
+//				System.out.println("Fix all args slow: " + Arrays.toString(ret.a) + " for " + m);
+		return ret;
+	}
+	
 	static WeakHashMap<Class, Class> cachedClasses = new WeakHashMap<Class, Class>();
 
 	@SuppressWarnings("rawtypes")

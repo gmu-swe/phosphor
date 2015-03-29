@@ -11,6 +11,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitive;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArray;
@@ -36,7 +37,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 //TESTING
 		boolean origAndroidInst = Instrumenter.IS_ANDROID_INST;
 		Instrumenter.IS_ANDROID_INST = true;
-		if ((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && (name.equals("invoke") || name.equals("newInstance"))) {
+		if ((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && (name.startsWith("invoke") || name.startsWith("newInstance"))) {
 
 			if (owner.equals("java/lang/reflect/Method")) {
 				//method owner [Args
@@ -86,8 +87,14 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				}
 				else{
 				//orig version
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs",
-							"(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)" + Type.getDescriptor(MethodInvoke.class),false);
+					if (TaintUtils.IMPLICIT_TRACKING)
+					{
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;"+Type.getDescriptor(ControlTaintTagStack.class)+")"
+								+ Type.getDescriptor(MethodInvoke.class), false);
+					}
+					else
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)"
+								+ Type.getDescriptor(MethodInvoke.class), false);						
 					//B
 					super.visitInsn(Opcodes.DUP);
 					//B B
@@ -99,6 +106,9 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "o", "Ljava/lang/Object;");
 					super.visitInsn(Opcodes.SWAP);
 					super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "a", "[Ljava/lang/Object;");
+					if(TaintUtils.IMPLICIT_TRACKING)
+						super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+
 				}
 			} else {
 				//constuctor [args
@@ -106,7 +116,14 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				//[A C
 				super.visitInsn(Opcodes.DUP_X1);
 				//C [A C
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;)[Ljava/lang/Object;",false);
+				if(TaintUtils.IMPLICIT_TRACKING)
+				{
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;)[Ljava/lang/Object;",false);
+					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+
+				}
+				else
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;)[Ljava/lang/Object;",false);
 			}
 		} else if ((owner.equals("java/lang/reflect/Method")) && name.startsWith("get") && !className.equals(owner) && !className.startsWith("sun/reflect") && !className.startsWith("java/lang/Class")) {
 			if (args.length == 0)
