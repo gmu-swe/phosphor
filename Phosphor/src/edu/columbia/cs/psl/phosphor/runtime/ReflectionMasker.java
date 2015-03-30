@@ -103,10 +103,8 @@ public class ReflectionMasker {
 				continue;
 			}
 		}
-		if (TaintUtils.IMPLICIT_TRACKING) {
 			madeChange = true;
 			newArgs.add(ControlTaintTagStack.class);
-		}
 		final Class returnType = m.getReturnType();
 		if (returnType.isArray()) {
 			if (returnType.getComponentType().isPrimitive()) {
@@ -812,14 +810,17 @@ public class ReflectionMasker {
 				if (in.length > 0)
 					m = getTaintMethodControlTrack(m);
 			} else
+			{
 				m = getTaintMethodControlTrack(m);
+			}
 		}
 		m.setAccessible(true);
 		ret.a = in;
 		ret.o = owner;
 		ret.m = m;
-		//		System.out.println("FAA: " +m + " "+owner + " " + in);
+//				System.out.println("FAA: " +m + " "+owner + " " + Arrays.toString(in));
 		int j = 0;
+
 		if (in != null && m.getParameterTypes().length != in.length) {
 			ret.a = new Object[m.getParameterTypes().length];
 			for (int i = 0; i < in.length; i++) {

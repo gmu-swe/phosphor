@@ -111,19 +111,25 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
 				}
 			} else {
-				//constuctor [args
-				super.visitInsn(Opcodes.SWAP);
-				//[A C
-				super.visitInsn(Opcodes.DUP_X1);
-				//C [A C
-				if(TaintUtils.IMPLICIT_TRACKING)
-				{
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;"+Type.getDescriptor(ControlTaintTagStack.class)+")[Ljava/lang/Object;",false);
+				if (TaintUtils.IMPLICIT_TRACKING) {
+					super.visitInsn(POP);
+					super.visitInsn(Opcodes.SWAP);
+					//[A C
+					super.visitInsn(Opcodes.DUP_X1);
+					//C [A C
+					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs",
+							"([Ljava/lang/Object;Ljava/lang/reflect/Constructor;" + Type.getDescriptor(ControlTaintTagStack.class) + ")[Ljava/lang/Object;", false);
 					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 
+				} else {
+					super.visitInsn(Opcodes.SWAP);
+					//[A C
+					super.visitInsn(Opcodes.DUP_X1);
+					//C [A C
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;)[Ljava/lang/Object;",
+							false);
 				}
-				else
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;)[Ljava/lang/Object;",false);
 			}
 		} else if ((owner.equals("java/lang/reflect/Method")) && name.startsWith("get") && !className.equals(owner) && !className.startsWith("sun/reflect") && !className.startsWith("java/lang/Class")) {
 			if (args.length == 0)
