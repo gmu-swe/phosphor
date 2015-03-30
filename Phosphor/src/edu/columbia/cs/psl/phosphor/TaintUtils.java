@@ -42,10 +42,10 @@ public class TaintUtils {
 
 	public static final boolean OPT_USE_STACK_ONLY = false; //avoid using LVs where possible if true
 	
-	public static final boolean MULTI_TAINT = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false")) || Boolean.valueOf(System.getProperty("MULTI_TAINT","false"));
+	public static boolean MULTI_TAINT = false; //default
 	public static final String MULTI_TAINT_HANDLER_CLASS = "edu/columbia/cs/psl/phosphor/runtime/SimpleMultiTaintHandler";
-	public static final boolean IMPLICIT_TRACKING = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false")); //must have multi-tainting on to do implicit flow tracking
-	public static final boolean OPT_CONSTANT_ARITHMETIC = true && !IMPLICIT_TRACKING;
+	public static boolean IMPLICIT_TRACKING = false; //default 
+	public static boolean OPT_CONSTANT_ARITHMETIC = true && !IMPLICIT_TRACKING;
 	
 	public static final int RAW_INSN = 201;
 	public static final int NO_TAINT_STORE_INSN = 202;

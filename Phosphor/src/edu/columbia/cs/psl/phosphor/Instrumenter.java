@@ -448,8 +448,13 @@ public class Instrumenter {
 			 System.err.println("Usage: java {-DTAINT_SINKS=... -DTAINT_SOURCES=...} -jar phosphor.jar [source] [dest] {additional-classpath-entries}");
 			 return;
 		}
+		TaintUtils.MULTI_TAINT = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false")) || Boolean.valueOf(System.getProperty("MULTI_TAINT","false"));;
+		TaintUtils.IMPLICIT_TRACKING = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false"));
 		if(TaintUtils.IMPLICIT_TRACKING)
+		{
+			TaintUtils.OPT_CONSTANT_ARITHMETIC = false;
 			System.out.println("Implicit flow tracking: enabled");
+		}
 		else
 			System.out.println("Implicit flow tracking: disabled (enable with -DIMPLICIT_FLOW=true)");
 		

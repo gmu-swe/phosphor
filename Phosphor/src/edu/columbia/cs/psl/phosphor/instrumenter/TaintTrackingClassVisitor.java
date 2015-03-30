@@ -271,7 +271,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			methodsToAddWrappersFor.add(wrapper);
 
 		String newDesc = Type.getMethodDescriptor(newReturnType, newArgs);
-
 		//		System.out.println("olddesc " + desc + " newdesc " + newDesc);
 		if ((access & Opcodes.ACC_NATIVE) == 0 && !methodIsTooBigAlready(name, desc)) {
 			//not a native method

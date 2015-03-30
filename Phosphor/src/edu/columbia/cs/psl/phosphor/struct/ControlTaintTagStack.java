@@ -93,7 +93,7 @@ public class ControlTaintTagStack {
 
 	Node top;
 
-	class Node {
+	class Node implements Cloneable{
 		int tag;
 		Node prev;
 	}

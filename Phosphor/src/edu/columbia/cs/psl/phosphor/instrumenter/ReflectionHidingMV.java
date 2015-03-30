@@ -118,7 +118,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				//C [A C
 				if(TaintUtils.IMPLICIT_TRACKING)
 				{
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;)[Ljava/lang/Object;",false);
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;"+Type.getDescriptor(ControlTaintTagStack.class)+")[Ljava/lang/Object;",false);
 					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 
 				}
