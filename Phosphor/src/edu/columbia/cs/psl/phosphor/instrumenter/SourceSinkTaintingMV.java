@@ -10,8 +10,6 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.InstructionAdapter;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 
 public class SourceSinkTaintingMV extends InstructionAdapter implements Opcodes{
 	static SourceSinkManager sourceSinkManager = BasicSourceSinkManager.getInstance(Instrumenter.callgraph);

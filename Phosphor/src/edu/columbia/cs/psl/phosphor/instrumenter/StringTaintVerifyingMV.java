@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import java.util.Arrays;
 import java.util.HashSet;
 
 import com.sun.xml.internal.ws.org.objectweb.asm.Type;
@@ -12,7 +11,6 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAd
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.AnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.InstructionAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 

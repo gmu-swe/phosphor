@@ -1,9 +1,5 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import java.lang.reflect.Array;
-import java.util.Enumeration;
-
-import edu.columbia.cs.psl.phosphor.struct.Tainted;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;

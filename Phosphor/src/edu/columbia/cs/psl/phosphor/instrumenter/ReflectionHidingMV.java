@@ -14,8 +14,8 @@ import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 
 public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 

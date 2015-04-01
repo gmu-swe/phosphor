@@ -1,7 +1,5 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import java.util.Arrays;
-
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
@@ -11,7 +9,6 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 
 public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 

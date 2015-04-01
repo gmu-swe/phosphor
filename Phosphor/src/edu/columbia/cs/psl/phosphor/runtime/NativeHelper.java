@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.util.Collection;
 
-import sun.security.krb5.Config;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;

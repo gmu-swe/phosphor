@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.Scanner;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.CallGraph;
 import edu.columbia.cs.psl.phosphor.struct.MiniClassNode;

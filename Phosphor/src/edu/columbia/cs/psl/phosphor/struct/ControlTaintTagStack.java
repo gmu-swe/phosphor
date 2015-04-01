@@ -1,7 +1,5 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-import java.nio.channels.UnsupportedAddressTypeException;
-
 import edu.columbia.cs.psl.phosphor.runtime.SimpleMultiTaintHandler;
 
 public class ControlTaintTagStack {

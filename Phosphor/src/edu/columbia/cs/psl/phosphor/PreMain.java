@@ -13,7 +13,6 @@ import java.security.ProtectionDomain;
 import com.sun.xml.internal.ws.org.objectweb.asm.Type;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.AnnotationVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassReader;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassWriter;

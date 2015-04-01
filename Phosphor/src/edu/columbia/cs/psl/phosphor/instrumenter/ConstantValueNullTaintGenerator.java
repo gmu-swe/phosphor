@@ -1,7 +1,5 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import java.util.HashMap;
-
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;

@@ -3,22 +3,22 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithIntTag;
 
 public class MultiTainter {

@@ -4,8 +4,41 @@ import java.lang.reflect.Array;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.multid.*;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedByteArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedByteArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedDoubleArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedDoubleArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedFloatArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedFloatArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedIntArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedIntArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedLongArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedLongArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithObjTag;
 
 public class ArrayReflectionMasker {
 	public static TaintedIntWithIntTag getLength$$PHOSPHORTAGGED(Object obj, TaintedIntWithIntTag ret) {

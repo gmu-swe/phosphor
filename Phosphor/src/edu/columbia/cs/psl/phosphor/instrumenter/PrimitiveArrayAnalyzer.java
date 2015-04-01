@@ -20,7 +20,6 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.AbstractInsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.InsnList;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.InsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LabelNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
@@ -29,7 +28,6 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.TypeInsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.VarInsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.Analyzer;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.AnalyzerException;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.BasicInterpreter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.BasicValue;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.Frame;
 
