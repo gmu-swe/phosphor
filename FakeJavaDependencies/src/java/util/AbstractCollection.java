@@ -464,22 +464,22 @@ public abstract class AbstractCollection<E> implements Collection<E> {
         }
     }
     @Override
-    public TaintedBoolean add$$INVIVO_PC(E e) {
+    public TaintedBoolean add$$PHOSPHORTAGGED(E e) {
     	// TODO Auto-generated method stub
     	return null;
     }
     @Override
-    public TaintedBoolean addAll$$INVIVO_PC(Collection<? extends E> c) {
+    public TaintedBoolean addAll$$PHOSPHORTAGGED(Collection<? extends E> c) {
     	// TODO Auto-generated method stub
     	return null;
     }
     @Override
-    public TaintedBoolean add$$INVIVO_PC(E e, TaintedBoolean ret) {
+    public TaintedBoolean add$$PHOSPHORTAGGED(E e, TaintedBoolean ret) {
     	// TODO Auto-generated method stub
     	return null;
     }
     @Override
-    public TaintedBoolean addAll$$INVIVO_PC(Collection<? extends E> c, TaintedBoolean ret) {
+    public TaintedBoolean addAll$$PHOSPHORTAGGED(Collection<? extends E> c, TaintedBoolean ret) {
     	// TODO Auto-generated method stub
     	return null;
     }

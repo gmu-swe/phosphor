@@ -27,7 +27,7 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class RuntimeReflectionPropogator {
 
-	public static Class<?> getType$$INVIVO_PC(Field f,ControlTaintTagStack ctrl)
+	public static Class<?> getType$$PHOSPHORTAGGED(Field f,ControlTaintTagStack ctrl)
 	{
 		return getType(f);
 	}
@@ -53,7 +53,7 @@ public class RuntimeReflectionPropogator {
 		}
 		return ret;
 	}
-	public static Object get$$INVIVO_PC(Field f, Object obj, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static Object get$$PHOSPHORTAGGED(Field f, Object obj, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		return get(f, obj);
 	}
 	public static Object get(Field f, Object obj) throws IllegalArgumentException, IllegalAccessException {
@@ -96,32 +96,32 @@ public class RuntimeReflectionPropogator {
 		}
 		return ret;
 	}
-	public static TaintedBoolean getBoolean$$INVIVO_PC(Field f, Object obj,ControlTaintTagStack ctrl, TaintedBoolean ret) throws IllegalArgumentException, IllegalAccessException {
-		return getBoolean$$INVIVO_PC(f, obj, ret);
+	public static TaintedBoolean getBoolean$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedBoolean ret) throws IllegalArgumentException, IllegalAccessException {
+		return getBoolean$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedByte getByte$$INVIVO_PC(Field f, Object obj,ControlTaintTagStack ctrl, TaintedByte ret) throws IllegalArgumentException, IllegalAccessException {
-		return getByte$$INVIVO_PC(f, obj, ret);
+	public static TaintedByte getByte$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedByte ret) throws IllegalArgumentException, IllegalAccessException {
+		return getByte$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedChar getChar$$INVIVO_PC(Field f, Object obj,ControlTaintTagStack ctrl, TaintedChar ret) throws IllegalArgumentException, IllegalAccessException {
-		return getChar$$INVIVO_PC(f, obj, ret);
+	public static TaintedChar getChar$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedChar ret) throws IllegalArgumentException, IllegalAccessException {
+		return getChar$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedDouble getDouble$$INVIVO_PC(Field f, Object obj,ControlTaintTagStack ctrl, TaintedDouble ret) throws IllegalArgumentException, IllegalAccessException {
-		return getDouble$$INVIVO_PC(f, obj, ret);
+	public static TaintedDouble getDouble$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedDouble ret) throws IllegalArgumentException, IllegalAccessException {
+		return getDouble$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedFloat getFloat$$INVIVO_PC(Field f, Object obj,ControlTaintTagStack ctrl, TaintedFloat ret) throws IllegalArgumentException, IllegalAccessException {
-		return getFloat$$INVIVO_PC(f, obj, ret);
+	public static TaintedFloat getFloat$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedFloat ret) throws IllegalArgumentException, IllegalAccessException {
+		return getFloat$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedInt getInt$$INVIVO_PC(Field f, Object obj,ControlTaintTagStack ctrl, TaintedInt ret) throws IllegalArgumentException, IllegalAccessException {
-		return getInt$$INVIVO_PC(f, obj, ret);
+	public static TaintedInt getInt$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedInt ret) throws IllegalArgumentException, IllegalAccessException {
+		return getInt$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedLong getLong$$INVIVO_PC(Field f, Object obj,ControlTaintTagStack ctrl, TaintedLong ret) throws IllegalArgumentException, IllegalAccessException {
-		return getLong$$INVIVO_PC(f, obj, ret);
+	public static TaintedLong getLong$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedLong ret) throws IllegalArgumentException, IllegalAccessException {
+		return getLong$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedShort getShort$$INVIVO_PC(Field f, Object obj,ControlTaintTagStack ctrl, TaintedShort ret) throws IllegalArgumentException, IllegalAccessException {
-		return getShort$$INVIVO_PC(f, obj, ret);
+	public static TaintedShort getShort$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedShort ret) throws IllegalArgumentException, IllegalAccessException {
+		return getShort$$PHOSPHORTAGGED(f, obj, ret);
 	}
 	
-	public static TaintedBoolean getBoolean$$INVIVO_PC(Field f, Object obj,TaintedBoolean ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedBoolean getBoolean$$PHOSPHORTAGGED(Field f, Object obj,TaintedBoolean ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getBoolean(obj);
 		try {
@@ -142,7 +142,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedByte getByte$$INVIVO_PC(Field f, Object obj, TaintedByte ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedByte getByte$$PHOSPHORTAGGED(Field f, Object obj, TaintedByte ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getByte(obj);
 		try {
@@ -163,7 +163,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedChar getChar$$INVIVO_PC(Field f, Object obj, TaintedChar ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedChar getChar$$PHOSPHORTAGGED(Field f, Object obj, TaintedChar ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getChar(obj);
 		try {
@@ -184,7 +184,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedDouble getDouble$$INVIVO_PC(Field f, Object obj, TaintedDouble ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedDouble getDouble$$PHOSPHORTAGGED(Field f, Object obj, TaintedDouble ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getInt(obj);
 		try {
@@ -205,7 +205,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedFloat getFloat$$INVIVO_PC(Field f, Object obj, TaintedFloat ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedFloat getFloat$$PHOSPHORTAGGED(Field f, Object obj, TaintedFloat ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getFloat(obj);
 		try {
@@ -228,7 +228,7 @@ public class RuntimeReflectionPropogator {
 
 	static WeakHashMap<Field, Field> fieldToField = new WeakHashMap<Field, Field>();
 
-	public static TaintedInt getInt$$INVIVO_PC(Field f, Object obj, TaintedInt ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedInt getInt$$PHOSPHORTAGGED(Field f, Object obj, TaintedInt ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getInt(obj);
 		try {
@@ -251,7 +251,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedLong getLong$$INVIVO_PC(Field f, Object obj, TaintedLong ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedLong getLong$$PHOSPHORTAGGED(Field f, Object obj, TaintedLong ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getLong(obj);
 		try {
@@ -270,7 +270,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedShort getShort$$INVIVO_PC(Field f, Object obj, TaintedShort ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedShort getShort$$PHOSPHORTAGGED(Field f, Object obj, TaintedShort ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getShort(obj);
 		try {
@@ -291,7 +291,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static void setAccessible$$INVIVO_PC(Field f, int tag, boolean flag) {
+	public static void setAccessible$$PHOSPHORTAGGED(Field f, int tag, boolean flag) {
 		f.setAccessible(flag);
 		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
 			try {
@@ -302,7 +302,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 	
-	public static void setAccessible$$INVIVO_PC(Field f, int tag, boolean flag,ControlTaintTagStack ctrl) {
+	public static void setAccessible$$PHOSPHORTAGGED(Field f, int tag, boolean flag,ControlTaintTagStack ctrl) {
 		f.setAccessible(flag);
 		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
 			try {
@@ -313,47 +313,47 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setBoolean$$INVIVO_PC(Field f, Object obj, int tag, boolean val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setBoolean$$PHOSPHORTAGGED(Field f, Object obj, int tag, boolean val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setBoolean$$INVIVO_PC(f, obj, tag, val);
+		setBoolean$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setByte$$INVIVO_PC(Field f, Object obj, int tag, byte val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setByte$$PHOSPHORTAGGED(Field f, Object obj, int tag, byte val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setByte$$INVIVO_PC(f, obj, tag, val);
+		setByte$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 
-	public static void setChar$$INVIVO_PC(Field f, Object obj, int tag, char val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setChar$$PHOSPHORTAGGED(Field f, Object obj, int tag, char val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setChar$$INVIVO_PC(f, obj, tag, val);
+		setChar$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setDouble$$INVIVO_PC(Field f, Object obj, int tag, double val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setDouble$$PHOSPHORTAGGED(Field f, Object obj, int tag, double val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setDouble$$INVIVO_PC(f, obj, tag, val);
+		setDouble$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setFloat$$INVIVO_PC(Field f, Object obj, int tag, float val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setFloat$$PHOSPHORTAGGED(Field f, Object obj, int tag, float val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setFloat$$INVIVO_PC(f, obj, tag, val);
+		setFloat$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setInt$$INVIVO_PC(Field f, Object obj, int tag, int val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setInt$$PHOSPHORTAGGED(Field f, Object obj, int tag, int val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setInt$$INVIVO_PC(f, obj, tag, val);
+		setInt$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setLong$$INVIVO_PC(Field f, Object obj, int tag, long val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setLong$$PHOSPHORTAGGED(Field f, Object obj, int tag, long val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setLong$$INVIVO_PC(f, obj, tag, val);
+		setLong$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setShort$$INVIVO_PC(Field f, Object obj, int tag, short val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setShort$$PHOSPHORTAGGED(Field f, Object obj, int tag, short val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setShort$$INVIVO_PC(f, obj, tag, val);
+		setShort$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setBoolean$$INVIVO_PC(Field f, Object obj, int tag, boolean val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setBoolean$$PHOSPHORTAGGED(Field f, Object obj, int tag, boolean val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setBoolean(obj, val);
 		try {
@@ -367,7 +367,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setByte$$INVIVO_PC(Field f, Object obj, int tag, byte val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setByte$$PHOSPHORTAGGED(Field f, Object obj, int tag, byte val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setByte(obj, val);
 		try {
@@ -381,7 +381,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setChar$$INVIVO_PC(Field f, Object obj, int tag, char val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setChar$$PHOSPHORTAGGED(Field f, Object obj, int tag, char val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setChar(obj, val);
 		try {
@@ -395,7 +395,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setDouble$$INVIVO_PC(Field f, Object obj, int tag, double val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setDouble$$PHOSPHORTAGGED(Field f, Object obj, int tag, double val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setDouble(obj, val);
 		try {
@@ -409,7 +409,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setFloat$$INVIVO_PC(Field f, Object obj, int tag, float val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setFloat$$PHOSPHORTAGGED(Field f, Object obj, int tag, float val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setFloat(obj, val);
 		try {
@@ -423,7 +423,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setInt$$INVIVO_PC(Field f, Object obj, int tag, int val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setInt$$PHOSPHORTAGGED(Field f, Object obj, int tag, int val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setInt(obj, val);
 		try {
@@ -437,7 +437,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setLong$$INVIVO_PC(Field f, Object obj, int tag, long val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setLong$$PHOSPHORTAGGED(Field f, Object obj, int tag, long val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setLong(obj, val);
 		try {
@@ -451,7 +451,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setShort$$INVIVO_PC(Field f, Object obj, int tag, short val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setShort$$PHOSPHORTAGGED(Field f, Object obj, int tag, short val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setShort(obj, val);
 		try {
@@ -468,7 +468,7 @@ public class RuntimeReflectionPropogator {
 	private static int getTag(Object val) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
 		return val.getClass().getField("value" + TaintUtils.TAINT_FIELD).getInt(val);
 	}
-	public static void set$$INVIVO_PC(Field f, Object obj, Object val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void set$$PHOSPHORTAGGED(Field f, Object obj, Object val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		if (f.getType().isPrimitive()) {
 			if (val instanceof Integer && f.getType().equals(Integer.TYPE)) {
 				Integer i = (Integer) val;

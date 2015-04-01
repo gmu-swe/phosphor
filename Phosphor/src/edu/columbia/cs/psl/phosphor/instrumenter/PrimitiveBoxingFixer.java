@@ -45,7 +45,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 		//				|| owner.equals(Type.getInternalName(Byte.class))
 		//				|| owner.equals(Type.getInternalName(Character.class))
 		//				|| owner.equals(Type.getInternalName(Short.class)) ||  owner.equals(Type.getInternalName(Float.class)) 
-				|| owner.equals(Type.getInternalName(Long.class)) || owner.equals(Type.getInternalName(Double.class))) && name.equals("valueOf$$INVIVO_PC") && nArgs == 2 && !argIsStr) {
+				|| owner.equals(Type.getInternalName(Long.class)) || owner.equals(Type.getInternalName(Double.class))) && name.equals("valueOf$$PHOSPHORTAGGED") && nArgs == 2 && !argIsStr) {
 			Type argT = Type.getArgumentTypes(desc)[1];
 			int argSize = argT.getSize();
 			if (argSize == 1) {
@@ -116,7 +116,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 
 			}
 		} 
-//		else if (owner.equals(Type.getInternalName(Integer.class)) && name.equals("parseInt$$INVIVO_PC")) {
+//		else if (owner.equals(Type.getInternalName(Integer.class)) && name.equals("parseInt$$PHOSPHORTAGGED")) {
 //			if (nArgs == 2) {
 //				super.visitInsn(Opcodes.DUP);
 //				super.visitMethodInsn(opcode, owner, name, desc,itfc);
@@ -157,7 +157,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 		//				|| owner.equals(Type.getInternalName(Float.class))
 		////				|| owner.equals(Type.getInternalName(Double.class))
 		//				)//TODO support strings and long/double
-		//				&& name.equals("valueOf$$INVIVO_PC") && nArgs == 1 && !argIsStr)		{
+		//				&& name.equals("valueOf$$PHOSPHORTAGGED") && nArgs == 1 && !argIsStr)		{
 		//			super.visitInsn(Opcodes.DUP_X1); //O T O
 		//			super.visitInsn(Opcodes.SWAP);//T O O
 		////			if(owner.equals("java/lang/String"))

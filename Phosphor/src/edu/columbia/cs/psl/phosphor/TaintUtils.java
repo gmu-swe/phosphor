@@ -6,7 +6,6 @@ import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStore;
-import edu.columbia.cs.psl.phosphor.runtime.SimpleMultiTaintHandler;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -43,9 +42,7 @@ public class TaintUtils {
 	public static final boolean OPT_USE_STACK_ONLY = false; //avoid using LVs where possible if true
 	
 	public static boolean MULTI_TAINT = false; //default
-	public static final String MULTI_TAINT_HANDLER_CLASS = "edu/columbia/cs/psl/phosphor/runtime/SimpleMultiTaintHandler";
-	public static boolean IMPLICIT_TRACKING = false; //default 
-	public static boolean OPT_CONSTANT_ARITHMETIC = true && !IMPLICIT_TRACKING;
+	public static boolean OPT_CONSTANT_ARITHMETIC = true && !Configuration.IMPLICIT_TRACKING;
 	
 	public static final int RAW_INSN = 201;
 	public static final int NO_TAINT_STORE_INSN = 202;
@@ -65,11 +62,11 @@ public class TaintUtils {
 	public static final int BRANCH_START = 214;
 	public static final int BRANCH_END = 215;
 	
-	public static final String TAINT_FIELD = "INVIVO_PC_TAINT";
-	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
-	public static final String IS_TAINT_SEATCHING_FIELD = "INVIVO_IS_TAINT_SEARCHING";
+	public static final String TAINT_FIELD = "PHOSPHOR_TAG";
+//	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
+//	public static final String IS_TAINT_SEATCHING_FIELD = "INVIVO_IS_TAINT_SEARCHING";
 
-	public static final String METHOD_SUFFIX = "$$INVIVO_PC";
+	public static final String METHOD_SUFFIX = "$$PHOSPHORTAGGED";
 	public static final boolean DEBUG_ALL = false;
 	public static final boolean DEBUG_DUPSWAP = false || DEBUG_ALL;
 	public static final boolean DEBUG_FRAMES = false || DEBUG_ALL;
@@ -83,7 +80,7 @@ public class TaintUtils {
 	public static final boolean ADD_HEAVYWEIGHT_ARRAY_TAINTS = ADD_BASIC_ARRAY_CONSTRAINTS || true;
 
 	public static int nextTaint = 0;
-	public static int nextTaintINVIVO_PC_TAINT = 0;
+	public static int nextTaintPHOSPHOR_TAG = 0;
 
 	public static int nextMethodId = 0;
 
@@ -152,7 +149,7 @@ public class TaintUtils {
 
 	public static int getTaint(Object obj) {
 		if (obj instanceof Tainted) {
-			return ((Tainted) obj).getINVIVO_PC_TAINT();
+			return ((Tainted) obj).getPHOSPHOR_TAG();
 		}
 		if(BoxedPrimitiveStore.tags.containsKey(obj))
 			return BoxedPrimitiveStore.tags.get(obj);
@@ -199,7 +196,7 @@ public class TaintUtils {
 
 
 	public static boolean OKtoDebug = false;
-	public static int OKtoDebugINVIVO_PC_TAINT;
+	public static int OKtoDebugPHOSPHOR_TAG;
 
 	public static void arraycopy(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		if(!src.getClass().isArray())
@@ -233,14 +230,14 @@ public class TaintUtils {
 
 	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (VM.isBooted$$INVIVO_PC(new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
+		if (VM.isBooted$$PHOSPHORTAGGED(new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
 			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
 		}
 	}
 	public static void arraycopyControlTrack(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (VM.isBooted$$INVIVO_PC(new ControlTaintTagStack(), new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
+		if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
 			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
 		}
@@ -248,7 +245,7 @@ public class TaintUtils {
 	public static void arraycopyVM(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		VMSystem.arraycopy0(src, srcPos, dest, destPos, length);
 		
-//		if (VM.isBooted$$INVIVO_PC(new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
+//		if (VM.isBooted$$PHOSPHORTAGGED(new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
 //			if(srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 //		System.out.println(src);
 //		System.out.println(srcTaint);
@@ -283,7 +280,7 @@ public class TaintUtils {
 //		VMMemoryManager.arrayCopy(src, srcPos, dest, destPos, length);
 ////		System.arraycopy(src, srcPos, dest, destPos, length);
 ////		dest = src;
-////		if (VM.isBooted$$INVIVO_PC(new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
+////		if (VM.isBooted$$PHOSPHORTAGGED(new TaintedBoolean()).val && srcTaint != null && destTaint != null) {
 ////			if(srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 ////		System.out.println(src);
 ////		System.out.println(srcTaint);
@@ -400,7 +397,7 @@ public class TaintUtils {
 			else
 				r += t;
 		}
-		if(TaintUtils.IMPLICIT_TRACKING)
+		if(Configuration.IMPLICIT_TRACKING)
 			r += Type.getDescriptor(ControlTaintTagStack.class);
 		r += ")" + getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
 		return r;

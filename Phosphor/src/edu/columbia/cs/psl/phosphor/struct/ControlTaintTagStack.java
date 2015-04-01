@@ -54,7 +54,7 @@ public class ControlTaintTagStack {
 	public void appendTag(Object ob) {
 		if(ob instanceof Tainted)
 		{
-			appendTag(((Tainted) ob).getINVIVO_PC_TAINT());
+			appendTag(((Tainted) ob).getPHOSPHOR_TAG());
 		}
 	}
 

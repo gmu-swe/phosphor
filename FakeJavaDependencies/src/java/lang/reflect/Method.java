@@ -83,7 +83,7 @@ public final
     // currently only two levels deep (i.e., one root Method and
     // potentially many Method objects pointing to it.)
     private Method              root;
-    public  boolean INVIVO_PC_TAINTmarked;
+    public  boolean PHOSPHOR_TAGmarked;
 
    // Generics infrastructure
 

@@ -7,8 +7,8 @@ public abstract class TaintedPrimitive {
 	{
 		Object ret = getValue();
 		try{
-			ret.getClass().getDeclaredField("valueINVIVO_PC_TAINT").setAccessible(true);
-			ret.getClass().getDeclaredField("valueINVIVO_PC_TAINT").setInt(ret, taint);
+			ret.getClass().getDeclaredField("valuePHOSPHOR_TAG").setAccessible(true);
+			ret.getClass().getDeclaredField("valuePHOSPHOR_TAG").setInt(ret, taint);
 		}catch(Exception ex)
 		{
 			

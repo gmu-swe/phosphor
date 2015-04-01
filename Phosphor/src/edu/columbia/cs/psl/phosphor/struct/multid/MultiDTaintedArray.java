@@ -51,7 +51,7 @@ public abstract class MultiDTaintedArray {
 		return getVal().hashCode();
 	}
 
-	public final TaintedInt hashCode$$INVIVO_PC(TaintedInt ret) {
+	public final TaintedInt hashCode$$PHOSPHORTAGGED(TaintedInt ret) {
 		ret.taint = 0;
 		ret.val = hashCode();
 		return ret;

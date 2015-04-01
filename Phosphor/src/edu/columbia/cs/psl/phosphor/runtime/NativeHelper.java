@@ -9,12 +9,12 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 public final class NativeHelper {
 	public static final void nativeInvoked(String desc)
 	{
-//		if(VM.isBooted$$INVIVO_PC(new TaintedBoolean()).val)
+//		if(VM.isBooted$$PHOSPHORTAGGED(new TaintedBoolean()).val)
 //			System.out.println("Invoke native: " + desc);
 	}
 	public static final void wrapperInvoked(String desc)
 	{
-//		if(VM.isBooted$$INVIVO_PC(new TaintedBoolean()).val)
+//		if(VM.isBooted$$PHOSPHORTAGGED(new TaintedBoolean()).val)
 //			System.out.println("Invoke wrapper: " + desc);
 	}
 	@SuppressWarnings("rawtypes")
@@ -44,7 +44,7 @@ public final class NativeHelper {
 							ex.printStackTrace();
 						}
 					}
-					tmp.add$$INVIVO_PC(MultiDTaintedArray.boxIfNecessary(o), new TaintedBoolean());
+					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.boxIfNecessary(o), new TaintedBoolean());
 				}
 				else
 					break;
@@ -52,7 +52,7 @@ public final class NativeHelper {
 			if(tmp != null)
 			{
 				in.clear();
-				in.addAll$$INVIVO_PC(tmp, new TaintedBoolean());
+				in.addAll$$PHOSPHORTAGGED(tmp, new TaintedBoolean());
 			}
 		}
 //		if(VM.isBooted())
@@ -84,7 +84,7 @@ public final class NativeHelper {
 							ex.printStackTrace();
 						}
 					}
-					tmp.add$$INVIVO_PC(MultiDTaintedArray.unboxRaw(o), new TaintedBoolean());
+					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.unboxRaw(o), new TaintedBoolean());
 				}
 				else
 					break;
@@ -92,7 +92,7 @@ public final class NativeHelper {
 			if(tmp != null)
 			{
 				in.clear();
-				in.addAll$$INVIVO_PC(tmp, new TaintedBoolean());
+				in.addAll$$PHOSPHORTAGGED(tmp, new TaintedBoolean());
 			}
 		}
 //		if(VM.isBooted())

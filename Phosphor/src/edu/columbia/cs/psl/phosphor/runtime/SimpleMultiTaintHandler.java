@@ -14,7 +14,7 @@ public class SimpleMultiTaintHandler {
 	{
 		if(o instanceof Tainted)
 		{
-			((Tainted) o).setINVIVO_PC_TAINT(combineTags(((Tainted)o).getINVIVO_PC_TAINT(), tags));
+			((Tainted) o).setPHOSPHOR_TAG(combineTags(((Tainted)o).getPHOSPHOR_TAG(), tags));
 		}
 	}
 	public static int combineTags(int t1, int t2){

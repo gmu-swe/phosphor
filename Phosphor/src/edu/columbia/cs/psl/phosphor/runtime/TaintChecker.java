@@ -18,7 +18,7 @@ public class TaintChecker {
 		if(obj == null)
 			return;
 		if (obj instanceof Tainted) {
-			if (((Tainted) obj).getINVIVO_PC_TAINT() != 0)
+			if (((Tainted) obj).getPHOSPHOR_TAG() != 0)
 				throw new IllegalAccessError("Argument carries taint");
 		}
 		else if(obj instanceof int[])
@@ -58,7 +58,7 @@ public class TaintChecker {
 		if(obj == null)
 			return;
 		if (obj instanceof Tainted) {
-			((Tainted) obj).setINVIVO_PC_TAINT(tag);
+			((Tainted) obj).setPHOSPHOR_TAG(tag);
 		} else if (obj instanceof TaintedPrimitiveArray){
 			((TaintedPrimitiveArray)obj).setTaints(tag);
 		}else if (obj instanceof MultiDTaintedArray) {

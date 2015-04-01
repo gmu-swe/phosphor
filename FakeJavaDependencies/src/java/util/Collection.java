@@ -271,8 +271,8 @@ public interface Collection<E> extends Iterable<E> {
      *         time due to insertion restrictions
      */
     boolean add(E e);
-    TaintedBoolean add$$INVIVO_PC(E e, TaintedBoolean ret);
-    TaintedBoolean add$$INVIVO_PC(E e);
+    TaintedBoolean add$$PHOSPHORTAGGED(E e, TaintedBoolean ret);
+    TaintedBoolean add$$PHOSPHORTAGGED(E e);
 
     /**
      * Removes a single instance of the specified element from this
@@ -344,8 +344,8 @@ public interface Collection<E> extends Iterable<E> {
      * @see #add(Object)
      */
     boolean addAll(Collection<? extends E> c);
-    TaintedBoolean addAll$$INVIVO_PC(Collection<? extends E> c, TaintedBoolean ret);
-    TaintedBoolean addAll$$INVIVO_PC(Collection<? extends E> c);
+    TaintedBoolean addAll$$PHOSPHORTAGGED(Collection<? extends E> c, TaintedBoolean ret);
+    TaintedBoolean addAll$$PHOSPHORTAGGED(Collection<? extends E> c);
 
     /**
      * Removes all of this collection's elements that are also contained in the

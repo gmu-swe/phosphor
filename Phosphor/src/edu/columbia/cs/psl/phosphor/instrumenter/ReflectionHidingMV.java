@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
@@ -87,7 +88,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				}
 				else{
 				//orig version
-					if (TaintUtils.IMPLICIT_TRACKING)
+					if (Configuration.IMPLICIT_TRACKING)
 					{
 						super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;"+Type.getDescriptor(ControlTaintTagStack.class)+")"
 								+ Type.getDescriptor(MethodInvoke.class), false);
@@ -106,12 +107,12 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "o", "Ljava/lang/Object;");
 					super.visitInsn(Opcodes.SWAP);
 					super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "a", "[Ljava/lang/Object;");
-					if(TaintUtils.IMPLICIT_TRACKING)
+					if(Configuration.IMPLICIT_TRACKING)
 						super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 
 				}
 			} else {
-				if (TaintUtils.IMPLICIT_TRACKING) {
+				if (Configuration.IMPLICIT_TRACKING) {
 					super.visitInsn(POP);
 					super.visitInsn(Opcodes.SWAP);
 					//[A C
@@ -171,11 +172,11 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			owner = Type.getInternalName(ArrayReflectionMasker.class);
 		if (owner.equals("java/lang/reflect/Field")
 				&& opcode == Opcodes.INVOKEVIRTUAL
-				&& (name.equals("get") || name.equals("getInt$$INVIVO_PC") || name.equals("getBoolean$$INVIVO_PC") || name.equals("getChar$$INVIVO_PC") || name.equals("getDouble$$INVIVO_PC")
-						|| name.equals("getByte$$INVIVO_PC") || name.equals("getFloat$$INVIVO_PC") || name.equals("getLong$$INVIVO_PC") || name.equals("getShort$$INVIVO_PC")
-						|| name.equals("setAccessible$$INVIVO_PC") || name.equals("set") || name.equals("setInt$$INVIVO_PC") || name.equals("setBoolean$$INVIVO_PC")
-						|| name.equals("setChar$$INVIVO_PC") || name.equals("setDouble$$INVIVO_PC") || name.equals("setByte$$INVIVO_PC") || name.equals("setFloa$$INVIVO_PCt")
-						|| name.equals("setLong$$INVIVO_PC") || name.equals("setShort$$INVIVO_PC")
+				&& (name.equals("get") || name.equals("getInt$$PHOSPHORTAGGED") || name.equals("getBoolean$$PHOSPHORTAGGED") || name.equals("getChar$$PHOSPHORTAGGED") || name.equals("getDouble$$PHOSPHORTAGGED")
+						|| name.equals("getByte$$PHOSPHORTAGGED") || name.equals("getFloat$$PHOSPHORTAGGED") || name.equals("getLong$$PHOSPHORTAGGED") || name.equals("getShort$$PHOSPHORTAGGED")
+						|| name.equals("setAccessible$$PHOSPHORTAGGED") || name.equals("set") || name.equals("setInt$$PHOSPHORTAGGED") || name.equals("setBoolean$$PHOSPHORTAGGED")
+						|| name.equals("setChar$$PHOSPHORTAGGED") || name.equals("setDouble$$PHOSPHORTAGGED") || name.equals("setByte$$PHOSPHORTAGGED") || name.equals("setFloa$$PHOSPHORTAGGEDt")
+						|| name.equals("setLong$$PHOSPHORTAGGED") || name.equals("setShort$$PHOSPHORTAGGED")
 						|| name.equals("getType"))) {
 			owner = Type.getInternalName(RuntimeReflectionPropogator.class);
 			opcode = Opcodes.INVOKESTATIC;

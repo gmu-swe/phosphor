@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
@@ -41,7 +42,7 @@ public class ImplicitTaintRemoverMV extends TaintAdapter implements Opcodes {
 	}
 	@Override
 	public void visitJumpInsn(int opcode, Label label) {
-		if(this.isIgnoreEverything || TaintUtils.IMPLICIT_TRACKING)
+		if(this.isIgnoreEverything || Configuration.IMPLICIT_TRACKING)
 		{
 			super.visitJumpInsn(opcode, label);
 			return;

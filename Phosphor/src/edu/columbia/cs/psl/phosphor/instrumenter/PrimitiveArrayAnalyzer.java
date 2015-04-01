@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
@@ -557,7 +558,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				e.printStackTrace();
 			}
 
-			if (TaintUtils.IMPLICIT_TRACKING) {
+			if (Configuration.IMPLICIT_TRACKING) {
 				if (implicitAnalysisblocks.size() > 1) {
 					Stack<BasicBlock> stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
 					stack.add(implicitAnalysisblocks.get(0));

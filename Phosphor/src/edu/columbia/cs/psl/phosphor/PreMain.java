@@ -92,7 +92,7 @@ public class PreMain {
 
 		static boolean innerException = false;
 		
-		public TaintedByteArray transform$$INVIVO_PC(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint, byte[] classfileBuffer, TaintedByteArray ret) throws IllegalClassFormatException
+		public TaintedByteArray transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint, byte[] classfileBuffer, TaintedByteArray ret) throws IllegalClassFormatException
 		{
 	        bigLoader = loader;
 	        Instrumenter.loader = bigLoader;
@@ -133,7 +133,7 @@ public class PreMain {
 						return classfileBuffer;
 				}
 			for(MethodNode mn : cn.methods)
-				if(mn.name.equals("getINVIVO_PC_TAINT"))
+				if(mn.name.equals("getPHOSPHOR_TAG"))
 					return classfileBuffer;
 			if (skipFrames)
 			{

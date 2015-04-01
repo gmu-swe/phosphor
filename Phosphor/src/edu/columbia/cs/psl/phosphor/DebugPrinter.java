@@ -59,7 +59,7 @@ public class DebugPrinter {
 				mv = new PrimitiveArrayAnalyzer(cr.getClassName(), access, name, desc, signature, exceptions, mv);
 				NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(cr.getClassName(), access, name, desc, mv);
 				((PrimitiveArrayAnalyzer)mv).setAnalyzer(an);
-				if(!TaintUtils.IMPLICIT_TRACKING)
+				if(!Configuration.IMPLICIT_TRACKING)
 				mv = new UnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, an);
 				return mv;
 			}

@@ -56,7 +56,7 @@ public class ReflectionMasker {
 			}
 			if (isEq) {
 				if (!IS_KAFFE)
-					m.INVIVO_PC_TAINTmarked = true;
+					m.PHOSPHOR_TAGmarked = true;
 				return m;
 			}
 		}
@@ -151,7 +151,7 @@ public class ReflectionMasker {
 			newArgs.toArray(args);
 			Method ret = null;
 			try {
-				ret = m.getDeclaringClass().getDeclaredMethod(m.getName() + "$$INVIVO_PC", args);
+				ret = m.getDeclaringClass().getDeclaredMethod(m.getName() + "$$PHOSPHORTAGGED", args);
 			} catch (NoSuchMethodException e) {
 				e.printStackTrace();
 			} catch (SecurityException e) {
@@ -189,7 +189,7 @@ public class ReflectionMasker {
 			}
 			if (isEq) {
 				if (!IS_KAFFE)
-					m.INVIVO_PC_TAINTmarked = true;
+					m.PHOSPHOR_TAGmarked = true;
 				return m;
 			}
 		}
@@ -282,7 +282,7 @@ public class ReflectionMasker {
 			newArgs.toArray(args);
 			Method ret = null;
 			try {
-				ret = m.getDeclaringClass().getDeclaredMethod(m.getName() + "$$INVIVO_PC", args);
+				ret = m.getDeclaringClass().getDeclaredMethod(m.getName() + "$$PHOSPHORTAGGED", args);
 			} catch (NoSuchMethodException e) {
 				e.printStackTrace();
 			} catch (SecurityException e) {
@@ -314,8 +314,8 @@ public class ReflectionMasker {
 		//			System.out.println("Returning " + lastMethod);
 		//			return lastMethod;
 		//		}
-		if (m.getName().endsWith("$$INVIVO_PC")) {
-			String origName = m.getName().replace("$$INVIVO_PC", "");
+		if (m.getName().endsWith("$$PHOSPHORTAGGED")) {
+			String origName = m.getName().replace("$$PHOSPHORTAGGED", "");
 			ArrayList<Class> origArgs = new ArrayList<Class>();
 			boolean dontIgnorePrimitive = false;
 			for (Class c : m.getParameterTypes()) {
@@ -575,7 +575,7 @@ public class ReflectionMasker {
 			for (int i = 0; i < in.length; i++) {
 				if (c.getParameterTypes()[j].isPrimitive()) {
 					if (in[i] instanceof Tainted)
-						ret[j] = ((Tainted) in[i]).getINVIVO_PC_TAINT();
+						ret[j] = ((Tainted) in[i]).getPHOSPHOR_TAG();
 					else
 						ret[j] = 0;
 					j++;
@@ -614,7 +614,7 @@ public class ReflectionMasker {
 			for (int i = 0; i < in.length; i++) {
 				if (c.getParameterTypes()[j].isPrimitive()) {
 					if (in[i] instanceof Tainted)
-						ret[j] = ((Tainted) in[i]).getINVIVO_PC_TAINT();
+						ret[j] = ((Tainted) in[i]).getPHOSPHOR_TAG();
 					else
 						ret[j] = 0;
 					j++;
@@ -656,7 +656,7 @@ public class ReflectionMasker {
 			for (int i = 0; i < in.length; i++) {
 				if (m.getParameterTypes()[j].isPrimitive()) {
 					if (in[i] instanceof Tainted)
-						ret[j] = ((Tainted) in[i]).getINVIVO_PC_TAINT();
+						ret[j] = ((Tainted) in[i]).getPHOSPHOR_TAG();
 					else
 						ret[j] = 0;
 					j++;
@@ -721,7 +721,7 @@ public class ReflectionMasker {
 		//		System.out.println("Making slow call to  " + m);
 		MethodInvoke ret = new MethodInvoke();
 		m.setAccessible(true);
-		if ((IS_KAFFE) || !m.INVIVO_PC_TAINTmarked) {
+		if ((IS_KAFFE) || !m.PHOSPHOR_TAGmarked) {
 			if (IS_KAFFE) {
 				if (in.length > 0)
 					m = getTaintMethod(m);
@@ -739,7 +739,7 @@ public class ReflectionMasker {
 			for (int i = 0; i < in.length; i++) {
 				if (m.getParameterTypes()[j].isPrimitive()) {
 					if (in[i] instanceof Tainted)
-						ret.a[j] = ((Tainted) in[i]).getINVIVO_PC_TAINT();
+						ret.a[j] = ((Tainted) in[i]).getPHOSPHOR_TAG();
 					else
 						ret.a[j] = 0;
 					j++;
@@ -805,7 +805,7 @@ public class ReflectionMasker {
 		//		System.out.println("Making slow call to  " + m);
 		MethodInvoke ret = new MethodInvoke();
 		m.setAccessible(true);
-		if ((IS_KAFFE) || !m.INVIVO_PC_TAINTmarked) {
+		if ((IS_KAFFE) || !m.PHOSPHOR_TAGmarked) {
 			if (IS_KAFFE) {
 				if (in.length > 0)
 					m = getTaintMethodControlTrack(m);
@@ -826,7 +826,7 @@ public class ReflectionMasker {
 			for (int i = 0; i < in.length; i++) {
 				if (m.getParameterTypes()[j].isPrimitive()) {
 					if (in[i] instanceof Tainted)
-						ret.a[j] = ((Tainted) in[i]).getINVIVO_PC_TAINT();
+						ret.a[j] = ((Tainted) in[i]).getPHOSPHOR_TAG();
 					else
 						ret.a[j] = 0;
 					j++;
@@ -948,8 +948,10 @@ public class ReflectionMasker {
 
 		ArrayList<Field> ret = new ArrayList<Field>();
 		for (Field f : in) {
-			if (f.getName().equals("taint") || f.getName().endsWith(TaintUtils.TAINT_FIELD) || f.getName().equals(TaintUtils.IS_TAINT_SEATCHING_FIELD)
-					|| f.getName().equals(TaintUtils.HAS_TAINT_FIELD)) {
+			if (f.getName().equals("taint") || f.getName().endsWith(TaintUtils.TAINT_FIELD) 
+					//|| f.getName().equals(TaintUtils.IS_TAINT_SEATCHING_FIELD)
+					//|| f.getName().equals(TaintUtils.HAS_TAINT_FIELD)
+					) {
 
 			} else
 				ret.add(f);
@@ -1051,10 +1053,10 @@ public class ReflectionMasker {
 		return arg;
 	}
 
-	static final int SUFFIX_LEN = "$$INVIVO_PC".length();
-	static final int GETSETLEN = "setINVIVO_PC_TAINT".length();
-	static final char[] GETSETCHARS = "setINVIVO_PC_TAINT".toCharArray();
-	static final char[] SUFFIXCHARS = "$$INVIVO_PC".toCharArray();
+	static final int SUFFIX_LEN = "$$PHOSPHORTAGGED".length();
+	static final int GETSETLEN = "setPHOSPHOR_TAG".length();
+	static final char[] GETSETCHARS = "setPHOSPHOR_TAG".toCharArray();
+	static final char[] SUFFIXCHARS = "$$PHOSPHORTAGGED".toCharArray();
 
 	static final char[] FIELDSUFFIXCHARS = TaintUtils.TAINT_FIELD.toCharArray();
 	static final int FIELDSUFFIXLEN = FIELDSUFFIXCHARS.length;

@@ -106,15 +106,15 @@ public abstract class SourceSinkManager {
 	}
 
 	public boolean isSink(String owner, String name, String taintedDesc) {
-		if (name.endsWith("$$INVIVO_PC"))
-			return isSink(owner + "." + name.replace("$$INVIVO_PC", "") + remapMethodDescToRemoveTaints(taintedDesc));
+		if (name.endsWith("$$PHOSPHORTAGGED"))
+			return isSink(owner + "." + name.replace("$$PHOSPHORTAGGED", "") + remapMethodDescToRemoveTaints(taintedDesc));
 		else
 			return isSink(owner + "." + name + taintedDesc);
 	}
 
 	public boolean isSource(String owner, String name, String taintedDesc) {
-		if (name.endsWith("$$INVIVO_PC"))
-			return isSource(owner + "." + name.replace("$$INVIVO_PC", "") + remapMethodDescToRemoveTaints(taintedDesc));
+		if (name.endsWith("$$PHOSPHORTAGGED"))
+			return isSource(owner + "." + name.replace("$$PHOSPHORTAGGED", "") + remapMethodDescToRemoveTaints(taintedDesc));
 		else
 			return isSource(owner + "." + name + taintedDesc);
 	}

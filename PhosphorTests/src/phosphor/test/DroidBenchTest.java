@@ -364,7 +364,7 @@ public class DroidBenchTest {
 	}
 
 	static void testHashMapAccess1() {
-		Map<String, String> map = new HashMap<>();
+		Map<String, String> map = new HashMap<String, String>();
 		map.put("tainted", taintedString());
 		map.put("untainted", "abcd");
 		assert (getTaint(map.get("untainted")) == 0);
@@ -372,7 +372,7 @@ public class DroidBenchTest {
 	}
 
 	static void testListAccess1() {
-		LinkedList<String> list = new LinkedList<>();
+		LinkedList<String> list = new LinkedList<String>();
 		list.add("b");
 		list.add(taintedString());
 		list.add("c");

@@ -449,8 +449,8 @@ public class Instrumenter {
 			 return;
 		}
 		TaintUtils.MULTI_TAINT = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false")) || Boolean.valueOf(System.getProperty("MULTI_TAINT","false"));;
-		TaintUtils.IMPLICIT_TRACKING = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false"));
-		if(TaintUtils.IMPLICIT_TRACKING)
+		Configuration.IMPLICIT_TRACKING = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false"));
+		if(Configuration.IMPLICIT_TRACKING)
 		{
 			TaintUtils.OPT_CONSTANT_ARITHMETIC = false;
 			System.out.println("Implicit flow tracking: enabled");
