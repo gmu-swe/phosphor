@@ -2,23 +2,23 @@ package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodInsnNode;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByte;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedChar;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDouble;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloat;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLong;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShort;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 
 public abstract class SourceSinkManager {
 	public abstract boolean isSource(String str);
@@ -52,7 +52,7 @@ public abstract class SourceSinkManager {
 					isSkipping = !isSkipping;
 				}
 			} else if (t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
-				r += MultiDTaintedArray.getPrimitiveTypeForWrapper(t.getDescriptor()).getDescriptor();
+				r += MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(t.getDescriptor()).getDescriptor();
 			} else if (t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct")) {
 				//ignore
 			} else
@@ -67,39 +67,39 @@ public abstract class SourceSinkManager {
 	private static String remapReturnType(Type returnType) {
 		if (returnType.getSort() == Type.OBJECT) {
 			if (returnType.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
-				return MultiDTaintedArray.getPrimitiveTypeForWrapper(returnType.getInternalName()).getDescriptor();
+				return MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(returnType.getInternalName()).getDescriptor();
 			}
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedByte.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteWithIntTag.class)))
 				return "B";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteArray.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteArrayWithIntTag.class)))
 				return "B";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedBoolean.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanWithIntTag.class)))
 				return "Z";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanArray.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanArrayWithIntTag.class)))
 				return "[Z";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedChar.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharWithIntTag.class)))
 				return "C";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharArray.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharArrayWithIntTag.class)))
 				return "[C";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedDouble.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleWithIntTag.class)))
 				return "D";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleArray.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleArrayWithIntTag.class)))
 				return "[D";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedInt.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntWithIntTag.class)))
 				return "I";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntArray.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntArrayWithIntTag.class)))
 				return "[I";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloat.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatWithIntTag.class)))
 				return "F";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatArray.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatArrayWithIntTag.class)))
 				return "[F";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedLong.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongWithIntTag.class)))
 				return "J";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongArray.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongArrayWithIntTag.class)))
 				return "[J";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedShort.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortWithIntTag.class)))
 				return "S";
-			if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortArray.class)))
+			if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortArrayWithIntTag.class)))
 				return "[S";
 		}
 		return returnType.getDescriptor();

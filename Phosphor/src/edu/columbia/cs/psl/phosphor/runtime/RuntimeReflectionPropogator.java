@@ -3,27 +3,45 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import java.lang.reflect.Field;
 import java.util.WeakHashMap;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByte;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedChar;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDouble;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloat;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLong;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitive;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShort;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 
 public class RuntimeReflectionPropogator {
 
@@ -37,13 +55,13 @@ public class RuntimeReflectionPropogator {
 		Class<?> component = ret;
 		while(component.isArray())
 			component = component.getComponentType();
-		if(MultiDTaintedArray.class.isAssignableFrom(component))
+		if(MultiDTaintedArrayWithIntTag.class.isAssignableFrom(component))
 		{
 			Type t = Type.getType(ret);
 			String newType = "[";
 			for(int i = 0; i < t.getDimensions(); i++)
 				newType += "[";
-			newType += MultiDTaintedArray.getPrimitiveTypeForWrapper(component);
+			newType += MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(component);
 			try {
 				ret = Class.forName(newType);
 			} catch (ClassNotFoundException e) {
@@ -70,58 +88,109 @@ public class RuntimeReflectionPropogator {
 					fieldToField.put(f, taintField);
 				}
 				Object taint = taintField.get(obj);
-				if (f.getType().getComponentType() == Boolean.TYPE) {
-					return new TaintedBooleanArray((int[]) taint, (boolean[]) ret);
-				} else if (f.getType().getComponentType() == Byte.TYPE) {
-					return new TaintedByteArray((int[]) taint, (byte[]) ret);
-				} else if (f.getType().getComponentType() == Character.TYPE) {
-					return new TaintedCharArray((int[]) taint, (char[]) ret);
-				} else if (f.getType().getComponentType() == Double.TYPE) {
-					return new TaintedDoubleArray((int[]) taint, (double[]) ret);
-				} else if (f.getType().getComponentType() == Float.TYPE) {
-					return new TaintedFloatArray((int[]) taint, (float[]) ret);
-				} else if (f.getType().getComponentType() == Integer.TYPE) {
-					return new TaintedIntArray((int[]) taint, (int[]) ret);
-				} else if (f.getType().getComponentType() == Long.TYPE) {
-					return new TaintedLongArray((int[]) taint, (long[]) ret);
-				} else if (f.getType().getComponentType() == Short.TYPE) {
-					return new TaintedShortArray((int[]) taint, (short[]) ret);
+				if(Configuration.TAINT_TAG_TYPE == Type.INT)
+				{
+					if (f.getType().getComponentType() == Boolean.TYPE) {
+						return new TaintedBooleanArrayWithIntTag((int[]) taint, (boolean[]) ret);
+					} else if (f.getType().getComponentType() == Byte.TYPE) {
+						return new TaintedByteArrayWithIntTag((int[]) taint, (byte[]) ret);
+					} else if (f.getType().getComponentType() == Character.TYPE) {
+						return new TaintedCharArrayWithIntTag((int[]) taint, (char[]) ret);
+					} else if (f.getType().getComponentType() == Double.TYPE) {
+						return new TaintedDoubleArrayWithIntTag((int[]) taint, (double[]) ret);
+					} else if (f.getType().getComponentType() == Float.TYPE) {
+						return new TaintedFloatArrayWithIntTag((int[]) taint, (float[]) ret);
+					} else if (f.getType().getComponentType() == Integer.TYPE) {
+						return new TaintedIntArrayWithIntTag((int[]) taint, (int[]) ret);
+					} else if (f.getType().getComponentType() == Long.TYPE) {
+						return new TaintedLongArrayWithIntTag((int[]) taint, (long[]) ret);
+					} else if (f.getType().getComponentType() == Short.TYPE) {
+						return new TaintedShortArrayWithIntTag((int[]) taint, (short[]) ret);
+					}
+				}
+				else
+				{
+					if (f.getType().getComponentType() == Boolean.TYPE) {
+						return new TaintedBooleanArrayWithObjTag((Object[]) taint, (boolean[]) ret);
+					} else if (f.getType().getComponentType() == Byte.TYPE) {
+						return new TaintedByteArrayWithObjTag((Object[]) taint, (byte[]) ret);
+					} else if (f.getType().getComponentType() == Character.TYPE) {
+						return new TaintedCharArrayWithObjTag((Object[]) taint, (char[]) ret);
+					} else if (f.getType().getComponentType() == Double.TYPE) {
+						return new TaintedDoubleArrayWithObjTag((Object[]) taint, (double[]) ret);
+					} else if (f.getType().getComponentType() == Float.TYPE) {
+						return new TaintedFloatArrayWithObjTag((Object[]) taint, (float[]) ret);
+					} else if (f.getType().getComponentType() == Integer.TYPE) {
+						return new TaintedIntArrayWithObjTag((Object[]) taint, (int[]) ret);
+					} else if (f.getType().getComponentType() == Long.TYPE) {
+						return new TaintedLongArrayWithObjTag((Object[]) taint, (long[]) ret);
+					} else if (f.getType().getComponentType() == Short.TYPE) {
+						return new TaintedShortArrayWithObjTag((Object[]) taint, (short[]) ret);
+					}
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
-		if (ret instanceof TaintedPrimitive) {
-			return ((TaintedPrimitive) ret).toPrimitiveType();
+		if (ret instanceof TaintedPrimitiveWithIntTag) {
+			return ((TaintedPrimitiveWithIntTag) ret).toPrimitiveType();
+		}
+		if (ret instanceof TaintedPrimitiveWithObjTag) {
+			return ((TaintedPrimitiveWithObjTag) ret).toPrimitiveType();
 		}
 		return ret;
 	}
-	public static TaintedBoolean getBoolean$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedBoolean ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedBooleanWithIntTag getBoolean$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedBooleanWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		return getBoolean$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedByte getByte$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedByte ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedByteWithIntTag getByte$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedByteWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		return getByte$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedChar getChar$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedChar ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedCharWithIntTag getChar$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedCharWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		return getChar$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedDouble getDouble$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedDouble ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedDoubleWithIntTag getDouble$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedDoubleWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		return getDouble$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedFloat getFloat$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedFloat ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedFloatWithIntTag getFloat$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedFloatWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		return getFloat$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedInt getInt$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedInt ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedIntWithIntTag getInt$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedIntWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		return getInt$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedLong getLong$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedLong ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedLongWithIntTag getLong$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedLongWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		return getLong$$PHOSPHORTAGGED(f, obj, ret);
 	}
-	public static TaintedShort getShort$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedShort ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedShortWithIntTag getShort$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedShortWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		return getShort$$PHOSPHORTAGGED(f, obj, ret);
 	}
 	
-	public static TaintedBoolean getBoolean$$PHOSPHORTAGGED(Field f, Object obj,TaintedBoolean ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedBooleanWithObjTag getBoolean$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		return getBoolean$$PHOSPHORTAGGED(f, obj, ret);
+	}
+	public static TaintedByteWithObjTag getByte$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedByteWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		return getByte$$PHOSPHORTAGGED(f, obj, ret);
+	}
+	public static TaintedCharWithObjTag getChar$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedCharWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		return getChar$$PHOSPHORTAGGED(f, obj, ret);
+	}
+	public static TaintedDoubleWithObjTag getDouble$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedDoubleWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		return getDouble$$PHOSPHORTAGGED(f, obj, ret);
+	}
+	public static TaintedFloatWithObjTag getFloat$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedFloatWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		return getFloat$$PHOSPHORTAGGED(f, obj, ret);
+	}
+	public static TaintedIntWithObjTag getInt$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		return getInt$$PHOSPHORTAGGED(f, obj, ret);
+	}
+	public static TaintedLongWithObjTag getLong$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		return getLong$$PHOSPHORTAGGED(f, obj, ret);
+	}
+	public static TaintedShortWithObjTag getShort$$PHOSPHORTAGGED(Field f, Object obj,ControlTaintTagStack ctrl, TaintedShortWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		return getShort$$PHOSPHORTAGGED(f, obj, ret);
+	}
+	
+	public static TaintedBooleanWithIntTag getBoolean$$PHOSPHORTAGGED(Field f, Object obj,TaintedBooleanWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getBoolean(obj);
 		try {
@@ -142,7 +211,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedByte getByte$$PHOSPHORTAGGED(Field f, Object obj, TaintedByte ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedByteWithIntTag getByte$$PHOSPHORTAGGED(Field f, Object obj, TaintedByteWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getByte(obj);
 		try {
@@ -163,7 +232,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedChar getChar$$PHOSPHORTAGGED(Field f, Object obj, TaintedChar ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedCharWithIntTag getChar$$PHOSPHORTAGGED(Field f, Object obj, TaintedCharWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getChar(obj);
 		try {
@@ -184,7 +253,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedDouble getDouble$$PHOSPHORTAGGED(Field f, Object obj, TaintedDouble ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedDoubleWithIntTag getDouble$$PHOSPHORTAGGED(Field f, Object obj, TaintedDoubleWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getInt(obj);
 		try {
@@ -205,7 +274,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedFloat getFloat$$PHOSPHORTAGGED(Field f, Object obj, TaintedFloat ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedFloatWithIntTag getFloat$$PHOSPHORTAGGED(Field f, Object obj, TaintedFloatWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getFloat(obj);
 		try {
@@ -228,7 +297,7 @@ public class RuntimeReflectionPropogator {
 
 	static WeakHashMap<Field, Field> fieldToField = new WeakHashMap<Field, Field>();
 
-	public static TaintedInt getInt$$PHOSPHORTAGGED(Field f, Object obj, TaintedInt ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedIntWithIntTag getInt$$PHOSPHORTAGGED(Field f, Object obj, TaintedIntWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getInt(obj);
 		try {
@@ -251,7 +320,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedLong getLong$$PHOSPHORTAGGED(Field f, Object obj, TaintedLong ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedLongWithIntTag getLong$$PHOSPHORTAGGED(Field f, Object obj, TaintedLongWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getLong(obj);
 		try {
@@ -270,7 +339,7 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
-	public static TaintedShort getShort$$PHOSPHORTAGGED(Field f, Object obj, TaintedShort ret) throws IllegalArgumentException, IllegalAccessException {
+	public static TaintedShortWithIntTag getShort$$PHOSPHORTAGGED(Field f, Object obj, TaintedShortWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		ret.val = f.getShort(obj);
 		try {
@@ -291,6 +360,173 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 
+	
+	
+	public static TaintedBooleanWithObjTag getBoolean$$PHOSPHORTAGGED(Field f, Object obj,TaintedBooleanWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		ret.val = f.getBoolean(obj);
+		try {
+			Field taintField;
+			if (fieldToField.containsKey(f))
+				taintField = fieldToField.get(f);
+			else {
+				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+				taintField.setAccessible(true);
+				fieldToField.put(f, taintField);
+			}
+			ret.taint = taintField.get(obj);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+		return ret;
+	}
+
+	public static TaintedByteWithObjTag getByte$$PHOSPHORTAGGED(Field f, Object obj, TaintedByteWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		ret.val = f.getByte(obj);
+		try {
+			Field taintField;
+			if (fieldToField.containsKey(f))
+				taintField = fieldToField.get(f);
+			else {
+				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+				taintField.setAccessible(true);
+				fieldToField.put(f, taintField);
+			}
+			ret.taint = taintField.get(obj);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+		return ret;
+	}
+
+	public static TaintedCharWithObjTag getChar$$PHOSPHORTAGGED(Field f, Object obj, TaintedCharWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		ret.val = f.getChar(obj);
+		try {
+			Field taintField;
+			if (fieldToField.containsKey(f))
+				taintField = fieldToField.get(f);
+			else {
+				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+				taintField.setAccessible(true);
+				fieldToField.put(f, taintField);
+			}
+			ret.taint = taintField.get(obj);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+		return ret;
+	}
+
+	public static TaintedDoubleWithObjTag getDouble$$PHOSPHORTAGGED(Field f, Object obj, TaintedDoubleWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		ret.val = f.getInt(obj);
+		try {
+			Field taintField;
+			if (fieldToField.containsKey(f))
+				taintField = fieldToField.get(f);
+			else {
+				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+				taintField.setAccessible(true);
+				fieldToField.put(f, taintField);
+			}
+			ret.taint = taintField.get(obj);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+		return ret;
+	}
+
+	public static TaintedFloatWithObjTag getFloat$$PHOSPHORTAGGED(Field f, Object obj, TaintedFloatWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		ret.val = f.getFloat(obj);
+		try {
+			Field taintField;
+			if (fieldToField.containsKey(f))
+				taintField = fieldToField.get(f);
+			else {
+				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+				taintField.setAccessible(true);
+				fieldToField.put(f, taintField);
+			}
+			ret.taint = taintField.get(obj);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+		return ret;
+	}
+
+	public static TaintedIntWithObjTag getInt$$PHOSPHORTAGGED(Field f, Object obj, TaintedIntWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		ret.val = f.getInt(obj);
+		try {
+			Field taintField;
+			if (fieldToField.containsKey(f))
+				taintField = fieldToField.get(f);
+			else {
+				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+				taintField.setAccessible(true);
+				fieldToField.put(f, taintField);
+			}
+			ret.taint = taintField.get(obj);
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		}
+		return ret;
+	}
+
+	public static TaintedLongWithObjTag getLong$$PHOSPHORTAGGED(Field f, Object obj, TaintedLongWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		ret.val = f.getLong(obj);
+		try {
+			Field taintField;
+			if (fieldToField.containsKey(f))
+				taintField = fieldToField.get(f);
+			else {
+				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+				taintField.setAccessible(true);
+				fieldToField.put(f, taintField);
+			}
+			ret.taint = taintField.get(obj);
+		} catch (NoSuchFieldException e) {
+		} catch (SecurityException e) {
+		}
+		return ret;
+	}
+
+	public static TaintedShortWithObjTag getShort$$PHOSPHORTAGGED(Field f, Object obj, TaintedShortWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		ret.val = f.getShort(obj);
+		try {
+			Field taintField;
+			if (fieldToField.containsKey(f))
+				taintField = fieldToField.get(f);
+			else {
+				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+				taintField.setAccessible(true);
+				fieldToField.put(f, taintField);
+			}
+			ret.taint = taintField.get(obj);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+		return ret;
+	}
 	public static void setAccessible$$PHOSPHORTAGGED(Field f, int tag, boolean flag) {
 		f.setAccessible(flag);
 		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
@@ -303,6 +539,28 @@ public class RuntimeReflectionPropogator {
 	}
 	
 	public static void setAccessible$$PHOSPHORTAGGED(Field f, int tag, boolean flag,ControlTaintTagStack ctrl) {
+		f.setAccessible(flag);
+		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
+			try {
+				f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setAccessible(flag);
+			} catch (SecurityException e) {
+			} catch (NoSuchFieldException e) {
+			}
+		}
+	}
+	
+	public static void setAccessible$$PHOSPHORTAGGED(Field f, Object tag, boolean flag) {
+		f.setAccessible(flag);
+		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
+			try {
+				f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setAccessible(flag);
+			} catch (SecurityException e) {
+			} catch (NoSuchFieldException e) {
+			}
+		}
+	}
+	
+	public static void setAccessible$$PHOSPHORTAGGED(Field f, Object tag, boolean flag,ControlTaintTagStack ctrl) {
 		f.setAccessible(flag);
 		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
 			try {
@@ -352,7 +610,45 @@ public class RuntimeReflectionPropogator {
 		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
 		setShort$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
+	public static void setBoolean$$PHOSPHORTAGGED(Field f, Object obj, Object tag, boolean val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
+		setBoolean$$PHOSPHORTAGGED(f, obj, tag, val);
+	}
 	
+	public static void setByte$$PHOSPHORTAGGED(Field f, Object obj, Object tag, byte val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
+		setByte$$PHOSPHORTAGGED(f, obj, tag, val);
+	}
+
+	public static void setChar$$PHOSPHORTAGGED(Field f, Object obj, Object tag, char val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
+		setChar$$PHOSPHORTAGGED(f, obj, tag, val);
+	}
+	
+	public static void setDouble$$PHOSPHORTAGGED(Field f, Object obj, Object tag, double val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
+		setDouble$$PHOSPHORTAGGED(f, obj, tag, val);
+	}
+	
+	public static void setFloat$$PHOSPHORTAGGED(Field f, Object obj, Object tag, float val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
+		setFloat$$PHOSPHORTAGGED(f, obj, tag, val);
+	}
+	
+	public static void setInt$$PHOSPHORTAGGED(Field f, Object obj, Object tag, int val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
+		setInt$$PHOSPHORTAGGED(f, obj, tag, val);
+	}
+	
+	public static void setLong$$PHOSPHORTAGGED(Field f, Object obj, Object tag, long val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
+		setLong$$PHOSPHORTAGGED(f, obj, tag, val);
+	}
+	
+	public static void setShort$$PHOSPHORTAGGED(Field f, Object obj, Object tag, short val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
+		setShort$$PHOSPHORTAGGED(f, obj, tag, val);
+	}
 	public static void setBoolean$$PHOSPHORTAGGED(Field f, Object obj, int tag, boolean val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setBoolean(obj, val);
@@ -464,7 +760,121 @@ public class RuntimeReflectionPropogator {
 			e.printStackTrace();
 		}
 	}
+	
+	public static void setBoolean$$PHOSPHORTAGGED(Field f, Object obj, Object tag, boolean val) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		f.setBoolean(obj, val);
+		try {
+			Field taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+			taintField.setAccessible(true);
+			taintField.set(obj, tag);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+	}
 
+	public static void setByte$$PHOSPHORTAGGED(Field f, Object obj, Object tag, byte val) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		f.setByte(obj, val);
+		try {
+			Field taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+			taintField.setAccessible(true);
+			taintField.set(obj, tag);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void setChar$$PHOSPHORTAGGED(Field f, Object obj, Object tag, char val) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		f.setChar(obj, val);
+		try {
+			Field taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+			taintField.setAccessible(true);
+			taintField.set(obj, tag);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void setDouble$$PHOSPHORTAGGED(Field f, Object obj, Object tag, double val) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		f.setDouble(obj, val);
+		try {
+			Field taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+			taintField.setAccessible(true);
+			taintField.set(obj, tag);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void setFloat$$PHOSPHORTAGGED(Field f, Object obj, Object tag, float val) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		f.setFloat(obj, val);
+		try {
+			Field taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+			taintField.setAccessible(true);
+			taintField.set(obj, tag);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void setInt$$PHOSPHORTAGGED(Field f, Object obj, Object tag, int val) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		f.setInt(obj, val);
+		try {
+			Field taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+			taintField.setAccessible(true);
+			taintField.set(obj, tag);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void setLong$$PHOSPHORTAGGED(Field f, Object obj, Object tag, long val) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		f.setLong(obj, val);
+		try {
+			Field taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+			taintField.setAccessible(true);
+			taintField.set(obj, tag);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void setShort$$PHOSPHORTAGGED(Field f, Object obj, Object tag, short val) throws IllegalArgumentException, IllegalAccessException {
+		f.setAccessible(true);
+		f.setShort(obj, val);
+		try {
+			Field taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+			taintField.setAccessible(true);
+			taintField.set(obj, tag);
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+	}
+	private static Object getTagObj(Object val) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
+		return val.getClass().getField("value" + TaintUtils.TAINT_FIELD).get(val);
+	}
 	private static int getTag(Object val) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
 		return val.getClass().getField("value" + TaintUtils.TAINT_FIELD).getInt(val);
 	}
@@ -572,7 +982,10 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setInt(obj, i.intValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
+					else
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
 				} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
@@ -584,8 +997,11 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setBoolean(obj, i.booleanValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-				} catch (NoSuchFieldException e) {
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
+					else
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
+					} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -596,8 +1012,11 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setByte(obj, i.byteValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-				} catch (NoSuchFieldException e) {
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
+					else
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
+					} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -608,8 +1027,11 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setChar(obj, i.charValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-				} catch (NoSuchFieldException e) {
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
+					else
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
+					} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -620,8 +1042,11 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setDouble(obj, i.doubleValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-				} catch (NoSuchFieldException e) {
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
+					else
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
+					} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -632,8 +1057,11 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setFloat(obj, i.floatValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-				} catch (NoSuchFieldException e) {
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
+					else
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
+					} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -644,8 +1072,11 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setLong(obj, i.longValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-				} catch (NoSuchFieldException e) {
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
+					else
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
+					} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -656,8 +1087,11 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setShort(obj, i.shortValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-				} catch (NoSuchFieldException e) {
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
+					else
+						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
+					} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();

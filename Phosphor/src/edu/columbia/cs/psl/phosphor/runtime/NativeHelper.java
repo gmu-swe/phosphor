@@ -2,8 +2,12 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.util.Collection;
 
+import sun.security.krb5.Config;
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public final class NativeHelper {
@@ -44,15 +48,39 @@ public final class NativeHelper {
 							ex.printStackTrace();
 						}
 					}
-					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.boxIfNecessary(o), new TaintedBoolean());
+					if(Configuration.IMPLICIT_TRACKING)
+					{
+						if(Configuration.TAINT_TAG_TYPE == Type.INT)
+							tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.boxIfNecessary(o), new ControlTaintTagStack(), new TaintedBooleanWithIntTag());
+						else
+							tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.boxIfNecessary(o), new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+					}
+					else
+					{
+						if(Configuration.TAINT_TAG_TYPE == Type.INT)
+							tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.boxIfNecessary(o), new TaintedBooleanWithIntTag());
+						else
+							tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.boxIfNecessary(o), new TaintedBooleanWithObjTag());
+
+					}
 				}
 				else
 					break;
 			}
-			if(tmp != null)
-			{
+			if (tmp != null) {
 				in.clear();
-				in.addAll$$PHOSPHORTAGGED(tmp, new TaintedBoolean());
+				if (Configuration.IMPLICIT_TRACKING) {
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						tmp.add$$PHOSPHORTAGGED(tmp, new ControlTaintTagStack(), new TaintedBooleanWithIntTag());
+					else
+						tmp.add$$PHOSPHORTAGGED(tmp, new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+				} else {
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						tmp.add$$PHOSPHORTAGGED(tmp, new TaintedBooleanWithIntTag());
+					else
+						tmp.add$$PHOSPHORTAGGED(tmp, new TaintedBooleanWithObjTag());
+
+				}
 			}
 		}
 //		if(VM.isBooted())
@@ -84,7 +112,21 @@ public final class NativeHelper {
 							ex.printStackTrace();
 						}
 					}
-					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.unboxRaw(o), new TaintedBoolean());
+					if(Configuration.IMPLICIT_TRACKING)
+					{
+						if(Configuration.TAINT_TAG_TYPE == Type.INT)
+							tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.unboxRaw(o), new ControlTaintTagStack(), new TaintedBooleanWithIntTag());
+						else
+							tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.unboxRaw(o), new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+					}
+					else
+					{
+						if(Configuration.TAINT_TAG_TYPE == Type.INT)
+							tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.unboxRaw(o), new TaintedBooleanWithIntTag());
+						else
+							tmp.add$$PHOSPHORTAGGED(MultiDTaintedArray.unboxRaw(o), new TaintedBooleanWithObjTag());
+
+					}
 				}
 				else
 					break;
@@ -92,7 +134,18 @@ public final class NativeHelper {
 			if(tmp != null)
 			{
 				in.clear();
-				in.addAll$$PHOSPHORTAGGED(tmp, new TaintedBoolean());
+				if (Configuration.IMPLICIT_TRACKING) {
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						tmp.add$$PHOSPHORTAGGED(tmp, new ControlTaintTagStack(), new TaintedBooleanWithIntTag());
+					else
+						tmp.add$$PHOSPHORTAGGED(tmp, new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+				} else {
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						tmp.add$$PHOSPHORTAGGED(tmp, new TaintedBooleanWithIntTag());
+					else
+						tmp.add$$PHOSPHORTAGGED(tmp, new TaintedBooleanWithObjTag());
+
+				}
 			}
 		}
 //		if(VM.isBooted())

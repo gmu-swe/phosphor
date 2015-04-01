@@ -8,6 +8,8 @@ import java.util.HashSet;
 import java.util.Scanner;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.CallGraph;
 import edu.columbia.cs.psl.phosphor.struct.MiniClassNode;
 
@@ -69,7 +71,12 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			}
 		}
 		if (!TaintTrackingClassVisitor.IS_RUNTIME_INST)
-			System.out.println("Loaded " + sinks.size() + " sinks and " + sources.size() + " sources");
+		{
+			if(Configuration.TAINT_TAG_TYPE != Type.INT)
+				System.err.println("Warning: You specified to perform auto source/sink tainting, but want to use a non-integer taint. This is unsupported.");
+			else
+				System.out.println("Loaded " + sinks.size() + " sinks and " + sources.size() + " sources");
+		}
 	}
 	CallGraph g;
 

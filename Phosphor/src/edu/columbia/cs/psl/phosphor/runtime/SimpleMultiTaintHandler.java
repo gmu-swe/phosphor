@@ -4,18 +4,32 @@ import edu.columbia.cs.psl.phosphor.struct.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class SimpleMultiTaintHandler {
 	static ArrayList<Tag> tags = new ArrayList<SimpleMultiTaintHandler.Tag>();
 	static{
 		tags.add(new Tag());
 	}
-	public static void combineTags(Object o, ControlTaintTagStack tags)
+	public static void combineTagsFromObject(Object o, ControlTaintTagStack tags)
 	{
-		if(o instanceof Tainted)
+		if(o instanceof TaintedWithIntTag)
 		{
-			((Tainted) o).setPHOSPHOR_TAG(combineTags(((Tainted)o).getPHOSPHOR_TAG(), tags));
+			((TaintedWithIntTag) o).setPHOSPHOR_TAG(combineTags(((TaintedWithIntTag)o).getPHOSPHOR_TAG(), tags));
 		}
+		else if(o instanceof TaintedWithObjTag)
+		{
+			((TaintedWithObjTag) o).setPHOSPHOR_TAG(combineTags(((TaintedWithObjTag)o).getPHOSPHOR_TAG(), tags));
+
+		}
+	}
+	public static Object combineTags(Object t1, ControlTaintTagStack tags){
+		return t1;
+	}
+	public static Object combineTags(Object t1, Object t2)
+	{
+		return t1;
 	}
 	public static int combineTags(int t1, int t2){
 		if(t1 == 0 && t2 == 0)

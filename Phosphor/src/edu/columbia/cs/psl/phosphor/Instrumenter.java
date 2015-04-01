@@ -448,7 +448,7 @@ public class Instrumenter {
 			 System.err.println("Usage: java {-DTAINT_SINKS=... -DTAINT_SOURCES=...} -jar phosphor.jar [source] [dest] {additional-classpath-entries}");
 			 return;
 		}
-		TaintUtils.MULTI_TAINT = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false")) || Boolean.valueOf(System.getProperty("MULTI_TAINT","false"));;
+		TaintUtils.MULTI_TAINT = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false")) || Boolean.valueOf(System.getProperty("MULTI_TAINT","false")) || Configuration.TAINT_TAG_TYPE != Type.INT;;
 		Configuration.IMPLICIT_TRACKING = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false"));
 		if(Configuration.IMPLICIT_TRACKING)
 		{

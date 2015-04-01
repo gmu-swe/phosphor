@@ -4,8 +4,12 @@ import java.lang.reflect.Array;
 import java.util.Enumeration;
 
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public class TaintChecker {
 	public static void checkTaint(int tag)
@@ -17,10 +21,15 @@ public class TaintChecker {
 
 		if(obj == null)
 			return;
-		if (obj instanceof Tainted) {
-			if (((Tainted) obj).getPHOSPHOR_TAG() != 0)
+		if (obj instanceof TaintedWithIntTag) {
+			if (((TaintedWithIntTag) obj).getPHOSPHOR_TAG() != 0)
 				throw new IllegalAccessError("Argument carries taint");
 		}
+		else if (obj instanceof TaintedWithObjTag) {
+			if (((TaintedWithObjTag) obj).getPHOSPHOR_TAG() != null)
+				throw new IllegalAccessError("Argument carries taint");
+		}
+
 		else if(obj instanceof int[])
 		{
 			for(int i : ((int[])obj))
@@ -29,9 +38,9 @@ public class TaintChecker {
 					throw new IllegalAccessError("Argument carries taints");
 			}
 		}
-		else if(obj instanceof MultiDTaintedArray)
+		else if(obj instanceof MultiDTaintedArrayWithIntTag)
 		{
-			int[] tags = ((MultiDTaintedArray) obj).taint;
+			int[] tags = ((MultiDTaintedArrayWithIntTag) obj).taint;
 			for(int i : tags)
 			{
 				if(i > 0)
@@ -57,12 +66,36 @@ public class TaintChecker {
 	public static void setTaints(Object obj, int tag) {
 		if(obj == null)
 			return;
-		if (obj instanceof Tainted) {
-			((Tainted) obj).setPHOSPHOR_TAG(tag);
-		} else if (obj instanceof TaintedPrimitiveArray){
-			((TaintedPrimitiveArray)obj).setTaints(tag);
-		}else if (obj instanceof MultiDTaintedArray) {
-			int[] taints = ((MultiDTaintedArray) obj).taint;
+		if (obj instanceof TaintedWithIntTag) {
+			((TaintedWithIntTag) obj).setPHOSPHOR_TAG(tag);
+		} else if (obj instanceof TaintedPrimitiveArrayWithIntTag){
+			((TaintedPrimitiveArrayWithIntTag)obj).setTaints(tag);
+		}else if (obj instanceof MultiDTaintedArrayWithIntTag) {
+			int[] taints = ((MultiDTaintedArrayWithIntTag) obj).taint;
+			for (int i = 0; i < taints.length; i++)
+				taints[i] = tag;
+		} else if (obj.getClass().isArray()) {
+			
+				Object[] ar = (Object[]) obj;
+				for (Object o : ar)
+					setTaints(o, tag);
+			
+		}
+		if(obj instanceof Iterable)
+		{
+			for(Object o : ((Iterable)obj))
+				setTaints(o, tag);
+		}
+	}
+	public static void setTaints(Object obj, Object tag) {
+		if(obj == null)
+			return;
+		if (obj instanceof TaintedWithObjTag) {
+			((TaintedWithObjTag) obj).setPHOSPHOR_TAG(tag);
+		} else if (obj instanceof TaintedPrimitiveArrayWithObjTag){
+			((TaintedPrimitiveArrayWithObjTag)obj).setTaints(tag);
+		}else if (obj instanceof MultiDTaintedArrayWithObjTag) {
+			Object[] taints = ((MultiDTaintedArrayWithObjTag) obj).taint;
 			for (int i = 0; i < taints.length; i++)
 				taints[i] = tag;
 		} else if (obj.getClass().isArray()) {

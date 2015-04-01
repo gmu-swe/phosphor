@@ -3,23 +3,24 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
-import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByte;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedChar;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDouble;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloat;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLong;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShort;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArray;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithIntTag;
 
 public class Tainter {
 	static class Entry
@@ -37,7 +38,7 @@ public class Tainter {
 		System.out.println("Dump " + o + ": " + o.getClass());
 	}
 
-	public static TaintedShort taintedShort$$PHOSPHORTAGGED(int i, short s, int z, int tag, TaintedShort ret)
+	public static TaintedShortWithIntTag taintedShort$$PHOSPHORTAGGED(int i, short s, int z, int tag, TaintedShortWithIntTag ret)
 	{
 		ret.taint = tag;
 		ret.val = s;
@@ -50,7 +51,7 @@ public class Tainter {
 	public static double taintedDouble(double d, int tag){
 		return d;
 	}
-	public static TaintedDouble taintedDouble$$PHOSPHORTAGGED(int i, double s, int z, int tag, TaintedDouble ret)
+	public static TaintedDoubleWithIntTag taintedDouble$$PHOSPHORTAGGED(int i, double s, int z, int tag, TaintedDoubleWithIntTag ret)
 	{
 		ret.taint = tag;
 		ret.val = s;
@@ -61,7 +62,7 @@ public class Tainter {
 	{
 		return f;
 	}
-	public static TaintedFloat taintedFloat$$PHOSPHORTAGGED(int i, float s, int z, int tag, TaintedFloat ret)
+	public static TaintedFloatWithIntTag taintedFloat$$PHOSPHORTAGGED(int i, float s, int z, int tag, TaintedFloatWithIntTag ret)
 	{
 		ret.taint = tag;
 		ret.val = s;
@@ -72,7 +73,7 @@ public class Tainter {
 	{
 		return i;
 	}
-	public static TaintedBoolean taintedBoolean$$PHOSPHORTAGGED(int i, boolean s, int z, int tag, TaintedBoolean ret)
+	public static TaintedBooleanWithIntTag taintedBoolean$$PHOSPHORTAGGED(int i, boolean s, int z, int tag, TaintedBooleanWithIntTag ret)
 	{
 		ret.taint = tag;
 		ret.val = s;
@@ -100,7 +101,7 @@ public class Tainter {
 	{
 		return ca;
 	}
-	public static TaintedCharArray taintedCharArray$$PHOSPHORTAGGED(int[] oldCA, char[] ca, int b, int tag, TaintedCharArray ret)
+	public static TaintedCharArrayWithIntTag taintedCharArray$$PHOSPHORTAGGED(int[] oldCA, char[] ca, int b, int tag, TaintedCharArrayWithIntTag ret)
 	{
 		ret.val = ca;
 		ret.taint = new int[ca.length];
@@ -112,7 +113,7 @@ public class Tainter {
 	{
 		return ca;
 	}
-	public static TaintedBooleanArray taintedBooleanArray$$PHOSPHORTAGGED(int[] oldCA, boolean[] ca, int b, int tag, TaintedBooleanArray ret)
+	public static TaintedBooleanArrayWithIntTag taintedBooleanArray$$PHOSPHORTAGGED(int[] oldCA, boolean[] ca, int b, int tag, TaintedBooleanArrayWithIntTag ret)
 	{
 		ret.val = ca;
 		ret.taint = new int[ca.length];
@@ -124,7 +125,7 @@ public class Tainter {
 	{
 		return ca;
 	}
-	public static TaintedByteArray taintedByteArray$$PHOSPHORTAGGED(int[] oldCA, byte[] ca, int b, int tag, TaintedByteArray ret)
+	public static TaintedByteArrayWithIntTag taintedByteArray$$PHOSPHORTAGGED(int[] oldCA, byte[] ca, int b, int tag, TaintedByteArrayWithIntTag ret)
 	{
 		ret.val = ca;
 		ret.taint = new int[ca.length];
@@ -136,7 +137,7 @@ public class Tainter {
 	{
 		return ca;
 	}
-	public static TaintedDoubleArray taintedDoubleArray$$PHOSPHORTAGGED(int[] oldCA, double[] ca, int b, int tag, TaintedDoubleArray ret)
+	public static TaintedDoubleArrayWithIntTag taintedDoubleArray$$PHOSPHORTAGGED(int[] oldCA, double[] ca, int b, int tag, TaintedDoubleArrayWithIntTag ret)
 	{
 		ret.val = ca;
 		ret.taint = new int[ca.length];
@@ -148,7 +149,7 @@ public class Tainter {
 	{
 		return ca;
 	}
-	public static TaintedFloatArray taintedFloatArray$$PHOSPHORTAGGED(int[] oldCA, float[] ca, int b, int tag, TaintedFloatArray ret)
+	public static TaintedFloatArrayWithIntTag taintedFloatArray$$PHOSPHORTAGGED(int[] oldCA, float[] ca, int b, int tag, TaintedFloatArrayWithIntTag ret)
 	{
 		ret.val = ca;
 		ret.taint = new int[ca.length];
@@ -160,7 +161,7 @@ public class Tainter {
 	{
 		return ca;
 	}
-	public static TaintedIntArray taintedIntArray$$PHOSPHORTAGGED(int[] oldCA, int[] ca, int b, int tag, TaintedIntArray ret)
+	public static TaintedIntArrayWithIntTag taintedIntArray$$PHOSPHORTAGGED(int[] oldCA, int[] ca, int b, int tag, TaintedIntArrayWithIntTag ret)
 	{
 		ret.val = ca;
 		ret.taint = new int[ca.length];
@@ -172,7 +173,7 @@ public class Tainter {
 	{
 		return ca;
 	}
-	public static TaintedLongArray taintedLongArray$$PHOSPHORTAGGED(int[] oldCA, long[] ca, int b, int tag, TaintedLongArray ret)
+	public static TaintedLongArrayWithIntTag taintedLongArray$$PHOSPHORTAGGED(int[] oldCA, long[] ca, int b, int tag, TaintedLongArrayWithIntTag ret)
 	{
 		ret.val = ca;
 		ret.taint = new int[ca.length];
@@ -184,7 +185,7 @@ public class Tainter {
 	{
 		return ca;
 	}
-	public static TaintedShortArray taintedShortArray$$PHOSPHORTAGGED(int[] oldCA, short[] ca, int b, int tag, TaintedShortArray ret)
+	public static TaintedShortArrayWithIntTag taintedShortArray$$PHOSPHORTAGGED(int[] oldCA, short[] ca, int b, int tag, TaintedShortArrayWithIntTag ret)
 	{
 		ret.val = ca;
 		ret.taint = new int[ca.length];
@@ -201,13 +202,13 @@ public class Tainter {
 		System.out.println("You called this without instrumentation? int is " + i);
 	}	
 	
-	public static TaintedByte taintedByte$$PHOSPHORTAGGED(int curTag, byte i, int tagTaint, int tag, TaintedByte ret)
+	public static TaintedByteWithIntTag taintedByte$$PHOSPHORTAGGED(int curTag, byte i, int tagTaint, int tag, TaintedByteWithIntTag ret)
 	{
 		ret.taint = tag;
 		ret.val = i;
 		return ret;
 	}
-	public static TaintedInt taintedInt$$PHOSPHORTAGGED(int curTag, int i, int tagTaint, int tag, TaintedInt ret)
+	public static TaintedIntWithIntTag taintedInt$$PHOSPHORTAGGED(int curTag, int i, int tagTaint, int tag, TaintedIntWithIntTag ret)
 	{
 		ret.taint =tag;
 		ret.val = i;
@@ -217,7 +218,7 @@ public class Tainter {
 	{
 		System.out.println("You called this without instrumentation? char is " + c);
 	}
-	public static TaintedChar taintedChar$$PHOSPHORTAGGED(int curTag, char c, int tagTaint, int tag,TaintedChar ret)
+	public static TaintedCharWithIntTag taintedChar$$PHOSPHORTAGGED(int curTag, char c, int tagTaint, int tag,TaintedCharWithIntTag ret)
 	{
 		ret.taint = tag;
 		ret.val =c;
@@ -227,7 +228,7 @@ public class Tainter {
 	{
 		return 0;
 	}
-	public static TaintedInt getTaint$$PHOSPHORTAGGED(int t, char c, TaintedInt ret)
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, char c, TaintedIntWithIntTag ret)
 	{
 		ret.taint = t;
 		ret.val = t;
@@ -236,7 +237,7 @@ public class Tainter {
 	{
 		return 0;
 	}
-	public static TaintedInt getTaint$$PHOSPHORTAGGED(int t, byte c, TaintedInt ret)
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, byte c, TaintedIntWithIntTag ret)
 	{
 		ret.taint = t;
 		ret.val = t;
@@ -245,7 +246,7 @@ public class Tainter {
 	{
 		return 0;
 	}
-	public static TaintedInt getTaint$$PHOSPHORTAGGED(int t, boolean c, TaintedInt ret)
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, boolean c, TaintedIntWithIntTag ret)
 	{
 		ret.taint = t;
 		ret.val = t;
@@ -255,7 +256,7 @@ public class Tainter {
 	{
 		return 0;
 	}
-	public static TaintedInt getTaint$$PHOSPHORTAGGED(int t, int c, TaintedInt ret)
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, int c, TaintedIntWithIntTag ret)
 	{
 		ret.taint = t;
 		ret.val = t;
@@ -265,7 +266,7 @@ public class Tainter {
 	{
 		return 0;
 	}
-	public static TaintedInt getTaint$$PHOSPHORTAGGED(int t, short c, TaintedInt ret)
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, short c, TaintedIntWithIntTag ret)
 	{
 		ret.taint = t;
 		ret.val = t;
@@ -275,7 +276,7 @@ public class Tainter {
 	{
 		return 0;
 	}
-	public static TaintedInt getTaint$$PHOSPHORTAGGED(int t, long c, TaintedInt ret)
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, long c, TaintedIntWithIntTag ret)
 	{
 		ret.taint = t;
 		ret.val = t;
@@ -285,7 +286,7 @@ public class Tainter {
 	{
 		return 0;
 	}
-	public static TaintedInt getTaint$$PHOSPHORTAGGED(int t, float c, TaintedInt ret)
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, float c, TaintedIntWithIntTag ret)
 	{
 		ret.taint = t;
 		ret.val = t;
@@ -295,7 +296,7 @@ public class Tainter {
 	{
 		return 0;
 	}
-	public static TaintedInt getTaint$$PHOSPHORTAGGED(int t, double c, TaintedInt ret)
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, double c, TaintedIntWithIntTag ret)
 	{
 		ret.taint = t;
 		ret.val = t;
@@ -303,7 +304,7 @@ public class Tainter {
 	}
 	
 	
-	public static TaintedLong taintedLong$$PHOSPHORTAGGED(int curTag, long c, int tagTaint, int tag, TaintedLong ret)
+	public static TaintedLongWithIntTag taintedLong$$PHOSPHORTAGGED(int curTag, long c, int tagTaint, int tag, TaintedLongWithIntTag ret)
 	{
 		ret.taint = tag;
 		ret.val =c;
@@ -313,7 +314,7 @@ public class Tainter {
 	{
 		System.out.println("char c:" + c);
 	}
-	public static void dumpTaint$$PHOSPHORTAGGED(MultiDTaintedCharArray[][] ar)
+	public static void dumpTaint$$PHOSPHORTAGGED(MultiDTaintedCharArrayWithIntTag[][] ar)
 	{
 		System.out.println("its boxed");
 	}
@@ -338,5 +339,14 @@ public class Tainter {
 	}
 	public static void dumpTaint$$PHOSPHORTAGGED(int taint, long longValue) {
 		System.out.println("Taint on :" + longValue + " : " + taint);
+	}
+	
+	public static TaintedCharArrayWithObjTag taintedCharArray$$PHOSPHORTAGGED(Taint[] oldTags, char[] ar, Taint tgtg, int tag, TaintedCharArrayWithObjTag ret)
+	{
+		ret.taint = new Taint[ar.length];
+		for(int i = 0 ; i < ar.length; i++)
+			ret.taint[i]=new Taint();
+		ret.val = ar;
+		return ret;
 	}
 }

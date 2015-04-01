@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import java.util.HashMap;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
@@ -70,7 +71,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 						case Opcodes.DCONST_0:
 						case Opcodes.DCONST_1:
 							super.visitInsn(TaintUtils.RAW_INSN);
-							super.visitInsn(Opcodes.ICONST_0);
+							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 							super.visitInsn(opcode);
 							super.visitInsn(TaintUtils.RAW_INSN);
 							return;
@@ -89,7 +90,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 						case Opcodes.BIPUSH:
 						case Opcodes.SIPUSH:
 							super.visitInsn(TaintUtils.RAW_INSN);
-							super.visitInsn(ICONST_0);
+							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 							super.visitIntInsn(opcode, operand);
 							super.visitInsn(TaintUtils.RAW_INSN);
 							break;
@@ -109,29 +110,29 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 						}
 						super.visitInsn(TaintUtils.RAW_INSN);
 						if (cst instanceof Integer) {
-							super.visitInsn(Opcodes.ICONST_0);
+							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Byte) {
-							super.visitInsn(Opcodes.ICONST_0);
+							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Character) {
-							super.visitInsn(Opcodes.ICONST_0);
+							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Short) {
-							super.visitInsn(Opcodes.ICONST_0);
+							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Boolean) {
-							super.visitInsn(Opcodes.ICONST_0);
+							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Float) {
-							super.visitInsn(Opcodes.ICONST_0);
+							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Long) {
-							super.visitInsn(Opcodes.ICONST_0);
+							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Double) {
 //							System.out.println("CVNT"+name+"LDC " + cst);
-							super.visitInsn(Opcodes.ICONST_0);
+							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof String) {
 							super.visitLdcInsn(cst);
@@ -258,13 +259,13 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 										case Type.CHAR:
 										case Type.SHORT:
 										case Type.FLOAT:
-											uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.ICONST_0));
-											uninstrumented.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, fin.owner, fin.name + TaintUtils.TAINT_FIELD, "I"));
+											uninstrumented.instructions.insertBefore(insn, new InsnNode(Configuration.NULL_TAINT_LOAD_OPCODE));
+											uninstrumented.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, fin.owner, fin.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC));
 											break;
 										case Type.LONG:
 										case Type.DOUBLE:
-											uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.ICONST_0));
-											uninstrumented.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, fin.owner, fin.name + TaintUtils.TAINT_FIELD, "I"));
+											uninstrumented.instructions.insertBefore(insn, new InsnNode(Configuration.NULL_TAINT_LOAD_OPCODE));
+											uninstrumented.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, fin.owner, fin.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC));
 											break;
 										case Type.ARRAY:
 											switch (t.getElementType().getSort()) {
@@ -290,9 +291,12 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 													//Initialize a new 1D array of the right length
 													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
 													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.ARRAYLENGTH));
-													uninstrumented.instructions.insertBefore(insn, new IntInsnNode(Opcodes.NEWARRAY, Opcodes.T_INT));
+													if(Configuration.TAINT_TAG_TYPE == Type.INT)
+														uninstrumented.instructions.insertBefore(insn, new IntInsnNode(Opcodes.NEWARRAY, Opcodes.T_INT));
+													else
+														uninstrumented.instructions.insertBefore(insn, new TypeInsnNode(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME));
 													//													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
-													uninstrumented.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, fin.owner, fin.name + TaintUtils.TAINT_FIELD, "[I"));
+													uninstrumented.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, fin.owner, fin.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC));
 												}
 												//												uninstrumented.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class),
 												//														"registerAllConstantsArray", "(Ljava/lang/Object;Ljava/lang/Object;)V"));

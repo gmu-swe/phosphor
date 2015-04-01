@@ -25,7 +25,9 @@
 
 package java.util;
 
-import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 
 /**
  * This class provides a skeletal implementation of the <tt>Collection</tt>
@@ -463,24 +465,27 @@ public abstract class AbstractCollection<E> implements Collection<E> {
             sb.append(',').append(' ');
         }
     }
+
+
     @Override
-    public TaintedBoolean add$$PHOSPHORTAGGED(E e) {
+    public TaintedBooleanWithObjTag add$$PHOSPHORTAGGED(E e, TaintedBooleanWithObjTag ret) {
     	// TODO Auto-generated method stub
     	return null;
     }
     @Override
-    public TaintedBoolean addAll$$PHOSPHORTAGGED(Collection<? extends E> c) {
+    public TaintedBooleanWithIntTag add$$PHOSPHORTAGGED(E e, TaintedBooleanWithIntTag ret) {
     	// TODO Auto-generated method stub
     	return null;
     }
     @Override
-    public TaintedBoolean add$$PHOSPHORTAGGED(E e, TaintedBoolean ret) {
+    public TaintedBooleanWithObjTag add$$PHOSPHORTAGGED(E e,ControlTaintTagStack t, TaintedBooleanWithObjTag ret) {
     	// TODO Auto-generated method stub
     	return null;
     }
     @Override
-    public TaintedBoolean addAll$$PHOSPHORTAGGED(Collection<? extends E> c, TaintedBoolean ret) {
+    public TaintedBooleanWithIntTag add$$PHOSPHORTAGGED(E e,ControlTaintTagStack t, TaintedBooleanWithIntTag ret) {
     	// TODO Auto-generated method stub
     	return null;
     }
+
 }

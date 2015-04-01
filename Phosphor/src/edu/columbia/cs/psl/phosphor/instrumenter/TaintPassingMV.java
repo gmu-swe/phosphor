@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import sun.security.krb5.Config;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
@@ -18,12 +19,13 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Printer;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Textifier;
-import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStore;
+import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
+import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedMisc;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
@@ -218,7 +220,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			case FSTORE:
 				super.visitInsn(SWAP);
 				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
-				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+				if(Configuration.TAINT_TAG_TYPE == Type.INT)
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+				else
+				{
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Object;", false);
+					super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				}
 				super.visitInsn(SWAP);
 				break;
 			case DSTORE:
@@ -226,14 +234,20 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(DUP2_X1);
 				super.visitInsn(POP2);
 				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
-				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+				if(Configuration.TAINT_TAG_TYPE == Type.INT)
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+				else
+				{
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Object;", false);
+					super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				}
 				super.visitInsn(DUP_X2);
 				super.visitInsn(POP);
 				break;
 			case ASTORE:
 				super.visitInsn(DUP);
 				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
-				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
 				break;
 			}
 		}
@@ -273,14 +287,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if (opcode == ISTORE || opcode == FSTORE || opcode == DSTORE || opcode == LSTORE)
 						varTypes.put(var, getTopOfStackObject());
 					else
-						varTypes.put(var, Opcodes.INTEGER);
+						varTypes.put(var, Configuration.TAINT_TAG_STACK_TYPE);
 					if (shadowVar > -1) {
 						while(shadowVar >= analyzer.locals.size())
 						{
 							analyzer.locals.add(Opcodes.TOP);
 						}
-						analyzer.locals.set(shadowVar, Opcodes.INTEGER);
-						lvs.remapLocal(shadowVar, Type.getType("I"));
+						analyzer.locals.set(shadowVar, Configuration.TAINT_TAG_STACK_TYPE);
+						lvs.remapLocal(shadowVar, Type.getType(Configuration.TAINT_TAG_DESC));
 					}
 				} else if (oldVarType instanceof Integer && oldVarType != Opcodes.NULL && (opcode == ASTORE || opcode == ALOAD)) {
 					//Went from primitive to TYPE
@@ -299,16 +313,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						if (opcode == ASTORE) {
 							String shadow = TaintUtils.getShadowTaintType(getTopOfStackType().getDescriptor());
 							if (shadow == null) {
-								shadow = "[I";
+								shadow = Configuration.TAINT_TAG_ARRAYDESC;
 								analyzer.locals.set(shadowVar, Opcodes.TOP);
-							} else if (shadow.equals("I"))
-								analyzer.locals.set(shadowVar, Opcodes.INTEGER);
+							} else if (shadow.equals(Configuration.TAINT_TAG_DESC))
+								analyzer.locals.set(shadowVar, Configuration.TAINT_TAG_STACK_TYPE);
 							else
 								analyzer.locals.set(shadowVar, shadow);
 							lvs.remapLocal(shadowVar, Type.getType(shadow));
 						} else {
-							lvs.remapLocal(shadowVar, Type.getType("[I"));
-							analyzer.locals.set(shadowVar, "[I");
+							lvs.remapLocal(shadowVar, Type.getType(Configuration.TAINT_TAG_ARRAYDESC));
+							analyzer.locals.set(shadowVar, Configuration.TAINT_TAG_ARRAYDESC);
 						}
 					}
 				}
@@ -323,7 +337,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if (analyzer.locals.size() > var && analyzer.locals.get(var) instanceof String) {
 						Type localType = Type.getObjectType((String) analyzer.locals.get(var));
 						if (localType.getSort() == Type.ARRAY && localType.getElementType().getSort() != Type.OBJECT && localType.getDimensions() == 1) {
-							lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.getType("[I"),var));
+							lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.getType(Configuration.TAINT_TAG_ARRAYDESC),var));
 							varTypes.put(var, Opcodes.NULL);
 							shadowVar = lvs.varToShadowVar.get(var);
 							if (shadowVar == analyzer.locals.size())
@@ -335,7 +349,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //						System.out.println("Storing null. maybe its a primitive int array? at " + var);
 //						if(analyzer.locals.size() > var)
 //						System.out.println(analyzer.locals.get(var));
-						lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.getType("[I"),var));
+						lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.getType(Configuration.TAINT_TAG_ARRAYDESC),var));
 						varTypes.put(var, Opcodes.NULL);
 						shadowVar = lvs.varToShadowVar.get(var);
 						lvs.varsToRemove.put(var,shadowVar);
@@ -350,13 +364,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					}
 				} else {
 //					if (TaintUtils.DEBUG_LOCAL)
-					lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.INT_TYPE,var));
-					varTypes.put(var, Opcodes.INTEGER);
+					lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.getType(Configuration.TAINT_TAG_DESC),var));
+					varTypes.put(var, Configuration.TAINT_TAG_STACK_TYPE);
 					shadowVar = lvs.varToShadowVar.get(var);
 //					System.out.println("creating shadow for " + var + " - " + shadowVar);
 					if (opcode == ILOAD || opcode == FLOAD || opcode == DLOAD || opcode == LLOAD) {
 						if (shadowVar == analyzer.locals.size())
-							analyzer.locals.add(Opcodes.INTEGER);
+							analyzer.locals.add(Configuration.TAINT_TAG_STACK_TYPE);
 					}
 				}
 			}
@@ -384,7 +398,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			case Opcodes.LLOAD:
 			case Opcodes.DLOAD:
 //				System.out.println("PRE LOAD" + var + analyzer.stack + "; " + analyzer.locals);
-				super.visitVarInsn(ILOAD, shadowVar);
+				super.visitVarInsn((Configuration.TAINT_TAG_TYPE == Type.INT ? ILOAD: ALOAD), shadowVar);
 				super.visitVarInsn(opcode, var);
 //				System.out.println("POST LOAD" + var + analyzer.stack);
 				return;
@@ -407,7 +421,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					localType = Type.getType(Object.class);
 				} else if (nextLoadIsTainted) {
 					nextLoadIsTainted = false;
-					localType = Type.getType("[I");
+					localType = Type.getType(Configuration.TAINT_TAG_ARRAYDESC);
 				} else {
 					if (analyzer.locals.get(var) == Opcodes.NULL) {
 						if (TaintUtils.DEBUG_LOCAL)
@@ -454,7 +468,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			case Opcodes.FSTORE:
 			case Opcodes.DSTORE:
 				super.visitVarInsn(opcode, var);
-				super.visitVarInsn(ISTORE, shadowVar);
+				super.visitVarInsn((Configuration.TAINT_TAG_TYPE == Type.INT ? ISTORE : ASTORE), shadowVar);
 				return;
 			case Opcodes.ASTORE:
 				Object stackEl = analyzer.stack.get(analyzer.stack.size() - 1);
@@ -540,18 +554,30 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if (descType.getSort() == Type.OBJECT) {
 						super.visitInsn(DUP);
 						super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
-						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);						
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);						
 					} else if( descType.getSort() != Type.ARRAY){
 						super.visitInsn(SWAP);
 						super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
-						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+						if(Configuration.TAINT_TAG_TYPE == Type.INT)
+							super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+						else
+						{
+							super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Object;", false);
+							super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						}
 						super.visitInsn(SWAP);
 					}
 				} else {
 					super.visitInsn(DUP2_X1);
 					super.visitInsn(POP2);
 					super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
-					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+					if(Configuration.TAINT_TAG_TYPE == Type.INT)
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+					else
+					{
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
 					super.visitInsn(DUP_X2);
 					super.visitInsn(POP);
 				}
@@ -615,7 +641,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if(desc.startsWith("["))
 						retrieveTopOfStackTaintArray();
 					else
-						super.visitInsn(ICONST_0);
+						super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 					super.visitInsn(SWAP);
 				} else {
 					super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, shadowType);
@@ -633,7 +659,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if(desc.startsWith("["))
 						retrieveTopOfStackTaintArray();
 					else
-						super.visitInsn(ICONST_0);
+						super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 					super.visitInsn(SWAP);
 				} else {
 					super.visitInsn(DUP);
@@ -750,19 +776,21 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);//We should just drop the taint for the size of the new array
 			super.visitInsn(POP);
 			super.visitInsn(DUP);
-			super.visitInsn(ICONST_1);
-			super.visitInsn(IADD);
-			super.visitIntInsn(opcode, Opcodes.T_INT);
-
+//			super.visitInsn(ICONST_1);
+//			super.visitInsn(IADD);
+			if(Configuration.TAINT_TAG_TYPE == Type.INT)
+				super.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+			else
+				super.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
 			//Our fancy new hack where we store the taint for a primitive array in the last element of the (oversized) taint array.
 			//Generate a new array taint, store it back in it.
-			super.visitInsn(DUP);
-			super.visitInsn(DUP);
-			super.visitInsn(ARRAYLENGTH);
-			super.visitInsn(ICONST_M1);
-			super.visitInsn(IADD);
-			super.visitInsn(ICONST_0);
-			super.visitInsn(IASTORE);
+//			super.visitInsn(DUP);
+//			super.visitInsn(DUP);
+//			super.visitInsn(ARRAYLENGTH);
+//			super.visitInsn(ICONST_M1);
+//			super.visitInsn(IADD);
+//			super.visitInsn(ICONST_0);
+//			super.visitInsn(IASTORE);
 
 			super.visitInsn(SWAP);
 			super.visitIntInsn(opcode, operand);
@@ -875,7 +903,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if(o == Opcodes.NULL)
 					{
 						super.visitInsn(ACONST_NULL);
-						super.visitTypeInsn(CHECKCAST,"[I");
+						super.visitTypeInsn(CHECKCAST,Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
 						super.visitInsn(SWAP);
 					}
 					else
@@ -939,7 +967,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitTypeInsn(opcode, type);
 				if (doIOR)
 					super.visitInsn(IOR);
-				super.visitInsn(ICONST_0);
+				super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 				super.visitInsn(SWAP);
 			}
 			break;
@@ -977,7 +1005,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		Type arrayDesc = Type.getType(type);
 		//		System.out.println("Get tainted array from " + arrayDesc);
 		//A A
+		if(Configuration.TAINT_TAG_TYPE == Type.INT)
 		super.visitFieldInsn(GETFIELD, Type.getInternalName(boxType), "taint", "[I");
+		else
+		{
+			super.visitFieldInsn(GETFIELD, Type.getInternalName(boxType), "taint", "[Ljava/lang/Object;");
+			super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+		}
 		//A TA
 		super.visitInsn(SWAP);
 		super.visitFieldInsn(GETFIELD, Type.getInternalName(boxType), "val", type);
@@ -1020,7 +1054,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		super.visitInsn(DUP_X2);
 		super.visitInsn(POP);
 		//N N TA A 
-		super.visitMethodInsn(INVOKESPECIAL, wrapperType.getInternalName(), "<init>", "([I" + onStack.getDescriptor() + ")V",false);
+		if (Configuration.TAINT_TAG_TYPE == Type.INT)
+			super.visitMethodInsn(INVOKESPECIAL, wrapperType.getInternalName(), "<init>", "([I" + onStack.getDescriptor() + ")V", false);
+		else
+			super.visitMethodInsn(INVOKESPECIAL, wrapperType.getInternalName(), "<init>", "([Ljava/lang/Object;" + onStack.getDescriptor() + ")V", false);
 		Label isDone = new Label();
 		FrameNode fn2 = getCurrentFrameNode();
 		super.visitJumpInsn(GOTO, isDone);
@@ -1036,9 +1073,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	protected void unwrapTaintedInt() {
 		super.visitInsn(DUP);
-		super.visitFieldInsn(GETFIELD, Type.getInternalName(TaintedInt.class), "taint", "I");
+		getTaintFieldOfBoxedType(TaintUtils.TAINTED_INT_INTERNAL_NAME);
 		super.swap();
-		super.visitFieldInsn(GETFIELD, Type.getInternalName(TaintedInt.class), "val", "I");
+		super.visitFieldInsn(GETFIELD, TaintUtils.TAINTED_INT_INTERNAL_NAME, "val", "I");
 	}
 
 	/**
@@ -1249,8 +1286,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if (Instrumenter.isClassWithHashmapTag(owner) && name.equals("valueOf")) {
 			Type[] args = Type.getArgumentTypes(desc);
 			if (args[0].getSort() != Type.OBJECT) {
-				owner = Type.getInternalName(BoxedPrimitiveStore.class);
+				if(Configuration.TAINT_TAG_TYPE == Type.INT)
+				{
+				owner = Type.getInternalName(BoxedPrimitiveStoreWithIntTags.class);
 				desc = "(I" + desc.substring(1);
+				}
+				else
+				{
+					owner = Type.getInternalName(BoxedPrimitiveStoreWithObjTags.class);
+					desc = "(Ljava/lang/Object;" + desc.substring(1);
+				}
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, owner, name, desc,false);
 				return;
 			}
@@ -1258,11 +1303,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			Type returnType = Type.getReturnType(desc);
 			Type boxedReturn = TaintUtils.getContainerReturnType(returnType);
 			desc = "(L" + owner + ";)" + boxedReturn.getDescriptor();
-			owner = Type.getInternalName(BoxedPrimitiveStore.class);
-
+			if(Configuration.TAINT_TAG_TYPE == Type.INT)
+				owner = Type.getInternalName(BoxedPrimitiveStoreWithIntTags.class);
+			else
+				owner = Type.getInternalName(BoxedPrimitiveStoreWithObjTags.class);
 			super.visitMethodInsn(Opcodes.INVOKESTATIC, owner, name, desc,false);
 			super.visitInsn(DUP);
-			super.visitFieldInsn(GETFIELD, boxedReturn.getInternalName(), "taint", "I");
+			getTaintFieldOfBoxedType(boxedReturn.getInternalName());
 			super.visitInsn(SWAP);
 			super.visitFieldInsn(GETFIELD, boxedReturn.getInternalName(), "val", returnType.getDescriptor());
 			return;
@@ -1284,7 +1331,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			//TA A
 			super.visitInsn(SWAP);
 			super.visitMethodInsn(opcode, "java/lang/Object", "clone", "()Ljava/lang/Object;",false);
-			super.visitTypeInsn(CHECKCAST, "[I");
+			super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
 			//A TA'
 			super.visitInsn(SWAP);
 			//todo
@@ -1305,20 +1352,42 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			//			System.out.println("Sysarracopy with " + analyzer.stack);
 			Type srcType = getStackTypeAtOffset(srcOffset);
 			boolean srcIsPrimitive = srcType.getSort() != Type.OBJECT && srcType.getElementType().getSort() != Type.OBJECT;
-			if (srcIsPrimitive) {
-				if (destIsPrimitve) {
-					desc = "(Ljava/lang/Object;Ljava/lang/Object;IILjava/lang/Object;Ljava/lang/Object;IIII)V";
-					if(Configuration.IMPLICIT_TRACKING)
-						name = "arraycopyControlTrack";
+			if(Configuration.TAINT_TAG_TYPE == Type.INT)
+			{
+				if (srcIsPrimitive) {
+					if (destIsPrimitve) {
+						desc = "(Ljava/lang/Object;Ljava/lang/Object;IILjava/lang/Object;Ljava/lang/Object;IIII)V";
+						if(Configuration.IMPLICIT_TRACKING)
+							name = "arraycopyControlTrack";
+					} else {
+						desc = "(Ljava/lang/Object;Ljava/lang/Object;IILjava/lang/Object;IIII)V";
+					}
 				} else {
-					desc = "(Ljava/lang/Object;Ljava/lang/Object;IILjava/lang/Object;IIII)V";
-				}
-			} else {
-				if (destIsPrimitve) {
-					desc = "(Ljava/lang/Object;IILjava/lang/Object;Ljava/lang/Object;IIII)V";
-				} else {
-					desc = "(Ljava/lang/Object;IILjava/lang/Object;IIII)V";
+					if (destIsPrimitve) {
+						desc = "(Ljava/lang/Object;IILjava/lang/Object;Ljava/lang/Object;IIII)V";
+					} else {
+						desc = "(Ljava/lang/Object;IILjava/lang/Object;IIII)V";
 
+					}
+				}
+			}
+			else
+			{
+				if (srcIsPrimitive) {
+					if (destIsPrimitve) {
+						desc = "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;I)V";
+						if(Configuration.IMPLICIT_TRACKING)
+							name = "arraycopyControlTrack";
+					} else {
+						desc = "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;I)V";
+					}
+				} else {
+					if (destIsPrimitve) {
+						desc = "(Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;I)V";
+					} else {
+						desc = "(Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;I)V";
+
+					}
 				}
 			}
 		}
@@ -1458,7 +1527,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		int n = 1;
 		boolean ignoreNext = false;
 
-		//								System.out.println("12dw23 Calling "+owner+"."+name+newDesc + "with " + analyzer.stack);
+//										System.out.println("12dw23 Calling "+owner+"."+name+newDesc + "with " + analyzer.stack);
 		for (Type t : argsInReverse) {
 			if (analyzer.stack.get(analyzer.stack.size() - i) == Opcodes.TOP)
 				i++;
@@ -1466,10 +1535,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			//			if(ignoreNext)
 			//				System.out.println("ignore next i");
 			Type onStack = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - i));
-			//			System.out.println(name+ " ONStack: " + onStack + " and t = " + t);
+//						System.out.println(name+ " ONStack: " + onStack + " and t = " + t);
 
 			if (!ignoreNext && t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
-				//				System.out.println("t " + t + " and " + analyzer.stack.get(analyzer.stack.size() - i) + " j23oij4oi23");
+//								System.out.println("t " + t + " and " + analyzer.stack.get(analyzer.stack.size() - i) + " j23oij4oi23");
 
 				//Need to check to see if there's a null on the stack in this position
 				if (analyzer.stack.get(analyzer.stack.size() - i) == Opcodes.NULL) {
@@ -1486,7 +1555,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					System.err.println("removing taint array in call at " + n);
 				storeTaintArrayAt(n, onStack.getDescriptor());
 			}
-			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT)
+			if ((t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) || (t.getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC)))
 				ignoreNext = !ignoreNext;
 			n++;
 			i++;
@@ -1538,15 +1607,22 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		String taintType = TaintUtils.getShadowTaintType(Type.getReturnType(desc).getDescriptor());
 		if (taintType != null) {
 			super.visitInsn(DUP);
-			if (Type.getReturnType(desc).getSort() == Type.ARRAY && Type.getReturnType(desc).getDimensions() > 1) {
-				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "taint", "Ljava/lang/Object;");
-				super.visitTypeInsn(CHECKCAST, Type.getReturnType(desc).getDescriptor().substring(0, Type.getReturnType(desc).getDescriptor().length() - 1) + "I");
-			} else {
-				String taintTypeRaw = "I";
+			if (Configuration.TAINT_TAG_TYPE == Type.INT) {
+				String taintTypeRaw = Configuration.TAINT_TAG_DESC;
 				if (Type.getReturnType(desc).getSort() == Type.ARRAY)
-					taintTypeRaw = "[I";
+					taintTypeRaw = Configuration.TAINT_TAG_ARRAYDESC;
 				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "taint", taintTypeRaw);
+			} else {
+				String taintTypeRaw = Configuration.TAINT_TAG_INTERNAL_NAME;
+				String fieldType = "Ljava/lang/Object;";
+				if (Type.getReturnType(desc).getSort() == Type.ARRAY) {
+					taintTypeRaw = Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME;
+					fieldType = "[Ljava/lang/Object;";
+				}
+				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "taint", fieldType);
+				super.visitTypeInsn(CHECKCAST, taintTypeRaw);
 			}
+
 			super.visitInsn(SWAP);
 			if (returnType.equals(Type.getType(TaintedMisc.class))) {
 				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "val", "Ljava/lang/Object;");
@@ -1625,7 +1701,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			if (onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT) {
 				generateEmptyTaintArray(onStack.getDescriptor());
 			} else {
-				super.visitInsn(ICONST_0);
+				super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 				if (onStack.getSize() == 1) {
 					super.visitInsn(SWAP);
 				} else {
@@ -1689,8 +1765,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 		if(Configuration.IMPLICIT_TRACKING)
 		{
-			switch(opcode)
-			{
+			switch (opcode) {
 			case IRETURN:
 			case IASTORE:
 			case FRETURN:
@@ -1700,7 +1775,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			case SASTORE:
 				super.visitInsn(SWAP);
 				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
-				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+				if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+				else {
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+							"(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Object;", false);
+					super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				}
 				super.visitInsn(SWAP);
 				break;
 			case DASTORE:
@@ -1710,9 +1791,21 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(DUP2_X1);
 				super.visitInsn(POP2);
 				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
-				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+				if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+				else {
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+							"(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Object;", false);
+					super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				}
 				super.visitInsn(DUP_X2);
 				super.visitInsn(POP);
+				break;
+			case AASTORE:
+			case ARETURN:
+				super.visitInsn(DUP);
+				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
+				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);						
 				break;
 			}
 		}
@@ -1794,7 +1887,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(DUP2_X2);
 					super.visitInsn(POP2);
 					//V V TA I
-					super.visitInsn(IALOAD);
+					super.visitInsn(TaintUtils.TAINT_ARRAY_LOAD_OPCODE);
 					//V V T
 					super.visitInsn(DUP_X2);
 					// T V V T
@@ -1804,7 +1897,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(DUP_X2);
 					super.visitInsn(POP);
 					//V TA I
-					super.visitInsn(IALOAD);
+					super.visitInsn(TaintUtils.TAINT_ARRAY_LOAD_OPCODE);
 					super.visitInsn(SWAP);
 				}
 			}
@@ -1986,13 +2079,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				int tmp1, tmp2;
 				super.visitInsn(TaintUtils.IS_TMP_STORE);
 				tmp1 = lvs.getTmpLV(getTopOfStackType());
-				if (opcode == DASTORE || opcode == LASTORE)
-					super.visitVarInsn(valStoreOpcode, tmp1);
-				else
-					super.visitVarInsn(valStoreOpcode, tmp1);
+				super.visitVarInsn(valStoreOpcode, tmp1);
 				tmp2 = lvs.getTmpLV(getTopOfStackType());
 				super.visitInsn(TaintUtils.IS_TMP_STORE);
-				super.visitVarInsn(ISTORE, tmp2);
+				super.visitVarInsn(TaintUtils.TAINT_STORE_OPCODE, tmp2);
 				if (isTaintlessArrayStore) {
 					isTaintlessArrayStore = false;
 				} else {
@@ -2004,8 +2094,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				//tarray idx array idx
 				super.visitVarInsn(valLoadOpcode, tmp1);
 				super.visitInsn(opcode);
-				super.visitVarInsn(ILOAD, tmp2);
-				super.visitInsn(IASTORE);
+				super.visitVarInsn(TaintUtils.TAINT_LOAD_OPCODE, tmp2);
+				super.visitInsn(TaintUtils.TAINT_ARRAY_STORE_OPCODE);
 				lvs.freeTmpLV(tmp1);
 				lvs.freeTmpLV(tmp2);
 			}
@@ -2046,7 +2136,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					//VV TT
 					int taint = lvs.getTmpLV();
 					super.visitInsn(TaintUtils.IS_TMP_STORE);
-					super.visitVarInsn(ISTORE, taint);
+					super.visitVarInsn(TaintUtils.TAINT_STORE_OPCODE, taint);
 					//VV T
 					super.visitInsn(DUP_X2);
 					//T VV T
@@ -2054,7 +2144,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					//TVV
 					super.visitInsn(DUP2);
 					//TVVVV
-					super.visitVarInsn(ILOAD, taint);
+					super.visitVarInsn(TaintUtils.TAINT_LOAD_OPCODE, taint);
 					lvs.freeTmpLV(taint);
 					//TVV VVT
 					super.visitInsn(DUP_X2);
@@ -2077,13 +2167,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(TaintUtils.IS_TMP_STORE);
 					super.visitVarInsn(topType.getOpcode(ISTORE), top);
 					int second = lvs.getTmpLV();
-					super.visitVarInsn(ISTORE, second);
+					super.visitVarInsn(TaintUtils.TAINT_STORE_OPCODE, second);
 					if (isPrimitiveStackType(secondOnStack)) {
 						//Also need to dup the second one.
 						super.visitInsn(DUP2);
 					} else
 						super.visitInsn(DUP);
-					super.visitVarInsn(ILOAD, second);
+					super.visitVarInsn(TaintUtils.TAINT_LOAD_OPCODE, second);
 					super.visitVarInsn(topType.getOpcode(ILOAD), top);
 					if (isPrimitiveStackType(secondOnStack)) {
 						super.visitInsn(DUP2_X2);
@@ -2420,7 +2510,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(POP);
 					if(TaintUtils.MULTI_TAINT)
 					{
-						super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+						if (Configuration.TAINT_TAG_TYPE == Type.INT)
+							super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+						else {
+							super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+									"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+							super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						}
 					}
 					else
 					{
@@ -2476,8 +2572,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(POP);
 					if(TaintUtils.MULTI_TAINT)
 					{
-						super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-					}
+						if (Configuration.TAINT_TAG_TYPE == Type.INT)
+							super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+						else {
+							super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+									"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+							super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						}
+						}
 					else
 					{
 						super.visitInsn(Opcodes.IOR);
@@ -2515,8 +2617,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(POP2);
 					if(TaintUtils.MULTI_TAINT)
 					{
-						super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-					}
+						if (Configuration.TAINT_TAG_TYPE == Type.INT)
+							super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+						else {
+							super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+									"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+							super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						}
+						}
 					else
 					{
 						super.visitInsn(Opcodes.IOR);
@@ -2546,8 +2654,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						//T T
 						if(TaintUtils.MULTI_TAINT)
 						{
-							super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-						}
+							if (Configuration.TAINT_TAG_TYPE == Type.INT)
+								super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+							else {
+								super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+										"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+								super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+							}
+							}
 						else
 						{
 							super.visitInsn(Opcodes.IOR);
@@ -2583,8 +2697,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(POP2);
 				if(TaintUtils.MULTI_TAINT)
 				{
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-				}
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+					else {
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+								"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
+					}
 				else
 				{
 					super.visitInsn(Opcodes.IOR);
@@ -2625,8 +2745,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(POP2);
 					if(TaintUtils.MULTI_TAINT)
 					{
-						super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-					}
+						if (Configuration.TAINT_TAG_TYPE == Type.INT)
+							super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+						else {
+							super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+									"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+							super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						}
+						}
 					else
 					{
 						super.visitInsn(Opcodes.IOR);
@@ -2683,8 +2809,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(POP);
 				if(TaintUtils.MULTI_TAINT)
 				{
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-				}
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+					else {
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+								"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
+					}
 				else
 				{
 					super.visitInsn(Opcodes.IOR);
@@ -2712,8 +2844,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(POP);
 				if(TaintUtils.MULTI_TAINT)
 				{
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-				}
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+					else {
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+								"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
+					}
 				else
 				{
 					super.visitInsn(Opcodes.IOR);
@@ -2741,8 +2879,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(POP);
 				if(TaintUtils.MULTI_TAINT)
 				{
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-				}
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+					else {
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+								"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
+					}
 				else
 				{
 					super.visitInsn(Opcodes.IOR);
@@ -2769,8 +2913,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(POP);
 				if(TaintUtils.MULTI_TAINT)
 				{
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-				}
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+					else {
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+								"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
+					}
 				else
 				{
 					super.visitInsn(Opcodes.IOR);
@@ -2796,8 +2946,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(POP);
 				if(TaintUtils.MULTI_TAINT)
 				{
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-				}
+					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
+					else {
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+								"(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
+					}
 				else
 				{
 					super.visitInsn(Opcodes.IOR);
@@ -2815,7 +2971,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());
 			super.visitVarInsn(ALOAD, retIdx);
 			super.visitInsn(SWAP);
-			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", "I");
+			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", (Configuration.TAINT_TAG_TYPE == Type.INT ? "I":"Ljava/lang/Object;"));
 			super.visitVarInsn(ALOAD, retIdx);
 			super.visitInsn(ARETURN);
 			break;
@@ -2829,7 +2985,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());
 			super.visitVarInsn(ALOAD, retIdx);
 			super.visitInsn(SWAP);
-			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", "I");
+			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", (Configuration.TAINT_TAG_TYPE == Type.INT ? "I":"Ljava/lang/Object;"));
 			super.visitVarInsn(ALOAD, retIdx);
 			super.visitInsn(ARETURN);
 			break;
@@ -2877,7 +3033,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());
 					super.visitVarInsn(ALOAD, retIdx);
 					super.visitInsn(SWAP);
+					if(Configuration.TAINT_TAG_TYPE == Type.INT)
 					super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", "[I");
+					else
+						super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", "[Ljava/lang/Object;");
 					super.visitVarInsn(ALOAD, retIdx);
 					super.visitInsn(ARETURN);
 					break;
@@ -2904,7 +3063,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					//A
 				}
 				super.visitInsn(opcode);
-				super.visitInsn(ICONST_0);
+				super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 				super.visitInsn(SWAP);
 
 			}
@@ -2994,7 +3153,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				//T V T V
 				super.visitInsn(SWAP);
 				super.visitInsn(TaintUtils.IS_TMP_STORE);
-				super.visitVarInsn(ISTORE, tmp);
+				super.visitVarInsn(TaintUtils.TAINT_STORE_OPCODE, tmp);
 				//T V V
 				super.visitInsn(DUP2_X1);
 				super.visitInsn(POP2);
@@ -3002,7 +3161,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
 				super.visitInsn(SWAP);
 				//V V C T
-				super.visitVarInsn(ILOAD, tmp);
+				super.visitVarInsn(TaintUtils.TAINT_LOAD_OPCODE, tmp);
 				lvs.freeTmpLV(tmp);
 				//V V T T
 				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(II)V", false);
@@ -3045,7 +3204,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
 				super.visitVarInsn(ALOAD, var);
 //				System.out.println("Boxing." + analyzer.stack);
-				registerTaintedArray("[I");
+				registerTaintedArray(getTopOfStackType().getDescriptor());
 				
 				super.visitVarInsn(ASTORE, var);
 			}

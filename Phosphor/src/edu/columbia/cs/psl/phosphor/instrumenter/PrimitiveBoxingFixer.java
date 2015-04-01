@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import java.util.Arrays;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
@@ -10,7 +11,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
-import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 
 public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 
@@ -94,20 +95,22 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitLabel(makeNew);
 				fn.accept(this);
 
+				Type taintType = Type.getType(Configuration.TAINT_TAG_DESC);
+				
 				//VV T
 				int tmp = lvs.getTmpLV(argT);
-				int tmpT = lvs.getTmpLV(Type.getType("I"));
-				super.visitVarInsn(ISTORE, tmpT);
+				int tmpT = lvs.getTmpLV(taintType);
+				super.visitVarInsn(taintType.getOpcode(ISTORE), tmpT);
 				super.visitVarInsn(argT.getOpcode(ISTORE), tmp);
 				super.visitTypeInsn(Opcodes.NEW, owner);
 				super.visitInsn(Opcodes.DUP);
 				//T I N N
 
-				super.visitVarInsn(ILOAD, tmpT);
+				super.visitVarInsn(taintType.getOpcode(ILOAD), tmpT);
 				super.visitVarInsn(argT.getOpcode(ILOAD), tmp);
 
 				super.visitInsn(Opcodes.ACONST_NULL);
-				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "(I" + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V", false);
+				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V", false);
 				lvs.freeTmpLV(tmp);
 				lvs.freeTmpLV(tmpT);
 				super.visitLabel(isOK);

@@ -6,31 +6,54 @@ import java.lang.reflect.Method;
 import java.util.WeakHashMap;
 
 import sun.reflect.ReflectionFactory;
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByte;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedChar;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDouble;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloat;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedInt;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLong;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitive;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArray;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShort;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArray;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public class ReflectionMasker {
 
@@ -69,7 +92,7 @@ public class ReflectionMasker {
 				if (c.getComponentType().isPrimitive()) {
 					//1d primitive array
 					madeChange = true;
-					newArgs.add(int[].class);
+					newArgs.add(Configuration.TAINT_TAG_ARRAY_CLASS);
 					newArgs.add(c);
 					continue;
 				} else {
@@ -94,7 +117,7 @@ public class ReflectionMasker {
 				}
 			} else if (c.isPrimitive()) {
 				madeChange = true;
-				newArgs.add(Integer.TYPE);
+				newArgs.add(Configuration.TAINT_TAG_CLASS);
 				newArgs.add(c);
 				continue;
 			} else {
@@ -106,45 +129,88 @@ public class ReflectionMasker {
 			madeChange = true;
 			newArgs.add(ControlTaintTagStack.class);
 		final Class returnType = m.getReturnType();
-		if (returnType.isArray()) {
-			if (returnType.getComponentType().isPrimitive()) {
-				Class comp = returnType.getComponentType();
-				if (comp == Integer.TYPE)
-					newArgs.add(TaintedIntArray.class);
-				else if (comp == Short.TYPE)
-					newArgs.add(TaintedShortArray.class);
-				else if (comp == Float.TYPE)
-					newArgs.add(TaintedFloatArray.class);
-				else if (comp == Double.TYPE)
-					newArgs.add(TaintedDoubleArray.class);
-				else if (comp == Long.TYPE)
-					newArgs.add(TaintedLongArray.class);
-				else if (comp == Character.TYPE)
-					newArgs.add(TaintedCharArray.class);
-				else if (comp == Byte.TYPE)
-					newArgs.add(TaintedByteArray.class);
-				else if (comp == Boolean.TYPE)
-					newArgs.add(TaintedBooleanArray.class);
+		if (Configuration.TAINT_TAG_TYPE == Type.INT) {
+			if (returnType.isArray()) {
+				if (returnType.getComponentType().isPrimitive()) {
+					Class comp = returnType.getComponentType();
+					if (comp == Integer.TYPE)
+						newArgs.add(TaintedIntArrayWithIntTag.class);
+					else if (comp == Short.TYPE)
+						newArgs.add(TaintedShortArrayWithIntTag.class);
+					else if (comp == Float.TYPE)
+						newArgs.add(TaintedFloatArrayWithIntTag.class);
+					else if (comp == Double.TYPE)
+						newArgs.add(TaintedDoubleArrayWithIntTag.class);
+					else if (comp == Long.TYPE)
+						newArgs.add(TaintedLongArrayWithIntTag.class);
+					else if (comp == Character.TYPE)
+						newArgs.add(TaintedCharArrayWithIntTag.class);
+					else if (comp == Byte.TYPE)
+						newArgs.add(TaintedByteArrayWithIntTag.class);
+					else if (comp == Boolean.TYPE)
+						newArgs.add(TaintedBooleanArrayWithIntTag.class);
+					madeChange = true;
+				}
+			} else if (returnType.isPrimitive() && returnType != Void.TYPE) {
+				if (returnType == Integer.TYPE)
+					newArgs.add(TaintedIntWithIntTag.class);
+				else if (returnType == Short.TYPE)
+					newArgs.add(TaintedShortWithIntTag.class);
+				else if (returnType == Float.TYPE)
+					newArgs.add(TaintedFloatWithIntTag.class);
+				else if (returnType == Double.TYPE)
+					newArgs.add(TaintedDoubleWithIntTag.class);
+				else if (returnType == Long.TYPE)
+					newArgs.add(TaintedLongWithIntTag.class);
+				else if (returnType == Character.TYPE)
+					newArgs.add(TaintedCharWithIntTag.class);
+				else if (returnType == Byte.TYPE)
+					newArgs.add(TaintedByteWithIntTag.class);
+				else if (returnType == Boolean.TYPE)
+					newArgs.add(TaintedBooleanWithIntTag.class);
 				madeChange = true;
 			}
-		} else if (returnType.isPrimitive() && returnType != Void.TYPE) {
-			if (returnType == Integer.TYPE)
-				newArgs.add(TaintedInt.class);
-			else if (returnType == Short.TYPE)
-				newArgs.add(TaintedShort.class);
-			else if (returnType == Float.TYPE)
-				newArgs.add(TaintedFloat.class);
-			else if (returnType == Double.TYPE)
-				newArgs.add(TaintedDouble.class);
-			else if (returnType == Long.TYPE)
-				newArgs.add(TaintedLong.class);
-			else if (returnType == Character.TYPE)
-				newArgs.add(TaintedChar.class);
-			else if (returnType == Byte.TYPE)
-				newArgs.add(TaintedByte.class);
-			else if (returnType == Boolean.TYPE)
-				newArgs.add(TaintedBoolean.class);
-			madeChange = true;
+		} else {
+			if (returnType.isArray()) {
+				if (returnType.getComponentType().isPrimitive()) {
+					Class comp = returnType.getComponentType();
+					if (comp == Integer.TYPE)
+						newArgs.add(TaintedIntArrayWithObjTag.class);
+					else if (comp == Short.TYPE)
+						newArgs.add(TaintedShortArrayWithObjTag.class);
+					else if (comp == Float.TYPE)
+						newArgs.add(TaintedFloatArrayWithObjTag.class);
+					else if (comp == Double.TYPE)
+						newArgs.add(TaintedDoubleArrayWithObjTag.class);
+					else if (comp == Long.TYPE)
+						newArgs.add(TaintedLongArrayWithObjTag.class);
+					else if (comp == Character.TYPE)
+						newArgs.add(TaintedCharArrayWithObjTag.class);
+					else if (comp == Byte.TYPE)
+						newArgs.add(TaintedByteArrayWithObjTag.class);
+					else if (comp == Boolean.TYPE)
+						newArgs.add(TaintedBooleanArrayWithObjTag.class);
+					madeChange = true;
+				}
+			} else if (returnType.isPrimitive() && returnType != Void.TYPE) {
+				if (returnType == Integer.TYPE)
+					newArgs.add(TaintedIntWithObjTag.class);
+				else if (returnType == Short.TYPE)
+					newArgs.add(TaintedShortWithObjTag.class);
+				else if (returnType == Float.TYPE)
+					newArgs.add(TaintedFloatWithObjTag.class);
+				else if (returnType == Double.TYPE)
+					newArgs.add(TaintedDoubleWithObjTag.class);
+				else if (returnType == Long.TYPE)
+					newArgs.add(TaintedLongWithObjTag.class);
+				else if (returnType == Character.TYPE)
+					newArgs.add(TaintedCharWithObjTag.class);
+				else if (returnType == Byte.TYPE)
+					newArgs.add(TaintedByteWithObjTag.class);
+				else if (returnType == Boolean.TYPE)
+					newArgs.add(TaintedBooleanWithObjTag.class);
+				madeChange = true;
+			}
 		}
 		if (madeChange) {
 			Class[] args = new Class[newArgs.size()];
@@ -202,7 +268,7 @@ public class ReflectionMasker {
 				if (c.getComponentType().isPrimitive()) {
 					//1d primitive array
 					madeChange = true;
-					newArgs.add(int[].class);
+					newArgs.add(Configuration.TAINT_TAG_ARRAY_CLASS);
 					newArgs.add(c);
 					continue;
 				} else {
@@ -227,7 +293,7 @@ public class ReflectionMasker {
 				}
 			} else if (c.isPrimitive()) {
 				madeChange = true;
-				newArgs.add(Integer.TYPE);
+				newArgs.add(Configuration.TAINT_TAG_CLASS);
 				newArgs.add(c);
 				continue;
 			} else {
@@ -237,45 +303,88 @@ public class ReflectionMasker {
 			}
 		}
 		final Class returnType = m.getReturnType();
-		if (returnType.isArray()) {
-			if (returnType.getComponentType().isPrimitive()) {
-				Class comp = returnType.getComponentType();
-				if (comp == Integer.TYPE)
-					newArgs.add(TaintedIntArray.class);
-				else if (comp == Short.TYPE)
-					newArgs.add(TaintedShortArray.class);
-				else if (comp == Float.TYPE)
-					newArgs.add(TaintedFloatArray.class);
-				else if (comp == Double.TYPE)
-					newArgs.add(TaintedDoubleArray.class);
-				else if (comp == Long.TYPE)
-					newArgs.add(TaintedLongArray.class);
-				else if (comp == Character.TYPE)
-					newArgs.add(TaintedCharArray.class);
-				else if (comp == Byte.TYPE)
-					newArgs.add(TaintedByteArray.class);
-				else if (comp == Boolean.TYPE)
-					newArgs.add(TaintedBooleanArray.class);
+		if (Configuration.TAINT_TAG_TYPE == Type.INT) {
+			if (returnType.isArray()) {
+				if (returnType.getComponentType().isPrimitive()) {
+					Class comp = returnType.getComponentType();
+					if (comp == Integer.TYPE)
+						newArgs.add(TaintedIntArrayWithIntTag.class);
+					else if (comp == Short.TYPE)
+						newArgs.add(TaintedShortArrayWithIntTag.class);
+					else if (comp == Float.TYPE)
+						newArgs.add(TaintedFloatArrayWithIntTag.class);
+					else if (comp == Double.TYPE)
+						newArgs.add(TaintedDoubleArrayWithIntTag.class);
+					else if (comp == Long.TYPE)
+						newArgs.add(TaintedLongArrayWithIntTag.class);
+					else if (comp == Character.TYPE)
+						newArgs.add(TaintedCharArrayWithIntTag.class);
+					else if (comp == Byte.TYPE)
+						newArgs.add(TaintedByteArrayWithIntTag.class);
+					else if (comp == Boolean.TYPE)
+						newArgs.add(TaintedBooleanArrayWithIntTag.class);
+					madeChange = true;
+				}
+			} else if (returnType.isPrimitive() && returnType != Void.TYPE) {
+				if (returnType == Integer.TYPE)
+					newArgs.add(TaintedIntWithIntTag.class);
+				else if (returnType == Short.TYPE)
+					newArgs.add(TaintedShortWithIntTag.class);
+				else if (returnType == Float.TYPE)
+					newArgs.add(TaintedFloatWithIntTag.class);
+				else if (returnType == Double.TYPE)
+					newArgs.add(TaintedDoubleWithIntTag.class);
+				else if (returnType == Long.TYPE)
+					newArgs.add(TaintedLongWithIntTag.class);
+				else if (returnType == Character.TYPE)
+					newArgs.add(TaintedCharWithIntTag.class);
+				else if (returnType == Byte.TYPE)
+					newArgs.add(TaintedByteWithIntTag.class);
+				else if (returnType == Boolean.TYPE)
+					newArgs.add(TaintedBooleanWithIntTag.class);
 				madeChange = true;
 			}
-		} else if (returnType.isPrimitive() && returnType != Void.TYPE) {
-			if (returnType == Integer.TYPE)
-				newArgs.add(TaintedInt.class);
-			else if (returnType == Short.TYPE)
-				newArgs.add(TaintedShort.class);
-			else if (returnType == Float.TYPE)
-				newArgs.add(TaintedFloat.class);
-			else if (returnType == Double.TYPE)
-				newArgs.add(TaintedDouble.class);
-			else if (returnType == Long.TYPE)
-				newArgs.add(TaintedLong.class);
-			else if (returnType == Character.TYPE)
-				newArgs.add(TaintedChar.class);
-			else if (returnType == Byte.TYPE)
-				newArgs.add(TaintedByte.class);
-			else if (returnType == Boolean.TYPE)
-				newArgs.add(TaintedBoolean.class);
-			madeChange = true;
+		} else {
+			if (returnType.isArray()) {
+				if (returnType.getComponentType().isPrimitive()) {
+					Class comp = returnType.getComponentType();
+					if (comp == Integer.TYPE)
+						newArgs.add(TaintedIntArrayWithObjTag.class);
+					else if (comp == Short.TYPE)
+						newArgs.add(TaintedShortArrayWithObjTag.class);
+					else if (comp == Float.TYPE)
+						newArgs.add(TaintedFloatArrayWithObjTag.class);
+					else if (comp == Double.TYPE)
+						newArgs.add(TaintedDoubleArrayWithObjTag.class);
+					else if (comp == Long.TYPE)
+						newArgs.add(TaintedLongArrayWithObjTag.class);
+					else if (comp == Character.TYPE)
+						newArgs.add(TaintedCharArrayWithObjTag.class);
+					else if (comp == Byte.TYPE)
+						newArgs.add(TaintedByteArrayWithObjTag.class);
+					else if (comp == Boolean.TYPE)
+						newArgs.add(TaintedBooleanArrayWithObjTag.class);
+					madeChange = true;
+				}
+			} else if (returnType.isPrimitive() && returnType != Void.TYPE) {
+				if (returnType == Integer.TYPE)
+					newArgs.add(TaintedIntWithObjTag.class);
+				else if (returnType == Short.TYPE)
+					newArgs.add(TaintedShortWithObjTag.class);
+				else if (returnType == Float.TYPE)
+					newArgs.add(TaintedFloatWithObjTag.class);
+				else if (returnType == Double.TYPE)
+					newArgs.add(TaintedDoubleWithObjTag.class);
+				else if (returnType == Long.TYPE)
+					newArgs.add(TaintedLongWithObjTag.class);
+				else if (returnType == Character.TYPE)
+					newArgs.add(TaintedCharWithObjTag.class);
+				else if (returnType == Byte.TYPE)
+					newArgs.add(TaintedByteWithObjTag.class);
+				else if (returnType == Boolean.TYPE)
+					newArgs.add(TaintedBooleanWithObjTag.class);
+				madeChange = true;
+			}
 		}
 		if (madeChange) {
 			Class[] args = new Class[newArgs.size()];
@@ -349,7 +458,7 @@ public class ReflectionMasker {
 						origArgs.add(c);
 					dontIgnorePrimitive = !dontIgnorePrimitive;
 				} else {
-					if (!TaintedPrimitive.class.isAssignableFrom(c) && !TaintedPrimitiveArray.class.isAssignableFrom(c) && !c.equals(ControlTaintTagStack.class))
+					if (!TaintedPrimitiveWithIntTag.class.isAssignableFrom(c) && !TaintedPrimitiveArrayWithIntTag.class.isAssignableFrom(c) && !c.equals(ControlTaintTagStack.class))
 						origArgs.add(c);
 				}
 			}
@@ -439,6 +548,8 @@ public class ReflectionMasker {
 			if (c != null && (c.isPrimitive() || (c.isArray() && isPrimitiveArray(c))))
 				needsChange = true;
 		}
+		if(Configuration.IMPLICIT_TRACKING)
+			needsChange = true;
 		if (needsChange) {
 			ArrayList<Class> newParams = new ArrayList<Class>();
 			for (Class c : params) {
@@ -446,7 +557,7 @@ public class ReflectionMasker {
 				if (t.getSort() == Type.ARRAY) {
 					if (t.getElementType().getSort() != Type.OBJECT) {
 						if (t.getDimensions() == 1) {
-							newParams.add(int[].class);
+							newParams.add(Configuration.TAINT_TAG_ARRAY_CLASS);
 						} else {
 							Type newType = MultiDTaintedArray.getTypeForType(t);
 							try {
@@ -458,10 +569,12 @@ public class ReflectionMasker {
 						}
 					}
 				} else if (t.getSort() != Type.OBJECT) {
-					newParams.add(Integer.TYPE);
+					newParams.add(Configuration.TAINT_TAG_CLASS);
 				}
 				newParams.add(c);
 			}
+			if(Configuration.IMPLICIT_TRACKING)
+				newParams.add(ControlTaintTagStack.class);
 			newParams.add(TaintSentinel.class);
 			Class[] ret = new Class[newParams.size()];
 			newParams.toArray(ret);
@@ -574,17 +687,27 @@ public class ReflectionMasker {
 			int j = 0;
 			for (int i = 0; i < in.length; i++) {
 				if (c.getParameterTypes()[j].isPrimitive()) {
-					if (in[i] instanceof Tainted)
-						ret[j] = ((Tainted) in[i]).getPHOSPHOR_TAG();
+					if (in[i] instanceof TaintedWithIntTag)
+						ret[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
+					else if(in[i] instanceof TaintedWithObjTag)
+						ret[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
 					else
 						ret[j] = 0;
 					j++;
 				} else if (c.getParameterTypes()[j].isArray() && c.getParameterTypes()[j].getComponentType().isPrimitive()) {
-					MultiDTaintedArray arr = ((MultiDTaintedArray) in[i]);
-					ret[j] = arr.taint;
-					j++;
-					ret[j] = arr.getVal();
-					j++;
+					if (Configuration.TAINT_TAG_TYPE == Type.INT) {
+						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
+						ret[j] = arr.taint;
+						j++;
+						ret[j] = arr.getVal();
+						j++;
+					} else {
+						MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
+						ret[j] = arr.taint;
+						j++;
+						ret[j] = arr.getVal();
+						j++;
+					}
 					continue;
 				}
 				ret[j] = in[i];
@@ -613,17 +736,27 @@ public class ReflectionMasker {
 			int j = 0;
 			for (int i = 0; i < in.length; i++) {
 				if (c.getParameterTypes()[j].isPrimitive()) {
-					if (in[i] instanceof Tainted)
-						ret[j] = ((Tainted) in[i]).getPHOSPHOR_TAG();
+					if (in[i] instanceof TaintedWithIntTag)
+						ret[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
+					else if(in[i] instanceof TaintedWithObjTag)
+						ret[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
 					else
 						ret[j] = 0;
 					j++;
 				} else if (c.getParameterTypes()[j].isArray() && c.getParameterTypes()[j].getComponentType().isPrimitive()) {
-					MultiDTaintedArray arr = ((MultiDTaintedArray) in[i]);
-					ret[j] = arr.taint;
-					j++;
-					ret[j] = arr.getVal();
-					j++;
+					if (Configuration.TAINT_TAG_TYPE == Type.INT) {
+						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
+						ret[j] = arr.taint;
+						j++;
+						ret[j] = arr.getVal();
+						j++;
+					} else {
+						MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
+						ret[j] = arr.taint;
+						j++;
+						ret[j] = arr.getVal();
+						j++;
+					}
 					continue;
 				}
 				ret[j] = in[i];
@@ -655,17 +788,27 @@ public class ReflectionMasker {
 			ret = new Object[m.getParameterTypes().length];
 			for (int i = 0; i < in.length; i++) {
 				if (m.getParameterTypes()[j].isPrimitive()) {
-					if (in[i] instanceof Tainted)
-						ret[j] = ((Tainted) in[i]).getPHOSPHOR_TAG();
+					if (in[i] instanceof TaintedWithIntTag)
+						ret[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
+					else if(in[i] instanceof TaintedWithObjTag)
+						ret[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
 					else
 						ret[j] = 0;
 					j++;
 				} else if (m.getParameterTypes()[j].isArray() && m.getParameterTypes()[j].getComponentType().isPrimitive()) {
-					MultiDTaintedArray arr = ((MultiDTaintedArray) in[i]);
-					ret[j] = arr.taint;
-					j++;
-					ret[j] = arr.getVal();
-					j++;
+					if (Configuration.TAINT_TAG_TYPE == Type.INT) {
+						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
+						ret[j] = arr.taint;
+						j++;
+						ret[j] = arr.getVal();
+						j++;
+					} else {
+						MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
+						ret[j] = arr.taint;
+						j++;
+						ret[j] = arr.getVal();
+						j++;
+					}
 					continue;
 				}
 				ret[j] = in[i];
@@ -676,40 +819,15 @@ public class ReflectionMasker {
 			if (in == null)
 				ret = new Object[1];
 			final Class returnType = m.getReturnType();
-			if (TaintedPrimitiveArray.class.isAssignableFrom(returnType)) {
-				if (returnType == TaintedIntArray.class)
-					ret[j] = new TaintedIntArray();
-				else if (returnType == TaintedShortArray.class)
-					ret[j] = new TaintedShortArray();
-				else if (returnType == TaintedFloatArray.class)
-					ret[j] = new TaintedFloatArray();
-				else if (returnType == TaintedDoubleArray.class)
-					ret[j] = new TaintedDoubleArray();
-				else if (returnType == TaintedLongArray.class)
-					ret[j] = new TaintedLongArray();
-				else if (returnType == TaintedCharArray.class)
-					ret[j] = new TaintedCharArray();
-				else if (returnType == TaintedByteArray.class)
-					ret[j] = new TaintedByteArray();
-				else if (returnType == TaintedBooleanArray.class)
-					ret[j] = new TaintedBooleanArray();
-			} else if (TaintedPrimitive.class.isAssignableFrom(returnType)) {
-				if (returnType == TaintedInt.class)
-					ret[j] = new TaintedInt();
-				else if (returnType == TaintedShort.class)
-					ret[j] = new TaintedShort();
-				else if (returnType == TaintedFloat.class)
-					ret[j] = new TaintedFloat();
-				else if (returnType == TaintedDouble.class)
-					ret[j] = new TaintedDouble();
-				else if (returnType == TaintedLong.class)
-					ret[j] = new TaintedLong();
-				else if (returnType == TaintedChar.class)
-					ret[j] = new TaintedChar();
-				else if (returnType == TaintedByte.class)
-					ret[j] = new TaintedByte();
-				else if (returnType == TaintedBoolean.class)
-					ret[j] = new TaintedBoolean();
+			if (TaintedPrimitiveArrayWithIntTag.class.isAssignableFrom(returnType) || TaintedPrimitiveWithIntTag.class.isAssignableFrom(returnType)
+					|| TaintedPrimitiveArrayWithObjTag.class.isAssignableFrom(returnType) || TaintedPrimitiveWithObjTag.class.isAssignableFrom(returnType))  {
+				try {
+					ret[j] = returnType.newInstance();
+				} catch (InstantiationException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				}
 			}
 
 		}
@@ -738,17 +856,27 @@ public class ReflectionMasker {
 			ret.a = new Object[m.getParameterTypes().length];
 			for (int i = 0; i < in.length; i++) {
 				if (m.getParameterTypes()[j].isPrimitive()) {
-					if (in[i] instanceof Tainted)
-						ret.a[j] = ((Tainted) in[i]).getPHOSPHOR_TAG();
+					if (in[i] instanceof TaintedWithIntTag)
+						ret.a[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
+					else if(in[i] instanceof TaintedWithObjTag)
+						ret.a[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
 					else
 						ret.a[j] = 0;
 					j++;
 				} else if (m.getParameterTypes()[j].isArray() && m.getParameterTypes()[j].getComponentType().isPrimitive()) {
-					MultiDTaintedArray arr = ((MultiDTaintedArray) in[i]);
-					ret.a[j] = arr.taint;
-					j++;
-					ret.a[j] = arr.getVal();
-					j++;
+					if (Configuration.TAINT_TAG_TYPE == Type.INT) {
+						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
+						ret.a[j] = arr.taint;
+						j++;
+						ret.a[j] = arr.getVal();
+						j++;
+					} else {
+						MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
+						ret.a[j] = arr.taint;
+						j++;
+						ret.a[j] = arr.getVal();
+						j++;
+					}
 					continue;
 				}
 				ret.a[j] = in[i];
@@ -759,40 +887,15 @@ public class ReflectionMasker {
 			if (in == null)
 				ret.a = new Object[1];
 			final Class returnType = m.getReturnType();
-			if (TaintedPrimitiveArray.class.isAssignableFrom(returnType)) {
-				if (returnType == TaintedIntArray.class)
-					ret.a[j] = new TaintedIntArray();
-				else if (returnType == TaintedShortArray.class)
-					ret.a[j] = new TaintedShortArray();
-				else if (returnType == TaintedFloatArray.class)
-					ret.a[j] = new TaintedFloatArray();
-				else if (returnType == TaintedDoubleArray.class)
-					ret.a[j] = new TaintedDoubleArray();
-				else if (returnType == TaintedLongArray.class)
-					ret.a[j] = new TaintedLongArray();
-				else if (returnType == TaintedCharArray.class)
-					ret.a[j] = new TaintedCharArray();
-				else if (returnType == TaintedByteArray.class)
-					ret.a[j] = new TaintedByteArray();
-				else if (returnType == TaintedBooleanArray.class)
-					ret.a[j] = new TaintedBooleanArray();
-			} else if (TaintedPrimitive.class.isAssignableFrom(returnType)) {
-				if (returnType == TaintedInt.class)
-					ret.a[j] = new TaintedInt();
-				else if (returnType == TaintedShort.class)
-					ret.a[j] = new TaintedShort();
-				else if (returnType == TaintedFloat.class)
-					ret.a[j] = new TaintedFloat();
-				else if (returnType == TaintedDouble.class)
-					ret.a[j] = new TaintedDouble();
-				else if (returnType == TaintedLong.class)
-					ret.a[j] = new TaintedLong();
-				else if (returnType == TaintedChar.class)
-					ret.a[j] = new TaintedChar();
-				else if (returnType == TaintedByte.class)
-					ret.a[j] = new TaintedByte();
-				else if (returnType == TaintedBoolean.class)
-					ret.a[j] = new TaintedBoolean();
+			if (TaintedPrimitiveArrayWithIntTag.class.isAssignableFrom(returnType) || TaintedPrimitiveWithIntTag.class.isAssignableFrom(returnType)
+					|| TaintedPrimitiveArrayWithObjTag.class.isAssignableFrom(returnType) || TaintedPrimitiveWithObjTag.class.isAssignableFrom(returnType))  {
+				try {
+					ret.a[j] = returnType.newInstance();
+				} catch (InstantiationException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		//		if(VM.isBooted())
@@ -825,17 +928,27 @@ public class ReflectionMasker {
 			ret.a = new Object[m.getParameterTypes().length];
 			for (int i = 0; i < in.length; i++) {
 				if (m.getParameterTypes()[j].isPrimitive()) {
-					if (in[i] instanceof Tainted)
-						ret.a[j] = ((Tainted) in[i]).getPHOSPHOR_TAG();
+					if (in[i] instanceof TaintedWithIntTag)
+						ret.a[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
+					else if(in[i] instanceof TaintedWithObjTag)
+						ret.a[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
 					else
 						ret.a[j] = 0;
 					j++;
 				} else if (m.getParameterTypes()[j].isArray() && m.getParameterTypes()[j].getComponentType().isPrimitive()) {
-					MultiDTaintedArray arr = ((MultiDTaintedArray) in[i]);
-					ret.a[j] = arr.taint;
-					j++;
-					ret.a[j] = arr.getVal();
-					j++;
+					if (Configuration.TAINT_TAG_TYPE == Type.INT) {
+						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
+						ret.a[j] = arr.taint;
+						j++;
+						ret.a[j] = arr.getVal();
+						j++;
+					} else {
+						MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
+						ret.a[j] = arr.taint;
+						j++;
+						ret.a[j] = arr.getVal();
+						j++;
+					}
 					continue;
 				}
 				ret.a[j] = in[i];
@@ -857,40 +970,15 @@ public class ReflectionMasker {
 				j++;
 			}
 			final Class returnType = m.getReturnType();
-			if (TaintedPrimitiveArray.class.isAssignableFrom(returnType)) {
-				if (returnType == TaintedIntArray.class)
-					ret.a[j] = new TaintedIntArray();
-				else if (returnType == TaintedShortArray.class)
-					ret.a[j] = new TaintedShortArray();
-				else if (returnType == TaintedFloatArray.class)
-					ret.a[j] = new TaintedFloatArray();
-				else if (returnType == TaintedDoubleArray.class)
-					ret.a[j] = new TaintedDoubleArray();
-				else if (returnType == TaintedLongArray.class)
-					ret.a[j] = new TaintedLongArray();
-				else if (returnType == TaintedCharArray.class)
-					ret.a[j] = new TaintedCharArray();
-				else if (returnType == TaintedByteArray.class)
-					ret.a[j] = new TaintedByteArray();
-				else if (returnType == TaintedBooleanArray.class)
-					ret.a[j] = new TaintedBooleanArray();
-			} else if (TaintedPrimitive.class.isAssignableFrom(returnType)) {
-				if (returnType == TaintedInt.class)
-					ret.a[j] = new TaintedInt();
-				else if (returnType == TaintedShort.class)
-					ret.a[j] = new TaintedShort();
-				else if (returnType == TaintedFloat.class)
-					ret.a[j] = new TaintedFloat();
-				else if (returnType == TaintedDouble.class)
-					ret.a[j] = new TaintedDouble();
-				else if (returnType == TaintedLong.class)
-					ret.a[j] = new TaintedLong();
-				else if (returnType == TaintedChar.class)
-					ret.a[j] = new TaintedChar();
-				else if (returnType == TaintedByte.class)
-					ret.a[j] = new TaintedByte();
-				else if (returnType == TaintedBoolean.class)
-					ret.a[j] = new TaintedBoolean();
+			if (TaintedPrimitiveArrayWithIntTag.class.isAssignableFrom(returnType) || TaintedPrimitiveWithIntTag.class.isAssignableFrom(returnType)
+					|| TaintedPrimitiveArrayWithObjTag.class.isAssignableFrom(returnType) || TaintedPrimitiveWithObjTag.class.isAssignableFrom(returnType))  {
+				try {
+					ret.a[j] = returnType.newInstance();
+				} catch (InstantiationException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		//		if(VM.isBooted())
@@ -898,6 +986,7 @@ public class ReflectionMasker {
 		//				System.out.println("Fix all args slow: " + Arrays.toString(ret.a) + " for " + m);
 		return ret;
 	}
+
 
 	static WeakHashMap<Class, Class> cachedClasses = new WeakHashMap<Class, Class>();
 

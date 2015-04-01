@@ -1,14 +1,24 @@
 package sun.misc;
 
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 
 public class VM {
-	public static TaintedBoolean isBooted$$PHOSPHORTAGGED(TaintedBoolean in)
+	public static TaintedBooleanWithIntTag isBooted$$PHOSPHORTAGGED(TaintedBooleanWithIntTag in)
 	{
 		return in;
 	}
-	public static TaintedBoolean isBooted$$PHOSPHORTAGGED(ControlTaintTagStack z, TaintedBoolean in)
+	public static TaintedBooleanWithIntTag isBooted$$PHOSPHORTAGGED(ControlTaintTagStack z, TaintedBooleanWithIntTag in)
+	{
+		return in;
+	}
+	
+	public static TaintedBooleanWithObjTag isBooted$$PHOSPHORTAGGED(TaintedBooleanWithObjTag in)
+	{
+		return in;
+	}
+	public static TaintedBooleanWithObjTag isBooted$$PHOSPHORTAGGED(ControlTaintTagStack z, TaintedBooleanWithObjTag in)
 	{
 		return in;
 	}

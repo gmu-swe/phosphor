@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
@@ -14,6 +15,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.InstructionAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 
 public class TaintAdapter extends InstructionAdapter implements Opcodes {
 
@@ -21,12 +23,38 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 	protected NeverNullArgAnalyzerAdapter analyzer;
 	protected String className;
 
+	static final Type taintTagType = Type.getType(Configuration.TAINT_TAG_DESC);
+	public static final Type getTagType(String internalName)
+	{
+		if(canRawTaintAccess(internalName))
+			return taintTagType;
+		return Type.INT_TYPE;
+	}
+	public static final boolean canRawTaintAccess(String internalName)
+	{
+		return !(internalName.equals("java/lang/Float") || 
+//				internalName.equals("java/lang/Boolean") || 
+//				internalName.equals("java/lang/Byte") || 
+//				internalName.equals("java/lang/Short") || 
+				internalName.equals("java/lang/Character") || 
+				internalName.equals("java/lang/Double") ||internalName.equals("java/lang/Integer") || 
+				internalName.equals("java/lang/Long") || internalName.equals("java/lang/StackTraceElement"));
+	}
 	public TaintAdapter(int api, String className, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
 		super(api, mv);
 		this.analyzer = analyzer;
 		this.className = className;
 	}
-
+	protected void getTaintFieldOfBoxedType(String owner)
+	{
+		if(Configuration.TAINT_TAG_TYPE == Type.INT)
+			super.visitFieldInsn(GETFIELD, owner, "taint", "I");
+		else
+		{
+			super.visitFieldInsn(GETFIELD, owner, "taint", "Ljava/lang/Object;");
+			super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+		}
+	}
 	public void setLocalVariableSorter(LocalVariableManager lvs) {
 		this.lvs = lvs;
 	}
@@ -90,7 +118,7 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 		//		nonInstrumentingMV.visitJumpInsn(IFNE, bail); //TODO handle numerics, other ignore classes for which we know the taint
 		if (className.equals("java/util/HashMap")) {
 			super.visitInsn(POP);
-			super.visitInsn(ICONST_0);
+			super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 		} else
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaint", "(Ljava/lang/Object;)I",false);
 		//		nonInstrumentingMV.visitLabel(bail);
@@ -260,7 +288,7 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 //	}
 
 	protected void generateUnconstrainedTaint(int reason) {
-			super.visitInsn(ICONST_0);
+			super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 	}
 
 	/**
@@ -325,7 +353,10 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
 			super.visitInsn(DUP);
 			super.visitInsn(ARRAYLENGTH);
-			super.visitIntInsn(NEWARRAY, T_INT);
+			if(Configuration.TAINT_TAG_TYPE == Type.INT)
+				super.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+			else
+				super.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);	
 			super.visitInsn(SWAP);
 			super.visitJumpInsn(GOTO, done);
 
@@ -397,8 +428,17 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			mv.visitInsn(DUP);
 			mv.visitInsn(DUP);
 			mv.visitInsn(ARRAYLENGTH);
-			mv.visitMultiANewArrayInsn("[[I", 1);
-			mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[I)[[I",false);
+			mv.visitMultiANewArrayInsn(Configuration.TAINT_TAG_ARRAYDESC, 1);
+			switch(Configuration.TAINT_TAG_TYPE){
+			case Type.INT:
+				mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[I)[[I",false);
+				break;
+			case Type.OBJECT:
+				mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[Ljava/lang/Object;)[[Ljava/lang/Object;",false);
+				break;
+			default:
+				throw new UnsupportedOperationException("Invalid taint tag type. must be int or obj.");
+			}
 			mv.visitInsn(SWAP);
 		}
 		else if(arrayType.getDimensions() == 3)
@@ -406,8 +446,17 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			mv.visitInsn(DUP);
 			mv.visitInsn(DUP);
 			mv.visitInsn(ARRAYLENGTH);
-			mv.visitMultiANewArrayInsn("[[[I", 1);
-			mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[I)[[[I",false);
+			mv.visitMultiANewArrayInsn("["+Configuration.TAINT_TAG_ARRAYDESC, 1);
+			switch(Configuration.TAINT_TAG_TYPE){
+			case Type.INT:
+				mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[I)[[[I",false);
+				break;
+			case Type.OBJECT:
+				mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[Ljava/lang/Object;)[[[Ljava/lang/Object;",false);
+				break;
+			default:
+				throw new UnsupportedOperationException("Invalid taint tag type. must be int or obj.");
+			}
 			mv.visitInsn(SWAP);
 		}
 		else if (arrayType.getDimensions() > 1)
@@ -427,14 +476,17 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 				}
 				mv.visitInsn(Opcodes.ARRAYLENGTH);
 			}
-			mv.visitMultiANewArrayInsn(arrayDesc.substring(0, arrayDesc.length() - 1) + "I", arrayType.getDimensions()); //TODO XXX this won't be properly initialized. 
+			mv.visitMultiANewArrayInsn(arrayDesc.substring(0, arrayDesc.length() - 1) + Configuration.TAINT_TAG_DESC, arrayType.getDimensions()); //TODO XXX this won't be properly initialized. 
 
 		}
 		else
 		{
 			mv.visitInsn(Opcodes.DUP);
 			mv.visitInsn(Opcodes.ARRAYLENGTH);
-			mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+			if(Configuration.TAINT_TAG_TYPE == Type.INT)
+				mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+			else
+				mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
 			mv.visitInsn(Opcodes.SWAP);
 		}
 

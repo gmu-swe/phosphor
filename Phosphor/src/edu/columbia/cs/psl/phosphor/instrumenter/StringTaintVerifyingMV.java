@@ -5,6 +5,7 @@ import java.util.HashSet;
 
 import com.sun.xml.internal.ws.org.objectweb.asm.Type;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
@@ -65,7 +66,7 @@ NeverNullArgAnalyzerAdapter analyzer;
 			super.visitJumpInsn(IFNULL, isOK); //if value is null, do nothing
 			
 			super.visitInsn(DUP);
-			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, "[I");
+			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 			super.visitJumpInsn(IFNULL, doInit); //if taint is null, def init
 			//if taint is not null, check the length
 			super.visitInsn(DUP); // O O
@@ -73,7 +74,7 @@ NeverNullArgAnalyzerAdapter analyzer;
 			super.visitFieldInsn(opcode, owner, name,desc);
 			super.visitInsn(ARRAYLENGTH);
 			super.visitInsn(SWAP);
-			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, "[I");
+			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 			super.visitInsn(ARRAYLENGTH);
 			super.visitJumpInsn(IF_ICMPLE, isOK); //if taint is shorter than value, reinit it
 			super.visitLabel(doInit);
@@ -82,13 +83,16 @@ NeverNullArgAnalyzerAdapter analyzer;
 			super.visitInsn(DUP); // O O O
 			super.visitFieldInsn(opcode, owner, name, desc); //O O A
 			super.visitInsn(ARRAYLENGTH);//O O L
-			super.visitIntInsn(NEWARRAY, T_INT);//O O A
-			super.visitFieldInsn(PUTFIELD, owner, name+TaintUtils.TAINT_FIELD, "[I"); // O
+			if (Configuration.TAINT_TAG_TYPE == Type.INT)
+				super.visitIntInsn(NEWARRAY, T_INT);//O O A
+			else
+				super.visitTypeInsn(ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
+			super.visitFieldInsn(PUTFIELD, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC); // O
 			super.visitLabel(isOK);
 			fn1.accept(this);
 			//O
 			super.visitInsn(DUP);
-			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, "[I");
+			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 			super.visitInsn(SWAP);
 			super.visitFieldInsn(opcode, owner, name, desc);
 

@@ -28,7 +28,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.CheckClassAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.TraceClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArray;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
 
 public class PreMain {
     private static Instrumentation instrumentation;
@@ -92,7 +92,7 @@ public class PreMain {
 
 		static boolean innerException = false;
 		
-		public TaintedByteArray transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint, byte[] classfileBuffer, TaintedByteArray ret) throws IllegalClassFormatException
+		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint, byte[] classfileBuffer, TaintedByteArrayWithIntTag ret) throws IllegalClassFormatException
 		{
 	        bigLoader = loader;
 	        Instrumenter.loader = bigLoader;

@@ -25,7 +25,9 @@
 
 package java.util;
 
-import edu.columbia.cs.psl.phosphor.struct.TaintedBoolean;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 
 /**
  * The root interface in the <i>collection hierarchy</i>.  A collection
@@ -271,9 +273,11 @@ public interface Collection<E> extends Iterable<E> {
      *         time due to insertion restrictions
      */
     boolean add(E e);
-    TaintedBoolean add$$PHOSPHORTAGGED(E e, TaintedBoolean ret);
-    TaintedBoolean add$$PHOSPHORTAGGED(E e);
-
+    TaintedBooleanWithIntTag add$$PHOSPHORTAGGED(E e, TaintedBooleanWithIntTag ret);
+    TaintedBooleanWithObjTag add$$PHOSPHORTAGGED(E e, TaintedBooleanWithObjTag ret);
+    
+    TaintedBooleanWithIntTag add$$PHOSPHORTAGGED(E e, ControlTaintTagStack ctrl, TaintedBooleanWithIntTag ret);
+    TaintedBooleanWithObjTag add$$PHOSPHORTAGGED(E e, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret);
     /**
      * Removes a single instance of the specified element from this
      * collection, if it is present (optional operation).  More formally,
@@ -344,8 +348,7 @@ public interface Collection<E> extends Iterable<E> {
      * @see #add(Object)
      */
     boolean addAll(Collection<? extends E> c);
-    TaintedBoolean addAll$$PHOSPHORTAGGED(Collection<? extends E> c, TaintedBoolean ret);
-    TaintedBoolean addAll$$PHOSPHORTAGGED(Collection<? extends E> c);
+
 
     /**
      * Removes all of this collection's elements that are also contained in the
