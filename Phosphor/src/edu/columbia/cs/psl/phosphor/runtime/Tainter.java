@@ -340,13 +340,4 @@ public class Tainter {
 	public static void dumpTaint$$PHOSPHORTAGGED(int taint, long longValue) {
 		System.out.println("Taint on :" + longValue + " : " + taint);
 	}
-	
-	public static TaintedCharArrayWithObjTag taintedCharArray$$PHOSPHORTAGGED(Taint[] oldTags, char[] ar, Taint tgtg, int tag, TaintedCharArrayWithObjTag ret)
-	{
-		ret.taint = new Taint[ar.length];
-		for(int i = 0 ; i < ar.length; i++)
-			ret.taint[i]=new Taint();
-		ret.val = ar;
-		return ret;
-	}
 }

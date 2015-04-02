@@ -1,342 +1,270 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
-
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 
 public class MultiTainter {
-	static class Entry
+	public static boolean taintedBoolean(boolean in, Object lbl)
 	{
-		String method;
-		int n;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static void printMethod(Method m)
+	public static byte taintedByte(byte in, Object lbl)
 	{
-		System.out.println(m);
-		System.out.println(Arrays.toString(m.getAnnotations()));
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static void printClass(Object o)
+	public static char taintedChar(char in, Object lbl)
 	{
-		System.out.println("Dump " + o + ": " + o.getClass());
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-
-	public static TaintedShortWithIntTag taintedShort$$PHOSPHORTAGGED(int i, short s, int z, int tag, TaintedShortWithIntTag ret)
+	public static double taintedDouble(double in, Object lbl)
 	{
-		ret.taint = tag;
-		ret.val = s;
-		return ret;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static short taintedShort(short s, int tag)
+	public static float taintedFloat(float in, Object lbl)
 	{
-		return s;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static double taintedDouble(double d, int tag){
-		return d;
+	public static long taintedLong(long in, Object lbl)
+	{
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static TaintedDoubleWithIntTag taintedDouble$$PHOSPHORTAGGED(int i, double s, int z, int tag, TaintedDoubleWithIntTag ret)
+	public static int taintedInt(int in, Object lbl)
 	{
-		ret.taint = tag;
-		ret.val = s;
-		return ret;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-
-	public static float taintedFloat(float f, int tag)
+	public static short taintedShort(short in, Object lbl)
 	{
-		return f;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static TaintedFloatWithIntTag taintedFloat$$PHOSPHORTAGGED(int i, float s, int z, int tag, TaintedFloatWithIntTag ret)
+	public static String taintedString(String in, Object lbl)
 	{
-		ret.taint = tag;
-		ret.val = s;
-		return ret;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-
-	public static boolean taintedBoolean(boolean i, int tag)
+	public static boolean[] taintedBooleanArray(boolean[] in, Object lbl)
 	{
-		return i;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static TaintedBooleanWithIntTag taintedBoolean$$PHOSPHORTAGGED(int i, boolean s, int z, int tag, TaintedBooleanWithIntTag ret)
+	public static byte[] taintedByteArray(byte[] in, Object lbl)
 	{
-		ret.taint = tag;
-		ret.val = s;
-		return ret;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-
-	public static byte taintedByte(byte i, int tag)
+	public static char[] taintedCharArray(char[] in, Object lbl)
 	{
-		return i;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-
-	public static int taintedInt(int i, String tag)
+	public static double[] taintedDoubleArray(double[] in, Object lbl)
 	{
-		return i;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static char taintedChar(char c, int tag)
+	public static float[] taintedFloatArray(float[] in, Object lbl)
 	{
-		return c;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static long taintedLong(long i, int tag) {
-		return i;
+	public static long[] taintedLongArray(long[] in, Object lbl)
+	{
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	
-	public static char[] taintedCharArray(char[] ca, int tag)
+	public static int[] taintedIntArray(int[] in, Object lbl)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static TaintedCharArrayWithIntTag taintedCharArray$$PHOSPHORTAGGED(int[] oldCA, char[] ca, int b, int tag, TaintedCharArrayWithIntTag ret)
+	public static short[] taintedShortArray(short[] in, Object lbl)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
-		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static boolean[] taintedBooleanArray(boolean[] ca, int tag)
+	public static Taint getTaint(boolean in)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static TaintedBooleanArrayWithIntTag taintedBooleanArray$$PHOSPHORTAGGED(int[] oldCA, boolean[] ca, int b, int tag, TaintedBooleanArrayWithIntTag ret)
+	public static Taint getTaint(byte in)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
-		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static byte[] taintedByteArray(byte[] ca, int tag)
+	public static Taint getTaint(char in)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static TaintedByteArrayWithIntTag taintedByteArray$$PHOSPHORTAGGED(int[] oldCA, byte[] ca, int b, int tag, TaintedByteArrayWithIntTag ret)
+	public static Taint getTaint(double in)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
-		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static double[] taintedDoubleArray(double[] ca, int tag)
+	public static Taint getTaint(float in)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static TaintedDoubleArrayWithIntTag taintedDoubleArray$$PHOSPHORTAGGED(int[] oldCA, double[] ca, int b, int tag, TaintedDoubleArrayWithIntTag ret)
+	public static Taint getTaint(int in)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
-		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static float[] taintedFloatArray(float[] ca, int tag)
+	public static Taint getTaint(long in)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
-	public static TaintedFloatArrayWithIntTag taintedFloatArray$$PHOSPHORTAGGED(int[] oldCA, float[] ca, int b, int tag, TaintedFloatArrayWithIntTag ret)
+	public static Taint getTaint(short in)
 	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
-		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
-	}
-	public static int[] taintedIntArray(int[] ca, int tag)
-	{
-		return ca;
-	}
-	public static TaintedIntArrayWithIntTag taintedIntArray$$PHOSPHORTAGGED(int[] oldCA, int[] ca, int b, int tag, TaintedIntArrayWithIntTag ret)
-	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
-		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
-	}
-	public static long[] taintedLongArray(long[] ca, int tag)
-	{
-		return ca;
-	}
-	public static TaintedLongArrayWithIntTag taintedLongArray$$PHOSPHORTAGGED(int[] oldCA, long[] ca, int b, int tag, TaintedLongArrayWithIntTag ret)
-	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
-		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
-	}
-	public static short[] taintedShortArray(short[] ca, int tag)
-	{
-		return ca;
-	}
-	public static TaintedShortArrayWithIntTag taintedShortArray$$PHOSPHORTAGGED(int[] oldCA, short[] ca, int b, int tag, TaintedShortArrayWithIntTag ret)
-	{
-		ret.val = ca;
-		ret.taint = new int[ca.length];
-		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
-		return ret;
-	}
-	public static void dumpTaint(byte i)
-	{
-		System.out.println("You called this without instrumentation? byte is " + i);
-	}	
-	public static void dumpTaint(int i)
-	{
-		System.out.println("You called this without instrumentation? int is " + i);
-	}	
-	
-	public static TaintedByteWithIntTag taintedByte$$PHOSPHORTAGGED(int curTag, byte i, int tagTaint, int tag, TaintedByteWithIntTag ret)
-	{
-		ret.taint = tag;
-		ret.val = i;
-		return ret;
-	}
-	public static TaintedIntWithIntTag taintedInt$$PHOSPHORTAGGED(int curTag, int i, String tag, TaintedIntWithIntTag ret)
-	{
-		ret.taint =SimpleMultiTaintHandler.nextTag(tag);
-		ret.val = i;
-		return ret;
-	}
-	public static void dumpTaint(char c)
-	{
-		System.out.println("You called this without instrumentation? char is " + c);
-	}
-	public static TaintedCharWithIntTag taintedChar$$PHOSPHORTAGGED(int curTag, char c, int tagTaint, int tag,TaintedCharWithIntTag ret)
-	{
-		ret.taint = tag;
-		ret.val =c;
-		return ret;
-	}
-	public static int getTaint(char c)
-	{
-		return 0;
-	}
-	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, char c, TaintedIntWithIntTag ret)
-	{
-		ret.taint = t;
-		ret.val = t;
-		return ret;	}
-	public static int getTaint(byte c)
-	{
-		return 0;
-	}
-	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, byte c, TaintedIntWithIntTag ret)
-	{
-		ret.taint = t;
-		ret.val = t;
-		return ret;	}
-	public static int getTaint(boolean c)
-	{
-		return 0;
-	}
-	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, boolean c, TaintedIntWithIntTag ret)
-	{
-		ret.taint = t;
-		ret.val = t;
-		return ret;
-	}
-	public static int getTaint(int c)
-	{
-		return 0;
-	}
-	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, int c, TaintedIntWithIntTag ret)
-	{
-		ret.taint = t;
-		ret.val = t;
-		return ret;
-	}
-	public static int getTaint(short c)
-	{
-		return 0;
-	}
-	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, short c, TaintedIntWithIntTag ret)
-	{
-		ret.taint = t;
-		ret.val = t;
-		return ret;
-	}
-	public static int getTaint(long c)
-	{
-		return 0;
-	}
-	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, long c, TaintedIntWithIntTag ret)
-	{
-		ret.taint = t;
-		ret.val = t;
-		return ret;
-	}
-	public static int getTaint(float c)
-	{
-		return 0;
-	}
-	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, float c, TaintedIntWithIntTag ret)
-	{
-		ret.taint = t;
-		ret.val = t;
-		return ret;
-	}
-	public static int getTaint(double c)
-	{
-		return 0;
-	}
-	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, double c, TaintedIntWithIntTag ret)
-	{
-		ret.taint = t;
-		ret.val = t;
-		return ret;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	
-	
-	public static TaintedLongWithIntTag taintedLong$$PHOSPHORTAGGED(int curTag, long c, int tagTaint, int tag, TaintedLongWithIntTag ret)
+	public static Taint getTaint$$PHOSPHORTAGGED(Taint t, boolean b)
 	{
-		ret.taint = tag;
-		ret.val =c;
+		return t;
+	}
+	public static Taint getTaint$$PHOSPHORTAGGED(Taint t, byte b)
+	{
+		return t;
+	}
+	public static Taint getTaint$$PHOSPHORTAGGED(Taint t, char b)
+	{
+		return t;
+	}
+	public static Taint getTaint$$PHOSPHORTAGGED(Taint t, double b)
+	{
+		return t;
+	}
+	public static Taint getTaint$$PHOSPHORTAGGED(Taint t, float b)
+	{
+		return t;
+	}
+	public static Taint getTaint$$PHOSPHORTAGGED(Taint t, int b)
+	{
+		return t;
+	}
+	public static Taint getTaint$$PHOSPHORTAGGED(Taint t, long b)
+	{
+		return t;
+	}
+	public static Taint getTaint$$PHOSPHORTAGGED(Taint t, short b)
+	{
+		return t;
+	}
+	
+	public static TaintedBooleanWithObjTag taintedBoolean$$PHOSPHORTAGGED(Taint oldTag, boolean in, Object lbl, TaintedBooleanWithObjTag ret)
+	{
+		ret.taint = new Taint(lbl);
+		ret.val = in;
 		return ret;
 	}
-	public static void dumpTaint(char[][][] c)
+	public static TaintedByteWithObjTag taintedByte$$PHOSPHORTAGGED(Taint oldTag, byte in, Object lbl, TaintedByteWithObjTag ret)
 	{
-		System.out.println("char c:" + c);
+		ret.taint = new Taint(lbl);
+		ret.val = in;
+		return ret;
 	}
-	public static void dumpTaint$$PHOSPHORTAGGED(MultiDTaintedCharArrayWithIntTag[][] ar)
+	public static TaintedCharWithObjTag taintedChar$$PHOSPHORTAGGED(Taint oldTag, char in, Object lbl, TaintedCharWithObjTag ret)
 	{
-		System.out.println("its boxed");
+		ret.taint = new Taint(lbl);
+		ret.val = in;
+		return ret;
 	}
-	public static void dumpTaint$$PHOSPHORTAGGED(int taint, char c)
+	public static TaintedDoubleWithObjTag taintedDouble$$PHOSPHORTAGGED(Taint oldTag, double in, Object lbl, TaintedDoubleWithObjTag ret)
 	{
-		System.out.println("Taint on int ("+c+"): " + taint);
+		ret.taint = new Taint(lbl);
+		ret.val = in;
+		return ret;
 	}
-	public static void dumpTaint$$PHOSPHORTAGGED(int taint, byte c)
+	public static TaintedFloatWithObjTag taintedFloat$$PHOSPHORTAGGED(Taint oldTag, float in, Object lbl, TaintedFloatWithObjTag ret)
 	{
-		System.out.println("Taint on byte ("+c+"): " + taint);
+		ret.taint = new Taint(lbl);
+		ret.val = in;
+		return ret;
 	}
-	public static void dumpTaint$$PHOSPHORTAGGED(int taint, int v)
+	public static TaintedIntWithObjTag taintedInt$$PHOSPHORTAGGED(Taint oldTag, int in, Object lbl, TaintedIntWithObjTag ret)
 	{
-		System.out.println("Taint on int ("+v+"): " + taint);
+		ret.taint = new Taint(lbl);
+		ret.val = in;
+		return ret;
 	}
-	public static void dumpTaint(Object[] res) {
-//		System.out.println("Taint on " + Arrays.deepToString(res) +": " + Arrays.deepToString(((Object[]) ArrayObjectStore.get(res, 2,null))));
+	public static TaintedLongWithObjTag taintedLong$$PHOSPHORTAGGED(Taint oldTag, long in, Object lbl, TaintedLongWithObjTag ret)
+	{
+		ret.taint = new Taint(lbl);
+		ret.val = in;
+		return ret;
+	}
+	public static TaintedShortWithObjTag taintedShort$$PHOSPHORTAGGED(Taint oldTag, short in, Object lbl, TaintedShortWithObjTag ret)
+	{
+		ret.taint = new Taint(lbl);
+		ret.val = in;
+		return ret;
 	}
 
-	public static void dumpTaint(long longValue) {
-		System.out.println("No taint/no instrument:" + longValue);
+
+	
+	public static TaintedBooleanArrayWithObjTag taintedBooleanArray$$PHOSPHORTAGGED(Taint[] oldTag, boolean[] in, Object lbl, TaintedBooleanArrayWithObjTag ret)
+	{
+		ret.taint = new Taint[in.length];
+		for(int i =0 ; i < in.length; i++)
+			ret.taint[i] = new Taint(lbl);
+		ret.val = in;
+		return ret;
 	}
-	public static void dumpTaint$$PHOSPHORTAGGED(int taint, long longValue) {
-		System.out.println("Taint on :" + longValue + " : " + taint);
+	public static TaintedByteArrayWithObjTag taintedByteArray$$PHOSPHORTAGGED(Taint[] oldTag, byte[] in, Object lbl, TaintedByteArrayWithObjTag ret)
+	{
+		ret.taint = new Taint[in.length];
+		for(int i =0 ; i < in.length; i++)
+			ret.taint[i] = new Taint(lbl);
+		ret.val = in;
+		return ret;
+	}
+	public static TaintedCharArrayWithObjTag taintedCharArray$$PHOSPHORTAGGED(Taint[] oldTag, char[] in, Object lbl, TaintedCharArrayWithObjTag ret)
+	{
+		ret.taint = new Taint[in.length];
+		for(int i =0 ; i < in.length; i++)
+			ret.taint[i] = new Taint(lbl);
+		ret.val = in;
+		return ret;
+	}
+	public static TaintedDoubleArrayWithObjTag taintedDoubleArray$$PHOSPHORTAGGED(Taint[] oldTag, double[] in, Object lbl, TaintedDoubleArrayWithObjTag ret)
+	{
+		ret.taint = new Taint[in.length];
+		for(int i =0 ; i < in.length; i++)
+			ret.taint[i] = new Taint(lbl);
+		ret.val = in;
+		return ret;
+	}
+	public static TaintedFloatArrayWithObjTag taintedFloatArray$$PHOSPHORTAGGED(Taint[] oldTag, float[] in, Object lbl, TaintedFloatArrayWithObjTag ret)
+	{
+		ret.taint = new Taint[in.length];
+		for(int i =0 ; i < in.length; i++)
+			ret.taint[i] = new Taint(lbl);
+		ret.val = in;
+		return ret;
+	}
+	public static TaintedIntArrayWithObjTag taintedIntArray$$PHOSPHORTAGGED(Taint[] oldTag, int[] in, Object lbl, TaintedIntArrayWithObjTag ret)
+	{
+		ret.taint = new Taint[in.length];
+		for(int i =0 ; i < in.length; i++)
+			ret.taint[i] = new Taint(lbl);
+		ret.val = in;
+		return ret;
+	}
+	public static TaintedShortArrayWithObjTag taintedShortArray$$PHOSPHORTAGGED(Taint[] oldTag, short[] in, Object lbl, TaintedShortArrayWithObjTag ret)
+	{
+		ret.taint = new Taint[in.length];
+		for(int i =0 ; i < in.length; i++)
+			ret.taint[i] = new Taint(lbl);
+		ret.val = in;
+		return ret;
+	}
+	public static TaintedLongArrayWithObjTag taintedLongArray$$PHOSPHORTAGGED(Taint[] oldTag, long[] in, Object lbl, TaintedLongArrayWithObjTag ret)
+	{
+		ret.taint = new Taint[in.length];
+		for(int i =0 ; i < in.length; i++)
+			ret.taint[i] = new Taint(lbl);
+		ret.val = in;
+		return ret;
 	}
 }

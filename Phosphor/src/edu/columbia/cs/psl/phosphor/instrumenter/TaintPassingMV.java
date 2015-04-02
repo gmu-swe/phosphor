@@ -151,6 +151,31 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		return getTypeForStackType(t);
 	}
 
+	public void visitIincInsn(int var, int increment) {
+		if(Configuration.IMPLICIT_TRACKING)
+		{
+			int shadowVar = 0;
+			if (var < lastArg && TaintUtils.getShadowTaintType(paramTypes[var].getDescriptor()) != null) {
+				//accessing an arg; remap it
+				Type localType = paramTypes[var];
+				if (TaintUtils.DEBUG_LOCAL)
+					System.out.println(Arrays.toString(paramTypes) + ",,," + var);
+				if (TaintUtils.getShadowTaintType(localType.getDescriptor()) != null)
+					shadowVar = var - 1;
+			} else {
+				shadowVar = lvs.varToShadowVar.get(var);
+			}
+			super.visitVarInsn(ALOAD, shadowVar);
+			super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
+			super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+					"(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Object;", false);
+			super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+			super.visitVarInsn(ASTORE, shadowVar);
+
+		}
+		super.visitIincInsn(var, increment);
+	}
+	
 	HashMap<Integer, Object> varTypes = new HashMap<Integer, Object>();
 	HashSet<Integer> questionableShadows = new HashSet<Integer>();
 
@@ -3120,7 +3145,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(SWAP);
 				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
 				super.visitInsn(SWAP);
-				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(I)V", false);
+				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "("+Configuration.TAINT_TAG_DESC+")V", false);
 
 				break;
 			case Opcodes.IFNULL:
@@ -3162,7 +3187,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitVarInsn(TaintUtils.TAINT_LOAD_OPCODE, tmp);
 				lvs.freeTmpLV(tmp);
 				//V V T T
-				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(II)V", false);
+				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "("+Configuration.TAINT_TAG_DESC+Configuration.TAINT_TAG_DESC+")V", false);
 
 				break;
 			case Opcodes.IF_ACMPNE:
@@ -3228,7 +3253,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
 			super.visitInsn(SWAP);
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(I)V", false);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "("+Configuration.TAINT_TAG_DESC+")V", false);
 		} else {
 			super.visitInsn(SWAP);
 			super.visitInsn(POP);
@@ -3247,7 +3272,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(branchStarting));
 			super.visitInsn(SWAP);
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(I)V", false);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "("+Configuration.TAINT_TAG_DESC+")V", false);
 		} else {
 			super.visitInsn(SWAP);
 			super.visitInsn(POP);

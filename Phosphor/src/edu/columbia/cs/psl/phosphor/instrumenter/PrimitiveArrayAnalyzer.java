@@ -572,6 +572,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							s.domBlocks.addAll(b.domBlocks);
 							s.antiDomBlocks.addAll(b.antiDomBlocks);
 							s.resolvedBlocks.addAll(b.resolvedBlocks);
+							
+							s.domBlocks.remove(s);
+							s.antiDomBlocks.remove(s);
 							if (!s.visited)
 								stack.add(s);
 						}

@@ -458,7 +458,11 @@ public class ReflectionMasker {
 						origArgs.add(c);
 					dontIgnorePrimitive = !dontIgnorePrimitive;
 				} else {
-					if (!TaintedPrimitiveWithIntTag.class.isAssignableFrom(c) && !TaintedPrimitiveArrayWithIntTag.class.isAssignableFrom(c) && !c.equals(ControlTaintTagStack.class))
+					if (!TaintedPrimitiveWithIntTag.class.isAssignableFrom(c) &&
+							!TaintedPrimitiveArrayWithIntTag.class.isAssignableFrom(c) &&
+							!TaintedPrimitiveWithObjTag.class.isAssignableFrom(c) &&
+							!TaintedPrimitiveArrayWithObjTag.class.isAssignableFrom(c) &&
+							!c.equals(ControlTaintTagStack.class))
 						origArgs.add(c);
 				}
 			}
@@ -468,7 +472,13 @@ public class ReflectionMasker {
 			try {
 				ret = m.getDeclaringClass().getDeclaredMethod(origName, args);
 			} catch (NoSuchMethodException e) {
-				e.printStackTrace();
+				try {
+					ret = m.getDeclaringClass().getMethod(origName, args);
+				} catch (NoSuchMethodException e1) {
+					e1.printStackTrace();
+				} catch (SecurityException e1) {
+					e1.printStackTrace();
+				}
 			} catch (SecurityException e) {
 				e.printStackTrace();
 			}
