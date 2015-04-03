@@ -165,7 +165,17 @@ public class MethodArgReindexer extends InstructionAdapter {
 							newIdx++;
 							continue;
 						}
-					} else if (TaintAdapter.isPrimitiveStackType(local[i])) {
+					} else if(local[i] == Opcodes.TOP)
+					{
+						Type t = oldArgTypesList.get(i);
+						if((t.getSort() != Type.OBJECT && t.getSort() != Type.ARRAY) || (t.getSort() == Type.ARRAY && t.getDimensions() == 1 && t.getElementType().getSort() != Type.OBJECT))
+						{
+							remappedLocals[newIdx] = Opcodes.TOP;
+							newIdx++;
+							nLocal++;
+						}
+					}
+					else if (TaintAdapter.isPrimitiveStackType(local[i])) {
 						if (!(local[i] != Opcodes.TOP && local[i] instanceof String && ((String) local[i]).charAt(1) == '[')) {
 							if (local[i] != Opcodes.TOP) {
 								try {
