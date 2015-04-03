@@ -154,6 +154,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public void visitIincInsn(int var, int increment) {
 		if(Configuration.IMPLICIT_TRACKING)
 		{
+			if (isIgnoreAllInstrumenting || isRawInsns) {
+				super.visitIincInsn(var, increment);
+				return;
+			}
 			int shadowVar = 0;
 			if (var < lastArg && TaintUtils.getShadowTaintType(paramTypes[var].getDescriptor()) != null) {
 				//accessing an arg; remap it

@@ -571,45 +571,6 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setBoolean$$PHOSPHORTAGGED(Field f, Object obj, int tag, boolean val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
-		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setBoolean$$PHOSPHORTAGGED(f, obj, tag, val);
-	}
-	
-	public static void setByte$$PHOSPHORTAGGED(Field f, Object obj, int tag, byte val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
-		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setByte$$PHOSPHORTAGGED(f, obj, tag, val);
-	}
-
-	public static void setChar$$PHOSPHORTAGGED(Field f, Object obj, int tag, char val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
-		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setChar$$PHOSPHORTAGGED(f, obj, tag, val);
-	}
-	
-	public static void setDouble$$PHOSPHORTAGGED(Field f, Object obj, int tag, double val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
-		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setDouble$$PHOSPHORTAGGED(f, obj, tag, val);
-	}
-	
-	public static void setFloat$$PHOSPHORTAGGED(Field f, Object obj, int tag, float val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
-		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setFloat$$PHOSPHORTAGGED(f, obj, tag, val);
-	}
-	
-	public static void setInt$$PHOSPHORTAGGED(Field f, Object obj, int tag, int val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
-		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setInt$$PHOSPHORTAGGED(f, obj, tag, val);
-	}
-	
-	public static void setLong$$PHOSPHORTAGGED(Field f, Object obj, int tag, long val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
-		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setLong$$PHOSPHORTAGGED(f, obj, tag, val);
-	}
-	
-	public static void setShort$$PHOSPHORTAGGED(Field f, Object obj, int tag, short val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
-		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
-		setShort$$PHOSPHORTAGGED(f, obj, tag, val);
-	}
 	public static void setBoolean$$PHOSPHORTAGGED(Field f, Object obj, Object tag, boolean val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = SimpleMultiTaintHandler.combineTags(tag, ctrl);
 		setBoolean$$PHOSPHORTAGGED(f, obj, tag, val);
@@ -885,7 +846,7 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setInt(obj, i.intValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, SimpleMultiTaintHandler.combineTags(getTag(val), ctrl));
+					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, SimpleMultiTaintHandler.combineTags(getTagObj(val), ctrl));
 				} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
@@ -897,9 +858,10 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setBoolean(obj, i.booleanValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, SimpleMultiTaintHandler.combineTags(getTag(val), ctrl));				} catch (NoSuchFieldException e) {
-					e.printStackTrace();
+					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, SimpleMultiTaintHandler.combineTags(getTagObj(val), ctrl));
 				} catch (SecurityException e) {
+					e.printStackTrace();
+				} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				}
 				return;
@@ -908,9 +870,10 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setByte(obj, i.byteValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, SimpleMultiTaintHandler.combineTags(getTag(val), ctrl));				} catch (NoSuchFieldException e) {
-					e.printStackTrace();
+					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, SimpleMultiTaintHandler.combineTags(getTagObj(val), ctrl));
 				} catch (SecurityException e) {
+					e.printStackTrace();
+				}catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				}
 				return;
@@ -919,9 +882,10 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setChar(obj, i.charValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, SimpleMultiTaintHandler.combineTags(getTag(val), ctrl));				} catch (NoSuchFieldException e) {
-					e.printStackTrace();
+					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, SimpleMultiTaintHandler.combineTags(getTagObj(val), ctrl));
 				} catch (SecurityException e) {
+					e.printStackTrace();
+				}catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				}
 				return;
@@ -930,9 +894,10 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setDouble(obj, i.doubleValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, SimpleMultiTaintHandler.combineTags(getTag(val), ctrl));				} catch (NoSuchFieldException e) {
-					e.printStackTrace();
+					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, SimpleMultiTaintHandler.combineTags(getTagObj(val), ctrl));
 				} catch (SecurityException e) {
+					e.printStackTrace();
+				}catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				}
 				return;
@@ -941,9 +906,10 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setFloat(obj, i.floatValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, SimpleMultiTaintHandler.combineTags(getTag(val), ctrl));				} catch (NoSuchFieldException e) {
-					e.printStackTrace();
+					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, SimpleMultiTaintHandler.combineTags(getTagObj(val), ctrl));
 				} catch (SecurityException e) {
+					e.printStackTrace();
+				}catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				}
 				return;
@@ -952,9 +918,10 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setLong(obj, i.longValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, SimpleMultiTaintHandler.combineTags(getTag(val), ctrl));				} catch (NoSuchFieldException e) {
-					e.printStackTrace();
+					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, SimpleMultiTaintHandler.combineTags(getTagObj(val), ctrl));
 				} catch (SecurityException e) {
+					e.printStackTrace();
+				}catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				}
 				return;
@@ -963,9 +930,10 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setShort(obj, i.shortValue());
 				try {
-					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, SimpleMultiTaintHandler.combineTags(getTag(val), ctrl));				} catch (NoSuchFieldException e) {
-					e.printStackTrace();
+					f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, SimpleMultiTaintHandler.combineTags(getTagObj(val), ctrl));
 				} catch (SecurityException e) {
+					e.printStackTrace();
+				}catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				}
 				return;

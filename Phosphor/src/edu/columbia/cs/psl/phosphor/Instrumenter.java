@@ -365,16 +365,16 @@ public class Instrumenter {
 				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
 				||owner.startsWith("sun/awt/image/codec/")
 								|| (owner.startsWith("sun/reflect/Reflection")) //was on last
-//				|| owner.equals("java/lang/reflect/Proxy") //was on last
-//				|| owner.startsWith("sun/reflection/annotation/AnnotationParser") //was on last
-//				|| owner.startsWith("sun/reflect/MethodAccessor") //was on last
-//				|| owner.startsWith("org/apache/jasper/runtime/JspSourceDependent")
-//				|| owner.startsWith("sun/reflect/ConstructorAccessor") //was on last
-//				|| owner.startsWith("sun/reflect/SerializationConstructorAccessor")
-//
-//				|| owner.startsWith("sun/reflect/GeneratedMethodAccessor") || owner.startsWith("sun/reflect/GeneratedConstructorAccessor")
-//				|| owner.startsWith("sun/reflect/GeneratedSerializationConstructor") || owner.startsWith("sun/awt/image/codec/")
-//				|| owner.startsWith("java/lang/invoke/LambdaForm")
+				|| owner.equals("java/lang/reflect/Proxy") //was on last
+				|| owner.startsWith("sun/reflection/annotation/AnnotationParser") //was on last
+				|| owner.startsWith("sun/reflect/MethodAccessor") //was on last
+				|| owner.startsWith("org/apache/jasper/runtime/JspSourceDependent")
+				|| owner.startsWith("sun/reflect/ConstructorAccessor") //was on last
+				|| owner.startsWith("sun/reflect/SerializationConstructorAccessor")
+
+				|| owner.startsWith("sun/reflect/GeneratedMethodAccessor") || owner.startsWith("sun/reflect/GeneratedConstructorAccessor")
+				|| owner.startsWith("sun/reflect/GeneratedSerializationConstructor") || owner.startsWith("sun/awt/image/codec/")
+				|| owner.startsWith("java/lang/invoke/LambdaForm")
 				;
 	}
 

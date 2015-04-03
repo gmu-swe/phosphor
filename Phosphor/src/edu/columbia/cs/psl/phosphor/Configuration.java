@@ -37,6 +37,6 @@ public class Configuration {
 	
 	public static Object[] newTaintArray(int len)
 	{
-		return null;
+		return new Taint[len];
 	}
 }

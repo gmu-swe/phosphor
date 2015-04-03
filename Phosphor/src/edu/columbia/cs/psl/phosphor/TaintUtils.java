@@ -46,6 +46,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
@@ -520,7 +521,7 @@ public class TaintUtils {
 			}
 			if(t.getSort() == Type.ARRAY && t.getElementType().getSort()!= Type.OBJECT && t.getDimensions() > 1)
 			{
-				r += MultiDTaintedArrayWithIntTag.getTypeForType(t);
+				r += MultiDTaintedArray.getTypeForType(t);
 			}
 			else
 				r += t;

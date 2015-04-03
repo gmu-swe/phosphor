@@ -25,9 +25,12 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.ClassNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.CheckClassAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.TraceClassVisitor;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
 
 public class PreMain {
     private static Instrumentation instrumentation;
@@ -90,7 +93,19 @@ public class PreMain {
 		
 
 		static boolean innerException = false;
-		
+
+		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint[] classtaint,
+				byte[] classfileBuffer, TaintedByteArrayWithObjTag ret) throws IllegalClassFormatException {
+			ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			ret.taint = null;
+			return ret;
+		}
+		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint[] classtaint,
+				byte[] classfileBuffer, ControlTaintTagStack ctrl, TaintedByteArrayWithObjTag ret) throws IllegalClassFormatException {
+			ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			ret.taint = null;
+			return ret;
+		}
 		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint, byte[] classfileBuffer, TaintedByteArrayWithIntTag ret) throws IllegalClassFormatException
 		{
 	        bigLoader = loader;
@@ -246,7 +261,10 @@ public class PreMain {
 			}
 		}
 	}
-
+	
+	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, ControlTaintTagStack ctrl) {
+		premain(args, inst);
+	}
 	public static void premain(String args, Instrumentation inst) {
         instrumentation = inst;
         if(Instrumenter.loader == null)
