@@ -166,6 +166,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		//		if(!boxIt && (opcode == ALOAD) && var < analyzer.locals.size() && analyzer.locals.get(var) != null && (analyzer.locals.get(var).equals("java/lang/Object") || analyzer.locals.get(var).equals("[Ljava/lang/Object;")))
 		//			boxIt = true;
 
+//		System.out.println(Printer.OPCODES[opcode] + " "+ var);
 		if (varsNeverToForceBox.contains(var)) {
 			boxIt = false;
 			//			System.out.println("actually, not Boxing " + var);
