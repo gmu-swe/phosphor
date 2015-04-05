@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-import edu.columbia.cs.psl.phosphor.runtime.SimpleMultiTaintHandler;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public class ControlTaintTagStack {

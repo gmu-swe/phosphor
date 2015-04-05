@@ -1,6 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
 
@@ -443,21 +443,21 @@ public abstract class MultiDTaintedArrayWithObjTag {
 				} else {
 					
 					if(tmp == Boolean.TYPE)
-						return new MultiDTaintedBooleanArrayWithObjTag(Configuration.newTaintArray(((boolean[]) in).length), ((boolean[]) in));
+						return new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray(((boolean[]) in).length), ((boolean[]) in));
 					if(tmp == Byte.TYPE)
-						return new MultiDTaintedByteArrayWithObjTag(Configuration.newTaintArray(((byte[]) in).length), ((byte[]) in));
+						return new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray(((byte[]) in).length), ((byte[]) in));
 					if(tmp == Character.TYPE)
-						return new MultiDTaintedCharArrayWithObjTag(Configuration.newTaintArray(((char[]) in).length), ((char[]) in));
+						return new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray(((char[]) in).length), ((char[]) in));
 					if(tmp == Double.TYPE)
-						return new MultiDTaintedDoubleArrayWithObjTag(Configuration.newTaintArray(((double[]) in).length), ((double[]) in));
+						return new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray(((double[]) in).length), ((double[]) in));
 					if(tmp == Float.TYPE)
-						return new MultiDTaintedFloatArrayWithObjTag(Configuration.newTaintArray(((float[]) in).length), ((float[]) in));
+						return new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray(((float[]) in).length), ((float[]) in));
 					if(tmp == Integer.TYPE)
-						return new MultiDTaintedIntArrayWithObjTag(Configuration.newTaintArray(((int[]) in).length), ((int[]) in));
+						return new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray(((int[]) in).length), ((int[]) in));
 					if(tmp == Long.TYPE)
-						return new MultiDTaintedLongArrayWithObjTag(Configuration.newTaintArray(((long[]) in).length), ((long[]) in));
+						return new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray(((long[]) in).length), ((long[]) in));
 					if(tmp == Short.TYPE)
-						return new MultiDTaintedShortArrayWithObjTag(Configuration.newTaintArray(((short[]) in).length), ((short[]) in));
+						return new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray(((short[]) in).length), ((short[]) in));
 						throw new IllegalArgumentException();
 				}
 			}
@@ -501,28 +501,28 @@ public abstract class MultiDTaintedArrayWithObjTag {
 					Object entry = (Object) ar[i];
 					switch (componentType) {
 					case Type.BOOLEAN:
-						ret[i] = new MultiDTaintedBooleanArrayWithObjTag(Configuration.newTaintArray((((boolean[]) entry)).length), ((boolean[]) entry));
+						ret[i] = new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray((((boolean[]) entry)).length), ((boolean[]) entry));
 						break;
 					case Type.BYTE:
-						ret[i] = new MultiDTaintedByteArrayWithObjTag(Configuration.newTaintArray((((byte[]) entry)).length), ((byte[]) entry));
+						ret[i] = new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray((((byte[]) entry)).length), ((byte[]) entry));
 						break;
 					case Type.CHAR:
-						ret[i] = new MultiDTaintedCharArrayWithObjTag(Configuration.newTaintArray((((char[]) entry)).length), ((char[]) entry));
+						ret[i] = new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray((((char[]) entry)).length), ((char[]) entry));
 						break;
 					case Type.DOUBLE:
-						ret[i] = new MultiDTaintedDoubleArrayWithObjTag(Configuration.newTaintArray((((double[]) entry)).length), ((double[]) entry));
+						ret[i] = new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray((((double[]) entry)).length), ((double[]) entry));
 						break;
 					case Type.FLOAT:
-						ret[i] = new MultiDTaintedFloatArrayWithObjTag(Configuration.newTaintArray((((float[]) entry)).length), ((float[]) entry));
+						ret[i] = new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray((((float[]) entry)).length), ((float[]) entry));
 						break;
 					case Type.INT:
-						ret[i] = new MultiDTaintedIntArrayWithObjTag(Configuration.newTaintArray((((int[]) entry)).length), ((int[]) entry));
+						ret[i] = new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray((((int[]) entry)).length), ((int[]) entry));
 						break;
 					case Type.LONG:
-						ret[i] = new MultiDTaintedLongArrayWithObjTag(Configuration.newTaintArray((((long[]) entry)).length), ((long[]) entry));
+						ret[i] = new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray((((long[]) entry)).length), ((long[]) entry));
 						break;
 					case Type.SHORT:
-						ret[i] = new MultiDTaintedShortArrayWithObjTag(Configuration.newTaintArray((((short[]) entry)).length), ((short[]) entry));
+						ret[i] = new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray((((short[]) entry)).length), ((short[]) entry));
 						break;
 					default:
 						throw new IllegalArgumentException();
@@ -595,28 +595,28 @@ public abstract class MultiDTaintedArrayWithObjTag {
 						Object entry = (Object) entry1[j];
 						switch (componentType) {
 						case Type.BOOLEAN:
-							ret[i][j] = new MultiDTaintedBooleanArrayWithObjTag(Configuration.newTaintArray((((boolean[]) entry)).length), ((boolean[]) entry));
+							ret[i][j] = new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray((((boolean[]) entry)).length), ((boolean[]) entry));
 							break;
 						case Type.BYTE:
-							ret[i][j] = new MultiDTaintedByteArrayWithObjTag(Configuration.newTaintArray((((byte[]) entry)).length), ((byte[]) entry));
+							ret[i][j] = new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray((((byte[]) entry)).length), ((byte[]) entry));
 							break;
 						case Type.CHAR:
-							ret[i][j] = new MultiDTaintedCharArrayWithObjTag(Configuration.newTaintArray((((char[]) entry)).length), ((char[]) entry));
+							ret[i][j] = new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray((((char[]) entry)).length), ((char[]) entry));
 							break;
 						case Type.DOUBLE:
-							ret[i][j] = new MultiDTaintedDoubleArrayWithObjTag(Configuration.newTaintArray((((double[]) entry)).length), ((double[]) entry));
+							ret[i][j] = new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray((((double[]) entry)).length), ((double[]) entry));
 							break;
 						case Type.FLOAT:
-							ret[i][j] = new MultiDTaintedFloatArrayWithObjTag(Configuration.newTaintArray((((float[]) entry)).length), ((float[]) entry));
+							ret[i][j] = new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray((((float[]) entry)).length), ((float[]) entry));
 							break;
 						case Type.INT:
-							ret[i][j] = new MultiDTaintedIntArrayWithObjTag(Configuration.newTaintArray((((int[]) entry)).length), ((int[]) entry));
+							ret[i][j] = new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray((((int[]) entry)).length), ((int[]) entry));
 							break;
 						case Type.LONG:
-							ret[i][j] = new MultiDTaintedLongArrayWithObjTag(Configuration.newTaintArray((((long[]) entry)).length), ((long[]) entry));
+							ret[i][j] = new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray((((long[]) entry)).length), ((long[]) entry));
 							break;
 						case Type.SHORT:
-							ret[i][j] = new MultiDTaintedShortArrayWithObjTag(Configuration.newTaintArray((((short[]) entry)).length), ((short[]) entry));
+							ret[i][j] = new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray((((short[]) entry)).length), ((short[]) entry));
 							break;
 						default:
 							throw new IllegalArgumentException();
@@ -634,28 +634,28 @@ public abstract class MultiDTaintedArrayWithObjTag {
 			if (ar[i] == null) {
 				switch (componentType) {
 				case Type.BOOLEAN:
-					ar[i] = new MultiDTaintedBooleanArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new boolean[lastDimSize]);
+					ar[i] = new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new boolean[lastDimSize]);
 					break;
 				case Type.BYTE:
-					ar[i] = new MultiDTaintedByteArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new byte[lastDimSize]);
+					ar[i] = new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new byte[lastDimSize]);
 					break;
 				case Type.CHAR:
-					ar[i] = new MultiDTaintedCharArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new char[lastDimSize]);
+					ar[i] = new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new char[lastDimSize]);
 					break;
 				case Type.DOUBLE:
-					ar[i] = new MultiDTaintedDoubleArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new double[lastDimSize]);
+					ar[i] = new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new double[lastDimSize]);
 					break;
 				case Type.FLOAT:
-					ar[i] = new MultiDTaintedFloatArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new float[lastDimSize]);
+					ar[i] = new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new float[lastDimSize]);
 					break;
 				case Type.INT:
-					ar[i] = new MultiDTaintedIntArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new int[lastDimSize]);
+					ar[i] = new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new int[lastDimSize]);
 					break;
 				case Type.LONG:
-					ar[i] = new MultiDTaintedLongArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new long[lastDimSize]);
+					ar[i] = new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new long[lastDimSize]);
 					break;
 				case Type.SHORT:
-					ar[i] = new MultiDTaintedShortArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new short[lastDimSize]);
+					ar[i] = new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new short[lastDimSize]);
 					break;
 				default:
 					throw new IllegalArgumentException();

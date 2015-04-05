@@ -92,7 +92,7 @@ public class ReflectionMasker {
 				if (c.getComponentType().isPrimitive()) {
 					//1d primitive array
 					madeChange = true;
-					newArgs.add(Configuration.TAINT_TAG_ARRAY_CLASS);
+					newArgs.add(TaintUtils.TAINT_TAG_ARRAY_CLASS);
 					newArgs.add(c);
 					continue;
 				} else {
@@ -117,7 +117,7 @@ public class ReflectionMasker {
 				}
 			} else if (c.isPrimitive()) {
 				madeChange = true;
-				newArgs.add(Configuration.TAINT_TAG_CLASS);
+				newArgs.add(TaintUtils.TAINT_TAG_CLASS);
 				newArgs.add(c);
 				continue;
 			} else {
@@ -268,7 +268,7 @@ public class ReflectionMasker {
 				if (c.getComponentType().isPrimitive()) {
 					//1d primitive array
 					madeChange = true;
-					newArgs.add(Configuration.TAINT_TAG_ARRAY_CLASS);
+					newArgs.add(TaintUtils.TAINT_TAG_ARRAY_CLASS);
 					newArgs.add(c);
 					continue;
 				} else {
@@ -293,7 +293,7 @@ public class ReflectionMasker {
 				}
 			} else if (c.isPrimitive()) {
 				madeChange = true;
-				newArgs.add(Configuration.TAINT_TAG_CLASS);
+				newArgs.add(TaintUtils.TAINT_TAG_CLASS);
 				newArgs.add(c);
 				continue;
 			} else {
@@ -567,7 +567,7 @@ public class ReflectionMasker {
 				if (t.getSort() == Type.ARRAY) {
 					if (t.getElementType().getSort() != Type.OBJECT) {
 						if (t.getDimensions() == 1) {
-							newParams.add(Configuration.TAINT_TAG_ARRAY_CLASS);
+							newParams.add(TaintUtils.TAINT_TAG_ARRAY_CLASS);
 						} else {
 							Type newType = MultiDTaintedArray.getTypeForType(t);
 							try {
@@ -579,7 +579,7 @@ public class ReflectionMasker {
 						}
 					}
 				} else if (t.getSort() != Type.OBJECT) {
-					newParams.add(Configuration.TAINT_TAG_CLASS);
+					newParams.add(TaintUtils.TAINT_TAG_CLASS);
 				}
 				newParams.add(c);
 			}

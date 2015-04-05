@@ -7,6 +7,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -61,7 +62,7 @@ public class TaintUtils {
 
 	public static final boolean OPT_USE_STACK_ONLY = false; //avoid using LVs where possible if true
 	
-	public static boolean MULTI_TAINT = false; //default
+	public static boolean MULTI_TAINT = false || Configuration.IMPLICIT_TRACKING; //default
 	public static boolean OPT_CONSTANT_ARITHMETIC = true && !Configuration.IMPLICIT_TRACKING;
 	
 	public static final int RAW_INSN = 201;
@@ -359,10 +360,10 @@ public class TaintUtils {
 		if(t.getSort() == Type.ARRAY && t.getDimensions() > 1)
 			return null;
 		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT)
-			return Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
+			return TaintUtils.TAINT_TAG_ARRAY_STACK_TYPE;
 		if (t.getSort() == Type.ARRAY)
 			return null;
-		return Configuration.TAINT_TAG_STACK_TYPE;
+		return TaintUtils.TAINT_TAG_STACK_TYPE;
 	}
 	public static String getShadowTaintType(String typeDesc) {
 		Type t = Type.getType(typeDesc);
@@ -371,10 +372,10 @@ public class TaintUtils {
 		if(t.getSort() == Type.ARRAY && t.getDimensions() > 1)
 			return null;
 		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT)
-			return Configuration.TAINT_TAG_ARRAYDESC;
+			return TaintUtils.TAINT_TAG_ARRAYDESC;
 		if (t.getSort() == Type.ARRAY)
 			return null;
-		return Configuration.TAINT_TAG_DESC;
+		return TaintUtils.TAINT_TAG_DESC;
 	}
 
 	public static Type getContainerReturnType(String originalReturnType) {
@@ -555,5 +556,37 @@ public class TaintUtils {
 			default:
 				throw new IllegalArgumentException("Got: "+t);
 		}
+	}
+
+
+	public static final String TAINT_TAG_DESC = (Configuration.TAINT_TAG_TYPE == Type.OBJECT ?
+	"Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "I");
+
+	public static final String TAINT_TAG_ARRAYDESC = (Configuration.TAINT_TAG_TYPE == Type.OBJECT ?
+	"[Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "[I");
+
+	public static String TAINT_TAG_INTERNAL_NAME = (Configuration.TAINT_TAG_TYPE == Type.OBJECT ?
+	"edu/columbia/cs/psl/phosphor/runtime/Taint" : null);
+
+	public static String TAINT_TAG_ARRAY_INTERNAL_NAME = (Configuration.TAINT_TAG_TYPE == Type.OBJECT ?
+	"[Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "[I");
+
+	public static final int NULL_TAINT_LOAD_OPCODE = (Configuration.TAINT_TAG_TYPE == Type.OBJECT ?
+	Opcodes.ACONST_NULL : Opcodes.ICONST_0);
+
+	public static final Object TAINT_TAG_STACK_TYPE = (Configuration.TAINT_TAG_TYPE == Type.OBJECT ? 
+	"edu/columbia/cs/psl/phosphor/runtime/Taint" : Opcodes.INTEGER);
+
+	public static final Object TAINT_TAG_ARRAY_STACK_TYPE = TAINT_TAG_ARRAY_INTERNAL_NAME;
+
+	public static final Class TAINT_TAG_CLASS = (Configuration.TAINT_TAG_TYPE == Type.OBJECT ? Taint.class : Integer.TYPE);
+
+	public static final Class TAINT_TAG_ARRAY_CLASS = (Configuration.TAINT_TAG_TYPE == Type.OBJECT ? Taint[].class : int[].class);
+
+	public static final String MULTI_TAINT_HANDLER_CLASS = "edu/columbia/cs/psl/phosphor/runtime/Taint";
+
+	public static Object[] newTaintArray(int len)
+	{
+		return new Taint[len];
 	}
 }

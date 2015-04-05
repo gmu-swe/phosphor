@@ -165,14 +165,14 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				owner = Type.getInternalName(ReflectionMasker.class);
 				desc = "(Ljava/lang/Class;" + desc.substring(1);
 				if (Configuration.TAINT_TAG_TYPE != Type.INT)
-					desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
+					desc = desc.replace(TaintUtils.TAINT_TAG_DESC, "Ljava/lang/Object;");
 			} else
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "addTypeParams", "([Ljava/lang/Class;)[Ljava/lang/Class;", false);
 		}
 		if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
 			owner = Type.getInternalName(ArrayReflectionMasker.class);
 			if (Configuration.TAINT_TAG_TYPE != Type.INT)
-				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
+				desc = desc.replace(TaintUtils.TAINT_TAG_DESC, "Ljava/lang/Object;");
 		}
 		if (owner.equals("java/lang/reflect/Field")
 				&& opcode == Opcodes.INVOKEVIRTUAL
@@ -185,13 +185,13 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			opcode = Opcodes.INVOKESTATIC;
 			desc = "(Ljava/lang/reflect/Field;" + desc.substring(1);
 			if (Configuration.TAINT_TAG_TYPE != Type.INT)
-				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
+				desc = desc.replace(TaintUtils.TAINT_TAG_DESC, "Ljava/lang/Object;");
 		}
 		if (!Instrumenter.IS_ANDROID_INST && owner.equals("java/lang/Class") && (name.equals("copyMethods") || name.equals("copyFields") || name.equals("copyConstructors")))
 		{
 			owner = Type.getInternalName(ReflectionMasker.class);
 			if(Configuration.TAINT_TAG_TYPE != Type.INT)
-				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
+				desc = desc.replace(TaintUtils.TAINT_TAG_DESC, "Ljava/lang/Object;");
 		}
 		super.visitMethodInsn(opcode, owner, name, desc, itfc);
 		if (owner.equals("java/lang/Class") && desc.endsWith("[Ljava/lang/reflect/Field;")) {

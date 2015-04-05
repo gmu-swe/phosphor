@@ -2,7 +2,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.lang.reflect.Array;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.ArrayList;
 
 
@@ -19,7 +19,7 @@ public class HardcodedBypassStore {
 	{
 		if(i == null)
 			return null;
-		Object[] ret = (Object[]) Array.newInstance(Configuration.TAINT_TAG_CLASS, i.length);
+		Object[] ret = (Object[]) Array.newInstance(TaintUtils.TAINT_TAG_CLASS, i.length);
 		synchronized (vals) {
 			for(int j = 0; j < i.length; j++)
 			{

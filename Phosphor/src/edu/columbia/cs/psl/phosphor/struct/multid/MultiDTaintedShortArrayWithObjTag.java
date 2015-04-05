@@ -3,7 +3,6 @@ package edu.columbia.cs.psl.phosphor.struct.multid;
 import java.io.IOException;
 import java.io.Serializable;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 
@@ -43,7 +42,7 @@ public final class MultiDTaintedShortArrayWithObjTag extends MultiDTaintedArrayW
 	private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
 		int len = stream.readInt();
 		val = new short[len];
-		taint = Configuration.newTaintArray(len);
+		taint = TaintUtils.newTaintArray(len);
 		for(int i=0;i<len;i++)
 		{
 			if(TaintUtils.TAINT_THROUGH_SERIALIZATION)

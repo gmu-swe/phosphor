@@ -244,7 +244,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 			if (stack[i] == Opcodes.INTEGER || stack[i] == Opcodes.FLOAT || stack[i] == Opcodes.LONG || stack[i] == Opcodes.DOUBLE) {
 				if (TaintUtils.DEBUG_FRAMES)
 					System.out.println("Adding taint storage for type " + stack[i]);
-				newStack.add(Configuration.TAINT_TAG_STACK_TYPE);
+				newStack.add(TaintUtils.TAINT_TAG_STACK_TYPE);
 				nStack++;
 			} else if (stack[i] instanceof String) {
 				Type t = TaintAdapter.getTypeForStackType(stack[i]);

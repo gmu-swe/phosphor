@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
@@ -433,13 +432,13 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
                 Object shadowType = null;
             	if(t instanceof Integer && t != Opcodes.NULL && t != Opcodes.UNINITIALIZED_THIS)
             	{
-            		shadowType = Configuration.TAINT_TAG_STACK_TYPE;
+            		shadowType = TaintUtils.TAINT_TAG_STACK_TYPE;
             	}
             	else if(t instanceof String)
             	{
             		Type _t = Type.getType((String) t);
             		if(_t.getSort() == Type.ARRAY && _t.getDimensions() == 1 && _t.getElementType().getSort() != Type.OBJECT)
-            			shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
+            			shadowType = TaintUtils.TAINT_TAG_ARRAY_STACK_TYPE;
             	}
             	if(shadowType != null)
             	{
@@ -473,12 +472,12 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 						else if(t instanceof Integer && (oldT.getSort() == Type.ARRAY && oldT.getDimensions() == 1 && oldT.getElementType().getSort() != Type.OBJECT))
 						{
 							//Had a shodow array, need shadow int
-							setFrameLocal(index-1, Configuration.TAINT_TAG_STACK_TYPE);
+							setFrameLocal(index-1, TaintUtils.TAINT_TAG_STACK_TYPE);
 						}
 						else if(t instanceof String && oldT.getSort() != Type.ARRAY && oldT.getSort() != Type.OBJECT)
 						{
 							//Had shadow int, need shadow array
-							setFrameLocal(index-1, Configuration.TAINT_TAG_ARRAY_STACK_TYPE);
+							setFrameLocal(index-1, TaintUtils.TAINT_TAG_ARRAY_STACK_TYPE);
 						}
 						else
 						{

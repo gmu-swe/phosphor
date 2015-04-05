@@ -2,7 +2,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.lang.reflect.Array;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
@@ -186,21 +186,21 @@ public class ArrayReflectionMasker {
 			//			else
 			if (dims == 0) {
 				if (tmp == Double.TYPE)
-					return new MultiDTaintedDoubleArrayWithObjTag(Configuration.newTaintArray(len), new double[len]);
+					return new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray(len), new double[len]);
 				if (tmp == Float.TYPE)
-					return new MultiDTaintedFloatArrayWithObjTag(Configuration.newTaintArray(len), new float[len]);
+					return new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray(len), new float[len]);
 				if (tmp == Integer.TYPE)
-					return new MultiDTaintedIntArrayWithObjTag(Configuration.newTaintArray(len), new int[len]);
+					return new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray(len), new int[len]);
 				if (tmp == Long.TYPE)
-					return new MultiDTaintedLongArrayWithObjTag(Configuration.newTaintArray(len), new long[len]);
+					return new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray(len), new long[len]);
 				if (tmp == Short.TYPE)
-					return new MultiDTaintedShortArrayWithObjTag(Configuration.newTaintArray(len), new short[len]);
+					return new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray(len), new short[len]);
 				if (tmp == Boolean.TYPE)
-					return new MultiDTaintedBooleanArrayWithObjTag(Configuration.newTaintArray(len), new boolean[len]);
+					return new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray(len), new boolean[len]);
 				if (tmp == Byte.TYPE)
-					return new MultiDTaintedByteArrayWithObjTag(Configuration.newTaintArray(len), new byte[len]);
+					return new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray(len), new byte[len]);
 				if (tmp == Character.TYPE)
-					return new MultiDTaintedCharArrayWithObjTag(Configuration.newTaintArray(len), new char[len]);
+					return new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray(len), new char[len]);
 			} else
 				clazz = MultiDTaintedArrayWithObjTag.getUnderlyingBoxClassForUnderlyingClass(clazz);
 		}
@@ -236,21 +236,21 @@ public class ArrayReflectionMasker {
 
 				switch (t.getSort()) {
 				case Type.BOOLEAN:
-					return new MultiDTaintedBooleanArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new boolean[lastDimSize]);
+					return new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new boolean[lastDimSize]);
 				case Type.BYTE:
-					return new MultiDTaintedByteArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new byte[lastDimSize]);
+					return new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new byte[lastDimSize]);
 				case Type.CHAR:
-					return new MultiDTaintedCharArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new char[lastDimSize]);
+					return new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new char[lastDimSize]);
 				case Type.DOUBLE:
-					return new MultiDTaintedDoubleArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new double[lastDimSize]);
+					return new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new double[lastDimSize]);
 				case Type.FLOAT:
-					return new MultiDTaintedFloatArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new float[lastDimSize]);
+					return new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new float[lastDimSize]);
 				case Type.INT:
-					return new MultiDTaintedIntArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new int[lastDimSize]);
+					return new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new int[lastDimSize]);
 				case Type.LONG:
-					return new MultiDTaintedLongArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new long[lastDimSize]);
+					return new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new long[lastDimSize]);
 				case Type.SHORT:
-					return new MultiDTaintedShortArrayWithObjTag(Configuration.newTaintArray(lastDimSize), new short[lastDimSize]);
+					return new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new short[lastDimSize]);
 				default:
 					throw new IllegalArgumentException();
 				}
@@ -729,42 +729,42 @@ public class ArrayReflectionMasker {
 	}
 
 	public static void setBoolean$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx, Object taint, boolean val, ControlTaintTagStack ctrl) {
-		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		taint = Taint.combineTags(taint, ctrl);
 		setBoolean$$PHOSPHORTAGGED(obj, idxTaint, idx, taint, val);
 	}
 
 	public static void setByte$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx, Object taint, byte val, ControlTaintTagStack ctrl) {
-		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		taint = Taint.combineTags(taint, ctrl);
 		setByte$$PHOSPHORTAGGED(obj, idxTaint, idx, taint, val);
 	}
 
 	public static void setChar$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx, Object taint, char val, ControlTaintTagStack ctrl) {
-		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		taint = Taint.combineTags(taint, ctrl);
 		setChar$$PHOSPHORTAGGED(obj, idxTaint, idx, taint, val);
 	}
 
 	public static void setDouble$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx, Object taint, double val, ControlTaintTagStack ctrl) {
-		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		taint = Taint.combineTags(taint, ctrl);
 		setDouble$$PHOSPHORTAGGED(obj, idxTaint, idx, taint, val);
 	}
 
 	public static void setFloat$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx, Object taint, float val, ControlTaintTagStack ctrl) {
-		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		taint = Taint.combineTags(taint, ctrl);
 		setFloat$$PHOSPHORTAGGED(obj, idxTaint, idx, taint, val);
 	}
 
 	public static void setInt$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx, Object taint, int val, ControlTaintTagStack ctrl) {
-		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		taint = Taint.combineTags(taint, ctrl);
 		setInt$$PHOSPHORTAGGED(obj, idxTaint, idx, taint, val);
 	}
 
 	public static void setLong$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx, Object taint, long val, ControlTaintTagStack ctrl) {
-		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		taint = Taint.combineTags(taint, ctrl);
 		setLong$$PHOSPHORTAGGED(obj, idxTaint, idx, taint, val);
 	}
 
 	public static void setShort$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx, Object taint, short val, ControlTaintTagStack ctrl) {
-		taint = SimpleMultiTaintHandler.combineTags(taint, ctrl);
+		taint = Taint.combineTags(taint, ctrl);
 		setShort$$PHOSPHORTAGGED(obj, idxTaint, idx, taint, val);
 	}
 
