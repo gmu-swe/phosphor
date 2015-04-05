@@ -1,11 +1,9 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class Taint implements Cloneable{
 

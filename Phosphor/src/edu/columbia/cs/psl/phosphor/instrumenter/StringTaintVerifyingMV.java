@@ -2,7 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import java.util.HashSet;
 
-import com.sun.xml.internal.ws.org.objectweb.asm.Type;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;

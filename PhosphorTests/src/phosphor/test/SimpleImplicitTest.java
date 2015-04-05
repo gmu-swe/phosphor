@@ -1,8 +1,6 @@
 package phosphor.test;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
-import edu.columbia.cs.psl.phosphor.runtime.SimpleMultiTaintHandler;
-import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 
 public class SimpleImplicitTest {
 	public SimpleImplicitTest() {

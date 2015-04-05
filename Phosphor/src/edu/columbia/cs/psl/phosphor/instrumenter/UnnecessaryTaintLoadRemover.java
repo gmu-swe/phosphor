@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.sun.xml.internal.ws.org.objectweb.asm.Type;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
