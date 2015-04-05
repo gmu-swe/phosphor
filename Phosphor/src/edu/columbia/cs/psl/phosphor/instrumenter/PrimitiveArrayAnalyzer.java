@@ -20,6 +20,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.AbstractInsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.IincInsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.InsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LabelNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
@@ -366,6 +367,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				HashMap<Integer, LinkedList<Integer>> edges = new HashMap<Integer, LinkedList<Integer>>();
 				
 
+				LinkedList<Integer> varsStoredThisInsn = new LinkedList<Integer>();
 				@Override
 				protected void newControlFlowEdge(int insn, int successor) {
 					if (!edges.containsKey(successor))
@@ -388,6 +390,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					}
 					else
 						fromBlock = implicitAnalysisblocks.get(insn);
+					
 					AbstractInsnNode insnN = instructions.get(insn);
 					fromBlock.isJump = (insnN.getType()== AbstractInsnNode.JUMP_INSN && insnN.getOpcode() != Opcodes.GOTO)
 							|| insnN.getType() == AbstractInsnNode.LOOKUPSWITCH_INSN || insnN.getType() == AbstractInsnNode.TABLESWITCH_INSN;
@@ -400,6 +403,22 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						succesorBlock.idx = successor;
 						succesorBlock.insn = instructions.get(successor);
 						implicitAnalysisblocks.put(successor, succesorBlock);
+						if(succesorBlock.insn.getType() == AbstractInsnNode.IINC_INSN)
+						{
+							succesorBlock.varsWritten.add(((IincInsnNode)succesorBlock.insn).var);
+						}
+						else if(succesorBlock.insn.getType() == AbstractInsnNode.VAR_INSN)
+						{
+							switch(succesorBlock.insn.getOpcode())
+							{
+							case ISTORE:
+							case ASTORE:
+							case DSTORE:
+							case LSTORE:
+								succesorBlock.varsWritten.add(((VarInsnNode)succesorBlock.insn).var);
+								break;
+							}
+						}
 					}
 					fromBlock.successors.add(succesorBlock);
 					succesorBlock.predecessors.add(fromBlock);
@@ -407,10 +426,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					if(fromBlock.isJump)
 						{
 						if(fromBlock.covered)
-							succesorBlock.antiDomBlocks.add(fromBlock);
+							succesorBlock.onTrueSideOfJumpFrom.add(fromBlock);
 						else
 						{
-							succesorBlock.domBlocks.add(fromBlock);
+							succesorBlock.onFalseSideOfJumpFrom.add(fromBlock);
 							fromBlock.covered = true;
 						}
 						}
@@ -565,16 +584,16 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						if (b.visited)
 							continue;
 						b.visited = true;
-						b.domBlocks.removeAll(b.resolvedBlocks);
-						b.domBlocks.removeAll(b.resolvedBlocks);
+						b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
+						b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
 						//Propogate markings to successors
 						for (BasicBlock s : b.successors) {
-							s.domBlocks.addAll(b.domBlocks);
-							s.antiDomBlocks.addAll(b.antiDomBlocks);
+							s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
+							s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
 							s.resolvedBlocks.addAll(b.resolvedBlocks);
 							
-							s.domBlocks.remove(s);
-							s.antiDomBlocks.remove(s);
+							s.onFalseSideOfJumpFrom.remove(s);
+							s.onTrueSideOfJumpFrom.remove(s);
 							if (!s.visited)
 								stack.add(s);
 						}
@@ -582,15 +601,15 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					//						calculatePostDominators(implicitAnalysisblocks.get(0));
 					for (BasicBlock b : implicitAnalysisblocks.values()) {
 						//						System.out.println(b.domBlocks);
-						for (BasicBlock d : b.domBlocks) {
-							if (b.antiDomBlocks.contains(d)) {
+						for (BasicBlock d : b.onFalseSideOfJumpFrom) {
+							if (b.onTrueSideOfJumpFrom.contains(d)) {
 								b.resolvedBlocks.add(d);
 								b.resolvedHereBlocks.add(d);
 							}
 						}
 						if (b.resolvedBlocks.size() > 0) {
-							b.antiDomBlocks.removeAll(b.resolvedBlocks);
-							b.domBlocks.removeAll(b.resolvedBlocks);
+							b.onTrueSideOfJumpFrom.removeAll(b.resolvedBlocks);
+							b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
 							//							System.out.println("!!Remove " + b.resolvedBlocks + " at " + b.idx + " - " + b.insn);
 						}
 						b.visited = false;
@@ -603,12 +622,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						if (b.visited)
 							continue;
 						b.visited = true;
-						b.domBlocks.removeAll(b.resolvedBlocks);
-						b.domBlocks.removeAll(b.resolvedBlocks);
+						b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
+						b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
 						//Propogate markings to successors
 						for (BasicBlock s : b.successors) {
-							s.domBlocks.addAll(b.domBlocks);
-							s.antiDomBlocks.addAll(b.antiDomBlocks);
+							s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
+							s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
 							s.resolvedBlocks.addAll(b.resolvedBlocks);
 							if (!s.visited)
 								stack.add(s);
@@ -627,7 +646,33 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 										hadChanges = true;
 									}
 							}
+							b.visited =false;
 							b.resolvedHereBlocks.removeAll(remove);
+						}
+					}
+					for(BasicBlock j : implicitAnalysisblocks.values())
+					{
+						if(j.isJump)
+						{
+							stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
+							stack.addAll(j.successors);
+							while(!stack.isEmpty())
+							{
+								BasicBlock b = stack.pop();
+								if(b.visited)
+									continue;
+								b.visited = true;
+								if(b.onFalseSideOfJumpFrom.contains(j))
+								{
+									j.varsWrittenTrueSide.addAll(b.varsWritten);
+									stack.addAll(b.successors);
+								}
+								else if(b.onTrueSideOfJumpFrom.contains(j))
+								{
+									j.varsWrittenFalseSide.addAll(b.varsWritten);
+									stack.addAll(b.successors);
+								}
+							}
 						}
 					}
 					HashMap<BasicBlock, Integer> jumpIDs = new HashMap<PrimitiveArrayAnalyzer.BasicBlock, Integer>();
@@ -635,7 +680,21 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					for (BasicBlock b : implicitAnalysisblocks.values()) {
 						if (b.isJump) {
 							jumpID++;
+							HashSet<Integer> common = new HashSet<Integer>();
+							common.addAll(b.varsWrittenFalseSide);
+							common.retainAll(b.varsWrittenTrueSide);
+							HashSet<Integer> diff =new HashSet<Integer>();
+							diff.addAll(b.varsWrittenTrueSide);
+							diff.addAll(b.varsWrittenFalseSide);
+							diff.removeAll(common);
+
+							for(int i : diff)
+							{
+								instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.FORCE_CTRL_STORE, i));
+								
+							}
 							instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
+
 							jumpIDs.put(b, jumpID);
 						}
 					}
@@ -663,13 +722,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			if(b.visited)
 				return;
 			b.visited = true;
-			b.domBlocks.removeAll(b.resolvedBlocks);
-			b.domBlocks.removeAll(b.resolvedBlocks);
+			b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
+			b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
 			//Propogate markings to successors
 			for(BasicBlock s : b.successors)
 			{
-				s.domBlocks.addAll(b.domBlocks);
-				s.antiDomBlocks.addAll(b.antiDomBlocks);
+				s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
+				s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
 				s.resolvedBlocks.addAll(b.resolvedBlocks);
 				if(!s.visited)
 					calculatePostDominators(s);
@@ -689,9 +748,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		HashSet<BasicBlock> resolvedHereBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 
 		HashSet<BasicBlock> resolvedBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-		HashSet<BasicBlock> domBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-		HashSet<BasicBlock> antiDomBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-		HashSet<Integer> varsAccessed = new HashSet<Integer>();
+		HashSet<BasicBlock> onFalseSideOfJumpFrom = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
+		HashSet<BasicBlock> onTrueSideOfJumpFrom = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
+		HashSet<Integer> varsWritten = new HashSet<Integer>();
+		
+		HashSet<Integer> varsWrittenTrueSide = new HashSet<Integer>();
+		HashSet<Integer> varsWrittenFalseSide = new HashSet<Integer>();
 		@Override
 		public String toString() {
 			return insn.toString();

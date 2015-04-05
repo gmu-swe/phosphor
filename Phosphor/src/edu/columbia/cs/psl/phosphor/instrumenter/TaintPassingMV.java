@@ -177,6 +177,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	ArrayList<Integer> jumpControlTaintLVs = new ArrayList<Integer>();
 	int branchStarting;
+	HashSet<Integer> forceCtrlAdd = new HashSet<Integer>();
 	@SuppressWarnings("unused")
 	@Override
 	public void visitVarInsn(int opcode, int var) {
@@ -266,6 +267,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
 				super.visitMethodInsn(INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
 				break;
+			case TaintUtils.FORCE_CTRL_STORE:
+				forceCtrlAdd.add(var);
+				return;
 			}
 		}
 		if (varsNeverToForceBox.contains(var)) {
@@ -399,14 +403,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				System.out.println("using shadow " + shadowVar + "for " + var + (boxIt ? " boxit" : " notboxit"));
 				System.out.println("LVS: " + analyzer.locals);
 			}
-		}
-		if (opcode == Opcodes.ALOAD) {
-			if (TaintUtils.DEBUG_LOCAL)
-				System.out.println("ALOAD " + var + " onto stack " + analyzer.stack);
-		}
-		if (opcode == Opcodes.ILOAD) {
-			if (TaintUtils.DEBUG_LOCAL)
-				System.out.println("ILOAD " + var + " onto stack " + analyzer.stack);
 		}
 		if (shadowVar >= 0 && !boxIt) {
 			switch (opcode) {
@@ -1656,7 +1652,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
 //		if (TaintUtils.DEBUG_FRAMES)
 //			System.out.println("TMV sees frame: "
-//+ Arrays.toString(local) 
+//+type+ Arrays.toString(local) 
 //+ ", stack " + Arrays.toString(stack));
 //			new Exception().printStackTrace();
 		super.visitFrame(type, nLocal, local, nStack, stack);
@@ -3241,6 +3237,45 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				break;
 			default:
 				throw new IllegalStateException("Unimplemented: " + opcode);
+			}
+			if(opcode != Opcodes.GOTO)
+			{
+				for (int var : forceCtrlAdd) {
+					int shadowVar = -1;
+					if (analyzer.locals.size() <= var || analyzer.locals.get(var) == Opcodes.TOP)
+						continue;
+					if (var < lastArg && TaintUtils.getShadowTaintType(paramTypes[var].getDescriptor()) != null) {
+						//accessing an arg; remap it
+						Type localType = paramTypes[var];
+						if (localType.getSort() != Type.OBJECT && localType.getSort() != Type.ARRAY) {
+							shadowVar = var - 1;
+						} else if (localType.getSort() == Type.ARRAY)
+							continue;
+					} else {
+						if (lvs.varToShadowVar.containsKey(var)) {
+							shadowVar = lvs.varToShadowVar.get(var);
+							if (analyzer.locals.get(var) instanceof String && ((String) analyzer.locals.get(var)).startsWith("["))
+								continue;
+							if (shadowVar >= analyzer.locals.size() || analyzer.locals.get(shadowVar) instanceof Integer || ((String) analyzer.locals.get(shadowVar)).startsWith("["))
+								continue;
+						}
+					}
+					if(shadowVar >= 0)
+					{
+						super.visitVarInsn(ALOAD, shadowVar);
+						super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
+						super.visitMethodInsn(INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, TaintUtils.TAINT_TAG_INTERNAL_NAME);
+						super.visitVarInsn(ASTORE, shadowVar);
+					}
+					else
+					{
+						super.visitVarInsn(ALOAD, var);
+						super.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
+						super.visitMethodInsn(INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+					}
+				}
+				forceCtrlAdd.clear();
 			}
 		}
 		if (boxAtNextJump.size() > 0) {

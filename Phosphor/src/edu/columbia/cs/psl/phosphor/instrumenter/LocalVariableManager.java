@@ -131,7 +131,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 	protected int remap(int var, Type type) {
 		
 		int ret = super.remap(var, type);
-//		System.out.println("var -> " + ret);
+//		System.out.println(var +" -> " + ret);
 		origLVMap.put(ret, var);
 		Object objType = "[I";
 		switch(type.getSort()){
@@ -375,26 +375,27 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
         		locals.add(Opcodes.TOP);
         }
         boolean[] varsToSetToTop = new boolean[newLocals.length];
-        for(int var : varsToRemove.keySet())
-        {
-        	//var is the var that we want to see if it's a taint-carrying type
-        	if(var < locals.size())
-        	{
-        		Object v = locals.get(var);
-        		if(v instanceof String)
-        		{
-        			Type t = Type.getObjectType(((String)v));
-        			if(t.getSort() == Type.OBJECT || (t.getSort() == Type.ARRAY && (t.getDimensions() > 1 || t.getElementType().getSort() == Type.OBJECT)))
-        			{
-//        				System.out.println("Prob w " + var );
-//        				System.out.println(Arrays. toString(local));
-//        				System.out.println(Arrays.toString(oldLocals));
-        				varsToSetToTop[varsToRemove.get(var)] = true;
-        			}
-        		}
-        	}
-//        	if(var)
-        }
+//        for(int var : varsToRemove.keySet())
+//        {
+//        	//var is the var that we want to see if it's a taint-carrying type
+//        	if(var < locals.size())
+//        	{
+//        		Object v = locals.get(var);
+//        		if(v instanceof String)
+//        		{
+//        			Type t = Type.getObjectType(((String)v));
+//        			if(t.getSort() == Type.OBJECT || (t.getSort() == Type.ARRAY && (t.getDimensions() > 1 || t.getElementType().getSort() == Type.OBJECT)))
+//        			{
+////        				System.out.println("Prob w " + var );
+////        				System.out.println(Arrays. toString(local));
+////        				System.out.println(Arrays.toString(oldLocals));
+//        				varsToSetToTop[varsToRemove.get(var)] = true;
+//        			}
+//        		}
+//        	}
+////        	if(var)
+//        }
+        
         // copies types from 'local' to 'newLocals'
         // 'newLocals' currently empty
 
@@ -495,6 +496,13 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
             index += size;
         }
 
+        for(int i : varToShadowVar.keySet())
+        {
+        	if(newLocals[i] == null)
+        	{
+        		newLocals[varToShadowVar.get(i)] = Opcodes.TOP;
+        	}
+        }
         // removes TOP after long and double types as well as trailing TOPs
 
         index = 0;
@@ -510,6 +518,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
             } else {
                 newLocals[i] = Opcodes.TOP;
             }
+
         }
         // visits remapped frame
         mv.visitFrame(type, number, newLocals, nStack, stack);

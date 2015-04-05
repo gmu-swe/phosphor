@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class SpecialOpcodeRemovingMV extends MethodVisitor {
@@ -25,6 +26,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 		switch (opcode) {
 		case TaintUtils.BRANCH_END:
 		case TaintUtils.BRANCH_START:
+		case TaintUtils.FORCE_CTRL_STORE:
 			break;
 		default:
 			super.visitVarInsn(opcode, var);

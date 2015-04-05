@@ -82,7 +82,8 @@ public class TaintUtils {
 	
 	public static final int BRANCH_START = 214;
 	public static final int BRANCH_END = 215;
-	
+	public static final int FORCE_CTRL_STORE = 216;
+
 	public static final String TAINT_FIELD = "PHOSPHOR_TAG";
 //	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
 //	public static final String IS_TAINT_SEATCHING_FIELD = "INVIVO_IS_TAINT_SEARCHING";
