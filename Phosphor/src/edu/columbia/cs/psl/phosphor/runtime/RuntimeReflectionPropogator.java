@@ -72,9 +72,9 @@ public class RuntimeReflectionPropogator {
 		return ret;
 	}
 	public static Object get$$PHOSPHORTAGGED(Field f, Object obj, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
-		return get(f, obj);
+		return get(f, obj, true);
 	}
-	public static Object get(Field f, Object obj) throws IllegalArgumentException, IllegalAccessException {
+	public static Object get(Field f, Object obj, boolean isObjTags) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		Object ret = f.get(obj);
 		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
@@ -88,7 +88,7 @@ public class RuntimeReflectionPropogator {
 					fieldToField.put(f, taintField);
 				}
 				Object taint = taintField.get(obj);
-				if(Configuration.TAINT_TAG_TYPE == Type.INT)
+				if(!isObjTags)
 				{
 					if (f.getType().getComponentType() == Boolean.TYPE) {
 						return new TaintedBooleanArrayWithIntTag((int[]) taint, (boolean[]) ret);
@@ -943,14 +943,14 @@ public class RuntimeReflectionPropogator {
 		f.setAccessible(true);
 		f.set(obj, val);
 	}
-	public static void set(Field f, Object obj, Object val) throws IllegalArgumentException, IllegalAccessException {
+	public static void set(Field f, Object obj, Object val, boolean isObjTags) throws IllegalArgumentException, IllegalAccessException {
 		if (f.getType().isPrimitive()) {
 			if (val instanceof Integer && f.getType().equals(Integer.TYPE)) {
 				Integer i = (Integer) val;
 				f.setAccessible(true);
 				f.setInt(obj, i.intValue());
 				try {
-					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					if (!isObjTags)
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
 					else
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
@@ -965,7 +965,7 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setBoolean(obj, i.booleanValue());
 				try {
-					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					if (!isObjTags)
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
 					else
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
@@ -980,7 +980,7 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setByte(obj, i.byteValue());
 				try {
-					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					if (!isObjTags)
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
 					else
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
@@ -995,7 +995,7 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setChar(obj, i.charValue());
 				try {
-					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					if (!isObjTags)
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
 					else
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
@@ -1010,7 +1010,7 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setDouble(obj, i.doubleValue());
 				try {
-					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					if (!isObjTags)
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
 					else
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
@@ -1025,7 +1025,7 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setFloat(obj, i.floatValue());
 				try {
-					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					if (!isObjTags)
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
 					else
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
@@ -1040,7 +1040,7 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setLong(obj, i.longValue());
 				try {
-					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					if (!isObjTags)
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
 					else
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
@@ -1055,7 +1055,7 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setShort(obj, i.shortValue());
 				try {
-					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					if (!isObjTags)
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
 					else
 						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));

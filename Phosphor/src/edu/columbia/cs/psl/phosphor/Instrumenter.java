@@ -33,6 +33,14 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Options;
+
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassReader;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassVisitor;
@@ -440,36 +448,77 @@ public class Instrumenter {
 		}
 	}
 
+	static Option opt_taintSources = OptionBuilder.withArgName("taintSources").hasArg().withDescription("File with listing of taint sources to auto-taint").create("taintSources");
+	static Option opt_taintSinks =   OptionBuilder.withArgName("taintsinks").hasArg().withDescription("File with listing of taint sinks to use to check for auto-taints").create("taintSinks");
+	static Option opt_dataTrack = new Option("withoutDataTrack", "Disable taint tracking through data flow (on by default)");
+	static Option opt_controlTrack = new Option("controlTrack", "Enable taint tracking through control flow");
+	static Option opt_multiTaint = new Option("multiTaint", "Support for 2^32 tags instead of just 32");
+	static Option help = new Option( "help", "print this message" );
+
+	public static String sourcesFile;
+	public static String sinksFile;
+	
 	public static void main(String[] args) {
-		if(args.length < 2)
-		{
-			 System.err.println("Usage: java {-DTAINT_SINKS=... -DTAINT_SOURCES=...} -jar phosphor.jar [source] [dest] {additional-classpath-entries}");
-			 return;
+		
+		Options options = new Options();
+		options.addOption(help);
+		options.addOption(opt_multiTaint);
+		options.addOption(opt_controlTrack);
+		options.addOption(opt_dataTrack);
+		options.addOption(opt_taintSinks);
+		options.addOption(opt_taintSources);
+		
+	    CommandLineParser parser = new BasicParser();
+	    CommandLine line = null;
+	    try {
+	        line = parser.parse( options, args );
+	    }
+	    catch( org.apache.commons.cli.ParseException exp ) {
+	        System.err.println( "Parsing arguments failed.  Reason: " + exp.getMessage() );
+	        return;
 		}
-		TaintUtils.MULTI_TAINT = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false")) || Boolean.valueOf(System.getProperty("MULTI_TAINT","false")) || Configuration.TAINT_TAG_TYPE != Type.INT;;
-		Configuration.IMPLICIT_TRACKING = Boolean.valueOf(System.getProperty("IMPLICIT_FLOW","false"));
+		if (line.hasOption("help") || line.getArgs().length != 2) {
+			HelpFormatter formatter = new HelpFormatter();
+			formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
+			return;
+		}
+		
+		sourcesFile = line.getOptionValue("taintSources");
+		sinksFile = line.getOptionValue("taintSinks");
+		Configuration.MULTI_TAINTING = line.hasOption("dataTrack");
+		Configuration.IMPLICIT_TRACKING = line.hasOption("controlTrack");
+		Configuration.DATAFLOW_TRACKING = !line.hasOption("withoutDataTrack");
+		if(Configuration.IMPLICIT_TRACKING)
+			Configuration.MULTI_TAINTING = true;
+
+		Configuration.init();
+		
+		
+		if(Configuration.DATAFLOW_TRACKING)
+			System.out.println("Data flow tracking: enabled");
+		else
+			System.out.println("Data flow tracking: disabled");
 		if(Configuration.IMPLICIT_TRACKING)
 		{
-			TaintUtils.OPT_CONSTANT_ARITHMETIC = false;
-			System.out.println("Implicit flow tracking: enabled");
+			System.out.println("Control flow tracking: enabled");
 		}
 		else
-			System.out.println("Implicit flow tracking: disabled (enable with -DIMPLICIT_FLOW=true)");
+			System.out.println("Control flow tracking: disabled");
 		
-		if(TaintUtils.MULTI_TAINT)
+		if(Configuration.MULTI_TAINTING)
 			System.out.println("Multi taint: enabled");
 		else
-			System.out.println("Taints will be combined with logical-or. To enable multi-tainting and 2^32 distinct markings, use -DMULTI_TAINT=true");
-		
+			System.out.println("Taints will be combined with logical-or.");
+
 		TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
 		ANALYZE_ONLY = true;
 		System.out.println("Starting analysis");
 //		preAnalysis();
-		_main(args);
+		_main(line.getArgs());
 		System.out.println("Analysis Completed: Beginning Instrumentation Phase");
 //		finishedAnalysis();
 		ANALYZE_ONLY = false;
-		_main(args);
+		_main(line.getArgs());
 		System.out.println("Done");
 
 	}

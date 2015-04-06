@@ -63,14 +63,16 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
 					super.visitVarInsn(ALOAD, methodVar);
 					super.visitVarInsn(ALOAD, argsVar);
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgsFast", "(Ljava/lang/reflect/Method;[Ljava/lang/Object;)[Ljava/lang/Object;",
+					super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgsFast", "(Ljava/lang/reflect/Method;[Ljava/lang/Object;Z)[Ljava/lang/Object;",
 							false);
 					super.visitJumpInsn(GOTO, done);
 					super.visitLabel(slow);
 					super.visitVarInsn(ALOAD, objVar);
 					super.visitVarInsn(ALOAD, argsVar);
+					super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
 					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs",
-							"(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)" + Type.getDescriptor(MethodInvoke.class), false);
+							"(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;Z)" + Type.getDescriptor(MethodInvoke.class), false);
 					//B
 					super.visitInsn(Opcodes.DUP);
 					//B B
@@ -93,8 +95,11 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 						super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;"
 								+ Type.getDescriptor(ControlTaintTagStack.class) + ")" + Type.getDescriptor(MethodInvoke.class), false);
 					} else
-						super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)"
+					{
+						super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;Z)"
 								+ Type.getDescriptor(MethodInvoke.class), false);
+					}
 					//B
 					super.visitInsn(Opcodes.DUP);
 					//B B
@@ -127,25 +132,34 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					//[A C
 					super.visitInsn(Opcodes.DUP_X1);
 					//C [A C
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;)[Ljava/lang/Object;",
+					super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;Z)[Ljava/lang/Object;",
 							false);
 				}
 			}
 		} else if ((owner.equals("java/lang/reflect/Method")) && name.startsWith("get") && !className.equals(owner) && !className.startsWith("sun/reflect") && !className.startsWith("java/lang/Class")) {
 			if (args.length == 0)
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Method;)Ljava/lang/reflect/Method;", false);
+			{
+				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Method;Z)Ljava/lang/reflect/Method;", false);
+			}
 			else if (args.length == 1) {
 				super.visitInsn(Opcodes.SWAP);
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Method;)Ljava/lang/reflect/Method;", false);
+				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Method;Z)Ljava/lang/reflect/Method;", false);
 				super.visitInsn(Opcodes.SWAP);
 			}
 		} else if ((owner.equals("java/lang/reflect/Constructor")) && name.startsWith("get") && !className.equals(owner) && !className.startsWith("sun/reflect")
 				&& !className.equals("java/lang/Class")) {
 			if (args.length == 0)
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Constructor;)Ljava/lang/reflect/Constructor;", false);
+			{
+				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Constructor;Z)Ljava/lang/reflect/Constructor;", false);
+			}
 			else {
 				super.visitInsn(Opcodes.SWAP);
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Constructor;)Ljava/lang/reflect/Constructor;", false);
+				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Constructor;Z)Ljava/lang/reflect/Constructor;", false);
 				super.visitInsn(Opcodes.SWAP);
 			}
 		} else if (owner.equals("java/lang/Class")
@@ -164,19 +178,23 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				opcode = Opcodes.INVOKESTATIC;
 				owner = Type.getInternalName(ReflectionMasker.class);
 				desc = "(Ljava/lang/Class;" + desc.substring(1);
-				if (Configuration.TAINT_TAG_TYPE != Type.INT)
-					desc = desc.replace(TaintUtils.TAINT_TAG_DESC, "Ljava/lang/Object;");
+				if (Configuration.MULTI_TAINTING)
+					desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
 			} else
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "addTypeParams", "([Ljava/lang/Class;)[Ljava/lang/Class;", false);
+			{
+				super.visitInsn((Configuration.IMPLICIT_TRACKING ? ICONST_1 : ICONST_0));
+				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "addTypeParams", "([Ljava/lang/Class;ZZ)[Ljava/lang/Class;", false);
+			}
 		}
 		if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
 			owner = Type.getInternalName(ArrayReflectionMasker.class);
-			if (Configuration.TAINT_TAG_TYPE != Type.INT)
-				desc = desc.replace(TaintUtils.TAINT_TAG_DESC, "Ljava/lang/Object;");
+			if (Configuration.MULTI_TAINTING)
+				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
 		}
 		if (owner.equals("java/lang/reflect/Field")
 				&& opcode == Opcodes.INVOKEVIRTUAL
-				&& (name.equals("get") || name.equals("getInt$$PHOSPHORTAGGED") || name.equals("getBoolean$$PHOSPHORTAGGED") || name.equals("getChar$$PHOSPHORTAGGED")
+				&& (name.equals("get") || name.equals("get$$PHOSPHORTAGGED") || name.equals("set$$PHOSPHORTAGGED") || name.equals("getInt$$PHOSPHORTAGGED") || name.equals("getBoolean$$PHOSPHORTAGGED") || name.equals("getChar$$PHOSPHORTAGGED")
 						|| name.equals("getDouble$$PHOSPHORTAGGED") || name.equals("getByte$$PHOSPHORTAGGED") || name.equals("getFloat$$PHOSPHORTAGGED") || name.equals("getLong$$PHOSPHORTAGGED")
 						|| name.equals("getShort$$PHOSPHORTAGGED") || name.equals("setAccessible$$PHOSPHORTAGGED") || name.equals("set") || name.equals("setInt$$PHOSPHORTAGGED")
 						|| name.equals("setBoolean$$PHOSPHORTAGGED") || name.equals("setChar$$PHOSPHORTAGGED") || name.equals("setDouble$$PHOSPHORTAGGED") || name.equals("setByte$$PHOSPHORTAGGED")
@@ -184,14 +202,24 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			owner = Type.getInternalName(RuntimeReflectionPropogator.class);
 			opcode = Opcodes.INVOKESTATIC;
 			desc = "(Ljava/lang/reflect/Field;" + desc.substring(1);
-			if (Configuration.TAINT_TAG_TYPE != Type.INT)
-				desc = desc.replace(TaintUtils.TAINT_TAG_DESC, "Ljava/lang/Object;");
+			if (Configuration.MULTI_TAINTING)
+				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
+			if(name.equals("get"))
+			{
+				desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Z)Ljava/lang/Object;";
+				super.visitInsn((Configuration.MULTI_TAINTING ? Opcodes.ICONST_1 : Opcodes.ICONST_0));
+			}
+			else if(name.equals("set"))
+			{
+				desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;Z)V";
+				super.visitInsn((Configuration.MULTI_TAINTING ? Opcodes.ICONST_1 : Opcodes.ICONST_0));
+			}
 		}
 		if (!Instrumenter.IS_ANDROID_INST && owner.equals("java/lang/Class") && (name.equals("copyMethods") || name.equals("copyFields") || name.equals("copyConstructors")))
 		{
 			owner = Type.getInternalName(ReflectionMasker.class);
-			if(Configuration.TAINT_TAG_TYPE != Type.INT)
-				desc = desc.replace(TaintUtils.TAINT_TAG_DESC, "Ljava/lang/Object;");
+			if(Configuration.MULTI_TAINTING)
+				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
 		}
 		super.visitMethodInsn(opcode, owner, name, desc, itfc);
 		if (owner.equals("java/lang/Class") && desc.endsWith("[Ljava/lang/reflect/Field;")) {
@@ -217,7 +245,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeExtraStackTraceElements",
 					"(" + stackTraceElDesc + "Ljava/lang/Class;)" + stackTraceElDesc, false);
 		} else if (owner.equals("java/lang/Object") && name.equals("getClass")) {
-			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeTaintClass", "(Ljava/lang/Class;)Ljava/lang/Class;", false);
+			super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeTaintClass", "(Ljava/lang/Class;Z)Ljava/lang/Class;", false);
 
 		}
 

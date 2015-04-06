@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
@@ -91,7 +92,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitLabel(makeNew);
 				fn.accept(this);
 
-				Type taintType = Type.getType(TaintUtils.TAINT_TAG_DESC);
+				Type taintType = Type.getType(Configuration.TAINT_TAG_DESC);
 				
 				//VV T
 				int tmp = lvs.getTmpLV(argT);
@@ -106,7 +107,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitVarInsn(argT.getOpcode(ILOAD), tmp);
 
 				super.visitInsn(Opcodes.ACONST_NULL);
-				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+TaintUtils.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V", false);
+				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V", false);
 				lvs.freeTmpLV(tmp);
 				lvs.freeTmpLV(tmpT);
 				super.visitLabel(isOK);

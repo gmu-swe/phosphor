@@ -16,29 +16,30 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	static HashSet<String> sinks = new HashSet<String>();
 	static HashSet<String> sources = new HashSet<String>();
 
+
 	static {
-		if(System.getProperty("TAINT_SOURCES") == null && System. getProperty("TAINT_SINKS") == null)
+		if(Instrumenter.sourcesFile == null && Instrumenter.sinksFile == null)
 		{
-			System.err.println("No taint sources or sinks specified. To specify, add option -DTAINT_SOURCES=file and/or -DTAINT_SINKS=file where file is a file listing taint sources/sinks. See files taint-sinks and taint-samples in source for examples. Lines beginning with # are ignored.");
+			System.err.println("No taint sources or sinks specified. To specify, add option -taintSources=file and/or -taintSinks=file where file is a file listing taint sources/sinks. See files taint-sinks and taint-samples in source for examples. Lines beginning with # are ignored.");
 		}
-		URL f = BasicSourceSinkManager.class.getResource("/taint-sources");
-		//		if(f.exists())
+
 		{
 			Scanner s;
 			try {
-				if(System.getProperty("TAINT_SOURCES") != null)
+				if(Instrumenter.sourcesFile != null)
 				{
-					System.out.println("Using taint sources file: " + System.getProperty("TAINT_SOURCES"));
-					s = new Scanner(new File(System.getProperty("TAINT_SOURCES")));
+					System.out.println("Using taint sources file: " + Instrumenter.sourcesFile);
+					s = new Scanner(new File(Instrumenter.sourcesFile));
+
+					while (s.hasNextLine())
+					{
+						String line = s.nextLine();
+						if(!line.startsWith("#"))
+							sources.add(line);
+					}
+					s.close();
 				}
-				else
-					s = new Scanner(f.openStream());
-				while (s.hasNextLine())
-				{
-					String line = s.nextLine();
-					if(!line.startsWith("#"))
-						sources.add(line);
-				}
+				
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -47,22 +48,20 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 				e.printStackTrace();
 			}
 		}
-		f = BasicSourceSinkManager.class.getResource("/taint-sinks");
-		//		if(f.exists())
 		{
 			Scanner s;
 			try {
-				if(System.getProperty("TAINT_SINKS") != null)
+				if(Instrumenter.sinksFile != null)
 				{
-					System.out.println("Using taint sinks file: " + System.getProperty("TAINT_SINKS"));
-					s = new Scanner(new File(System.getProperty("TAINT_SINKS")));
-				}
-				else
-					s = new Scanner(f.openStream());
-				while (s.hasNextLine()) {
-					String line = s.nextLine();
-					if (!line.startsWith("#"))
-						sinks.add(line);
+					System.out.println("Using taint sinks file: " + Instrumenter.sinksFile);
+					s = new Scanner(new File(Instrumenter.sinksFile));
+
+					while (s.hasNextLine()) {
+						String line = s.nextLine();
+						if (!line.startsWith("#"))
+							sinks.add(line);
+					}
+					s.close();
 				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -71,7 +70,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		}
 		if (!TaintTrackingClassVisitor.IS_RUNTIME_INST)
 		{
-			if(Configuration.TAINT_TAG_TYPE != Type.INT)
+			if(Configuration.MULTI_TAINTING)
 				System.err.println("Warning: You specified to perform auto source/sink tainting, but want to use a non-integer taint. This is unsupported.");
 			else
 				System.out.println("Loaded " + sinks.size() + " sinks and " + sources.size() + " sources");

@@ -18,7 +18,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.TraceClassVisitor;
 
 public class DebugPrinter {
 	public static void main(String[] args) throws Exception {
-		Configuration.IMPLICIT_TRACKING = true;
+//		Configuration.IMPLICIT_TRACKING = true;
 		File clazz = new File(args[0]);
 		final ClassReader cr1 = new ClassReader(new FileInputStream(clazz));
 		PrintWriter pw = new PrintWriter(new FileWriter("z.txt"));

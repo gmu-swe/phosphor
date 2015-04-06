@@ -240,13 +240,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						isRewrittenDesc = true;
 						continue;
 					} else {
-						newArgTypes.add(Type.getType(TaintUtils.TAINT_TAG_ARRAYDESC));
+						newArgTypes.add(Type.getType(Configuration.TAINT_TAG_ARRAYDESC));
 						isRewrittenDesc = true;
 					}
 				}
 			} else if (t.getSort() != Type.OBJECT) {
 				isRewrittenDesc = true;
-				newArgTypes.add(Type.getType(TaintUtils.TAINT_TAG_DESC));
+				newArgTypes.add(Type.getType(Configuration.TAINT_TAG_DESC));
 			}
 			newArgTypes.add(t);
 		}
@@ -284,7 +284,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv = new TaintTagFieldCastMV(mv);
 
 			MethodVisitor rootmV = mv;
-			if(Configuration.TAINT_TAG_TYPE == Type.INT)
+			if(!Configuration.MULTI_TAINTING)
 				mv = new SourceSinkTaintingMV(mv, access, className, name, newDesc, desc);
 			//			mv = new CheckMethodAdapter(mv);
 //			mv = new SpecialOpcodeRemovingMV(mv,ignoreFrames, className);
@@ -394,14 +394,14 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			return;
 		}
 		if (!hasSerialUID && !isInterface && !goLightOnGeneratedStuff) {
-			if(Configuration.TAINT_TAG_TYPE == Type.INT)
-				super.visitField(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "serialVersionUIDPHOSPHOR_TAG", TaintUtils.TAINT_TAG_DESC, null, 0);
+			if(!Configuration.MULTI_TAINTING)
+				super.visitField(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "serialVersionUIDPHOSPHOR_TAG", Configuration.TAINT_TAG_DESC, null, 0);
 			else
-				super.visitField(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "serialVersionUIDPHOSPHOR_TAG", TaintUtils.TAINT_TAG_DESC, null, null);
+				super.visitField(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "serialVersionUIDPHOSPHOR_TAG", Configuration.TAINT_TAG_DESC, null, null);
 		}
 		//Add a field to track the instance's taint
 		if (addTaintField && !goLightOnGeneratedStuff) {
-			if(Configuration.TAINT_TAG_TYPE == Type.INT)
+			if(!Configuration.MULTI_TAINTING)
 				super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD, "I", null, 0);
 			else
 				super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD, TaintAdapter.getTagType(className).getDescriptor(), null, null);				
@@ -433,7 +433,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			return;
 		if ((isAbstractClass || isInterface) && implementsComparable && !goLightOnGeneratedStuff) {
 			//Need to add this to interfaces so that we can call it on the interface
-			super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;"+TaintUtils.TAINTED_INT_DESC+")" + TaintUtils.TAINTED_INT_DESC, null, null);
+			super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;"+Configuration.TAINTED_INT_DESC+")" + Configuration.TAINTED_INT_DESC, null, null);
 		}
 
 		if (generateEquals && !goLightOnGeneratedStuff) {
@@ -481,25 +481,25 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "set" + TaintUtils.TAINT_FIELD, "(I)V", null, null);
 			} else {
 				MethodVisitor mv;
-				if (Configuration.TAINT_TAG_TYPE == Type.INT) {
-					mv = super.visitMethod(Opcodes.ACC_PUBLIC, "get" + TaintUtils.TAINT_FIELD, "()" + TaintUtils.TAINT_TAG_DESC, null, null);
+				if (!Configuration.MULTI_TAINTING) {
+					mv = super.visitMethod(Opcodes.ACC_PUBLIC, "get" + TaintUtils.TAINT_FIELD, "()" + Configuration.TAINT_TAG_DESC, null, null);
 					mv.visitCode();
 					mv.visitVarInsn(Opcodes.ALOAD, 0);
-					mv.visitFieldInsn(Opcodes.GETFIELD, className, TaintUtils.TAINT_FIELD, TaintUtils.TAINT_TAG_DESC);
+					mv.visitFieldInsn(Opcodes.GETFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 
 					mv.visitInsn(Opcodes.IRETURN);
 					mv.visitMaxs(0, 0);
 					mv.visitEnd();
 
-					mv = super.visitMethod(Opcodes.ACC_PUBLIC, "set" + TaintUtils.TAINT_FIELD, "(" + TaintUtils.TAINT_TAG_DESC + ")V", null, null);
+					mv = super.visitMethod(Opcodes.ACC_PUBLIC, "set" + TaintUtils.TAINT_FIELD, "(" + Configuration.TAINT_TAG_DESC + ")V", null, null);
 					mv.visitCode();
 					mv.visitVarInsn(Opcodes.ALOAD, 0);
 					mv.visitVarInsn(Opcodes.ILOAD, 1);
-					mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, TaintUtils.TAINT_TAG_DESC);
+					mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
 						mv.visitVarInsn(Opcodes.ALOAD, 0);
-						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, TaintUtils.TAINT_TAG_ARRAYDESC);
+						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 						mv.visitVarInsn(Opcodes.ILOAD, 1);
 						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
 					}
@@ -512,7 +512,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv = new TaintTagFieldCastMV(mv);
 					mv.visitCode();
 					mv.visitVarInsn(Opcodes.ALOAD, 0);
-					mv.visitFieldInsn(Opcodes.GETFIELD, className, TaintUtils.TAINT_FIELD, TaintUtils.TAINT_TAG_DESC);
+					mv.visitFieldInsn(Opcodes.GETFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 
 					mv.visitInsn(Opcodes.ARETURN);
 					mv.visitMaxs(0, 0);
@@ -524,12 +524,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv.visitCode();
 					mv.visitVarInsn(Opcodes.ALOAD, 0);
 					mv.visitVarInsn(Opcodes.ALOAD, 1);
-					mv.visitTypeInsn(Opcodes.CHECKCAST, TaintUtils.TAINT_TAG_INTERNAL_NAME);
-					mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, TaintUtils.TAINT_TAG_DESC);
+					mv.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
 						mv.visitVarInsn(Opcodes.ALOAD, 0);
-						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, TaintUtils.TAINT_TAG_ARRAYDESC);
+						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 						mv.visitVarInsn(Opcodes.ALOAD, 1);
 						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([Ljava/lang/Object;Ljava/lang/Object;)V", false);
 					}
@@ -625,7 +625,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		}
 		
 
-		if(TaintUtils.MULTI_TAINT)
+		if(Configuration.MULTI_TAINTING)
 			generateStrLdcWrapper();
 		if (!goLightOnGeneratedStuff)
 			for (MethodNode m : methodsToAddWrappersFor) {
@@ -684,7 +684,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 							if (t.getSort() == Type.ARRAY) {
 								if (t.getElementType().getSort() != Type.OBJECT) {
 									if (t.getDimensions() == 1) {
-										newDesc += TaintUtils.TAINT_TAG_ARRAYDESC;
+										newDesc += Configuration.TAINT_TAG_ARRAYDESC;
 										ga.visitVarInsn(Opcodes.ALOAD, idx);
 										TaintAdapter.createNewTaintArray(t.getDescriptor(), an, lvs, lvs);
 										loaded = true;
@@ -694,8 +694,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 									}
 								}
 							} else if (t.getSort() != Type.OBJECT) {
-								newDesc += TaintUtils.TAINT_TAG_DESC;
-								ga.visitInsn(TaintUtils.NULL_TAINT_LOAD_OPCODE);
+								newDesc += Configuration.TAINT_TAG_DESC;
+								ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 							}
 							if (!loaded)
 								ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
@@ -942,7 +942,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					newDesc += TaintUtils.getShadowTaintType(t.getDescriptor());
 				}
 			} else if (t.getSort() != Type.OBJECT) {
-				newDesc += TaintUtils.TAINT_TAG_DESC;
+				newDesc += Configuration.TAINT_TAG_DESC;
 			}
 			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() > 1)
 				newDesc += MultiDTaintedArray.getTypeForType(t).getDescriptor();
@@ -981,11 +981,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		for (Type t : argTypes) {
 			if (t.getSort() == Type.ARRAY) {
 				if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-					lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg"+idx, TaintUtils.TAINT_TAG_ARRAYDESC, null, start, end, idx));
+					lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg"+idx, Configuration.TAINT_TAG_ARRAYDESC, null, start, end, idx));
 					idx++;
 				}
 			} else if (t.getSort() != Type.OBJECT) {
-				lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg"+idx,TaintUtils.TAINT_TAG_DESC, null, start, end, idx));
+				lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg"+idx,Configuration.TAINT_TAG_DESC, null, start, end, idx));
 				idx++;
 			}
 			ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
@@ -996,9 +996,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				ga.visitInsn(Opcodes.DUP);
 				ga.visitInsn(Opcodes.DUP);
 				Label isOK = new Label();
-				ga.visitTypeInsn(Opcodes.INSTANCEOF, "[" + Type.getDescriptor((Configuration.TAINT_TAG_TYPE == Type.INT ? MultiDTaintedArrayWithIntTag.class : MultiDTaintedArrayWithObjTag.class)));
+				ga.visitTypeInsn(Opcodes.INSTANCEOF, "[" + Type.getDescriptor((!Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithIntTag.class : MultiDTaintedArrayWithObjTag.class)));
 				ga.visitInsn(Opcodes.SWAP);
-				ga.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((Configuration.TAINT_TAG_TYPE == Type.INT ? MultiDTaintedArrayWithIntTag.class : MultiDTaintedArrayWithObjTag.class)));
+				ga.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((!Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithIntTag.class : MultiDTaintedArrayWithObjTag.class)));
 				ga.visitInsn(Opcodes.IOR);
 				ga.visitJumpInsn(Opcodes.IFEQ, isOK);
 				ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
@@ -1059,7 +1059,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
 					ga.visitInsn(Opcodes.SWAP);
-					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					if (!Configuration.MULTI_TAINTING)
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "[I");
 					else
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "[Ljava/lang/Object;");
@@ -1074,7 +1074,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitInsn(Opcodes.SWAP);
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					ga.visitInsn(TaintUtils.NULL_TAINT_LOAD_OPCODE);
+					ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 					idx = 0;
 					if ((m.access & Opcodes.ACC_STATIC) == 0) {
 						idx++;
@@ -1085,13 +1085,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								idx++;
 							}
 						} else if (t.getSort() != Type.OBJECT) {
-							ga.visitVarInsn(TaintUtils.TAINT_LOAD_OPCODE, idx);
-							if(TaintUtils.MULTI_TAINT)
+							ga.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
+							if(Configuration.MULTI_TAINTING)
 							{
-								if (Configuration.TAINT_TAG_TYPE == Type.INT)
-									ga.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-								else
-									ga.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
 							}
 							else
 							{
@@ -1101,7 +1098,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						}
 						idx += t.getSize();
 					}
-					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					if (!Configuration.MULTI_TAINTING)
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "I");
 					else
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "Ljava/lang/Object;");
@@ -1116,7 +1113,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitInsn(Opcodes.POP);
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					ga.visitInsn(TaintUtils.NULL_TAINT_LOAD_OPCODE);
+					ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 					idx = 0;
 					if ((m.access & Opcodes.ACC_STATIC) == 0) {
 						idx++;
@@ -1129,12 +1126,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								idx++;
 							}
 						} else if (t.getSort() != Type.OBJECT) {
-							ga.visitVarInsn(TaintUtils.TAINT_LOAD_OPCODE, idx);
-							if (TaintUtils.MULTI_TAINT) {
-								if (Configuration.TAINT_TAG_TYPE == Type.INT)
-									ga.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(II)I", false);
-								else
-									ga.visitMethodInsn(Opcodes.INVOKESTATIC, TaintUtils.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+							ga.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
+							if (Configuration.MULTI_TAINTING) {
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
 							} else {
 								ga.visitInsn(Opcodes.IOR);
 							}
@@ -1143,7 +1137,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						idx += t.getSize();
 					}
 
-					if (Configuration.TAINT_TAG_TYPE == Type.INT)
+					if (!Configuration.MULTI_TAINTING)
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "I");
 					else
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "Ljava/lang/Object;");
@@ -1189,11 +1183,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I",false);
 		mv.visitInsn(Opcodes.ICONST_1);
 		mv.visitInsn(Opcodes.IADD);
-		if(Configuration.TAINT_TAG_TYPE == Type.INT)
+		if(!Configuration.MULTI_TAINTING)
 			mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
 		else
-			mv.visitTypeInsn(Opcodes.ANEWARRAY, TaintUtils.TAINT_TAG_INTERNAL_NAME);
-		mv.visitFieldInsn(Opcodes.PUTFIELD, "java/lang/String", "value" + TaintUtils.TAINT_FIELD, TaintUtils.TAINT_TAG_ARRAYDESC);
+			mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
+		mv.visitFieldInsn(Opcodes.PUTFIELD, "java/lang/String", "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 		{
 			mv.visitInsn(Opcodes.POP);
 		}
