@@ -4,6 +4,8 @@ Phosphor: Dynamic Taint Tracking for the JVM
 
 Phosphor is a system for performing dynamic taint analysis in the JVM, on commodity JVMs (e.g. Oracle's HotSpot or OpenJDK's IcedTea). This repository contains the source for Phosphor. For more information about how Phosphor works and what it could be useful for, please refer to our [Technical Report](https://mice.cs.columbia.edu/getTechreport.php?techreportID=1569) or email [Jonathan Bell](mailto:jbell@cs.columbia.edu).
 
+Note - for those interested in reproducing our OOPSLA 2014 experiments, please find a [VM Image with all relevant files here](http://academiccommons.columbia.edu/catalog/ac%3A182689), and a [README with instructions for doing so here](https://www.dropbox.com/s/dmebj6k8izams6p/artifact-63-phosphor.pdf?dl=0).
+
 Running
 -------
 Phosphor works by modifying your application's bytecode to perform data flow tracking. To be complete, Phosphor also modifies the bytecode of JRE-provided classes, too. The first step to using Phosphor is generating an instrumented version of your runtime environment. We have tested Phosphor with versions 7 and 8 of both Oracle's HotSpot JVM and OpenJDK's IcedTea JVM.
@@ -13,7 +15,7 @@ We'll assume that in all of the code examples below, we're in the same directory
 Then, to instrument the JRE we'll run:
 `java -jar phosphor.jar /Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/jre jre-inst`
 
-The instrumenter takes two primary arguments: first a path containing the classes to instrument, and then a destination for the instrumented classes. Optionally, you can specify additional classpath dependencies referenced from your code (may or may not be necessary, and explained in further below).
+The instrumenter takes two primary arguments: first a path containing the classes to instrument, and then a destination for the instrumented classes. 
 
 After you do this, make sure to chmod +x the binaries in the new folder, e.g. `chmod +x jre-inst/bin/*`
 
@@ -28,9 +30,7 @@ The result should be a list of test cases, with assertion errors for each "testI
 
 Interacting with Phosphor
 -----
-Phosphor exposes a simple API to allow you to mark data with tags, and to retrieve those tags. The class ``edu.columbia.cs.psl.phosphor.runtime.Tainter`` contains all relevant methods (ignore the methods ending with the suffix $$INVIVO_PC, they are used internally), namely, getTaint(...) and taintedX(...) (with one X for each data type: taintedByte, taintedBoolean, etc).
-
-We suggest that when you instrument your project, you pass any directories containing classes to the Phosphor instrumenter so that it can [properly resolve class hierarchies](http://chrononsystems.com/blog/java-7-design-flaw-leads-to-huge-backward-step-for-the-jvm). For example, if we were instrumenting our "PhosphorTest" folder, we would pass the "PhosphorTest/bin" as an additional argument to our instrumenter.
+Phosphor exposes a simple API to allow you to mark data with tags, and to retrieve those tags. The class ``edu.columbia.cs.psl.phosphor.runtime.Tainter`` contains all relevant methods (ignore the methods ending with the suffix $$PHOSPHOR, they are used internally), namely, getTaint(...) and taintedX(...) (with one X for each data type: taintedByte, taintedBoolean, etc).
 
 Support for Android
 ----
