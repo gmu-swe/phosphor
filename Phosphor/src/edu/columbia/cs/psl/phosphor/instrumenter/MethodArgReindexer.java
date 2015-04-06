@@ -34,6 +34,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 	boolean hasPreAllocedReturnAddr;
 	Type newReturnType;
 
+	ArrayList<Type> oldTypesDoublesAreOne;
 	public MethodArgReindexer(MethodVisitor mv, int access, String name, String desc, String originalDesc, MethodNode lvStore) {
 		super(Opcodes.ASM5,mv);
 		this.lvStore = lvStore;
@@ -51,16 +52,22 @@ public class MethodArgReindexer extends InstructionAdapter {
 		if (!isStatic)
 			origNumArgs++;
 		newArgOffset = 0;
-//		System.out.println(originalDesc + " -> origLastArg is " + originalLastArgIdx);
+//		System.out.println(name+originalDesc + " -> origLastArg is " + originalLastArgIdx + "orig nargs " + origNumArgs);
 		oldArgTypesList = new ArrayList<Type>();
+		oldTypesDoublesAreOne = new ArrayList<Type>();
 		if (!isStatic)
+		{
 			oldArgTypesList.add(Type.getType("Lthis;"));
+			oldTypesDoublesAreOne.add(Type.getType("Lthis;"));
+		}
 		for (Type t : Type.getArgumentTypes(originalDesc)) {
 			oldArgTypesList.add(t);
+			oldTypesDoublesAreOne.add(t);
 			if (t.getSize() == 2)
 				oldArgTypesList.add(Type.getType("LTOP;"));
 		}
 
+//		System.out.println("OLd:::" + oldTypesDoublesAreOne);
 		boolean hasBeenRemapped = false;
 		oldArgMappings = new int[originalLastArgIdx + 1];
 		int oldVarCount = (isStatic ? 0 : 1);
@@ -139,7 +146,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-		Object[] remappedLocals = new Object[local.length + newArgOffset]; //was +1, not sure why??
+		Object[] remappedLocals = new Object[local.length + newArgOffset + 1]; //was +1, not sure why??
 		if (TaintUtils.DEBUG_FRAMES) {
 			System.out.println(name + desc + " orig nArgs = " + origNumArgs);
 			System.out.println("Pre-reindex Frame: " + Arrays.toString(local) + ";" + nLocal + " ; " + type);
@@ -157,12 +164,26 @@ public class MethodArgReindexer extends InstructionAdapter {
 					newIdx++;
 					nLocal++;
 			}
+			int numLocalsToIterateOverForArgs = origNumArgs;
+			int idxToUseForArgs =0;
+			boolean lastWasTop2Words = false;
 			for (int i = 0; i < origNLocal; i++) {
 //				System.out.println("Start " + i);
 //				System.out.println(newIdx +" :"+local[i]);
-				if (i < origNumArgs) {
-					if (local[i] == Opcodes.NULL) {
-						Type t = oldArgTypesList.get(i);
+//				System.out.println(i + " vs " + origNLocal +", " + origNumArgsToUse);
+//				System.out.println(i +": "+ local[i]);
+
+				if (i < numLocalsToIterateOverForArgs) {
+//					System.out.println(i + " " + local[i]);
+					if(lastWasTop2Words)
+					{
+						lastWasTop2Words = false;
+						numLocalsToIterateOverForArgs++;
+//						origNumArgsToUse++;
+						idxToUseForArgs--;
+					}
+					else if (local[i] == Opcodes.NULL) {
+						Type t = oldTypesDoublesAreOne.get(i);
 						if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
 							remappedLocals[newIdx] = TaintUtils.getShadowTaintType(t.getDescriptor());
 							if (TaintUtils.DEBUG_FRAMES)
@@ -171,13 +192,21 @@ public class MethodArgReindexer extends InstructionAdapter {
 							nLocal++;
 							remappedLocals[newIdx] = t.getInternalName();
 							newIdx++;
+							idxToUseForArgs++;
 							continue;
 						}
 					} else if(local[i] == Opcodes.TOP)
 					{
-						Type t = oldArgTypesList.get(i);
+						Type t = oldTypesDoublesAreOne.get(idxToUseForArgs);
+//						System.out.println(i+ " " + t +  " vs " + local[i]);
+						if(t.getSize() == 2)
+						{
+							lastWasTop2Words = true;
+						}
+//						System.out.println("Old t " + t);
 						if((t.getSort() != Type.OBJECT && t.getSort() != Type.ARRAY) || (t.getSort() == Type.ARRAY && t.getDimensions() == 1 && t.getElementType().getSort() != Type.OBJECT))
 						{
+//							System.out.println("Add a TOP");
 							remappedLocals[newIdx] = Opcodes.TOP;
 							newIdx++;
 							nLocal++;
@@ -201,6 +230,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 							}
 						}
 					}
+					idxToUseForArgs++;
 				}
 				if(i == origNumArgs && Configuration.IMPLICIT_TRACKING)
 				{
@@ -215,7 +245,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 					newIdx++;
 					nLocal++;
 				}
-				
+//				System.out.println(remappedLocals[newIdx]);
 				remappedLocals[newIdx] = local[i];
 				if (local[i] != Opcodes.TOP && local[i] instanceof String &&((String) local[i]).length() > 1 && ((String) local[i]).charAt(1) == '[' && Type.getObjectType((String) local[i]).getElementType().getSort() != Type.OBJECT) {
 					remappedLocals[newIdx] = MultiDTaintedArray.getTypeForType(Type.getObjectType((String) local[i])).getInternalName();

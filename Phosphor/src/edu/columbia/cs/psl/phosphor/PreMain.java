@@ -188,7 +188,9 @@ public class PreMain {
 				{
 //					if(TaintUtils.DEBUG_FRAMES)
 //						System.out.println("NOW IN CHECKCLASSADAPTOR");
-					if (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler")) {
+					if (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler") &&
+							!className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache") && !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap")
+							&& !className.startsWith("jersey/repackaged/com/google/common/collect/")) {
 						cr = new ClassReader(cw.toByteArray());
 						cr.accept(new CheckClassAdapter(new ClassWriter(0)), 0);
 					}
