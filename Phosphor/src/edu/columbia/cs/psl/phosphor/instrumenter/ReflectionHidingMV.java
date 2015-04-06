@@ -178,8 +178,11 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				opcode = Opcodes.INVOKESTATIC;
 				owner = Type.getInternalName(ReflectionMasker.class);
 				desc = "(Ljava/lang/Class;" + desc.substring(1);
-				if (Configuration.MULTI_TAINTING)
-					desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
+				if(!Configuration.IMPLICIT_TRACKING)
+				{
+					desc = "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/Class;Z)Ljava/lang/reflect/Method;";
+					super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				}
 			} else
 			{
 				super.visitInsn((Configuration.IMPLICIT_TRACKING ? ICONST_1 : ICONST_0));
@@ -189,8 +192,6 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		}
 		if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
 			owner = Type.getInternalName(ArrayReflectionMasker.class);
-			if (Configuration.MULTI_TAINTING)
-				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
 		}
 		if (owner.equals("java/lang/reflect/Field")
 				&& opcode == Opcodes.INVOKEVIRTUAL
@@ -202,8 +203,6 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			owner = Type.getInternalName(RuntimeReflectionPropogator.class);
 			opcode = Opcodes.INVOKESTATIC;
 			desc = "(Ljava/lang/reflect/Field;" + desc.substring(1);
-			if (Configuration.MULTI_TAINTING)
-				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
 			if(name.equals("get"))
 			{
 				desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Z)Ljava/lang/Object;";
@@ -218,8 +217,6 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		if (!Instrumenter.IS_ANDROID_INST && owner.equals("java/lang/Class") && (name.equals("copyMethods") || name.equals("copyFields") || name.equals("copyConstructors")))
 		{
 			owner = Type.getInternalName(ReflectionMasker.class);
-			if(Configuration.MULTI_TAINTING)
-				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
 		}
 		super.visitMethodInsn(opcode, owner, name, desc, itfc);
 		if (owner.equals("java/lang/Class") && desc.endsWith("[Ljava/lang/reflect/Field;")) {

@@ -11,19 +11,23 @@ public class TaintChecker {
 	public static void checkTaint(int tag)
 	{
 		if(tag != 0)
-			throw new IllegalAccessError("Argument carries taint");
+			throw new IllegalAccessError("Argument carries taint " + tag);
+	}
+	public static void checkTaint(Taint tag)
+	{
+		if(tag != null)
+			throw new IllegalAccessError("Argument carries taint " + tag);
 	}
 	public static void checkTaint(Object obj) {
-
 		if(obj == null)
 			return;
 		if (obj instanceof TaintedWithIntTag) {
 			if (((TaintedWithIntTag) obj).getPHOSPHOR_TAG() != 0)
-				throw new IllegalAccessError("Argument carries taint");
+				throw new IllegalAccessError("Argument carries taint " + ((TaintedWithIntTag) obj).getPHOSPHOR_TAG());
 		}
 		else if (obj instanceof TaintedWithObjTag) {
 			if (((TaintedWithObjTag) obj).getPHOSPHOR_TAG() != null)
-				throw new IllegalAccessError("Argument carries taint");
+				throw new IllegalAccessError("Argument carries taint " + ((TaintedWithObjTag) obj).getPHOSPHOR_TAG());
 		}
 
 		else if(obj instanceof int[])
@@ -31,7 +35,7 @@ public class TaintChecker {
 			for(int i : ((int[])obj))
 			{
 				if(i > 0)
-					throw new IllegalAccessError("Argument carries taints");
+					throw new IllegalAccessError("Argument carries taints - example: " +i);
 			}
 		}
 		else if(obj instanceof MultiDTaintedArrayWithIntTag)
@@ -40,13 +44,26 @@ public class TaintChecker {
 			for(int i : tags)
 			{
 				if(i > 0)
-					throw new IllegalAccessError("Argument carries taints");
+					throw new IllegalAccessError("Argument carries taints - example: "+ i);
+			}
+		}
+		else if(obj instanceof MultiDTaintedArrayWithObjTag)
+		{
+			Object[] tags = ((MultiDTaintedArrayWithObjTag) obj).taint;
+			for(Object i : tags)
+			{
+				if(i != null)
+					throw new IllegalAccessError("Argument carries taints - example: " + i);
 			}
 		}
 		else if(obj instanceof Object[])
 		{
 			for(Object o : ((Object[]) obj))
 				checkTaint(o);
+		}
+		else if(obj instanceof Taint)
+		{
+			throw new IllegalAccessError("Argument carries taints:  " + obj);
 		}
 	}
 
@@ -83,7 +100,7 @@ public class TaintChecker {
 				setTaints(o, tag);
 		}
 	}
-	public static void setTaints(Object obj, Object tag) {
+	public static void setTaints(Object obj, Taint tag) {
 		if(obj == null)
 			return;
 		if (obj instanceof TaintedWithObjTag) {
@@ -109,6 +126,12 @@ public class TaintChecker {
 	}
 
 	public static void setTaints(int[] array, int tag) {
+		if(array == null)
+			return;
+		for (int i = 0; i < array.length; i++)
+			array[i] = tag;
+	}
+	public static void setTaints(Taint[] array, Taint tag) {
 		if(array == null)
 			return;
 		for (int i = 0; i < array.length; i++)

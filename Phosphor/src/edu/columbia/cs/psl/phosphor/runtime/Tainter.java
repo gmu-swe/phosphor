@@ -22,21 +22,6 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithIntTag;
 
 public class Tainter {
-	static class Entry
-	{
-		String method;
-		int n;
-	}
-	public static void printMethod(Method m)
-	{
-		System.out.println(m);
-		System.out.println(Arrays.toString(m.getAnnotations()));
-	}
-	public static void printClass(Object o)
-	{
-		System.out.println("Dump " + o + ": " + o.getClass());
-	}
-
 	public static TaintedShortWithIntTag taintedShort$$PHOSPHORTAGGED(int i, short s, int z, int tag, TaintedShortWithIntTag ret)
 	{
 		ret.taint = tag;

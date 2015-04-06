@@ -449,7 +449,7 @@ public class Instrumenter {
 	}
 
 	static Option opt_taintSources = OptionBuilder.withArgName("taintSources").hasArg().withDescription("File with listing of taint sources to auto-taint").create("taintSources");
-	static Option opt_taintSinks =   OptionBuilder.withArgName("taintsinks").hasArg().withDescription("File with listing of taint sinks to use to check for auto-taints").create("taintSinks");
+	static Option opt_taintSinks =   OptionBuilder.withArgName("taintSinks").hasArg().withDescription("File with listing of taint sinks to use to check for auto-taints").create("taintSinks");
 	static Option opt_dataTrack = new Option("withoutDataTrack", "Disable taint tracking through data flow (on by default)");
 	static Option opt_controlTrack = new Option("controlTrack", "Enable taint tracking through control flow");
 	static Option opt_multiTaint = new Option("multiTaint", "Support for 2^32 tags instead of just 32");
@@ -474,7 +474,10 @@ public class Instrumenter {
 	        line = parser.parse( options, args );
 	    }
 	    catch( org.apache.commons.cli.ParseException exp ) {
-	        System.err.println( "Parsing arguments failed.  Reason: " + exp.getMessage() );
+
+			HelpFormatter formatter = new HelpFormatter();
+			formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
+	        System.err.println(exp.getMessage() );
 	        return;
 		}
 		if (line.hasOption("help") || line.getArgs().length != 2) {
@@ -485,7 +488,7 @@ public class Instrumenter {
 		
 		sourcesFile = line.getOptionValue("taintSources");
 		sinksFile = line.getOptionValue("taintSinks");
-		Configuration.MULTI_TAINTING = line.hasOption("dataTrack");
+		Configuration.MULTI_TAINTING = line.hasOption("multiTaint");
 		Configuration.IMPLICIT_TRACKING = line.hasOption("controlTrack");
 		Configuration.DATAFLOW_TRACKING = !line.hasOption("withoutDataTrack");
 		if(Configuration.IMPLICIT_TRACKING)

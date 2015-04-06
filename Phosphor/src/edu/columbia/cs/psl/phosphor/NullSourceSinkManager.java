@@ -12,4 +12,9 @@ public class NullSourceSinkManager extends SourceSinkManager{
 		return false;
 	}
 
+	@Override
+	public Object getLabel(String str) {
+		return null;
+	}
+
 }

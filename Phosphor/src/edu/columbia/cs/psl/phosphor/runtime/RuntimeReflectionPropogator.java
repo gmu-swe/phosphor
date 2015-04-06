@@ -549,7 +549,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 	
-	public static void setAccessible$$PHOSPHORTAGGED(Field f, Object tag, boolean flag) {
+	public static void setAccessible$$PHOSPHORTAGGED(Field f, Taint tag, boolean flag) {
 		f.setAccessible(flag);
 		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
 			try {
@@ -560,7 +560,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 	
-	public static void setAccessible$$PHOSPHORTAGGED(Field f, Object tag, boolean flag,ControlTaintTagStack ctrl) {
+	public static void setAccessible$$PHOSPHORTAGGED(Field f, Taint tag, boolean flag,ControlTaintTagStack ctrl) {
 		f.setAccessible(flag);
 		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
 			try {
@@ -571,42 +571,42 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setBoolean$$PHOSPHORTAGGED(Field f, Object obj, Object tag, boolean val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setBoolean$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, boolean val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = Taint.combineTags(tag, ctrl);
 		setBoolean$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setByte$$PHOSPHORTAGGED(Field f, Object obj, Object tag, byte val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setByte$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, byte val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = Taint.combineTags(tag, ctrl);
 		setByte$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 
-	public static void setChar$$PHOSPHORTAGGED(Field f, Object obj, Object tag, char val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setChar$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, char val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = Taint.combineTags(tag, ctrl);
 		setChar$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setDouble$$PHOSPHORTAGGED(Field f, Object obj, Object tag, double val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setDouble$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, double val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = Taint.combineTags(tag, ctrl);
 		setDouble$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setFloat$$PHOSPHORTAGGED(Field f, Object obj, Object tag, float val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setFloat$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, float val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = Taint.combineTags(tag, ctrl);
 		setFloat$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setInt$$PHOSPHORTAGGED(Field f, Object obj, Object tag, int val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setInt$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, int val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = Taint.combineTags(tag, ctrl);
 		setInt$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setLong$$PHOSPHORTAGGED(Field f, Object obj, Object tag, long val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setLong$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, long val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = Taint.combineTags(tag, ctrl);
 		setLong$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
 	
-	public static void setShort$$PHOSPHORTAGGED(Field f, Object obj, Object tag, short val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+	public static void setShort$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, short val, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		tag = Taint.combineTags(tag, ctrl);
 		setShort$$PHOSPHORTAGGED(f, obj, tag, val);
 	}
@@ -722,7 +722,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 	
-	public static void setBoolean$$PHOSPHORTAGGED(Field f, Object obj, Object tag, boolean val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setBoolean$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, boolean val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setBoolean(obj, val);
 		try {
@@ -736,7 +736,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setByte$$PHOSPHORTAGGED(Field f, Object obj, Object tag, byte val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setByte$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, byte val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setByte(obj, val);
 		try {
@@ -750,7 +750,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setChar$$PHOSPHORTAGGED(Field f, Object obj, Object tag, char val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setChar$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, char val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setChar(obj, val);
 		try {
@@ -764,7 +764,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setDouble$$PHOSPHORTAGGED(Field f, Object obj, Object tag, double val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setDouble$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, double val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setDouble(obj, val);
 		try {
@@ -778,7 +778,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setFloat$$PHOSPHORTAGGED(Field f, Object obj, Object tag, float val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setFloat$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, float val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setFloat(obj, val);
 		try {
@@ -792,7 +792,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setInt$$PHOSPHORTAGGED(Field f, Object obj, Object tag, int val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setInt$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, int val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setInt(obj, val);
 		try {
@@ -806,7 +806,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setLong$$PHOSPHORTAGGED(Field f, Object obj, Object tag, long val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setLong$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, long val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setLong(obj, val);
 		try {
@@ -820,7 +820,7 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 
-	public static void setShort$$PHOSPHORTAGGED(Field f, Object obj, Object tag, short val) throws IllegalArgumentException, IllegalAccessException {
+	public static void setShort$$PHOSPHORTAGGED(Field f, Object obj, Taint tag, short val) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		f.setShort(obj, val);
 		try {
@@ -833,8 +833,8 @@ public class RuntimeReflectionPropogator {
 			e.printStackTrace();
 		}
 	}
-	private static Object getTagObj(Object val) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
-		return val.getClass().getField("value" + TaintUtils.TAINT_FIELD).get(val);
+	private static Taint getTagObj(Object val) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
+		return (Taint) val.getClass().getField("value" + TaintUtils.TAINT_FIELD).get(val);
 	}
 	private static int getTag(Object val) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
 		return val.getClass().getField("value" + TaintUtils.TAINT_FIELD).getInt(val);
@@ -939,7 +939,7 @@ public class RuntimeReflectionPropogator {
 				return;
 			}
 		}
-		Taint.combineTags(obj, ctrl);
+		Taint.combineTagsOnObject(obj, ctrl);
 		f.setAccessible(true);
 		f.set(obj, val);
 	}

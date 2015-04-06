@@ -588,7 +588,7 @@ public class ReflectionMasker {
 		return params;
 	}
 
-	public static Method getDeclaredMethod(Class czz, String name, Class[] params) throws NoSuchMethodException {
+	public static Method getDeclaredMethod(Class czz, String name, Class[] params, boolean isObjTags) throws NoSuchMethodException {
 		//		if(VM.isBooted())
 		//		System.out.println("Get declared method: "+name+" with " + (params == null ? "null" : Arrays.toString(params)));
 

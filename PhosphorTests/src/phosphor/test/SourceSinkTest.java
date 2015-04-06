@@ -1,5 +1,6 @@
 package phosphor.test;
 
+import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 
 public class SourceSinkTest {
@@ -53,22 +54,25 @@ public class SourceSinkTest {
 		int[] t5 = sourceRet4();
 		int t6 = sourceRet1();
 
-		System.out.println("tag" +Tainter.getTaint(t6));
 		try {
 			sink(t1);
 		} catch (IllegalAccessError e) {
+			System.out.println("OK: " + e.getMessage());
 		}
 		try {
 			sink(t2);
 		} catch (IllegalAccessError e) {
+			System.out.println("OK: " + e.getMessage());
 		}
 		try {
 			sink(t3);
 		} catch (IllegalAccessError e) {
+			System.out.println("OK: " + e.getMessage());
 		}
 		try {
 			sink(t4);
 		} catch (IllegalAccessError e) {
+			System.out.println("OK: " + e.getMessage());
 		}
 		try {
 			sink(t5);
@@ -78,14 +82,17 @@ public class SourceSinkTest {
 		try {
 			sink2(t1);
 		} catch (IllegalAccessError e) {
+			System.out.println("OK: " + e.getMessage());
 		}
 		try {
 			sink2(t2);
 		} catch (IllegalAccessError e) {
+			System.out.println("OK: " + e.getMessage());
 		}
 		try {
 			sink2(t3);
 		} catch (IllegalAccessError e) {
+			System.out.println("OK: " + e.getMessage());
 		}
 		try {
 			sink2(t5);
@@ -95,6 +102,7 @@ public class SourceSinkTest {
 		try {
 			sink(t6);
 		} catch (IllegalAccessError e) {
+			System.out.println("OK: " + e.getMessage());
 		}
 
 	}

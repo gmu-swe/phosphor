@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
 
@@ -15,12 +16,16 @@ import edu.columbia.cs.psl.phosphor.struct.MiniClassNode;
 public class BasicSourceSinkManager extends SourceSinkManager {
 	static HashSet<String> sinks = new HashSet<String>();
 	static HashSet<String> sources = new HashSet<String>();
-
-
+	static HashMap<String, Object> sourceLabels = new HashMap<String, Object>();
+	
+	@Override
+	public Object getLabel(String str) {
+		return sourceLabels.get(str);
+	}
 	static {
 		if(Instrumenter.sourcesFile == null && Instrumenter.sinksFile == null)
 		{
-			System.err.println("No taint sources or sinks specified. To specify, add option -taintSources=file and/or -taintSinks=file where file is a file listing taint sources/sinks. See files taint-sinks and taint-samples in source for examples. Lines beginning with # are ignored.");
+			System.err.println("No taint sources or sinks specified. To specify, add option -taintSources file and/or -taintSinks file where file is a file listing taint sources/sinks. See files taint-sinks and taint-samples in source for examples. Lines beginning with # are ignored.");
 		}
 
 		{
@@ -31,11 +36,23 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 					System.out.println("Using taint sources file: " + Instrumenter.sourcesFile);
 					s = new Scanner(new File(Instrumenter.sourcesFile));
 
+					int i = 0;
 					while (s.hasNextLine())
 					{
 						String line = s.nextLine();
 						if(!line.startsWith("#"))
+						{
 							sources.add(line);
+							if(Configuration.MULTI_TAINTING)
+								sourceLabels.put(line, line);
+							else
+							{
+								if(i > 32)
+									i = 0;
+								sourceLabels.put(line, 1 << i);
+							}
+							i++;
+						}
 					}
 					s.close();
 				}
@@ -70,10 +87,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		}
 		if (!TaintTrackingClassVisitor.IS_RUNTIME_INST)
 		{
-			if(Configuration.MULTI_TAINTING)
-				System.err.println("Warning: You specified to perform auto source/sink tainting, but want to use a non-integer taint. This is unsupported.");
-			else
-				System.out.println("Loaded " + sinks.size() + " sinks and " + sources.size() + " sources");
+			System.out.println("Loaded " + sinks.size() + " sinks and " + sources.size() + " sources");
 		}
 	}
 	CallGraph g;

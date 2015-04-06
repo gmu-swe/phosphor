@@ -38,8 +38,12 @@ public class Taint implements Cloneable{
 	public Taint(Object lbl) {
 		this.lbl = lbl;
 		dependencies = new LinkedList<Taint>();
-
-		System.out.println("Set taint " + this.lbl);
+	}
+	public Object getLabel() {
+		return lbl;
+	}
+	public LinkedList<Taint> getDependencies() {
+		return dependencies;
 	}
 	public Taint(Taint t1)
 	{
@@ -72,16 +76,14 @@ public class Taint implements Cloneable{
 	public boolean hasNoDependencies() {
 		return dependencies.getFirst() == null;
 	}
-	public static Object combineTags(Object ot1, Object ot2)
+	public static Taint combineTags(Taint t1, Taint t2)
 	{
-		if(ot1 == null && ot2 == null)
+		if(t1 == null && t2 == null)
 			return null;
-		if(ot2 == null)
-			return ot1;
-		if(ot1 == null)
-			return ot2;
-		Taint t1 = (Taint) ot1;
-		Taint t2 = (Taint) ot2;
+		if(t2 == null)
+			return t1;
+		if(t1 == null)
+			return t2;
 		if(t1.lbl == null && t1.hasNoDependencies())
 			return t2;
 		if(t2.lbl == null && t2.hasNoDependencies())
@@ -90,7 +92,7 @@ public class Taint implements Cloneable{
 		r.addDependency(t2);
 		return r;
 	}
-	public static Object combineTags(Object t1, ControlTaintTagStack tags){
+	public static Taint combineTags(Taint t1, ControlTaintTagStack tags){
 		if(t1 == null && tags.isEmpty())
 			return null;
 		else if(t1 == null)
