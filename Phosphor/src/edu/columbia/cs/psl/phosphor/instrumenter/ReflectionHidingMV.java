@@ -15,7 +15,9 @@ import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
 
 public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
@@ -247,12 +249,15 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
 		}
 
-		if ((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && (name.equals("invoke") || name.equals("newInstance"))) {
+		if ((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && !(className.equals("java/lang/Class")) && 
+				(name.equals("invoke") || name.equals("newInstance") || name.equals("invoke$$PHOSPHORTAGGED") 
+						|| name.equals("newInstance$$PHOSPHORTAGGED"))) {
+//			System.out.println(className + "  vs " + owner);
 			//Unbox if necessary
 			FrameNode fn = TaintAdapter.getCurrentFrameNode(analyzer);
 			fn.type = Opcodes.F_NEW;
 			super.visitInsn(Opcodes.DUP);
-			super.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName(TaintedPrimitiveWithIntTag.class));
+			super.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveWithObjTag.class : TaintedPrimitiveWithIntTag.class)));
 			Label notPrimitive = new Label();
 			Label isOK = new Label();
 			//			Label notPrimitiveArray = new Label();
@@ -260,16 +265,16 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			super.visitJumpInsn(Opcodes.IFEQ, notPrimitive);
 			FrameNode fn2 = TaintAdapter.getCurrentFrameNode(analyzer);
 			fn2.type = Opcodes.F_NEW;
-			super.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName(TaintedPrimitiveWithIntTag.class));
-			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(TaintedPrimitiveWithIntTag.class), "toPrimitiveType", "()Ljava/lang/Object;", false);
+			super.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveWithObjTag.class : TaintedPrimitiveWithIntTag.class)));
+			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveWithObjTag.class : TaintedPrimitiveWithIntTag.class)), "toPrimitiveType", "()Ljava/lang/Object;", false);
 			super.visitJumpInsn(Opcodes.GOTO, isOK);
 			super.visitLabel(notPrimitive);
 			fn2.accept(this);
 			super.visitInsn(Opcodes.DUP);
-			super.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName(TaintedPrimitiveArrayWithIntTag.class));
+			super.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveArrayWithObjTag.class : TaintedPrimitiveArrayWithIntTag.class)));
 			super.visitJumpInsn(Opcodes.IFEQ, isOK);
-			super.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName(TaintedPrimitiveArrayWithIntTag.class));
-			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(TaintedPrimitiveArrayWithIntTag.class), "toStackType", "()Ljava/lang/Object;", false);
+			super.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveArrayWithObjTag.class : TaintedPrimitiveArrayWithIntTag.class)));
+			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveArrayWithObjTag.class : TaintedPrimitiveArrayWithIntTag.class)), "toStackType", "()Ljava/lang/Object;", false);
 			super.visitLabel(isOK);
 			fn.accept(this);
 		}

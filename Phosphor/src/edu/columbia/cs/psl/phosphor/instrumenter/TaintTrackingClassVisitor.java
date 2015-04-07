@@ -713,7 +713,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitJumpInsn(Opcodes.IFNULL, isDone);
 								ga.visitIntInsn(Opcodes.BIPUSH, t.getElementType().getSort());
 								ga.visitIntInsn(Opcodes.BIPUSH, t.getDimensions());
-								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;",false);
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;",false);
 								FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
 								fn.stack.set(fn.stack.size() -1,"java/lang/Object");
 								ga.visitLabel(isDone);
@@ -788,7 +788,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitJumpInsn(Opcodes.IFNULL, isDone);
 								ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getElementType().getSort());
 								ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getDimensions()-1);
-								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxVal", "(Ljava/lang/Object;II)Ljava/lang/Object;",false);
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxVal", "(Ljava/lang/Object;II)Ljava/lang/Object;",false);
 								FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
 								fn.stack.set(fn.stack.size() -1,"java/lang/Object");
 								ga.visitLabel(isDone);
@@ -1037,7 +1037,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					//							//	public static Object[] initWithEmptyTaints(Object[] ar, int componentType, int dims) {
 					ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getElementType().getSort());
 					ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getDimensions());
-					ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;",false);
+					ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;",false);
 					FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
 					fn.stack.set(fn.stack.size() -1,"java/lang/Object");
 					ga.visitLabel(isOK);
@@ -1153,7 +1153,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			}
 		} else if (origReturn.getSort() != Type.VOID && (origReturn.getDescriptor().equals("Ljava/lang/Object;") || origReturn.getDescriptor().equals("[Ljava/lang/Object;"))) {
 			//Check to see if the top of the stack is a primitive array, adn if so, box it.
-			ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
+			ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
 			if (origReturn.getSort() == Type.ARRAY)
 				ga.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/lang/Object;");
 		}

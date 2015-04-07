@@ -865,7 +865,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(IALOAD);
 
 			super.visitIntInsn(BIPUSH, origType.getElementType().getSort());
-			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "initLastDim", "([Ljava/lang/Object;II)V",false);
+			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "initLastDim", "([Ljava/lang/Object;II)V",false);
 		}
 		lvs.freeTmpLV(tempArrayIdx);
 	}

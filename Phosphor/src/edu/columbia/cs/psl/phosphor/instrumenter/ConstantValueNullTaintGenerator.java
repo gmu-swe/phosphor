@@ -17,6 +17,8 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MultiANewArrayInsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.TypeInsnNode;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public class ConstantValueNullTaintGenerator extends MethodVisitor implements Opcodes {
 	public ConstantValueNullTaintGenerator(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv) {
@@ -220,7 +222,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 											//Stack has Capacity repeated dims times
 											main.dims--;
 											//NB that this is backwards
-											uninstrumented.instructions.insert(insn, new MethodInsnNode(INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "initLastDim",
+											uninstrumented.instructions.insert(insn, new MethodInsnNode(INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "initLastDim",
 													"([Ljava/lang/Object;I)V",false));
 											uninstrumented.instructions.insert(insn, new IntInsnNode(BIPUSH, origType.getSort()));
 											uninstrumented.instructions.insert(insn, new InsnNode(DUP));
@@ -279,7 +281,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 												if (t.getDimensions() > 1) {
 													uninstrumented.instructions.insertBefore(fin, new IntInsnNode(Opcodes.BIPUSH, t.getSort()));
 													uninstrumented.instructions.insertBefore(fin, new IntInsnNode(Opcodes.BIPUSH, t.getDimensions()));
-													uninstrumented.instructions.insertBefore(fin, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
+													uninstrumented.instructions.insertBefore(fin, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)),
 															"initWithEmptyTaints", "([Ljava/lang/Object;II)[Ljava/lang/Object;",false));
 													uninstrumented.instructions.insertBefore(fin, new TypeInsnNode(Opcodes.CHECKCAST, t.getDescriptor()));
 
@@ -313,7 +315,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 										if (an.stack.get(an.stack.size() - 1) instanceof String) {
 											Type storeType = Type.getObjectType((String) an.stack.get(an.stack.size() - 1));
 											if (storeType.getSort() == Type.ARRAY && storeType.getElementType().getSort() != Type.OBJECT) {
-												uninstrumented.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
+												uninstrumented.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)),
 														"boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;",false));
 												uninstrumented.instructions.insertBefore(insn, new TypeInsnNode(Opcodes.CHECKCAST, MultiDTaintedArray.getTypeForType(storeType).getInternalName()));
 											}
