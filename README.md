@@ -2,7 +2,7 @@ Phosphor: Dynamic Taint Tracking for the JVM
 ========
 
 
-Phosphor is a system for performing dynamic taint analysis in the JVM, on commodity JVMs (e.g. Oracle's HotSpot or OpenJDK's IcedTea). This repository contains the source for Phosphor. For more information about how Phosphor works and what it could be useful for, please refer to our [Technical Report](https://mice.cs.columbia.edu/getTechreport.php?techreportID=1569) or email [Jonathan Bell](mailto:jbell@cs.columbia.edu).
+Phosphor is a system for performing dynamic taint analysis in the JVM, on commodity JVMs (e.g. Oracle's HotSpot or OpenJDK's IcedTea). This repository contains the source for Phosphor. For more information about how Phosphor works and what it could be useful for, please refer to our [OOPSLA 2014 paper](http://jonbell.net/publications/phosphor) or email [Jonathan Bell](mailto:jbell@cs.columbia.edu).
 
 Note - for those interested in reproducing our OOPSLA 2014 experiments, please find a [VM Image with all relevant files here](http://academiccommons.columbia.edu/catalog/ac%3A182689), and a [README with instructions for doing so here](https://www.dropbox.com/s/dmebj6k8izams6p/artifact-63-phosphor.pdf?dl=0).
 
@@ -10,12 +10,26 @@ Running
 -------
 Phosphor works by modifying your application's bytecode to perform data flow tracking. To be complete, Phosphor also modifies the bytecode of JRE-provided classes, too. The first step to using Phosphor is generating an instrumented version of your runtime environment. We have tested Phosphor with versions 7 and 8 of both Oracle's HotSpot JVM and OpenJDK's IcedTea JVM.
 
+The instrumenter takes two primary arguments: first a path containing the classes to instrument, and then a destination for the instrumented classes. You can also specify to track taint tags through control flow, to use objects as tags (instead of integers), or to automatically perform taint marking in particular methods using the various options as shown by invoking Phosphor with the "-help" option.
+
+
+```
+usage: java -jar phosphor.jar [OPTIONS] [input] [output]
+ -controlTrack                  Enable taint tracking through control flow
+ -help                          print this message
+ -multiTaint                    Support for 2^32 tags instead of just 32
+ -taintSinks <taintSinks>       File with listing of taint sinks to use to
+                                check for auto-taints
+ -taintSources <taintSources>   File with listing of taint sources to
+                                auto-taint
+ -withoutDataTrack              Disable taint tracking through data flow
+                                (on by default)
+```
+
 We'll assume that in all of the code examples below, we're in the same directory (which has a copy of [phosphor.jar](https://github.com/Programming-Systems-Lab/phosphor/raw/master/phosphor.jar)), and that the JRE is located here: `/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/jre` (modify this path in the commands below to match your environment).
 
 Then, to instrument the JRE we'll run:
 `java -jar phosphor.jar /Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/jre jre-inst`
-
-The instrumenter takes two primary arguments: first a path containing the classes to instrument, and then a destination for the instrumented classes. 
 
 After you do this, make sure to chmod +x the binaries in the new folder, e.g. `chmod +x jre-inst/bin/*`
 
@@ -30,7 +44,16 @@ The result should be a list of test cases, with assertion errors for each "testI
 
 Interacting with Phosphor
 -----
-Phosphor exposes a simple API to allow you to mark data with tags, and to retrieve those tags. The class ``edu.columbia.cs.psl.phosphor.runtime.Tainter`` contains all relevant methods (ignore the methods ending with the suffix $$PHOSPHOR, they are used internally), namely, getTaint(...) and taintedX(...) (with one X for each data type: taintedByte, taintedBoolean, etc).
+Phosphor exposes a simple API to allow to marking data with tags, and to retrieve those tags. Key functionality is implemented in two different classes, one for interacting with integer taint tags (``edu.columbia.cs.psl.phosphor.runtime.Tainter``), and one for interacting with object tags (used for the multi-taint mode: (``edu.columbia.cs.psl.phosphor.runtime.MultiTainter``)). To get or set the taint tag of a primitive type, developers call the taintedX or getTaint(X) method (replacing X with each of the primitive types, e.g. taintedByte, etc.).
+Ignore the methods ending with the suffix $$PHOSPHOR, they are used internally.
+To get or set the taint tag of an object, developers first cast that object to the interface TaintedWithIntTag or TaintedWithObjTag (Phosphor changes all classes to implement this interface), and use the get and set methods.
+
+In the case of integer tags, developers can determine if a variable is derived from a particular tainted source by checking the bit mask of that variable's tag (since tags are combined by bitwise OR'ing them).
+In the case of multi-tainting, developers can determine if a variable is derived from a particular tainted source by examining the dependencies of that variable's tag.
+
+Building
+------
+Phosphor is a maven project. You can generate the jar with a simple `mvn package`.
 
 Support for Android
 ----
