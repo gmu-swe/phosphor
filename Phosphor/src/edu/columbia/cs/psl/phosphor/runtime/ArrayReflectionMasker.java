@@ -152,11 +152,11 @@ public class ArrayReflectionMasker {
 
 	public static TaintedIntWithObjTag getLength$$PHOSPHORTAGGED(Object obj, TaintedIntWithObjTag ret) {
 		if (obj.getClass().isArray()) {
-			ret.taint = 0;
+			ret.taint = null;
 			ret.val = Array.getLength(obj);
 			return ret;
 		} else if (obj instanceof MultiDTaintedArrayWithObjTag) {
-			ret.taint = 0;
+			ret.taint = null;
 			ret.val = Array.getLength(((MultiDTaintedArrayWithObjTag) obj).getVal());
 			return ret;
 		}
@@ -207,11 +207,11 @@ public class ArrayReflectionMasker {
 		return Array.newInstance(clazz, len);
 	}
 
-	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, Object[] dimsTaint, int[] dims, ControlTaintTagStack ctrl) {
+	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, Taint[] dimsTaint, int[] dims, ControlTaintTagStack ctrl) {
 		return newInstance$$PHOSPHORTAGGED(clazz, dimsTaint, dims);
 	}
 
-	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, Object[] dimsTaint, int[] dims) {
+	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, Taint[] dimsTaint, int[] dims) {
 		//		System.out.println("22Creating array instance of type " + clazz);
 		Type t = Type.getType(clazz);
 		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {

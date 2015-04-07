@@ -474,10 +474,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		}
 		if (addTaintMethod) {
 			if (isInterface) {
-				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "get" + TaintUtils.TAINT_FIELD, "()I", null, null);
+				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "get" + TaintUtils.TAINT_FIELD, "()"+Configuration.TAINT_TAG_DESC, null, null);
 				if(GEN_HAS_TAINTS_METHOD)
 					super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "hasAnyTaints", "()Z", null, null);
-				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "set" + TaintUtils.TAINT_FIELD, "(I)V", null, null);
+				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "set" + TaintUtils.TAINT_FIELD, "("+Configuration.TAINT_TAG_DESC+")V", null, null);
 			} else {
 				MethodVisitor mv;
 				if (!Configuration.MULTI_TAINTING) {

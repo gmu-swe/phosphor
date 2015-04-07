@@ -23,7 +23,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		return sourceLabels.get(str);
 	}
 	static {
-		if(Instrumenter.sourcesFile == null && Instrumenter.sinksFile == null)
+		if(Instrumenter.sourcesFile == null && Instrumenter.sinksFile == null && !TaintTrackingClassVisitor.IS_RUNTIME_INST)
 		{
 			System.err.println("No taint sources or sinks specified. To specify, add option -taintSources file and/or -taintSinks file where file is a file listing taint sources/sinks. See files taint-sinks and taint-samples in source for examples. Lines beginning with # are ignored.");
 		}

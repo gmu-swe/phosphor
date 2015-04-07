@@ -438,7 +438,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
             	}
             	else if(t instanceof String)
             	{
-            		Type _t = Type.getType((String) t);
+            		Type _t = Type.getObjectType((String) t);
             		if(_t.getSort() == Type.ARRAY && _t.getDimensions() == 1 && _t.getElementType().getSort() != Type.OBJECT)
             			shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
             	}

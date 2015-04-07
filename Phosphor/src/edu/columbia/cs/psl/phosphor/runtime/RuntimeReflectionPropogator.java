@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.WeakHashMap;
 
@@ -76,18 +77,79 @@ public class RuntimeReflectionPropogator {
 	}
 	public static Object get(Field f, Object obj, boolean isObjTags) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
-		Object ret = f.get(obj);
-		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
+		Object ret;
+		if(f.getType().isPrimitive())
+		{
+			if(f.getType() == Boolean.TYPE)
+				if(isObjTags)
+					ret = getBoolean$$PHOSPHORTAGGED(f, obj, new TaintedBooleanWithObjTag());
+				else
+					ret = getBoolean$$PHOSPHORTAGGED(f, obj, new TaintedBooleanWithIntTag());
+			else if(f.getType() == Byte.TYPE)
+				if(isObjTags)
+					ret = getByte$$PHOSPHORTAGGED(f, obj, new TaintedByteWithObjTag());
+				else
+					ret = getByte$$PHOSPHORTAGGED(f, obj, new TaintedByteWithIntTag());
+			else if(f.getType() == Character.TYPE)
+				if(isObjTags)
+					ret = getChar$$PHOSPHORTAGGED(f, obj, new TaintedCharWithObjTag());
+				else
+					ret = getChar$$PHOSPHORTAGGED(f, obj, new TaintedCharWithIntTag());
+			else if(f.getType() == Double.TYPE)
+				if(isObjTags)
+					ret = getDouble$$PHOSPHORTAGGED(f, obj, new TaintedDoubleWithObjTag());
+				else
+					ret = getDouble$$PHOSPHORTAGGED(f, obj, new TaintedDoubleWithIntTag());
+			else if(f.getType() == Float.TYPE)
+				if(isObjTags)
+					ret = getFloat$$PHOSPHORTAGGED(f, obj, new TaintedFloatWithObjTag());
+				else
+					ret = getFloat$$PHOSPHORTAGGED(f, obj, new TaintedFloatWithIntTag());
+			else if(f.getType() == Long.TYPE)
+				if(isObjTags)
+					ret = getLong$$PHOSPHORTAGGED(f, obj, new TaintedLongWithObjTag());
+				else
+					ret = getLong$$PHOSPHORTAGGED(f, obj, new TaintedLongWithIntTag());
+			else if(f.getType() == Integer.TYPE)
+				if(isObjTags)
+					ret = getInt$$PHOSPHORTAGGED(f, obj, new TaintedIntWithObjTag());
+				else
+					ret = getInt$$PHOSPHORTAGGED(f, obj, new TaintedIntWithIntTag());
+			else if(f.getType() == Short.TYPE)
+				if(isObjTags)
+					ret = getShort$$PHOSPHORTAGGED(f, obj, new TaintedShortWithObjTag());
+				else
+					ret = getShort$$PHOSPHORTAGGED(f, obj, new TaintedShortWithIntTag());
+			else
+				throw new IllegalArgumentException();
+		}
+		else 
+			ret = f.get(obj);
+		if (f.getType().isArray() && f.getType().getComponentType().isPrimitive()) {
 			try {
-				Field taintField;
-				if (fieldToField.containsKey(f))
-					taintField = fieldToField.get(f);
-				else {
-					taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
-					taintField.setAccessible(true);
-					fieldToField.put(f, taintField);
+				Object taint = null;
+				try {
+					Field taintField;
+					if (fieldToField.containsKey(f))
+						taintField = fieldToField.get(f);
+					else {
+						taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+						taintField.setAccessible(true);
+						fieldToField.put(f, taintField);
+					}
+					taint = taintField.get(obj);
+				} catch (NoSuchFieldException t) {
+					if(isObjTags)
+					{
+						if(ret != null)
+							taint = new int[Array.getLength(ret)];
+					}
+					else
+					{
+						if(ret != null)
+							taint = new Taint[Array.getLength(ret)];
+					}
 				}
-				Object taint = taintField.get(obj);
 				if(!isObjTags)
 				{
 					if (f.getType().getComponentType() == Boolean.TYPE) {
@@ -204,7 +266,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.getInt(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -225,7 +287,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.getInt(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -246,7 +308,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.getInt(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -267,7 +329,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.getInt(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -288,7 +350,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.getInt(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -353,7 +415,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.getInt(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -376,7 +438,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.get(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -397,7 +459,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.get(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -418,7 +480,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.get(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -439,7 +501,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.get(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -460,7 +522,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.get(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -483,7 +545,7 @@ public class RuntimeReflectionPropogator {
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 		return ret;
 	}
@@ -521,7 +583,7 @@ public class RuntimeReflectionPropogator {
 			}
 			ret.taint = taintField.get(obj);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -618,7 +680,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.setInt(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -632,7 +694,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.setInt(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -646,7 +708,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.setInt(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -660,7 +722,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.setInt(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -674,7 +736,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.setInt(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -688,7 +750,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.setInt(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -702,7 +764,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.setInt(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -716,7 +778,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.setInt(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -730,7 +792,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.set(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -744,7 +806,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.set(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -758,7 +820,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.set(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -772,7 +834,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.set(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -786,7 +848,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.set(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -800,7 +862,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.set(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -814,7 +876,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.set(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}
@@ -828,7 +890,7 @@ public class RuntimeReflectionPropogator {
 			taintField.setAccessible(true);
 			taintField.set(obj, tag);
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		}

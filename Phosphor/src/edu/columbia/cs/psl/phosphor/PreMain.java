@@ -95,18 +95,27 @@ public class PreMain {
 
 		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint[] classtaint,
 				byte[] classfileBuffer, TaintedByteArrayWithObjTag ret) throws IllegalClassFormatException {
+			Configuration.IMPLICIT_TRACKING = false;
+			Configuration.MULTI_TAINTING = true;
+			Configuration.init();
 			ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 			ret.taint = null;
 			return ret;
 		}
 		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint[] classtaint,
 				byte[] classfileBuffer, ControlTaintTagStack ctrl, TaintedByteArrayWithObjTag ret) throws IllegalClassFormatException {
+			Configuration.IMPLICIT_TRACKING = true;
+			Configuration.MULTI_TAINTING = true;
+			Configuration.init();
 			ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 			ret.taint = null;
 			return ret;
 		}
 		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint, byte[] classfileBuffer, TaintedByteArrayWithIntTag ret) throws IllegalClassFormatException
 		{
+			Configuration.IMPLICIT_TRACKING = false;
+			Configuration.MULTI_TAINTING = false;
+			Configuration.init();
 	        bigLoader = loader;
 	        Instrumenter.loader = bigLoader;
 			if(className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
@@ -264,6 +273,9 @@ public class PreMain {
 	}
 	
 	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, ControlTaintTagStack ctrl) {
+		Configuration.IMPLICIT_TRACKING = true;
+		Configuration.MULTI_TAINTING = true;
+		Configuration.init();
 		premain(args, inst);
 	}
 	public static void premain(String args, Instrumentation inst) {

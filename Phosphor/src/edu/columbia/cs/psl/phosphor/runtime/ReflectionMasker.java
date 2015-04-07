@@ -426,11 +426,11 @@ public class ReflectionMasker {
 					} catch (ClassNotFoundException e) {
 						e.printStackTrace();
 					}
-				} else if (c.isArray() && c.getComponentType().isPrimitive()) {
+				} else if (c.isArray() && (c.getComponentType().isPrimitive() || c.getComponentType().equals(Taint.class))) {
 					if (dontIgnorePrimitive)
 						origArgs.add(c);
 					dontIgnorePrimitive = !dontIgnorePrimitive;
-				} else if (c.isPrimitive()) {
+				} else if (c.isPrimitive() || c.equals(Taint.class)) {
 					if (dontIgnorePrimitive)
 						origArgs.add(c);
 					dontIgnorePrimitive = !dontIgnorePrimitive;
@@ -507,11 +507,11 @@ public class ReflectionMasker {
 				} catch (ClassNotFoundException e) {
 					e.printStackTrace();
 				}
-			} else if (c.isArray() && c.getComponentType().isPrimitive()) {
+			} else if (c.isArray() && (c.getComponentType().isPrimitive() || c.getComponentType().equals(Taint.class))) {
 				if (dontIgnorePrimitive)
 					origArgs.add(c);
 				dontIgnorePrimitive = !dontIgnorePrimitive;
-			} else if (c.isPrimitive()) {
+			} else if (c.isPrimitive() || c.equals(Taint.class)) {
 				if (dontIgnorePrimitive)
 					origArgs.add(c);
 				dontIgnorePrimitive = !dontIgnorePrimitive;
@@ -705,7 +705,7 @@ public class ReflectionMasker {
 					else
 						ret[j] = null;
 					j++;
-				} else if (c.getParameterTypes()[j].isArray() && c.getParameterTypes()[j].getComponentType().isPrimitive()) {
+				} else if (c.getParameterTypes()[j].isArray() && (c.getParameterTypes()[j].getComponentType().isPrimitive() || c.getParameterTypes()[j].getComponentType().equals(Taint.class))) {
 					if (!isObjTags) {
 						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
 						ret[j] = arr.taint;
@@ -760,7 +760,7 @@ public class ReflectionMasker {
 					else
 						ret[j] = null;
 					j++;
-				} else if (c.getParameterTypes()[j].isArray() && c.getParameterTypes()[j].getComponentType().isPrimitive()) {
+				} else if (c.getParameterTypes()[j].isArray() && (c.getParameterTypes()[j].getComponentType().isPrimitive() || c.getParameterTypes()[j].getComponentType().equals(Taint.class))) {
 					MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
 					ret[j] = arr.taint;
 					j++;
@@ -859,7 +859,7 @@ public class ReflectionMasker {
 		ret.a = in;
 		ret.o = owner;
 		ret.m = m;
-		//		System.out.println("FAA: " +m + " "+owner + " " + in);
+//				System.out.println("FAA: " +m + " "+owner + " " + in);
 		int j = 0;
 		if (in != null && m.getParameterTypes().length != in.length) {
 			ret.a = new Object[m.getParameterTypes().length];
@@ -869,6 +869,8 @@ public class ReflectionMasker {
 						ret.a[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
 					else if(in[i] instanceof TaintedWithObjTag)
 						ret.a[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
+					else if(isObjTags)
+						ret.a[j] = null;
 					else
 						ret.a[j] = 0;
 					j++;
@@ -878,7 +880,7 @@ public class ReflectionMasker {
 					else
 						ret.a[j] = null;
 					j++;
-				} else if (m.getParameterTypes()[j].isArray() && m.getParameterTypes()[j].getComponentType().isPrimitive()) {
+				} else if (m.getParameterTypes()[j].isArray() && (m.getParameterTypes()[j].getComponentType().isPrimitive() || m.getParameterTypes()[j].getComponentType().equals(Taint.class))) {
 					if (!isObjTags) {
 						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
 						ret.a[j] = arr.taint;
@@ -956,7 +958,7 @@ public class ReflectionMasker {
 					else
 						ret.a[j] = null;
 					j++;
-				} else if (m.getParameterTypes()[j].isArray() && m.getParameterTypes()[j].getComponentType().isPrimitive()) {
+				} else if (m.getParameterTypes()[j].isArray() && (m.getParameterTypes()[j].getComponentType().isPrimitive() || m.getParameterTypes()[j].getComponentType().equals(Taint.class))) {
 					MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
 					ret.a[j] = arr.taint;
 					j++;
@@ -1016,49 +1018,49 @@ public class ReflectionMasker {
 	@SuppressWarnings("rawtypes")
 	public static Class removeTaintClass(Class clazz, boolean isObjTags) {
 
-//		if (cachedClasses.containsKey(clazz))
-//			return cachedClasses.get(clazz);
-//		Type t = Type.getType(clazz);
-//		if (t.getSort() == Type.ARRAY) {
-//			String cmp = t.getElementType().getDescriptor();
-//			if (cmp.length() >= "Ledu.columbia.cs.psl.phosphor.struct.multid".length()
-//					&& cmp.subSequence(0, "Ledu.columbia.cs.psl.phosphor.struct.multid".length()).equals("Ledu/columbia/cs/psl/phosphor/struct/multid")) {
-//				String innerType = null;
-//				if(isObjTags)
-//					innerType = (MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(clazz));
-//				else
-//					innerType = (MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(clazz));
-//				String newName = "[";
-//				for (int i = 0; i < t.getDimensions(); i++)
-//					newName += "[";
-//				try {
-//					Class ret = Class.forName(newName + innerType);
-//					cachedClasses.put(clazz, ret);
-//					return ret;
-//				} catch (ClassNotFoundException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//			cachedClasses.put(clazz, clazz);
-//			return clazz;
-//		}
-//		String cmp = t.getDescriptor();
-//		if (cmp.length() >= "Ledu.columbia.cs.psl.phosphor.struct.multid".length()
-//				&& cmp.subSequence(0, "Ledu.columbia.cs.psl.phosphor.struct.multid".length()).equals("Ledu/columbia/cs/psl/phosphor/struct/multid")) {
-//			String innerType = null;
-//			if(isObjTags)
-//				innerType = (MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(clazz));
-//			else
-//				innerType = (MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(clazz));
-//			try {
-//				Class ret = Class.forName("[" + innerType);
-//				cachedClasses.put(clazz, ret);
-//				return ret;
-//			} catch (ClassNotFoundException e) {
-//				e.printStackTrace();
-//			}
-//		}
-//		cachedClasses.put(clazz, clazz);
+		if (cachedClasses.containsKey(clazz))
+			return cachedClasses.get(clazz);
+		Type t = Type.getType(clazz);
+		if (t.getSort() == Type.ARRAY) {
+			String cmp = t.getElementType().getDescriptor();
+			if (cmp.length() >= "Ledu.columbia.cs.psl.phosphor.struct.multid".length()
+					&& cmp.subSequence(0, "Ledu.columbia.cs.psl.phosphor.struct.multid".length()).equals("Ledu/columbia/cs/psl/phosphor/struct/multid")) {
+				String innerType = null;
+				if(isObjTags)
+					innerType = (MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(clazz));
+				else
+					innerType = (MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(clazz));
+				String newName = "[";
+				for (int i = 0; i < t.getDimensions(); i++)
+					newName += "[";
+				try {
+					Class ret = Class.forName(newName + innerType);
+					cachedClasses.put(clazz, ret);
+					return ret;
+				} catch (ClassNotFoundException e) {
+					e.printStackTrace();
+				}
+			}
+			cachedClasses.put(clazz, clazz);
+			return clazz;
+		}
+		String cmp = t.getDescriptor();
+		if (cmp.length() >= "Ledu.columbia.cs.psl.phosphor.struct.multid".length()
+				&& cmp.subSequence(0, "Ledu.columbia.cs.psl.phosphor.struct.multid".length()).equals("Ledu/columbia/cs/psl/phosphor/struct/multid")) {
+			String innerType = null;
+			if(isObjTags)
+				innerType = (MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(clazz));
+			else
+				innerType = (MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(clazz));
+			try {
+				Class ret = Class.forName("[" + innerType);
+				cachedClasses.put(clazz, ret);
+				return ret;
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+		cachedClasses.put(clazz, clazz);
 		return clazz;
 	}
 
