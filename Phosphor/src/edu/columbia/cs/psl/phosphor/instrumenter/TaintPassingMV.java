@@ -217,7 +217,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 		if (isIgnoreAllInstrumenting || ignoreLoadingNextTaint) {
-			super.visitVarInsn(opcode, var);
+			if(opcode != TaintUtils.FORCE_CTRL_STORE)
+				super.visitVarInsn(opcode, var);
 			return;
 		}
 
@@ -3097,7 +3098,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 
-		if (Configuration.IMPLICIT_TRACKING) {
+		if (Configuration.IMPLICIT_TRACKING && !isIgnoreAllInstrumenting) {
 			switch (opcode) {
 			case Opcodes.IFEQ:
 			case Opcodes.IFNE:
