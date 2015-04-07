@@ -2,7 +2,7 @@ Phosphor: Dynamic Taint Tracking for the JVM
 ========
 
 
-Phosphor is a system for performing dynamic taint analysis in the JVM, on commodity JVMs (e.g. Oracle's HotSpot or OpenJDK's IcedTea). This repository contains the source for Phosphor. For more information about how Phosphor works and what it could be useful for, please refer to our [OOPSLA 2014 paper](http://jonbell.net/publications/phosphor) or email [Jonathan Bell](mailto:jbell@cs.columbia.edu).
+Phosphor is a system for performing dynamic taint analysis in the JVM, on commodity JVMs (e.g. Oracle's HotSpot or OpenJDK's IcedTea). This repository contains the source for Phosphor. For more information about how Phosphor works and what it could be useful for, please refer to our [OOPSLA 2014 paper](http://jonbell.net/publications/phosphor), [ISSTA 2015 Tool Demo (in submission)](http://mice.cs.columbia.edu/getTechreport.php?techreportID=1601) or email [Jonathan Bell](mailto:jbell@cs.columbia.edu).
 
 Note - for those interested in reproducing our OOPSLA 2014 experiments, please find a [VM Image with all relevant files here](http://academiccommons.columbia.edu/catalog/ac%3A182689), and a [README with instructions for doing so here](https://www.dropbox.com/s/dmebj6k8izams6p/artifact-63-phosphor.pdf?dl=0).
 
