@@ -194,6 +194,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		}
 		if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
 			owner = Type.getInternalName(ArrayReflectionMasker.class);
+			if(Configuration.MULTI_TAINTING)
+				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
 		}
 		if (owner.equals("java/lang/reflect/Field")
 				&& opcode == Opcodes.INVOKEVIRTUAL

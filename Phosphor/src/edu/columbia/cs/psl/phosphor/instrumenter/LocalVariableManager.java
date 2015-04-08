@@ -504,7 +504,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
         	{
         		newLocals[varToShadowVar.get(i)] = Opcodes.TOP;
         	}
-        	else if(i < newLocals.length && !TaintAdapter.isPrimitiveStackType(newLocals[i]))
+        	else if(i < newLocals.length && !TaintAdapter.isPrimitiveStackType(newLocals[i])  && varToShadowVar.get(i) < newLocals.length)
         	{
         		newLocals[varToShadowVar.get(i)] = Opcodes.TOP;
         	}

@@ -1,7 +1,11 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 
+import java.lang.reflect.Array;
+
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.ArrayList;
+import gov.nasa.jpf.symbc.numeric.Expression;
 
 
 public class HardcodedBypassStore {
@@ -17,7 +21,7 @@ public class HardcodedBypassStore {
 	{
 		if(i == null)
 			return null;
-		Object[] ret = new Taint[i.length];
+		Object[] ret = (Object[]) Array.newInstance(Configuration.TAINT_TAG_OBJ_CLASS, i.length);
 		synchronized (vals) {
 			for(int j = 0; j < i.length; j++)
 			{

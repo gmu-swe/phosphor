@@ -107,7 +107,7 @@ public class Taint implements Cloneable{
 	{
 		if(o instanceof TaintedWithObjTag)
 		{
-			((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags(((TaintedWithObjTag)o).getPHOSPHOR_TAG(), tags));
+			((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags((Taint) ((TaintedWithObjTag)o).getPHOSPHOR_TAG(), tags));
 	
 		}
 	}

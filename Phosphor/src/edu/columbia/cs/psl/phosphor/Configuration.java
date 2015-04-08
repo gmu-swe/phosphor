@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public class Configuration {
 	public static boolean MULTI_TAINTING = true;
@@ -25,7 +26,8 @@ public class Configuration {
 	public static int TAINT_LOAD_OPCODE = (!MULTI_TAINTING ? Opcodes.ILOAD : Opcodes.ALOAD);
 	public static int TAINT_STORE_OPCODE = (!MULTI_TAINTING ? Opcodes.ISTORE : Opcodes.ASTORE);
 	public static boolean OPT_CONSTANT_ARITHMETIC = true && !IMPLICIT_TRACKING;
-	
+	public static Class TAINT_TAG_OBJ_CLASS = (Taint.class);
+	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
 	public static void init()
 	{
 		 TAINT_TAG_DESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "I");
@@ -43,5 +45,7 @@ public class Configuration {
 		 TAINT_LOAD_OPCODE = (!MULTI_TAINTING ? Opcodes.ILOAD : Opcodes.ALOAD);
 		 TAINT_STORE_OPCODE = (!MULTI_TAINTING ? Opcodes.ISTORE : Opcodes.ASTORE);
 		 OPT_CONSTANT_ARITHMETIC = true && !IMPLICIT_TRACKING;
+		 TAINT_TAG_OBJ_ARRAY_CLASS = (MULTI_TAINTING ? Taint[].class : int[].class);
+		 TAINT_TAG_OBJ_CLASS = (MULTI_TAINTING ? Taint.class : Integer.TYPE);
 	}
 }

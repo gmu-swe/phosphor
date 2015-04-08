@@ -93,7 +93,7 @@ public class ReflectionMasker {
 				if (c.getComponentType().isPrimitive()) {
 					//1d primitive array
 					madeChange = true;
-					newArgs.add(Taint[].class);
+					newArgs.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
 					newArgs.add(c);
 					continue;
 				} else {
@@ -118,7 +118,7 @@ public class ReflectionMasker {
 				}
 			} else if (c.isPrimitive()) {
 				madeChange = true;
-				newArgs.add(Taint.class);
+				newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
 				newArgs.add(c);
 				continue;
 			} else {
@@ -229,7 +229,7 @@ public class ReflectionMasker {
 					//1d primitive array
 					madeChange = true;
 					if (isObjTags)
-						newArgs.add(Taint[].class);
+						newArgs.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
 					else
 						newArgs.add(int[].class);
 					newArgs.add(c);
@@ -260,7 +260,7 @@ public class ReflectionMasker {
 			} else if (c.isPrimitive()) {
 				madeChange = true;
 				if (isObjTags)
-					newArgs.add(Taint.class);
+					newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
 				else
 					newArgs.add(Integer.TYPE);
 				newArgs.add(c);
@@ -426,11 +426,11 @@ public class ReflectionMasker {
 					} catch (ClassNotFoundException e) {
 						e.printStackTrace();
 					}
-				} else if (c.isArray() && (c.getComponentType().isPrimitive() || c.getComponentType().equals(Taint.class))) {
+				} else if (c.isArray() && (c.getComponentType().isPrimitive() || c.getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
 					if (dontIgnorePrimitive)
 						origArgs.add(c);
 					dontIgnorePrimitive = !dontIgnorePrimitive;
-				} else if (c.isPrimitive() || c.equals(Taint.class)) {
+				} else if (c.isPrimitive() || c.equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
 					if (dontIgnorePrimitive)
 						origArgs.add(c);
 					dontIgnorePrimitive = !dontIgnorePrimitive;
@@ -507,11 +507,11 @@ public class ReflectionMasker {
 				} catch (ClassNotFoundException e) {
 					e.printStackTrace();
 				}
-			} else if (c.isArray() && (c.getComponentType().isPrimitive() || c.getComponentType().equals(Taint.class))) {
+			} else if (c.isArray() && (c.getComponentType().isPrimitive() || c.getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
 				if (dontIgnorePrimitive)
 					origArgs.add(c);
 				dontIgnorePrimitive = !dontIgnorePrimitive;
-			} else if (c.isPrimitive() || c.equals(Taint.class)) {
+			} else if (c.isPrimitive() || c.equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
 				if (dontIgnorePrimitive)
 					origArgs.add(c);
 				dontIgnorePrimitive = !dontIgnorePrimitive;
@@ -553,7 +553,7 @@ public class ReflectionMasker {
 					if (t.getElementType().getSort() != Type.OBJECT) {
 						if (t.getDimensions() == 1) {
 							if (isObjTags)
-								newParams.add(Taint[].class);
+								newParams.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
 							else
 								newParams.add(int[].class);
 						} else {
@@ -572,7 +572,7 @@ public class ReflectionMasker {
 					}
 				} else if (t.getSort() != Type.OBJECT) {
 					if(isObjTags)
-						newParams.add(Taint.class);
+						newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
 					else
 						newParams.add(Integer.TYPE);
 				}
@@ -699,13 +699,13 @@ public class ReflectionMasker {
 					else
 						ret[j] = 0;
 					j++;
-				} else if (c.getParameterTypes()[j] == Taint.class){
+				} else if (c.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_CLASS){
 					if(in[i] instanceof TaintedWithObjTag)
 						ret[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
 					else
 						ret[j] = null;
 					j++;
-				} else if (c.getParameterTypes()[j].isArray() && (c.getParameterTypes()[j].getComponentType().isPrimitive() || c.getParameterTypes()[j].getComponentType().equals(Taint.class))) {
+				} else if (c.getParameterTypes()[j].isArray() && (c.getParameterTypes()[j].getComponentType().isPrimitive() || c.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
 					if (!isObjTags) {
 						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
 						ret[j] = arr.taint;
@@ -754,13 +754,13 @@ public class ReflectionMasker {
 					else
 						ret[j] = 0;
 					j++;
-				} else if (c.getParameterTypes()[j] == Taint.class){
+				} else if (c.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_CLASS){
 					if(in[i] instanceof TaintedWithObjTag)
 						ret[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
 					else
 						ret[j] = null;
 					j++;
-				} else if (c.getParameterTypes()[j].isArray() && (c.getParameterTypes()[j].getComponentType().isPrimitive() || c.getParameterTypes()[j].getComponentType().equals(Taint.class))) {
+				} else if (c.getParameterTypes()[j].isArray() && (c.getParameterTypes()[j].getComponentType().isPrimitive() || c.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
 					MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
 					ret[j] = arr.taint;
 					j++;
@@ -874,13 +874,13 @@ public class ReflectionMasker {
 					else
 						ret.a[j] = 0;
 					j++;
-				} else if (m.getParameterTypes()[j] == Taint.class){
+				} else if (m.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_CLASS){
 					if(in[i] instanceof TaintedWithObjTag)
 						ret.a[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
 					else
 						ret.a[j] = null;
 					j++;
-				} else if (m.getParameterTypes()[j].isArray() && (m.getParameterTypes()[j].getComponentType().isPrimitive() || m.getParameterTypes()[j].getComponentType().equals(Taint.class))) {
+				} else if (m.getParameterTypes()[j].isArray() && (m.getParameterTypes()[j].getComponentType().isPrimitive() || m.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
 					if (!isObjTags) {
 						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
 						ret.a[j] = arr.taint;
@@ -952,13 +952,13 @@ public class ReflectionMasker {
 					else
 						ret.a[j] = 0;
 					j++;
-				} else if (m.getParameterTypes()[j] == Taint.class){
+				} else if (m.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_CLASS){
 					if(in[i] instanceof TaintedWithObjTag)
 						ret.a[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
 					else
 						ret.a[j] = null;
 					j++;
-				} else if (m.getParameterTypes()[j].isArray() && (m.getParameterTypes()[j].getComponentType().isPrimitive() || m.getParameterTypes()[j].getComponentType().equals(Taint.class))) {
+				} else if (m.getParameterTypes()[j].isArray() && (m.getParameterTypes()[j].getComponentType().isPrimitive() || m.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
 					MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
 					ret.a[j] = arr.taint;
 					j++;

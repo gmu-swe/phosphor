@@ -550,6 +550,6 @@ public class TaintUtils {
 
 	public static Object[] newTaintArray(int len)
 	{
-		return new Taint[len];
+		return (Object[]) Array.newInstance(Configuration.TAINT_TAG_OBJ_CLASS, len);
 	}
 }
