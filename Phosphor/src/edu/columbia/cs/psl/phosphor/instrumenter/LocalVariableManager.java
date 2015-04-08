@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -503,6 +504,10 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
         	{
         		newLocals[varToShadowVar.get(i)] = Opcodes.TOP;
         	}
+        	else if(i < newLocals.length && !TaintAdapter.isPrimitiveStackType(newLocals[i]))
+        	{
+        		newLocals[varToShadowVar.get(i)] = Opcodes.TOP;
+        	}
         }
         // removes TOP after long and double types as well as trailing TOPs
 
@@ -523,7 +528,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
         }
         // visits remapped frame
         mv.visitFrame(type, number, newLocals, nStack, stack);
-//        System.out.println(Arrays.toString(newLocals));
+//        System.out.println("fin" + Arrays.toString(newLocals));
         
         // restores original value of 'newLocals'
         newLocals = oldLocals;
