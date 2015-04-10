@@ -251,31 +251,31 @@ public class Instrumenter {
 	static HashSet<String> notAnnotations = new HashSet<String>();
 
 	public static boolean isAnnotation(String owner) {
-		if (annotations.contains(owner))
-			return true;
-		if (notAnnotations.contains(owner))
-			return false;
-		try {
-			Class c;
-			try {
-				if (loader == null)
-					c = Class.forName(owner.replace("/", "."));
-				else
-					c = loader.loadClass(owner.replace("/", "."));
-				if (c.isAnnotation()) {
-					annotations.add(owner);
-//					System.out.println("Annotation: " + c);
-					return true;
-				}
-				notAnnotations.add(owner);
-			} catch (Throwable ex) {
-				//TODO fix this
-			}
-			return false;
-		} catch (Exception ex) {
-			//			System.out.println("Unable to load for annotation-checking purposes: " + owner);
-			notAnnotations.add(owner);
-		}
+//		if (annotations.contains(owner))
+//			return true;
+//		if (notAnnotations.contains(owner))
+//			return false;
+//		try {
+//			Class c;
+//			try {
+//				if (loader == null)
+//					c = Class.forName(owner.replace("/", "."));
+//				else
+//					c = loader.loadClass(owner.replace("/", "."));
+//				if (c.isAnnotation()) {
+//					annotations.add(owner);
+////					System.out.println("Annotation: " + c);
+//					return true;
+//				}
+//				notAnnotations.add(owner);
+//			} catch (Throwable ex) {
+//				//TODO fix this
+//			}
+//			return false;
+//		} catch (Exception ex) {
+//			//			System.out.println("Unable to load for annotation-checking purposes: " + owner);
+//			notAnnotations.add(owner);
+//		}
 		return false;
 	}
 

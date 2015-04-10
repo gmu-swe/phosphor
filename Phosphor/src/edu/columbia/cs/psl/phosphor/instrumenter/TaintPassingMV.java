@@ -615,10 +615,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 						FrameNode fn = getCurrentFrameNode();
 						super.visitInsn(DUP);
-						if(!ignoreLoadingNextTaint)
+						if(!ignoreLoadingNextTaint && !isIgnoreAllInstrumenting)
 						super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
 						super.visitJumpInsn(IFNULL, isNull);
-						if(!ignoreLoadingNextTaint)
+						if(!ignoreLoadingNextTaint&& !isIgnoreAllInstrumenting)
 						super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
 
 						//		System.out.println("unbox: " + onStack + " type passed is " + type);
@@ -1001,10 +1001,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		FrameNode fn = getCurrentFrameNode();
 
 		super.visitInsn(DUP);
-		if(!ignoreLoadingNextTaint)
+		if(!ignoreLoadingNextTaint&& !isIgnoreAllInstrumenting)
 		super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
 		super.visitJumpInsn(IFNULL, isNull);
-		if(!ignoreLoadingNextTaint)
+		if(!ignoreLoadingNextTaint&& !isIgnoreAllInstrumenting)
 		super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
 
 		//		System.out.println("unbox: " + onStack + " type passed is " + type);
@@ -1054,11 +1054,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		Label isNull = new Label();
 		FrameNode fn = getCurrentFrameNode();
 
-		if (!ignoreLoadingNextTaint)
+		if (!ignoreLoadingNextTaint&& !isIgnoreAllInstrumenting)
 			super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
 		super.visitInsn(DUP);
 		super.visitJumpInsn(IFNULL, isNull);
-		if (!ignoreLoadingNextTaint)
+		if (!ignoreLoadingNextTaint&& !isIgnoreAllInstrumenting)
 			super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
 		super.visitTypeInsn(NEW, wrapperType.getInternalName());
 		//TA A N
@@ -1696,6 +1696,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		return Integer.valueOf(0).equals(analyzer.stackConstantVals.get(analyzer.stackConstantVals.size() - offset));
 	}
 
+	boolean isIgnoreEverything = false;
 	@Override
 	public void visitInsn(int opcode) {
 //		System.out.println(name + Printer.OPCODES[opcode] + " " + analyzer.stack + " raw? " + isRawInsns);
@@ -1728,6 +1729,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 		if (opcode == TaintUtils.DONT_LOAD_TAINT) {
+			if(isIgnoreEverything)
+				return;
 			ignoreLoadingNextTaint = !ignoreLoadingNextTaint;
 			//						if(ignoreLoadingNextTaint)
 			//						{
@@ -1741,6 +1744,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if (opcode == TaintUtils.IGNORE_EVERYTHING) {
 			//						System.err.println("VisitInsn is ignoreverything! in  " + name);
 			isIgnoreAllInstrumenting = !isIgnoreAllInstrumenting;
+			isIgnoreEverything = !isIgnoreEverything;
 			super.visitInsn(opcode);
 			return;
 		}

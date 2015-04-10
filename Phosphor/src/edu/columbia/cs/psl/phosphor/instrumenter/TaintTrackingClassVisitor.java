@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
@@ -215,7 +216,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			generateHashCode = false;
 
 		String originalName = name;
-		if (isAnnotation || FIELDS_ONLY) {
+		if (FIELDS_ONLY) { // || isAnnotation
 			return super.visitMethod(access, name, desc, signature, exceptions);
 		}
 
@@ -349,8 +350,16 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			return rawMethod;
 		} else {
 			//this is a native method. we want here to make a $taint method that will call the original one.
-			MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-			return mv;
+			final MethodVisitor prev = super.visitMethod(access, name, desc, signature, exceptions);
+			MethodNode rawMethod = new MethodNode(Opcodes.ASM5, access, name, desc, signature, exceptions) {
+				@Override
+				public void visitEnd() {
+					super.visitEnd();
+					this.accept(prev);
+				}
+			};
+			forMore.put(wrapper, rawMethod);
+			return rawMethod;
 		}
 	}
 
@@ -388,10 +397,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	public void visitEnd() {
 
 		boolean goLightOnGeneratedStuff = !Instrumenter.IS_ANDROID_INST && className.equals("java/lang/Byte");
-		if (isAnnotation) {
-			super.visitEnd();
-			return;
-		}
+//		if (isAnnotation) {
+//			super.visitEnd();
+//			return;
+//		}
 		if (!hasSerialUID && !isInterface && !goLightOnGeneratedStuff) {
 			if(!Configuration.MULTI_TAINTING)
 				super.visitField(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "serialVersionUIDPHOSPHOR_TAG", Configuration.TAINT_TAG_DESC, null, 0);
@@ -815,7 +824,21 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					} else {
 						String[] exceptions = new String[m.exceptions.size()];
 						exceptions = m.exceptions.toArray(exceptions);
+						MethodNode fullMethod = forMore.get(m);
+
 						MethodVisitor mv = super.visitMethod(m.access, m.name, m.desc, m.signature, exceptions);
+						if(fullMethod.annotationDefault != null)
+						{
+							if(fullMethod.annotationDefault instanceof AnnotationNode)
+							{
+							((AnnotationNode) fullMethod.annotationDefault).accept(mv.visitAnnotationDefault());	
+							}
+							else
+							{
+								mv.visitAnnotationDefault().visit(null, fullMethod.annotationDefault);
+							}
+						}
+						m.accept(mv);
 						mv.visitEnd();
 					}
 				} else {
