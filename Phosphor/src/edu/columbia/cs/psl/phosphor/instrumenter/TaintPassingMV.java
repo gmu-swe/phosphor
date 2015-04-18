@@ -21,6 +21,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Textifier;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
@@ -1925,29 +1926,68 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				System.out.println("PRE XALOAD " + elType + ": " + analyzer.stack + "; " + analyzer.locals);
 			{
 				//TA A T I
-				super.visitInsn(SWAP);
-				super.visitInsn(POP);
-				//TA A I
-				super.visitInsn(DUP_X1);
-				//TA I A I
-				super.visitInsn(opcode);
-				//TA I V V?
-				if (opcode == LALOAD || opcode == DALOAD) {
-					super.visitInsn(DUP2_X2);
-					super.visitInsn(POP2);
-					//V V TA I
-					super.visitInsn(Configuration.TAINT_ARRAY_LOAD_OPCODE);
-					//V V T
-					super.visitInsn(DUP_X2);
-					// T V V T
-					super.visitInsn(POP);
-				} else {
-					//TA I V
-					super.visitInsn(DUP_X2);
-					super.visitInsn(POP);
-					//V TA I
-					super.visitInsn(Configuration.TAINT_ARRAY_LOAD_OPCODE);
+				if(Configuration.IMPLICIT_TRACKING)
+				{
 					super.visitInsn(SWAP);
+					int tmp = lvs.getTmpLV();
+					super.visitVarInsn(ASTORE, tmp);
+					//TA A I
+					super.visitInsn(DUP_X1);
+					//TA I A I
+					super.visitInsn(opcode);
+					//TA I V V?
+					if (opcode == LALOAD || opcode == DALOAD) {
+						super.visitInsn(DUP2_X2);
+						super.visitInsn(POP2);
+						//V V TA I
+						super.visitInsn(Configuration.TAINT_ARRAY_LOAD_OPCODE);
+						super.visitVarInsn(ALOAD, tmp);
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(Taint.class), "combineTags", "("+Configuration.TAINT_TAG_DESC+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
+
+						//V V T
+						super.visitInsn(DUP_X2);
+						// T V V T
+						super.visitInsn(POP);
+					} else {
+						//TA I V
+						super.visitInsn(DUP_X2);
+						super.visitInsn(POP);
+						//V TA I
+						super.visitInsn(Configuration.TAINT_ARRAY_LOAD_OPCODE);
+						super.visitVarInsn(ALOAD, tmp);
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(Taint.class), "combineTags", "("+Configuration.TAINT_TAG_DESC+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
+						super.visitInsn(SWAP);
+					}
+					lvs.freeTmpLV(tmp);
+					//T V
+
+				}
+				else
+				{
+					super.visitInsn(SWAP);
+					super.visitInsn(POP);
+					//TA A I
+					super.visitInsn(DUP_X1);
+					//TA I A I
+					super.visitInsn(opcode);
+					//TA I V V?
+					if (opcode == LALOAD || opcode == DALOAD) {
+						super.visitInsn(DUP2_X2);
+						super.visitInsn(POP2);
+						//V V TA I
+						super.visitInsn(Configuration.TAINT_ARRAY_LOAD_OPCODE);
+						//V V T
+						super.visitInsn(DUP_X2);
+						// T V V T
+						super.visitInsn(POP);
+					} else {
+						//TA I V
+						super.visitInsn(DUP_X2);
+						super.visitInsn(POP);
+						//V TA I
+						super.visitInsn(Configuration.TAINT_ARRAY_LOAD_OPCODE);
+						super.visitInsn(SWAP);
+					}
 				}
 			}
 			break;
