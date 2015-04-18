@@ -207,7 +207,7 @@ public class AnnotationNode extends AnnotationVisitor {
      * @param value
      *            the actual value.
      */
-    static void accept(final AnnotationVisitor av, final String name,
+    public static void accept(final AnnotationVisitor av, final String name,
             final Object value) {
         if (av != null) {
             if (value instanceof String[]) {

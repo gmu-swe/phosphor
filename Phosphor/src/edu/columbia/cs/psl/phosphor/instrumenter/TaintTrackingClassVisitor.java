@@ -11,6 +11,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.AnnotationVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.FieldVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
@@ -829,14 +830,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						MethodVisitor mv = super.visitMethod(m.access, m.name, m.desc, m.signature, exceptions);
 						if(fullMethod.annotationDefault != null)
 						{
-							if(fullMethod.annotationDefault instanceof AnnotationNode)
-							{
-							((AnnotationNode) fullMethod.annotationDefault).accept(mv.visitAnnotationDefault());	
-							}
-							else
-							{
-								mv.visitAnnotationDefault().visit(null, fullMethod.annotationDefault);
-							}
+							AnnotationVisitor av = mv.visitAnnotationDefault();
+							AnnotationNode.accept(av, null, fullMethod.annotationDefault);
+							av.visitEnd();
 						}
 						m.accept(mv);
 						mv.visitEnd();
