@@ -30,6 +30,8 @@ import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class PreMain {
     private static Instrumentation instrumentation;
@@ -151,7 +153,7 @@ public class PreMain {
 			if(cn.interfaces != null)
 				for(String s : cn.interfaces)
 				{
-					if(s.equals(Type.getInternalName(Tainted.class)))
+					if(s.equals(Type.getInternalName(TaintedWithObjTag.class)) || s.equals(Type.getInternalName(TaintedWithIntTag.class)))
 						return classfileBuffer;
 				}
 			for(MethodNode mn : cn.methods)

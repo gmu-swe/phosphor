@@ -166,7 +166,9 @@ public class ArrayReflectionMasker {
 	public static TaintedIntWithObjTag getLength$$PHOSPHORTAGGED(Object obj, ControlTaintTagStack ctlr, TaintedIntWithObjTag ret) {
 		return getLength$$PHOSPHORTAGGED(obj, ret);
 	}
-
+	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, Taint lenTaint, int len, ControlTaintTagStack zz) {
+		return newInstance$$PHOSPHORTAGGED(clazz, lenTaint, len);
+	}
 	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, Object lenTaint, int len, ControlTaintTagStack zz) {
 		return newInstance$$PHOSPHORTAGGED(clazz, lenTaint, len);
 	}

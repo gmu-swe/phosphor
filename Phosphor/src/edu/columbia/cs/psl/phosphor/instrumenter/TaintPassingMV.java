@@ -21,6 +21,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Textifier;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -197,7 +198,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if(opcode == TaintUtils.BRANCH_END)
 		{
 			passthruMV.visitVarInsn(ALOAD, jumpControlTaintLVs.get(0));
-			passthruMV.visitIntInsn(BIPUSH, var);
+			if(var > Byte.MAX_VALUE)
+				passthruMV.visitLdcInsn(var);
+			else
+				passthruMV.visitIntInsn(BIPUSH, var);
 			passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "(I)V", false);
 			return;
 		}
@@ -972,15 +976,46 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				return;
 			}
 			{
+				boolean loaded = false;
 				if (topStackElCarriesTaints()) {
+					loaded= true;
+					//TA A
 					super.visitInsn(SWAP);
-					super.visitInsn(POP);
+					if (Configuration.MULTI_TAINTING) {
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					} else
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
+					super.visitInsn(SWAP);
+				}
+				if(!loaded)
+				{
+					super.visitInsn(DUP);
 				}
 				super.visitTypeInsn(opcode, type);
+				if(!loaded)
+				{
+					//O I
+					super.visitInsn(SWAP);
+					if(Configuration.MULTI_TAINTING)
+					{
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
+					else
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
+					super.visitInsn(SWAP);					
+				}
 				if (doIOR)
+				{
+					//I T I
+					super.visitInsn(SWAP);
+					//I I T
+					super.visitInsn(DUP_X2);
+					super.visitInsn(POP);
 					super.visitInsn(IOR);
-				super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
-				super.visitInsn(SWAP);
+				}
+
 			}
 			break;
 		default:
@@ -1403,7 +1438,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 			}
 		}
-		if (owner.startsWith("edu/columbia/cs/psl/phosphor") && !name.equals("printConstraints") && !desc.equals("(I)V") && !owner.endsWith("Tainter")) {
+		if (owner.startsWith("edu/columbia/cs/psl/phosphor") && !name.equals("printConstraints") && !name.equals("hasNoDependencies") && !desc.equals("(I)V") && !owner.endsWith("Tainter")) {
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
 		}
@@ -3048,15 +3083,34 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 			Type arrType = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 1));
 			{
+				boolean loaded = false;
 				if (arrType.getElementType().getSort() != Type.OBJECT) {
 					//TA A
 					super.visitInsn(SWAP);
-					super.visitInsn(POP);
+					loaded =true;
+					if(Configuration.MULTI_TAINTING)
+					{
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
+					else
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
+					super.visitInsn(SWAP);
 					//A
 				}
+				if(!loaded)
+				{
+					super.visitInsn(DUP);
+					if(Configuration.MULTI_TAINTING)
+					{
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
+					else
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
+					super.visitInsn(SWAP);
+				}
 				super.visitInsn(opcode);
-				super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
-				super.visitInsn(SWAP);
 
 			}
 			//			System.out.println("post arraylength " + analyzer.stack);

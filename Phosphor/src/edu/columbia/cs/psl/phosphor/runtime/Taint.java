@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class Taint implements Cloneable{
@@ -73,6 +74,18 @@ public class Taint implements Cloneable{
 	{
 		return dependencies.addUnique(d);
 	}
+	public TaintedBooleanWithObjTag hasNoDependencies$$PHOSPHORTAGGED(ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret)
+	{
+		ret.val = hasNoDependencies();
+		ret.taint = null;
+		return ret;
+	}
+	public TaintedBooleanWithObjTag hasNoDependencies$$PHOSPHORTAGGED(TaintedBooleanWithObjTag ret)
+	{
+		ret.val = hasNoDependencies();
+		ret.taint = null;
+		return ret;
+	}
 	public boolean hasNoDependencies() {
 		return dependencies.getFirst() == null;
 	}
@@ -97,17 +110,35 @@ public class Taint implements Cloneable{
 			return null;
 		else if(t1 == null)
 		{
+//			if(tags.isEmpty())
+//				return null;
 			return tags.taint;
 		}
 		else if(tags.isEmpty())
+		{
+//			if(t1.lbl == null && t1.hasNoDependencies())
+//				return null;
 			return t1;
+		}
 		return new Taint((Taint) t1, tags.taint);
 	}
 	public static void combineTagsOnObject(Object o, ControlTaintTagStack tags)
 	{
+		if(tags.isEmpty())
+			return;
 		if(o instanceof TaintedWithObjTag)
 		{
-			((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags((Taint) ((TaintedWithObjTag)o).getPHOSPHOR_TAG(), tags));
+			if(o instanceof String)
+			{
+				Taint onObj  = (Taint) ((TaintedWithObjTag)o).getPHOSPHOR_TAG();
+				((String) o).PHOSPHOR_TAG = Taint.combineTags(onObj, tags);
+				for(int i = 0; i < ((String) o).length(); i++)
+				{
+					((String)o).valuePHOSPHOR_TAG[i] = Taint.combineTags(((String)o).valuePHOSPHOR_TAG[i], tags);
+				}
+			}
+			else
+				((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags((Taint) ((TaintedWithObjTag)o).getPHOSPHOR_TAG(), tags));
 	
 		}
 	}

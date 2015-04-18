@@ -100,6 +100,18 @@ public class TaintChecker {
 				setTaints(o, tag);
 		}
 	}
+	public static void setTaints(String str, Object tag) {
+		if(str.valuePHOSPHOR_TAG == null)
+			str.valuePHOSPHOR_TAG = new Taint[str.length()];
+		for (int i = 0; i < str.length(); i++) {
+			if (tag != null) {
+				str.valuePHOSPHOR_TAG[i] = new Taint((Taint) tag);
+				str.valuePHOSPHOR_TAG[i].lbl = ((Taint) tag).lbl;
+			}
+			else
+				str.valuePHOSPHOR_TAG[i] = null;
+		}
+	}
 	public static void setTaints(Object obj, Taint tag) {
 		if(obj == null)
 			return;

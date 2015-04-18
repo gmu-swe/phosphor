@@ -17,19 +17,23 @@ import de.ecspride.Datacontainer;
 import de.ecspride.General;
 import de.ecspride.VarA;
 import de.ecspride.VarB;
+import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
-public class DroidBenchTest {
+public class DroidBenchTestMultiTaint {
 
 	public static int getTaint(String description) {
-		return Tainter.getTaint(description.toCharArray()[0]);
+		Taint taint = MultiTainter.getTaint(description.toCharArray()[0]);
+		return (taint == null || (taint.lbl == null && taint.hasNoDependencies())) ? 0 : 1;
 	}
 
 	static int i = 0;
 	public static String taintedString(String string) {
-		return new String(Tainter.taintedCharArray(string.toCharArray(), 5));
+		Object r = new String(string.toCharArray());
+		((TaintedWithObjTag) r).setPHOSPHOR_TAG(new Taint("Some tainted data " + (++i)));
+		return (String) r;
 	}
 
 	public static String taintedString() {
@@ -84,7 +88,7 @@ public class DroidBenchTest {
 			g = new VarA();
 		else
 			g = new VarB();
-		assert (getTaint(g.getInfo()) != 0);
+		assert (getTaint(g.getInfoMultiTaint()) != 0);
 	}
 
 	static void testObjectSensitivity1() {
@@ -244,7 +248,7 @@ public class DroidBenchTest {
 			String username = "hanns";
 			try{
 				boolean passwordCorrect = lookup(username, password);
-				assert (Tainter.getTaint(passwordCorrect) != 1);
+				assert (MultiTainter.getTaint(passwordCorrect) != null && (MultiTainter.getTaint(passwordCorrect).lbl != null || !MultiTainter.getTaint(passwordCorrect).hasNoDependencies()));
 			}catch(Exception ex){
 				//should be a sink here
 				ex.printStackTrace();
@@ -278,12 +282,12 @@ public class DroidBenchTest {
 	  		if(list instanceof ArrayList)
 	  		{
 	  			boolean labeledWithCurrentTag = false;
-				assert (Tainter.getTaint(labeledWithCurrentTag) != 1);
+	  			assert (MultiTainter.getTaint(labeledWithCurrentTag) != null && (MultiTainter.getTaint(labeledWithCurrentTag).lbl != null || !MultiTainter.getTaint(labeledWithCurrentTag).hasNoDependencies()));
 	  		}
 	  		else if(list instanceof LinkedList)
 	  		{
 	  			boolean labeledWithCurrentTag = false;
-				assert (Tainter.getTaint(labeledWithCurrentTag) != 1);
+	  			assert (MultiTainter.getTaint(labeledWithCurrentTag) != null && (MultiTainter.getTaint(labeledWithCurrentTag).lbl != null || !MultiTainter.getTaint(labeledWithCurrentTag).hasNoDependencies()));
 	  		}
 	  	}
 	}
@@ -372,7 +376,8 @@ public class DroidBenchTest {
 		String userInputPassword = taintedString("superSecure");
 		if (userInputPassword.equals("superSecure"))
 			passwordCorrect = true;
-		assert (Tainter.getTaint(passwordCorrect) == 1);
+		Taint taint = MultiTainter.getTaint(passwordCorrect);
+		assert (MultiTainter.getTaint(passwordCorrect) != null && (MultiTainter.getTaint(passwordCorrect).lbl != null || !MultiTainter.getTaint(passwordCorrect).hasNoDependencies()));
 	}
 
 	static void testImplicitFlow3() {
@@ -500,8 +505,8 @@ public class DroidBenchTest {
 
 		try {
 			BaseClass2 bc = (BaseClass2) Class.forName("de.ecspride.ConcreteClass2").newInstance();
-			String s = bc.foo();
-			bc.bar(s);
+			String s = bc.fooMultiTaint();
+			bc.barMultiTaint(s);
 		} catch (InstantiationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -514,7 +519,7 @@ public class DroidBenchTest {
 		}
 	}
 	public static void main(String[] args) {
-		for (Method m : DroidBenchTest.class.getDeclaredMethods()) {
+		for (Method m : DroidBenchTestMultiTaint.class.getDeclaredMethods()) {
 			if (m.getName().startsWith("test")) {
 				System.out.println(m.getName());
 				try {

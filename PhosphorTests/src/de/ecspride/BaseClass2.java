@@ -6,4 +6,9 @@ public abstract class BaseClass2 {
 	
 	public abstract void bar(String s);
 
+	
+	public abstract String fooMultiTaint();
+	
+	public abstract void barMultiTaint(String s);
+
 }

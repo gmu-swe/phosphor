@@ -166,21 +166,85 @@ public class TaintUtils {
 
 
 	public static int getTaintInt(Object obj) {
+		if(obj == null)
+			return 0;
 		if (obj instanceof TaintedWithIntTag) {
 			return ((TaintedWithIntTag) obj).getPHOSPHOR_TAG();
 		}
-		if(BoxedPrimitiveStoreWithIntTags.tags.containsKey(obj))
-			return BoxedPrimitiveStoreWithIntTags.tags.get(obj);
+		else if(obj instanceof int[])
+		{
+			int ret = 0;
+			for(int i : ((int[])obj))
+			{
+				ret |=i;
+			}
+			return ret;
+		}
+		else if(obj instanceof Object[])
+		{
+			int ret = 0;
+			for(Object o : ((Object[]) obj))
+				ret |= getTaintInt(o);
+			return ret;
+		}
+		else if(obj instanceof MultiDTaintedArrayWithIntTag)
+		{
+			int ret = 0;
+			for(int i : ((MultiDTaintedArrayWithIntTag) obj).taint)
+				ret |= i;
+			return ret;
+		}
+//		if(BoxedPrimitiveStoreWithIntTags.tags.containsKey(obj))
+//			return BoxedPrimitiveStoreWithIntTags.tags.get(obj);
 		return 0;
 	}
 
 	public static Object getTaintObj(Object obj) {
+		if(obj == null)
+			return null;
 		if (obj instanceof TaintedWithObjTag) {
 			return ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
 		}
-		if(BoxedPrimitiveStoreWithObjTags.tags.containsKey(obj))
-			return BoxedPrimitiveStoreWithObjTags.tags.get(obj);
-		return 0;
+		else if(obj instanceof Taint[])
+		{
+			Taint ret = new Taint();
+			for(Taint t: ((Taint[]) obj))
+			{
+				if(t != null)
+					ret.addDependency(t);
+			}
+			if(ret.hasNoDependencies())
+				return null;
+			return ret;
+		}
+		else if(obj instanceof MultiDTaintedArrayWithObjTag)
+		{
+			Taint ret = new Taint();
+			for(Object t: ((MultiDTaintedArrayWithObjTag) obj).taint)
+			{
+				if(t != null)
+					ret.addDependency((Taint) t);
+			}
+			if(ret.hasNoDependencies())
+				return null;
+			return ret;
+		}
+		else if(obj instanceof Object[])
+		{
+			Taint ret = new Taint();
+			for(Object o : (Object[]) obj)
+			{
+				Taint t = (Taint) getTaintObj(o);
+				if(t != null)
+					ret.addDependency(t);
+			}
+			if(ret.hasNoDependencies())
+				return null;
+			return ret;
+		}
+//		if(BoxedPrimitiveStoreWithObjTags.tags.containsKey(obj))
+//			return BoxedPrimitiveStoreWithObjTags.tags.get(obj);
+		return null;
 	}
 
 	

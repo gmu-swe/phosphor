@@ -647,7 +647,7 @@ public class ReflectionMasker {
 			return null;
 		boolean found = false;
 		for (int i = 0; i < in.length; i++) {
-			if (in[i].equals(Tainted.class))
+			if (in[i].equals(TaintedWithIntTag.class) || in[i].equals(TaintedWithObjTag.class))
 				found = true;
 		}
 		if (!found)
@@ -655,7 +655,7 @@ public class ReflectionMasker {
 		Class[] ret = new Class[in.length - 1];
 		int idx = 0;
 		for (int i = 0; i < in.length; i++) {
-			if (!in[i].equals(Tainted.class)) {
+			if (!in[i].equals(TaintedWithIntTag.class) && !in[i].equals(TaintedWithObjTag.class)) {
 				ret[idx] = in[i];
 				idx++;
 			}

@@ -32,6 +32,8 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
@@ -120,10 +122,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		if (isNormalClass && !Instrumenter.isIgnoredClass(name) && !FIELDS_ONLY) {
 			String[] newIntfcs = new String[interfaces.length + 1];
 			System.arraycopy(interfaces, 0, newIntfcs, 0, interfaces.length);
-			newIntfcs[interfaces.length] = Type.getInternalName(Tainted.class);
+			newIntfcs[interfaces.length] = Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedWithObjTag.class : TaintedWithIntTag.class));
 			interfaces = newIntfcs;
 			if (signature != null)
-				signature = signature + Type.getDescriptor(Tainted.class);
+				signature = signature + Type.getDescriptor((Configuration.MULTI_TAINTING ? TaintedWithObjTag.class : TaintedWithIntTag.class));
 		}
 		this.visitAnnotation(Type.getDescriptor(TaintInstrumented.class), false);
 
@@ -531,7 +533,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 					mv = super.visitMethod(Opcodes.ACC_PUBLIC, "set" + TaintUtils.TAINT_FIELD, "("+(Configuration.MULTI_TAINTING ? "Ljava/lang/Object;" : "I")+")V", null, null);
 					mv = new TaintTagFieldCastMV(mv);
-
 					mv.visitCode();
 					mv.visitVarInsn(Opcodes.ALOAD, 0);
 					mv.visitVarInsn(Opcodes.ALOAD, 1);
@@ -540,9 +541,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
 						mv.visitVarInsn(Opcodes.ALOAD, 0);
-						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+//						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 						mv.visitVarInsn(Opcodes.ALOAD, 1);
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([Ljava/lang/Object;"+Configuration.TAINT_TAG_DESC+")V", false);
+						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/String;Ljava/lang/Object;)V", false);
 					}
 					mv.visitInsn(Opcodes.RETURN);
 					mv.visitMaxs(0, 0);
