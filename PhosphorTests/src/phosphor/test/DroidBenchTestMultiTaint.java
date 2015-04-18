@@ -245,7 +245,7 @@ public class DroidBenchTestMultiTaint {
 		public void doTest()
 		{
 			String password = taintedString();
-			String username = "hanns";
+			String username = taintedString("hanns");
 			try{
 				boolean passwordCorrect = lookup(username, password);
 				assert (MultiTainter.getTaint(passwordCorrect) != null && (MultiTainter.getTaint(passwordCorrect).lbl != null || !MultiTainter.getTaint(passwordCorrect).hasNoDependencies()));
