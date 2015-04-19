@@ -402,35 +402,7 @@ public final
      * {@code synchronized}, {@code native}, {@code strictfp}.
      */
     public String toString() {
-        try {
-            StringBuilder sb = new StringBuilder();
-            int mod = getModifiers() & Modifier.methodModifiers();
-            if (mod != 0) {
-                sb.append(Modifier.toString(mod)).append(' ');
-            }
-            sb.append(Field.getTypeName(getReturnType())).append(' ');
-            sb.append(Field.getTypeName(getDeclaringClass())).append('.');
-            sb.append(getName()).append('(');
-            Class<?>[] params = parameterTypes; // avoid clone
-            for (int j = 0; j < params.length; j++) {
-                sb.append(Field.getTypeName(params[j]));
-                if (j < (params.length - 1))
-                    sb.append(',');
-            }
-            sb.append(')');
-            Class<?>[] exceptions = exceptionTypes; // avoid clone
-            if (exceptions.length > 0) {
-                sb.append(" throws ");
-                for (int k = 0; k < exceptions.length; k++) {
-                    sb.append(exceptions[k].getName());
-                    if (k < (exceptions.length - 1))
-                        sb.append(',');
-                }
-            }
-            return sb.toString();
-        } catch (Exception e) {
-            return "<" + e + ">";
-        }
+      return null;
     }
 
     /**
@@ -472,61 +444,7 @@ public final
      * @since 1.5
      */
     public String toGenericString() {
-        try {
-            StringBuilder sb = new StringBuilder();
-            int mod = getModifiers() & Modifier.methodModifiers();
-            if (mod != 0) {
-                sb.append(Modifier.toString(mod)).append(' ');
-            }
-            TypeVariable<?>[] typeparms = getTypeParameters();
-            if (typeparms.length > 0) {
-                boolean first = true;
-                sb.append('<');
-                for(TypeVariable<?> typeparm: typeparms) {
-                    if (!first)
-                        sb.append(',');
-                    // Class objects can't occur here; no need to test
-                    // and call Class.getName().
-                    sb.append(typeparm.toString());
-                    first = false;
-                }
-                sb.append("> ");
-            }
-
-            Type genRetType = getGenericReturnType();
-            sb.append( ((genRetType instanceof Class<?>)?
-                        Field.getTypeName((Class<?>)genRetType):genRetType.toString()))
-                    .append(' ');
-
-            sb.append(Field.getTypeName(getDeclaringClass())).append('.');
-            sb.append(getName()).append('(');
-            Type[] params = getGenericParameterTypes();
-            for (int j = 0; j < params.length; j++) {
-                String param = (params[j] instanceof Class)?
-                    Field.getTypeName((Class)params[j]):
-                    (params[j].toString());
-                if (isVarArgs() && (j == params.length - 1)) // replace T[] with T...
-                    param = param.replaceFirst("\\[\\]$", "...");
-                sb.append(param);
-                if (j < (params.length - 1))
-                    sb.append(',');
-            }
-            sb.append(')');
-            Type[] exceptions = getGenericExceptionTypes();
-            if (exceptions.length > 0) {
-                sb.append(" throws ");
-                for (int k = 0; k < exceptions.length; k++) {
-                    sb.append((exceptions[k] instanceof Class)?
-                              ((Class)exceptions[k]).getName():
-                              exceptions[k].toString());
-                    if (k < (exceptions.length - 1))
-                        sb.append(',');
-                }
-            }
-            return sb.toString();
-        } catch (Exception e) {
-            return "<" + e + ">";
-        }
+    	return null;
     }
 
     /**
