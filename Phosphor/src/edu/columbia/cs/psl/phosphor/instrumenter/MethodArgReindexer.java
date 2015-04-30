@@ -157,12 +157,16 @@ public class MethodArgReindexer extends InstructionAdapter {
 //		System.out.println("MAR stac " + Arrays.toString(stack));
 //		System.out.println("Orig locals: " + Arrays.toString(local));
 		if (type == Opcodes.F_FULL || type == Opcodes.F_NEW) {
-			if(origNumArgs == 0 && hasPreAllocedReturnAddr)
-			{
-//					System.out.println("Adding local storage for " + newReturnType.getInternalName() + " At " + newIdx);
-					remappedLocals[newIdx] = newReturnType.getInternalName();
-					newIdx++;
-					nLocal++;
+			if (origNumArgs == 0 && Configuration.IMPLICIT_TRACKING && !name.equals("<clinit>")) {
+				remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
+				newIdx++;
+				nLocal++;
+			}
+			if (origNumArgs == 0 && hasPreAllocedReturnAddr) {
+				//					System.out.println("Adding local storage for " + newReturnType.getInternalName() + " At " + newIdx);
+				remappedLocals[newIdx] = newReturnType.getInternalName();
+				newIdx++;
+				nLocal++;
 			}
 			int numLocalsToIterateOverForArgs = origNumArgs;
 			int idxToUseForArgs =0;
@@ -232,12 +236,6 @@ public class MethodArgReindexer extends InstructionAdapter {
 					}
 					idxToUseForArgs++;
 				}
-				if(i == origNumArgs && Configuration.IMPLICIT_TRACKING)
-				{
-					remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
-					newIdx++;
-					nLocal++;
-				}
 				if (i == origNumArgs && hasTaintSentinalAddedToDesc) {
 //					remappedLocals[newIdx] = Type.getInternalName(TaintSentinel.class);
 					remappedLocals[newIdx] = Opcodes.TOP;
@@ -252,9 +250,15 @@ public class MethodArgReindexer extends InstructionAdapter {
 				}
 				newIdx++;
 
-				
+				if(i == origNumArgs-1 && origNumArgs !=0 && Configuration.IMPLICIT_TRACKING)
+				{
+					remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
+					newIdx++;
+					nLocal++;
+				}
 //				System.out.println(newIdx + " vs " + idxOfReturnPrealloc);
 				if (origNumArgs!=0 && i ==origNumArgs-1 && hasPreAllocedReturnAddr) {
+
 //					System.out.println("Adding local storage for " + newReturnType.getInternalName() + " At " + newIdx);
 					remappedLocals[newIdx] = newReturnType.getInternalName();
 					newIdx++;
