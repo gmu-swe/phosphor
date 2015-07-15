@@ -368,8 +368,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				
 
 				LinkedList<Integer> varsStoredThisInsn = new LinkedList<Integer>();
+				HashSet<String> visited = new HashSet<String>();
 				@Override
 				protected void newControlFlowEdge(int insn, int successor) {
+					if(visited.contains(insn+"-"+successor))
+						return;
+					visited.add(insn+"-"+successor);
 					if (!edges.containsKey(successor))
 						edges.put(successor, new LinkedList<Integer>());
 					if (!edges.get(successor).contains(insn))

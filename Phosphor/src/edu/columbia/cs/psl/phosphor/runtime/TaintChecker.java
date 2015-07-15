@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
@@ -60,6 +61,14 @@ public class TaintChecker {
 		{
 			for(Object o : ((Object[]) obj))
 				checkTaint(o);
+		}
+		else if(obj instanceof ControlTaintTagStack)
+		{
+			ControlTaintTagStack ctrl = (ControlTaintTagStack) obj;
+			if(ctrl.taint != null && !ctrl.isEmpty())
+			{
+				throw new IllegalAccessError("Current control flow carries taints:  " + ctrl.taint);
+			}
 		}
 		else if(obj instanceof Taint)
 		{

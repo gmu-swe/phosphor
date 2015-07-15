@@ -87,7 +87,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 				System.out.println(">>>>" + oldVarCount + "->" + oldArgMappings[oldVarCount]);
 			oldVarCount += oldArgTypes[i].getSize();
 		}
-		if(Configuration.IMPLICIT_TRACKING)
+		if(Configuration.IMPLICIT_TRACKING && !name.equals("<clinit>"))
 			newArgOffset++;
 		if (name.equals("<init>") && hasBeenRemapped) {
 			hasTaintSentinalAddedToDesc = true;

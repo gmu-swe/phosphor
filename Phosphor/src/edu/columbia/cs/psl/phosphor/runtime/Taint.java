@@ -101,7 +101,8 @@ public class Taint implements Cloneable{
 			return t2;
 		if(t2.lbl == null && t2.hasNoDependencies())
 			return t1;
-		Taint r = new Taint(t1);
+		Taint r = new Taint();
+		r.addDependency(t1);
 		r.addDependency(t2);
 		return r;
 	}
