@@ -832,8 +832,10 @@ public class Instrumenter {
 							}
 							jos.closeEntry();
 						} catch (ZipException ex) {
-							ex.printStackTrace();
-							System.out.println("Ignoring above warning from improper source zip...");
+							if (!ex.getMessage().contains("duplicate entry")) {
+								ex.printStackTrace();
+								System.out.println("Ignoring above warning from improper source zip...");
+							}
 						}
 					}
 
