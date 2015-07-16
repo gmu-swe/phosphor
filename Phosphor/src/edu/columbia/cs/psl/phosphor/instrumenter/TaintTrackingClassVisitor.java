@@ -444,7 +444,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			return;
 		if ((isAbstractClass || isInterface) && implementsComparable && !goLightOnGeneratedStuff) {
 			//Need to add this to interfaces so that we can call it on the interface
-			super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;"+Configuration.TAINTED_INT_DESC+")" + Configuration.TAINTED_INT_DESC, null, null);
+			if(Configuration.IMPLICIT_TRACKING)
+				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;"+Type.getDescriptor(ControlTaintTagStack.class)+Configuration.TAINTED_INT_DESC+")" + Configuration.TAINTED_INT_DESC, null, null);
+			else
+				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;"+Configuration.TAINTED_INT_DESC+")" + Configuration.TAINTED_INT_DESC, null, null);
 		}
 
 		if (generateEquals && !goLightOnGeneratedStuff) {
