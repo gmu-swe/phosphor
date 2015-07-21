@@ -66,6 +66,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	@Override
 	public void visitInsn(int opcode) {
 		switch (opcode) {
+		case TaintUtils.FOLLOWED_BY_FRAME:
 		case TaintUtils.RAW_INSN:
 		case TaintUtils.NO_TAINT_STORE_INSN:
 		case TaintUtils.IGNORE_EVERYTHING:

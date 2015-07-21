@@ -540,6 +540,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						}
 					}
 				}
+				
 //				System.out.println(name+desc);
 				//fix LVs for android (sigh)
 //				for(LabelNode l : problemLabels.keySet())
@@ -716,6 +717,21 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					nJumps = jumpID;
 				}
 
+			}
+			AbstractInsnNode insn = instructions.getFirst();
+			while(insn != null)
+			{
+				if(insn.getType() == AbstractInsnNode.FRAME)
+				{
+					//Insert a note before the instruction before this guy
+					AbstractInsnNode insertBefore = insn;
+					while (insertBefore != null && (insertBefore.getType() == AbstractInsnNode.FRAME || insertBefore.getType() == AbstractInsnNode.LINE
+							|| insertBefore.getType() == AbstractInsnNode.LABEL))
+						insertBefore = insertBefore.getPrevious();
+					if (insertBefore != null)
+						this.instructions.insertBefore(insertBefore, new InsnNode(TaintUtils.FOLLOWED_BY_FRAME));
+				}
+				insn = insn.getNext();
 			}
 			this.accept(cmv);
 		}

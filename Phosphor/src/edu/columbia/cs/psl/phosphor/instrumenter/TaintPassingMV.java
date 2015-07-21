@@ -3169,6 +3169,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 			super.visitInsn(opcode);
 			break;
+		case TaintUtils.FOLLOWED_BY_FRAME:
+			super.visitInsn(opcode);
+			break;
 		default:
 			super.visitInsn(opcode);
 

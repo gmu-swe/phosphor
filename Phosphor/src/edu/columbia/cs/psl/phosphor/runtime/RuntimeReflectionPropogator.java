@@ -368,7 +368,7 @@ public class RuntimeReflectionPropogator {
 			if (fieldToField.containsKey(f))
 				taintField = fieldToField.get(f);
 			else {
-				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+				taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
 				taintField.setAccessible(true);
 				fieldToField.put(f, taintField);
 			}
@@ -377,6 +377,7 @@ public class RuntimeReflectionPropogator {
 			e.printStackTrace();
 		} catch (NoSuchFieldException e) {
 			// TODO Auto-generated catch block
+			System.err.println("Couldn't find taint field: " + f.getDeclaringClass() + ", taint field for: " + f.getName()+TaintUtils.TAINT_FIELD);
 			e.printStackTrace();
 		}
 		return ret;

@@ -21,9 +21,57 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 
 
 	@Override
+	public void visitVarInsn(int opcode, int var) {
+		super.visitVarInsn(opcode, var);
+		if(followedByFrame)
+			followedByFrame = false;
+	}
+	@Override
+	public void visitFieldInsn(int opcode, String owner, String name, String desc) {
+		super.visitFieldInsn(opcode, owner, name, desc);
+		if(followedByFrame)
+			followedByFrame = false;
+	}
+	
+	@Override
+	public void visitIntInsn(int opcode, int operand) {
+		super.visitIntInsn(opcode, operand);
+		if(followedByFrame)
+			followedByFrame = false;
+	}
+	@Override
+	public void visitLdcInsn(Object cst) {
+		super.visitLdcInsn(cst);
+		if(followedByFrame)
+			followedByFrame = false;
+	}
+	@Override
+	public void visitTypeInsn(int opcode, String type) {
+		super.visitTypeInsn(opcode, type);
+		if(followedByFrame)
+			followedByFrame = false;
+	}
+	@Override
+	public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
+		super.visitLookupSwitchInsn(dflt, keys, labels);
+		if(followedByFrame)
+			followedByFrame = false;
+	}
+	@Override
+	public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
+		super.visitTableSwitchInsn(min, max, dflt, labels);
+		if(followedByFrame)
+			followedByFrame = false;
+	}
+	boolean followedByFrame = false;
+	@Override
 	public void visitInsn(int opcode) {
 		if (opcode == TaintUtils.DONT_LOAD_TAINT)
 			ignoreLoadingTaint = !ignoreLoadingTaint;
+		if(opcode == TaintUtils.FOLLOWED_BY_FRAME)
+			followedByFrame = true;
+		else if(followedByFrame)
+			followedByFrame = false;
 		super.visitInsn(opcode);
 	}
 
@@ -72,7 +120,8 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "(I" + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V",false);
 				FrameNode fn2 = getCurrentFrameNode();
 				super.visitLabel(isOK);
-				fn2.accept(this);
+				if(!followedByFrame)
+					fn2.accept(this);
 			} else {
 				//T V V <top>
 				super.visitInsn(DUP2_X1);
@@ -111,7 +160,8 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				lvs.freeTmpLV(tmp);
 				lvs.freeTmpLV(tmpT);
 				super.visitLabel(isOK);
-				fn2.accept(this);
+				if(!followedByFrame)
+					fn2.accept(this);
 //				super.visitMethodInsn(opcode, owner, name, desc,itfc);
 
 			}
@@ -171,6 +221,8 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 		//		}
 		//TODO boxing the other way maybe too?
 		//TODO handle situations with radix param
+		if(followedByFrame)
+			followedByFrame = false;
 	}
 
 }

@@ -108,6 +108,7 @@ public abstract class Printer {
         OPCODES[214] = "COND_START";
         OPCODES[215] = "COND_END";
         OPCODES[216] = "CTRL_STORE_FORCE";
+        OPCODES[217] = "FOLLOWED_BY_FRAME";
 
         /*
          * 	
