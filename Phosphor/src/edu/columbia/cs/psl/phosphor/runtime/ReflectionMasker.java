@@ -847,8 +847,14 @@ public class ReflectionMasker {
 	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, boolean isObjTags) {
 		//		System.out.println("Making slow call to  " + m);
 		MethodInvoke ret = new MethodInvoke();
+		if (m == null) {
+			ret.a = in;
+			ret.o = owner;
+			ret.m = m;
+			return ret;
+		}
 		m.setAccessible(true);
-		if ((IS_KAFFE) || !m.PHOSPHOR_TAGmarked) {
+		if (((IS_KAFFE) || !m.PHOSPHOR_TAGmarked) && !"java.lang.Object".equals(m.getDeclaringClass().getName())) {
 			if (IS_KAFFE) {
 				if (in.length > 0)
 					m = getTaintMethod(m, isObjTags);
