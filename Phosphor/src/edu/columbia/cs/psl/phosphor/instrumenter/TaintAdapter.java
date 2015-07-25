@@ -311,12 +311,13 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[I)[[I",false);
 			
 			super.visitInsn(SWAP);
+			FrameNode fn2 = getCurrentFrameNode();
+
 			super.visitJumpInsn(GOTO, done);
 			super.visitLabel(isNull);
 			fn.accept(this);
 			super.visitInsn(ACONST_NULL);
 			super.visitInsn(SWAP);
-			FrameNode fn2 = getCurrentFrameNode();
 			super.visitLabel(done);
 			fn2.accept(this);
 			
@@ -333,13 +334,14 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[I)[[[I",false);
 			
 			super.visitInsn(SWAP);
+			FrameNode fn2 = getCurrentFrameNode();
+
 			super.visitJumpInsn(GOTO, done);
 
 			super.visitLabel(isNull);
 			fn.accept(this);
 			super.visitInsn(ACONST_NULL);
 			super.visitInsn(SWAP);
-			FrameNode fn2 = getCurrentFrameNode();
 			super.visitLabel(done);
 			fn2.accept(this);
 		} else if (arrayType.getDimensions() == 1) {
@@ -355,13 +357,14 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			else
 				super.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);	
 			super.visitInsn(SWAP);
+			FrameNode fn2 = getCurrentFrameNode();
+
 			super.visitJumpInsn(GOTO, done);
 
 			super.visitLabel(isNull);
 			fn.accept(this);
 			super.visitInsn(ACONST_NULL);
 			super.visitInsn(SWAP);
-			FrameNode fn2 = getCurrentFrameNode();
 			super.visitLabel(done);
 			fn2.accept(this);
 		} else {

@@ -26,6 +26,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LabelNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.ParameterNode;
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
@@ -675,6 +676,31 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 ////								{
 ////									an.accept(mv.visitParameterAnnotation(an., desc, visible));
 ////								}
+							if (fullMethod.visibleLocalVariableAnnotations != null)
+								for (AnnotationNode an : fullMethod.visibleLocalVariableAnnotations)
+									an.accept(mv.visitAnnotation(an.desc, true));
+							if (fullMethod.invisibleLocalVariableAnnotations != null)
+								for (AnnotationNode an : fullMethod.invisibleLocalVariableAnnotations)
+									an.accept(mv.visitAnnotation(an.desc, false));
+							if (fullMethod.visibleTypeAnnotations != null)
+								for (AnnotationNode an : fullMethod.visibleTypeAnnotations)
+									an.accept(mv.visitAnnotation(an.desc, true));
+							if (fullMethod.invisibleTypeAnnotations != null)
+								for (AnnotationNode an : fullMethod.invisibleTypeAnnotations)
+									an.accept(mv.visitAnnotation(an.desc, false));
+							if (fullMethod.parameters != null)
+								for (ParameterNode pn : fullMethod.parameters)
+									pn.accept(mv);
+							if (fullMethod.visibleParameterAnnotations != null)
+								for (int i = 0; i < fullMethod.visibleParameterAnnotations.length; i++)
+									if (fullMethod.visibleParameterAnnotations[i] != null)
+										for (AnnotationNode an : fullMethod.visibleParameterAnnotations[i])
+											an.accept(mv.visitParameterAnnotation(i, an.desc, true));
+							if (fullMethod.invisibleParameterAnnotations != null)
+								for (int i = 0; i < fullMethod.invisibleParameterAnnotations.length; i++)
+									if (fullMethod.invisibleParameterAnnotations[i] != null)
+										for (AnnotationNode an : fullMethod.invisibleParameterAnnotations[i])
+											an.accept(mv.visitParameterAnnotation(i, an.desc, false));
 						}
 						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, mv);
 						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, an, an, mv);

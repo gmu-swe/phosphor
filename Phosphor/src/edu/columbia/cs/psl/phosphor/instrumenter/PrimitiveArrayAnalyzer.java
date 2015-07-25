@@ -159,7 +159,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			if (opcode == Opcodes.ATHROW) {
 				if (DEBUG)
 					System.out.println("Rewriting " + curLabel + " OUT to " + analyzer.stack);
-				outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
+				if (analyzer.locals != null && analyzer.stack != null)
+					outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
 			}
 			super.visitInsn(opcode);
 		}

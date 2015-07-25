@@ -142,7 +142,7 @@ public class PreMain {
 			ClassNode cn = new ClassNode();
 			cr.accept(cn, ClassReader.SKIP_CODE);
 			boolean skipFrames = false;
-			if (cn.version >= 100 || cn.version < 50)
+			if (cn.version >= 100 || cn.version < 50 || className.endsWith("$Access4JacksonSerializer"))
 				skipFrames = true;
 			if (cn.visibleAnnotations != null)
 				for (AnnotationNode an : cn.visibleAnnotations) {
