@@ -53,6 +53,24 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 		this.analyzer = analyzer;
 		this.className = className;
 	}
+
+	public boolean topHas0Taint() {
+		if (getTopOfStackObject() == Opcodes.TOP)
+			return Integer.valueOf(0).equals(analyzer.stackConstantVals.get(analyzer.stackConstantVals.size() - 3));
+		else
+			return Integer.valueOf(0).equals(analyzer.stackConstantVals.get(analyzer.stackConstantVals.size() - 2));
+	}
+
+	public boolean secondHas0Taint() {
+		int offset = 2;
+		if (getTopOfStackObject() == Opcodes.TOP)
+			offset++;
+		if (getStackElementSize(offset) == Opcodes.TOP)
+			offset++;
+		offset++;
+		return Integer.valueOf(0).equals(analyzer.stackConstantVals.get(analyzer.stackConstantVals.size() - offset));
+	}
+	
 	protected void getTaintFieldOfBoxedType(String owner)
 	{
 		if(!Configuration.MULTI_TAINTING)
@@ -67,18 +85,18 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 		this.lvs = lvs;
 	}
 
-	protected boolean topOfStackIsNull() {
+	public boolean topOfStackIsNull() {
 		return stackElIsNull(0);
 	}
 
-	protected Type getTopOfStackType() {
+	public Type getTopOfStackType() {
 //		System.out.println(analyzer.stack);
 		if(analyzer.stack.get(analyzer.stack.size() - 1) == Opcodes.TOP)
 			return getStackTypeAtOffset(1);
 		return getStackTypeAtOffset(0);
 	}
 
-	protected Object getTopOfStackObject() {
+	public Object getTopOfStackObject() {
 		return analyzer.stack.get(analyzer.stack.size() - 1);
 	}
 
@@ -89,25 +107,37 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 	 * @param n
 	 * @return
 	 */
-	protected Type getStackTypeAtOffset(int n) {
+	public Type getStackTypeAtOffset(int n) {
 		return getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 1 - n));
 	}
 
-	protected boolean stackElIsNull(int n) {
+	public boolean stackElIsNull(int n) {
 		return analyzer.stack.get(analyzer.stack.size() - 1 - n) == Opcodes.NULL;
 	}
 
-	protected void retrieveTopOfStackTaintArray() {
+	public NeverNullArgAnalyzerAdapter getAnalyzer() {
+		return analyzer;
+	}
+	public void retrieveTopOfStackTaintArray() {
 		Type onStack = getTopOfStackType();
 		generateEmptyTaintArray(onStack.getDescriptor());
 	}
 
-	protected void unconditionallyRetrieveTopOfStackTaintArray(boolean leaveOnStack) {
+	public void unconditionallyRetrieveTopOfStackTaintArray(boolean leaveOnStack) {
 		if (leaveOnStack)
 			super.visitInsn(DUP);
 		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintArray", "(Ljava/lang/Object;)I",false);
 	}
 
+	public boolean topStackElCarriesTaints() {
+		Object o = analyzer.stack.get(analyzer.stack.size() - 1);
+		return isPrimitiveStackType(o);
+	}
+
+	public boolean topStackElIsNull() {
+		Object o = analyzer.stack.get(analyzer.stack.size() - 1);
+		return o == Opcodes.NULL;
+	}
 	/**
 	 * Retrieve the taint of the object at the top of the stack (popping that
 	 * object) Assumes that the top of the stack is an object (may or may not be
@@ -320,11 +350,11 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			super.visitInsn(ARRAYLENGTH);
 			super.visitMultiANewArrayInsn("[[I", 1);
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[I)[[I",false);
-			if(!(Configuration.taintTagFactory instanceof NullTaintTagFactory))
+			if(!(Configuration.taintTagFactory instanceof DataAndControlFlowTagFactory))
 			{
 				super.visitInsn(DUP);
 				super.visitInsn(ICONST_2);
-				super.visitMethodInsn(Opcodes.INVOKEINTERFACE, Type.getInternalName(EmptyTaintTagFactory.class), "generateEmptyTaintArray", "([Ljava/lang/Object;I)V", false);
+				super.visitMethodInsn(Opcodes.INVOKEINTERFACE, Type.getInternalName(TaintTagFactory.class), "generateEmptyTaintArray", "([Ljava/lang/Object;I)V", false);
 			}
 			super.visitInsn(SWAP);
 			FrameNode fn2 = getCurrentFrameNode();
@@ -348,11 +378,11 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			super.visitInsn(ARRAYLENGTH);
 			super.visitMultiANewArrayInsn("[[[I", 1);
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[I)[[[I",false);
-			if(!(Configuration.taintTagFactory instanceof NullTaintTagFactory))
+			if(!(Configuration.taintTagFactory instanceof DataAndControlFlowTagFactory))
 			{
 				super.visitInsn(DUP);
 				super.visitInsn(ICONST_3);
-				super.visitMethodInsn(Opcodes.INVOKEINTERFACE, Type.getInternalName(EmptyTaintTagFactory.class), "generateEmptyTaintArray", "([Ljava/lang/Object;I)V", false);
+				super.visitMethodInsn(Opcodes.INVOKEINTERFACE, Type.getInternalName(TaintTagFactory.class), "generateEmptyTaintArray", "([Ljava/lang/Object;I)V", false);
 			}
 			super.visitInsn(SWAP);
 			FrameNode fn2 = getCurrentFrameNode();
@@ -378,11 +408,11 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			else
 			{
 				super.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);	
-				if(!(Configuration.taintTagFactory instanceof NullTaintTagFactory))
+				if(!(Configuration.taintTagFactory instanceof DataAndControlFlowTagFactory))
 				{
 					super.visitInsn(DUP);
 					super.visitInsn(ICONST_1);
-					super.visitMethodInsn(Opcodes.INVOKEINTERFACE, Type.getInternalName(EmptyTaintTagFactory.class), "generateEmptyTaintArray", "([Ljava/lang/Object;I)V", false);
+					super.visitMethodInsn(Opcodes.INVOKEINTERFACE, Type.getInternalName(TaintTagFactory.class), "generateEmptyTaintArray", "([Ljava/lang/Object;I)V", false);
 				}
 			}
 			super.visitInsn(SWAP);

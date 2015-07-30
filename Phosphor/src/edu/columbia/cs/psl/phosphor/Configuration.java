@@ -5,8 +5,8 @@ import java.net.URL;
 import java.util.Properties;
 import java.util.Scanner;
 
-import edu.columbia.cs.psl.phosphor.instrumenter.EmptyTaintTagFactory;
-import edu.columbia.cs.psl.phosphor.instrumenter.NullTaintTagFactory;
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintTagFactory;
+import edu.columbia.cs.psl.phosphor.instrumenter.DataAndControlFlowTagFactory;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
@@ -40,7 +40,7 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
 
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
-	public static EmptyTaintTagFactory taintTagFactory;
+	public static TaintTagFactory taintTagFactory;
 	public static DerivedTaintListener derivedTaintListener;
 	
 	public static void init() {
@@ -62,7 +62,7 @@ public class Configuration {
 		TAINT_TAG_OBJ_ARRAY_CLASS = (MULTI_TAINTING ? Taint[].class : int[].class);
 		TAINT_TAG_OBJ_CLASS = (MULTI_TAINTING ? Taint.class : Integer.TYPE);
 
-		taintTagFactory = new NullTaintTagFactory();
+		taintTagFactory = new DataAndControlFlowTagFactory();
 
 		URL r = TaintTrackingClassVisitor.class.getClassLoader().getResource("phosphor-mv");
 		if (r != null)
@@ -72,7 +72,7 @@ public class Configuration {
 				if (props.containsKey("extraMV"))
 					extensionMethodVisitor = (Class<? extends TaintAdapter>) Class.forName(props.getProperty("extraMV"));
 				if (props.containsKey("taintTagFactory"))
-					taintTagFactory = (EmptyTaintTagFactory) Class.forName(props.getProperty("taintTagFactory")).newInstance();
+					taintTagFactory = (TaintTagFactory) Class.forName(props.getProperty("taintTagFactory")).newInstance();
 				if (props.containsKey("derivedTaintListener"))
 					derivedTaintListener = (DerivedTaintListener) Class.forName(props.getProperty("derivedTaintListener")).newInstance();
 			} catch (IOException ex) {

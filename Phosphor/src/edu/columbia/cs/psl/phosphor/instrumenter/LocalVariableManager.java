@@ -128,6 +128,9 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 	int jumpIdx;
 	int idxOfMasterControlLV;
 
+	public int getIdxOfMasterControlLV() {
+		return idxOfMasterControlLV;
+	}
 	public int newControlTaintLV(int depth)
 	{
 		int idx = super.newLocal(Type.getType(ControlTaintTagStack.class));
