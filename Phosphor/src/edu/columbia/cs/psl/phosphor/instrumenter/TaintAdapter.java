@@ -20,6 +20,9 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 	protected NeverNullArgAnalyzerAdapter analyzer;
 	protected String className;
 
+	public LocalVariableManager getLvs() {
+		return lvs;
+	}
 	static final Type taintTagType = Type.getType(Configuration.TAINT_TAG_DESC);
 	public static final Type getTagType(String internalName)
 	{
@@ -37,8 +40,16 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 				internalName.equals("java/lang/Double") ||internalName.equals("java/lang/Integer") || 
 				internalName.equals("java/lang/Long") || internalName.equals("java/lang/StackTraceElement")));
 	}
-	public TaintAdapter(int api, String className, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
+	private TaintAdapter(MethodVisitor mv)
+	{
+		super(mv);
+	}
+	private TaintAdapter(int api, MethodVisitor mv)
+	{
 		super(api, mv);
+	}
+	public TaintAdapter(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
+		super(Opcodes.ASM5, mv);
 		this.analyzer = analyzer;
 		this.className = className;
 	}
@@ -115,7 +126,7 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 		//		nonInstrumentingMV.visitJumpInsn(IFNE, bail); //TODO handle numerics, other ignore classes for which we know the taint
 		if (className.equals("java/util/HashMap")) {
 			super.visitInsn(POP);
-			super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+			Configuration.taintTagFactory.generateEmptyTaint(mv);
 		} else
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaint", "(Ljava/lang/Object;)I",false);
 		//		nonInstrumentingMV.visitLabel(bail);
@@ -285,7 +296,7 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 //	}
 
 	protected void generateUnconstrainedTaint(int reason) {
-			super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+		Configuration.taintTagFactory.generateEmptyTaint(mv);
 	}
 
 	/**
@@ -309,7 +320,12 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			super.visitInsn(ARRAYLENGTH);
 			super.visitMultiANewArrayInsn("[[I", 1);
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[I)[[I",false);
-			
+			if(!(Configuration.taintTagFactory instanceof NullTaintTagFactory))
+			{
+				super.visitInsn(DUP);
+				super.visitInsn(ICONST_2);
+				super.visitMethodInsn(Opcodes.INVOKEINTERFACE, Type.getInternalName(EmptyTaintTagFactory.class), "generateEmptyTaintArray", "([Ljava/lang/Object;I)V", false);
+			}
 			super.visitInsn(SWAP);
 			FrameNode fn2 = getCurrentFrameNode();
 
@@ -332,7 +348,12 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			super.visitInsn(ARRAYLENGTH);
 			super.visitMultiANewArrayInsn("[[[I", 1);
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[I)[[[I",false);
-			
+			if(!(Configuration.taintTagFactory instanceof NullTaintTagFactory))
+			{
+				super.visitInsn(DUP);
+				super.visitInsn(ICONST_3);
+				super.visitMethodInsn(Opcodes.INVOKEINTERFACE, Type.getInternalName(EmptyTaintTagFactory.class), "generateEmptyTaintArray", "([Ljava/lang/Object;I)V", false);
+			}
 			super.visitInsn(SWAP);
 			FrameNode fn2 = getCurrentFrameNode();
 
@@ -355,7 +376,15 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			if(!Configuration.MULTI_TAINTING)
 				super.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
 			else
+			{
 				super.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);	
+				if(!(Configuration.taintTagFactory instanceof NullTaintTagFactory))
+				{
+					super.visitInsn(DUP);
+					super.visitInsn(ICONST_1);
+					super.visitMethodInsn(Opcodes.INVOKEINTERFACE, Type.getInternalName(EmptyTaintTagFactory.class), "generateEmptyTaintArray", "([Ljava/lang/Object;I)V", false);
+				}
+			}
 			super.visitInsn(SWAP);
 			FrameNode fn2 = getCurrentFrameNode();
 

@@ -1,11 +1,16 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Scanner;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
@@ -57,6 +62,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	static {
 		if (!DO_OPT && !IS_RUNTIME_INST)
 			System.err.println("WARN: OPT DISABLED");
+		
 	}
 	
 	private boolean ignoreFrames;
@@ -308,15 +314,41 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className,analyzer);
 
-			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(Opcodes.ASM5, className, reflectionMasker, analyzer);
+			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
 			LocalVariableManager lvs;
 			TaintPassingMV tmv;
 			MethodVisitor nextMV;
 			{
-				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(Opcodes.ASM5, className, boxFixer, analyzer);
-				tmv = new TaintPassingMV(implicitCleanup, access, className, name, newDesc, desc, analyzer,rootmV);
+				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(access, className, name, desc, signature, exceptions, boxFixer, analyzer);
+				tmv = new TaintPassingMV(implicitCleanup, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV);
+				TaintAdapter custom = null;
 				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv);
-				nextMV = new ConstantValueNullTaintGenerator(className, access, name, newDesc, signature, exceptions, lvs);
+
+				nextMV = lvs;
+				if(Configuration.extensionMethodVisitor != null)
+				{
+					try {
+						custom = Configuration.extensionMethodVisitor.getConstructor(Integer.TYPE,String.class, String.class, String.class, String.class, String[].class, MethodVisitor.class,
+								NeverNullArgAnalyzerAdapter.class).newInstance(Opcodes.ASM5, className, name, desc, signature, exceptions, nextMV, analyzer);
+						nextMV = custom;
+					} catch (InstantiationException e) {
+						e.printStackTrace();
+					} catch (IllegalAccessException e) {
+						e.printStackTrace();
+					} catch (IllegalArgumentException e) {
+						e.printStackTrace();
+					} catch (InvocationTargetException e) {
+						e.printStackTrace();
+					} catch (NoSuchMethodException e) {
+						e.printStackTrace();
+					} catch (SecurityException e) {
+						e.printStackTrace();
+					}
+				}
+				if(custom != null)
+					custom.setLocalVariableSorter(lvs);
+
+				nextMV = new ConstantValueNullTaintGenerator(className, access, name, newDesc, signature, exceptions, nextMV);
 			}
 
 			MethodArgReindexer mar = new MethodArgReindexer(nextMV, access, name, newDesc, desc, wrapper);
@@ -736,7 +768,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								}
 							} else if (t.getSort() != Type.OBJECT) {
 								newDesc += Configuration.TAINT_TAG_DESC;
-								ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+								Configuration.taintTagFactory.generateEmptyTaint(ga);
 							}
 							if (!loaded)
 								ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
@@ -1124,7 +1156,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitInsn(Opcodes.SWAP);
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+					Configuration.taintTagFactory.generateEmptyTaint(an);
 					idx = 0;
 					if ((m.access & Opcodes.ACC_STATIC) == 0) {
 						idx++;
@@ -1163,7 +1195,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitInsn(Opcodes.POP);
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+					Configuration.taintTagFactory.generateEmptyTaint(ga);
 					idx = 0;
 					if ((m.access & Opcodes.ACC_STATIC) == 0) {
 						idx++;

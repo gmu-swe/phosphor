@@ -12,8 +12,8 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 
 public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 
-	public PrimitiveBoxingFixer(int api, String className, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
-		super(api, className, mv, analyzer);
+	public PrimitiveBoxingFixer(int api, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
+		super(api, className, name, desc, signature, exceptions, mv, analyzer);
 	}
 
 	int tmpInt = -1;;

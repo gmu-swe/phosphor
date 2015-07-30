@@ -100,12 +100,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		//		System.out.println("CurLabel" + curLabel);
 	}
 
+	
 	private String className;
 	private MethodVisitor passthruMV;
 	int idxOfPassedControlInfo = 0;
-	public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,MethodVisitor passthruMV) {
+	public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String signature, String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,MethodVisitor passthruMV) {
 		//		super(Opcodes.ASM4,mv,access,name,desc);
-		super(Opcodes.ASM5, className, mv, analyzer);
+		super(access, className,name,desc,  signature, exceptions, mv, analyzer);
 //				System.out.println("TPMV "+ className+"."+name+desc);
 		this.name = name;
 		this.className = className;
@@ -658,7 +659,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if(desc.startsWith("["))
 						retrieveTopOfStackTaintArray();
 					else
-						super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+						Configuration.taintTagFactory.generateEmptyTaint(mv);
 					super.visitInsn(SWAP);
 				} else {
 					super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, shadowType);
@@ -676,7 +677,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if(desc.startsWith("["))
 						retrieveTopOfStackTaintArray();
 					else
-						super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+						Configuration.taintTagFactory.generateEmptyTaint(mv);
 					super.visitInsn(SWAP);
 				} else {
 					super.visitInsn(DUP);
@@ -1750,7 +1751,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			if (onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT) {
 				generateEmptyTaintArray(onStack.getDescriptor());
 			} else {
-				super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+				Configuration.taintTagFactory.generateEmptyTaint(mv);
 				if (onStack.getSize() == 1) {
 					super.visitInsn(SWAP);
 				} else {

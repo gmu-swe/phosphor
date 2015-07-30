@@ -15,6 +15,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.LocalVariablesSorter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LabelNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Printer;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 
 public class LocalVariableManager extends LocalVariablesSorter implements Opcodes {
@@ -29,11 +30,21 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 	int lastArg;
 	ArrayList<Type> oldArgTypes = new ArrayList<Type>();
 
+	boolean isIgnoreEverything = false;
+	@Override
+	public void visitInsn(int opcode) {
+		if(opcode == TaintUtils.IGNORE_EVERYTHING)
+			isIgnoreEverything = !isIgnoreEverything;
+		super.visitInsn(opcode);
+	}
 	@Override
 	public void visitVarInsn(int opcode, int var) {
-		if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START)
+		if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START || isIgnoreEverything)
 		{
-			mv.visitVarInsn(opcode, var);
+			if(var == -1)
+				mv.visitVarInsn(opcode, idxOfMasterControlLV);
+			else
+				mv.visitVarInsn(opcode, var);
 			return;
 		}
 		super.visitVarInsn(opcode, var);
@@ -116,6 +127,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 
 	int jumpIdx;
 	int idxOfMasterControlLV;
+
 	public int newControlTaintLV(int depth)
 	{
 		int idx = super.newLocal(Type.getType(ControlTaintTagStack.class));
@@ -124,8 +136,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 
 		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(lbl), new LabelNode(end), idx);
 		createdLVs.add(newLVN);
-		if(depth == 0)
-			idxOfMasterControlLV = idx;
+		this.idxOfMasterControlLV = idx;
 		jumpIdx++;
 		return idx;
 	}

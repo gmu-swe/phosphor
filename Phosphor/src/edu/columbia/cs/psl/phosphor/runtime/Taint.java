@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
@@ -51,6 +52,8 @@ public class Taint implements Cloneable{
 		dependencies = new LinkedList<Taint>();
 		if(t1 != null && t1.dependencies != null)
 			dependencies.addAll(t1.dependencies);
+		if(Configuration.derivedTaintListener != null)
+			Configuration.derivedTaintListener.singleDepCreated(t1, this);
 	}
 	public Taint(Taint t1, Taint t2)
 	{
@@ -65,6 +68,8 @@ public class Taint implements Cloneable{
 			dependencies.add(t2);
 			dependencies.addAll(t2.dependencies);
 		}
+		if(Configuration.derivedTaintListener != null)
+			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, this);
 	}
 	public Taint() {
 		dependencies = new LinkedList<Taint>();
@@ -104,6 +109,8 @@ public class Taint implements Cloneable{
 		Taint r = new Taint();
 		r.addDependency(t1);
 		r.addDependency(t2);
+		if(Configuration.derivedTaintListener != null)
+			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, r);
 		return r;
 	}
 	public static Taint combineTags(Taint t1, ControlTaintTagStack tags){

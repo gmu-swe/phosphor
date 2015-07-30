@@ -71,7 +71,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 						case Opcodes.DCONST_0:
 						case Opcodes.DCONST_1:
 							super.visitInsn(TaintUtils.RAW_INSN);
-							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							generateEmptyTaintAndAppend();
 							super.visitInsn(opcode);
 							super.visitInsn(TaintUtils.RAW_INSN);
 							return;
@@ -79,7 +79,13 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 							super.visitInsn(opcode);
 						}
 					}
-
+					
+					void generateEmptyTaintAndAppend()
+					{
+						MethodNode mn = new MethodNode();
+						Configuration.taintTagFactory.generateEmptyTaint(mn);
+						this.instructions.insert(this.instructions.getLast(), mn.instructions);
+					}
 					@Override
 					public void visitIntInsn(int opcode, int operand) {
 						if (dontLoadTaint) {
@@ -90,7 +96,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 						case Opcodes.BIPUSH:
 						case Opcodes.SIPUSH:
 							super.visitInsn(TaintUtils.RAW_INSN);
-							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							generateEmptyTaintAndAppend();
 							super.visitIntInsn(opcode, operand);
 							super.visitInsn(TaintUtils.RAW_INSN);
 							break;
@@ -110,29 +116,29 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 						}
 						super.visitInsn(TaintUtils.RAW_INSN);
 						if (cst instanceof Integer) {
-							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							generateEmptyTaintAndAppend();
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Byte) {
-							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							generateEmptyTaintAndAppend();
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Character) {
-							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							generateEmptyTaintAndAppend();
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Short) {
-							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							generateEmptyTaintAndAppend();
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Boolean) {
-							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							generateEmptyTaintAndAppend();
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Float) {
-							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							generateEmptyTaintAndAppend();
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Long) {
-							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							generateEmptyTaintAndAppend();
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof Double) {
 //							System.out.println("CVNT"+name+"LDC " + cst);
-							super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							generateEmptyTaintAndAppend();
 							super.visitLdcInsn(cst);
 						} else if (cst instanceof String) {
 							super.visitLdcInsn(cst);
@@ -259,12 +265,16 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 										case Type.CHAR:
 										case Type.SHORT:
 										case Type.FLOAT:
-											uninstrumented.instructions.insertBefore(insn, new InsnNode(Configuration.NULL_TAINT_LOAD_OPCODE));
+											MethodNode mn = new MethodNode();
+											Configuration.taintTagFactory.generateEmptyTaint(mn);
+											uninstrumented.instructions.insertBefore(insn, mn.instructions);
 											uninstrumented.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, fin.owner, fin.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC));
 											break;
 										case Type.LONG:
 										case Type.DOUBLE:
-											uninstrumented.instructions.insertBefore(insn, new InsnNode(Configuration.NULL_TAINT_LOAD_OPCODE));
+											mn = new MethodNode();
+											Configuration.taintTagFactory.generateEmptyTaint(mn);
+											uninstrumented.instructions.insertBefore(insn, mn.instructions);
 											uninstrumented.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, fin.owner, fin.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC));
 											break;
 										case Type.ARRAY:
