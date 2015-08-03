@@ -17,7 +17,8 @@ public class Configuration {
 	public static boolean MULTI_TAINTING = true;
 	public static boolean IMPLICIT_TRACKING = true; //must be set to TRUE for MULTI_TAINTING to work!
 	public static boolean DATAFLOW_TRACKING = true; //default
-
+	public static boolean ARRAY_LENGTH_TRACKING = false;
+	
 	/*
 	 * Derived configuration values
 	 */
@@ -40,7 +41,7 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
 
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
-	public static TaintTagFactory taintTagFactory;
+	public static TaintTagFactory taintTagFactory = new DataAndControlFlowTagFactory();
 	public static DerivedTaintListener derivedTaintListener;
 	
 	public static void init() {

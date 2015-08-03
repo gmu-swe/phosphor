@@ -453,6 +453,7 @@ public class Instrumenter {
 	static Option opt_dataTrack = new Option("withoutDataTrack", "Disable taint tracking through data flow (on by default)");
 	static Option opt_controlTrack = new Option("controlTrack", "Enable taint tracking through control flow");
 	static Option opt_multiTaint = new Option("multiTaint", "Support for 2^32 tags instead of just 32");
+	static Option opt_trackArrayLengthTaints = new Option("withArrayLengthTags", "Tracks taint tags on array lengths - requires use of JVMTI runtime library when running");
 	static Option help = new Option( "help", "print this message" );
 
 	public static String sourcesFile;
@@ -467,6 +468,7 @@ public class Instrumenter {
 		options.addOption(opt_dataTrack);
 		options.addOption(opt_taintSinks);
 		options.addOption(opt_taintSources);
+		options.addOption(opt_trackArrayLengthTaints);
 		
 	    CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
@@ -494,6 +496,8 @@ public class Instrumenter {
 		if(Configuration.IMPLICIT_TRACKING)
 			Configuration.MULTI_TAINTING = true;
 
+		Configuration.ARRAY_LENGTH_TRACKING = line.hasOption("withArrayLengthTags");
+		
 		Configuration.init();
 		
 		

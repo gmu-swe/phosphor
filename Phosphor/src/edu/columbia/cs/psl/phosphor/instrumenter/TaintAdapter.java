@@ -431,7 +431,7 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 		}
 	}
 
-	protected static Object[] removeLongsDoubleTopVal(List<Object> in) {
+	public static Object[] removeLongsDoubleTopVal(List<Object> in) {
 		ArrayList<Object> ret = new ArrayList<Object>();
 		boolean lastWas2Word = false;
 		for (Object n : in) {
@@ -896,5 +896,11 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			super.visitVarInsn(elType.getOpcode(ISTORE), ret[i].index);
 		}
 		return ret;
+	}
+	public void unwrapTaintedInt() {
+		super.visitInsn(DUP);
+		getTaintFieldOfBoxedType(Configuration.TAINTED_INT_INTERNAL_NAME);
+		super.swap();
+		super.visitFieldInsn(GETFIELD, Configuration.TAINTED_INT_INTERNAL_NAME, "val", "I");
 	}
 }

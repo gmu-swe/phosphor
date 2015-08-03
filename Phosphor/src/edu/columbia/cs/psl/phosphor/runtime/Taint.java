@@ -94,6 +94,11 @@ public class Taint implements Cloneable{
 	public boolean hasNoDependencies() {
 		return dependencies.getFirst() == null;
 	}
+	public static void combineTagsInPlace(Object obj, Taint t1)
+	{
+		Taint t = MultiTainter.getTaint(obj);
+		t.addDependency(t1);
+	}
 	public static Taint combineTags(Taint t1, Taint t2)
 	{
 		if(t1 == null && t2 == null)

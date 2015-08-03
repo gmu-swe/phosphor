@@ -8,10 +8,19 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
+	@Override
+	public Taint dynamicallyGenerateEmptyTaint() {
+		return new Taint();
+	}
+
+	@Override
+	public void signalOp(int signal, Object option) {
+	}
 
 	@Override
 	public void generateEmptyTaint(MethodVisitor mv) {
@@ -21,6 +30,46 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	@Override
 	public void generateEmptyTaintArray(Object[] array, int dims) {
 
+	}
+
+	@Override
+	public void intOp(int opcode, int arg, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV adapter) {
+		switch (opcode) {
+		case Opcodes.NEWARRAY:
+			if (Configuration.ARRAY_LENGTH_TRACKING) {
+				if (Configuration.MULTI_TAINTING) {
+					//Length Length-tag
+					mv.visitInsn(DUP);
+					mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
+					mv.visitInsn(SWAP);
+					mv.visitIntInsn(opcode, arg);
+					//Array ArrayTags length-tag
+					mv.visitInsn(DUP2_X1);
+					//Ar At lt Ar At
+					mv.visitInsn(DUP_X2);
+					//Ar At lt Ar ar at
+					mv.visitInsn(POP2);
+					//lt ar ar at
+					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+				} else {
+					throw new UnsupportedOperationException();
+				}
+			} else {
+				mv.visitInsn(SWAP);
+				mv.visitInsn(POP);
+				mv.visitInsn(DUP);
+				if (!Configuration.MULTI_TAINTING)
+					mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+				else
+					mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
+				mv.visitInsn(SWAP);
+				mv.visitIntInsn(opcode, arg);
+			}
+			break;
+
+		default:
+			throw new UnsupportedOperationException();
+		}
 	}
 
 	@Override
@@ -380,6 +429,8 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					mv.visitInsn(SWAP);
 					loaded = true;
 					if (Configuration.MULTI_TAINTING) {
+						mv.visitInsn(POP);
+						mv.visitInsn(DUP);
 						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
 					} else
@@ -404,7 +455,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	}
 
 	@Override
-	public void jumpOp(int opcode, int branchStarting, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
+	public void jumpOp(int opcode, int branchStarting, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
 		switch (opcode) {
 		case Opcodes.IFEQ:
 		case Opcodes.IFNE:
@@ -417,7 +468,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			mv.visitInsn(SWAP);
 			mv.visitIntInsn(BIPUSH, branchStarting);
 			mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(" + Configuration.TAINT_TAG_DESC + "I)V", false);
-
+			mv.visitJumpInsn(opcode, label);
 			break;
 		case Opcodes.IFNULL:
 		case Opcodes.IFNONNULL:
@@ -436,7 +487,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				mv.visitIntInsn(BIPUSH, branchStarting);
 				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(Ljava/lang/Object;I)V", false);
 			}
-
+			mv.visitJumpInsn(opcode, label);
 			break;
 		case Opcodes.IF_ICMPEQ:
 		case Opcodes.IF_ICMPNE:
@@ -462,7 +513,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			//V V T T
 			mv.visitIntInsn(BIPUSH, branchStarting);
 			mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + "I)V", false);
-
+			mv.visitJumpInsn(opcode, label);
 			break;
 		case Opcodes.IF_ACMPNE:
 		case Opcodes.IF_ACMPEQ:
@@ -479,8 +530,10 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				mv.visitInsn(POP2);
 				mv.visitInsn(POP);
 			}
+			mv.visitJumpInsn(opcode, label);
 			break;
 		case Opcodes.GOTO:
+			mv.visitJumpInsn(opcode, label);
 			break;
 		default:
 			throw new IllegalStateException("Unimplemented: " + opcode);
@@ -491,7 +544,31 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	public void typeOp(int opcode, String type, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
 		switch (opcode) {
 		case Opcodes.ANEWARRAY:
-			mv.visitTypeInsn(opcode, type);
+			if (Configuration.ARRAY_LENGTH_TRACKING) {
+				Type t = Type.getType(type);
+				if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
+					//e.g. [I for a 2 D array -> MultiDTaintedIntArray
+					type = MultiDTaintedArray.getTypeForType(t).getInternalName();
+				}
+				//L TL
+				mv.visitTypeInsn(opcode, type);
+				//A TL
+				mv.visitInsn(DUP_X1);
+				//A TL A
+				mv.visitInsn(SWAP);
+				//TL A A
+				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+			} else {
+				mv.visitInsn(SWAP);//We should just drop the taint for the size of the new array
+				mv.visitInsn(POP);
+				Type t = Type.getType(type);
+				if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
+					//e.g. [I for a 2 D array -> MultiDTaintedIntArray
+					type = MultiDTaintedArray.getTypeForType(t).getInternalName();
+				}
+				mv.visitTypeInsn(opcode, type);
+				
+			}
 			break;
 		case Opcodes.NEW:
 			mv.visitTypeInsn(opcode, type);

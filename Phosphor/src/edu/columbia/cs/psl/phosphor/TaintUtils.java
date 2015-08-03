@@ -5,6 +5,7 @@ import java.lang.reflect.Array;
 import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
@@ -82,6 +83,9 @@ public class TaintUtils {
 	public static final int FORCE_CTRL_STORE = 216;
 
 	public static final int FOLLOWED_BY_FRAME = 217;
+	public static final int CUSTOM_SIGNAL_1 = 218;
+	public static final int CUSTOM_SIGNAL_2 = 219;
+	public static final int CUSTOM_SIGNAL_3 = 220;
 	
 	public static final String TAINT_FIELD = "PHOSPHOR_TAG";
 //	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
@@ -206,6 +210,10 @@ public class TaintUtils {
 			return null;
 		if (obj instanceof TaintedWithObjTag) {
 			return ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
+		}
+		else if(ArrayHelper.engaged == 1)
+		{
+			return ArrayHelper.getTag(obj);
 		}
 		else if(obj instanceof Taint[])
 		{

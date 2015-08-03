@@ -74,6 +74,9 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 		case TaintUtils.GENERATETAINTANDSWAP:
 		case TaintUtils.IS_TMP_STORE:
 		case TaintUtils.ALWAYS_BOX_JUMP:
+		case TaintUtils.CUSTOM_SIGNAL_1:
+		case TaintUtils.CUSTOM_SIGNAL_2:
+		case TaintUtils.CUSTOM_SIGNAL_3:
 			break;
 		default:
 			super.visitInsn(opcode);

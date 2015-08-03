@@ -761,31 +761,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitIntInsn(opcode, operand);
 			break;
 		case Opcodes.NEWARRAY:
-
-			/*
-			 * T L L T L [I L [I [I [I L [I [I L-1 L [I [I L-1 T L [I [I L [I [A
-			 */
-			super.visitInsn(SWAP);//We should just drop the taint for the size of the new array
-			super.visitInsn(POP);
-			super.visitInsn(DUP);
-//			super.visitInsn(ICONST_1);
-//			super.visitInsn(IADD);
-			if(!Configuration.MULTI_TAINTING)
-				super.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
-			else
-				super.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-			//Our fancy new hack where we store the taint for a primitive array in the last element of the (oversized) taint array.
-			//Generate a new array taint, store it back in it.
-//			super.visitInsn(DUP);
-//			super.visitInsn(DUP);
-//			super.visitInsn(ARRAYLENGTH);
-//			super.visitInsn(ICONST_M1);
-//			super.visitInsn(IADD);
-//			super.visitInsn(ICONST_0);
-//			super.visitInsn(IASTORE);
-
-			super.visitInsn(SWAP);
-			super.visitIntInsn(opcode, operand);
+			Configuration.taintTagFactory.intOp(opcode, operand, mv, lvs, this);
 			break;
 		default:
 			throw new IllegalArgumentException();
@@ -858,14 +834,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		switch (opcode) {
 		case Opcodes.ANEWARRAY:
-			super.visitInsn(SWAP);//We should just drop the taint for the size of the new array
-			super.visitInsn(POP);
-			Type t = Type.getType(type);
-			if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
-				//e.g. [I for a 2 D array -> MultiDTaintedIntArray
-				type = MultiDTaintedArray.getTypeForType(t).getInternalName();
-				//TODO - initialize this?????
-			}
 			Configuration.taintTagFactory.typeOp(opcode, type, mv, lvs, this);
 			break;
 		case Opcodes.NEW:
@@ -975,13 +943,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		fn2.accept(this);
 
 		//A
-	}
-
-	protected void unwrapTaintedInt() {
-		super.visitInsn(DUP);
-		getTaintFieldOfBoxedType(Configuration.TAINTED_INT_INTERNAL_NAME);
-		super.swap();
-		super.visitFieldInsn(GETFIELD, Configuration.TAINTED_INT_INTERNAL_NAME, "val", "I");
 	}
 
 	/**
@@ -1578,6 +1539,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public void visitInsn(int opcode) {
 //		System.out.println(name + Printer.OPCODES[opcode] + " " + analyzer.stack + " raw? " + isRawInsns);
 //		System.out.println(name+Printer.OPCODES[opcode]);
+		if(opcode == TaintUtils.CUSTOM_SIGNAL_1 || opcode == TaintUtils.CUSTOM_SIGNAL_2 || opcode == TaintUtils.CUSTOM_SIGNAL_3)
+		{
+			Configuration.taintTagFactory.signalOp(opcode, null);
+			super.visitInsn(opcode);
+			return;
+		}
 		if (opcode == TaintUtils.NEXTLOAD_IS_NOT_TAINTED) {
 			nextLoadIsNotTainted = true;
 			return;
@@ -2691,7 +2658,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 
 		if (Configuration.IMPLICIT_TRACKING && !isIgnoreAllInstrumenting) {
-			Configuration.taintTagFactory.jumpOp(opcode, branchStarting, mv, lvs, this);
 			if(opcode != Opcodes.GOTO)
 			{
 				for (int var : forceCtrlAdd) {
@@ -2730,33 +2696,65 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 				forceCtrlAdd.clear();
 			}
-		}
-		if (boxAtNextJump.size() > 0) {
-			Label origDest = label;
-			Label newDest = new Label();
-			Label origFalseLoc = new Label();
+			if (boxAtNextJump.size() > 0) {
+				Label origDest = label;
+				Label newDest = new Label();
+				Label origFalseLoc = new Label();
 
-			super.visitJumpInsn(opcode, newDest);
-			FrameNode fn = getCurrentFrameNode();
-			super.visitJumpInsn(GOTO, origFalseLoc);
-			//			System.out.println("taint passing mv monkeying with jump");
-			super.visitLabel(newDest);
-			fn.accept(this);
-			for (Integer var : boxAtNextJump) {
-				super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
-				super.visitVarInsn(ALOAD, var);
-//				System.out.println("Boxing." + analyzer.stack);
-				registerTaintedArray(getTopOfStackType().getDescriptor());
-				
-				super.visitVarInsn(ASTORE, var);
+				Configuration.taintTagFactory.jumpOp(opcode, branchStarting, newDest, mv, lvs, this);
+
+				FrameNode fn = getCurrentFrameNode();
+				super.visitJumpInsn(GOTO, origFalseLoc);
+				//			System.out.println("taint passing mv monkeying with jump");
+				super.visitLabel(newDest);
+				fn.accept(this);
+				for (Integer var : boxAtNextJump) {
+					super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
+					super.visitVarInsn(ALOAD, var);
+//					System.out.println("Boxing." + analyzer.stack);
+					registerTaintedArray(getTopOfStackType().getDescriptor());
+					
+					super.visitVarInsn(ASTORE, var);
+				}
+				super.visitJumpInsn(GOTO, origDest);
+				super.visitLabel(origFalseLoc);
+				fn.accept(this);
+				boxAtNextJump.clear();
 			}
-			super.visitJumpInsn(GOTO, origDest);
-			super.visitLabel(origFalseLoc);
-			fn.accept(this);
-			boxAtNextJump.clear();
+			else
+				Configuration.taintTagFactory.jumpOp(opcode, branchStarting, label, mv, lvs, this);
 		}
 		else
-			super.visitJumpInsn(opcode, label); //If we aren't doing implicit tracking, let ImplicitTaintRemovingMV handle this
+		{
+			//TODO this part needs to be all simplified and brought into the delegate?
+			if (boxAtNextJump.size() > 0) {
+				Label origDest = label;
+				Label newDest = new Label();
+				Label origFalseLoc = new Label();
+
+				super.visitJumpInsn(opcode, newDest);
+				FrameNode fn = getCurrentFrameNode();
+				super.visitJumpInsn(GOTO, origFalseLoc);
+				//			System.out.println("taint passing mv monkeying with jump");
+				super.visitLabel(newDest);
+				fn.accept(this);
+				for (Integer var : boxAtNextJump) {
+					super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
+					super.visitVarInsn(ALOAD, var);
+//					System.out.println("Boxing." + analyzer.stack);
+					registerTaintedArray(getTopOfStackType().getDescriptor());
+					
+					super.visitVarInsn(ASTORE, var);
+				}
+				super.visitJumpInsn(GOTO, origDest);
+				super.visitLabel(origFalseLoc);
+				fn.accept(this);
+				boxAtNextJump.clear();
+			}
+			else
+				super.visitJumpInsn(opcode, label); //If we aren't doing implicit tracking, let ImplicitTaintRemovingMV handle this
+
+		}
 	}
 
 	@Override
