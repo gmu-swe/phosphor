@@ -36,7 +36,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 public class PreMain {
     private static Instrumentation instrumentation;
 
-    static final boolean DEBUG = false;
+    static final boolean DEBUG = true;
 
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
 	public static final class PCLoggingTransformer implements ClassFileTransformer {
@@ -132,6 +132,7 @@ public class PreMain {
 			ClassReader cr = new ClassReader(classfileBuffer);
 			String className = cr.getClassName();
 			innerException = false;
+
 			if(Instrumenter.isIgnoredClass(className))
 			{
 //				System.out.println("Premain.java ignore: " + className);
@@ -142,7 +143,8 @@ public class PreMain {
 			ClassNode cn = new ClassNode();
 			cr.accept(cn, ClassReader.SKIP_CODE);
 			boolean skipFrames = false;
-			if (cn.version >= 100 || cn.version < 50 || className.endsWith("$Access4JacksonSerializer"))
+			if (cn.version >= 100 || cn.version <= 50 || className.endsWith("$Access4JacksonSerializer")
+					|| className.endsWith("$Access4JacksonDeSerializer"))
 				skipFrames = true;
 			if (cn.visibleAnnotations != null)
 				for (AnnotationNode an : cn.visibleAnnotations) {

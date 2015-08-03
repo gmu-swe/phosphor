@@ -40,9 +40,9 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
 
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
-	public static EmptyTaintTagFactory taintTagFactory;
+	public static EmptyTaintTagFactory taintTagFactory = new NullTaintTagFactory();
 	public static DerivedTaintListener derivedTaintListener;
-	
+
 	public static void init() {
 		TAINT_TAG_DESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "I");
 		TAINT_TAG_ARRAYDESC = (MULTI_TAINTING ? "[Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "[I");
@@ -62,27 +62,27 @@ public class Configuration {
 		TAINT_TAG_OBJ_ARRAY_CLASS = (MULTI_TAINTING ? Taint[].class : int[].class);
 		TAINT_TAG_OBJ_CLASS = (MULTI_TAINTING ? Taint.class : Integer.TYPE);
 
-		taintTagFactory = new NullTaintTagFactory();
-
-		URL r = TaintTrackingClassVisitor.class.getClassLoader().getResource("phosphor-mv");
-		if (r != null)
-			try {
-				Properties props = new Properties();
-				props.load(r.openStream());
-				if (props.containsKey("extraMV"))
-					extensionMethodVisitor = (Class<? extends TaintAdapter>) Class.forName(props.getProperty("extraMV"));
-				if (props.containsKey("taintTagFactory"))
-					taintTagFactory = (EmptyTaintTagFactory) Class.forName(props.getProperty("taintTagFactory")).newInstance();
-				if (props.containsKey("derivedTaintListener"))
-					derivedTaintListener = (DerivedTaintListener) Class.forName(props.getProperty("derivedTaintListener")).newInstance();
-			} catch (IOException ex) {
-				//fail silently
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			} catch (InstantiationException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			}
+		if (TaintTrackingClassVisitor.class != null && TaintTrackingClassVisitor.class.getClassLoader() != null) {
+			URL r = TaintTrackingClassVisitor.class.getClassLoader().getResource("phosphor-mv");
+			if (r != null)
+				try {
+					Properties props = new Properties();
+					props.load(r.openStream());
+					if (props.containsKey("extraMV"))
+						extensionMethodVisitor = (Class<? extends TaintAdapter>) Class.forName(props.getProperty("extraMV"));
+					if (props.containsKey("taintTagFactory"))
+						taintTagFactory = (EmptyTaintTagFactory) Class.forName(props.getProperty("taintTagFactory")).newInstance();
+					if (props.containsKey("derivedTaintListener"))
+						derivedTaintListener = (DerivedTaintListener) Class.forName(props.getProperty("derivedTaintListener")).newInstance();
+				} catch (IOException ex) {
+					//fail silently
+				} catch (ClassNotFoundException e) {
+					e.printStackTrace();
+				} catch (InstantiationException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				}
+		}
 	}
 }
