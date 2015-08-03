@@ -355,9 +355,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, mar);
 			NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, primitiveArrayFixer);
 
-			MethodVisitor mvNext;
-			if (!IS_RUNTIME_INST && TaintUtils.OPT_IGNORE_EXTRA_TAINTS && !Configuration.IMPLICIT_TRACKING)
-				mvNext = new UnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, preAnalyzer);
+			MethodVisitor mvNext = preAnalyzer;
+			if (!IS_RUNTIME_INST && TaintUtils.OPT_IGNORE_EXTRA_TAINTS)
+				if (Configuration.IMPLICIT_TRACKING)
+					mvNext = new ImplicitUnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, preAnalyzer);
+				else
+					mvNext = new UnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, preAnalyzer);
 			else
 				mvNext = preAnalyzer;
 			primitiveArrayFixer.setAnalyzer(preAnalyzer);
@@ -735,7 +738,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 											an.accept(mv.visitParameterAnnotation(i, an.desc, false));
 						}
 						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, mv);
-						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, an, an, mv);
+						MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
+						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, soc, an, mv);
 						lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 						GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name, m.desc);
 						Label startLabel = new Label();
@@ -1042,7 +1046,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 		MethodVisitor mv = super.visitMethod(m.access, m.name + TaintUtils.METHOD_SUFFIX, newDesc, m.signature, exceptions);
 		NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, newDesc, mv);
-		LocalVariableManager lvs = new LocalVariableManager(m.access,newDesc, an, an, mv);
+		MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
+		LocalVariableManager lvs = new LocalVariableManager(m.access,newDesc, soc, an, mv);
 		lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 		GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name + TaintUtils.METHOD_SUFFIX, newDesc);
 		if(isInterface)
@@ -1156,7 +1161,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitInsn(Opcodes.SWAP);
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					Configuration.taintTagFactory.generateEmptyTaint(an);
+					Configuration.taintTagFactory.generateEmptyTaint(ga);
 					idx = 0;
 					if ((m.access & Opcodes.ACC_STATIC) == 0) {
 						idx++;

@@ -5,6 +5,8 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.ConstantValueNullTaintGenerator;
+import edu.columbia.cs.psl.phosphor.instrumenter.ImplicitUnnecessaryTaintLoadRemover;
 import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
 import edu.columbia.cs.psl.phosphor.instrumenter.UnnecessaryTaintLoadRemover;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
@@ -60,8 +62,13 @@ public class DebugPrinter {
 				mv = new PrimitiveArrayAnalyzer(cr.getClassName(), access, name, desc, signature, exceptions, mv);
 				NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(cr.getClassName(), access, name, desc, mv);
 				((PrimitiveArrayAnalyzer)mv).setAnalyzer(an);
+				mv = an;
+//				ConstantValueNullTaintGenerator ctvn = new ConstantValueNullTaintGenerator(className, access, name, desc, signature, exceptions, mv);
+//				mv = ctvn;
 				if(!Configuration.IMPLICIT_TRACKING)
-				mv = new UnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, an);
+				mv = new UnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, mv);
+				mv = new ImplicitUnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, mv);
+				
 				return mv;
 			}
 		};

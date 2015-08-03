@@ -12,6 +12,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FieldInsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.InsnList;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.InsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.IntInsnNode;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LdcInsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodInsnNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MultiANewArrayInsnNode;
@@ -23,6 +24,7 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 public class ConstantValueNullTaintGenerator extends MethodVisitor implements Opcodes {
 	public ConstantValueNullTaintGenerator(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv) {
 		super(Opcodes.ASM5, new MethodNode(Opcodes.ASM5,access, name, desc, signature, exceptions) {
+
 			@Override
 			public void visitEnd() {
 				final MethodNode uninstrumented = new MethodNode(api, access, name, desc, signature, exceptions.toArray(new String[4]));
@@ -177,9 +179,18 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 					public void visitEnd() {
 						AbstractInsnNode insn = this.instructions.getFirst();
 						if (hasNonConstantOps && this.instructions.size() > 30000) {
-//							System.out.println("Bailing on " + className + "." + name + "cuz it's already got " + this.instructions.size());
+							System.out.println("Bailing on " + className + "." + name + "cuz it's already got " + this.instructions.size());
+							insn = uninstrumented.instructions.getFirst();
+							while(insn != null)
+							{
+								AbstractInsnNode next = insn.getNext();
+								if(insn.getOpcode() > 200)
+									uninstrumented.instructions.remove(insn);
+								insn = next;
+							}
 							uninstrumented.instructions.insertBefore(uninstrumented.instructions.getFirst(), new InsnNode(TaintUtils.IGNORE_EVERYTHING));
 							uninstrumented.instructions.add(new InsnNode(TaintUtils.IGNORE_EVERYTHING));
+
 							uninstrumented.accept(cmv);
 							return;
 						}
@@ -189,7 +200,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 //																					System.out.println(nInsn);
 //																					System.out.println(uninstrumented.instructions.size());
 							if (nInsn > 30000 || (Configuration.IMPLICIT_TRACKING && nInsn > 23000)) {
-//								System.out.println("Removing constant load ops: " + className + "." + this.name);
+								System.out.println("Removing constant load ops: " + className + "." + this.name);
 								uninstrumented.instructions.insertBefore(uninstrumented.instructions.getFirst(), new InsnNode(TaintUtils.IGNORE_EVERYTHING));
 								uninstrumented.instructions.add(new InsnNode(TaintUtils.IGNORE_EVERYTHING));
 								insn = uninstrumented.instructions.getFirst();

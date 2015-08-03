@@ -364,10 +364,10 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
                   } else {
                       u = uninitializedTypes.get(t);
                   }
-                  if(u == null){
-                	  System.out.println(uninitializedTypes);
-                	  throw new IllegalStateException();
-                  }
+//                  if(u == null){
+//                	  System.out.println(uninitializedTypes);
+//                	  throw new IllegalStateException();
+//                  }
                   for (int i = 0; i < locals.size(); ++i) {
                       if (locals.get(i) == t) {
                           locals.set(i, u);

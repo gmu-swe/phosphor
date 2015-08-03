@@ -243,9 +243,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(POP);
 				break;
 			case ASTORE:
-				super.visitInsn(DUP);
-				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+				if (!topOfStackIsNull()) {
+					super.visitInsn(DUP);
+					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject",
+							"(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+				}
 				break;
 			case TaintUtils.FORCE_CTRL_STORE:
 				forceCtrlAdd.add(var);
@@ -1145,7 +1148,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	}
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
-		if (isIgnoreAllInstrumenting || ignoreLoadingNextTaint) {
+		if (isIgnoreAllInstrumenting || ignoreLoadingNextTaint || isRawInsns) {
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
 		}
@@ -1203,7 +1206,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);
 			//todo
 		}
-		if ((owner.equals("java/lang/System") || owner.equals("java/lang/VMSystem") || owner.equals("java/lang/VMMemoryManager"))&& name.equals("arraycopy")) {
+		if ((owner.equals("java/lang/System") || owner.equals("java/lang/VMSystem") || owner.equals("java/lang/VMMemoryManager"))&& name.equals("arraycopy")
+				&&! desc.equals("(Ljava/lang/Object;ILjava/lang/Object;IILjava/lang/DCompMarker;)V")) {
 			if(Instrumenter.IS_KAFFE_INST)
 				name = "arraycopyVM";
 			else if(Instrumenter.IS_HARMONY_INST)
@@ -1575,6 +1579,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if (opcode == TaintUtils.DONT_LOAD_TAINT) {
 			if(isIgnoreEverything)
 				return;
+			Configuration.taintTagFactory.signalOp(TaintUtils.IGNORE_EVERYTHING, null);
 			ignoreLoadingNextTaint = !ignoreLoadingNextTaint;
 			//						if(ignoreLoadingNextTaint)
 			//						{
@@ -1586,9 +1591,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 		if (opcode == TaintUtils.IGNORE_EVERYTHING) {
-			//						System.err.println("VisitInsn is ignoreverything! in  " + name);
+//			System.err.println("VisitInsn is ignoreverything! in  " + name);
+//			new Exception().printStackTrace();
 			isIgnoreAllInstrumenting = !isIgnoreAllInstrumenting;
 			isIgnoreEverything = !isIgnoreEverything;
+			Configuration.taintTagFactory.signalOp(opcode, null);
 			super.visitInsn(opcode);
 			return;
 		}
