@@ -6,6 +6,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public interface TaintTagFactory {
 	public Taint dynamicallyGenerateEmptyTaint();
+
 	public void generateEmptyTaint(MethodVisitor mv);
 	public void generateEmptyTaintArray(Object[] array, int dimensions);
 	public void stackOp(int opcode, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
@@ -14,4 +15,5 @@ public interface TaintTagFactory {
 	public void iincOp(int var, int increment, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
 	public void intOp(int opcode, int arg, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
 	public void signalOp(int signal, Object option);
+	public void fieldOp(int opcode, String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
 }

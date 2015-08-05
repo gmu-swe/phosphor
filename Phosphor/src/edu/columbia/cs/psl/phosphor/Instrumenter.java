@@ -361,7 +361,7 @@ public class Instrumenter {
 					||owner.startsWith("sun/awt/image/codec/") || (IS_HARMONY_INST && (owner.equals("java/io/Serializable")));
 		}
 		else
-		return owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
+		return (Configuration.ADDL_IGNORE != null && owner.startsWith(Configuration.ADDL_IGNORE)) || owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
 				|| owner.startsWith("java/lang/Byte")
 				|| owner.startsWith("java/lang/Short")
 				|| owner.startsWith("org/jikesrvm") || owner.startsWith("com/ibm/tuningfork") || owner.startsWith("org/mmtk") || owner.startsWith("org/vmmagic")

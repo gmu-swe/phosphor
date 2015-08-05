@@ -716,5 +716,8 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 		}
 		mv.visitIincInsn(var, increment);
 	}
+	@Override
+	public void fieldOp(int opcode, String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
+	}
 
 }

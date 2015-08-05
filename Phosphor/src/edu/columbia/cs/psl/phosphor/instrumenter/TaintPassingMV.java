@@ -534,7 +534,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitFieldInsn(opcode, owner, name, desc);
 			return;
 		}
-				
+	
+		boolean dispatched = false;
 		Type ownerType = Type.getObjectType(owner);
 		Type descType = Type.getType(desc);
 		if (descType.getSort() == Type.ARRAY && descType.getElementType().getSort() != Type.OBJECT && descType.getDimensions() > 1) {
@@ -547,6 +548,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			{
 			case PUTFIELD:
 			case PUTSTATIC:
+				dispatched = true;
+				Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this);
 				if (descType.getSize() == 1) {
 					if (descType.getSort() == Type.OBJECT) {
 						super.visitInsn(DUP);
@@ -627,6 +630,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 		boolean isIgnoredTaint = Instrumenter.isIgnoredClass(owner);
 
+		if(!dispatched)
+		{
+			dispatched = true;
+			Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this);
+		}
 		switch (opcode) {
 		case Opcodes.GETSTATIC:
 			String shadowType = TaintUtils.getShadowTaintType(desc);

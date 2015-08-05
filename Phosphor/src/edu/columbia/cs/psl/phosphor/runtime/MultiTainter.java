@@ -200,9 +200,6 @@ public class MultiTainter {
 		ret.val = in;
 		return ret;
 	}
-
-
-	
 	public static TaintedBooleanArrayWithObjTag taintedBooleanArray$$PHOSPHORTAGGED(Taint[] oldTag, boolean[] in, Object lbl, TaintedBooleanArrayWithObjTag ret)
 	{
 		ret.taint = new Taint[in.length];

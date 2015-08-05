@@ -14,6 +14,7 @@ import edu.columbia.cs.psl.phosphor.runtime.DerivedTaintListener;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public class Configuration {
+	public static String ADDL_IGNORE = null;
 	public static boolean MULTI_TAINTING = true;
 	public static boolean IMPLICIT_TRACKING = true; //must be set to TRUE for MULTI_TAINTING to work!
 	public static boolean DATAFLOW_TRACKING = true; //default

@@ -27,7 +27,7 @@ public class Taint implements Cloneable{
 			Node<Taint> dep = dependencies.getFirst();
 			while(dep != null)
 			{
-				if(dep.entry.lbl != null)
+				if(dep.entry != null && dep.entry.lbl != null)
 				depStr += dep.entry.lbl+ " ";
 				dep = dep.next;
 			}
@@ -96,7 +96,14 @@ public class Taint implements Cloneable{
 	}
 	public static void combineTagsInPlace(Object obj, Taint t1)
 	{
+		if(obj == null || t1 == null)
+			return;
 		Taint t = MultiTainter.getTaint(obj);
+		if(t == null)
+		{
+			t = Configuration.taintTagFactory.dynamicallyGenerateEmptyTaint();
+			MultiTainter.taintedObject(obj, t);
+		}
 		t.addDependency(t1);
 	}
 	public static Taint combineTags(Taint t1, Taint t2)
