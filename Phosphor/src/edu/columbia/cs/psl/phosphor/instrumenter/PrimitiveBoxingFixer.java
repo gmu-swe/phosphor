@@ -84,7 +84,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 		int nArgs = Type.getArgumentTypes(desc).length;
 		boolean argIsStr = false;
 		for (Type t : Type.getArgumentTypes(desc))
-			if (t.getSort() == Type.OBJECT)
+			if (t.getSort() == Type.OBJECT && t.getDescriptor().equals("Ljava/lang/String;"))
 				argIsStr = true;
 		//Get an extra copy of the taint
 		if ((owner.equals(Type.getInternalName(Integer.class))
@@ -103,7 +103,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitInsn(DUP);
 				Label makeNew = new Label();
 				Label isOK = new Label();
-				super.visitJumpInsn(IFNE, makeNew);
+				super.visitJumpInsn((Configuration.MULTI_TAINTING ? IFNONNULL:IFNE), makeNew);
 				super.visitInsn(SWAP);
 				super.visitMethodInsn(opcode, owner, name, desc, itfc);
 				super.visitJumpInsn(GOTO, isOK);
@@ -117,7 +117,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitInsn(Opcodes.POP2);
 				//N N T I
 				super.visitInsn(Opcodes.ACONST_NULL);
-				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "(I" + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V",false);
+				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V",false);
 				FrameNode fn2 = getCurrentFrameNode();
 				super.visitLabel(isOK);
 				if(!followedByFrame)
@@ -131,7 +131,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitInsn(DUP);
 				Label makeNew = new Label();
 				Label isOK = new Label();
-				super.visitJumpInsn(IFNE, makeNew);
+				super.visitJumpInsn((Configuration.MULTI_TAINTING ? IFNONNULL:IFNE), makeNew);
 				//T VV 
 				super.visitInsn(DUP_X2);
 				super.visitInsn(POP);

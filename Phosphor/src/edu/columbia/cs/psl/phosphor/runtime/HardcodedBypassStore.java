@@ -12,6 +12,8 @@ public class HardcodedBypassStore {
 	
 	public static final Object get(int i)
 	{
+		if(i == -1)
+			return null;
 		synchronized (vals) {
 			return vals.get(i);
 		}
@@ -34,6 +36,8 @@ public class HardcodedBypassStore {
 	}
 	public static final int add(Object a)
 	{
+		if(a == null)
+			return -1;
 		synchronized (vals) {
 			vals.add(a);
 			return vals.size() - 1;

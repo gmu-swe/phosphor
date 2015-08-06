@@ -897,7 +897,10 @@ public class RuntimeReflectionPropogator {
 		}
 	}
 	private static Taint getTagObj(Object val) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
-		return (Taint) val.getClass().getField("value" + TaintUtils.TAINT_FIELD).get(val);
+		Object ret = val.getClass().getField("value" + TaintUtils.TAINT_FIELD).get(val);
+		if(ret instanceof Integer)
+			ret = HardcodedBypassStore.get(((Integer) ret).intValue());
+		return (Taint) ret;
 	}
 	private static int getTag(Object val) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
 		return val.getClass().getField("value" + TaintUtils.TAINT_FIELD).getInt(val);
