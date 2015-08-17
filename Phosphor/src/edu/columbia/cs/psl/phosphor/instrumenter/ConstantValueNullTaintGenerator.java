@@ -200,7 +200,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 //																					System.out.println(nInsn);
 //																					System.out.println(uninstrumented.instructions.size());
 							if (nInsn > 30000 || (Configuration.IMPLICIT_TRACKING && nInsn > 23000)) {
-								System.out.println("Removing constant load ops: " + className + "." + this.name);
+//								System.out.println("Removing constant load ops: " + className + "." + this.name);
 								uninstrumented.instructions.insertBefore(uninstrumented.instructions.getFirst(), new InsnNode(TaintUtils.IGNORE_EVERYTHING));
 								uninstrumented.instructions.add(new InsnNode(TaintUtils.IGNORE_EVERYTHING));
 								insn = uninstrumented.instructions.getFirst();

@@ -398,21 +398,21 @@ public class ArrayReflectionMasker {
 	}
 
 	public static Object get$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx) {
-		if (obj instanceof MultiDTaintedBooleanArrayWithIntTag)
+		if (obj instanceof MultiDTaintedBooleanArrayWithObjTag)
 			return getBoolean$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedBooleanWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedByteArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedByteArrayWithObjTag)
 			return getByte$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedByteWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedCharArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedCharArrayWithObjTag)
 			return getChar$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedCharWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedDoubleArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedDoubleArrayWithObjTag)
 			return getDouble$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedDoubleWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedFloatArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedFloatArrayWithObjTag)
 			return getFloat$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedFloatWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedIntArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedIntArrayWithObjTag)
 			return getInt$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedIntWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedLongArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedLongArrayWithObjTag)
 			return getLong$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedLongWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedShortArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedShortArrayWithObjTag)
 			return getShort$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedShortWithObjTag()).toPrimitiveType();
 		return Array.get(obj, idx);
 	}

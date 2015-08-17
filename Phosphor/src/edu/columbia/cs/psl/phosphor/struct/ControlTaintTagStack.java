@@ -14,25 +14,40 @@ public class ControlTaintTagStack {
 
 	public ControlTaintTagStack() {
 		this.taint = new Taint();
+		this.taint.debug = "ControlTaintTagRoot";
 	}
 
 	public ControlTaintTagStack(int nJump) {
 		this.children = new ControlTaintTagStack[nJump];
 		this.taint = new Taint();
+		this.taint.debug = "ControlTaintTagRoot";
 	}
 
 	public ControlTaintTagStack(int nJump, ControlTaintTagStack parent) {
 		this.taint = new Taint();
 		this.parentTaint = parent.taint;
 		this.children = new ControlTaintTagStack[nJump];
+		this.taint.debug = "ControlTaintTagRoot";
 	}
 
 	public final void recalculate() {
 		taint = new Taint();
-		taint.addDependency(parentTaint);
+		if(parentTaint != null && parentTaint.lbl != null)
+			taint.addDependency(parentTaint);
+		if (parentTaint != null &&!(parentTaint.hasNoDependencies()))
+		{
+			taint.dependencies.addAll(parentTaint.dependencies);
+		}
 		for (ControlTaintTagStack t : children) {
-			if (t != null)
-				taint.addDependency(t.taint);
+			if (t != null && !t.isEmpty())
+			{
+				if(t.taint.lbl != null)
+					taint.addDependency(t.taint);
+				if (!(t.taint.hasNoDependencies()))
+				{
+					taint.dependencies.addAll(t.taint.dependencies);
+				}
+			}
 		}
 	}
 

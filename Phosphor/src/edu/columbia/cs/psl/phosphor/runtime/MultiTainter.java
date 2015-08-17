@@ -273,6 +273,8 @@ public class MultiTainter {
 	{
 		if(obj instanceof MultiDTaintedArrayWithObjTag)
 			obj = ((MultiDTaintedArrayWithObjTag) obj).getVal();
+		if(Configuration.taintTagFactory == null)
+			return null;
 		if(obj instanceof TaintedWithObjTag)
 		{
 			Taint ret = (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();

@@ -327,6 +327,8 @@ public class Instrumenter {
 	}
 
 	public static boolean isIgnoredClass(String owner) {
+		if(Configuration.taintTagFactory.isIgnoredClass(owner))
+			return true;
 		if(IS_ANDROID_INST && ! TaintTrackingClassVisitor.IS_RUNTIME_INST)
 		{
 //			System.out.println("IN ANDROID INST:");

@@ -720,4 +720,9 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	public void fieldOp(int opcode, String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
 	}
 
+	@Override
+	public boolean isIgnoredClass(String classname) {
+		return false;
+	}
+
 }

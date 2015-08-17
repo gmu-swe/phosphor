@@ -7,6 +7,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 public interface TaintTagFactory {
 	public Taint dynamicallyGenerateEmptyTaint();
 
+	public boolean isIgnoredClass(String classname);
 	public void generateEmptyTaint(MethodVisitor mv);
 	public void generateEmptyTaintArray(Object[] array, int dimensions);
 	public void stackOp(int opcode, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);

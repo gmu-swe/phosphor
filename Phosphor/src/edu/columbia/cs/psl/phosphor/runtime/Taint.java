@@ -1,13 +1,14 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
-public class Taint implements Cloneable{
+public final class Taint implements Cloneable{
 
 
 	public Object clone()  {
@@ -35,6 +36,7 @@ public class Taint implements Cloneable{
 		depStr += "]";
 		return "Taint [lbl=" + lbl + " "+depStr+"]";
 	}
+	public Object debug;
 	public Object lbl;
 	public LinkedList<Taint> dependencies;
 	public Taint(Object lbl) {
@@ -60,11 +62,13 @@ public class Taint implements Cloneable{
 		dependencies = new LinkedList<Taint>();
 		if(t1 != null)
 		{
+			if(t1.lbl != null)
 			dependencies.add(t1);
 			dependencies.addAll(t1.dependencies);
 		}
 		if(t2 != null)
 		{
+			if(t2.lbl != null)
 			dependencies.add(t2);
 			dependencies.addAll(t2.dependencies);
 		}
@@ -73,7 +77,6 @@ public class Taint implements Cloneable{
 	}
 	public Taint() {
 		dependencies = new LinkedList<Taint>();
-
 	}
 	public boolean addDependency(Taint d)
 	{
@@ -92,19 +95,19 @@ public class Taint implements Cloneable{
 		return ret;
 	}
 	public boolean hasNoDependencies() {
-		return dependencies.getFirst() == null;
+		return dependencies.getFirst() == null || dependencies.getFirst().entry == null;
 	}
 	public static void combineTagsInPlace(Object obj, Taint t1)
 	{
 		if(obj == null || t1 == null)
 			return;
-		Taint t = MultiTainter.getTaint(obj);
+		Taint t = (Taint) TaintUtils.getTaintObj(obj);
 		if(t == null)
 		{
-			t = Configuration.taintTagFactory.dynamicallyGenerateEmptyTaint();
-			MultiTainter.taintedObject(obj, t);
+			MultiTainter.taintedObject(obj, t1);
 		}
-		t.addDependency(t1);
+		else
+			t.addDependency(t1);
 	}
 	public static Taint combineTags(Taint t1, Taint t2)
 	{
@@ -114,6 +117,8 @@ public class Taint implements Cloneable{
 			return t1;
 		if(t1 == null)
 			return t2;
+		if(t1 == t2)
+			return t1;
 		if(t1.lbl == null && t1.hasNoDependencies())
 			return t2;
 		if(t2.lbl == null && t2.hasNoDependencies())
@@ -140,6 +145,8 @@ public class Taint implements Cloneable{
 //				return null;
 			return t1;
 		}
+		else if(t1 == tags.taint)
+			return t1;
 		return new Taint((Taint) t1, tags.taint);
 	}
 	public static void combineTagsOnObject(Object o, ControlTaintTagStack tags)
