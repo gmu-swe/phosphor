@@ -250,7 +250,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		}
 		super.visitMethodInsn(opcode, owner, name, desc, itfc);
 		if (owner.equals("java/lang/Class") && desc.endsWith("[Ljava/lang/reflect/Field;") && !className.equals("java/lang/Class")) {
-			if (Instrumenter.IS_ANDROID_INST)
+			if (Instrumenter.IS_ANDROID_INST && !Configuration.WITHOUT_FIELD_HIDING)
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeTaintFields", "([Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;", false);
 		} else if (owner.equals("java/lang/Class") && !className.equals(owner) &&  (desc.equals("()[Ljava/lang/reflect/Method;") || desc.equals("("+Type.getDescriptor(ControlTaintTagStack.class)+")[Ljava/lang/reflect/Method;"))) {
 			if (Instrumenter.IS_ANDROID_INST)
