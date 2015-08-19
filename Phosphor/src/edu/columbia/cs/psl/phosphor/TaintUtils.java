@@ -68,7 +68,7 @@ public class TaintUtils {
 	public static final int IGNORE_EVERYTHING = 203;
 	public static final int NO_TAINT_UNBOX = 204;
 	public static final int DONT_LOAD_TAINT = 205;
-	public static final int GENERATETAINTANDSWAP = 206;
+	public static final int GENERATETAINT = 206;
 
 	public static final int NEXTLOAD_IS_TAINTED = 207;
 	public static final int NEXTLOAD_IS_NOT_TAINTED = 208;

@@ -20,6 +20,7 @@ public class Configuration {
 	public static boolean DATAFLOW_TRACKING = true; //default
 	public static boolean ARRAY_LENGTH_TRACKING = false;
 	
+	public static boolean WITHOUT_PROPOGATION = false;
 	public static boolean WITHOUT_FIELD_HIDING = false;
 	
 	/*

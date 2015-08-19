@@ -319,8 +319,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			TaintPassingMV tmv;
 			MethodVisitor nextMV;
 			{
-				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(access, className, name, desc, signature, exceptions, boxFixer, analyzer);
-				tmv = new TaintPassingMV(implicitCleanup, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV);
+//				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(access, className, name, desc, signature, exceptions, boxFixer, analyzer);
+				tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV);
 				TaintAdapter custom = null;
 				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv);
 

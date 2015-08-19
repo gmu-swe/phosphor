@@ -457,7 +457,8 @@ public class Instrumenter {
 	static Option opt_multiTaint = new Option("multiTaint", "Support for 2^32 tags instead of just 32");
 	static Option opt_trackArrayLengthTaints = new Option("withArrayLengthTags", "Tracks taint tags on array lengths - requires use of JVMTI runtime library when running");
 	static Option opt_withoutFieldHiding = new Option("withoutFieldHiding", "Disable hiding of taint fields via reflection");
-
+	static Option opt_withoutPropogation = new Option("withoutPropogation","Disable all tag propogation - still create method stubs and wrappers as per other options, but don't actually propogate tags");
+	
 	static Option help = new Option( "help", "print this message" );
 
 	public static String sourcesFile;
@@ -474,6 +475,7 @@ public class Instrumenter {
 		options.addOption(opt_taintSources);
 		options.addOption(opt_trackArrayLengthTaints);
 		options.addOption(opt_withoutFieldHiding);
+		options.addOption(opt_withoutPropogation);
 		
 	    CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
@@ -503,7 +505,8 @@ public class Instrumenter {
 
 		Configuration.ARRAY_LENGTH_TRACKING = line.hasOption("withArrayLengthTags");
 		Configuration.WITHOUT_FIELD_HIDING = line.hasOption("withoutFieldHiding");
-
+		Configuration.WITHOUT_PROPOGATION = line.hasOption("withoutPropogation");
+		
 		Configuration.init();
 		
 		

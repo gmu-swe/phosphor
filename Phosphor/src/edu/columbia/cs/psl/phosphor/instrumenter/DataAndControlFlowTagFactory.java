@@ -19,6 +19,9 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	}
 
 	@Override
+	public void methodEntered(String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
+	}
+	@Override
 	public void signalOp(int signal, Object option) {
 	}
 
@@ -36,7 +39,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	public void intOp(int opcode, int arg, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV adapter) {
 		switch (opcode) {
 		case Opcodes.NEWARRAY:
-			if (Configuration.ARRAY_LENGTH_TRACKING) {
+			if (Configuration.ARRAY_LENGTH_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
 				if (Configuration.MULTI_TAINTING) {
 					//Length Length-tag
 					mv.visitInsn(DUP);
@@ -94,9 +97,16 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			mv.visitInsn(DUP_X2);
 			mv.visitInsn(POP);
 			if (Configuration.MULTI_TAINTING) {
-				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-						+ Configuration.TAINT_TAG_DESC, false);
-				mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				if(Configuration.WITHOUT_PROPOGATION)
+				{
+					mv.visitInsn(POP2);
+					mv.visitInsn(ACONST_NULL);
+					mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				} else {
+					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+							+ Configuration.TAINT_TAG_DESC, false);
+					mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				}
 			} else {
 				if (Configuration.DATAFLOW_TRACKING)
 					mv.visitInsn(Opcodes.IOR);
@@ -133,8 +143,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			mv.visitInsn(DUP_X2);
 			mv.visitInsn(POP);
 			if (Configuration.MULTI_TAINTING) {
-				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-						+ Configuration.TAINT_TAG_DESC, false);
+				if(Configuration.WITHOUT_PROPOGATION)
+				{
+					mv.visitInsn(POP2);
+					mv.visitInsn(ACONST_NULL);
+					mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				} else {
+					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+							+ Configuration.TAINT_TAG_DESC, false);
+				}
 			} else {
 				if (Configuration.DATAFLOW_TRACKING)
 					mv.visitInsn(Opcodes.IOR);
@@ -169,9 +186,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			} else {
 				//T T
 				if (Configuration.MULTI_TAINTING) {
-					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-							+ Configuration.TAINT_TAG_DESC, false);
-
+					if(Configuration.WITHOUT_PROPOGATION)
+					{
+						mv.visitInsn(POP2);
+						mv.visitInsn(ACONST_NULL);
+						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					} else {
+						mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+								+ Configuration.TAINT_TAG_DESC, false);
+					}
 				} else {
 					if (Configuration.DATAFLOW_TRACKING)
 						mv.visitInsn(Opcodes.IOR);
@@ -205,9 +228,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			mv.visitInsn(DUP2_X2);
 			mv.visitInsn(POP2);
 			if (Configuration.MULTI_TAINTING) {
-				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-						+ Configuration.TAINT_TAG_DESC, false);
-
+				if(Configuration.WITHOUT_PROPOGATION)
+				{
+					mv.visitInsn(POP2);
+					mv.visitInsn(ACONST_NULL);
+					mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				} else {
+					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+							+ Configuration.TAINT_TAG_DESC, false);
+				}
 			} else {
 				if (Configuration.DATAFLOW_TRACKING)
 					mv.visitInsn(Opcodes.IOR);
@@ -242,9 +271,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			mv.visitInsn(DUP2_X2);
 			mv.visitInsn(POP2);
 			if (Configuration.MULTI_TAINTING) {
-				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-						+ Configuration.TAINT_TAG_DESC, false);
-
+				if(Configuration.WITHOUT_PROPOGATION)
+				{
+					mv.visitInsn(POP2);
+					mv.visitInsn(ACONST_NULL);
+					mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				} else {
+					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+							+ Configuration.TAINT_TAG_DESC, false);
+				}
 			} else {
 				if (Configuration.DATAFLOW_TRACKING)
 					mv.visitInsn(Opcodes.IOR);
@@ -293,10 +328,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			mv.visitInsn(DUP_X2);
 			mv.visitInsn(POP);
 			if (Configuration.MULTI_TAINTING) {
-
-				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-						+ Configuration.TAINT_TAG_DESC, false);
-
+				if(Configuration.WITHOUT_PROPOGATION)
+				{
+					mv.visitInsn(POP2);
+					mv.visitInsn(ACONST_NULL);
+					mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				} else {
+					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+							+ Configuration.TAINT_TAG_DESC, false);
+				}
 			} else {
 				if (Configuration.DATAFLOW_TRACKING)
 					mv.visitInsn(Opcodes.IOR);
@@ -324,8 +364,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			mv.visitInsn(DUP_X2);
 			mv.visitInsn(POP);
 			if (Configuration.MULTI_TAINTING) {
-				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-						+ Configuration.TAINT_TAG_DESC, false);
+				if(Configuration.WITHOUT_PROPOGATION)
+				{
+					mv.visitInsn(POP2);
+					mv.visitInsn(ACONST_NULL);
+					mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				} else {
+					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+							+ Configuration.TAINT_TAG_DESC, false);
+				}
 			} else {
 				if (Configuration.DATAFLOW_TRACKING)
 					mv.visitInsn(Opcodes.IOR);
@@ -353,8 +400,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			mv.visitInsn(DUP_X2);
 			mv.visitInsn(POP);
 			if (Configuration.MULTI_TAINTING) {
-				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-						+ Configuration.TAINT_TAG_DESC, false);
+				if(Configuration.WITHOUT_PROPOGATION)
+				{
+					mv.visitInsn(POP2);
+					mv.visitInsn(ACONST_NULL);
+					mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				} else {
+					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+							+ Configuration.TAINT_TAG_DESC, false);
+				}
 			} else {
 				if (Configuration.DATAFLOW_TRACKING)
 					mv.visitInsn(Opcodes.IOR);
@@ -381,8 +435,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			mv.visitInsn(DUP_X2);
 			mv.visitInsn(POP);
 			if (Configuration.MULTI_TAINTING) {
-				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-						+ Configuration.TAINT_TAG_DESC, false);
+				if(Configuration.WITHOUT_PROPOGATION)
+				{
+					mv.visitInsn(POP2);
+					mv.visitInsn(ACONST_NULL);
+					mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				} else {
+					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+							+ Configuration.TAINT_TAG_DESC, false);
+				}
 			} else {
 				if (Configuration.DATAFLOW_TRACKING)
 					mv.visitInsn(Opcodes.IOR);
@@ -408,9 +469,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			mv.visitInsn(DUP_X2);
 			mv.visitInsn(POP);
 			if (Configuration.MULTI_TAINTING) {
-				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-						+ Configuration.TAINT_TAG_DESC, false);
-
+				if(Configuration.WITHOUT_PROPOGATION)
+				{
+					mv.visitInsn(POP2);
+					mv.visitInsn(ACONST_NULL);
+					mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+				} else {
+					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+							+ Configuration.TAINT_TAG_DESC, false);
+				}
 			} else {
 				if (Configuration.DATAFLOW_TRACKING)
 					mv.visitInsn(Opcodes.IOR);
@@ -430,8 +497,13 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					loaded = true;
 					if (Configuration.MULTI_TAINTING) {
 						mv.visitInsn(POP);
-						mv.visitInsn(DUP);
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						if(Configuration.WITHOUT_PROPOGATION)
+							mv.visitInsn(ACONST_NULL);
+						else
+						{
+							mv.visitInsn(DUP);
+							mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						}
 						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
 					} else
 						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
@@ -439,9 +511,14 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					//A
 				}
 				if (!loaded) {
-					mv.visitInsn(DUP);
 					if (Configuration.MULTI_TAINTING) {
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						if(Configuration.WITHOUT_PROPOGATION)
+							mv.visitInsn(ACONST_NULL);
+						else
+						{
+							mv.visitInsn(DUP);
+							mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						}
 						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
 					} else
 						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
@@ -456,87 +533,157 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
 	public void jumpOp(int opcode, int branchStarting, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-		switch (opcode) {
-		case Opcodes.IFEQ:
-		case Opcodes.IFNE:
-		case Opcodes.IFLT:
-		case Opcodes.IFGE:
-		case Opcodes.IFGT:
-		case Opcodes.IFLE:
-			mv.visitInsn(SWAP);
-			mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-			mv.visitInsn(SWAP);
-			mv.visitIntInsn(BIPUSH, branchStarting);
-			mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(" + Configuration.TAINT_TAG_DESC + "I)V", false);
-			mv.visitJumpInsn(opcode, label);
-			break;
-		case Opcodes.IFNULL:
-		case Opcodes.IFNONNULL:
-			Type typeOnStack = ta.getTopOfStackType();
-			if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT && typeOnStack.getDimensions() == 1) {
-				//O1 T1
+		if (Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
+			switch (opcode) {
+			case Opcodes.IFEQ:
+			case Opcodes.IFNE:
+			case Opcodes.IFLT:
+			case Opcodes.IFGE:
+			case Opcodes.IFGT:
+			case Opcodes.IFLE:
 				mv.visitInsn(SWAP);
 				mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 				mv.visitInsn(SWAP);
 				mv.visitIntInsn(BIPUSH, branchStarting);
-				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(Ljava/lang/Object;I)V", false);
-			} else {
-				mv.visitInsn(DUP);
+				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(" + Configuration.TAINT_TAG_DESC + "I)V", false);
+				mv.visitJumpInsn(opcode, label);
+				break;
+			case Opcodes.IFNULL:
+			case Opcodes.IFNONNULL:
+				Type typeOnStack = ta.getTopOfStackType();
+				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT && typeOnStack.getDimensions() == 1) {
+					//O1 T1
+					mv.visitInsn(SWAP);
+					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+					mv.visitInsn(SWAP);
+					mv.visitIntInsn(BIPUSH, branchStarting);
+					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(Ljava/lang/Object;I)V", false);
+				} else {
+					mv.visitInsn(DUP);
+					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+					mv.visitInsn(SWAP);
+					mv.visitIntInsn(BIPUSH, branchStarting);
+					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(Ljava/lang/Object;I)V", false);
+				}
+				mv.visitJumpInsn(opcode, label);
+				break;
+			case Opcodes.IF_ICMPEQ:
+			case Opcodes.IF_ICMPNE:
+			case Opcodes.IF_ICMPLT:
+			case Opcodes.IF_ICMPGE:
+			case Opcodes.IF_ICMPGT:
+			case Opcodes.IF_ICMPLE:
+				//T V T V
+				int tmp = lvs.getTmpLV(Type.INT_TYPE);
+				//T V T V
+				mv.visitInsn(SWAP);
+				mv.visitInsn(TaintUtils.IS_TMP_STORE);
+				mv.visitVarInsn(Configuration.TAINT_STORE_OPCODE, tmp);
+				//T V V
+				mv.visitInsn(DUP2_X1);
+				mv.visitInsn(POP2);
+				//V V T  
 				mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 				mv.visitInsn(SWAP);
+				//V V C T
+				mv.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, tmp);
+				lvs.freeTmpLV(tmp);
+				//V V T T
 				mv.visitIntInsn(BIPUSH, branchStarting);
-				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(Ljava/lang/Object;I)V", false);
+				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + "I)V", false);
+				mv.visitJumpInsn(opcode, label);
+				break;
+			case Opcodes.IF_ACMPNE:
+			case Opcodes.IF_ACMPEQ:
+				typeOnStack = ta.getTopOfStackType();
+				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
+					mv.visitInsn(SWAP);
+					mv.visitInsn(POP);
+				}
+				//O1 O2 (t2?)
+				Type secondOnStack = ta.getStackTypeAtOffset(1);
+				if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT) {
+					//O1 O2 T2
+					mv.visitInsn(DUP2_X1);
+					mv.visitInsn(POP2);
+					mv.visitInsn(POP);
+				}
+				mv.visitJumpInsn(opcode, label);
+				break;
+			case Opcodes.GOTO:
+				mv.visitJumpInsn(opcode, label);
+				break;
+			default:
+				throw new IllegalStateException("Unimplemented: " + opcode);
 			}
-			mv.visitJumpInsn(opcode, label);
-			break;
-		case Opcodes.IF_ICMPEQ:
-		case Opcodes.IF_ICMPNE:
-		case Opcodes.IF_ICMPLT:
-		case Opcodes.IF_ICMPGE:
-		case Opcodes.IF_ICMPGT:
-		case Opcodes.IF_ICMPLE:
-			//T V T V
-			int tmp = lvs.getTmpLV(Type.INT_TYPE);
-			//T V T V
-			mv.visitInsn(SWAP);
-			mv.visitInsn(TaintUtils.IS_TMP_STORE);
-			mv.visitVarInsn(Configuration.TAINT_STORE_OPCODE, tmp);
-			//T V V
-			mv.visitInsn(DUP2_X1);
-			mv.visitInsn(POP2);
-			//V V T  
-			mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-			mv.visitInsn(SWAP);
-			//V V C T
-			mv.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, tmp);
-			lvs.freeTmpLV(tmp);
-			//V V T T
-			mv.visitIntInsn(BIPUSH, branchStarting);
-			mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + "I)V", false);
-			mv.visitJumpInsn(opcode, label);
-			break;
-		case Opcodes.IF_ACMPNE:
-		case Opcodes.IF_ACMPEQ:
-			typeOnStack = ta.getTopOfStackType();
-			if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
+		} else {
+			switch (opcode) {
+			case Opcodes.IFEQ:
+			case Opcodes.IFNE:
+			case Opcodes.IFLT:
+			case Opcodes.IFGE:
+			case Opcodes.IFGT:
+			case Opcodes.IFLE:
+				//top is val, taint
 				mv.visitInsn(SWAP);
 				mv.visitInsn(POP);
-			}
-			//O1 O2 (t2?)
-			Type secondOnStack = ta.getStackTypeAtOffset(1);
-			if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT) {
-				//O1 O2 T2
+				mv.visitJumpInsn(opcode, label);
+
+				break;
+			case Opcodes.IF_ICMPEQ:
+			case Opcodes.IF_ICMPNE:
+			case Opcodes.IF_ICMPLT:
+			case Opcodes.IF_ICMPGE:
+			case Opcodes.IF_ICMPGT:
+			case Opcodes.IF_ICMPLE:
+				//top is val, taint, val, taint
+				mv.visitInsn(SWAP);
+				mv.visitInsn(POP);
+				//val, val, taint
 				mv.visitInsn(DUP2_X1);
 				mv.visitInsn(POP2);
 				mv.visitInsn(POP);
+				mv.visitJumpInsn(opcode, label);
+
+				break;
+			case Opcodes.IF_ACMPEQ:
+			case Opcodes.IF_ACMPNE:
+
+				Type typeOnStack = ta.getTopOfStackType();
+				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
+					mv.visitInsn(SWAP);
+					mv.visitInsn(POP);
+				}
+				//O1 O2 (t2?)
+				Type secondOnStack = ta.getStackTypeAtOffset(1);
+				if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT) {
+					//O1 O2 T2
+					mv.visitInsn(DUP2_X1);
+					mv.visitInsn(POP2);
+					mv.visitInsn(POP);
+				}
+				mv.visitJumpInsn(opcode, label);
+
+				break;
+			case Opcodes.GOTO:
+				//we don't care about goto
+				mv.visitJumpInsn(opcode, label);
+				break;
+			case Opcodes.IFNULL:
+			case Opcodes.IFNONNULL:
+
+				typeOnStack = ta.getTopOfStackType();
+				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
+					//O1 T1
+					mv.visitInsn(SWAP);
+					mv.visitInsn(POP);
+				}
+				mv.visitJumpInsn(opcode, label);
+
+				break;
+			default:
+				throw new IllegalArgumentException();
 			}
-			mv.visitJumpInsn(opcode, label);
-			break;
-		case Opcodes.GOTO:
-			mv.visitJumpInsn(opcode, label);
-			break;
-		default:
-			throw new IllegalStateException("Unimplemented: " + opcode);
 		}
 	}
 
@@ -544,7 +691,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	public void typeOp(int opcode, String type, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
 		switch (opcode) {
 		case Opcodes.ANEWARRAY:
-			if (Configuration.ARRAY_LENGTH_TRACKING) {
+			if (Configuration.ARRAY_LENGTH_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
 				Type t = Type.getType(type);
 				if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
 					//e.g. [I for a 2 D array -> MultiDTaintedIntArray
@@ -693,7 +840,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
 	public void iincOp(int var, int increment, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-		if (Configuration.IMPLICIT_TRACKING) {
+		if (Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
 			if (ta.isIgnoreAllInstrumenting || ta.isRawInsns) {
 				mv.visitIincInsn(var, increment);
 				return;

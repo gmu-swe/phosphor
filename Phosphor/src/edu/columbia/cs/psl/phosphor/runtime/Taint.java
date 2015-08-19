@@ -11,6 +11,10 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 public final class Taint implements Cloneable{
 
 
+	public Taint copy()
+	{
+		return new Taint(this);
+	}
 	public Object clone()  {
 		try {
 			return super.clone();
@@ -159,10 +163,10 @@ public final class Taint implements Cloneable{
 			{
 				Taint onObj  = (Taint) ((TaintedWithObjTag)o).getPHOSPHOR_TAG();
 				((String) o).PHOSPHOR_TAG = Taint.combineTags(onObj, tags);
-				for(int i = 0; i < ((String) o).length(); i++)
-				{
-					((String)o).valuePHOSPHOR_TAG[i] = Taint.combineTags(((String)o).valuePHOSPHOR_TAG[i], tags);
-				}
+//				for(int i = 0; i < ((String) o).length(); i++)
+//				{
+//					((String)o).valuePHOSPHOR_TAG[i] = Taint.combineTags(((String)o).valuePHOSPHOR_TAG[i], tags);
+//				}
 			}
 			else
 				((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags((Taint) ((TaintedWithObjTag)o).getPHOSPHOR_TAG(), tags));

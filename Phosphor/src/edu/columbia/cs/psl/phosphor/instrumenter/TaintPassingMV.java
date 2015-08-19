@@ -65,6 +65,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitVarInsn(ASTORE, tmpLV);
 
 		}
+		Configuration.taintTagFactory.methodEntered(className, name, desc, passthruMV, lvs, this);
 		//		if (arrayAnalyzer != null) {
 		//			this.bbsToAddACONST_NULLto = arrayAnalyzer.getbbsToAddACONST_NULLto();
 		//			this.bbsToAddChecktypeObjectto = arrayAnalyzer.getBbsToAddChecktypeObject();
@@ -101,6 +102,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	
 	private String className;
+	private String desc;
 	private MethodVisitor passthruMV;
 	int idxOfPassedControlInfo = 0;
 	public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String signature, String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,MethodVisitor passthruMV) {
@@ -134,6 +136,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			n += newArgTypes[i].getSize();
 		}
 		this.passthruMV = passthruMV;
+		this.desc = desc;
 	}
 
 	protected Type getLocalType(int n) {
@@ -154,6 +157,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	HashSet<Integer> boxAtNextJump = new HashSet<Integer>();
 
+	private int branchDepth = 0;
 	public int branchStarting;
 	HashSet<Integer> forceCtrlAdd = new HashSet<Integer>();
 	@SuppressWarnings("unused")
@@ -169,10 +173,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if(opcode == TaintUtils.BRANCH_START)
 		{
 			branchStarting = var;
+			branchDepth++;
 			return;
 		}
 		if(opcode == TaintUtils.BRANCH_END)
 		{
+			branchDepth--;
 			passthruMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 			if(var > Byte.MAX_VALUE)
 				passthruMV.visitLdcInsn(var);
@@ -212,7 +218,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		boolean boxIt = false;
 
-		if(Configuration.IMPLICIT_TRACKING)
+		if(Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION)
 		{
 			switch(opcode)
 			{
@@ -542,7 +548,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			desc = MultiDTaintedArray.getTypeForType(descType).getInternalName();
 		}
 		
-		if(Configuration.IMPLICIT_TRACKING)
+		if(Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION)
 		{
 			switch(opcode)
 			{
@@ -1565,19 +1571,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			nextLoadIsTainted = true;
 			return;
 		}
-		if (opcode == TaintUtils.GENERATETAINTANDSWAP) {
-			Type onStack = getTopOfStackType();
-			if (onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT) {
-				generateEmptyTaintArray(onStack.getDescriptor());
-			} else {
-				Configuration.taintTagFactory.generateEmptyTaint(mv);
-				if (onStack.getSize() == 1) {
-					super.visitInsn(SWAP);
-				} else {
-					super.visitInsn(DUP_X2);
-					super.visitInsn(POP);
-				}
+		if (opcode == TaintUtils.GENERATETAINT) {
+			if(Configuration.IMPLICIT_TRACKING && branchDepth > 0)
+			{
+				super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+				super.visitFieldInsn(GETFIELD, Type.getInternalName(ControlTaintTagStack.class), "taint", Configuration.TAINT_TAG_DESC);
+				super.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_INTERNAL_NAME, "copy", "()"+Configuration.TAINT_TAG_DESC, false);
 			}
+			else
+				Configuration.taintTagFactory.generateEmptyTaint(mv);
 			return;
 		}
 		if (opcode == TaintUtils.RAW_INSN) {
@@ -1638,7 +1640,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 
-		if(Configuration.IMPLICIT_TRACKING)
+		if(Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION)
 		{
 			switch (opcode) {
 			case IRETURN:
@@ -2672,7 +2674,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 
-		if (Configuration.IMPLICIT_TRACKING && !isIgnoreAllInstrumenting) {
+		if (Configuration.IMPLICIT_TRACKING && !isIgnoreAllInstrumenting && !Configuration.WITHOUT_PROPOGATION) {
 			if(opcode != Opcodes.GOTO)
 			{
 				for (int var : forceCtrlAdd) {
@@ -2747,7 +2749,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				Label newDest = new Label();
 				Label origFalseLoc = new Label();
 
-				super.visitJumpInsn(opcode, newDest);
+
+				Configuration.taintTagFactory.jumpOp(opcode, branchStarting, newDest, mv, lvs, this);
 				FrameNode fn = getCurrentFrameNode();
 				super.visitJumpInsn(GOTO, origFalseLoc);
 				//			System.out.println("taint passing mv monkeying with jump");
@@ -2767,8 +2770,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				boxAtNextJump.clear();
 			}
 			else
-				super.visitJumpInsn(opcode, label); //If we aren't doing implicit tracking, let ImplicitTaintRemovingMV handle this
-
+				Configuration.taintTagFactory.jumpOp(opcode, branchStarting, label, mv, lvs, this);
 		}
 	}
 

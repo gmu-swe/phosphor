@@ -71,7 +71,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 		case TaintUtils.NO_TAINT_STORE_INSN:
 		case TaintUtils.IGNORE_EVERYTHING:
 		case TaintUtils.DONT_LOAD_TAINT:
-		case TaintUtils.GENERATETAINTANDSWAP:
+		case TaintUtils.GENERATETAINT:
 		case TaintUtils.IS_TMP_STORE:
 		case TaintUtils.ALWAYS_BOX_JUMP:
 		case TaintUtils.CUSTOM_SIGNAL_1:
