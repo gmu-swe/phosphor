@@ -206,7 +206,7 @@ public class TaintUtils {
 	}
 
 	public static Object getTaintObj(Object obj) {
-		if(obj == null)
+		if(obj == null || Taint.IGNORE_TAINTING)
 			return null;
 		if (obj instanceof TaintedWithObjTag) {
 			return ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();

@@ -64,12 +64,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			System.err.println("WARN: OPT DISABLED");
 		
 	}
-	
+	List<FieldNode> fields;
 	private boolean ignoreFrames;
-	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames) {
+	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields) {
 		super(Opcodes.ASM5, cv);
 		DO_OPT = DO_OPT && !IS_RUNTIME_INST;
 		this.ignoreFrames = skipFrames;
+		this.fields = fields;
 	}
 	
 	private LinkedList<MethodNode> methodsToAddWrappersFor = new LinkedList<MethodNode>();
@@ -321,6 +322,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			{
 //				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(access, className, name, desc, signature, exceptions, boxFixer, analyzer);
 				tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV);
+				tmv.setFields(fields);
 				TaintAdapter custom = null;
 				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv);
 

@@ -9,10 +9,12 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public final class Taint implements Cloneable{
-
+	public static boolean IGNORE_TAINTING;
 
 	public Taint copy()
 	{
+		if(IGNORE_TAINTING)
+			return this;
 		return new Taint(this);
 	}
 	public Object clone()  {
@@ -103,7 +105,7 @@ public final class Taint implements Cloneable{
 	}
 	public static void combineTagsInPlace(Object obj, Taint t1)
 	{
-		if(obj == null || t1 == null)
+		if(obj == null || t1 == null || IGNORE_TAINTING)
 			return;
 		Taint t = (Taint) TaintUtils.getTaintObj(obj);
 		if(t == null)
@@ -126,6 +128,8 @@ public final class Taint implements Cloneable{
 		if(t1.lbl == null && t1.hasNoDependencies())
 			return t2;
 		if(t2.lbl == null && t2.hasNoDependencies())
+			return t1;
+		if(IGNORE_TAINTING)
 			return t1;
 		Taint r = new Taint();
 		r.addDependency(t1);
@@ -151,11 +155,13 @@ public final class Taint implements Cloneable{
 		}
 		else if(t1 == tags.taint)
 			return t1;
+		if(IGNORE_TAINTING)
+			return t1;
 		return new Taint((Taint) t1, tags.taint);
 	}
 	public static void combineTagsOnObject(Object o, ControlTaintTagStack tags)
 	{
-		if(tags.isEmpty())
+		if(tags.isEmpty() || IGNORE_TAINTING)
 			return;
 		if(o instanceof TaintedWithObjTag)
 		{

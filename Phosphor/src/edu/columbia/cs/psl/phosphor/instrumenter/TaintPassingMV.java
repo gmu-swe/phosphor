@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
@@ -14,6 +15,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FieldNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Printer;
@@ -2820,5 +2822,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	public void setLVOffset(int newArgOffset) {
 		this.argOffset = newArgOffset;
+	}
+
+	public List<FieldNode> fields;
+	public void setFields(List<FieldNode> fields) {
+		this.fields = fields;
 	}
 }

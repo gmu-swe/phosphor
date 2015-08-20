@@ -9,6 +9,7 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
+import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassReader;
@@ -21,6 +22,7 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.JSRInlinerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.SerialVersionUIDAdder;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.AnnotationNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.ClassNode;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FieldNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.CheckClassAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.TraceClassVisitor;
@@ -161,6 +163,7 @@ public class PreMain {
 			for(MethodNode mn : cn.methods)
 				if(mn.name.equals("getPHOSPHOR_TAG"))
 					return classfileBuffer;
+			List<FieldNode> fields = cn.fields;
 			if (skipFrames)
 			{
 				cn = null;
@@ -184,7 +187,7 @@ public class PreMain {
 
 				cr.accept(
 				//							new CheckClassAdapter(
-						new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cw, skipFrames))
+						new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cw, skipFrames, fields))
 						//									)
 						, ClassReader.EXPAND_FRAMES);
 				
@@ -239,7 +242,7 @@ public class PreMain {
 				try{
 					cr.accept(
 //							new CheckClassAdapter(
-									new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cv,skipFrames))
+									new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cv,skipFrames, fields))
 //									)
 							, ClassReader.EXPAND_FRAMES);
 				}
