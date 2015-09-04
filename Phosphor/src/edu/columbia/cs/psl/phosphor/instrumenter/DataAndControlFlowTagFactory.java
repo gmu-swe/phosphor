@@ -495,33 +495,35 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					//TA A
 					mv.visitInsn(SWAP);
 					loaded = true;
-					if (Configuration.MULTI_TAINTING) {
-						mv.visitInsn(POP);
-						if(Configuration.WITHOUT_PROPOGATION)
-							mv.visitInsn(ACONST_NULL);
-						else
-						{
-							mv.visitInsn(DUP);
-							mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-						}
+					if(Configuration.MULTI_TAINTING && Configuration.IMPLICIT_TRACKING)
+					{
+						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-					} else
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
+					}
+					else
+					{
+						mv.visitInsn(POP);
+						mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+						if (Configuration.MULTI_TAINTING)
+							mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
 					mv.visitInsn(SWAP);
 					//A
 				}
 				if (!loaded) {
-					if (Configuration.MULTI_TAINTING) {
-						if(Configuration.WITHOUT_PROPOGATION)
-							mv.visitInsn(ACONST_NULL);
-						else
-						{
-							mv.visitInsn(DUP);
-							mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-						}
+					mv.visitInsn(DUP);
+					if(Configuration.MULTI_TAINTING && Configuration.IMPLICIT_TRACKING)
+					{
+						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-					} else
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
+					}
+					else
+					{
+						mv.visitInsn(POP);
+						mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+						if (Configuration.MULTI_TAINTING)
+							mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
 					mv.visitInsn(SWAP);
 				}
 				mv.visitInsn(opcode);
