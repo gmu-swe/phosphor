@@ -2745,19 +2745,18 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		else
 		{
-			if(ignoreLoadingNextTaint)
-			{
-				super.visitJumpInsn(opcode, label);
-				return;
-			}
-			if (boxAtNextJump.size() > 0) {
+
+			if (boxAtNextJump.size() > 0 && opcode != Opcodes.GOTO) {
 				Label origDest = label;
 				Label newDest = new Label();
 				Label origFalseLoc = new Label();
 
-
-				Configuration.taintTagFactory.jumpOp(opcode, branchStarting, newDest, mv, lvs, this);
+				if(ignoreLoadingNextTaint)
+					super.visitJumpInsn(opcode, label);
+				else
+					Configuration.taintTagFactory.jumpOp(opcode, branchStarting, newDest, mv, lvs, this);
 				FrameNode fn = getCurrentFrameNode();
+
 				super.visitJumpInsn(GOTO, origFalseLoc);
 				//			System.out.println("taint passing mv monkeying with jump");
 				super.visitLabel(newDest);
@@ -2765,7 +2764,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				for (Integer var : boxAtNextJump) {
 					super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
 					super.visitVarInsn(ALOAD, var);
-//					System.out.println("Boxing." + analyzer.stack);
 					registerTaintedArray(getTopOfStackType().getDescriptor());
 					
 					super.visitVarInsn(ASTORE, var);
@@ -2774,9 +2772,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitLabel(origFalseLoc);
 				fn.accept(this);
 				boxAtNextJump.clear();
+			} else {
+				if (ignoreLoadingNextTaint)
+					super.visitJumpInsn(opcode, label);
+				else
+					Configuration.taintTagFactory.jumpOp(opcode, branchStarting, label, mv, lvs, this);
 			}
-			else
-				Configuration.taintTagFactory.jumpOp(opcode, branchStarting, label, mv, lvs, this);
 		}
 	}
 
