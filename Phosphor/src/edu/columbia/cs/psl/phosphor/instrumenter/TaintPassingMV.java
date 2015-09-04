@@ -2745,7 +2745,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		else
 		{
-			//TODO this part needs to be all simplified and brought into the delegate?
+			if(ignoreLoadingNextTaint)
+			{
+				super.visitJumpInsn(opcode, label);
+				return;
+			}
 			if (boxAtNextJump.size() > 0) {
 				Label origDest = label;
 				Label newDest = new Label();
