@@ -38,7 +38,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 public class PreMain {
     private static Instrumentation instrumentation;
 
-    static final boolean DEBUG = true;
+    static final boolean DEBUG = false;
 
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
 	public static final class PCLoggingTransformer implements ClassFileTransformer {

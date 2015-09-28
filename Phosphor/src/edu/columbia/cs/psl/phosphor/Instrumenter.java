@@ -542,7 +542,8 @@ public class Instrumenter {
 	static boolean ANALYZE_ONLY;
 
 	public static void _main(String[] args) {
-
+		if(PreMain.DEBUG)
+			System.err.println("Warning: Debug output enabled (uses a lot of IO!)");
 		String outputFolder = args[1];
 		rootOutputDir = new File(outputFolder);
 		if (!rootOutputDir.exists())
