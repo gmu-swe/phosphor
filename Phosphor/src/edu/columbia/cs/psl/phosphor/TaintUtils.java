@@ -3,14 +3,11 @@ package edu.columbia.cs.psl.phosphor;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 
-import com.rits.cloning.Cloner;
 
 import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
-import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
-import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
