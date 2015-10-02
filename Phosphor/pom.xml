@@ -6,6 +6,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
+		<testSourceDirectory>test</testSourceDirectory>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -45,11 +46,33 @@
 									<pattern>org.apache.commons.cli</pattern>
 									<shadedPattern>edu.columbia.cs.psl.phosphor.org.apache.commons.cli</shadedPattern>
 								</relocation>
+								<relocation>
+									<pattern>com.rits.cloning</pattern>
+									<shadedPattern>edu.columbia.cs.psl.phosphor.com.rits.cloning</shadedPattern>
+								</relocation>
 							</relocations>
 							<minimizeJar>true</minimizeJar>
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>2.18.1</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<jvm>${project.build.directory}/jre-inst/bin/java</jvm>
+					<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+						-javaagent:${project.build.directory}/${project.build.finalName}.jar</argLine>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -68,16 +91,27 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>commons-cli</groupId>
 			<artifactId>commons-cli</artifactId>
 			<version>1.2</version>
 		</dependency>
+		<dependency>
+	<groupId>uk.com.robust-it</groupId>
+	<artifactId>cloning</artifactId>
+	<version>1.7.4</version>
+</dependency>
 	</dependencies>
-	  <distributionManagement>
-	      <snapshotRepository>
-		        <id>psl.internal</id>
-				      <name>PSL  Internal Repository</name>
-					        <url>http://ase.cs.columbia.edu:8282/repository/snapshots</url>
-							    </snapshotRepository>
-								  </distributionManagement>
+	<distributionManagement>
+		<snapshotRepository>
+			<id>psl.internal</id>
+			<name>PSL  Internal Repository</name>
+			<url>http://ase.cs.columbia.edu:8282/repository/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
 </project>

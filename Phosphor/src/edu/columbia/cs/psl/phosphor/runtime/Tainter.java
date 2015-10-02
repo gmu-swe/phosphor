@@ -19,9 +19,34 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithIntTag;
 
 public class Tainter {
+	public static void taintedObject(Object obj, int tag)
+	{
+		throw new IllegalStateException("Phosphor not engaged");
+	}
+	public static void taintedObject$$PHOSPHORTAGGED(Object obj, int tag_tag, int tag)
+	{
+		if(obj instanceof MultiDTaintedArrayWithIntTag)
+			obj = ((MultiDTaintedArrayWithIntTag) obj).getVal();
+		if(obj instanceof TaintedWithIntTag)
+			((TaintedWithIntTag) obj).setPHOSPHOR_TAG(tag);
+	}
+	public static int getTaint(Object obj)
+	{
+		throw new IllegalStateException("Phosphor not engaged");
+	}
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(Object obj,TaintedIntWithIntTag ret)
+	{
+		if(obj instanceof TaintedWithIntTag)
+			ret.val = ((TaintedWithIntTag) obj).getPHOSPHOR_TAG();
+		return ret;
+	}
 	public static TaintedShortWithIntTag taintedShort$$PHOSPHORTAGGED(int i, short s, int z, int tag, TaintedShortWithIntTag ret)
 	{
 		ret.taint = tag;

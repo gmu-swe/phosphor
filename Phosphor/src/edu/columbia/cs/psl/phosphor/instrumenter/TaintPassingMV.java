@@ -1511,11 +1511,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 
 			super.visitInsn(SWAP);
-			if (returnType.equals(Type.getType(TaintedMisc.class))) {
-				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "val", "Ljava/lang/Object;");
-				super.visitTypeInsn(CHECKCAST, origReturnType.getDescriptor());
-			} else
-				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "val", origReturnType.getDescriptor());
+			super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "val", origReturnType.getDescriptor());
 
 		}
 		if (TaintUtils.DEBUG_CALLS)
@@ -2675,7 +2671,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitJumpInsn(opcode, label);
 			return;
 		}
-
+		
+		if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
+		{
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+			super.visitInsn(SWAP);
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+			super.visitInsn(SWAP);
+		}
+			
 		if (Configuration.IMPLICIT_TRACKING && !isIgnoreAllInstrumenting && !Configuration.WITHOUT_PROPOGATION) {
 			if(opcode != Opcodes.GOTO)
 			{

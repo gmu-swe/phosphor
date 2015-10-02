@@ -2,6 +2,8 @@ package edu.columbia.cs.psl.phosphor;
 
 import java.lang.reflect.Array;
 
+import com.rits.cloning.Cloner;
+
 import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
@@ -381,15 +383,7 @@ public class TaintUtils {
 //		}
 
 	}
-	static int bar;
-	static void truep()
-	{
-		bar++;
-	}
-	static void falsep()
-	{
-		bar++;
-	}
+
 //	public static void arraycopyHarmony(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 //		if(!src.getClass().isArray())
 //		{
@@ -625,5 +619,38 @@ public class TaintUtils {
 	public static Object[] newTaintArray(int len)
 	{
 		return (Object[]) Array.newInstance(Configuration.TAINT_TAG_OBJ_CLASS, len);
+	}
+	static Cloner cloner = null;
+
+	public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name) {
+		T ret = Enum.valueOf(enumType, name);
+		if (name instanceof TaintedWithIntTag) {
+			int tag = ((TaintedWithIntTag) name).getPHOSPHOR_TAG();
+			if (tag != 0) {
+				if (cloner == null)
+					cloner = new Cloner();
+				ret = cloner.deepClone(ret);
+				((TaintedWithIntTag) ret).setPHOSPHOR_TAG(tag);
+			}
+		} else if (name instanceof TaintedWithObjTag) {
+			Object tag = ((TaintedWithObjTag) name).getPHOSPHOR_TAG();
+			if (tag != null) {
+				if (cloner == null)
+					cloner = new Cloner();
+				ret = cloner.deepClone(ret);
+				((TaintedWithObjTag) ret).setPHOSPHOR_TAG(tag);
+			}
+		}
+		return ret;
+	}
+	public static Object ensureUnboxed(Object o)
+	{
+		if(o instanceof MultiDTaintedArrayWithIntTag)
+			return ((MultiDTaintedArrayWithIntTag) o).getVal();
+		else if(o instanceof MultiDTaintedArrayWithObjTag)
+			return ((MultiDTaintedArrayWithObjTag) o).getVal();
+		else if(o instanceof Enum<?>)
+			return ((Enum) o).valueOf(((Enum) o).getDeclaringClass(), ((Enum) o).name());
+		return o;
 	}
 }

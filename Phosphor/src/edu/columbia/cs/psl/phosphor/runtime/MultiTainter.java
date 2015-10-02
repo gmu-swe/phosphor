@@ -21,7 +21,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
-public class MultiTainter {
+public final class MultiTainter {
 	public static boolean taintedBoolean(boolean in, Object lbl)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
@@ -269,7 +269,7 @@ public class MultiTainter {
 		return getTaint(obj);
 	}
 
-	public static Taint getTaint(Object obj)
+	public static final Taint getTaint(Object obj)
 	{
 		if(obj instanceof MultiDTaintedArrayWithObjTag)
 			obj = ((MultiDTaintedArrayWithObjTag) obj).getVal();

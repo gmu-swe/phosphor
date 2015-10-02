@@ -458,7 +458,9 @@ public class Instrumenter {
 	static Option opt_trackArrayLengthTaints = new Option("withArrayLengthTags", "Tracks taint tags on array lengths - requires use of JVMTI runtime library when running");
 	static Option opt_withoutFieldHiding = new Option("withoutFieldHiding", "Disable hiding of taint fields via reflection");
 	static Option opt_withoutPropogation = new Option("withoutPropogation","Disable all tag propogation - still create method stubs and wrappers as per other options, but don't actually propogate tags");
-	
+	static Option opt_enumPropogation = new Option("withEnumsByValue","Propogate tags to enums as if each enum were a value (not a reference) through the Enum.valueOf method");
+	static Option opt_unboxAcmpEq = new Option("forceUnboxAcmpEq","At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)");
+
 	static Option help = new Option( "help", "print this message" );
 
 	public static String sourcesFile;
