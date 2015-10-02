@@ -478,7 +478,9 @@ public class Instrumenter {
 		options.addOption(opt_trackArrayLengthTaints);
 		options.addOption(opt_withoutFieldHiding);
 		options.addOption(opt_withoutPropogation);
-		
+		options.addOption(opt_enumPropogation);
+		options.addOption(opt_unboxAcmpEq);
+
 	    CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
 	    try {
@@ -508,7 +510,8 @@ public class Instrumenter {
 		Configuration.ARRAY_LENGTH_TRACKING = line.hasOption("withArrayLengthTags");
 		Configuration.WITHOUT_FIELD_HIDING = line.hasOption("withoutFieldHiding");
 		Configuration.WITHOUT_PROPOGATION = line.hasOption("withoutPropogation");
-		
+		Configuration.WITH_ENUM_BY_VAL = line.hasOption("withEnumsByValue");
+		Configuration.WITH_UNBOX_ACMPEQ = line.hasOption("forceUnboxAcmpEq");
 		Configuration.init();
 		
 		
