@@ -287,6 +287,11 @@ public class PreMain {
 	}
 	public static void premain(String args, Instrumentation inst) {
         instrumentation = inst;
+        if(args != null &&args.equals("enum,acmpeq"))
+        {
+        	Configuration.WITH_ENUM_BY_VAL= true;
+        	Configuration.WITH_UNBOX_ACMPEQ = true;
+        }
         if(Instrumenter.loader == null)
         	Instrumenter.loader = bigLoader;
 		ClassFileTransformer transformer = new PCLoggingTransformer();

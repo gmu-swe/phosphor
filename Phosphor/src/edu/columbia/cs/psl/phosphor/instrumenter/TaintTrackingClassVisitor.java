@@ -88,6 +88,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	private boolean fixLdcClass;
 	
+	private boolean isEnum;
+	
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		addTaintField = true;
@@ -108,7 +110,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			isInterface = true;
 		}
 		if ((access & Opcodes.ACC_ENUM) != 0)
+		{
+			isEnum = true;
 			addTaintField = false;
+		}
 
 		if ((access & Opcodes.ACC_ANNOTATION) != 0)
 			isAnnotation = true;
@@ -125,8 +130,24 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			generateEquals = true;
 			generateHashCode = true;
 		}
+		
 		isNormalClass = (access & Opcodes.ACC_ENUM) == 0 && (access & Opcodes.ACC_INTERFACE) == 0;
-
+		
+		if((isEnum || name.equals("java/lang/Enum")) && Configuration.WITH_ENUM_BY_VAL)
+		{
+			boolean alreadyHas = false;
+			for (String s : interfaces)
+				if (s.equals("java/lang/Cloneable"))
+					alreadyHas = true;
+			if (!alreadyHas) {
+				String[] newIntfcs = new String[interfaces.length + 1];
+				System.arraycopy(interfaces, 0, newIntfcs, 0, interfaces.length);
+				newIntfcs[interfaces.length] = "java/lang/Cloneable";
+				interfaces = newIntfcs;
+				if (signature != null)
+					signature = signature + "java/lang/Cloneable";
+			}
+		}
 		if (isNormalClass && !Instrumenter.isIgnoredClass(name) && !FIELDS_ONLY) {
 			String[] newIntfcs = new String[interfaces.length + 1];
 			System.arraycopy(interfaces, 0, newIntfcs, 0, interfaces.length);
@@ -210,6 +231,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	HashMap<MethodNode, MethodNode> forMore = new HashMap<MethodNode, MethodNode>();
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+		if (Configuration.WITH_ENUM_BY_VAL && className.equals("java/lang/Enum") && name.equals("clone"))
+			return null;
 		if (TaintUtils.DEBUG_CALLS || TaintUtils.DEBUG_FIELDS || TaintUtils.DEBUG_FRAMES || TaintUtils.DEBUG_LOCAL)
 			System.out.println("Instrumenting " + name + "\n\n\n\n\n\n");
 		superMethodsToOverride.remove(name + desc);
@@ -434,9 +457,21 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	boolean addTaintField = false;
 
+
 	@Override
 	public void visitEnd() {
 
+		if((isEnum || className.equals("java/lang/Enum")) && Configuration.WITH_ENUM_BY_VAL)
+		{
+			MethodVisitor mv = super.visitMethod(Opcodes.ACC_PUBLIC, "clone", "()Ljava/lang/Object;", null, new String[]{"java/lang/CloneNotSupportedException"});
+			mv.visitCode();
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "clone", "()Ljava/lang/Object;",false);
+
+			mv.visitInsn(Opcodes.ARETURN);
+			mv.visitEnd();
+			mv.visitMaxs(0, 0);			
+		}
 		boolean goLightOnGeneratedStuff = !Instrumenter.IS_ANDROID_INST && className.equals("java/lang/Byte");
 //		if (isAnnotation) {
 //			super.visitEnd();
