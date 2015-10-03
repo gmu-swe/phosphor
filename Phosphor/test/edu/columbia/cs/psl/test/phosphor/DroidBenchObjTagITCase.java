@@ -59,7 +59,7 @@ public class DroidBenchObjTagITCase {
 		Datacontainer d1;
 
 		void setTaint(Datacontainer data) {
-			data.setDescription("abcd");
+			data.setDescription("abcdtestfieldsens1");
 			data.setSecret(taintedString("abcdefg"));
 		}
 
@@ -79,7 +79,7 @@ public class DroidBenchObjTagITCase {
 	@Test
 	public void testFieldSensitivity2() {
 		Datacontainer d1 = new Datacontainer();
-		d1.setDescription("abcd");
+		d1.setDescription("abcdfs2");
 		d1.setSecret(taintedString("abcdefg"));
 		assertNoTaint(d1.getDescription());
 	}
@@ -87,7 +87,7 @@ public class DroidBenchObjTagITCase {
 	@Test
 	public void testFieldSensitivity3() {
 		Datacontainer d1 = new Datacontainer();
-		d1.setDescription("abcd");
+		d1.setDescription("abcdts3");
 		d1.setSecret(taintedString("abcdefg"));
 		assertTrue(getTaint(d1.getSecret()) != 0);
 	}
@@ -95,7 +95,7 @@ public class DroidBenchObjTagITCase {
 	@Test
 	public void testFieldSensitivity4() {
 		Datacontainer d1 = new Datacontainer();
-		d1.setDescription("abcd");
+		d1.setDescription("abcdts4");
 		d1.setDescription(taintedString("abcdefg"));
 		assertTrue(getTaint(d1.getDescription()) != 0);
 	}
@@ -115,7 +115,7 @@ public class DroidBenchObjTagITCase {
 	public void testObjectSensitivity1() {
 		LinkedList<String> list1 = new LinkedList<String>();
 		LinkedList<String> list2 = new LinkedList<String>();
-		list1.add(taintedString("abcd")); //source
+		list1.add(taintedString("abcdts1")); //source
 		list2.add("123");
 		assertTrue(getTaint(list2.getFirst()) == 0);
 	}
@@ -125,7 +125,7 @@ public class DroidBenchObjTagITCase {
 		String var;
 		DataStore ds = new DataStore();
 
-		String taintedString = taintedString("abcd");
+		String taintedString = taintedString("abcdts2");
 
 		var = taintedString;
 		ds.field = taintedString;
@@ -141,7 +141,7 @@ public class DroidBenchObjTagITCase {
 	public void testExceptions1() {
 		String imei = "";
 		try {
-			imei = taintedString("abcd");
+			imei = taintedString("abcde1");
 			throw new RuntimeException();
 		} catch (RuntimeException ex) {
 			assertTrue(getTaint(imei) != 0);
@@ -152,7 +152,7 @@ public class DroidBenchObjTagITCase {
 	public void testExceptions2() {
 		String imei = "";
 		try {
-			imei = taintedString("abcd");
+			imei = taintedString("abcde2");
 			int[] arr = new int[(int) Math.sqrt(49)];
 			if (arr[32] > 0)
 				imei = "";
@@ -165,7 +165,7 @@ public class DroidBenchObjTagITCase {
 	public void testExceptions3() {
 		String imei = "";
 		try {
-			imei = taintedString("abcd");
+			imei = taintedString("abcde3");
 			int[] arr = new int[42];
 			if (arr[32] > 0)
 				imei = "";
@@ -178,7 +178,7 @@ public class DroidBenchObjTagITCase {
 	public void testExceptions4() {
 		String imei = "";
 		try {
-			imei = taintedString("abcd");
+			imei = taintedString("abcde4");
 			throw new RuntimeException(imei);
 		} catch (RuntimeException ex) {
 			assertTrue(getTaint(ex.getMessage()) != 0);
@@ -187,7 +187,7 @@ public class DroidBenchObjTagITCase {
 
 	@Test
 	public void testLoopExample1() {
-		String imei = taintedString("abcd");
+		String imei = taintedString("abcdex1");
 
 		String obfuscated = "";
 		for (char c : imei.toCharArray())
@@ -197,7 +197,7 @@ public class DroidBenchObjTagITCase {
 
 	@Test
 	public void testLoopExample2() {
-		String imei = taintedString("abcd");
+		String imei = taintedString("abcdex2");
 
 		String obfuscated = "";
 		for (int i = 0; i < 10; i++)
@@ -219,7 +219,7 @@ public class DroidBenchObjTagITCase {
 			int a = 22 + 11;
 			int b = 22 * 2 - 1 + a;
 
-			String message = (a == b) ? "no taint" : taintedString("abcd"); //source
+			String message = (a == b) ? "no taint" : taintedString("abcdsc1"); //source
 
 			sendSMS(phoneNumbers, message);
 		}
@@ -428,19 +428,19 @@ public class DroidBenchObjTagITCase {
 	@Test
 	public void testArrayAccess1() {
 		String[] arrayData = new String[3];
-		arrayData[0] = "abcd";
+		arrayData[0] = "abcdaa1";
 		arrayData[1] = taintedString();
-		arrayData[2] = "abcd";
+		arrayData[2] = "abcde";
 		assertNoTaint(arrayData[2]);
 	}
 
 	@Test
 	public void testArrayAccess2() {
 		String[] arrayData = new String[10];
-		arrayData[0] = "abcd";
-		arrayData[4] = "abcd";
+		arrayData[0] = "abcdaa2";
+		arrayData[4] = "abcde";
 		arrayData[5] = taintedString();
-		arrayData[2] = "abcd";
+		arrayData[2] = "abcdef";
 		assertNoTaint(arrayData[calculateIndex()]);
 	}
 
@@ -457,7 +457,7 @@ public class DroidBenchObjTagITCase {
 	public void testHashMapAccess1() {
 		Map<String, String> map = new HashMap<String, String>();
 		map.put("tainted", taintedString());
-		map.put("untainted", "abcd");
+		map.put("untainted", "abcdzzzzzzzzhma1");
 		assertNoTaint(map.get("untainted"));
 		assertTrue(getTaint(map.get("tainted")) != 0);
 	}
