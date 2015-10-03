@@ -197,6 +197,12 @@ public class MethodArgReindexer extends InstructionAdapter {
 							remappedLocals[newIdx] = t.getInternalName();
 							newIdx++;
 							idxToUseForArgs++;
+							if(i == origNumArgs-1 && origNumArgs !=0 && Configuration.IMPLICIT_TRACKING)
+							{
+								remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
+								newIdx++;
+								nLocal++;
+							}
 							continue;
 						}
 					} else if(local[i] == Opcodes.TOP)
