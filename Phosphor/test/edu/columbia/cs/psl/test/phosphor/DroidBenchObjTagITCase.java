@@ -27,6 +27,17 @@ import static org.junit.Assert.*;
 
 public class DroidBenchObjTagITCase {
 
+	public static void assertNoTaint(String obj)
+	{
+		Taint taint = MultiTainter.getTaint(obj.toCharArray()[0]);
+		if(taint == null)
+		{
+			return;
+		}
+		if(taint.lbl == null && taint.hasNoDependencies())
+			return;
+		fail("Expected null taint. Got: " + taint);
+	}
 	public static int getTaint(String description) {
 		Taint taint = MultiTainter.getTaint(description.toCharArray()[0]);
 		return (taint == null || (taint.lbl == null && taint.hasNoDependencies())) ? 0 : 1;
@@ -53,7 +64,7 @@ public class DroidBenchObjTagITCase {
 		}
 
 		void sendTaint() {
-			assertTrue(getTaint(d1.getDescription()) == 0);
+			assertNoTaint(d1.getDescription());
 		}
 	}
 
@@ -70,7 +81,7 @@ public class DroidBenchObjTagITCase {
 		Datacontainer d1 = new Datacontainer();
 		d1.setDescription("abcd");
 		d1.setSecret(taintedString("abcdefg"));
-		assertTrue(getTaint(d1.getDescription()) == 0);
+		assertNoTaint(d1.getDescription());
 	}
 
 	@Test
@@ -420,7 +431,7 @@ public class DroidBenchObjTagITCase {
 		arrayData[0] = "abcd";
 		arrayData[1] = taintedString();
 		arrayData[2] = "abcd";
-		assertTrue(getTaint(arrayData[2]) == 0);
+		assertNoTaint(arrayData[2]);
 	}
 
 	@Test
@@ -430,7 +441,7 @@ public class DroidBenchObjTagITCase {
 		arrayData[4] = "abcd";
 		arrayData[5] = taintedString();
 		arrayData[2] = "abcd";
-		assertTrue(getTaint(arrayData[calculateIndex()]) == 0);
+		assertNoTaint(arrayData[calculateIndex()]);
 	}
 
 	private static int calculateIndex() {
@@ -447,7 +458,7 @@ public class DroidBenchObjTagITCase {
 		Map<String, String> map = new HashMap<String, String>();
 		map.put("tainted", taintedString());
 		map.put("untainted", "abcd");
-		assertTrue(getTaint(map.get("untainted")) == 0);
+		assertNoTaint(map.get("untainted"));
 		assertTrue(getTaint(map.get("tainted")) != 0);
 	}
 
