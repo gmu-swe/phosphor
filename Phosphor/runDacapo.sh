@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 DACAPO_DIR=dacapo
 PHOSPHOR_JAR=`pwd`/target/Phosphor-0.0.2-SNAPSHOT.jar
 BENCHMARKS=(avrora batik eclipse fop h2 jython luindex lusearch pmd sunflow tomcat xalan) #tradebeans tradesoap are disabled in this script because of the PITA with distributing the openjdk jce.jar file with everything, then switching it in...
