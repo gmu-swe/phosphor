@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -8,6 +9,9 @@ import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.security.ProtectionDomain;
 import java.util.List;
 
@@ -130,6 +134,7 @@ public class PreMain {
 			return ret;
 		}
 		
+		MessageDigest md5inst;
 		public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
 			ClassReader cr = new ClassReader(classfileBuffer);
 			String className = cr.getClassName();
@@ -140,6 +145,7 @@ public class PreMain {
 //				System.out.println("Premain.java ignore: " + className);
 				return classfileBuffer;
 			}
+			
 //			if(className.equals("java/lang/Integer"))
 //				System.out.println(className);
 			ClassNode cn = new ClassNode();
@@ -163,6 +169,41 @@ public class PreMain {
 			for(MethodNode mn : cn.methods)
 				if(mn.name.equals("getPHOSPHOR_TAG"))
 					return classfileBuffer;
+			if(Configuration.CACHE_DIR != null)
+			{
+				String cacheKey = className.replace("/", ".");
+				File f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".md5sum");
+				if (f.exists()) {
+					try {
+						FileInputStream fis = new FileInputStream(f);
+						byte[] cachedDigest = new byte[1024];
+						fis.read(cachedDigest);
+						fis.close();
+						if(md5inst == null)
+							md5inst = MessageDigest.getInstance("MD5");
+						byte[] checksum = md5inst.digest(classfileBuffer);
+						boolean matches = true;
+						if(checksum.length > cachedDigest.length)
+							matches = false;
+						if(matches)
+							for(int i = 0; i < checksum.length; i++)
+							{
+								if(checksum[i] != cachedDigest[i])
+								{
+									matches = false;
+									break;
+								}
+							}
+						if(matches)
+						{
+							byte[] ret = Files.readAllBytes(new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".class").toPath());
+							return ret;
+						}
+					} catch (Throwable t) {
+						t.printStackTrace();
+					}
+				}
+			}
 			List<FieldNode> fields = cn.fields;
 			if (skipFrames)
 			{
@@ -204,9 +245,9 @@ public class PreMain {
 				{
 //					if(TaintUtils.DEBUG_FRAMES)
 //						System.out.println("NOW IN CHECKCLASSADAPTOR");
-					if (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler") &&
+					if (DEBUG || (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler") &&
 							!className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache") && !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap")
-							&& !className.startsWith("jersey/repackaged/com/google/common/collect/")) {
+							&& !className.startsWith("jersey/repackaged/com/google/common/collect/"))) {
 						cr = new ClassReader(cw.toByteArray());
 						cr.accept(new CheckClassAdapter(new ClassWriter(0)), 0);
 					}
@@ -235,6 +276,24 @@ public class PreMain {
 //					t.printStackTrace();
 //				}
 //				System.out.println("Succeeded w " + className);
+				if(Configuration.CACHE_DIR != null)
+				{
+					String cacheKey = className.replace("/", ".");
+					File f = new File(Configuration.CACHE_DIR + File.separator + cacheKey+".class");
+					FileOutputStream fos = new FileOutputStream(f);
+					byte[] ret = cw.toByteArray();
+					fos.write(ret);
+					fos.close();
+					if(md5inst == null)
+						md5inst = MessageDigest.getInstance("MD5");
+					byte[] checksum = md5inst.digest(classfileBuffer);
+					f = new File(Configuration.CACHE_DIR + File.separator + cacheKey+".md5sum");
+					fos = new FileOutputStream(f);
+					
+					fos.write(checksum);
+					fos.close();
+					return ret;
+				}
 				return cw.toByteArray();
 			} catch (Throwable ex) {
 				ex.printStackTrace();
@@ -287,10 +346,23 @@ public class PreMain {
 	}
 	public static void premain(String args, Instrumentation inst) {
         instrumentation = inst;
-        if(args != null &&args.equals("enum,acmpeq"))
+        if(args != null)
         {
-        	Configuration.WITH_ENUM_BY_VAL= true;
-        	Configuration.WITH_UNBOX_ACMPEQ = true;
+        	String[] aaa = args.split(",");
+        	for(String s : aaa)
+        	{
+        		if(s.equals("acmpeq"))
+                	Configuration.WITH_UNBOX_ACMPEQ = true;
+        		else if(s.equals("enum"))
+                	Configuration.WITH_ENUM_BY_VAL= true;
+        		else if(s.startsWith("cacheDir="))
+        		{
+        			Configuration.CACHE_DIR = s.substring(9);
+        			File f = new File(Configuration.CACHE_DIR);
+        			if(!f.exists())
+        				f.mkdir();
+        		}
+        	}
         }
         if(Instrumenter.loader == null)
         	Instrumenter.loader = bigLoader;

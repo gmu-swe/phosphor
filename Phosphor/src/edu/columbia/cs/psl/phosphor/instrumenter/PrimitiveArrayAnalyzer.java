@@ -399,6 +399,22 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					AbstractInsnNode insnN = instructions.get(insn);
 					fromBlock.isJump = (insnN.getType()== AbstractInsnNode.JUMP_INSN && insnN.getOpcode() != Opcodes.GOTO)
 							|| insnN.getType() == AbstractInsnNode.LOOKUPSWITCH_INSN || insnN.getType() == AbstractInsnNode.TABLESWITCH_INSN;
+					if(fromBlock.isJump && insnN.getType() == AbstractInsnNode.JUMP_INSN)
+					{
+						switch(insnN.getOpcode())
+						{
+						case Opcodes.IF_ICMPEQ:
+						case Opcodes.IF_ICMPNE:
+						case Opcodes.IF_ICMPGE:
+						case Opcodes.IF_ICMPGT:
+						case Opcodes.IF_ICMPLT:
+						case Opcodes.IF_ICMPLE:
+						case Opcodes.IF_ACMPEQ:
+						case Opcodes.IF_ACMPNE:
+							fromBlock.is2ArgJump = true;
+							break;
+						}
+					}
 					BasicBlock succesorBlock;
 					if(implicitAnalysisblocks.containsKey(successor))
 						succesorBlock = implicitAnalysisblocks.get(successor);
@@ -700,8 +716,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								
 							}
 							instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
-
 							jumpIDs.put(b, jumpID);
+							if(b.is2ArgJump)
+								jumpID++;
 						}
 					}
 					for (BasicBlock b : implicitAnalysisblocks.values()) {
@@ -712,6 +729,21 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
 								insn = insn.getNext();
 							instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
+							if(r.is2ArgJump)
+								instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)+1));
+						}
+						if(b.successors.size() == 0)
+						{
+							instructions.insertBefore(b.insn, new InsnNode(TaintUtils.FORCE_CTRL_STORE));
+//							if (b.insn.getOpcode() != Opcodes.ATHROW) {
+								HashSet<BasicBlock> live = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>(b.onFalseSideOfJumpFrom);
+								live.addAll(b.onTrueSideOfJumpFrom);
+								for (BasicBlock r : live) {
+									instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
+									if (r.is2ArgJump)
+										instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r) + 1));
+								}
+//							}
 						}
 						//						System.out.println(b.insn + " - " + b.domBlocks + "-" + b.antiDomBlocks);
 					}
@@ -759,13 +791,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	}
 	static class BasicBlock{
 		int idx;
-		LinkedList<Integer> outEdges = new LinkedList<Integer>();
+//		LinkedList<Integer> outEdges = new LinkedList<Integer>();
 		HashSet<BasicBlock> successors = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<BasicBlock> predecessors  = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		AbstractInsnNode insn;
 		boolean covered;
 		boolean visited;
 		boolean isJump;
+		boolean is2ArgJump;
 		HashSet<BasicBlock> resolvedHereBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 
 		HashSet<BasicBlock> resolvedBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();

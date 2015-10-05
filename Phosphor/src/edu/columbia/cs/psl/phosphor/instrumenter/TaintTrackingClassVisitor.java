@@ -145,7 +145,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				newIntfcs[interfaces.length] = "java/lang/Cloneable";
 				interfaces = newIntfcs;
 				if (signature != null)
-					signature = signature + "java/lang/Cloneable";
+					signature = signature + "Ljava/lang/Cloneable;";
 			}
 		}
 		if (isNormalClass && !Instrumenter.isIgnoredClass(name) && !FIELDS_ONLY) {

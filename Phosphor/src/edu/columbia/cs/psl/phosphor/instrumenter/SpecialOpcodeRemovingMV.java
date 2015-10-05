@@ -77,6 +77,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 		case TaintUtils.CUSTOM_SIGNAL_1:
 		case TaintUtils.CUSTOM_SIGNAL_2:
 		case TaintUtils.CUSTOM_SIGNAL_3:
+		case TaintUtils.FORCE_CTRL_STORE:
 			break;
 		default:
 			super.visitInsn(opcode);

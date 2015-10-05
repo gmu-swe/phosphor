@@ -3,39 +3,46 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
-public final class Taint implements Cloneable{
+public final class Taint {
 	public static boolean IGNORE_TAINTING;
 
 	public Taint copy()
 	{
 		if(IGNORE_TAINTING)
 			return this;
-		return new Taint(this);
+		Taint ret = new Taint();
+		ret.lbl = lbl;
+		ret.dependencies.addAll(dependencies);
+		return ret;
 	}
-	public Object clone()  {
-		try {
-			return super.clone();
-		} catch (CloneNotSupportedException e) {
-			e.printStackTrace();
-
-			return null;
-		}
-	}
+//	public Object clone()  {
+//		try {
+//			Object ret = super.clone();
+//			Taint r = (Taint) ret;
+//			r.dependencies = (LinkedList<Taint>) dependencies.clone();
+//			return ret;
+//		} catch (CloneNotSupportedException e) {
+//			e.printStackTrace();
+//
+//			return null;
+//		}
+//	}
 	@Override
 	public String toString() {
 		String depStr=" deps = [";
 		if(dependencies != null)
 		{
-			Node<Taint> dep = dependencies.getFirst();
+			Node<Object> dep = dependencies.getFirst();
 			while(dep != null)
 			{
-				if(dep.entry != null && dep.entry.lbl != null)
-				depStr += dep.entry.lbl+ " ";
+				if(dep.entry != null)
+				depStr += dep.entry + " ";
 				dep = dep.next;
 			}
 		}
@@ -44,49 +51,59 @@ public final class Taint implements Cloneable{
 	}
 	public Object debug;
 	public Object lbl;
-	public LinkedList<Taint> dependencies;
+	public LinkedList<Object> dependencies;
+	public LinkedList<EnqueuedTaint> enqueuedInControlFlow;
 	public Taint(Object lbl) {
 		this.lbl = lbl;
-		dependencies = new LinkedList<Taint>();
+		dependencies = new LinkedList<Object>();
 	}
 	public Object getLabel() {
 		return lbl;
 	}
-	public LinkedList<Taint> getDependencies() {
+	public LinkedList<Object> getDependencies() {
 		return dependencies;
 	}
 	public Taint(Taint t1)
 	{
-		dependencies = new LinkedList<Taint>();
-		if(t1 != null && t1.dependencies != null)
+		dependencies = new LinkedList<Object>();
+		if(t1 == null)
+			return;
+		lbl = t1.lbl;
+		if(t1.dependencies != null)
 			dependencies.addAll(t1.dependencies);
 		if(Configuration.derivedTaintListener != null)
 			Configuration.derivedTaintListener.singleDepCreated(t1, this);
 	}
 	public Taint(Taint t1, Taint t2)
 	{
-		dependencies = new LinkedList<Taint>();
+		dependencies = new LinkedList<Object>();
 		if(t1 != null)
 		{
 			if(t1.lbl != null)
-			dependencies.add(t1);
+			dependencies.addUnique(t1.lbl);
 			dependencies.addAll(t1.dependencies);
 		}
 		if(t2 != null)
 		{
 			if(t2.lbl != null)
-			dependencies.add(t2);
+			dependencies.addUnique(t2.lbl);
 			dependencies.addAll(t2.dependencies);
 		}
 		if(Configuration.derivedTaintListener != null)
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, this);
 	}
 	public Taint() {
-		dependencies = new LinkedList<Taint>();
+		dependencies = new LinkedList<Object>();
 	}
 	public boolean addDependency(Taint d)
 	{
-		return dependencies.addUnique(d);
+		if(d == null)
+			return false;
+		boolean added = false;
+		if(d.lbl != null)
+			added = dependencies.addUnique(d.lbl);
+		added |= dependencies.addAll(d.dependencies);
+		return added;
 	}
 	public TaintedBooleanWithObjTag hasNoDependencies$$PHOSPHORTAGGED(ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret)
 	{
@@ -131,9 +148,7 @@ public final class Taint implements Cloneable{
 			return t1;
 		if(IGNORE_TAINTING)
 			return t1;
-		Taint r = new Taint();
-		r.addDependency(t1);
-		r.addDependency(t2);
+		Taint r = new Taint(t1,t2);
 		if(Configuration.derivedTaintListener != null)
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, r);
 		return r;

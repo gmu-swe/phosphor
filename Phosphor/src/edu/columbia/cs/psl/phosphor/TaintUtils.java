@@ -648,6 +648,17 @@ public class TaintUtils {
 		}
 		return ret;
 	}
+	public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name, ControlTaintTagStack ctrl) {
+		T ret = Enum.valueOf(enumType, name);
+		Taint tag = (Taint) ((TaintedWithObjTag) name).getPHOSPHOR_TAG();
+		tag = Taint.combineTags(tag, ctrl);
+		if (tag != null && !(tag.getLabel() == null && tag.hasNoDependencies())) {
+			ret = shallowClone(ret);
+			((TaintedWithObjTag) ret).setPHOSPHOR_TAG(tag);
+		}
+		return ret;
+	}
+
 	public static Object ensureUnboxed(Object o)
 	{
 		if(o instanceof MultiDTaintedArrayWithIntTag)

@@ -28,6 +28,7 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
 import edu.columbia.cs.psl.phosphor.struct.TaintedMisc;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
@@ -47,25 +48,29 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		this.arrayAnalyzer = primitiveArrayFixer;
 	}
 
+	public int[] taintTagsLoggedAtJumps;
 	@Override
 	public void visitCode() {
 //		System.out.println("TPMVStart" + name);
 		super.visitCode();
 		if(Configuration.IMPLICIT_TRACKING)
 		{
-			int tmpLV  = lvs.newControlTaintLV(0);
-			super.visitTypeInsn(NEW, Type.getInternalName(ControlTaintTagStack.class));
-			super.visitInsn(DUP);
-			super.visitIntInsn(BIPUSH, arrayAnalyzer.nJumps);
-			if(name.equals("<clinit>"))
-				super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "(I)V", false);
-			else
-			{
-			super.visitVarInsn(ALOAD, idxOfPassedControlInfo);
-			super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "(I"+Type.getDescriptor(ControlTaintTagStack.class)+")V", false);
+			if (lvs.idxOfMasterControlLV < 0) {
+				int tmpLV = lvs.createMasterControlTaintLV();
+				super.visitTypeInsn(NEW, Type.getInternalName(ControlTaintTagStack.class));
+				super.visitInsn(DUP);
+				super.visitIntInsn(BIPUSH, arrayAnalyzer.nJumps);
+				if (name.equals("<clinit>"))
+					super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "(I)V", false);
+				super.visitVarInsn(ASTORE, tmpLV);
 			}
-			super.visitVarInsn(ASTORE, tmpLV);
-
+			taintTagsLoggedAtJumps = new int[arrayAnalyzer.nJumps+1];
+			for(int i = 0; i < arrayAnalyzer.nJumps; i++)
+			{
+				taintTagsLoggedAtJumps[i+1] = lvs.newControlTaintLV();
+				super.visitInsn(ACONST_NULL);
+				super.visitVarInsn(ASTORE, taintTagsLoggedAtJumps[i+1]);
+			}
 		}
 		Configuration.taintTagFactory.methodEntered(className, name, desc, passthruMV, lvs, this);
 		//		if (arrayAnalyzer != null) {
@@ -182,11 +187,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		{
 			branchDepth--;
 			passthruMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-			if(var > Byte.MAX_VALUE)
-				passthruMV.visitLdcInsn(var);
-			else
-				passthruMV.visitIntInsn(BIPUSH, var);
-			passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "(I)V", false);
+//			if(var > Byte.MAX_VALUE)
+//				passthruMV.visitLdcInsn(var);
+//			else
+//				passthruMV.visitIntInsn(BIPUSH, var);
+			passthruMV.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[var]);
+			passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "("+Type.getDescriptor(EnqueuedTaint.class)+")V", false);
 			return;
 		}
 		if (opcode == TaintUtils.ALWAYS_AUTOBOX && analyzer.locals.size() > var && analyzer.locals.get(var) instanceof String) {
@@ -1369,7 +1375,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		String newDesc = TaintUtils.remapMethodDesc(desc);
 		if(Configuration.IMPLICIT_TRACKING)
 		{
-			if(isInternalTaintingMethod(owner) || owner.startsWith("[")){
+			if((isInternalTaintingMethod(owner) || owner.startsWith("[")) && !name.equals("getControlFlow")){
 				newDesc = newDesc.replace(Type.getDescriptor(ControlTaintTagStack.class), "");
 			}
 			else
@@ -1520,10 +1526,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-//		if (TaintUtils.DEBUG_FRAMES)
-//			System.out.println("TMV sees frame: "
-//+type+ Arrays.toString(local) 
-//+ ", stack " + Arrays.toString(stack));
+		if (TaintUtils.DEBUG_FRAMES)
+			System.out.println("TMV sees frame: " + type + Arrays.toString(local) + ", stack " + Arrays.toString(stack));
 //			new Exception().printStackTrace();
 		super.visitFrame(type, nLocal, local, nStack, stack);
 
@@ -1569,12 +1573,41 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			nextLoadIsTainted = true;
 			return;
 		}
+		if (opcode == TaintUtils.FORCE_CTRL_STORE) {
+			//If there is anything on the stack right now, apply the current marker to it
+			if (analyzer.stack.size() == 0 || topOfStackIsNull())
+				return;
+			Type onStack = getTopOfStackType();
+			if (onStack.getSort() != Type.OBJECT && onStack.getSort() != Type.ARRAY) {
+				if (onStack.getSize() == 1) {
+					super.visitInsn(SWAP);
+					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC
+							+ "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)" + Configuration.TAINT_TAG_DESC, false);
+					super.visitInsn(SWAP);
+				} else {
+					super.visitInsn(DUP2_X1);
+					super.visitInsn(POP2);
+					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC
+							+ "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)" + Configuration.TAINT_TAG_DESC, false);
+					super.visitInsn(DUP_X2);
+					super.visitInsn(POP);
+				}
+			} else {
+				super.visitInsn(DUP);
+				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V",
+						false);
+			}
+			return;
+		}
 		if (opcode == TaintUtils.GENERATETAINT) {
 			if(Configuration.IMPLICIT_TRACKING && branchDepth > 0)
 			{
 				super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-				super.visitFieldInsn(GETFIELD, Type.getInternalName(ControlTaintTagStack.class), "taint", Configuration.TAINT_TAG_DESC);
-				super.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_INTERNAL_NAME, "copy", "()"+Configuration.TAINT_TAG_DESC, false);
+//				super.visitFieldInsn(GETFIELD, Type.getInternalName(ControlTaintTagStack.class), "taint", Configuration.TAINT_TAG_DESC);
+				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "copyTag", "()"+Configuration.TAINT_TAG_DESC, false);
 			}
 			else
 				Configuration.taintTagFactory.generateEmptyTaint(mv);
@@ -1641,41 +1674,53 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if(Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION)
 		{
 			switch (opcode) {
-			case IRETURN:
-			case IASTORE:
-			case FRETURN:
-			case FASTORE:
-			case BASTORE:
-			case CASTORE:
-			case SASTORE:
-				super.visitInsn(SWAP);
-				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-				if (!Configuration.MULTI_TAINTING)
-					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
-				else {
-					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
-							"("+Configuration.TAINT_TAG_DESC+"Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)"+Configuration.TAINT_TAG_DESC, false);
-				}
-				super.visitInsn(SWAP);
-				break;
-			case DASTORE:
-			case LASTORE:
-			case DRETURN:
-			case LRETURN:
-				super.visitInsn(DUP2_X1);
-				super.visitInsn(POP2);
-				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-				if (!Configuration.MULTI_TAINTING)
-					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
-				else {
-					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
-							"("+Configuration.TAINT_TAG_DESC+"Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)"+Configuration.TAINT_TAG_DESC, false);
-				}
-				super.visitInsn(DUP_X2);
-				super.visitInsn(POP);
-				break;
+//			case IRETURN:
+//			case IASTORE:
+//			case FRETURN:
+//			case RETURN:
+//			case ARETURN:
+//			case DRETURN:
+//			case LRETURN:
+//			case ATHROW:
+//				for(int i = 1; i < taintTagsLoggedAtJumps.length;i++)
+//				{
+//					passthruMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+//					passthruMV.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[i]);
+//					passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "("+Type.getDescriptor(EnqueuedTaint.class)+")V", false);
+//				}
+//				break;
+//			case FASTORE:
+//			case BASTORE:
+//			case CASTORE:
+//			case SASTORE:
+//				super.visitInsn(SWAP);
+//				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+//				if (!Configuration.MULTI_TAINTING)
+//					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+//				else {
+//					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+//							"("+Configuration.TAINT_TAG_DESC+"Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)"+Configuration.TAINT_TAG_DESC, false);
+//				}
+//				super.visitInsn(SWAP);
+//				break;
+//			case DASTORE:
+//			case LASTORE:
+//			case DRETURN:
+//			case LRETURN:
+//				super.visitInsn(DUP2_X1);
+//				super.visitInsn(POP2);
+//				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+//				if (!Configuration.MULTI_TAINTING)
+//					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
+//				else {
+//					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
+//							"("+Configuration.TAINT_TAG_DESC+"Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)"+Configuration.TAINT_TAG_DESC, false);
+//				}
+//				super.visitInsn(DUP_X2);
+//				super.visitInsn(POP);
+//				break;
 			case AASTORE:
-			case ARETURN:
+//			case ARETURN:
 				super.visitInsn(DUP);
 				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);						
@@ -2793,13 +2838,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		//Need to remove taint
 		if (TaintUtils.DEBUG_FRAMES)
-			System.out.println("Table switch shows: " + analyzer.stack);
+			System.out.println("Table switch shows: " + analyzer.stack + ", " + analyzer.locals);
 		if (Configuration.IMPLICIT_TRACKING) {
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 			super.visitInsn(SWAP);
-			super.visitIntInsn(BIPUSH, branchStarting);
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "("+Configuration.TAINT_TAG_DESC+"I)V", false);
+			super.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[branchStarting]);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC +Type.getDescriptor(EnqueuedTaint.class)+ ")" + Type.getDescriptor(EnqueuedTaint.class), false);
+			super.visitVarInsn(ASTORE, taintTagsLoggedAtJumps[branchStarting]);
 		} else {
 			super.visitInsn(SWAP);
 			super.visitInsn(POP);
@@ -2818,8 +2864,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 			super.visitInsn(SWAP);
-			super.visitIntInsn(BIPUSH, branchStarting);
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "appendTag", "("+Configuration.TAINT_TAG_DESC+"I)V", false);
+			super.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[branchStarting]);
+
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC +Type.getDescriptor(EnqueuedTaint.class)+ ")" + Type.getDescriptor(EnqueuedTaint.class), false);
+			super.visitVarInsn(ASTORE, taintTagsLoggedAtJumps[branchStarting]);
 		} else {
 			super.visitInsn(SWAP);
 			super.visitInsn(POP);

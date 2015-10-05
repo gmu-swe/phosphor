@@ -22,6 +22,14 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public final class MultiTainter {
+	public static ControlTaintTagStack getControlFlow()
+	{
+		throw new IllegalStateException();
+	}
+	public static ControlTaintTagStack getControlFlow$$PHOSPHORTAGGED(ControlTaintTagStack ctrl)
+	{
+		return ctrl;
+	}
 	public static boolean taintedBoolean(boolean in, Object lbl)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");

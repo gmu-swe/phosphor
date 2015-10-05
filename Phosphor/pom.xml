@@ -69,7 +69,7 @@
 								<include>**/*IntTagITCase.java</include>
 							</includes>
 							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq</argLine>
+								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-int</argLine>
 						</configuration>
 						<goals>
 							<goal>integration-test</goal>
@@ -84,7 +84,22 @@
 								<include>**/*ObjTagITCase.java</include>
 							</includes>
 							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq</argLine>
+								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-obj</argLine>
+						</configuration>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>integration-test-implicit-tracking</id>
+						<configuration>
+							<jvm>${project.build.directory}/jre-inst-implicit/bin/java</jvm>
+							<includes>
+								<include>**/*ImplicitITCase.java</include>
+							</includes>
+							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-implicit</argLine>
 						</configuration>
 						<goals>
 							<goal>integration-test</goal>

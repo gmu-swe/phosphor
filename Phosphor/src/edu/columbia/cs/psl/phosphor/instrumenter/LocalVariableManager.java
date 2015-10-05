@@ -16,7 +16,9 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.LocalVariablesSort
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LabelNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Printer;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
 
 public class LocalVariableManager extends LocalVariablesSorter implements Opcodes {
 	private NeverNullArgAnalyzerAdapter analyzer;
@@ -67,7 +69,10 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 			{
 				oldArgTypes.add(Type.getType("Ltop;"));
 			}
-			
+			if(args[i].getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class)))
+			{
+				idxOfMasterControlLV = lastArg-1;
+			}
 		}
 		lastArg--;
 		end = new Label();
@@ -126,20 +131,37 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 	}
 
 	int jumpIdx;
-	int idxOfMasterControlLV;
+	int idxOfMasterControlLV = -1;
 
 	public int getIdxOfMasterControlLV() {
 		return idxOfMasterControlLV;
 	}
-	public int newControlTaintLV(int depth)
+	private Label ctrlTagStartLbl;
+	public int createMasterControlTaintLV()
 	{
 		int idx = super.newLocal(Type.getType(ControlTaintTagStack.class));
-		Label lbl = new Label();
-		super.visitLabel(lbl);
-
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(lbl), new LabelNode(end), idx);
+		if (ctrlTagStartLbl == null) {
+			ctrlTagStartLbl = new Label();
+			super.visitLabel(ctrlTagStartLbl);
+		}
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
 		createdLVs.add(newLVN);
+		analyzer.locals.add(idx, Type.getInternalName(ControlTaintTagStack.class));
 		this.idxOfMasterControlLV = idx;
+		jumpIdx++;
+		return idx;
+	}
+	public int newControlTaintLV()
+	{
+		int idx = super.newLocal(Type.getType(EnqueuedTaint.class));
+		if (ctrlTagStartLbl == null) {
+			ctrlTagStartLbl = new Label();
+			super.visitLabel(ctrlTagStartLbl);
+		}
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(EnqueuedTaint.class), null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
+		createdLVs.add(newLVN);
+//		System.out.println("Create taint tag at " + idx);
+		analyzer.locals.add(idx, Type.getInternalName(EnqueuedTaint.class));
 		jumpIdx++;
 		return idx;
 	}

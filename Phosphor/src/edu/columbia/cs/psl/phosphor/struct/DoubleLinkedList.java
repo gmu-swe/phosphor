@@ -1,16 +1,11 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-import edu.columbia.cs.psl.phosphor.struct.DoubleLinkedList.Node;
 
-
-public class LinkedList<T> implements Cloneable {
+public class DoubleLinkedList<T> implements Cloneable {
 	public static class Node<Z> implements Cloneable{
 		public Z entry;
 		public Node<Z> next;
-	}
-	public Object clone() throws CloneNotSupportedException
-	{
-		return super.clone();
+		public Node<Z> prev;
 	}
 	private Node<T> first;
 	private Node<T> last;
@@ -26,49 +21,40 @@ public class LinkedList<T> implements Cloneable {
 		Node<T> n = new Node<T>();
 		n.entry = o;
 		last.next=n;
+		last.prev = i;
 		last = n;
 		return true;
 	}
-	public synchronized boolean addAll(LinkedList<T> o)
+	public synchronized void addAll(DoubleLinkedList<T> o)
 	{
-		boolean added = false;
 		Node<T> i = o.getFirst();
 		while(i != null)
 		{
-			added |= addUnique(i.entry);
+			addUnique(i.entry);
 //			Node<T> n = new Node<T>();
 //			n.entry = i.entry;
 //			last.next=n;
 //			last = n;
 			i = i.next;
 		}
-		return added;
 	}
-	public synchronized void addFast(T o)
+	public synchronized Node<T> add(T o)
 	{
 		Node<T> n = new Node<T>();
 		n.entry = o;
-		if(first.next == null)
-		{
-			first.next=n;
-			last = n;
-		}
-		else
-		{
-			n.next = first.next;
-			first.next = n;
-		}
-		
-	}
-	public synchronized void add(T o)
-	{
-		addUnique(o);
+		Node<T> f = first.next;
+		first.next = n;
+		n.prev = first;
+		n.next = f;
+		if(f != null)
+			f.prev = n;
+		return n;
 	}
 	public Node<T> getFirst()
 	{
 		return first.next;
 	}
-	public LinkedList()
+	public DoubleLinkedList()
 	{
 		clear();
 	}
