@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import org.objectweb.asm.Type;
 
 public abstract class MultiDTaintedArray {
 

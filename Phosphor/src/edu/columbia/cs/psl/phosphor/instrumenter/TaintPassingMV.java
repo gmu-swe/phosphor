@@ -10,16 +10,16 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Handle;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FieldNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Printer;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Textifier;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.FrameNode;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.util.Printer;
+import org.objectweb.asm.util.Textifier;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
@@ -917,7 +917,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		FrameNode fn2 = getCurrentFrameNode();
 		super.visitJumpInsn(GOTO, isDone);
 		super.visitLabel(isNull);
-		fn.accept(this);
+		acceptFn(fn);
 		super.visitInsn(ACONST_NULL);
 		if (arrayDesc.getElementType().getSort() == Type.OBJECT)
 			super.visitTypeInsn(CHECKCAST, "[Ljava/lang/Object;");
@@ -926,7 +926,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		super.visitInsn(SWAP);
 		super.visitTypeInsn(CHECKCAST, type);
 		super.visitLabel(isDone);
-		fn2.accept(this);
+		acceptFn(fn2);
 	}
 
 	/**
@@ -961,11 +961,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		FrameNode fn2 = getCurrentFrameNode();
 		super.visitJumpInsn(GOTO, isDone);
 		super.visitLabel(isNull);
-		fn.accept(this);
+		acceptFn(fn);
 		super.visitInsn(POP);
 		super.visitLabel(isDone);
 		fn2.stack.set(fn2.stack.size()-1, "java/lang/Object");
-		fn2.accept(this);
+		acceptFn(fn2);
 
 		//A
 	}
@@ -1295,7 +1295,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			hasNewName = false;
 		}
 		if (((Instrumenter.isIgnoredClass(owner) || Instrumenter.isIgnoredMethod(owner, name, desc)) && !owner.startsWith("edu/columbia/cs/psl/phosphor/runtime"))
-				|| (opcode == INVOKEINTERFACE && Instrumenter.isAnnotation(owner))) {
+			) {
 			Type[] args = Type.getArgumentTypes(desc);
 			if (TaintUtils.DEBUG_CALLS) {
 				System.out.println("Calling non-inst: " + owner + "." + name + desc + " stack " + analyzer.stack);
@@ -2717,14 +2717,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 		
-		if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
-		{
-			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-			super.visitInsn(SWAP);
-			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-			super.visitInsn(SWAP);
-		}
-			
+		
 		if (Configuration.IMPLICIT_TRACKING && !isIgnoreAllInstrumenting && !Configuration.WITHOUT_PROPOGATION) {
 			if(opcode != Opcodes.GOTO)
 			{

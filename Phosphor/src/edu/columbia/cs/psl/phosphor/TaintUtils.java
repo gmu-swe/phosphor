@@ -5,8 +5,8 @@ import java.lang.reflect.Method;
 
 
 import sun.misc.VM;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
@@ -633,14 +633,14 @@ public class TaintUtils {
 	}
 	public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name) {
 		T ret = Enum.valueOf(enumType, name);
-		if (name instanceof TaintedWithIntTag) {
-			int tag = ((TaintedWithIntTag) name).getPHOSPHOR_TAG();
+		if (((Object)name) instanceof TaintedWithIntTag) {
+			int tag = ((TaintedWithIntTag) ((Object)name)).getPHOSPHOR_TAG();
 			if (tag != 0) {
 				ret = shallowClone(ret);
 				((TaintedWithIntTag) ret).setPHOSPHOR_TAG(tag);
 			}
-		} else if (name instanceof TaintedWithObjTag) {
-			Object tag = ((TaintedWithObjTag) name).getPHOSPHOR_TAG();
+		} else if (((Object)name) instanceof TaintedWithObjTag) {
+			Object tag = ((TaintedWithObjTag) ((Object)name)).getPHOSPHOR_TAG();
 			if (tag != null) {
 				ret = shallowClone(ret);
 				((TaintedWithObjTag) ret).setPHOSPHOR_TAG(tag);
@@ -650,7 +650,7 @@ public class TaintUtils {
 	}
 	public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name, ControlTaintTagStack ctrl) {
 		T ret = Enum.valueOf(enumType, name);
-		Taint tag = (Taint) ((TaintedWithObjTag) name).getPHOSPHOR_TAG();
+		Taint tag = (Taint) ((TaintedWithObjTag) ((Object)name)).getPHOSPHOR_TAG();
 		tag = Taint.combineTags(tag, ctrl);
 		if (tag != null && !(tag.getLabel() == null && tag.hasNoDependencies())) {
 			ret = shallowClone(ret);

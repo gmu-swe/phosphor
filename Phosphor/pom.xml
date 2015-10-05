@@ -3,7 +3,10 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>edu.columbia.cs.psl.phosphor</groupId>
 	<artifactId>Phosphor</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
+	<properties>
+		<dacapo.skip>true</dacapo.skip>
+	</properties>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<testSourceDirectory>test</testSourceDirectory>
@@ -47,10 +50,20 @@
 									<shadedPattern>edu.columbia.cs.psl.phosphor.org.apache.commons.cli</shadedPattern>
 								</relocation>
 								<relocation>
-									<pattern>com.rits.cloning</pattern>
-									<shadedPattern>edu.columbia.cs.psl.phosphor.com.rits.cloning</shadedPattern>
+									<pattern>org.objectweb.asm</pattern>
+									<shadedPattern>edu.columbia.cs.psl.phosphor.org.objectweb.asm</shadedPattern>
 								</relocation>
 							</relocations>
+							<filters>
+								<filter>
+									<artifact>org.ow2.asm:asm-all</artifact>
+									<excludes>
+										<!-- These classes will be overridden by the ones inside the JAR -->
+										<exclude>edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/analysis/Frame.class</exclude>
+										<exclude>edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/FrameNode.class</exclude>
+									</excludes>
+								</filter>
+							</filters>
 							<minimizeJar>true</minimizeJar>
 						</configuration>
 					</execution>
@@ -137,6 +150,17 @@
 							<executable>${basedir}/instrumentJRE.sh</executable>
 						</configuration>
 					</execution>
+					<execution>
+						<id>run-dacapo</id>
+						<phase>integration-test</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+						    <skip>${dacapo.skip}</skip>
+							<executable>${basedir}/runDacapo.sh</executable>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 		</plugins>
@@ -154,11 +178,16 @@
 			<artifactId>commons-cli</artifactId>
 			<version>1.2</version>
 		</dependency>
+		<dependency>
+			<groupId>org.ow2.asm</groupId>
+			<artifactId>asm-all</artifactId>
+			<version>5.0.3</version>
+		</dependency>
 	</dependencies>
 	<distributionManagement>
 		<snapshotRepository>
 			<id>psl.internal</id>
-			<name>PSL  Internal Repository</name>
+			<name>PSL Internal Repository</name>
 			<url>http://ase.cs.columbia.edu:8282/repository/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>

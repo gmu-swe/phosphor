@@ -6,17 +6,17 @@ import java.util.Arrays;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.InstructionAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.InstructionAdapter;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
-public class MethodArgReindexer extends InstructionAdapter {
+public class MethodArgReindexer extends MethodVisitor {
 	int originalLastArgIdx;
 	int[] oldArgMappings;
 	int newArgOffset;
@@ -116,9 +116,12 @@ public class MethodArgReindexer extends InstructionAdapter {
 	public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
 		if (index < originalLastArgIdx) {
 			boolean found = false;
-			for (LocalVariableNode lv : lvStore.localVariables)
+			for (Object _lv : lvStore.localVariables)
+			{
+				LocalVariableNode lv = (LocalVariableNode) _lv;
 				if (lv != null && lv.name != null && lv.name.equals(name) && lv.index == index)
 					found = true;
+			}
 			if (!found)
 				lvStore.localVariables.add(new LocalVariableNode(name, desc, signature, null, null, index));
 		}
@@ -328,8 +331,6 @@ public class MethodArgReindexer extends InstructionAdapter {
 
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
-		if (opcode == Opcodes.INVOKEINTERFACE)
-			Instrumenter.interfaces.add(owner);
 		super.visitMethodInsn(opcode, owner, name, desc, itfc);
 	}
 

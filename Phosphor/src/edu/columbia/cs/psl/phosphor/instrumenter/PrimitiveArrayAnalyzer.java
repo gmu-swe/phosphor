@@ -14,23 +14,23 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.AbstractInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.IincInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.InsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LabelNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.TypeInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.VarInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.Analyzer;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.AnalyzerException;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.BasicValue;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.Frame;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.FrameNode;
+import org.objectweb.asm.tree.IincInsnNode;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.analysis.Analyzer;
+import org.objectweb.asm.tree.analysis.AnalyzerException;
+import org.objectweb.asm.tree.analysis.BasicValue;
+import org.objectweb.asm.tree.analysis.Frame;
 
 public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	final class PrimitiveArrayAnalyzerMN extends MethodNode {
@@ -222,7 +222,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			final HashMap<Integer, LinkedList<Integer>> outEdges = new HashMap<Integer, LinkedList<Integer>>();
 			final HashSet<Integer> insertACHECKCASTBEFORE = new HashSet<Integer>();
 			final HashSet<Integer> insertACONSTNULLBEFORE = new HashSet<Integer>();
-			Analyzer<BasicValue> a = new Analyzer<BasicValue>(new BasicArrayInterpreter()) {
+			Analyzer a = new Analyzer(new BasicArrayInterpreter()) {
+			    protected int[] insnToLabel;
+
 				int getLabel(int insn) {
 					int label = -1;
 					for (int j = 0; j <= insn; j++) {
@@ -265,7 +267,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				}
 
 				@Override
-				public Frame<BasicValue>[] analyze(String owner, MethodNode m) throws AnalyzerException {
+				public Frame[] analyze(String owner, MethodNode m) throws AnalyzerException {
 					Iterator<AbstractInsnNode> insns = m.instructions.iterator();
 					insnToLabel = new int[m.instructions.size()];
 					endsWithGOTO = new boolean[insnToLabel.length];
@@ -288,7 +290,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						isFirst = false;
 						//														System.out.println(idx + "->"+label);
 					}
-					Frame<BasicValue>[] ret = super.analyze(owner, m);
+					Frame[] ret = super.analyze(owner, m);
 //					if (DEBUG)
 //						for (int i = 0; i < inFrames.size(); i++) {
 //							System.out.println("IN: " + i + " " + inFrames.get(i).stack);
@@ -459,7 +461,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			};
 			try {
 
-				Frame<BasicValue>[] frames = a.analyze(className, this);
+				Frame[] frames = a.analyze(className, this);
 //				HashMap<Integer,BasicBlock> cfg = new HashMap<Integer, BasicBlock>();
 //				for(Integer i : outEdges.keySet())
 //				{
@@ -570,7 +572,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 					HashSet<LocalVariableNode> newLVNodes = new HashSet<LocalVariableNode>();
 					if (this.localVariables != null) {
-						for (LocalVariableNode lv : this.localVariables) {
+						for (Object _lv : this.localVariables) {
+							LocalVariableNode lv = (LocalVariableNode) _lv;
 							AbstractInsnNode toCheck = lv.start;
 							LabelNode veryEnd = lv.end;
 							while (toCheck != null && toCheck != lv.end) {

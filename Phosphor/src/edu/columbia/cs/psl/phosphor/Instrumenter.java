@@ -42,11 +42,11 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassReader;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.ClassNode;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.CallGraph;
 import edu.columbia.cs.psl.phosphor.struct.MethodInformation;
@@ -67,217 +67,18 @@ public class Instrumenter {
 	static int nChanges = 0;
 	static boolean analysisInvalidated = false;
 
-	static void propogateUp(String owner, String name, String desc, MethodInformation toPropogate) {
-		propogateUp(owner, name, desc, toPropogate, new HashSet<String>());
-	}
 
-	static void propogateUp(String owner, String name, String desc, MethodInformation toPropogate, HashSet<String> tried) {
-		if (tried.contains(owner))
-			return;
-		tried.add(owner);
-		if (name.equals("<clinit>"))
-			return;
-		MiniClassNode c = callgraph.getClassNode(owner);
-		if (!owner.equals(toPropogate.getOwner())) {
-			MethodInformation m = callgraph.getMethodNodeIfExists(owner, name, desc);
-			if (m != null) {
-				//				System.out.println(owner+"."+name+desc +" from " + toPropogate.getOwner());
-				boolean wasPure = m.isPure();
-				boolean wasCallsTainted = m.callsTaintSourceMethods();
-				if (wasPure && !toPropogate.isPure()) {
-					m.setPure(false);
-					analysisInvalidated = true;
-					nChanges++;
-				}
-				if (!wasCallsTainted && toPropogate.callsTaintSourceMethods()) {
-					m.setDoesNotCallTaintedMethods(false);
-					m.setCallsTaintedMethods(true);
-					analysisInvalidated = true;
-					nChanges++;
-					;
-				}
-			}
-		}
-		if (c.superName != null && !c.superName.equals(owner))
-			propogateUp(c.superName, name, desc, toPropogate, tried);
-		if (c.interfaces != null)
-			for (String s : c.interfaces)
-				propogateUp(s, name, desc, toPropogate, tried);
-	}
-
-	static boolean callsTaintSourceMethods(MethodInformation m) {
-		if (m.isCalculated() || m.callsTaintSourceMethods()) {
-			//			if(m.callsTaintSourceMethods() && ! m.isCalculated())
-			//			System.out.println("defaulting on " + m);
-			if (m.callsTaintSourceMethods())
-				return true;
-			if (m.doesNotCallTaintSourceMethods())
-				return false;
-		}
-		if (callgraph.getClassNode(m.getOwner()).interfaces == null || !m.isVisited()) {
-			m.setPure(false);
-			m.setCallsTaintedMethods(true);
-			return true;
-		}
-		if (m.isTaintCallExplorationInProgress())
-			return false;
-		if (BasicSourceSinkManager.getInstance(callgraph).isSource(m.getOwner() + "." + m.getName() + m.getDesc())) {
-			m.setCallsTaintedMethods(true);
-			m.setPure(false);
-			m.setCalculated(true);
-			return true;
-		}
-		m.setTaintCallExplorationInProgress(true);
-		HashSet<MethodInformation> origCalled = new HashSet<MethodInformation>(m.getMethodsCalled());
-		for (MethodInformation mm : origCalled) {
-			if (!mm.isVisited() && !mm.getName().equals("<clinit>")) {
-				m.getMethodsCalled().remove(mm);
-				MethodInformation omm = mm;
-				mm = callgraph.getMethodNodeIfExistsInHierarchy(mm.getOwner(), mm.getName(), mm.getDesc());
-				if (mm == null) {
-					if (TaintUtils.DEBUG_PURE)
-						System.err.println("Unable to find info about method " + omm.getOwner() + "." + omm.getName() + omm.getDesc());
-					m.setPure(false);
-					m.setCallsTaintedMethods(true);
-					m.setTaintCallExplorationInProgress(false);
-					m.setCalculated(true);
-					propogateUp(m.getOwner(), m.getName(), m.getDesc(), m);
-					return true;
-				} else
-					m.getMethodsCalled().add(mm);
-			}
-			if (callsTaintSourceMethods(mm)) {
-				//				boolean wasPure = m.isPure(); 
-				//				boolean wasCallsTainted = m.callsTaintSourceMethods();
-				m.setPure(false);
-				m.setCallsTaintedMethods(true);
-				m.setTaintCallExplorationInProgress(false);
-				m.setCalculated(true);
-				analysisInvalidated = true;
-				nChanges++;
-				//				if((wasPure&& !m.isPure()) || (!wasCallsTainted && m.callsTaintSourceMethods()))
-				propogateUp(m.getOwner(), m.getName(), m.getDesc(), m);
-				return true;
-			}
-			boolean wasPure = m.isPure();
-			//			if(!mm.isVisited())
-			//			{
-			//				m.setPure(false);
-			//				m.setCallsTaintedMethods(true);
-			//				m.setDoesNotCallTaintedMethods(false);
-			//				m.setCalculated(true);
-			//			}
-			//			else
-			if (mm.isVisited()) {
-				m.setPure(m.isPure() && mm.isPure());
-				//			if (!m.isPure() && wasPure)
-				propogateUp(m.getOwner(), m.getName(), m.getDesc(), m);
-			}
-		}
-		m.setDoesNotCallTaintedMethods(true);
-		m.setCallsTaintedMethods(false);
-		m.setTaintCallExplorationInProgress(false);
-		m.setCalculated(true);
-		return false;
-	}
 
 	public static void preAnalysis() {
-		File graphDir = new File("pc-graphs");
-		if (!graphDir.exists())
-			graphDir.mkdir();
-		for (File f : graphDir.listFiles()) {
-			try {
-				ObjectInputStream ois = new ObjectInputStream(new FileInputStream(f));
-				CallGraph g = (CallGraph) ois.readObject();
-				callgraph.addAll(g);
-			} catch (Exception x) {
-				x.printStackTrace();
-			}
-		}
-	}
 
-	public static boolean isPure(String owner, String name, String desc) {
-		MethodInformation min = callgraph.getMethodNodeIfExistsInHierarchy(owner, name, desc);
-		if (min == null) {
-			//			System.err.println("Can't find method info for " + owner + "." + name + desc);
-			return false;
-		}
-		return min.isPure();
 	}
 
 	public static void finishedAnalysis() {
-		int iter = 0;
-//		do {
-//			System.out.println("iterating.." + nChanges);
-//			nChanges = 0;
-//			analysisInvalidated = false;
-//			if (iter > 0) {
-//				for (MethodInformation m : callgraph.getMethods()) {
-//					m.setCalculated(false);
-//				}
-//			}
-//			for (MethodInformation m : callgraph.getMethods()) {
-//				callsTaintSourceMethods(m);
-//				iter++;
-//				//				if(m.isPure())
-//				//				{
-//				//					System.out.println("pure: " + m);
-//				//				}
-//				//				if (m.getOwner().startsWith("java/io/FileOutput") || m.getOwner().startsWith("java/io/OutputStream")) {
-//				//					System.out.println((m.isPure() ? "Pure: " : "") + (m.callsTaintSourceMethods() ? " SOURCE " : "" ) + m.toString());
-//				//				}
-//			}
-//		} while (analysisInvalidated);
-		//System.exit(-1);
-				File graphDir = new File("pc-graphs");
-				if (!graphDir.exists())
-					graphDir.mkdir();
-//						File outFile = new File("pc-graphs/graph-" + System.currentTimeMillis());
-//						try {
-//							ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(outFile));
-//							oos.writeObject(callgraph);
-//							oos.close();
-//						} catch (Exception ex) {
-//							ex.printStackTrace();
-//						}
 		System.out.println("Analysis Completed: Beginning Instrumentation Phase");
 
 	}
 
 	static String curPath;
-
-	static HashSet<String> notInterfaces = new HashSet<String>();
-	static HashSet<String> annotations = new HashSet<String>();
-	static HashSet<String> notAnnotations = new HashSet<String>();
-
-	public static boolean isAnnotation(String owner) {
-//		if (annotations.contains(owner))
-//			return true;
-//		if (notAnnotations.contains(owner))
-//			return false;
-//		try {
-//			Class c;
-//			try {
-//				if (loader == null)
-//					c = Class.forName(owner.replace("/", "."));
-//				else
-//					c = loader.loadClass(owner.replace("/", "."));
-//				if (c.isAnnotation()) {
-//					annotations.add(owner);
-////					System.out.println("Annotation: " + c);
-//					return true;
-//				}
-//				notAnnotations.add(owner);
-//			} catch (Throwable ex) {
-//				//TODO fix this
-//			}
-//			return false;
-//		} catch (Exception ex) {
-//			//			System.out.println("Unable to load for annotation-checking purposes: " + owner);
-//			notAnnotations.add(owner);
-//		}
-		return false;
-	}
 
 	public static boolean isCollection(String internalName) {
 		try {
@@ -295,27 +96,7 @@ public class Instrumenter {
 		return false;
 	}
 
-	public static boolean isInterface(String internalName) {
-		if (interfaces.contains(internalName))
-			return true;
-		//		if(notInterfaces.contains(internalName))
-		//			return false;
-		//		try
-		//		{
-		//			Class c = Class.forName(internalName.replace("/", "."));
-		//			if(c.isInterface())
-		//			{
-		//				interfaces.add(internalName);
-		//				return true;
-		//			}
-		//		}
-		//		catch(Throwable t)
-		//		{
-		//			
-		//		}
-		//		notInterfaces.add(internalName);
-		return false;
-	}
+	
     public static boolean IS_KAFFE_INST = Boolean.valueOf(System.getProperty("KAFFE", "false"));
     public static boolean IS_HARMONY_INST = Boolean.valueOf(System.getProperty("HARMONY", "false"));
 
@@ -387,8 +168,6 @@ public class Instrumenter {
 				;
 	}
 
-	public static HashSet<String> interfaces = new HashSet<String>();
-	public static CallGraph callgraph = new CallGraph();
 
 	public static HashMap<String, ClassNode> classes = new HashMap<String, ClassNode>();
 	public static void analyzeClass(InputStream is) {
@@ -396,24 +175,17 @@ public class Instrumenter {
 		nTotal++;
 		try {
 			cr = new ClassReader(is);
-			if (callgraph.containsClass(cr.getClassName()))
-				return;
-			cr.accept(new CallGraphBuildingClassVisitor(new ClassVisitor(Opcodes.ASM5) {
+			cr.accept(new ClassVisitor(Opcodes.ASM5) {
 				@Override
 				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 					super.visit(version, access, name, signature, superName, interfaces);
 					ClassNode cn = new ClassNode();
 					cn.name = name;
-					cn.methods = new LinkedList();
 					cn.superName = superName;
 					cn.interfaces = new ArrayList<String>();
-					for(String s : interfaces)
-						cn.interfaces.add(s);
 					Instrumenter.classes.put(name, cn);
-					if ((access & Opcodes.ACC_INTERFACE) != 0)
-						Instrumenter.interfaces.add(name);
 				}
-			}, callgraph), 0);
+			}, ClassReader.SKIP_CODE);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

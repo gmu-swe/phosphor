@@ -16,20 +16,20 @@ import java.security.ProtectionDomain;
 import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassReader;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassWriter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.JSRInlinerAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.SerialVersionUIDAdder;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.AnnotationNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.ClassNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FieldNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.CheckClassAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.TraceClassVisitor;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.JSRInlinerAdapter;
+import org.objectweb.asm.commons.SerialVersionUIDAdder;
+import org.objectweb.asm.tree.AnnotationNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.util.CheckClassAdapter;
+import org.objectweb.asm.util.TraceClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -155,19 +155,20 @@ public class PreMain {
 					|| className.endsWith("$Access4JacksonDeSerializer"))
 				skipFrames = true;
 			if (cn.visibleAnnotations != null)
-				for (AnnotationNode an : cn.visibleAnnotations) {
+				for (Object o : cn.visibleAnnotations) {
+					AnnotationNode an = (AnnotationNode) o;
 					if (an.desc.equals(Type.getDescriptor(TaintInstrumented.class))) {
 						return classfileBuffer;
 					}
 				}
 			if(cn.interfaces != null)
-				for(String s : cn.interfaces)
+				for(Object s : cn.interfaces)
 				{
 					if(s.equals(Type.getInternalName(TaintedWithObjTag.class)) || s.equals(Type.getInternalName(TaintedWithIntTag.class)))
 						return classfileBuffer;
 				}
-			for(MethodNode mn : cn.methods)
-				if(mn.name.equals("getPHOSPHOR_TAG"))
+			for(Object mn : cn.methods)
+				if(((MethodNode)mn).name.equals("getPHOSPHOR_TAG"))
 					return classfileBuffer;
 			if(Configuration.CACHE_DIR != null)
 			{

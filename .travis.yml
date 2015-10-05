@@ -2,3 +2,6 @@ language: java
 sudo: false
 jdk: oraclejdk8
 script: "mvn verify"
+after_success:
+  - echo "<settings><servers><server><id>psl.internal</id><username>\${env.OSSRH_USER}</username><password>\${env.OSSRH_PASS}</password></server></servers></settings>" > ~/settings.xml
+  - cd phosphor; mvn deploy --settings ~/settings.xml

@@ -2,19 +2,19 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import java.util.HashSet;
 
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import org.objectweb.asm.Type;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.InstructionAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.commons.InstructionAdapter;
+import org.objectweb.asm.tree.FrameNode;
 
-public class StringTaintVerifyingMV extends InstructionAdapter implements Opcodes{
+public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes{
 boolean implementsSerializable;
 NeverNullArgAnalyzerAdapter analyzer;
 	public StringTaintVerifyingMV(MethodVisitor mv,boolean implementsSerializable, NeverNullArgAnalyzerAdapter analyzer) {
@@ -76,7 +76,7 @@ NeverNullArgAnalyzerAdapter analyzer;
 			super.visitInsn(ARRAYLENGTH);
 			super.visitJumpInsn(IF_ICMPLE, isOK); //if taint is shorter than value, reinit it
 			super.visitLabel(doInit);
-			fn1.accept(this);
+			TaintAdapter.acceptFn(fn1, this);
 			super.visitInsn(DUP); // O O
 			super.visitInsn(DUP); // O O O
 			super.visitFieldInsn(opcode, owner, name, desc); //O O A
@@ -87,7 +87,7 @@ NeverNullArgAnalyzerAdapter analyzer;
 				super.visitTypeInsn(ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
 			super.visitFieldInsn(PUTFIELD, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC); // O
 			super.visitLabel(isOK);
-			fn1.accept(this);
+			TaintAdapter.acceptFn(fn1, this);
 			//O
 			super.visitInsn(DUP);
 			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
@@ -125,7 +125,7 @@ NeverNullArgAnalyzerAdapter analyzer;
 			super.visitInsn(ARRAYLENGTH);
 			super.visitJumpInsn(IF_ICMPLE, isOK); //if taint is shorter than value, reinit it
 			super.visitLabel(doInit);
-			fn1.accept(this);
+			TaintAdapter.acceptFn(fn1, this);
 			super.visitInsn(DUP); // O O
 			super.visitInsn(DUP); // O O O
 			super.visitFieldInsn(opcode, owner, name, desc); //O O A
@@ -135,7 +135,7 @@ NeverNullArgAnalyzerAdapter analyzer;
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[I)[[I",false);
 			super.visitFieldInsn(PUTFIELD, owner, name+TaintUtils.TAINT_FIELD, "[[I"); // O
 			super.visitLabel(isOK);
-			fn1.accept(this);
+			TaintAdapter.acceptFn(fn1, this);
 			//O
 			super.visitInsn(DUP);
 			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, "[[I");
@@ -171,7 +171,7 @@ NeverNullArgAnalyzerAdapter analyzer;
 			super.visitInsn(ARRAYLENGTH);
 			super.visitJumpInsn(IF_ICMPLE, isOK); //if taint is shorter than value, reinit it
 			super.visitLabel(doInit);
-			fn1.accept(this);
+			TaintAdapter.acceptFn(fn1, this);
 			super.visitInsn(DUP); // O O
 			super.visitInsn(DUP); // O O O
 			super.visitFieldInsn(opcode, owner, name, desc); //O O A
@@ -181,7 +181,7 @@ NeverNullArgAnalyzerAdapter analyzer;
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[I)[[[I",false);
 			super.visitFieldInsn(PUTFIELD, owner, name+TaintUtils.TAINT_FIELD, "[[[I"); // O
 			super.visitLabel(isOK);
-			fn1.accept(this);
+			TaintAdapter.acceptFn(fn1, this);
 			//O
 			super.visitInsn(DUP);
 			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, "[[[I");

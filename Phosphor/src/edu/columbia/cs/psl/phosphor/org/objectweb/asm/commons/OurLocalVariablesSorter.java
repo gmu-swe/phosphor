@@ -29,12 +29,12 @@
  */
 package edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons;
 
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.AnnotationVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.TypePath;
+import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.TypePath;
 
 /**
  * A {@link MethodVisitor} that renumbers local variables in their order of
@@ -42,13 +42,13 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.TypePath;
  * method. It may be used by inheriting from this class, but the preferred way
  * of using it is via delegation: the next visitor in the chain can indeed add
  * new locals when needed by calling {@link #newLocal} on this adapter (this
- * requires a reference back to this {@link LocalVariablesSorter}).
+ * requires a reference back to this {@link OurLocalVariablesSorter}).
  * 
  * @author Chris Nokleberg
  * @author Eugene Kuleshov
  * @author Eric Bruneton
  */
-public class LocalVariablesSorter extends MethodVisitor {
+public class OurLocalVariablesSorter extends MethodVisitor {
 
     protected static final Type OBJECT_TYPE = Type
             .getObjectType("java/lang/Object");
@@ -81,7 +81,7 @@ public class LocalVariablesSorter extends MethodVisitor {
     protected boolean changed;
 
     /**
-     * Creates a new {@link LocalVariablesSorter}. <i>Subclasses must not use
+     * Creates a new {@link OurLocalVariablesSorter}. <i>Subclasses must not use
      * this constructor</i>. Instead, they must use the
      * {@link #LocalVariablesSorter(int, int, String, MethodVisitor)} version.
      * 
@@ -94,16 +94,16 @@ public class LocalVariablesSorter extends MethodVisitor {
      * @throws IllegalStateException
      *             If a subclass calls this constructor.
      */
-    public LocalVariablesSorter(final int access, final String desc,
+    public OurLocalVariablesSorter(final int access, final String desc,
             final MethodVisitor mv) {
         this(Opcodes.ASM5, access, desc, mv);
-        if (getClass() != LocalVariablesSorter.class) {
+        if (getClass() != OurLocalVariablesSorter.class) {
             throw new IllegalStateException();
         }
     }
 
     /**
-     * Creates a new {@link LocalVariablesSorter}.
+     * Creates a new {@link OurLocalVariablesSorter}.
      * 
      * @param api
      *            the ASM API version implemented by this visitor. Must be one
@@ -115,7 +115,7 @@ public class LocalVariablesSorter extends MethodVisitor {
      * @param mv
      *            the method visitor to which this adapter delegates calls.
      */
-    protected LocalVariablesSorter(final int api, final int access,
+    protected OurLocalVariablesSorter(final int api, final int access,
             final String desc, final MethodVisitor mv) {
         super(api, mv);
         Type[] args = Type.getArgumentTypes(desc);

@@ -3,11 +3,13 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
+
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.FrameNode;
+
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 
 public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
@@ -113,7 +115,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitMethodInsn(opcode, owner, name, desc, itfc);
 				super.visitJumpInsn(GOTO, isOK);
 				super.visitLabel(makeNew);
-				fn.accept(this);
+				acceptFn(fn);
 				super.visitInsn(SWAP);
 				super.visitTypeInsn(Opcodes.NEW, owner);
 				super.visitInsn(Opcodes.DUP);
@@ -126,7 +128,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				FrameNode fn2 = getCurrentFrameNode();
 				super.visitLabel(isOK);
 				if(!followedByFrame)
-					fn2.accept(this);
+					acceptFn(fn2);
 			} else {
 				//T V V <top>
 				super.visitInsn(DUP2_X1);
@@ -144,7 +146,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				FrameNode fn2 = getCurrentFrameNode();
 				super.visitJumpInsn(GOTO, isOK);
 				super.visitLabel(makeNew);
-				fn.accept(this);
+				acceptFn(fn);
 
 				Type taintType = Type.getType(Configuration.TAINT_TAG_DESC);
 				
@@ -166,7 +168,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				lvs.freeTmpLV(tmpT);
 				super.visitLabel(isOK);
 				if(!followedByFrame)
-					fn2.accept(this);
+					acceptFn(fn2);
 //				super.visitMethodInsn(opcode, owner, name, desc,itfc);
 
 			}

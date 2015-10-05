@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import org.objectweb.asm.Type;
 
 public final class MultiDTaintedByteArrayWithObjTag extends MultiDTaintedArrayWithObjTag implements Serializable {
 

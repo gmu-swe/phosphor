@@ -6,15 +6,17 @@ import java.util.List;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.InstructionAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FrameNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
 
-public class TaintAdapter extends InstructionAdapter implements Opcodes {
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.InstructionAdapter;
+import org.objectweb.asm.tree.FrameNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LocalVariableNode;
+
+public class TaintAdapter extends MethodVisitor implements Opcodes {
 
 	protected LocalVariableManager lvs;
 	protected NeverNullArgAnalyzerAdapter analyzer;
@@ -42,7 +44,7 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 	}
 	private TaintAdapter(MethodVisitor mv)
 	{
-		super(mv);
+		super(Opcodes.ASM5,mv);
 	}
 	private TaintAdapter(int api, MethodVisitor mv)
 	{
@@ -90,7 +92,6 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 	}
 
 	public Type getTopOfStackType() {
-//		System.out.println(analyzer.stack);
 		if(analyzer.stack.get(analyzer.stack.size() - 1) == Opcodes.TOP)
 			return getStackTypeAtOffset(1);
 		return getStackTypeAtOffset(0);
@@ -361,11 +362,11 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 
 			super.visitJumpInsn(GOTO, done);
 			super.visitLabel(isNull);
-			fn.accept(this);
+			acceptFn(fn);
 			super.visitInsn(ACONST_NULL);
 			super.visitInsn(SWAP);
 			super.visitLabel(done);
-			fn2.accept(this);
+			acceptFn(fn2);
 			
 		} else if (arrayType.getDimensions() == 3) {
 			FrameNode fn = getCurrentFrameNode();
@@ -390,11 +391,11 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			super.visitJumpInsn(GOTO, done);
 
 			super.visitLabel(isNull);
-			fn.accept(this);
+			acceptFn(fn);
 			super.visitInsn(ACONST_NULL);
 			super.visitInsn(SWAP);
 			super.visitLabel(done);
-			fn2.accept(this);
+			acceptFn(fn2);
 		} else if (arrayType.getDimensions() == 1) {
 			FrameNode fn = getCurrentFrameNode();
 			super.visitInsn(DUP);
@@ -421,11 +422,11 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			super.visitJumpInsn(GOTO, done);
 
 			super.visitLabel(isNull);
-			fn.accept(this);
+			acceptFn(fn);
 			super.visitInsn(ACONST_NULL);
 			super.visitInsn(SWAP);
 			super.visitLabel(done);
-			fn2.accept(this);
+			acceptFn(fn2);
 		} else {
 			throw new IllegalStateException("Can't handle casts to multi-d array type of dimension " + arrayType.getDimensions());
 		}
@@ -860,7 +861,45 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 		//		if (TaintUtils.DEBUG_DUPSWAP)
 		//			System.out.println("POST " + name + ": DUP" + n + "_X" + u + analyzer.stack);
 	}
-
+	private static Object[] asArray(final List<Object> l) {
+        Object[] objs = new Object[l.size()];
+        for (int i = 0; i < objs.length; ++i) {
+            Object o = l.get(i);
+            if (o instanceof LabelNode) {
+                o = ((LabelNode) o).getLabel();
+            }
+            objs[i] = o;
+        }
+        return objs;
+    }
+	public void acceptFn(FrameNode fn)
+	{
+		acceptFn(fn, mv);
+	}
+	public static void acceptFn(FrameNode fn, MethodVisitor mv)
+	{
+		switch (fn.type) {
+        case Opcodes.F_NEW:
+        case Opcodes.F_FULL:
+        case TaintUtils.RAW_INSN:
+            mv.visitFrame(fn.type, fn.local.size(), asArray(fn.local), fn.stack.size(),
+                    asArray(fn.stack));
+            break;
+        case Opcodes.F_APPEND:
+            mv.visitFrame(fn.type, fn.local.size(), asArray(fn.local), 0, null);
+            break;
+        case Opcodes.F_CHOP:
+            mv.visitFrame(fn.type, fn.local.size(), null, 0, null);
+            break;
+        case Opcodes.F_SAME:
+            mv.visitFrame(fn.type, 0, null, 0, null);
+            break;
+        case Opcodes.F_SAME1:
+            mv.visitFrame(fn.type, 0, null, 1, asArray(fn.stack));
+            break;
+        }
+	}
+	
 	public FrameNode getCurrentFrameNode()
 	{
 		return getCurrentFrameNode(analyzer);
@@ -871,7 +910,8 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 			throw new IllegalArgumentException();
 		Object[] locals = removeLongsDoubleTopVal(a.locals);
 		Object[] stack = removeLongsDoubleTopVal(a.stack);
-		FrameNode ret = new FrameNode(TaintUtils.RAW_INSN, locals.length, locals, stack.length, stack);
+		FrameNode ret = new FrameNode(Opcodes.F_FULL, locals.length, locals, stack.length, stack);
+		ret.type = TaintUtils.RAW_INSN;
 		return ret;
 	}
 	
@@ -900,7 +940,7 @@ public class TaintAdapter extends InstructionAdapter implements Opcodes {
 	public void unwrapTaintedInt() {
 		super.visitInsn(DUP);
 		getTaintFieldOfBoxedType(Configuration.TAINTED_INT_INTERNAL_NAME);
-		super.swap();
+		super.visitInsn(SWAP);
 		super.visitFieldInsn(GETFIELD, Configuration.TAINTED_INT_INTERNAL_NAME, "val", "I");
 	}
 }
