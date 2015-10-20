@@ -9,6 +9,7 @@ import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -16,6 +17,7 @@ import java.security.ProtectionDomain;
 import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -30,6 +32,7 @@ import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
+
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -226,10 +229,15 @@ public class PreMain {
 			try {
 				
 				ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
-
+				ClassVisitor _cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cw, skipFrames, fields));
+				if(Configuration.extensionClassVisitor != null)
+				{
+					Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class);
+					_cv = extra.newInstance(_cv);
+				}
 				cr.accept(
 				//							new CheckClassAdapter(
-						new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cw, skipFrames, fields))
+						_cv
 						//									)
 						, ClassReader.EXPAND_FRAMES);
 				
@@ -300,11 +308,13 @@ public class PreMain {
 				ex.printStackTrace();
 				cv= new TraceClassVisitor(null,null);
 				try{
-					cr.accept(
-//							new CheckClassAdapter(
-									new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cv,skipFrames, fields))
-//									)
-							, ClassReader.EXPAND_FRAMES);
+					ClassVisitor _cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(cv, skipFrames, fields));
+					if(Configuration.extensionClassVisitor != null)
+					{
+						Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class);
+						_cv = extra.newInstance(_cv);
+					}
+					cr.accept(_cv, ClassReader.EXPAND_FRAMES);
 				}
 				catch(Throwable ex2)
 				{				}
@@ -370,5 +380,8 @@ public class PreMain {
 		ClassFileTransformer transformer = new PCLoggingTransformer();
 		inst.addTransformer(transformer);
 
+	}
+	public static Instrumentation getInstrumentation() {
+		return instrumentation;
 	}
 }

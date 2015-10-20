@@ -35,7 +35,8 @@ public class LinkedList<T> implements Cloneable {
 		Node<T> i = o.getFirst();
 		while(i != null)
 		{
-			added |= addUnique(i.entry);
+			if(i.entry != null)
+				added |= addUnique(i.entry);
 //			Node<T> n = new Node<T>();
 //			n.entry = i.entry;
 //			last.next=n;

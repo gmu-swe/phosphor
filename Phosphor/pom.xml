@@ -77,10 +77,12 @@
 					<execution>
 						<id>integration-test-int-tags</id>
 						<configuration>
+							<skipTests>${skipIntTagTests}</skipTests>
 							<jvm>${project.build.directory}/jre-inst-int/bin/java</jvm>
 							<includes>
 								<include>**/*IntTagITCase.java</include>
 							</includes>
+							<reuseForks>false</reuseForks>
 							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
 								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-int</argLine>
 						</configuration>
@@ -92,10 +94,12 @@
 					<execution>
 						<id>integration-test-obj-tags</id>
 						<configuration>
+							<skipTests>${skipObjTagTests}</skipTests>
 							<jvm>${project.build.directory}/jre-inst-obj/bin/java</jvm>
 							<includes>
 								<include>**/*ObjTagITCase.java</include>
 							</includes>
+							<reuseForks>false</reuseForks>
 							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
 								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-obj</argLine>
 						</configuration>
@@ -107,10 +111,12 @@
 					<execution>
 						<id>integration-test-implicit-tracking</id>
 						<configuration>
+							<skipTests>${skipImplicitTests}</skipTests>
 							<jvm>${project.build.directory}/jre-inst-implicit/bin/java</jvm>
 							<includes>
 								<include>**/*ImplicitITCase.java</include>
 							</includes>
+							<reuseForks>false</reuseForks>
 							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
 								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-implicit</argLine>
 						</configuration>
@@ -157,7 +163,7 @@
 							<goal>exec</goal>
 						</goals>
 						<configuration>
-						    <skip>${dacapo.skip}</skip>
+							<skip>${dacapo.skip}</skip>
 							<executable>${basedir}/runDacapo.sh</executable>
 						</configuration>
 					</execution>

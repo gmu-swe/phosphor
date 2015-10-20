@@ -87,6 +87,20 @@ public class RuntimeReflectionPropogator {
 				e.printStackTrace();
 			}
 		}
+		else if(MultiDTaintedArrayWithObjTag.class.isAssignableFrom(component))
+		{
+			Type t = Type.getType(ret);
+			String newType = "[";
+			for(int i = 0; i < t.getDimensions(); i++)
+				newType += "[";
+			newType += MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(component);
+			try {
+				ret = Class.forName(newType);
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		return ret;
 	}
 	public static Object get$$PHOSPHORTAGGED(Field f, Object obj, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
@@ -516,7 +530,7 @@ public class RuntimeReflectionPropogator {
 
 	public static TaintedDoubleWithObjTag getDouble$$PHOSPHORTAGGED(Field f, Object obj, TaintedDoubleWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
-		ret.val = f.getInt(obj);
+		ret.val = f.getDouble(obj);
 		try {
 			Field taintField;
 			if (fieldToField.containsKey(f))

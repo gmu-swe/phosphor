@@ -9,7 +9,10 @@ import edu.columbia.cs.psl.phosphor.instrumenter.TaintTagFactory;
 import edu.columbia.cs.psl.phosphor.instrumenter.DataAndControlFlowTagFactory;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
+
+import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
+
 import edu.columbia.cs.psl.phosphor.runtime.DerivedTaintListener;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
@@ -47,6 +50,8 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
 
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
+	public static Class<? extends ClassVisitor> extensionClassVisitor;
+
 	public static TaintTagFactory taintTagFactory = new DataAndControlFlowTagFactory();
 	public static DerivedTaintListener derivedTaintListener;
 	public static String CACHE_DIR = null;
@@ -79,6 +84,8 @@ public class Configuration {
 					props.load(r.openStream());
 					if (props.containsKey("extraMV"))
 						extensionMethodVisitor = (Class<? extends TaintAdapter>) Class.forName(props.getProperty("extraMV"));
+					if (props.containsKey("extraCV"))
+						extensionClassVisitor = (Class<? extends ClassVisitor>) Class.forName(props.getProperty("extraCV"));
 					if (props.containsKey("taintTagFactory"))
 						taintTagFactory = (TaintTagFactory) Class.forName(props.getProperty("taintTagFactory")).newInstance();
 					if (props.containsKey("derivedTaintListener"))

@@ -8,4 +8,12 @@
  <modules>
      <module>Phosphor</module>
 	   </modules>
+ <distributionManagement>
+     <snapshotRepository>
+         <id>psl.internal</id>
+         <name>PSL Internal Repository</name>
+         <url>http://ase.cs.columbia.edu:8282/repository/snapshots</url>
+     </snapshotRepository>
+	</distributionManagement>
+
 </project>

@@ -23,6 +23,9 @@ public final class ControlTaintTagStack {
 	}
 
 	public final void recalculate() {
+		if(!invalidated)
+			return;
+		invalidated = false;
 
 		if (children != null) {
 			taint = new Taint();
@@ -71,29 +74,21 @@ public final class ControlTaintTagStack {
 		if(taint == null)
 			taint = new Taint();
 		taint.addDependency(tag);
-		
+		invalidated = true;
 		return entry;
 	}
-	public final void appendTag(Taint tag, Taint tag2) {
-//		push(tag);
-//		push(tag2);
-	}
-	
-	public final void pop() {
-//		if(children == null || children.getFirst() == null)
-//			return;
-//		pop(children.getFirst().entry.taint);
-	}
+
 	public final void pop(EnqueuedTaint enq) {
 		if(enq == null || enq.taint == null)
 		{
 			return;
 		}
+		invalidated = true;
+
 		Taint tag = enq.taint;
 		boolean recalc = tag.lbl != null || !tag.hasNoDependencies();
 		LinkedList.Node<EnqueuedTaint> e = tag.enqueuedInControlFlow.getFirst();
 		LinkedList.Node<EnqueuedTaint> p = null;
-		
 		while(e != null)
 		{
 			if(e.entry.controlTag == this)
