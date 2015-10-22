@@ -155,15 +155,15 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	}
 	public int newControlTaintLV()
 	{
-		int idx = super.newLocal(Type.getType(EnqueuedTaint.class));
+		int idx = super.newLocal(Type.getType("Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"));
 		if (ctrlTagStartLbl == null) {
 			ctrlTagStartLbl = new Label();
 			super.visitLabel(ctrlTagStartLbl);
 		}
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(EnqueuedTaint.class), null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
 		createdLVs.add(newLVN);
 //		System.out.println("Create taint tag at " + idx);
-		analyzer.locals.add(idx, Type.getInternalName(EnqueuedTaint.class));
+		analyzer.locals.add(idx, "edu/columbia/cs/psl/phosphor/struct/EnqueuedTaint");
 		jumpIdx++;
 		return idx;
 	}
@@ -305,12 +305,16 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	Label end;
 
 	@Override
-	public void visitEnd() {
+	public void visitMaxs(int maxStack, int maxLocals) {
 		if(!endVisited)
 		{
 			super.visitLabel(end);
 			endVisited = true;
 		}
+		super.visitMaxs(maxStack, maxLocals);
+	}
+	@Override
+	public void visitEnd() {
 		super.visitEnd();
 		for (TmpLV l : tmpLVs) {
 			if (l.inUse)

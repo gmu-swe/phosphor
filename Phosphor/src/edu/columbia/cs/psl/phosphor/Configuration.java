@@ -50,7 +50,7 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
 
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
-	public static Class<? extends ClassVisitor> extensionClassVisitor;
+	public static Class extensionClassVisitor;
 
 	public static TaintTagFactory taintTagFactory = new DataAndControlFlowTagFactory();
 	public static DerivedTaintListener derivedTaintListener;

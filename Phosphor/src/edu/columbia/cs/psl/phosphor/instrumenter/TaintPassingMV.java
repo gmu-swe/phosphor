@@ -192,7 +192,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //			else
 //				passthruMV.visitIntInsn(BIPUSH, var);
 			passthruMV.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[var]);
-			passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "("+Type.getDescriptor(EnqueuedTaint.class)+")V", false);
+			passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "("+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")V", false);
 			return;
 		}
 		if (opcode == TaintUtils.ALWAYS_AUTOBOX && analyzer.locals.size() > var && analyzer.locals.get(var) instanceof String) {
@@ -1686,7 +1686,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //				{
 //					passthruMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 //					passthruMV.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[i]);
-//					passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "("+Type.getDescriptor(EnqueuedTaint.class)+")V", false);
+//					passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "("+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")V", false);
 //				}
 //				break;
 //			case FASTORE:
@@ -2837,7 +2837,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[branchStarting]);
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC +Type.getDescriptor(EnqueuedTaint.class)+ ")" + Type.getDescriptor(EnqueuedTaint.class), false);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC +"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+ ")" + "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
 			super.visitVarInsn(ASTORE, taintTagsLoggedAtJumps[branchStarting]);
 		} else {
 			super.visitInsn(SWAP);
@@ -2859,7 +2859,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[branchStarting]);
 
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC +Type.getDescriptor(EnqueuedTaint.class)+ ")" + Type.getDescriptor(EnqueuedTaint.class), false);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC +"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+ ")" + "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
 			super.visitVarInsn(ASTORE, taintTagsLoggedAtJumps[branchStarting]);
 		} else {
 			super.visitInsn(SWAP);

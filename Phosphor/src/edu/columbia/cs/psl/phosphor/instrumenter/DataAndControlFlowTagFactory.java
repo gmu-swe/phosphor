@@ -4,10 +4,12 @@ import java.util.Arrays;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
@@ -548,7 +550,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 				mv.visitInsn(SWAP);
 				mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + Type.getDescriptor(EnqueuedTaint.class)+")"+Type.getDescriptor(EnqueuedTaint.class), false);
+				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
 				mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
 				mv.visitJumpInsn(opcode, label);
 				break;
@@ -561,14 +563,14 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 					mv.visitInsn(SWAP);
 					mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;"+Type.getDescriptor(EnqueuedTaint.class)+")"+Type.getDescriptor(EnqueuedTaint.class), false);
+					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
 					mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
 				} else {
 					mv.visitInsn(DUP);
 					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 					mv.visitInsn(SWAP);
 					mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;"+Type.getDescriptor(EnqueuedTaint.class)+")"+Type.getDescriptor(EnqueuedTaint.class), false);
+					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
 					mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
 				}
 				mv.visitJumpInsn(opcode, label);
@@ -597,10 +599,10 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				lvs.freeTmpLV(tmp);
 				//V V C T CT
 				mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + Type.getDescriptor(EnqueuedTaint.class)+")"+Type.getDescriptor(EnqueuedTaint.class), false);
+				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
 				mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
 				mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting+1]);
-				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + Type.getDescriptor(EnqueuedTaint.class)+")"+Type.getDescriptor(EnqueuedTaint.class), false);
+				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
 				mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting+1]);
 				mv.visitJumpInsn(opcode, label);
 				break;
@@ -894,6 +896,18 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	@Override
 	public boolean isIgnoredClass(String classname) {
 		return false;
+	}
+
+	@Override
+	public void instrumentationStarting(String className) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void instrumentationEnding(String className) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

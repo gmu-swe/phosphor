@@ -33,6 +33,7 @@ import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.ParameterNode;
+import org.objectweb.asm.util.CheckClassAdapter;
 
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
@@ -69,7 +70,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	List<FieldNode> fields;
 	private boolean ignoreFrames;
 	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields) {
-		super(Opcodes.ASM5, cv);
+		super(Opcodes.ASM5,  cv
+				//new CheckClassAdapter(cv,false)
+				);
 		DO_OPT = DO_OPT && !IS_RUNTIME_INST;
 		this.ignoreFrames = skipFrames;
 		this.fields = fields;
@@ -158,7 +161,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			if (signature != null)
 				signature = signature + Type.getDescriptor((Configuration.MULTI_TAINTING ? TaintedWithObjTag.class : TaintedWithIntTag.class));
 		}
-		this.visitAnnotation(Type.getDescriptor(TaintInstrumented.class), false);
+
 
 		//		System.out.println("V " + version);
 		for (String s : interfaces) {
@@ -168,7 +171,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				implementsSerializable = true;
 		}
 		super.visit(version, access, name, signature, superName, interfaces);
-		
+		this.visitAnnotation(Type.getDescriptor(TaintInstrumented.class), false);		
 		if(Instrumenter.isIgnoredClass(superName))
 		{
 			//Might need to override stuff.
@@ -496,7 +499,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 //			}
 		}
 		if(this.className.equals("java/lang/reflect/Method"))
-			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD+"marked", "Z", null, false);
+			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD+"marked", "Z", null, 0);
 		for (FieldNode fn : extraFieldsToVisit) {
 			if (className.equals("java/lang/Byte") && !fn.name.startsWith("value"))
 				continue;
@@ -538,10 +541,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "equals", "(Ljava/lang/Object;)Z",false);
 			mv.visitLabel(end);
 			mv.visitInsn(Opcodes.IRETURN);
-			mv.visitMaxs(0, 0);
-			mv.visitEnd();
 			mv.visitLocalVariable("this", "L"+className+";", null, start, end, 0);
 			mv.visitLocalVariable("other", "Ljava/lang/Object;", null, start, end, 1);
+
+			mv.visitMaxs(0, 0);
+			mv.visitEnd();
 		}
 		if (generateHashCode && !goLightOnGeneratedStuff) {
 			superMethodsToOverride.remove("hashCode()I");
@@ -556,9 +560,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "hashCode", "()I",false);
 			mv.visitLabel(end);
 			mv.visitInsn(Opcodes.IRETURN);
+			mv.visitLocalVariable("this", "L"+className+";", null, start, end, 0);
+
 			mv.visitMaxs(0, 0);
 			mv.visitEnd();
-			mv.visitLocalVariable("this", "L"+className+";", null, start, end, 0);
 
 		}
 		if (addTaintMethod) {
@@ -939,7 +944,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						Label endLabel = new Label();
 						ga.visitLabel(endLabel);
 						ga.returnValue();
-						ga.visitMaxs(0, 0);
+
 //						int j = 0;
 						for (Object o : m.localVariables) {
 							LocalVariableNode n = (LocalVariableNode) o;
@@ -949,6 +954,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						if (m.name.equals("<init>")) {
 
 						}
+						ga.visitMaxs(0, 0);
 						ga.visitEnd();
 					} else {
 						String[] exceptions = new String[m.exceptions.size()];
@@ -963,7 +969,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 							av.visitEnd();
 						}
 						m.accept(mv);
-						mv.visitEnd();
 					}
 				} else {
 
@@ -1329,14 +1334,15 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		}
 		ga.visitLabel(end.getLabel());
 		ga.returnValue();
-		ga.visitMaxs(0, 0);
 		if(isPreAllocReturnType)
 		{
 			lvsToVisit.add(new LocalVariableNode("phosphorReturnHolder", newReturn.getDescriptor(), null, start, end, lvs.getPreAllocedReturnTypeVar(newReturn)));
 		}
-		ga.visitEnd();
 		for(LocalVariableNode n : lvsToVisit)
 			n.accept(ga);		
+		ga.visitMaxs(0, 0);
+		ga.visitEnd();
+
 	}
 
 	private void generateStrLdcWrapper() {
