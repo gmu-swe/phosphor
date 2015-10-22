@@ -169,8 +169,8 @@ public class PreMain {
 			ClassReader cr = new ClassReader(classfileBuffer);
 			String className = cr.getClassName();
 			innerException = false;
-			bigLoader = loader;
-			Instrumenter.loader = bigLoader;
+//			bigLoader = loader;
+//			Instrumenter.loader = bigLoader;
 			if (Instrumenter.isIgnoredClass(className)) {
 				//				System.out.println("Premain.java ignore: " + className);
 				return classfileBuffer;
