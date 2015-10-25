@@ -12,6 +12,14 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 public final class Taint {
 	public static boolean IGNORE_TAINTING;
 
+	public static final Taint copyTaint(Taint in)
+	{
+		if(in == null)
+			return null;
+		Taint ret = new Taint();
+		ret.addDependency(in);
+		return ret;
+	}
 	public Taint copy()
 	{
 		if(IGNORE_TAINTING)

@@ -12,7 +12,7 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	String labelFoo = "Foo";
 	@Test
 	public void testSimpleIf() throws Exception {
-
+		resetState();
 		int i = MultiTainter.taintedInt(1, labelA);
 
 		int k;

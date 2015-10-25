@@ -479,6 +479,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			case Opcodes.FSTORE:
 			case Opcodes.DSTORE:
 				super.visitVarInsn(opcode, var);
+				if(Configuration.MULTI_TAINTING)
+				{
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
+				}
 				super.visitVarInsn((!Configuration.MULTI_TAINTING ? ISTORE : ASTORE), shadowVar);
 				return;
 			case Opcodes.ASTORE:
@@ -703,7 +707,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if (isIgnoredTaint)
 						super.visitInsn(POP);
 					else
+					{
+						if(shadowType.length() == 1)
+						{
+							if(Configuration.MULTI_TAINTING)
+							{
+								super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
+							}
+						}
 						super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, shadowType);
+					}
 				}
 			}
 			break;
