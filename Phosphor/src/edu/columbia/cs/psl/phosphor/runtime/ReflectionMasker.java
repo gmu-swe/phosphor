@@ -8,8 +8,12 @@ import java.util.WeakHashMap;
 
 import sun.reflect.ReflectionFactory;
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.MethodDescriptor;
+import edu.columbia.cs.psl.phosphor.SelectiveInstrumentationManager;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+
 import org.objectweb.asm.Type;
+
 import edu.columbia.cs.psl.phosphor.struct.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
@@ -196,6 +200,7 @@ public class ReflectionMasker {
 			return m;
 		}
 	}
+	static boolean isSelectiveInstManagerInit = false;
 
 	@SuppressWarnings("rawtypes")
 	public static Method getTaintMethod(Method m, boolean isObjTags) {
@@ -203,6 +208,23 @@ public class ReflectionMasker {
 		//			return m;
 		if (m.getDeclaringClass().isAnnotation())
 			return m;
+		if(Configuration.WITH_SELECTIVE_INST)
+		{
+			String name = m.getName();
+			String owner = Type.getInternalName(m.getDeclaringClass());
+			String desc = Type.getMethodDescriptor(m);
+			
+
+			if(!name.equals("premain") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/")) {
+				if(!isSelectiveInstManagerInit) {
+					System.out.println("Loading selective instrumentation configuration");
+					SelectiveInstrumentationManager.populateMethodsToInstrument(System.getProperty("user.dir")+"/methods");
+					isSelectiveInstManagerInit = true;
+				}
+				if(!SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc)))
+					return m;
+			}
+		}
 		final char[] chars = m.getName().toCharArray();
 		if (chars.length > SUFFIX_LEN) {
 			boolean isEq = true;

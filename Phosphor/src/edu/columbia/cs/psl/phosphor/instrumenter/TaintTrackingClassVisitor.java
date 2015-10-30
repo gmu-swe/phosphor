@@ -14,6 +14,8 @@ import java.util.Scanner;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.MethodDescriptor;
+import edu.columbia.cs.psl.phosphor.SelectiveInstrumentationManager;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 
@@ -236,6 +238,23 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	HashMap<MethodNode, MethodNode> forMore = new HashMap<MethodNode, MethodNode>();
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+		if(Configuration.WITH_SELECTIVE_INST && !className.startsWith("sun/") && !className.startsWith("java/") && !className.startsWith("edu/columbia/") && !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, className, desc))){
+			if(name.equals("hashCode") && desc.equals("()I"))
+				generateHashCode = false;
+			if(name.equals("equals") && desc.equals("(Ljava/lang/Object;)Z"))
+				generateEquals = false;
+			if (TaintUtils.DEBUG_CALLS)
+				System.out.println("Skipping instrumentation for  class: " + className + " method: " + name + " desc: " + desc);
+			MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, mv);
+			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
+			mv = new UninstrumentedCompatMV(mv, analyzer);
+			
+			MethodNode wrapper = new MethodNode(access | Opcodes.ACC_NATIVE, name, desc, signature, exceptions);
+			if(!name.contains("<"))
+				methodsToAddWrappersFor.add(wrapper);
+			return mv;
+		}
 		if (Configuration.WITH_ENUM_BY_VAL && className.equals("java/lang/Enum") && name.equals("clone"))
 			return null;
 		if (TaintUtils.DEBUG_CALLS || TaintUtils.DEBUG_FIELDS || TaintUtils.DEBUG_FRAMES || TaintUtils.DEBUG_LOCAL)

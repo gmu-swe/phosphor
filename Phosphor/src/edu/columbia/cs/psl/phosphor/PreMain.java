@@ -255,7 +255,8 @@ public class PreMain {
 					_cv = extra.newInstance(_cv, skipFrames);
 				}
 				_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
-
+				if (Configuration.WITH_SELECTIVE_INST)
+					cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
 				cr.accept(
 				//							new CheckClassAdapter(
 						_cv

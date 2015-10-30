@@ -25,6 +25,8 @@ public class Configuration {
 	public static boolean WITH_ENUM_BY_VAL = false;
 	public static boolean WITH_UNBOX_ACMPEQ = false;
 
+	public static boolean WITH_SELECTIVE_INST = false;
+	
 	public static boolean WITHOUT_PROPOGATION = false;
 	public static boolean WITHOUT_FIELD_HIDING = false;
 	

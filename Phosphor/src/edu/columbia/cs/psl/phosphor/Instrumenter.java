@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -42,11 +43,14 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
+
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.CallGraph;
 import edu.columbia.cs.psl.phosphor.struct.MethodInformation;
@@ -168,6 +172,7 @@ public class Instrumenter {
 				;
 	}
 
+	static HashMap<String, ClassNode> allClasses = new HashMap<String, ClassNode>();
 
 	public static HashMap<String, ClassNode> classes = new HashMap<String, ClassNode>();
 	public static void analyzeClass(InputStream is) {
@@ -175,6 +180,18 @@ public class Instrumenter {
 		nTotal++;
 		try {
 			cr = new ClassReader(is);
+			if (Configuration.WITH_SELECTIVE_INST) {
+				try {
+					ClassNode cn = new ClassNode();
+					cr.accept(cn, ClassReader.SKIP_CODE);
+					allClasses.put(cn.name, cn);
+
+					cr.accept(new ClassHierarchyCreator(), ClassReader.EXPAND_FRAMES);
+					cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
+				} catch (ClassFormatError ex) {
+					ex.printStackTrace();
+				}
+			}
 			cr.accept(new ClassVisitor(Opcodes.ASM5) {
 				@Override
 				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
@@ -233,6 +250,9 @@ public class Instrumenter {
 	static Option opt_enumPropogation = new Option("withEnumsByValue","Propogate tags to enums as if each enum were a value (not a reference) through the Enum.valueOf method");
 	static Option opt_unboxAcmpEq = new Option("forceUnboxAcmpEq","At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)");
 
+	static Option opt_withSelectiveInst = new Option("withSelectiveInst","Enable selective instrumentation");
+
+	
 	static Option help = new Option( "help", "print this message" );
 
 	public static String sourcesFile;
@@ -252,7 +272,8 @@ public class Instrumenter {
 		options.addOption(opt_withoutPropogation);
 		options.addOption(opt_enumPropogation);
 		options.addOption(opt_unboxAcmpEq);
-
+		options.addOption(opt_withSelectiveInst);
+		
 	    CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
 	    try {
@@ -284,8 +305,12 @@ public class Instrumenter {
 		Configuration.WITHOUT_PROPOGATION = line.hasOption("withoutPropogation");
 		Configuration.WITH_ENUM_BY_VAL = line.hasOption("withEnumsByValue");
 		Configuration.WITH_UNBOX_ACMPEQ = line.hasOption("forceUnboxAcmpEq");
+		Configuration.WITH_SELECTIVE_INST = line.hasOption("withSelectiveInst");
 		Configuration.init();
 		
+		
+		if(Configuration.WITH_SELECTIVE_INST)
+			System.out.println("Performing selective instrumentation");
 		
 		if(Configuration.DATAFLOW_TRACKING)
 			System.out.println("Data flow tracking: enabled");
@@ -303,15 +328,58 @@ public class Instrumenter {
 		else
 			System.out.println("Taints will be combined with logical-or.");
 
+		if(Configuration.WITH_SELECTIVE_INST)
+		{
+			System.out.println("Loading selective instrumentation configuration");
+			SelectiveInstrumentationManager.populateMethodsToInstrument(System.getProperty("user.dir") + "/methods");
+		}
 		TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
 		ANALYZE_ONLY = true;
 		System.out.println("Starting analysis");
-//		preAnalysis();
-		_main(line.getArgs());
+		//		preAnalysis();
+		if (Configuration.WITH_SELECTIVE_INST) {
+			while (true) {
+				System.out.println("Waiting for convergence..");
+				n = 0;
+				int size = SelectiveInstrumentationManager.methodsToInstrument.size();
+				_main(line.getArgs());
+				for (String clazz : SelectiveInstrumentationManager.methodsToInstrumentByClass.keySet()) {
+					Set<String> supers = ClassHierarchyCreator.allSupers(clazz);
+					for (String s : supers) {
+						ClassNode cn = allClasses.get(s);
+						if (cn != null) {
+							for (String meth : SelectiveInstrumentationManager.methodsToInstrumentByClass.get(clazz)) {
+								for (Object o: cn.methods) {
+									MethodNode mn = (MethodNode) o;
+									if (meth.equals(mn.name + mn.desc)) {
+										MethodDescriptor d = new MethodDescriptor(mn.name, cn.name, mn.desc);
+										if (!SelectiveInstrumentationManager.methodsToInstrument.contains(d))
+											SelectiveInstrumentationManager.methodsToInstrument.add(d);
+									}
+								}
+							}
+						}
+					}
+				}
+				int size_new = SelectiveInstrumentationManager.methodsToInstrument.size();
+				if (size == size_new)
+					break;
+			}
+
+		} else {
+			_main(line.getArgs());
+		}
 		System.out.println("Analysis Completed: Beginning Instrumentation Phase");
 //		finishedAnalysis();
 		ANALYZE_ONLY = false;
 		_main(line.getArgs());
+		if (Configuration.WITH_SELECTIVE_INST) {
+			// write out file again
+			StringBuffer buf = new StringBuffer();
+			for (MethodDescriptor desc : SelectiveInstrumentationManager.methodsToInstrument)
+				buf.append(TaintUtils.getMethodDesc(desc)).append("\n");
+			TaintUtils.writeToFile(new File(rootOutputDir.getAbsolutePath() + "/methods"), buf.toString());
+		}
 		System.out.println("Done");
 
 	}
@@ -844,6 +912,16 @@ public class Instrumenter {
 		return false;
 	}
 
+	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc) {
+		if (!owner.startsWith("sun/") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/")
+				&& !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
+			if (TaintUtils.DEBUG_CALLS)
+				System.out.println("Using uninstrument method call for class: " + owner + " method: " + name + " desc: " + desc);
+			return true;
+		}
+		return false;
+	}
+	
 	public static boolean isIgnoredMethod(String owner, String name, String desc) {
 		if (name.equals("wait") && desc.equals("(J)V"))
 			return true;
