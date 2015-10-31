@@ -1,11 +1,14 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+
 import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
@@ -65,7 +68,8 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 				super.visitLdcInsn(Type.getObjectType(className));
 			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeExtraStackTraceElements", "(" + stackTraceElDesc + "Ljava/lang/Class;)" + stackTraceElDesc,false);
 		} else if (owner.equals("java/lang/Object") && name.equals("getClass")) {
-			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeTaintClass", "(Ljava/lang/Class;)Ljava/lang/Class;",false);
+			super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeTaintClass", "(Ljava/lang/Class;Z)Ljava/lang/Class;", false);
 
 		}
 

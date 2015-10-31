@@ -251,7 +251,7 @@ public class Instrumenter {
 	static Option opt_unboxAcmpEq = new Option("forceUnboxAcmpEq","At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)");
 
 	static Option opt_withSelectiveInst = new Option("withSelectiveInst","Enable selective instrumentation");
-	static Option opt_alwaysRename = new Option("alwaysRenameMethods","Always rename methods to avoid collisions");
+	static Option opt_uninstCopies = new Option("generateUninstStubs","Add extra copies of each method, so there's always one instrumented and one not.");
 	
 	static Option help = new Option( "help", "print this message" );
 
@@ -273,7 +273,7 @@ public class Instrumenter {
 		options.addOption(opt_enumPropogation);
 		options.addOption(opt_unboxAcmpEq);
 		options.addOption(opt_withSelectiveInst);
-		options.addOption(opt_alwaysRename);
+		options.addOption(opt_uninstCopies);
 	    CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
 	    try {
@@ -299,6 +299,7 @@ public class Instrumenter {
 		Configuration.DATAFLOW_TRACKING = !line.hasOption("withoutDataTrack");
 		if(Configuration.IMPLICIT_TRACKING)
 			Configuration.MULTI_TAINTING = true;
+		Configuration.GENERATE_UNINST_STUBS = line.hasOption("generateUninstStubs");
 
 		Configuration.ARRAY_LENGTH_TRACKING = line.hasOption("withArrayLengthTags");
 		Configuration.WITHOUT_FIELD_HIDING = line.hasOption("withoutFieldHiding");
@@ -913,7 +914,7 @@ public class Instrumenter {
 	}
 
 	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc) {
-		if (!owner.startsWith("sun/") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/")
+		if (!owner.startsWith("sun/") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/") &&!owner.startsWith("[")
 				&& !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
 			if (TaintUtils.DEBUG_CALLS)
 				System.out.println("Using uninstrument method call for class: " + owner + " method: " + name + " desc: " + desc);

@@ -1307,8 +1307,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		{
 			hasNewName = false;
 		}
-		if (((Instrumenter.isIgnoredClass(owner) || (Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc)) || Instrumenter.isIgnoredMethod(owner, name, desc)) && !owner.startsWith("edu/columbia/cs/psl/phosphor/runtime"))
-			) {
+		boolean isIgnoredForTaints = Configuration.WITH_SELECTIVE_INST && 
+				Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc);
+		if ((Instrumenter.isIgnoredClass(owner) || isIgnoredForTaints || Instrumenter.isIgnoredMethod(owner, name, desc))  && !owner.startsWith("edu/columbia/cs/psl/phosphor/runtime")){
 			Type[] args = Type.getArgumentTypes(desc);
 			if (TaintUtils.DEBUG_CALLS) {
 				System.out.println("Calling non-inst: " + owner + "." + name + desc + " stack " + analyzer.stack);
@@ -1350,6 +1351,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					isCalledOnAPrimitiveArrayType = true;
 			}
 
+			if(isIgnoredForTaints && !name.startsWith("<") && !owner.startsWith("["))
+				name += TaintUtils.METHOD_SUFFIX_UNINST;
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			if (isCallToPrimitiveArrayClone) {
 				//Now we have cloned (but not casted) array, and a clopned( but not casted) taint array

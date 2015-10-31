@@ -65,7 +65,6 @@ public class TaintUtils {
 
 	public static final boolean TAINT_THROUGH_SERIALIZATION = false;
 	public static final boolean OPT_PURE_METHODS = false;
-	public static final boolean GENERATE_FASTPATH_VERSIONS = false;
 
 	public static final boolean OPT_IGNORE_EXTRA_TAINTS = true;
 
@@ -125,6 +124,8 @@ public class TaintUtils {
 	public static final int UNCONSTRAINED_NEW_STRING = 4;
 
 	public static final boolean VERIFY_CLASS_GENERATION = false;
+
+	public static final String METHOD_SUFFIX_UNINST = "$$PHOSPHORUNTAGGED";
 
 	/*
 	 * Start: Conversion of method signature from doop format to bytecode format

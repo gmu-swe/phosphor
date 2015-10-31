@@ -45,7 +45,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 public class PreMain {
 	private static Instrumentation instrumentation;
 
-	static final boolean DEBUG = false;
+	static final boolean DEBUG = true;
 
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
 

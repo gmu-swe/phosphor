@@ -1,10 +1,27 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+
 import org.objectweb.asm.Type;
 
 public abstract class MultiDTaintedArray {
 
+	public static final Object maybeUnbox(final Object in)
+	{
+		if(in == null)
+			return null;
+		if(in instanceof MultiDTaintedArrayWithObjTag || in instanceof MultiDTaintedArrayWithIntTag)
+			return unboxRaw(in);
+		if(in.getClass().isArray())
+		{
+			Object[] _in = (Object[]) in;
+			for(int i = 0; i < _in.length; i++)
+			{
+				_in[i] = maybeUnbox(_in[i]);
+			}
+		}
+		return in;
+	}
 	public static final Type getTypeForType(final Type originalElementType) {
 		if (!Configuration.MULTI_TAINTING)
 			return MultiDTaintedArrayWithIntTag.getTypeForType(originalElementType);

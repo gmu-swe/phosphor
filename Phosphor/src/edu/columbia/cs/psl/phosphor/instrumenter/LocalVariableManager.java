@@ -336,23 +336,20 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
 	public void visitCode() {
 		super.visitCode();
-		for(Type t : primitiveArrayFixer.wrapperTypesToPreAlloc)
-		{
-			if(t.equals(returnType))
-			{
-				preAllocedReturnTypes.put(t, lastArg);
+		if (primitiveArrayFixer != null)
+			for (Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
+				if (t.equals(returnType)) {
+					preAllocedReturnTypes.put(t, lastArg);
+				} else {
+					int lv = newPreAllocedReturnType(t);
+					preAllocedReturnTypes.put(t, lv);
+					super.visitTypeInsn(NEW, t.getInternalName());
+					super.visitInsn(DUP);
+					super.visitMethodInsn(INVOKESPECIAL, t.getInternalName(), "<init>", "()V", false);
+					mv.visitVarInsn(ASTORE, lv);
+					//				System.out.println("Created LV Storage at " + lv);
+				}
 			}
-			else
-			{
-				int lv = newPreAllocedReturnType(t);
-				preAllocedReturnTypes.put(t,lv);
-				super.visitTypeInsn(NEW, t.getInternalName());
-				super.visitInsn(DUP);
-				super.visitMethodInsn(INVOKESPECIAL, t.getInternalName(),"<init>", "()V",false);
-				mv.visitVarInsn(ASTORE, lv);
-//				System.out.println("Created LV Storage at " + lv);
-			}
-		}
 	}
 
 	HashMap<Type, Integer> preAllocedReturnTypes = new HashMap<Type, Integer>();

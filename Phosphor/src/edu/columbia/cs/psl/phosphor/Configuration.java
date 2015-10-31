@@ -30,6 +30,8 @@ public class Configuration {
 	public static boolean WITHOUT_PROPOGATION = false;
 	public static boolean WITHOUT_FIELD_HIDING = false;
 	
+	public static boolean GENERATE_UNINST_STUBS = false;
+	
 	/*
 	 * Derived configuration values
 	 */
@@ -76,7 +78,9 @@ public class Configuration {
 		OPT_CONSTANT_ARITHMETIC = true && !IMPLICIT_TRACKING;
 		TAINT_TAG_OBJ_ARRAY_CLASS = (MULTI_TAINTING ? Taint[].class : int[].class);
 		TAINT_TAG_OBJ_CLASS = (MULTI_TAINTING ? Taint.class : Integer.TYPE);
-
+		
+		if(WITH_SELECTIVE_INST)
+			GENERATE_UNINST_STUBS = true;
 
 		if (TaintTrackingClassVisitor.class != null && TaintTrackingClassVisitor.class.getClassLoader() != null) {
 			URL r = TaintTrackingClassVisitor.class.getClassLoader().getResource("phosphor-mv");

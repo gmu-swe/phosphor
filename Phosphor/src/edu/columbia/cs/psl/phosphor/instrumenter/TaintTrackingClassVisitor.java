@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URL;
+import java.text.Normalizer.Form;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -80,6 +81,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		this.fields = fields;
 	}
 	
+
+	private LinkedList<MethodNode> methodsToMakeUninstWrappersAround = new LinkedList<MethodNode>();
+
 	private LinkedList<MethodNode> methodsToAddWrappersFor = new LinkedList<MethodNode>();
 	private String className;
 	private boolean isNormalClass;
@@ -243,20 +247,30 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				generateHashCode = false;
 			if(name.equals("equals") && desc.equals("(Ljava/lang/Object;)Z"))
 				generateEquals = false;
-			if (TaintUtils.DEBUG_CALLS)
-				System.out.println("Skipping instrumentation for  class: " + className + " method: " + name + " desc: " + desc);
-			MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+//			if (TaintUtils.DEBUG_CALLS)
+//				System.out.println("Skipping instrumentation for  class: " + className + " method: " + name + " desc: " + desc);
+			String newName = name;
+			if (!name.contains("<") && 0 == (access & Opcodes.ACC_NATIVE))
+				newName = name+TaintUtils.METHOD_SUFFIX_UNINST;
+			MethodVisitor mv = super.visitMethod(access, newName, desc, signature, exceptions);
+			MethodVisitor _mv = mv;
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, mv);
 			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
-			mv = new UninstrumentedCompatMV(mv, analyzer);
-
-			MethodNode wrapper = new MethodNode(access | Opcodes.ACC_NATIVE, name, desc, signature, exceptions);
-			if (!isInterface)
-				wrapper.access &= ~Opcodes.ACC_ABSTRACT;
+			mv = new UninstrumentedCompatMV(access,className,name,desc,signature,(String[])exceptions,mv,analyzer);
+			LocalVariableManager lvs = new LocalVariableManager(access, desc, mv, analyzer, _mv);
+			((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
+			mv = lvs;
+			final MethodVisitor cmv = mv;
+			MethodNode wrapper = new MethodNode(Opcodes.ASM5, (isInterface ? access : access & ~Opcodes.ACC_ABSTRACT), name, desc, signature, exceptions) {
+				public void visitEnd() {
+					super.visitEnd();
+					this.accept(cmv);
+				};
+			};
 			String newDesc = TaintUtils.remapMethodDesc(desc);
-			if(!name.contains("<") && !newDesc.equals(desc))
-				methodsToAddWrappersFor.add(wrapper);
-			return mv;
+			if(!name.contains("<"))
+				methodsToMakeUninstWrappersAround.add(wrapper);
+			return wrapper;
 		}
 		if (Configuration.WITH_ENUM_BY_VAL && className.equals("java/lang/Enum") && name.equals("clone"))
 			return null;
@@ -758,72 +772,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						MethodVisitor mv = super.visitMethod(m.access, m.name, m.desc, m.signature, exceptions);
 						mv = new TaintTagFieldCastMV(mv);
 
-						//TODO maybe re-enable this
 						if(fullMethod != null)
 						{
-							if(fullMethod.visibleAnnotations != null)
-								for(Object o : fullMethod.visibleAnnotations)
-								{
-									AnnotationNode an = (AnnotationNode) o;
-									an.accept(mv.visitAnnotation(an.desc, true));
-								}
-							if(fullMethod.invisibleAnnotations != null)
-								for(Object o : fullMethod.invisibleAnnotations)
-								{
-									AnnotationNode an = (AnnotationNode) o;
-									an.accept(mv.visitAnnotation(an.desc, false));
-								}
-////							if(fullMethod.visibleParameterAnnotations != null)
-////								for(List<AnnotationNode> an : fullMethod.visibleParameterAnnotations)
-////								{
-////									an.accept(mv.visitParameterAnnotation(an., desc, visible));
-////								}
-							if (fullMethod.visibleLocalVariableAnnotations != null)
-								for (Object o: fullMethod.visibleLocalVariableAnnotations)
-								{
-									AnnotationNode an = (AnnotationNode) o;
-									an.accept(mv.visitAnnotation(an.desc, true));
-								}
-							if (fullMethod.invisibleLocalVariableAnnotations != null)
-								for (Object o: fullMethod.invisibleLocalVariableAnnotations)
-								{
-									AnnotationNode an = (AnnotationNode) o;
-									an.accept(mv.visitAnnotation(an.desc, false));
-								}
-							if (fullMethod.visibleTypeAnnotations != null)
-								for (Object o: fullMethod.visibleTypeAnnotations)
-								{
-									AnnotationNode an = (AnnotationNode) o;
-									an.accept(mv.visitAnnotation(an.desc, true));
-								}
-							if (fullMethod.invisibleTypeAnnotations != null)
-								for (Object o: fullMethod.invisibleTypeAnnotations)
-								{
-									AnnotationNode an = (AnnotationNode) o;
-									an.accept(mv.visitAnnotation(an.desc, false));
-								}
-							if (fullMethod.parameters != null)
-								for (Object o : fullMethod.parameters)
-								{
-									ParameterNode pn = (ParameterNode) o;
-									pn.accept(mv);
-								}
-							if (fullMethod.visibleParameterAnnotations != null)
-								for (int i = 0; i < fullMethod.visibleParameterAnnotations.length; i++)
-									if (fullMethod.visibleParameterAnnotations[i] != null)
-										for (Object o : fullMethod.visibleParameterAnnotations[i])
-										{
-											AnnotationNode an = (AnnotationNode) o;
-											an.accept(mv.visitParameterAnnotation(i, an.desc, true));
-										}
-							if (fullMethod.invisibleParameterAnnotations != null)
-								for (int i = 0; i < fullMethod.invisibleParameterAnnotations.length; i++)
-									if (fullMethod.invisibleParameterAnnotations[i] != null)
-										for (Object o : fullMethod.invisibleParameterAnnotations[i])
-										{
-											AnnotationNode an = (AnnotationNode) o;
-											an.accept(mv.visitParameterAnnotation(i, an.desc, false));
-										}
+							visitAnnotations(mv,fullMethod);
 						}
 						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, mv);
 						MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
@@ -995,7 +946,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				} else {
 
 					//generate wrapper for native method - a native wrapper
-					generateNativeWrapper(m);
+					generateNativeWrapper(m,m.name);
 					
 				}
 			}
@@ -1016,10 +967,115 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				acc = acc | Opcodes.ACC_ABSTRACT;
 			else
 				acc = acc &~Opcodes.ACC_ABSTRACT;
-//						System.out.println(m.getName() + " " + Type.getMethodDescriptor(m));
 			MethodNode mn = new MethodNode(Opcodes.ASM5, acc, m.getName(), Type.getMethodDescriptor(m), null, null);
 
-			generateNativeWrapper(mn);
+			generateNativeWrapper(mn,mn.name);
+
+			if (Configuration.GENERATE_UNINST_STUBS) {
+				MethodVisitor mv = super.visitMethod((isInterface ? mn.access : mn.access & ~Opcodes.ACC_ABSTRACT), mn.name + TaintUtils.METHOD_SUFFIX_UNINST, mn.desc, mn.signature,
+						(String[]) mn.exceptions.toArray(new String[0]));
+				GeneratorAdapter ga = new GeneratorAdapter(mv, mn.access, mn.name, mn.desc);
+				visitAnnotations(mv, mn);
+				if (!isInterface) {
+					mv.visitCode();
+					int opcode;
+					if ((mn.access & Opcodes.ACC_STATIC) == 0) {
+						ga.loadThis();
+						if ((mn.access & Opcodes.ACC_PRIVATE) != 0 || mn.name.equals("<init>"))
+							opcode = Opcodes.INVOKESPECIAL;
+						else
+							opcode = Opcodes.INVOKEVIRTUAL;
+					} else
+						opcode = Opcodes.INVOKESTATIC;
+					ga.loadArgs();
+
+					ga.visitMethodInsn(opcode, className, mn.name, mn.desc, false);
+					ga.returnValue();
+					mv.visitMaxs(0, 0);
+					mv.visitEnd();
+				}
+			}
+		}
+		if(Configuration.WITH_SELECTIVE_INST)
+		{
+			//Make sure that there's a wrapper in place for each method
+			for(MethodNode m : methodsToMakeUninstWrappersAround)
+			{
+				//first, make one that has a descriptor WITH taint tags, that calls into the uninst one
+				generateNativeWrapper(m,m.name+TaintUtils.METHOD_SUFFIX_UNINST);
+				//next, make one WITHOUT taint tags, and WITHOUT the suffix
+				String mName = m.name;
+				String mToCall = m.name;
+				if((Opcodes.ACC_NATIVE & m.access) != 0)
+				{
+					mName += TaintUtils.METHOD_SUFFIX_UNINST;
+					m.access = m.access & ~Opcodes.ACC_NATIVE;
+				}
+				else
+					mToCall += TaintUtils.METHOD_SUFFIX_UNINST;
+				MethodVisitor mv = super.visitMethod(m.access, mName, m.desc, m.signature, (String[]) m.exceptions.toArray(new String[0]));
+				if (!isInterface) {
+					GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name, m.desc);
+					visitAnnotations(mv, m);
+					mv.visitCode();
+					int opcode;
+					if ((m.access & Opcodes.ACC_STATIC) == 0) {
+						ga.loadThis();
+						if ((m.access & Opcodes.ACC_PRIVATE) != 0 || m.name.equals("<init>"))
+							opcode = Opcodes.INVOKESPECIAL;
+						else
+							opcode = Opcodes.INVOKEVIRTUAL;
+					} else
+						opcode = Opcodes.INVOKESTATIC;
+					ga.loadArgs();
+
+					ga.visitMethodInsn(opcode, className, mToCall, m.desc, false);
+					ga.returnValue();
+					mv.visitMaxs(0, 0);
+				}
+				mv.visitEnd();
+			}
+		}
+		if(Configuration.GENERATE_UNINST_STUBS)
+		{
+			//make a copy of each raw method, using the proper suffix. right now this only goes 
+			//one level deep - and it will call back into instrumented versions
+			for (MethodNode mn : forMore.keySet()) {
+				if (mn.name.startsWith("<"))
+					continue;
+				MethodVisitor mv = super.visitMethod(mn.access & ~Opcodes.ACC_NATIVE, mn.name + TaintUtils.METHOD_SUFFIX_UNINST, mn.desc, mn.signature, (String[]) mn.exceptions.toArray(new String[0]));
+				MethodNode meth = forMore.get(mn);
+
+				if ((mn.access & Opcodes.ACC_NATIVE) != 0) {
+					GeneratorAdapter ga = new GeneratorAdapter(mv, mn.access, mn.name, mn.desc);
+					visitAnnotations(mv, mn);
+					mv.visitCode();
+					int opcode;
+					if ((mn.access & Opcodes.ACC_STATIC) == 0) {
+						ga.loadThis();
+						if ((mn.access & Opcodes.ACC_PRIVATE) != 0 || mn.name.equals("<init>"))
+							opcode = Opcodes.INVOKESPECIAL;
+						else
+							opcode = Opcodes.INVOKEVIRTUAL;
+					} else
+						opcode = Opcodes.INVOKESTATIC;
+					ga.loadArgs();
+
+					ga.visitMethodInsn(opcode, className, mn.name, mn.desc, false);
+					ga.returnValue();
+					mv.visitMaxs(0, 0);
+					mv.visitEnd();
+				} else {
+					NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, mn.access, mn.name, mn.desc, mv);
+					mv = new UninstrumentedReflectionHidingMV(analyzer, className);
+					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc,mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer);
+					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.desc, mv, analyzer, analyzer);
+					((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
+					mv = lvs;
+					
+					meth.accept(mv);
+				}
+			}
 		}
 //		if (!goLightOnGeneratedStuff && TaintUtils.GENERATE_FASTPATH_VERSIONS)
 //			for (final MethodNode m : myMethods) {
@@ -1099,6 +1155,59 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 		super.visitEnd();
 	}
+
+	private void visitAnnotations(MethodVisitor mv, MethodNode fullMethod) {
+		if (fullMethod.visibleAnnotations != null)
+			for (Object o : fullMethod.visibleAnnotations) {
+				AnnotationNode an = (AnnotationNode) o;
+				an.accept(mv.visitAnnotation(an.desc, true));
+			}
+		if (fullMethod.invisibleAnnotations != null)
+			for (Object o : fullMethod.invisibleAnnotations) {
+				AnnotationNode an = (AnnotationNode) o;
+				an.accept(mv.visitAnnotation(an.desc, false));
+			}
+		if (fullMethod.visibleLocalVariableAnnotations != null)
+			for (Object o : fullMethod.visibleLocalVariableAnnotations) {
+				AnnotationNode an = (AnnotationNode) o;
+				an.accept(mv.visitAnnotation(an.desc, true));
+			}
+		if (fullMethod.invisibleLocalVariableAnnotations != null)
+			for (Object o : fullMethod.invisibleLocalVariableAnnotations) {
+				AnnotationNode an = (AnnotationNode) o;
+				an.accept(mv.visitAnnotation(an.desc, false));
+			}
+		if (fullMethod.visibleTypeAnnotations != null)
+			for (Object o : fullMethod.visibleTypeAnnotations) {
+				AnnotationNode an = (AnnotationNode) o;
+				an.accept(mv.visitAnnotation(an.desc, true));
+			}
+		if (fullMethod.invisibleTypeAnnotations != null)
+			for (Object o : fullMethod.invisibleTypeAnnotations) {
+				AnnotationNode an = (AnnotationNode) o;
+				an.accept(mv.visitAnnotation(an.desc, false));
+			}
+		if (fullMethod.parameters != null)
+			for (Object o : fullMethod.parameters) {
+				ParameterNode pn = (ParameterNode) o;
+				pn.accept(mv);
+			}
+		if (fullMethod.visibleParameterAnnotations != null)
+			for (int i = 0; i < fullMethod.visibleParameterAnnotations.length; i++)
+				if (fullMethod.visibleParameterAnnotations[i] != null)
+					for (Object o : fullMethod.visibleParameterAnnotations[i]) {
+						AnnotationNode an = (AnnotationNode) o;
+						an.accept(mv.visitParameterAnnotation(i, an.desc, true));
+					}
+		if (fullMethod.invisibleParameterAnnotations != null)
+			for (int i = 0; i < fullMethod.invisibleParameterAnnotations.length; i++)
+				if (fullMethod.invisibleParameterAnnotations[i] != null)
+					for (Object o : fullMethod.invisibleParameterAnnotations[i]) {
+						AnnotationNode an = (AnnotationNode) o;
+						an.accept(mv.visitParameterAnnotation(i, an.desc, false));
+					}
+	}
+
 	static void acceptAnnotationRaw(final AnnotationVisitor av, final String name,
             final Object value) {
         if (av != null) {
@@ -1120,8 +1229,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             }
         }
     }
-	private void generateNativeWrapper(MethodNode m) {
-		m.access = m.access & ~Opcodes.ACC_NATIVE;
+	private void generateNativeWrapper(MethodNode m, String methodNameToCall) {
 		String[] exceptions = new String[m.exceptions.size()];
 		exceptions = (String[]) m.exceptions.toArray(exceptions);
 		Type[] argTypes = Type.getArgumentTypes(m.desc);
@@ -1153,7 +1261,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			newDesc += newReturn.getDescriptor();
 		newDesc += ")" + newReturn.getDescriptor();
 
-		MethodVisitor mv = super.visitMethod(m.access, m.name + TaintUtils.METHOD_SUFFIX, newDesc, m.signature, exceptions);
+		MethodVisitor mv = super.visitMethod(m.access&~Opcodes.ACC_NATIVE, m.name + TaintUtils.METHOD_SUFFIX, newDesc, m.signature, exceptions);
 		NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, newDesc, mv);
 		MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
 		LocalVariableManager lvs = new LocalVariableManager(m.access,newDesc, soc, an, mv);
@@ -1221,7 +1329,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				opcode = Opcodes.INVOKEVIRTUAL;
 		} else
 			opcode = Opcodes.INVOKESTATIC;
-		ga.visitMethodInsn(opcode, className, m.name, m.desc,false);
+		ga.visitMethodInsn(opcode, className, methodNameToCall, m.desc,false);
 		if (origReturn != newReturn) {
 
 			if (origReturn.getSort() == Type.ARRAY) {

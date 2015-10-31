@@ -6,7 +6,9 @@ import java.util.WeakHashMap;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+
 import org.objectweb.asm.Type;
+
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
@@ -42,6 +44,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArrayWithIntTag;
@@ -62,7 +65,20 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithInt
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithObjTag;
 
 public class RuntimeReflectionPropogator {
-
+	public static void setUNINST(Field f, Object obj, Object val) throws IllegalArgumentException, IllegalAccessException {
+		if (MultiDTaintedArray.class.isAssignableFrom(f.getType())) {
+			throw new UnsupportedOperationException();
+		}
+		f.setAccessible(true);
+		f.set(obj, val);
+	}
+	public static Object getUNINST(Field f, Object obj) throws IllegalArgumentException, IllegalAccessException {
+		if (MultiDTaintedArray.class.isAssignableFrom(f.getType())) {
+			throw new UnsupportedOperationException();
+		}
+		f.setAccessible(true);
+		return f.get(obj);
+	}
 	public static Class<?> getType$$PHOSPHORTAGGED(Field f,ControlTaintTagStack ctrl)
 	{
 		return getType(f);
