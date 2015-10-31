@@ -1307,7 +1307,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		{
 			hasNewName = false;
 		}
-		if (((Instrumenter.isIgnoredClass(owner) || Instrumenter.isIgnoredMethod(owner, name, desc)) && !owner.startsWith("edu/columbia/cs/psl/phosphor/runtime"))
+		if (((Instrumenter.isIgnoredClass(owner) || (Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc)) || Instrumenter.isIgnoredMethod(owner, name, desc)) && !owner.startsWith("edu/columbia/cs/psl/phosphor/runtime"))
 			) {
 			Type[] args = Type.getArgumentTypes(desc);
 			if (TaintUtils.DEBUG_CALLS) {
@@ -1381,8 +1381,19 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(SWAP);
 				}
 			}
+			else if(returnType.getDescriptor().endsWith("Ljava/lang/Object;"))
+			{
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+				super.visitTypeInsn(Opcodes.CHECKCAST, returnType.getInternalName());
+			}
 			if (TaintUtils.DEBUG_CALLS)
 				System.out.println("Post invoke stack post swap pop maybe: " + analyzer.stack);
+			
+			if (dontUnboxTaints && Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc)) {
+				dontUnboxTaints = false;
+				return;
+			}
+			
 			return;
 		}
 		String newDesc = TaintUtils.remapMethodDesc(desc);

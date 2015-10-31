@@ -249,9 +249,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, mv);
 			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
 			mv = new UninstrumentedCompatMV(mv, analyzer);
-			
+
 			MethodNode wrapper = new MethodNode(access | Opcodes.ACC_NATIVE, name, desc, signature, exceptions);
-			if(!name.contains("<"))
+			if (!isInterface)
+				wrapper.access &= ~Opcodes.ACC_ABSTRACT;
+			String newDesc = TaintUtils.remapMethodDesc(desc);
+			if(!name.contains("<") && !newDesc.equals(desc))
 				methodsToAddWrappersFor.add(wrapper);
 			return mv;
 		}

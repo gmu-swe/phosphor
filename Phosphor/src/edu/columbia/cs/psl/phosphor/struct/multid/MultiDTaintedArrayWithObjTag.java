@@ -461,6 +461,14 @@ public abstract class MultiDTaintedArrayWithObjTag {
 						throw new IllegalArgumentException();
 				}
 			}
+			else if(in.getClass().getComponentType().getName().equals("java.lang.Object"))
+			{
+				Object[] _in = (Object[]) in;
+				for(int i = 0; i < _in.length;i++)
+				{
+					_in[i] = boxIfNecessary(_in[i]);
+				}
+			}
 		}
 		return in;
 	}

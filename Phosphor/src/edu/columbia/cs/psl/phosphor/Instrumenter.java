@@ -251,7 +251,7 @@ public class Instrumenter {
 	static Option opt_unboxAcmpEq = new Option("forceUnboxAcmpEq","At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)");
 
 	static Option opt_withSelectiveInst = new Option("withSelectiveInst","Enable selective instrumentation");
-
+	static Option opt_alwaysRename = new Option("alwaysRenameMethods","Always rename methods to avoid collisions");
 	
 	static Option help = new Option( "help", "print this message" );
 
@@ -273,7 +273,7 @@ public class Instrumenter {
 		options.addOption(opt_enumPropogation);
 		options.addOption(opt_unboxAcmpEq);
 		options.addOption(opt_withSelectiveInst);
-		
+		options.addOption(opt_alwaysRename);
 	    CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
 	    try {
