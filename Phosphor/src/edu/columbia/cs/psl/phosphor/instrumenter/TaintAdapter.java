@@ -594,7 +594,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 			return false;
 		switch (t.getSort()) {
 		case Type.ARRAY:
-			return t.getElementType().getSort() != Type.OBJECT;
+			return t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1;
 		case Type.OBJECT:
 		case Type.VOID:
 			return false;

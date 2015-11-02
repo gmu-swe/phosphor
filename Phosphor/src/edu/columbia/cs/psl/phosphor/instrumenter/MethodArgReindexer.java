@@ -29,7 +29,7 @@ public class MethodArgReindexer extends MethodVisitor {
 	Type[] oldArgTypes;
 	MethodNode lvStore;
 
-	Object[] firstFrameLocals;
+	Type[] firstFrameLocals;
 	int idxOfReturnPrealloc;
 
 	boolean hasPreAllocedReturnAddr;
@@ -61,9 +61,18 @@ public class MethodArgReindexer extends MethodVisitor {
 			oldArgTypesList.add(Type.getType("Lthis;"));
 			oldTypesDoublesAreOne.add(Type.getType("Lthis;"));
 		}
+		firstFrameLocals = new Type[origNumArgs];
+		int ffl = 0;
+		if(!isStatic)
+		{
+			firstFrameLocals[0] = Type.getObjectType("java/lang/Object");
+			ffl++;
+		}
 		for (Type t : Type.getArgumentTypes(originalDesc)) {
 			oldArgTypesList.add(t);
 			oldTypesDoublesAreOne.add(t);
+			firstFrameLocals[ffl] = t;
+			ffl++;
 			if (t.getSize() == 2)
 				oldArgTypesList.add(Type.getType("LTOP;"));
 		}
@@ -150,8 +159,6 @@ public class MethodArgReindexer extends MethodVisitor {
 
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-		if(firstFrameLocals == null)
-			firstFrameLocals = local;
 		Object[] remappedLocals = new Object[local.length + newArgOffset + 1]; //was +1, not sure why??
 		if (TaintUtils.DEBUG_FRAMES) {
 			System.out.println(name + desc + " orig nArgs = " + origNumArgs);
@@ -228,7 +235,7 @@ public class MethodArgReindexer extends MethodVisitor {
 							nLocal++;
 						}
 					}
-					else if (TaintAdapter.isPrimitiveStackType(firstFrameLocals[i])) {
+					else if (TaintAdapter.isPrimitiveType(firstFrameLocals[i])) {
 						if (!(local[i] != Opcodes.TOP && local[i] instanceof String && ((String) local[i]).charAt(1) == '[')) {
 							if (local[i] != Opcodes.TOP) {
 								try {
@@ -238,7 +245,7 @@ public class MethodArgReindexer extends MethodVisitor {
 
 									newIdx++;
 									nLocal++;
-//									System.out.println("Adding taint storage for local type " + local[i]);
+//									System.out.println("Adding taint storage for local type " + local[i] +", ffl is " + firstFrameLocals[i]);
 								} catch (IllegalArgumentException ex) {
 									System.err.println("Locals were: " + Arrays.toString(local) + ", curious about " + i);
 									throw ex;
