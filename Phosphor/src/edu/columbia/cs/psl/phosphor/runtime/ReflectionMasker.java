@@ -82,6 +82,14 @@ public class ReflectionMasker {
 				}
 				x++;
 			}
+			x = 0;
+			if(chars.length > SUFFIX_LEN+2)
+			for (int i = chars.length - SUFFIX_LEN-2; i < chars.length; i++) {
+				if (chars[i] != SUFFIX2CHARS[x]) {
+					isEq = false;
+				}
+				x++;
+			}
 			if (isEq) {
 				if (!IS_KAFFE)
 					m.PHOSPHOR_TAGmarked = true;
@@ -231,6 +239,14 @@ public class ReflectionMasker {
 			int x = 0;
 			for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
 				if (chars[i] != SUFFIXCHARS[x]) {
+					isEq = false;
+				}
+				x++;
+			}
+			x = 0;
+			if(chars.length > SUFFIX_LEN+2)
+			for (int i = chars.length - SUFFIX_LEN-2; i < chars.length; i++) {
+				if (chars[i] != SUFFIX2CHARS[x]) {
 					isEq = false;
 				}
 				x++;
@@ -1207,7 +1223,8 @@ public class ReflectionMasker {
 	static final int GETSETLEN = "setPHOSPHOR_TAG".length();
 	static final char[] GETSETCHARS = "setPHOSPHOR_TAG".toCharArray();
 	static final char[] SUFFIXCHARS = "$$PHOSPHORTAGGED".toCharArray();
-
+	static final char[] SUFFIX2CHARS = "$$PHOSPHORUNTAGGED".toCharArray();
+	
 	static final char[] FIELDSUFFIXCHARS = TaintUtils.TAINT_FIELD.toCharArray();
 	static final int FIELDSUFFIXLEN = FIELDSUFFIXCHARS.length;
 
@@ -1228,7 +1245,27 @@ public class ReflectionMasker {
 					}
 				}
 			}
-			if (!match && chars.length > SUFFIX_LEN) {
+			if (!match && chars.length > SUFFIX_LEN + 2) {
+				int x = 0;
+				boolean matched = false;
+				for (int i = chars.length - SUFFIX_LEN-2; i < chars.length; i++) {
+					if (chars[i] == SUFFIX2CHARS[x]) {
+						matched = true;
+						break;
+					}
+					x++;
+				}
+				x = 0;
+				if (!matched)
+					for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
+						if (chars[i] != SUFFIXCHARS[x]) {
+							ret.add(f);
+							break;
+						}
+						x++;
+					}
+			}
+			else if (!match && chars.length > SUFFIX_LEN) {
 				int x = 0;
 				for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
 					if (chars[i] != SUFFIXCHARS[x]) {

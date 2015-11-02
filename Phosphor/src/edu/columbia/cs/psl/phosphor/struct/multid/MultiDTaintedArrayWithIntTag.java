@@ -321,6 +321,8 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			case Type.BOOLEAN:
 				boolean[][][] retz = new boolean[in.length][][];
 				for (int i = 0; i < in.length; i++) {
+					if(ina[i] == null)
+						continue;
 					retz[i] = new boolean[ina[i].length][];
 					for (int j = 0; j < ina[i].length; j++)
 						retz[i][j] = ((MultiDTaintedBooleanArrayWithIntTag) ina[i][j]).val;
@@ -329,6 +331,8 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			case Type.BYTE:
 				byte[][][] retb = new byte[in.length][][];
 				for (int i = 0; i < in.length; i++) {
+					if(ina[i] == null)
+						continue;
 					retb[i] = new byte[ina[i].length][];
 					for (int j = 0; j < ina[i].length; j++)
 						retb[i][j] = ((MultiDTaintedByteArrayWithIntTag) ina[i][j]).val;
@@ -337,6 +341,8 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			case Type.CHAR:
 				char[][][] retc = new char[in.length][][];
 				for (int i = 0; i < in.length; i++) {
+					if(ina[i] == null)
+						continue;
 					retc[i] = new char[ina[i].length][];
 					for (int j = 0; j < ina[i].length; j++)
 						retc[i][j] = ((MultiDTaintedCharArrayWithIntTag) ina[i][j]).val;
@@ -345,6 +351,8 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			case Type.DOUBLE:
 				double[][][] retd = new double[in.length][][];
 				for (int i = 0; i < in.length; i++) {
+					if(ina[i] == null)
+						continue;
 					retd[i] = new double[ina[i].length][];
 					for (int j = 0; j < ina[i].length; j++)
 						retd[i][j] = ((MultiDTaintedDoubleArrayWithIntTag) ina[i][j]).val;
@@ -353,6 +361,8 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			case Type.FLOAT:
 				float[][][] retf = new float[in.length][][];
 				for (int i = 0; i < in.length; i++) {
+					if(ina[i] == null)
+						continue;
 					retf[i] = new float[ina[i].length][];
 					for (int j = 0; j < ina[i].length; j++)
 						retf[i][j] = ((MultiDTaintedFloatArrayWithIntTag) ina[i][j]).val;
@@ -361,6 +371,8 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			case Type.INT:
 				int[][][] reti = new int[in.length][][];
 				for (int i = 0; i < in.length; i++) {
+					if(ina[i] == null)
+						continue;
 					reti[i] = new int[ina[i].length][];
 					for (int j = 0; j < ina[i].length; j++)
 						reti[i][j] = ((MultiDTaintedIntArrayWithIntTag) ina[i][j]).val;
@@ -369,6 +381,8 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			case Type.LONG:
 				long[][][] retl = new long[in.length][][];
 				for (int i = 0; i < in.length; i++) {
+					if(ina[i] == null)
+						continue;
 					retl[i] = new long[ina[i].length][];
 					for (int j = 0; j < ina[i].length; j++)
 						retl[i][j] = ((MultiDTaintedLongArrayWithIntTag) ina[i][j]).val;
@@ -377,6 +391,8 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			case Type.SHORT:
 				short[][][] rets = new short[in.length][][];
 				for (int i = 0; i < in.length; i++) {
+					if(ina[i] == null)
+						continue;
 					rets[i] = new short[ina[i].length][];
 					for (int j = 0; j < ina[i].length; j++)
 						rets[i][j] = ((MultiDTaintedShortArrayWithIntTag) ina[i][j]).val;
@@ -428,18 +444,18 @@ public abstract class MultiDTaintedArrayWithIntTag {
 	}
 	public static final Object boxIfNecessary(final Object in) {
 		if (in != null && in.getClass().isArray()) {
-			if (in.getClass().getComponentType().isPrimitive()) {
+			Class tmp = in.getClass();
+			int dims = 0;
+			while(tmp.isArray())
+			{
+				tmp = tmp.getComponentType();
+				dims++;
+			}
+			if (tmp.isPrimitive()) {
 				//Is prim arraytype
-				Class tmp = in.getClass();
-				int dims = 0;
-				while(tmp.isArray())
-				{
-					tmp = tmp.getComponentType();
-					dims++;
-				}
 				if (dims > 1) { //this should never be possible.
 					Type t = Type.getType(in.getClass());
-					initWithEmptyTaints((Object[]) in, t.getElementType().getSort(), t.getDimensions());
+					return initWithEmptyTaints((Object[]) in, t.getElementType().getSort(), t.getDimensions());
 				} else {
 					if(tmp == Boolean.TYPE)
 						return new MultiDTaintedBooleanArrayWithIntTag(new int[(((boolean[]) in)).length], ((boolean[]) in));

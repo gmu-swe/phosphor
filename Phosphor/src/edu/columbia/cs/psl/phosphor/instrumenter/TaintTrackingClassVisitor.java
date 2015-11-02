@@ -73,8 +73,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	List<FieldNode> fields;
 	private boolean ignoreFrames;
 	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields) {
-		super(Opcodes.ASM5,  cv
-				//new CheckClassAdapter(cv,false)
+		super(Opcodes.ASM5,  //cv
+				new CheckClassAdapter(cv,false)
 				);
 		DO_OPT = DO_OPT && !IS_RUNTIME_INST;
 		this.ignoreFrames = skipFrames;
@@ -242,11 +242,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	HashMap<MethodNode, MethodNode> forMore = new HashMap<MethodNode, MethodNode>();
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+		if(name.equals("hashCode") && desc.equals("()I"))
+			generateHashCode = false;
+		if(name.equals("equals") && desc.equals("(Ljava/lang/Object;)Z"))
+			generateEquals = false;
 		if(Configuration.WITH_SELECTIVE_INST && !className.startsWith("sun/") && !className.startsWith("java/") && !className.startsWith("edu/columbia/") && !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, className, desc))){
-			if(name.equals("hashCode") && desc.equals("()I"))
-				generateHashCode = false;
-			if(name.equals("equals") && desc.equals("(Ljava/lang/Object;)Z"))
-				generateEquals = false;
 //			if (TaintUtils.DEBUG_CALLS)
 //				System.out.println("Skipping instrumentation for  class: " + className + " method: " + name + " desc: " + desc);
 			String newName = name;
@@ -256,7 +256,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			MethodVisitor _mv = mv;
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, mv);
 			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
-			mv = new UninstrumentedCompatMV(access,className,name,desc,signature,(String[])exceptions,mv,analyzer);
+			mv = new UninstrumentedCompatMV(access,className,name,desc,signature,(String[])exceptions,mv,analyzer,ignoreFrames);
 			LocalVariableManager lvs = new LocalVariableManager(access, desc, mv, analyzer, _mv);
 			((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
 			mv = lvs;
@@ -285,11 +285,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			access = access & ~Opcodes.ACC_PRIVATE;
 			access = access | Opcodes.ACC_PUBLIC;
 		}
-		if (name.equals("equals") && desc.equals("(Ljava/lang/Object;)Z"))
-			generateEquals = false;
-		if (name.equals("hashCode") && desc.equals("()I"))
-			generateHashCode = false;
-
+		
 		String originalName = name;
 		if (FIELDS_ONLY) { // || isAnnotation
 			return super.visitMethod(access, name, desc, signature, exceptions);
@@ -821,6 +817,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsBoxed", "(Ljava/util/Collection;)Ljava/util/Collection;",false);
 								ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
 							}
+							if(t.getDescriptor().endsWith("java/lang/Object;"))
+							{
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
+								ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
+							}
 							if (!needToBoxMultiD)
 								newDesc += t.getDescriptor();
 							else {
@@ -860,10 +861,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 						int opcode;
 						if ((m.access & Opcodes.ACC_STATIC) == 0) {
-							if ((m.access & Opcodes.ACC_PRIVATE) != 0 || m.name.equals("<init>"))
 								opcode = Opcodes.INVOKESPECIAL;
-							else
-								opcode = Opcodes.INVOKEVIRTUAL;
 						} else
 							opcode = Opcodes.INVOKESTATIC;
 						if (m.name.equals("<init>")) {
@@ -981,10 +979,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					int opcode;
 					if ((mn.access & Opcodes.ACC_STATIC) == 0) {
 						ga.loadThis();
-						if ((mn.access & Opcodes.ACC_PRIVATE) != 0 || mn.name.equals("<init>"))
-							opcode = Opcodes.INVOKESPECIAL;
-						else
-							opcode = Opcodes.INVOKEVIRTUAL;
+						opcode = Opcodes.INVOKESPECIAL;
 					} else
 						opcode = Opcodes.INVOKESTATIC;
 					ga.loadArgs();
@@ -1021,10 +1016,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					int opcode;
 					if ((m.access & Opcodes.ACC_STATIC) == 0) {
 						ga.loadThis();
-						if ((m.access & Opcodes.ACC_PRIVATE) != 0 || m.name.equals("<init>"))
-							opcode = Opcodes.INVOKESPECIAL;
-						else
-							opcode = Opcodes.INVOKEVIRTUAL;
+						opcode = Opcodes.INVOKESPECIAL;
 					} else
 						opcode = Opcodes.INVOKESTATIC;
 					ga.loadArgs();
@@ -1053,10 +1045,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					int opcode;
 					if ((mn.access & Opcodes.ACC_STATIC) == 0) {
 						ga.loadThis();
-						if ((mn.access & Opcodes.ACC_PRIVATE) != 0 || mn.name.equals("<init>"))
-							opcode = Opcodes.INVOKESPECIAL;
-						else
-							opcode = Opcodes.INVOKEVIRTUAL;
+						opcode = Opcodes.INVOKESPECIAL;
 					} else
 						opcode = Opcodes.INVOKESTATIC;
 					ga.loadArgs();
@@ -1068,7 +1057,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				} else {
 					NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, mn.access, mn.name, mn.desc, mv);
 					mv = new UninstrumentedReflectionHidingMV(analyzer, className);
-					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc,mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer);
+					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc,mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames);
 					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.desc, mv, analyzer, analyzer);
 					((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
 					mv = lvs;
@@ -1323,10 +1312,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 		int opcode;
 		if ((m.access & Opcodes.ACC_STATIC) == 0) {
-			if ((m.access & Opcodes.ACC_PRIVATE) != 0 || m.name.equals("<init>"))
-				opcode = Opcodes.INVOKESPECIAL;
-			else
-				opcode = Opcodes.INVOKEVIRTUAL;
+			opcode = Opcodes.INVOKESPECIAL;
 		} else
 			opcode = Opcodes.INVOKESTATIC;
 		ga.visitMethodInsn(opcode, className, methodNameToCall, m.desc,false);

@@ -10,9 +10,9 @@ public abstract class MultiDTaintedArray {
 	{
 		if(in == null)
 			return null;
-		if(in instanceof MultiDTaintedArrayWithObjTag || in instanceof MultiDTaintedArrayWithIntTag)
+		if(null != isPrimitiveBoxClass(in.getClass()))
 			return unboxRaw(in);
-		if(in.getClass().isArray())
+		if(in.getClass().isArray() && !in.getClass().getComponentType().isPrimitive())
 		{
 			Object[] _in = (Object[]) in;
 			for(int i = 0; i < _in.length; i++)

@@ -458,20 +458,39 @@ public class TaintUtils {
 	public static int OKtoDebugPHOSPHOR_TAG;
 
 	public static void arraycopy(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
-		if(!src.getClass().isArray())
+		try{
+		if(!src.getClass().isArray() && !dest.getClass().isArray())
 		{
 			System.arraycopy(((MultiDTaintedArrayWithIntTag)src).getVal(), srcPos, ((MultiDTaintedArrayWithIntTag)dest).getVal(), destPos, length);
 			System.arraycopy(((MultiDTaintedArrayWithIntTag)src).taint, srcPos, ((MultiDTaintedArrayWithIntTag)dest).taint, destPos, length);
 		}
+		else if(!dest.getClass().isArray())
+		{
+			//src is a regular array, dest is multidtaintedarraywithinttag
+			System.arraycopy(src, srcPos, ((MultiDTaintedArrayWithIntTag)dest).getVal(), destPos, length);
+		}
 		else
 			System.arraycopy(src, srcPos, dest, destPos, length);
+		}
+		catch(ArrayStoreException ex)
+		{
+			System.out.println("Src " + src);
+			System.out.println(((Object[])src)[0]);
+			System.out.println("Dest " + dest);
+			ex.printStackTrace();
+			throw ex;
+		}
 	}
 	
 	public static void arraycopy(Object src, Object srcPosTaint, int srcPos, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length) {
-		if(!src.getClass().isArray())
+		if(!src.getClass().isArray() && !dest.getClass().isArray())
 		{
 			System.arraycopy(((MultiDTaintedArrayWithObjTag)src).getVal(), srcPos, ((MultiDTaintedArrayWithObjTag)dest).getVal(), destPos, length);
 			System.arraycopy(((MultiDTaintedArrayWithObjTag)src).taint, srcPos, ((MultiDTaintedArrayWithObjTag)dest).taint, destPos, length);
+		}
+		else if(!dest.getClass().isArray())
+		{
+			System.arraycopy(src, srcPos, ((MultiDTaintedArrayWithObjTag)dest).getVal(), destPos, length);
 		}
 		else
 			System.arraycopy(src, srcPos, dest, destPos, length);
