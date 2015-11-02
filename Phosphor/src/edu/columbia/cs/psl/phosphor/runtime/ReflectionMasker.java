@@ -82,6 +82,11 @@ public class ReflectionMasker {
 				}
 				x++;
 			}
+			if (isEq) {
+				if (!IS_KAFFE)
+					m.PHOSPHOR_TAGmarked = true;
+				return m;
+			}
 			x = 0;
 			if(chars.length > SUFFIX_LEN+2)
 			for (int i = chars.length - SUFFIX_LEN-2; i < chars.length; i++) {
@@ -243,14 +248,19 @@ public class ReflectionMasker {
 				}
 				x++;
 			}
-			x = 0;
-			if(chars.length > SUFFIX_LEN+2)
-			for (int i = chars.length - SUFFIX_LEN-2; i < chars.length; i++) {
-				if (chars[i] != SUFFIX2CHARS[x]) {
-					isEq = false;
-				}
-				x++;
+			if (isEq) {
+				if (!IS_KAFFE)
+					m.PHOSPHOR_TAGmarked = true;
+				return m;
 			}
+			x = 0;
+			if (chars.length > SUFFIX_LEN + 2)
+				for (int i = chars.length - SUFFIX_LEN - 2; i < chars.length; i++) {
+					if (chars[i] != SUFFIX2CHARS[x]) {
+						isEq = false;
+					}
+					x++;
+				}
 			if (isEq) {
 				if (!IS_KAFFE)
 					m.PHOSPHOR_TAGmarked = true;

@@ -2721,6 +2721,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(SWAP);
 				super.visitInsn(POP);
 			}
+			else if(getTopOfStackObject().equals("java/lang/Object"))
+			{
+				//never allow monitor to occur on a multid type
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+			}
 			super.visitInsn(opcode);
 			break;
 		case TaintUtils.FOLLOWED_BY_FRAME:

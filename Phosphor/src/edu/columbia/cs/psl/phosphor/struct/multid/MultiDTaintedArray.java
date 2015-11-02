@@ -6,6 +6,14 @@ import org.objectweb.asm.Type;
 
 public abstract class MultiDTaintedArray {
 
+	public static final Object unbox1D(final Object in)
+	{
+		if(in instanceof MultiDTaintedArrayWithIntTag)
+			return ((MultiDTaintedArrayWithIntTag) in).getVal();
+		else if(in instanceof MultiDTaintedArrayWithObjTag)
+			return ((MultiDTaintedArrayWithObjTag) in).getVal();
+		return in;
+	}
 	public static final Object maybeUnbox(final Object in)
 	{
 		if(in == null)
