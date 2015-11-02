@@ -1255,35 +1255,27 @@ public class ReflectionMasker {
 					}
 				}
 			}
-			if (!match && chars.length > SUFFIX_LEN + 2) {
+			if (!match && chars.length > SUFFIX_LEN) {
 				int x = 0;
 				boolean matched = false;
-				for (int i = chars.length - SUFFIX_LEN-2; i < chars.length; i++) {
-					if (chars[i] == SUFFIX2CHARS[x]) {
+				for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
+					if (chars[i] == SUFFIXCHARS[x]) {
 						matched = true;
 						break;
 					}
 					x++;
 				}
 				x = 0;
-				if (!matched)
-					for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
-						if (chars[i] != SUFFIXCHARS[x]) {
+				if (!matched && chars.length > SUFFIX_LEN + 2)
+					for (int i = chars.length - SUFFIX_LEN -2; i < chars.length; i++) {
+						if (chars[i] != SUFFIX2CHARS[x]) {
 							ret.add(f);
 							break;
 						}
 						x++;
 					}
-			}
-			else if (!match && chars.length > SUFFIX_LEN) {
-				int x = 0;
-				for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
-					if (chars[i] != SUFFIXCHARS[x]) {
-						ret.add(f);
-						break;
-					}
-					x++;
-				}
+				else if(!matched)
+					ret.add(f);
 			} else if (!match) {
 				ret.add(f);
 			}
