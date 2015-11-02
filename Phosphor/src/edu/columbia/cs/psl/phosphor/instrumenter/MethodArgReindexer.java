@@ -29,6 +29,7 @@ public class MethodArgReindexer extends MethodVisitor {
 	Type[] oldArgTypes;
 	MethodNode lvStore;
 
+	Object[] firstFrameLocals;
 	int idxOfReturnPrealloc;
 
 	boolean hasPreAllocedReturnAddr;
@@ -149,6 +150,8 @@ public class MethodArgReindexer extends MethodVisitor {
 
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
+		if(firstFrameLocals == null)
+			firstFrameLocals = local;
 		Object[] remappedLocals = new Object[local.length + newArgOffset + 1]; //was +1, not sure why??
 		if (TaintUtils.DEBUG_FRAMES) {
 			System.out.println(name + desc + " orig nArgs = " + origNumArgs);
@@ -225,7 +228,7 @@ public class MethodArgReindexer extends MethodVisitor {
 							nLocal++;
 						}
 					}
-					else if (TaintAdapter.isPrimitiveStackType(local[i])) {
+					else if (TaintAdapter.isPrimitiveStackType(firstFrameLocals[i])) {
 						if (!(local[i] != Opcodes.TOP && local[i] instanceof String && ((String) local[i]).charAt(1) == '[')) {
 							if (local[i] != Opcodes.TOP) {
 								try {
