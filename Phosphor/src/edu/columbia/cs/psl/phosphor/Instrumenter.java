@@ -250,7 +250,7 @@ public class Instrumenter {
 	static Option opt_enumPropogation = new Option("withEnumsByValue","Propogate tags to enums as if each enum were a value (not a reference) through the Enum.valueOf method");
 	static Option opt_unboxAcmpEq = new Option("forceUnboxAcmpEq","At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)");
 
-	static Option opt_withSelectiveInst = new Option("withSelectiveInst","Enable selective instrumentation");
+	static Option opt_withSelectiveInst = new Option("withSelectiveInst",true,"Enable selective instrumentation");
 	static Option opt_uninstCopies = new Option("generateUninstStubs","Add extra copies of each method, so there's always one instrumented and one not.");
 	
 	static Option help = new Option( "help", "print this message" );
@@ -307,6 +307,7 @@ public class Instrumenter {
 		Configuration.WITH_ENUM_BY_VAL = line.hasOption("withEnumsByValue");
 		Configuration.WITH_UNBOX_ACMPEQ = line.hasOption("forceUnboxAcmpEq");
 		Configuration.WITH_SELECTIVE_INST = line.hasOption("withSelectiveInst");
+		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
 		Configuration.init();
 		
 		
@@ -332,7 +333,7 @@ public class Instrumenter {
 		if(Configuration.WITH_SELECTIVE_INST)
 		{
 			System.out.println("Loading selective instrumentation configuration");
-			SelectiveInstrumentationManager.populateMethodsToInstrument(System.getProperty("user.dir") + "/methods");
+			SelectiveInstrumentationManager.populateMethodsToInstrument(Configuration.selective_inst_config);
 		}
 		TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
 		ANALYZE_ONLY = true;
@@ -914,7 +915,7 @@ public class Instrumenter {
 	}
 
 	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc) {
-		if (!owner.startsWith("sun/") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/") &&!owner.startsWith("[")
+		if (!owner.startsWith("sun/") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/cs/psl/phosphor") &&!owner.startsWith("[")
 				&& !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
 			if (TaintUtils.DEBUG_CALLS)
 				System.out.println("Using uninstrument method call for class: " + owner + " method: " + name + " desc: " + desc);

@@ -12,6 +12,7 @@ import org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
 
 public class UninstrumentedReflectionHidingMV extends MethodVisitor implements Opcodes {
@@ -43,8 +44,109 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 			name = name + "UNINST";
 			desc = "(Ljava/lang/reflect/Field;" + desc.substring(1);
 		}
-		if (!Instrumenter.IS_ANDROID_INST && owner.equals("java/lang/Class") && (name.equals("copyMethods") || name.equals("copyFields") || name.equals("copyConstructors")))
+		if ((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && (name.startsWith("invoke") || name.startsWith("newInstance"))) {
+
+			if (owner.equals("java/lang/reflect/Method")) {
+				//method owner [Args
+				if (Configuration.IMPLICIT_TRACKING) {
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgsUninst",
+							"(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;" + Type.getDescriptor(ControlTaintTagStack.class) + ")" + Type.getDescriptor(MethodInvoke.class), false);
+				} else {
+					super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgsUninst",
+							"(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;Z)" + Type.getDescriptor(MethodInvoke.class), false);
+				}
+				//B
+				super.visitInsn(Opcodes.DUP);
+				//B B
+				super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "m", "Ljava/lang/reflect/Method;");
+				//B M
+				super.visitInsn(Opcodes.SWAP);
+				//M B
+				super.visitInsn(Opcodes.DUP);
+				super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "o", "Ljava/lang/Object;");
+				super.visitInsn(Opcodes.SWAP);
+				super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "a", "[Ljava/lang/Object;");
+				if (Configuration.IMPLICIT_TRACKING)
+					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+
+			} else {
+				if (Configuration.IMPLICIT_TRACKING) {
+					super.visitInsn(POP);
+					super.visitInsn(Opcodes.SWAP);
+					//[A C
+					super.visitInsn(Opcodes.DUP_X1);
+					//C [A C
+					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgsUninst",
+							"([Ljava/lang/Object;Ljava/lang/reflect/Constructor;" + Type.getDescriptor(ControlTaintTagStack.class) + ")[Ljava/lang/Object;", false);
+					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+
+				} else {
+					super.visitInsn(Opcodes.SWAP);
+					//[A C
+					super.visitInsn(Opcodes.DUP_X1);
+					//C [A C
+					super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgsUninst", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;Z)[Ljava/lang/Object;",
+							false);
+				}
+			}
+		}
+		else if (!Instrumenter.IS_ANDROID_INST && owner.equals("java/lang/Class") && (name.equals("copyMethods") || name.equals("copyFields") || name.equals("copyConstructors")))
 			owner = Type.getInternalName(ReflectionMasker.class);
+		else if ((owner.equals("java/lang/reflect/Method")) && name.startsWith("get") && !className.equals(owner) && !className.startsWith("sun/reflect") && !className.startsWith("java/lang/Class")) {
+			if (args.length == 0)
+			{
+				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Method;Z)Ljava/lang/reflect/Method;", false);
+			}
+			else if (args.length == 1) {
+				super.visitInsn(Opcodes.SWAP);
+				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Method;Z)Ljava/lang/reflect/Method;", false);
+				super.visitInsn(Opcodes.SWAP);
+			}
+			else if(args.length == 2)
+			{
+				int lv1 = lvs.getTmpLV();
+				super.visitVarInsn(Opcodes.ASTORE, lv1);
+				int lv2 = lvs.getTmpLV();
+				super.visitVarInsn(Opcodes.ASTORE, lv2);
+				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Method;Z)Ljava/lang/reflect/Method;", false);
+				super.visitVarInsn(Opcodes.ALOAD, lv2);
+				super.visitVarInsn(Opcodes.ALOAD, lv1);
+				lvs.freeTmpLV(lv1);
+				lvs.freeTmpLV(lv2);
+			}
+		} else if ((owner.equals("java/lang/reflect/Constructor")) && name.startsWith("get") && !className.equals(owner) && !className.startsWith("sun/reflect")
+				&& !className.equals("java/lang/Class")) {
+			if (args.length == 0)
+			{
+				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Constructor;Z)Ljava/lang/reflect/Constructor;", false);
+			}
+			else if(args.length == 1){
+				super.visitInsn(Opcodes.SWAP);
+				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Constructor;Z)Ljava/lang/reflect/Constructor;", false);
+				super.visitInsn(Opcodes.SWAP);
+			}
+			else if(args.length == 2)
+			{
+				int lv1 = lvs.getTmpLV();
+				super.visitVarInsn(Opcodes.ASTORE, lv1);
+				int lv2 = lvs.getTmpLV();
+				super.visitVarInsn(Opcodes.ASTORE, lv2);
+				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getOrigMethod", "(Ljava/lang/reflect/Constructor;Z)Ljava/lang/reflect/Constructor;", false);
+				super.visitVarInsn(Opcodes.ALOAD, lv2);
+				super.visitVarInsn(Opcodes.ALOAD, lv1);
+				lvs.freeTmpLV(lv1);
+				lvs.freeTmpLV(lv2);
+			}
+		}
 		super.visitMethodInsn(opcode, owner, name, desc,itfc);
 		if (owner.equals("java/lang/Class") && desc.equals("()[Ljava/lang/reflect/Field;")) {
 			if (Instrumenter.IS_ANDROID_INST)

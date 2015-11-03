@@ -230,8 +230,7 @@ public class ReflectionMasker {
 
 			if(!name.equals("premain") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/")) {
 				if(!isSelectiveInstManagerInit) {
-					System.out.println("Loading selective instrumentation configuration");
-					SelectiveInstrumentationManager.populateMethodsToInstrument(System.getProperty("user.dir")+"/methods");
+					SelectiveInstrumentationManager.populateMethodsToInstrument(Configuration.selective_inst_config);
 					isSelectiveInstManagerInit = true;
 				}
 				if(!SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc)))
@@ -440,7 +439,18 @@ public class ReflectionMasker {
 		//			System.out.println("Returning " + lastMethod);
 		//			return lastMethod;
 		//		}
-		if (m.getName().endsWith("$$PHOSPHORTAGGED")) {
+		if(m.getName().endsWith("$$PHOSPHORUNTAGGED"))
+		{
+			String origName = m.getName().replace("$$PHOSPHORUNTAGGED", "");
+			try {
+				return m.getDeclaringClass().getDeclaredMethod(origName, m.getParameterTypes());
+			} catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			} catch (SecurityException e) {
+				e.printStackTrace();
+			}
+		}
+		else if (m.getName().endsWith("$$PHOSPHORTAGGED")) {
 			String origName = m.getName().replace("$$PHOSPHORTAGGED", "");
 			ArrayList<Class> origArgs = new ArrayList<Class>();
 			boolean dontIgnorePrimitive = false;
@@ -891,7 +901,75 @@ public class ReflectionMasker {
 		//		System.out.println("Fix all args fast: " + Arrays.toString(ret) + " for " + m);
 		return ret;
 	}
-
+	
+	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, boolean isObjTags) {
+		Class[] params = c.getParameterTypes();
+		if(params.length == 0)
+			return in;
+		if(params[params.length - 1] == UninstrumentedTaintSentinel.class)
+		{
+			Object[] ret = new Object[in.length + 1];
+			System.arraycopy(in, 0, ret, 0, in.length);
+			return ret;
+		}
+		else if(params[params.length - 1] == TaintSentinel.class)
+		{
+			return fixAllArgs(in, c, isObjTags);
+		}
+		return in;
+	}
+	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, ControlTaintTagStack ctrl) {
+		return in;
+	}
+	public static MethodInvoke fixAllArgsUninst(Method m, Object owner, Object[] in, boolean isObjTags) {
+		MethodInvoke ret = new MethodInvoke();
+		if (m == null) {
+			ret.a = in;
+			ret.o = owner;
+			ret.m = m;
+			return ret;
+		}
+		ret.m = getOrigMethod(m, isObjTags);
+		ret.o = owner;
+		ret.a = in;
+		if(ret.a != null)
+		for(int i = 0; i < ret.a.length; i++)
+		{
+			if(ret.a[i] instanceof MultiDTaintedArrayWithIntTag)
+			{
+				ret.a[i] = ((MultiDTaintedArrayWithIntTag)ret.a[i]).getVal();
+			}
+			else if(ret.a[i] instanceof MultiDTaintedArrayWithObjTag)
+			{
+				ret.a[i] = ((MultiDTaintedArrayWithObjTag)ret.a[i]).getVal();
+			}
+		}
+		return ret;
+	}
+	public static MethodInvoke fixAllArgsUninst(Method m, Object owner, Object[] in, ControlTaintTagStack ctrl) {
+		MethodInvoke ret = new MethodInvoke();
+		if (m == null) {
+			ret.a = in;
+			ret.o = owner;
+			ret.m = m;
+			return ret;
+		}
+		ret.m = getOrigMethod(m, true);
+		ret.o = owner;
+		ret.a = in;
+		for(int i = 0; i < ret.a.length; i++)
+		{
+			if(ret.a[i] instanceof MultiDTaintedArrayWithIntTag)
+			{
+				ret.a[i] = ((MultiDTaintedArrayWithIntTag)ret.a[i]).getVal();
+			}
+			else if(ret.a[i] instanceof MultiDTaintedArrayWithObjTag)
+			{
+				ret.a[i] = ((MultiDTaintedArrayWithObjTag)ret.a[i]).getVal();
+			}
+		}
+		return ret;
+	}
 	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, boolean isObjTags) {
 		//		System.out.println("Making slow call to  " + m);
 		MethodInvoke ret = new MethodInvoke();

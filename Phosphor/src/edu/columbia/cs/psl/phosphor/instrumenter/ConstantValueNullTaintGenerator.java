@@ -393,9 +393,9 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 										} else if (ret.getSize() == 2 && insn.getNext() != null && insn.getNext().getType() == AbstractInsnNode.INSN && insn.getNext().getOpcode() == Opcodes.POP2) {
 											//											System.out.println("pop2");
 
-											instructions.insertBefore(insn, new InsnNode(TaintUtils.NO_TAINT_UNBOX));
-											instructions.remove(insn.getNext());
-											instructions.insert(insn, new InsnNode(Opcodes.POP));
+//											instructions.insertBefore(insn, new InsnNode(TaintUtils.NO_TAINT_UNBOX));
+//											instructions.remove(insn.getNext());
+//											instructions.insert(insn, new InsnNode(Opcodes.POP));
 
 										}
 									}

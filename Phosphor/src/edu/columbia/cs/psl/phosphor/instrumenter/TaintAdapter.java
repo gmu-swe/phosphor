@@ -6,6 +6,7 @@ import java.util.List;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -54,6 +55,41 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 		super(Opcodes.ASM5, mv);
 		this.analyzer = analyzer;
 		this.className = className;
+	}
+
+	void ensureUnBoxedAt(int n, Type t) {
+		switch (n) {
+		case 0:
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+			super.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
+			break;
+		case 1:
+			Object top = analyzer.stack.get(analyzer.stack.size() - 1);
+			if (top == Opcodes.LONG || top == Opcodes.DOUBLE || top == Opcodes.TOP) {
+				super.visitInsn(DUP2_X1);
+				super.visitInsn(POP2);
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+				super.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
+				super.visitInsn(DUP_X2);
+				super.visitInsn(POP);
+			} else {
+				super.visitInsn(SWAP);
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+				super.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
+				super.visitInsn(SWAP);
+			}
+			break;
+		default:
+			LocalVariableNode[] d = storeToLocals(n);
+
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+			super.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
+			for (int i = n - 1; i >= 0; i--) {
+				loadLV(i, d);
+			}
+			freeLVs(d);
+
+		}
 	}
 
 	public boolean topHas0Taint() {

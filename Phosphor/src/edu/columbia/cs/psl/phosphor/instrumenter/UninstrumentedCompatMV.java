@@ -1,6 +1,9 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import java.util.Arrays;
+
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.MethodDescriptor;
 import edu.columbia.cs.psl.phosphor.SelectiveInstrumentationManager;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
@@ -157,9 +160,26 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 
 		}
 	}
+	
+	@Override
+	public void visitJumpInsn(int opcode, Label label) {
+		if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
+		{
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+			mv.visitInsn(SWAP);
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+			mv.visitInsn(SWAP);
+		}
+		super.visitJumpInsn(opcode, label);
+	}
 
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
+		if(Instrumenter.isIgnoredClass(owner))
+		{
+			super.visitMethodInsn(opcode, owner, name, desc, itf);
+			return;
+		}
 		if (Configuration.WITH_SELECTIVE_INST && !name.startsWith("<") && !owner.startsWith("edu/columbia/") && !owner.startsWith("[") && !name.equals("compareTo") && !name.equals("hashCode")
 				&& !name.equals("equals") && !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
 			name = name + TaintUtils.METHOD_SUFFIX_UNINST;

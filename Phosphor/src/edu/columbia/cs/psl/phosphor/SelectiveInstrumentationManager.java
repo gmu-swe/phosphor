@@ -11,11 +11,14 @@ import java.util.Set;
 
 public class SelectiveInstrumentationManager {
 	
+	public static boolean inited = false;
 	public static Set<MethodDescriptor> methodsToInstrument = new HashSet<MethodDescriptor>();
 	
 	public static HashMap<String, HashSet<String>> methodsToInstrumentByClass = new HashMap<String, HashSet<String>>();
 	public static void populateMethodsToInstrument(String file) {
-		
+		if(inited)
+			return;
+		inited = true;
 		FileInputStream fis = null;
 		BufferedReader br = null;
 		try {

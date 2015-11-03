@@ -440,6 +440,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         // copies types from 'local' to 'newLocals'
         // 'newLocals' currently empty
 
+        if(!disabled)
         for(Type t : preAllocedReturnTypes.keySet())
         {
 //        	System.out.println(t);
@@ -482,7 +483,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
             		if(_t.getSort() == Type.ARRAY && _t.getDimensions() == 1 && _t.getElementType().getSort() != Type.OBJECT)
             			shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
             	}
-            	if(shadowType != null)
+            	if(!disabled && shadowType != null)
             	{
 
             		int newVar = remap(index, typ);
@@ -572,4 +573,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         // restores original value of 'newLocals'
         newLocals = oldLocals;
     }
+	private boolean disabled = false;
+	public void disable() {
+		disabled = true;
+	}
 }

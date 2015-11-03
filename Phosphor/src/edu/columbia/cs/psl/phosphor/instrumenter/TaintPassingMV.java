@@ -1321,14 +1321,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				System.out.println(i + ", " + analyzer.stack.get(analyzer.stack.size() - argsSize) + " " + args[args.length - i - 1]);
 				if(args[args.length - i - 1].getSort() == Type.ARRAY && args[args.length - i - 1].getElementType().getSort() != Type.OBJECT && args[args.length - i - 1].getDimensions() > 1)
 				{
-					if(0 ==i)
-					{
-						super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
-					}
-					else
-					{
-						throw new IllegalArgumentException("Can't unbox ");
-					}
+					ensureUnBoxedAt(i, args[args.length-i-1]);
 //					unboxTaintArrayAt(i+1, args[args.length - i - 1].getDescriptor());
 				}
 				else if (isPrimitiveType(args[args.length - i - 1])
@@ -1351,7 +1344,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					isCalledOnAPrimitiveArrayType = true;
 			}
 
-			if(isIgnoredForTaints && !name.startsWith("<") && !owner.startsWith("["))
+			if(isIgnoredForTaints && !name.startsWith("<") && !owner.startsWith("[") && !Instrumenter.isIgnoredClass(owner))
 				name += TaintUtils.METHOD_SUFFIX_UNINST;
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			if (isCallToPrimitiveArrayClone) {
@@ -1370,8 +1363,24 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(POP); //This is the case that we are calling a method on a primitive array type so need to pop the taint
 				}
 			}
-
+			
 			Type returnType = Type.getReturnType(desc);
+			if (dontUnboxTaints && isIgnoredForTaints) {
+				dontUnboxTaints = false;
+				if(returnType.getSize() == 2)
+				{
+					super.visitInsn(POP2);
+					super.visitInsn(ACONST_NULL);
+					return;
+				}
+				else
+				{
+					super.visitInsn(POP);
+					super.visitInsn(ACONST_NULL);
+					return;
+				}
+			}
+
 			if (isPrimitiveType(returnType)) {
 				if (returnType.getSort() == Type.ARRAY) {
 					generateEmptyTaintArray(returnType.getDescriptor());
@@ -1392,10 +1401,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			if (TaintUtils.DEBUG_CALLS)
 				System.out.println("Post invoke stack post swap pop maybe: " + analyzer.stack);
 			
-			if (dontUnboxTaints && Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc)) {
-				dontUnboxTaints = false;
-				return;
-			}
+
 			
 			return;
 		}

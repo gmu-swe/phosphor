@@ -90,7 +90,7 @@ public class PartialInstrumentationInferencerCV extends ClassVisitor{
 		
 		MethodVisitor next = super.visitMethod(access, name, desc, signature, exceptions);
 		map.put(mdesc, new ArrayList<MethodDescriptor>());
-		
-		return new PartialInstrumentationInferencerMV(Opcodes.ASM5, mdesc, next, map, this.superClasses);
+		return next;
+//		return new PartialInstrumentationInferencerMV(Opcodes.ASM5, mdesc, next, map, this.superClasses);
 	}
 }

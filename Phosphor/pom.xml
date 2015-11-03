@@ -75,6 +75,23 @@
 				<version>2.18.1</version>
 				<executions>
 					<execution>
+						<id>integration-test-int-tags-notagtest</id>
+						<configuration>
+							<skipTests>${skipIntTagNoInstTests}</skipTests>
+							<jvm>${project.build.directory}/jre-inst-int-untaggedwrappers/bin/java</jvm>
+							<includes>
+								<include>**/*IntTagPartialInstITCase.java</include>
+							</includes>
+							<reuseForks>false</reuseForks>
+							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-int-untaged,withSelectiveInst=${basedir}/resources/test-methods</argLine>
+						</configuration>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+					<execution>
 						<id>integration-test-int-tags</id>
 						<configuration>
 							<skipTests>${skipIntTagTests}</skipTests>
