@@ -128,6 +128,8 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 	}
 
 	public Type getTopOfStackType() {
+		if(analyzer.stack == null)
+			throw new NullPointerException();
 		if(analyzer.stack.get(analyzer.stack.size() - 1) == Opcodes.TOP)
 			return getStackTypeAtOffset(1);
 		return getStackTypeAtOffset(0);

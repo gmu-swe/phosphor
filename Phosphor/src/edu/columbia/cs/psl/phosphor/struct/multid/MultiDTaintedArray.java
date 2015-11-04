@@ -20,14 +20,6 @@ public abstract class MultiDTaintedArray {
 			return null;
 		if(null != isPrimitiveBoxClass(in.getClass()))
 			return unboxRaw(in);
-		if(in.getClass().isArray() && !in.getClass().getComponentType().isPrimitive())
-		{
-			Object[] _in = (Object[]) in;
-			for(int i = 0; i < _in.length; i++)
-			{
-				_in[i] = maybeUnbox(_in[i]);
-			}
-		}
 		return in;
 	}
 	public static final Type getTypeForType(final Type originalElementType) {

@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import java.lang.reflect.Method;
 
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
@@ -25,6 +27,15 @@ public class InstUninstIntTagPartialInstITCase {
 		Method m2 = c.getDeclaredMethod("inst",Integer.TYPE);
 		m2.invoke(null, 5);
 
+		int[] a = (int[]) ((Object[])ar1)[0];
+		assertEquals(3, a.length);
+		a = (int[]) ((Object[])ar2)[0];
+		assertEquals(3, a.length);
+		
+		char[] d = ar3[0];
+		assertEquals(20, d.length);
+		d = ar4[0];
+		assertEquals(20, d.length);
 	}
 	
 	@Test
@@ -37,12 +48,50 @@ public class InstUninstIntTagPartialInstITCase {
 		Method m2 = c.getDeclaredMethod("inst",Integer.TYPE);
 		m2.invoke(null, 5);
 
+		
+		int[] a = (int[]) ((Object[])ar1)[0];
+		assertEquals(3, a.length);
+		a = (int[]) ((Object[])ar2)[0];
+		assertEquals(3, a.length);
+		
+		char[] d = ar3[0];
+		assertEquals(20, d.length);
+		d = ar4[0];
+		assertEquals(20, d.length);
+		uninst2(ar4);
 	}
 	
+	private static void beforeUninst()
+	{
+		ar1 = new Object[]{new int[3],"abcd"};
+		ar3 = new char[4][5];
+		ar3[0] = new char[20];
+		ar4[0] = new char[20];
+
+	}
+	private static void beforeInst()
+	{
+		ar2 = new Object[]{new int[3],"abcd"};
+		ar4 = new char[4][5];
+	}
+	@BeforeClass
+	public static void beforeClass()
+	{
+		beforeInst();
+		beforeUninst();
+	}
+	private static Object ar1;
+	private static Object ar2;
+	private static char[][] ar3;
+	private static char[][] ar4;
 	private void instrumented() throws Exception
 	{
 		int i = Tainter.taintedInt(5, 4);
 		assertEquals(4, Tainter.getTaint(i));
+	}
+	private void uninst2(char[][] in)
+	{
+		ar3 = in;
 	}
 	private void unInstrumented() throws Exception
 	{

@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URL;
+import java.security.acl.Owner;
 import java.text.Normalizer.Form;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -260,15 +261,18 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			{
 				newDesc = desc.substring(0,desc.indexOf(')'))+Type.getDescriptor(UninstrumentedTaintSentinel.class)+")"+desc.substring(desc.indexOf(')')+1);
 			}
+			newDesc = TaintUtils.remapMethodDescForUninst(newDesc);
 			MethodVisitor mv = super.visitMethod(access, newName, newDesc, signature, exceptions);
 			mv = new UninstTaintSentinalArgFixer(mv, access, newName, newDesc, desc);
 			mv = new SpecialOpcodeRemovingMV(mv, ignoreFrames, className, fixLdcClass);
 			MethodVisitor _mv = mv;
-			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, mv);
+			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
-			mv = new UninstrumentedCompatMV(access,className,name,desc,signature,(String[])exceptions,mv,analyzer,ignoreFrames);
-			LocalVariableManager lvs = new LocalVariableManager(access, desc, mv, analyzer, _mv);
+			mv = new UninstrumentedCompatMV(access,className,name,newDesc,signature,(String[])exceptions,mv,analyzer,ignoreFrames);
+			LocalVariableManager lvs = new LocalVariableManager(access, newDesc, mv, analyzer, _mv);
 			((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
+			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, null);
+			lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
 			lvs.disable();
 			mv = lvs;
 			final MethodVisitor cmv = mv;
@@ -276,6 +280,20 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				public void visitEnd() {
 					super.visitEnd();
 					this.accept(cmv);
+				};
+				public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
+					//determine if this is going to be uninst, and then if we need to pre-alloc for its return :/
+					if(Configuration.WITH_SELECTIVE_INST && !owner.startsWith("sun/") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/cs/psl/phosphor") && !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))){
+						//uninst
+					}
+					else
+					{
+						Type returnType = Type.getReturnType(desc);
+						Type newReturnType = TaintUtils.getContainerReturnType(returnType);
+						if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY && returnType.getDimensions() > 1))
+							primArrayAnalyzer.wrapperTypesToPreAlloc.add(newReturnType);
+					}
+					super.visitMethodInsn(opcode, owner, name, desc, itf);
 				};
 			};
 			if(!name.equals("<clinit>"))
@@ -1005,6 +1023,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			//Make sure that there's a wrapper in place for each method
 			for(MethodNode m : methodsToMakeUninstWrappersAround)
 			{
+				//these methods were previously renamed to be $$PHOSPHORUNTASGGED
 				//first, make one that has a descriptor WITH taint tags, that calls into the uninst one
 				generateNativeWrapper(m,m.name+TaintUtils.METHOD_SUFFIX_UNINST);
 				//next, make one WITHOUT taint tags, and WITHOUT the suffix
@@ -1012,21 +1031,26 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				String mToCall = m.name;
 				String descToCall = m.desc;
 				boolean isInit = false;
+				String mDesc = m.desc;
 				if((Opcodes.ACC_NATIVE & m.access) != 0)
 				{
 					mName += TaintUtils.METHOD_SUFFIX_UNINST;
 					m.access = m.access & ~Opcodes.ACC_NATIVE;
+					mDesc = TaintUtils.remapMethodDescForUninst(mDesc);
 				} else if (m.name.equals("<init>")) {
 					isInit = true;
-					descToCall = m.desc.substring(0, m.desc.indexOf(')')) + Type.getDescriptor(UninstrumentedTaintSentinel.class) + ")" + m.desc.substring(m.desc.indexOf(')') + 1);
-					;
+					descToCall = mDesc.substring(0, m.desc.indexOf(')')) + Type.getDescriptor(UninstrumentedTaintSentinel.class) + ")" + mDesc.substring(mDesc.indexOf(')') + 1);
+					descToCall = TaintUtils.remapMethodDescForUninst(descToCall);
 				} else
+				{
 					mToCall += TaintUtils.METHOD_SUFFIX_UNINST;
-				MethodVisitor mv = super.visitMethod(m.access, mName, m.desc, m.signature, (String[]) m.exceptions.toArray(new String[0]));
+					descToCall = TaintUtils.remapMethodDescForUninst(descToCall);
+				}
+				MethodVisitor mv = super.visitMethod(m.access, mName, mDesc, m.signature, (String[]) m.exceptions.toArray(new String[0]));
 				visitAnnotations(mv, m);
 
 				if (!isInterface) {
-					GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name, m.desc);
+					GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name, mDesc);
 					mv.visitCode();
 					int opcode;
 					if ((m.access & Opcodes.ACC_STATIC) == 0) {
@@ -1034,10 +1058,26 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						opcode = Opcodes.INVOKESPECIAL;
 					} else
 						opcode = Opcodes.INVOKESTATIC;
-					ga.loadArgs();
+					Type[] origArgs = Type.getArgumentTypes(m.desc);
+					Type[] newArgs = Type.getArgumentTypes(descToCall);
+					for(int i = 0 ; i < origArgs.length; i++)
+					{
+						ga.loadArg(i);
+						if(origArgs[i].getSort() == Type.ARRAY && origArgs[i].getElementType().getSort() != Type.OBJECT && origArgs[i].getDimensions() > 1)
+						{
+							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+							ga.visitTypeInsn(Opcodes.CHECKCAST, newArgs[i].getInternalName());
+						}
+					}
 					if(isInit)
 						ga.visitInsn(Opcodes.ACONST_NULL);
+					Type retType = Type.getReturnType(m.desc);
 					ga.visitMethodInsn(opcode, className, mToCall, descToCall, false);
+					if(retType.getSort() == Type.ARRAY && retType.getDimensions() > 1 && retType.getElementType().getSort() != Type.OBJECT)
+					{
+						ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
+						ga.checkCast(retType);
+					}
 					ga.returnValue();
 					mv.visitMaxs(0, 0);
 				}
@@ -1049,9 +1089,19 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			//make a copy of each raw method, using the proper suffix. right now this only goes 
 			//one level deep - and it will call back into instrumented versions
 			for (MethodNode mn : forMore.keySet()) {
-				if (mn.name.startsWith("<"))
+				if(mn.name.equals("<clinit>"))
 					continue;
-				MethodVisitor mv = super.visitMethod(mn.access & ~Opcodes.ACC_NATIVE, mn.name + TaintUtils.METHOD_SUFFIX_UNINST, mn.desc, mn.signature, (String[]) mn.exceptions.toArray(new String[0]));
+				String mName = mn.name;
+				String mDesc = TaintUtils.remapMethodDescForUninst(mn.desc);
+				if(mName.equals("<init>"))
+				{
+					mDesc = mDesc.substring(0,mDesc.indexOf(')'))+Type.getDescriptor(UninstrumentedTaintSentinel.class)+")"+mDesc.substring(mDesc.indexOf(')')+1);
+				}
+				else
+				{
+					mName += TaintUtils.METHOD_SUFFIX_UNINST;
+				}
+				MethodVisitor mv = super.visitMethod(mn.access & ~Opcodes.ACC_NATIVE, mName, mDesc, mn.signature, (String[]) mn.exceptions.toArray(new String[0]));
 				MethodNode meth = forMore.get(mn);
 
 				if ((mn.access & Opcodes.ACC_NATIVE) != 0) {
@@ -1064,7 +1114,16 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						opcode = Opcodes.INVOKESPECIAL;
 					} else
 						opcode = Opcodes.INVOKESTATIC;
-					ga.loadArgs();
+					Type[] args = Type.getArgumentTypes(mn.desc);
+					for(int i = 0; i < args.length; i++)
+					{
+						ga.loadArg(i);
+						if(args[i].getSort() == Type.ARRAY && args[i].getDimensions() >1&&args[i].getElementType().getSort() != Type.OBJECT)
+						{
+							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
+							ga.visitTypeInsn(Opcodes.CHECKCAST, args[i].getInternalName());
+						}
+					}
 
 					ga.visitMethodInsn(opcode, className, mn.name, mn.desc, false);
 					ga.returnValue();
@@ -1072,17 +1131,34 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv.visitEnd();
 				} else {
 					mv = new SpecialOpcodeRemovingMV(mv, ignoreFrames, className, fixLdcClass);
-					NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, mn.access, mn.name, mn.desc, mv);
+					NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, mn.access, mn.name, mDesc, mv);
 					mv = analyzer;
 					mv = new UninstrumentedReflectionHidingMV(mv, className);
 					UninstrumentedReflectionHidingMV ta = (UninstrumentedReflectionHidingMV) mv;
 					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc,mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames);
 					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.desc, mv, analyzer, analyzer);
+					final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, mn.access, mn.name, mn.desc, null, null, null);
 					lvs.disable();
+					lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
 					((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
 					ta.setLvs(lvs);
 					mv = lvs;
-					
+					meth.accept(new MethodVisitor(Opcodes.ASM5) {
+						@Override
+						public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
+							//determine if this is going to be uninst, and then if we need to pre-alloc for its return :/
+							if(Configuration.WITH_SELECTIVE_INST && !owner.startsWith("sun/") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/cs/psl/phosphor") && !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))){
+								//uninst
+							}
+							else
+							{
+								Type returnType = Type.getReturnType(desc);
+								Type newReturnType = TaintUtils.getContainerReturnType(returnType);
+								if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY && returnType.getDimensions() > 1))
+									primArrayAnalyzer.wrapperTypesToPreAlloc.add(newReturnType);
+							}
+						};
+					});
 					meth.accept(mv);
 				}
 			}
@@ -1297,7 +1373,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 		ga.visitCode();
 		ga.visitLabel(start.getLabel());
-							
+		String descToCall = m.desc;
+		boolean isUntaggedCall = false;
+		if(methodNameToCall.contains("$$PHOSPHORUNTAGGED"))
+		{
+			descToCall = TaintUtils.remapMethodDescForUninst(descToCall);
+			isUntaggedCall = true;
+		}
 		int idx = 0;
 		if ((m.access & Opcodes.ACC_STATIC) == 0) {
 			ga.visitVarInsn(Opcodes.ALOAD, 0);
@@ -1327,14 +1409,17 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				ga.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((!Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithIntTag.class : MultiDTaintedArrayWithObjTag.class)));
 				ga.visitInsn(Opcodes.IOR);
 				ga.visitJumpInsn(Opcodes.IFEQ, isOK);
-				ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
+				if(isUntaggedCall)
+					ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
+				else
+					ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
 				if(t.getSort() == Type.ARRAY)
 					ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
 				FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
 				ga.visitLabel(isOK);
 				TaintAdapter.acceptFn(fn, lvs);
 			}
-			else if(t.getSort() == Type.ARRAY && t.getDimensions() > 1 && t.getElementType().getSort() != Type.OBJECT)
+			else if(!isUntaggedCall && t.getSort() == Type.ARRAY && t.getDimensions() > 1 && t.getElementType().getSort() != Type.OBJECT)
 			{
 				//Need to unbox it!!
 				ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
@@ -1351,12 +1436,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		if(m.name.equals("<init>") && methodNameToCall.contains("$$PHOSPHORUNTAGGED"))
 		{
 			//call with uninst sentinel
-			String descToCall = m.desc.substring(0,m.desc.indexOf(')'))+Type.getDescriptor(UninstrumentedTaintSentinel.class)+")"+m.desc.substring(m.desc.indexOf(')')+1);;
+			descToCall = descToCall.substring(0,descToCall.indexOf(')'))+Type.getDescriptor(UninstrumentedTaintSentinel.class)+")"+descToCall.substring(descToCall.indexOf(')')+1);
 			ga.visitInsn(Opcodes.ACONST_NULL);
 			ga.visitMethodInsn(opcode, className, m.name, descToCall,false);
 		}
 		else
-			ga.visitMethodInsn(opcode, className, methodNameToCall, m.desc,false);
+			ga.visitMethodInsn(opcode, className, methodNameToCall, descToCall,false);
 		if (origReturn != newReturn) {
 
 			if (origReturn.getSort() == Type.ARRAY) {
@@ -1485,9 +1570,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			}
 		} else if (origReturn.getSort() != Type.VOID && (origReturn.getDescriptor().equals("Ljava/lang/Object;") || origReturn.getDescriptor().equals("[Ljava/lang/Object;"))) {
 			//Check to see if the top of the stack is a primitive array, adn if so, box it.
-			ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
-			if (origReturn.getSort() == Type.ARRAY)
-				ga.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/lang/Object;");
+			if (!isUntaggedCall) {
+				ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)),
+						"boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+				if (origReturn.getSort() == Type.ARRAY)
+					ga.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/lang/Object;");
+			}
 		}
 		ga.visitLabel(end.getLabel());
 		ga.returnValue();

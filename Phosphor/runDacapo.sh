@@ -11,7 +11,7 @@ if [ ! -d "$DACAPO_DIR" ]; then
 echo "Downloading dacapo jar";
 mkdir dacapo;
 cd dacapo;
-wget http://ase.cs.columbia.edu:8282/repository/internal/org/dacapo/dacapo/9.12bach/dacapo-9.12bach.jar;
+wget --quiet http://ase.cs.columbia.edu:8282/repository/internal/org/dacapo/dacapo/9.12bach/dacapo-9.12bach.jar;
 unzip dacapo-9.12bach.jar;
 cd ..;
 fi
@@ -34,13 +34,15 @@ fi
 #    else
 #    echo "Not regenerating implicit flow instrumented dacapo\n";
 #    fi
-echo "Trying int tag benchmarks. Note: NOT doing any warmup or control - these numbers will not be super accurate!";
+echo "Trying int tag benchmarks. Note: these numbers will not be super accurate from travis!";
 for bm in "${BENCHMARKS[@]}"
 do
-echo "target/jre-inst-int/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness $bm"
-target/jre-inst-int/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness $bm
-echo "target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness $bm"
-target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness $bm
+echo "$JAVA_HOME/bin/java -cp $DACAPO_DIR Harness -C $bm"
+$JAVA_HOME/bin/java -cp $DACAPO_DIR Harness -C $bm
+echo "target/jre-inst-int/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness -C $bm"
+target/jre-inst-int/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness -C $bm
+echo "target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness -C $bm"
+target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness -C $bm
 if [ $? -ne 0 ]; then
 HAD_ERROR=`expr $HAD_ERROR + 1`
 fi

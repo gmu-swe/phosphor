@@ -458,6 +458,25 @@ public class TaintUtils {
 	public static int OKtoDebugPHOSPHOR_TAG;
 
 	public static void arraycopy(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
+		try {
+			if (!src.getClass().isArray() && !dest.getClass().isArray()) {
+				System.arraycopy(((MultiDTaintedArrayWithIntTag) src).getVal(), srcPos, ((MultiDTaintedArrayWithIntTag) dest).getVal(), destPos, length);
+				System.arraycopy(((MultiDTaintedArrayWithIntTag) src).taint, srcPos, ((MultiDTaintedArrayWithIntTag) dest).taint, destPos, length);
+			} else if (!dest.getClass().isArray()) {
+				//src is a regular array, dest is multidtaintedarraywithinttag
+				System.arraycopy(src, srcPos, ((MultiDTaintedArrayWithIntTag) dest).getVal(), destPos, length);
+			} else {
+				System.arraycopy(src, srcPos, dest, destPos, length);
+			}
+		} catch (ArrayStoreException ex) {
+			System.out.println("Src " + src);
+			System.out.println(((Object[]) src)[0]);
+			System.out.println("Dest " + dest);
+			ex.printStackTrace();
+			throw ex;
+		}
+	}
+	public static void arraycopy(Object src, int srcPos, Object dest, int destPos, int length) {
 		try{
 		if(!src.getClass().isArray() && !dest.getClass().isArray())
 		{
@@ -765,6 +784,24 @@ public class TaintUtils {
 		return r;
 	}
 
+	public static String remapMethodDescForUninst(String desc) {
+		String r = "(";
+		for (Type t : Type.getArgumentTypes(desc)) {
+			if(t.getSort() == Type.ARRAY && t.getElementType().getSort()!= Type.OBJECT && t.getDimensions() > 1)
+			{
+				r += MultiDTaintedArray.getTypeForType(t);
+			}
+			else
+				r += t;
+		}
+		Type ret = Type.getReturnType(desc);
+		if(ret.getSort() == Type.ARRAY && ret.getDimensions() > 1 && ret.getElementType().getSort() != Type.OBJECT)
+			r += ")"+MultiDTaintedArrayWithIntTag.getTypeForType(ret).getDescriptor();
+		else
+		r += ")" + ret.getDescriptor();
+		return r;
+	}
+	
 	public static Object getStackTypeForType(Type t)
 	{
 		switch(t.getSort())

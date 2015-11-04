@@ -915,7 +915,7 @@ public class Instrumenter {
 	}
 
 	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc) {
-		if (!owner.startsWith("sun/") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/cs/psl/phosphor") &&!owner.startsWith("[")
+		if (!owner.startsWith("edu/columbia/cs/psl/phosphor") &&!owner.startsWith("[")
 				&& !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
 			if (TaintUtils.DEBUG_CALLS)
 				System.out.println("Using uninstrument method call for class: " + owner + " method: " + name + " desc: " + desc);

@@ -147,6 +147,11 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 				lvs.freeTmpLV(lv2);
 			}
 		}
+		else if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
+			owner = Type.getInternalName(ArrayReflectionMasker.class);
+			if(Configuration.MULTI_TAINTING)
+				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
+		}
 		super.visitMethodInsn(opcode, owner, name, desc,itfc);
 		if (owner.equals("java/lang/Class") && desc.equals("()[Ljava/lang/reflect/Field;")) {
 			if (Instrumenter.IS_ANDROID_INST)

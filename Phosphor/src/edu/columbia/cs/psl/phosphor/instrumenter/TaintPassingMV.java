@@ -10,6 +10,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -20,6 +21,7 @@ import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.util.Printer;
 import org.objectweb.asm.util.Textifier;
+
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
@@ -27,6 +29,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
+import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
 import edu.columbia.cs.psl.phosphor.struct.TaintedMisc;
@@ -1321,6 +1324,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				System.out.println(i + ", " + analyzer.stack.get(analyzer.stack.size() - argsSize) + " " + args[args.length - i - 1]);
 				if(args[args.length - i - 1].getSort() == Type.ARRAY && args[args.length - i - 1].getElementType().getSort() != Type.OBJECT && args[args.length - i - 1].getDimensions() > 1)
 				{
+					if(!isIgnoredForTaints)
 					ensureUnBoxedAt(i, args[args.length-i-1]);
 //					unboxTaintArrayAt(i+1, args[args.length - i - 1].getDescriptor());
 				}
@@ -1344,9 +1348,17 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					isCalledOnAPrimitiveArrayType = true;
 			}
 
-			if(isIgnoredForTaints && !name.startsWith("<") && !owner.startsWith("[") && !Instrumenter.isIgnoredClass(owner))
-				name += TaintUtils.METHOD_SUFFIX_UNINST;
-			super.visitMethodInsn(opcode, owner, name, desc, itfc);
+			if(isIgnoredForTaints && !owner.startsWith("[") && !Instrumenter.isIgnoredClass(owner))
+			{
+				if(name.equals("<init>"))
+				{
+					super.visitInsn(Opcodes.ACONST_NULL);
+					desc = desc.substring(0,desc.indexOf(')'))+Type.getDescriptor(UninstrumentedTaintSentinel.class)+")"+desc.substring(desc.indexOf(')')+1);
+				}
+				else
+					name += TaintUtils.METHOD_SUFFIX_UNINST;
+			}
+			super.visitMethodInsn(opcode, owner, name, TaintUtils.remapMethodDescForUninst(desc), itfc);
 			if (isCallToPrimitiveArrayClone) {
 				//Now we have cloned (but not casted) array, and a clopned( but not casted) taint array
 				//TA A
@@ -1471,7 +1483,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if (TaintUtils.DEBUG_CALLS)
 						System.err.println("Adding a null in call at " + n);
 					insertNullAt(n);
-				} else if (onStack.getSort() == Type.OBJECT) {
+				} else if (onStack.getSort() == Type.OBJECT && (!isIgnoredForTaints || t.getDimensions() == 1)) {
 					//Unbox this
 					unboxTaintArrayAt(n, t.getDescriptor());
 				}
