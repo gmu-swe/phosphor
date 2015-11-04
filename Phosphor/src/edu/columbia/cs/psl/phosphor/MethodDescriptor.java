@@ -34,12 +34,12 @@ public class MethodDescriptor {
 	
 	@Override
 	public String toString() {
-		return "name: " + name + "& owner: " + owner + "& desc: " + desc;
+		return "name <" + name + "> owner <" + owner + "> desc: <" + desc+">";
 	}
 	
 	@Override
 	public int hashCode() {
-		return name.length() + owner.length() + desc.length();
+		return name.hashCode() ^ owner.hashCode() ^ desc.hashCode();
 	}
 	
 	@Override

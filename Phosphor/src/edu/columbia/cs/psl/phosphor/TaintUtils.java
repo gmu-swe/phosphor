@@ -144,18 +144,40 @@ public class TaintUtils {
 		typeToSymbol.put("void", "V");
 		typeToSymbol.put("boolean", "Z");
 	}	
-
+	private static final String processSingleType(String in)
+	{
+		if(in.equals("byte"))
+			return "B";
+		else if(in.equals("char"))
+			return "C";
+		else if(in.equals("double"))
+			return "D";
+		else if(in.equals("float"))
+			return "F";
+		else if(in.equals("int"))
+			return "I";
+		else if(in.equals("long"))
+			return "J";
+		else if(in.equals("short"))
+			return "S";
+		else if(in.equals("void"))
+			return "V";
+		else if(in.equals("boolean"))
+			return "Z";
+		return "L"+in.replace('.', '/')+";";
+	}
 	private static String processType(String type) {
 		StringBuffer typeBuffer = new StringBuffer();
 		type = type.trim();
-		if(type.indexOf("[]") > 0) {
-			for(int i = 1; i < type.split("\\[").length;i++)
+		int firstBracket = type.indexOf('[');
+		if(firstBracket >= 0) {
+			for(int i = firstBracket; i < type.length();i+=2)
 				typeBuffer.append("[");
-			type = type.split("\\[")[0];
-			typeBuffer.append(typeToSymbol.containsKey(type)?typeToSymbol.get(type): "L"+type.replaceAll("\\.", "/")+";");
+			type = type.substring(0,firstBracket);
+			typeBuffer.append(processSingleType(type));
 		}
 		else
-			typeBuffer.append(typeToSymbol.containsKey(type)?typeToSymbol.get(type): "L"+type.replaceAll("\\.", "/")+";");
+			typeBuffer.append(processSingleType(type));
 		return typeBuffer.toString();
 	}
 	
@@ -184,18 +206,25 @@ public class TaintUtils {
 			return type;
 		}
 	}
-	
+	public static void main(String[] args) {
+		System.out.println(getMethodDesc("<java.lang.Runtime: java.lang.Process[][][] exec(java.lang.String,java.lang.String[],java.io.File)>"));
+	}
 	//<java.lang.Runtime: java.lang.Process[][][] exec(java.lang.String,java.lang.String[],java.io.File)>
 	public static MethodDescriptor getMethodDesc(String signature) {
 		// get return type
-		String temp = signature.split(": ")[1].trim();
-		String owner = signature.split(": ")[0].trim().substring(1).replace(".", "/");
-		String name = temp.split("\\(")[0].split(" ")[1];
+		char[] chars = signature.toCharArray();
+		String[] parts = signature.split(": ");
+		int idxOfColon = signature.indexOf(':');
+		String temp = signature.substring(idxOfColon+2);
+		int nameStart = temp.indexOf(' ')+1;
+		int nameEnd = temp.indexOf('(');
+		String owner = signature.substring(1,idxOfColon).replace('.', '/');
+		String name = temp.substring(nameStart,nameEnd);
 		
 		String returnTypeSymbol = processType(temp.substring(0, temp.indexOf(" ")).trim());
 		 
 		// get args list
-		temp = signature.substring(signature.indexOf("(")+1, signature.indexOf(")"));
+		temp = temp.substring(nameEnd+1,temp.length()-2);
 		StringBuffer argsBuffer = new StringBuffer();
 	
 		argsBuffer.append("(");
