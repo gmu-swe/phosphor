@@ -1409,10 +1409,10 @@ public class ReflectionMasker {
 			}
 			if (!match && chars.length > SUFFIX_LEN) {
 				int x = 0;
-				boolean matched = false;
+				boolean matched = true;
 				for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
-					if (chars[i] == SUFFIXCHARS[x]) {
-						matched = true;
+					if (chars[i] != SUFFIXCHARS[x]) {
+						matched = false;
 						break;
 					}
 					x++;
