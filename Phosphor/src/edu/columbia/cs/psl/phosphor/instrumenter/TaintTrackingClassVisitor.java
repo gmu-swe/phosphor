@@ -250,7 +250,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			generateEquals = false;
 		superMethodsToOverride.remove(name + desc);
 
-		if(Configuration.WITH_SELECTIVE_INST && !className.startsWith("sun/") && !className.startsWith("java/") && !className.startsWith("edu/columbia/cs/psl/phosphor") && !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, className, desc))){
+		if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(className, name, desc)){
 //			if (TaintUtils.DEBUG_CALLS)
 //				System.out.println("Skipping instrumentation for  class: " + className + " method: " + name + " desc: " + desc);
 			String newName = name;
@@ -283,7 +283,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				};
 				public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
 					//determine if this is going to be uninst, and then if we need to pre-alloc for its return :/
-					if(Configuration.WITH_SELECTIVE_INST && !owner.startsWith("sun/") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/cs/psl/phosphor") && !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))){
+					if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethod(owner, name, desc)){
 						//uninst
 					}
 					else
@@ -1147,7 +1147,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						@Override
 						public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
 							//determine if this is going to be uninst, and then if we need to pre-alloc for its return :/
-							if(Configuration.WITH_SELECTIVE_INST && !owner.startsWith("sun/") && !owner.startsWith("java/") && !owner.startsWith("edu/columbia/cs/psl/phosphor") && !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))){
+							if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc)){
 								//uninst
 							}
 							else

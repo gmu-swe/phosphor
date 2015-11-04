@@ -317,19 +317,14 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 			}
 		}
 
-		if (!isCalledOnArrayType && Configuration.WITH_SELECTIVE_INST  && !owner.startsWith("edu/columbia/cs/psl/phosphor") && !owner.startsWith("[")  && !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
-			{
-
-				if(name.equals("<init>"))
-				{
-					super.visitInsn(Opcodes.ACONST_NULL);
-					desc = desc.substring(0,desc.indexOf(')'))+Type.getDescriptor(UninstrumentedTaintSentinel.class)+")"+desc.substring(desc.indexOf(')')+1);
-				}
-				else
-					name += TaintUtils.METHOD_SUFFIX_UNINST;
-				desc = TaintUtils.remapMethodDescForUninst(desc);
-				super.visitMethodInsn(opcode, owner, name, desc, itf);
-			}
+		if (!isCalledOnArrayType && Configuration.WITH_SELECTIVE_INST && !owner.startsWith("[") && Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc)) {
+			if (name.equals("<init>")) {
+				super.visitInsn(Opcodes.ACONST_NULL);
+				desc = desc.substring(0, desc.indexOf(')')) + Type.getDescriptor(UninstrumentedTaintSentinel.class) + ")" + desc.substring(desc.indexOf(')') + 1);
+			} else
+				name += TaintUtils.METHOD_SUFFIX_UNINST;
+			desc = TaintUtils.remapMethodDescForUninst(desc);
+			super.visitMethodInsn(opcode, owner, name, desc, itf);
 		} else if(!Instrumenter.isIgnoredClass(owner) && !owner.startsWith("[") && !isCalledOnArrayType){
 			//call into the instrumented version			
 			boolean hasChangedDesc = false;
