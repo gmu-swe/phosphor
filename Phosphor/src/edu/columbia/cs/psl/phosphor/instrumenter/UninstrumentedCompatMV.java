@@ -363,8 +363,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 					if(t.getSort() == Type.OBJECT)
 					{
 						super.visitVarInsn(Opcodes.ALOAD,argStorage[i]);
-						Type onStack = getTopOfStackType();
-						if(onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT && onStack.getDimensions() == 1)
+						if(t.getDescriptor().equals("Ljava/lang/Object;"))
 						{
 							//need to box!
 							super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false);

@@ -1001,7 +1001,7 @@ public class ReflectionMasker {
 			ret.m = getUnTaintMethod(m, isObjTags);
 			ret.o = owner;
 			ret.a = in;
-			if(ret.a != null)
+			if(ret.a != null && ret.a.getClass().isArray() && ret.a.getClass().getComponentType() == Object.class)
 			for(int i = 0; i < ret.a.length; i++)
 			{
 				if(ret.a[i] instanceof MultiDTaintedArrayWithIntTag)

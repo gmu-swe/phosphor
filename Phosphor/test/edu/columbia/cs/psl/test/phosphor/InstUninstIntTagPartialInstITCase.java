@@ -42,6 +42,10 @@ public class InstUninstIntTagPartialInstITCase {
 
 	}
 	
+	private void inst(Object o, int k)
+	{
+		char[] ar = (char[]) o;
+	}
 	@Test
 	public void testReflectionUnInstrumented() throws Exception {
 		Class c = PartiallyInstrumentedClass.class;
@@ -58,7 +62,7 @@ public class InstUninstIntTagPartialInstITCase {
 		m = c.getDeclaredMethod("unInstrumented");
 		m.invoke(this);
 		m = c.getDeclaredMethod("uninst2", char[][].class);
-		m.invoke(this, ar3);
+		m.invoke(this, new Object[]{ar3});
 		int[] a = (int[]) ((Object[])ar1)[0];
 		assertEquals(3, a.length);
 		a = (int[]) ((Object[])ar2)[0];
@@ -68,6 +72,7 @@ public class InstUninstIntTagPartialInstITCase {
 		assertEquals(20, d.length);
 		d = ar4[0];
 		assertEquals(20, d.length);
+		System.out.println(new PartiallyInstrumentedClass().hashCode());
 		uninst2(ar4);
 	}
 	
@@ -108,5 +113,9 @@ public class InstUninstIntTagPartialInstITCase {
 		System.out.println("Running uninstrumented");
 		int i = Tainter.taintedInt(5, 4);
 		assertEquals(0, Tainter.getTaint(i));
+		Object o = new String();
+		if(i == 5)
+			o = new char[4];
+		inst(o,5);
 	}
 }
