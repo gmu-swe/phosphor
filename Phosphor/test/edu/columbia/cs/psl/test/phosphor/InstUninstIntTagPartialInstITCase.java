@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.test.phosphor;
 import static org.junit.Assert.*;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -36,6 +37,9 @@ public class InstUninstIntTagPartialInstITCase {
 		assertEquals(20, d.length);
 		d = ar4[0];
 		assertEquals(20, d.length);
+		System.out.println(Arrays.toString(c.getDeclaredConstructors()));
+		System.out.println(Arrays.toString(c.getDeclaredConstructors()));
+
 	}
 	
 	@Test
@@ -47,8 +51,14 @@ public class InstUninstIntTagPartialInstITCase {
 		m.invoke(null);
 		Method m2 = c.getDeclaredMethod("inst",Integer.TYPE);
 		m2.invoke(null, 5);
+		System.out.println(Arrays.toString(c.getDeclaredConstructors()));
+		System.out.println(Arrays.toString(c.getConstructors()));
 
-		
+		c = InstUninstIntTagPartialInstITCase.class;
+		m = c.getDeclaredMethod("unInstrumented");
+		m.invoke(this);
+		m = c.getDeclaredMethod("uninst2", char[][].class);
+		m.invoke(this, ar3);
 		int[] a = (int[]) ((Object[])ar1)[0];
 		assertEquals(3, a.length);
 		a = (int[]) ((Object[])ar2)[0];
@@ -95,6 +105,7 @@ public class InstUninstIntTagPartialInstITCase {
 	}
 	private void unInstrumented() throws Exception
 	{
+		System.out.println("Running uninstrumented");
 		int i = Tainter.taintedInt(5, 4);
 		assertEquals(0, Tainter.getTaint(i));
 	}

@@ -1,6 +1,19 @@
 package edu.columbia.cs.psl.test.phosphor;
 
 public class PartiallyInstrumentedClass {
+	
+	public PartiallyInstrumentedClass()
+	{
+		
+	}
+	public PartiallyInstrumentedClass(int in)
+	{
+		
+	}
+	public PartiallyInstrumentedClass(int[][][] mdin)
+	{
+		
+	}
 	public static void foo(){
 		
 	}
