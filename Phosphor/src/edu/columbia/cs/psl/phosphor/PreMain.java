@@ -46,6 +46,7 @@ public class PreMain {
 	private static Instrumentation instrumentation;
 
 	static final boolean DEBUG = false;
+	public static boolean RUNTIME_INST = false;
 
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
 
@@ -57,6 +58,8 @@ public class PreMain {
 			}
 
 			private Class<?> getClass(String name) throws ClassNotFoundException {
+				if(RUNTIME_INST)
+					throw new ClassNotFoundException();
 				try {
 					return Class.forName(name.replace("/", "."), false, bigLoader);
 				} catch (SecurityException e) {
@@ -378,6 +381,7 @@ public class PreMain {
 
 	public static void premain(String args, Instrumentation inst) {
 		instrumentation = inst;
+		RUNTIME_INST = true;
 		if (args != null) {
 			String[] aaa = args.split(",");
 			for (String s : aaa) {

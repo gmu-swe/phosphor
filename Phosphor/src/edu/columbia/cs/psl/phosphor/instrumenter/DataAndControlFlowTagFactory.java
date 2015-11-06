@@ -496,21 +496,25 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				boolean loaded = false;
 				if (arrType.getElementType().getSort() != Type.OBJECT) {
 					//TA A
-					mv.visitInsn(SWAP);
 					loaded = true;
 					if(Configuration.MULTI_TAINTING && Configuration.IMPLICIT_TRACKING)
 					{
+						mv.visitInsn(SWAP);
+						mv.visitInsn(POP);
+						mv.visitInsn(DUP);
 						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						mv.visitInsn(SWAP);
 					}
 					else
 					{
+						mv.visitInsn(SWAP);
 						mv.visitInsn(POP);
 						mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 						if (Configuration.MULTI_TAINTING)
 							mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						mv.visitInsn(SWAP);
 					}
-					mv.visitInsn(SWAP);
 					//A
 				}
 				if (!loaded) {
