@@ -51,6 +51,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithSingleObjTag;
 
 /**
  * CV responsibilities: Add a field to classes to track each instance's taint
@@ -399,7 +400,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			mv = new StringTaintVerifyingMV(analyzer,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")),analyzer); //TODO - how do we handle directbytebuffers?
-
+			
 			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className,analyzer);
 			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
 			LocalVariableManager lvs;
@@ -507,7 +508,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			if(TaintAdapter.canRawTaintAccess(className))
 				extraFieldsToVisit.add(new FieldNode(access, name + TaintUtils.TAINT_FIELD, TaintUtils.getShadowTaintType(desc), null, null));
 			else
-				extraFieldsToVisit.add(new FieldNode(access,  name+TaintUtils.TAINT_FIELD, (fieldType.getSort() == Type.ARRAY ? "[":"")+TaintAdapter.getTagType(className).getDescriptor(), null, null));
+				extraFieldsToVisit.add(new FieldNode(access,  name+TaintUtils.TAINT_FIELD, (fieldType.getSort() == Type.ARRAY && !Configuration.SINGLE_TAG_PER_ARRAY ? "[":"")+TaintAdapter.getTagType(className).getDescriptor(), null, null));
 		} else if (!FIELDS_ONLY && fieldType.getSort() == Type.ARRAY && fieldType.getElementType().getSort() != Type.OBJECT && fieldType.getDimensions() > 1) {
 			desc = MultiDTaintedArray.getTypeForType(fieldType).getDescriptor();
 		}
@@ -656,10 +657,16 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
-						mv.visitVarInsn(Opcodes.ALOAD, 0);
-						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
-						mv.visitVarInsn(Opcodes.ILOAD, 1);
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
+						if (Configuration.SINGLE_TAG_PER_ARRAY) {
+							mv.visitVarInsn(Opcodes.ILOAD, 1);
+							mv.visitVarInsn(Opcodes.ALOAD, 0);
+							mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+						} else {
+							mv.visitVarInsn(Opcodes.ALOAD, 0);
+							mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+							mv.visitVarInsn(Opcodes.ILOAD, 1);
+							mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
+						}
 					}
 					mv.visitInsn(Opcodes.RETURN);
 					mv.visitMaxs(0, 0);
@@ -685,10 +692,16 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
-						mv.visitVarInsn(Opcodes.ALOAD, 0);
-//						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
-						mv.visitVarInsn(Opcodes.ALOAD, 1);
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/String;Ljava/lang/Object;)V", false);
+						if (Configuration.SINGLE_TAG_PER_ARRAY) {
+							mv.visitVarInsn(Opcodes.ALOAD, 0);
+							mv.visitVarInsn(Opcodes.ALOAD, 1);
+							mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+						} else {
+							mv.visitVarInsn(Opcodes.ALOAD, 0);
+							//						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+							mv.visitVarInsn(Opcodes.ALOAD, 1);
+							mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/String;Ljava/lang/Object;)V", false);
+						}
 					}
 					mv.visitInsn(Opcodes.RETURN);
 					mv.visitMaxs(0, 0);
@@ -781,9 +794,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			}
 		}
 		
-
-		if(Configuration.MULTI_TAINTING)
-			generateStrLdcWrapper();
 		if (!goLightOnGeneratedStuff)
 			for (MethodNode m : methodsToAddWrappersFor) {
 				if ((m.access & Opcodes.ACC_NATIVE) == 0) {
@@ -1408,9 +1418,16 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				ga.visitInsn(Opcodes.DUP);
 				ga.visitInsn(Opcodes.DUP);
 				Label isOK = new Label();
-				ga.visitTypeInsn(Opcodes.INSTANCEOF, "[" + Type.getDescriptor((!Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithIntTag.class : MultiDTaintedArrayWithObjTag.class)));
-				ga.visitInsn(Opcodes.SWAP);
-				ga.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((!Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithIntTag.class : MultiDTaintedArrayWithObjTag.class)));
+				if (Configuration.SINGLE_TAG_PER_ARRAY) {
+					ga.visitTypeInsn(Opcodes.INSTANCEOF, "[" + Type.getDescriptor((!Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithSingleObjTag.class : MultiDTaintedArrayWithSingleObjTag.class)));
+					ga.visitInsn(Opcodes.SWAP);
+					ga.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((!Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithSingleObjTag.class : MultiDTaintedArrayWithSingleObjTag.class)));
+
+				} else {
+					ga.visitTypeInsn(Opcodes.INSTANCEOF, "[" + Type.getDescriptor((!Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithIntTag.class : MultiDTaintedArrayWithObjTag.class)));
+					ga.visitInsn(Opcodes.SWAP);
+					ga.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((!Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithIntTag.class : MultiDTaintedArrayWithObjTag.class)));
+				}
 				ga.visitInsn(Opcodes.IOR);
 				ga.visitJumpInsn(Opcodes.IFEQ, isOK);
 				if(isUntaggedCall)
@@ -1451,19 +1468,24 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			if (origReturn.getSort() == Type.ARRAY) {
 				if (origReturn.getDimensions() > 1) {
 					//							System.out.println(an.stack + " > " + newReturn);
-					Label isOK = new Label();
-					ga.visitInsn(Opcodes.DUP);
-					ga.visitJumpInsn(Opcodes.IFNULL, isOK);
-					ga.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/lang/Object;");
-					//							//	public static Object[] initWithEmptyTaints(Object[] ar, int componentType, int dims) {
-					ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getElementType().getSort());
-					ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getDimensions());
-					ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;",false);
-					FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
-					fn.stack.set(fn.stack.size() -1,"java/lang/Object");
-					ga.visitLabel(isOK);
-					TaintAdapter.acceptFn(fn, lvs);
-					ga.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getDescriptor());
+					if (Configuration.SINGLE_TAG_PER_ARRAY) {
+						ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+					} else {
+						Label isOK = new Label();
+						ga.visitInsn(Opcodes.DUP);
+						ga.visitJumpInsn(Opcodes.IFNULL, isOK);
+						ga.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/lang/Object;");
+						//							//	public static Object[] initWithEmptyTaints(Object[] ar, int componentType, int dims) {
+						ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getElementType().getSort());
+						ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getDimensions());
+						ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)),
+								"initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;", false);
+						FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
+						fn.stack.set(fn.stack.size() - 1, "java/lang/Object");
+						ga.visitLabel(isOK);
+						TaintAdapter.acceptFn(fn, lvs);
+						ga.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getDescriptor());
+					}
 				} else {
 					TaintAdapter.createNewTaintArray(origReturn.getDescriptor(), an, lvs, lvs);
 
@@ -1482,7 +1504,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					if (!Configuration.MULTI_TAINTING)
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "[I");
 					else
-						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "[Ljava/lang/Object;");
+						if(Configuration.SINGLE_TAG_PER_ARRAY)
+							ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "Ljava/lang/Object;");
+						else
+							ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "[Ljava/lang/Object;");
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
 				}
 			} else {
@@ -1592,31 +1617,5 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		ga.visitMaxs(0, 0);
 		ga.visitEnd();
 
-	}
-
-	private void generateStrLdcWrapper() {
-		if (!isNormalClass)
-			return;
-		MethodVisitor mv = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, TaintUtils.STR_LDC_WRAPPER, "(Ljava/lang/String;)Ljava/lang/String;", null, null);
-		mv.visitCode();
-		mv.visitVarInsn(Opcodes.ALOAD, 0); //S
-		mv.visitInsn(Opcodes.DUP); //S S
-		mv.visitInsn(Opcodes.DUP2);
-
-		mv.visitInsn(Opcodes.DUP);
-		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I",false);
-		mv.visitInsn(Opcodes.ICONST_1);
-		mv.visitInsn(Opcodes.IADD);
-		if(!Configuration.MULTI_TAINTING)
-			mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
-		else
-			mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-		mv.visitFieldInsn(Opcodes.PUTFIELD, "java/lang/String", "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
-		{
-			mv.visitInsn(Opcodes.POP);
-		}
-		mv.visitInsn(Opcodes.ARETURN);
-		mv.visitMaxs(0, 0);
-		mv.visitEnd();
 	}
 }

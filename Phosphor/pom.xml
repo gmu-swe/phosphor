@@ -109,6 +109,23 @@
 						</goals>
 					</execution>
 					<execution>
+						<id>integration-test-obj-tags-singlearraytag</id>
+						<configuration>
+							<skipTests>${skipObjTagSingleArrayTests}</skipTests>
+							<jvm>${project.build.directory}/jre-inst-obj-singlearray/bin/java</jvm>
+							<includes>
+								<include>**/*ObjTagSingleTagITCase.java</include>
+							</includes>
+							<reuseForks>false</reuseForks>
+							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,singlearraytag,cacheDir=${project.build.directory}/cached-obj-singlearraytag</argLine>
+						</configuration>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+					<execution>
 						<id>integration-test-obj-tags</id>
 						<configuration>
 							<skipTests>${skipObjTagTests}</skipTests>

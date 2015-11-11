@@ -13,6 +13,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
@@ -253,6 +254,12 @@ public final class MultiTainter {
 		ret.taint = new Taint[in.length];
 		for(int i =0 ; i < in.length; i++)
 			ret.taint[i] = new Taint(lbl);
+		ret.val = in;
+		return ret;
+	}
+	public static TaintedIntArrayWithSingleObjTag taintedIntArray$$PHOSPHORTAGGED(Taint oldTag, int[] in, Object lbl, TaintedIntArrayWithSingleObjTag ret)
+	{
+		ret.taint = new Taint(lbl);
 		ret.val = in;
 		return ret;
 	}

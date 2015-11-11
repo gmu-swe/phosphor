@@ -42,34 +42,42 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	public void intOp(int opcode, int arg, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV adapter) {
 		switch (opcode) {
 		case Opcodes.NEWARRAY:
-			if (Configuration.ARRAY_LENGTH_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
-				if (Configuration.MULTI_TAINTING) {
-					//Length Length-tag
-					mv.visitInsn(DUP);
-					mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-					mv.visitInsn(SWAP);
-					mv.visitIntInsn(opcode, arg);
-					//Array ArrayTags length-tag
-					mv.visitInsn(DUP2_X1);
-					//Ar At lt Ar At
-					mv.visitInsn(DUP_X2);
-					//Ar At lt Ar ar at
-					mv.visitInsn(POP2);
-					//lt ar ar at
-					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-				} else {
-					throw new UnsupportedOperationException();
-				}
-			} else {
+			if (Configuration.SINGLE_TAG_PER_ARRAY) {
 				mv.visitInsn(SWAP);
 				mv.visitInsn(POP);
-				mv.visitInsn(DUP);
-				if (!Configuration.MULTI_TAINTING)
-					mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
-				else
-					mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-				mv.visitInsn(SWAP);
 				mv.visitIntInsn(opcode, arg);
+				mv.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "createEmptyTaint", "()"+Configuration.TAINT_TAG_DESC, false);
+				mv.visitInsn(SWAP);
+			} else {
+				if (Configuration.ARRAY_LENGTH_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
+					if (Configuration.MULTI_TAINTING) {
+						//Length Length-tag
+						mv.visitInsn(DUP);
+						mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
+						mv.visitInsn(SWAP);
+						mv.visitIntInsn(opcode, arg);
+						//Array ArrayTags length-tag
+						mv.visitInsn(DUP2_X1);
+						//Ar At lt Ar At
+						mv.visitInsn(DUP_X2);
+						//Ar At lt Ar ar at
+						mv.visitInsn(POP2);
+						//lt ar ar at
+						mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+					} else {
+						throw new UnsupportedOperationException();
+					}
+				} else {
+					mv.visitInsn(SWAP);
+					mv.visitInsn(POP);
+					mv.visitInsn(DUP);
+					if (!Configuration.MULTI_TAINTING)
+						mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+					else
+						mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
+					mv.visitInsn(SWAP);
+					mv.visitIntInsn(opcode, arg);
+				}
 			}
 			break;
 

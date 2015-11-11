@@ -11,6 +11,14 @@ else
 	else
 		echo "Not regenerating int tag instrumented JRE\n";
 	fi
+	if [ ! -d "target/jre-inst-obj-singlearray" ]; then
+		echo "Creating obj tag singlearray instrumented JRE\n";
+		java -Xmx6g -XX:MaxPermSize=512m -jar target/Phosphor-0.0.2-SNAPSHOT.jar -multiTaint -singleArrayTag -forceUnboxAcmpEq -withEnumsByValue $JAVA_HOME target/jre-inst-obj-singlearray;
+		chmod +x target/jre-inst-obj-singlearray/bin/*;
+		chmod +x target/jre-inst-obj-singlearray/lib/*;
+	else
+		echo "Not regenerating obj tag singlearray instrumented JRE\n";
+	fi
 	if [ ! -d "target/jre-inst-int-untaggedwrappers" ]; then
 		echo "Creating int tag instrumented JRE with untagged wrappers\n";
 		java -Xmx6g -XX:MaxPermSize=512m -jar target/Phosphor-0.0.2-SNAPSHOT.jar -forceUnboxAcmpEq -withEnumsByValue -generateUninstStubs $JAVA_HOME target/jre-inst-int-untaggedwrappers;

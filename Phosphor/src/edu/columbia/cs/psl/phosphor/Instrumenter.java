@@ -249,6 +249,7 @@ public class Instrumenter {
 	static Option opt_withoutPropogation = new Option("withoutPropogation","Disable all tag propogation - still create method stubs and wrappers as per other options, but don't actually propogate tags");
 	static Option opt_enumPropogation = new Option("withEnumsByValue","Propogate tags to enums as if each enum were a value (not a reference) through the Enum.valueOf method");
 	static Option opt_unboxAcmpEq = new Option("forceUnboxAcmpEq","At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)");
+	static Option opt_singleTagArrays = new Option("singleArrayTag","Store only a single tag for all values in a prim array");
 
 	static Option opt_withSelectiveInst = new Option("withSelectiveInst",true,"Enable selective instrumentation");
 	static Option opt_uninstCopies = new Option("generateUninstStubs","Add extra copies of each method, so there's always one instrumented and one not.");
@@ -274,6 +275,7 @@ public class Instrumenter {
 		options.addOption(opt_unboxAcmpEq);
 		options.addOption(opt_withSelectiveInst);
 		options.addOption(opt_uninstCopies);
+		options.addOption(opt_singleTagArrays);
 	    CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
 	    try {
@@ -308,6 +310,7 @@ public class Instrumenter {
 		Configuration.WITH_UNBOX_ACMPEQ = line.hasOption("forceUnboxAcmpEq");
 		Configuration.WITH_SELECTIVE_INST = line.hasOption("withSelectiveInst");
 		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
+		Configuration.SINGLE_TAG_PER_ARRAY = line.hasOption("singleArrayTag");
 		Configuration.init();
 		
 		

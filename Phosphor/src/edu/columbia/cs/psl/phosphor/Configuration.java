@@ -25,6 +25,7 @@ public class Configuration {
 	public static boolean WITH_ENUM_BY_VAL = false;
 	public static boolean WITH_UNBOX_ACMPEQ = false;
 
+	public static boolean SINGLE_TAG_PER_ARRAY = false;
 	public static boolean WITH_SELECTIVE_INST = false;
 	public static String selective_inst_config;
 	
@@ -80,6 +81,14 @@ public class Configuration {
 		TAINT_TAG_OBJ_ARRAY_CLASS = (MULTI_TAINTING ? Taint[].class : int[].class);
 		TAINT_TAG_OBJ_CLASS = (MULTI_TAINTING ? Taint.class : Integer.TYPE);
 		
+		if(SINGLE_TAG_PER_ARRAY)
+		{
+			TAINT_TAG_ARRAYDESC = TAINT_TAG_DESC;
+			TAINT_TAG_ARRAY_INTERNAL_NAME = TAINT_TAG_INTERNAL_NAME;
+			TAINT_TAG_ARRAY_STACK_TYPE = TAINT_TAG_STACK_TYPE;
+			if(!MULTI_TAINTING)
+				throw new IllegalArgumentException("Invalid config: To use a single tag per array, you must also use multi-tainting");
+		}
 		if(WITH_SELECTIVE_INST)
 			GENERATE_UNINST_STUBS = true;
 

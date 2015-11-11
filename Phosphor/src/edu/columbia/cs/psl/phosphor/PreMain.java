@@ -39,6 +39,7 @@ import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
@@ -129,6 +130,40 @@ public class PreMain {
 			if (!INITED) {
 				Configuration.IMPLICIT_TRACKING = true;
 				Configuration.MULTI_TAINTING = true;
+				Configuration.init();
+				INITED = true;
+			}
+			ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			ret.taint = null;
+			Configuration.taintTagFactory.instrumentationEnding(className);
+			return ret;
+		}
+		
+		public TaintedByteArrayWithSingleObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint classtaint,
+				byte[] classfileBuffer, TaintedByteArrayWithSingleObjTag ret) throws IllegalClassFormatException {
+			Configuration.taintTagFactory.instrumentationStarting(className);
+
+			if (!INITED) {
+				Configuration.IMPLICIT_TRACKING = false;
+				Configuration.MULTI_TAINTING = true;
+				Configuration.SINGLE_TAG_PER_ARRAY = true;
+				Configuration.init();
+				INITED = true;
+			}
+			ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			ret.taint = null;
+			Configuration.taintTagFactory.instrumentationEnding(className);
+			return ret;
+		}
+		
+		public TaintedByteArrayWithSingleObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint classtaint,
+				byte[] classfileBuffer, ControlTaintTagStack ctrl, TaintedByteArrayWithSingleObjTag ret) throws IllegalClassFormatException {
+			Configuration.taintTagFactory.instrumentationStarting(className);
+
+			if (!INITED) {
+				Configuration.IMPLICIT_TRACKING = true;
+				Configuration.MULTI_TAINTING = true;
+				Configuration.SINGLE_TAG_PER_ARRAY = true;
 				Configuration.init();
 				INITED = true;
 			}
@@ -401,8 +436,11 @@ public class PreMain {
 					Configuration.selective_inst_config = s.substring(18);
 					SelectiveInstrumentationManager.populateMethodsToInstrument(Configuration.selective_inst_config);
 				}
+				else if(s.equals("singlearraytag"))
+					Configuration.SINGLE_TAG_PER_ARRAY = true;
 			}
 		}
+		Configuration.init();
 		if (Instrumenter.loader == null)
 			Instrumenter.loader = bigLoader;
 		ClassFileTransformer transformer = new PCLoggingTransformer();

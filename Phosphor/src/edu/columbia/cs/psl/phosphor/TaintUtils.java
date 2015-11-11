@@ -10,11 +10,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import sun.misc.VM;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
@@ -22,36 +21,44 @@ import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
@@ -534,7 +541,8 @@ public class TaintUtils {
 		if(!src.getClass().isArray() && !dest.getClass().isArray())
 		{
 			System.arraycopy(((MultiDTaintedArrayWithObjTag)src).getVal(), srcPos, ((MultiDTaintedArrayWithObjTag)dest).getVal(), destPos, length);
-			System.arraycopy(((MultiDTaintedArrayWithObjTag)src).taint, srcPos, ((MultiDTaintedArrayWithObjTag)dest).taint, destPos, length);
+			if(!Configuration.SINGLE_TAG_PER_ARRAY)
+				System.arraycopy(((MultiDTaintedArrayWithObjTag)src).taint, srcPos, ((MultiDTaintedArrayWithObjTag)dest).taint, destPos, length);
 		}
 		else if(!dest.getClass().isArray())
 		{
@@ -566,7 +574,7 @@ public class TaintUtils {
 
 	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithIntTag()).val && srcTaint != null && destTaint != null) {
+		if (!Configuration.SINGLE_TAG_PER_ARRAY && VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithIntTag()).val && srcTaint != null && destTaint != null) {
 			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
 		}
@@ -582,13 +590,23 @@ public class TaintUtils {
 	public static void arraycopy(Object srcTaint, Object src, Object srcPosTaint, int srcPos, Object destTaint, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
 		if (VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null) {
-			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
+			if(Configuration.SINGLE_TAG_PER_ARRAY || (destTaint instanceof Taint))
+			{
+				Taint _srcT = (Taint) srcTaint;
+				Taint _destT = (Taint) destTaint;
+				if(_srcT.lbl != Taint.EMPTY)
+				{
+					_destT.lbl = null;
+					_destT.addDependency(_srcT);
+				}
+			}
+			else if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
 		}
 	}
 	public static void arraycopyControlTrack(Object srcTaint, Object src, Object srcPosTaint, int srcPos, Object destTaint, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null) {
+		if (!Configuration.SINGLE_TAG_PER_ARRAY && VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null) {
 			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
 		}
@@ -649,10 +667,13 @@ public class TaintUtils {
 		Type t = Type.getType(typeDesc);
 		if (t.getSort() == Type.OBJECT || t.getSort() == Type.VOID)
 			return null;
-		if(t.getSort() == Type.ARRAY && t.getDimensions() > 1)
+		if (t.getSort() == Type.ARRAY && t.getDimensions() > 1)
 			return null;
 		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT)
-			return Configuration.TAINT_TAG_ARRAYDESC;
+			if (Configuration.SINGLE_TAG_PER_ARRAY)
+				return Configuration.TAINT_TAG_DESC;
+			else
+				return Configuration.TAINT_TAG_ARRAYDESC;
 		if (t.getSort() == Type.ARRAY)
 			return null;
 		return Configuration.TAINT_TAG_DESC;
@@ -722,6 +743,7 @@ public class TaintUtils {
 				default:
 					return Type.getType("[" + getContainerReturnType(originalReturnType.getElementType()).getDescriptor());
 				}
+				
 			default:
 				return originalReturnType;
 			}
@@ -763,27 +785,52 @@ public class TaintUtils {
 						return originalReturnType;
 					}
 				}
-				switch (originalReturnType.getElementType().getSort()) {
-				case Type.OBJECT:
-					return originalReturnType;
-				case Type.BYTE:
-					return Type.getType(TaintedByteArrayWithObjTag.class);
-				case Type.BOOLEAN:
-					return Type.getType(TaintedBooleanArrayWithObjTag.class);
-				case Type.CHAR:
-					return Type.getType(TaintedCharArrayWithObjTag.class);
-				case Type.DOUBLE:
-					return Type.getType(TaintedDoubleArrayWithObjTag.class);
-				case Type.FLOAT:
-					return Type.getType(TaintedFloatArrayWithObjTag.class);
-				case Type.INT:
-					return Type.getType(TaintedIntArrayWithObjTag.class);
-				case Type.LONG:
-					return Type.getType(TaintedLongArrayWithObjTag.class);
-				case Type.SHORT:
-					return Type.getType(TaintedShortArrayWithObjTag.class);
-				default:
-					return Type.getType("[" + getContainerReturnType(originalReturnType.getElementType()).getDescriptor());
+				if (Configuration.SINGLE_TAG_PER_ARRAY) {
+					switch (originalReturnType.getElementType().getSort()) {
+					case Type.OBJECT:
+						return originalReturnType;
+					case Type.BYTE:
+						return Type.getType(TaintedByteArrayWithSingleObjTag.class);
+					case Type.BOOLEAN:
+						return Type.getType(TaintedBooleanArrayWithSingleObjTag.class);
+					case Type.CHAR:
+						return Type.getType(TaintedCharArrayWithSingleObjTag.class);
+					case Type.DOUBLE:
+						return Type.getType(TaintedDoubleArrayWithSingleObjTag.class);
+					case Type.FLOAT:
+						return Type.getType(TaintedFloatArrayWithSingleObjTag.class);
+					case Type.INT:
+						return Type.getType(TaintedIntArrayWithSingleObjTag.class);
+					case Type.LONG:
+						return Type.getType(TaintedLongArrayWithSingleObjTag.class);
+					case Type.SHORT:
+						return Type.getType(TaintedShortArrayWithSingleObjTag.class);
+					default:
+						return Type.getType("[" + getContainerReturnType(originalReturnType.getElementType()).getDescriptor());
+					}
+				} else {
+					switch (originalReturnType.getElementType().getSort()) {
+					case Type.OBJECT:
+						return originalReturnType;
+					case Type.BYTE:
+						return Type.getType(TaintedByteArrayWithObjTag.class);
+					case Type.BOOLEAN:
+						return Type.getType(TaintedBooleanArrayWithObjTag.class);
+					case Type.CHAR:
+						return Type.getType(TaintedCharArrayWithObjTag.class);
+					case Type.DOUBLE:
+						return Type.getType(TaintedDoubleArrayWithObjTag.class);
+					case Type.FLOAT:
+						return Type.getType(TaintedFloatArrayWithObjTag.class);
+					case Type.INT:
+						return Type.getType(TaintedIntArrayWithObjTag.class);
+					case Type.LONG:
+						return Type.getType(TaintedLongArrayWithObjTag.class);
+					case Type.SHORT:
+						return Type.getType(TaintedShortArrayWithObjTag.class);
+					default:
+						return Type.getType("[" + getContainerReturnType(originalReturnType.getElementType()).getDescriptor());
+					}
 				}
 			default:
 				return originalReturnType;

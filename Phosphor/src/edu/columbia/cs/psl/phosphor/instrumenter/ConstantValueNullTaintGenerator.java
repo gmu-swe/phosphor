@@ -310,16 +310,21 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 
 													fin.desc = MultiDTaintedArray.getTypeForType(Type.getType(fin.desc)).getDescriptor();
 												} else {
-													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
-													//Initialize a new 1D array of the right length
-													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
-													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.ARRAYLENGTH));
-													if(!Configuration.MULTI_TAINTING)
-														uninstrumented.instructions.insertBefore(insn, new IntInsnNode(Opcodes.NEWARRAY, Opcodes.T_INT));
-													else
-														uninstrumented.instructions.insertBefore(insn, new TypeInsnNode(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME));
-													//													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
-													uninstrumented.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, fin.owner, fin.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC));
+													if (Configuration.SINGLE_TAG_PER_ARRAY) {
+														uninstrumented.instructions.insertBefore(insn, new InsnNode(Configuration.NULL_TAINT_LOAD_OPCODE));
+													} else {
+														uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
+														//Initialize a new 1D array of the right length
+														uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
+														uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.ARRAYLENGTH));
+														if (!Configuration.MULTI_TAINTING)
+															uninstrumented.instructions.insertBefore(insn, new IntInsnNode(Opcodes.NEWARRAY, Opcodes.T_INT));
+														else
+															uninstrumented.instructions.insertBefore(insn, new TypeInsnNode(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME));
+														//													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
+													}
+													uninstrumented.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, fin.owner, fin.name + TaintUtils.TAINT_FIELD,
+															Configuration.TAINT_TAG_ARRAYDESC));
 												}
 												//												uninstrumented.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class),
 												//														"registerAllConstantsArray", "(Ljava/lang/Object;Ljava/lang/Object;)V"));

@@ -10,6 +10,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public final class Taint {
+	public static final Object EMPTY = new Object();
 	public static boolean IGNORE_TAINTING;
 
 	public static final Taint copyTaint(Taint in)
@@ -105,7 +106,7 @@ public final class Taint {
 	}
 	public boolean addDependency(Taint d)
 	{
-		if(d == null)
+		if(d == null || d.lbl == Taint.EMPTY)
 			return false;
 		boolean added = false;
 		if(d.lbl != null)
@@ -128,9 +129,16 @@ public final class Taint {
 	public boolean hasNoDependencies() {
 		return dependencies.getFirst() == null || dependencies.getFirst().entry == null;
 	}
+	public static void addDependency(Taint on, Taint t1)
+	{
+		if(on == null || t1 == null || t1.lbl == Taint.EMPTY)
+			return;
+		if(on.addDependency(t1) && on.lbl == Taint.EMPTY)
+			on.lbl = null;
+	}
 	public static void combineTagsInPlace(Object obj, Taint t1)
 	{
-		if(obj == null || t1 == null || IGNORE_TAINTING)
+		if(obj == null || t1 == null || IGNORE_TAINTING || t1.lbl == Taint.EMPTY)
 			return;
 		Taint t = (Taint) TaintUtils.getTaintObj(obj);
 		if(t == null)
@@ -149,6 +157,12 @@ public final class Taint {
 		if(t1 == null)
 			return t2;
 		if(t1 == t2)
+			return t1;
+		if(t1.lbl == Taint.EMPTY && t2.lbl == Taint.EMPTY)
+			return null;
+		if(t1.lbl == Taint.EMPTY)
+			return t2;
+		if(t2.lbl == Taint.EMPTY)
 			return t1;
 		if(t1.lbl == null && t1.hasNoDependencies())
 			return t2;
@@ -201,6 +215,9 @@ public final class Taint {
 				((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags((Taint) ((TaintedWithObjTag)o).getPHOSPHOR_TAG(), tags));
 	
 		}
+	}
+	public static Taint createEmptyTaint() {
+		return new Taint(EMPTY);
 	}
 
 }

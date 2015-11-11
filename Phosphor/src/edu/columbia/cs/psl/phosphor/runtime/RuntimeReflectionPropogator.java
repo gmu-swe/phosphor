@@ -38,6 +38,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
@@ -47,22 +48,31 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedByteArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedByteArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedByteArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedDoubleArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedDoubleArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedDoubleArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedFloatArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedFloatArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedFloatArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedIntArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedIntArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedIntArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedLongArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedLongArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedLongArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithSingleObjTag;
 
 public class RuntimeReflectionPropogator {
 	public static void setUNINST(Field f, Object obj, Object val) throws IllegalArgumentException, IllegalAccessException {
@@ -181,6 +191,8 @@ public class RuntimeReflectionPropogator {
 						return ret;
 					} else if (ret instanceof MultiDTaintedArrayWithObjTag) {
 						return ret;
+					} else if(ret instanceof MultiDTaintedArrayWithSingleObjTag){
+						return ret;
 					} else {
 						Field taintField;
 						if (fieldToField.containsKey(f))
@@ -195,7 +207,7 @@ public class RuntimeReflectionPropogator {
 				} catch (NoSuchFieldException t) {
 					if(isObjTags)
 					{
-						if(ret != null)
+						if(!Configuration.SINGLE_TAG_PER_ARRAY && ret != null)
 							taint = new int[Array.getLength(ret)];
 					}
 					else
@@ -228,22 +240,42 @@ public class RuntimeReflectionPropogator {
 				}
 				else
 				{
-					if (f.getType().getComponentType() == Boolean.TYPE) {
-						return new MultiDTaintedBooleanArrayWithObjTag((Object[]) taint, (boolean[]) ret);
-					} else if (f.getType().getComponentType() == Byte.TYPE) {
-						return new MultiDTaintedByteArrayWithObjTag((Object[]) taint, (byte[]) ret);
-					} else if (f.getType().getComponentType() == Character.TYPE) {
-						return new MultiDTaintedCharArrayWithObjTag((Object[]) taint, (char[]) ret);
-					} else if (f.getType().getComponentType() == Double.TYPE) {
-						return new MultiDTaintedDoubleArrayWithObjTag((Object[]) taint, (double[]) ret);
-					} else if (f.getType().getComponentType() == Float.TYPE) {
-						return new MultiDTaintedFloatArrayWithObjTag((Object[]) taint, (float[]) ret);
-					} else if (f.getType().getComponentType() == Integer.TYPE) {
-						return new MultiDTaintedIntArrayWithObjTag((Object[]) taint, (int[]) ret);
-					} else if (f.getType().getComponentType() == Long.TYPE) {
-						return new MultiDTaintedLongArrayWithObjTag((Object[]) taint, (long[]) ret);
-					} else if (f.getType().getComponentType() == Short.TYPE) {
-						return new MultiDTaintedShortArrayWithObjTag((Object[]) taint, (short[]) ret);
+					if (Configuration.SINGLE_TAG_PER_ARRAY) {
+						if (f.getType().getComponentType() == Boolean.TYPE) {
+							return new MultiDTaintedBooleanArrayWithSingleObjTag(taint, (boolean[]) ret);
+						} else if (f.getType().getComponentType() == Byte.TYPE) {
+							return new MultiDTaintedByteArrayWithSingleObjTag(taint, (byte[]) ret);
+						} else if (f.getType().getComponentType() == Character.TYPE) {
+							return new MultiDTaintedCharArrayWithSingleObjTag(taint, (char[]) ret);
+						} else if (f.getType().getComponentType() == Double.TYPE) {
+							return new MultiDTaintedDoubleArrayWithSingleObjTag(taint, (double[]) ret);
+						} else if (f.getType().getComponentType() == Float.TYPE) {
+							return new MultiDTaintedFloatArrayWithSingleObjTag(taint, (float[]) ret);
+						} else if (f.getType().getComponentType() == Integer.TYPE) {
+							return new MultiDTaintedIntArrayWithSingleObjTag(taint, (int[]) ret);
+						} else if (f.getType().getComponentType() == Long.TYPE) {
+							return new MultiDTaintedLongArrayWithSingleObjTag(taint, (long[]) ret);
+						} else if (f.getType().getComponentType() == Short.TYPE) {
+							return new MultiDTaintedShortArrayWithSingleObjTag(taint, (short[]) ret);
+						}
+					} else {
+						if (f.getType().getComponentType() == Boolean.TYPE) {
+							return new MultiDTaintedBooleanArrayWithObjTag((Object[]) taint, (boolean[]) ret);
+						} else if (f.getType().getComponentType() == Byte.TYPE) {
+							return new MultiDTaintedByteArrayWithObjTag((Object[]) taint, (byte[]) ret);
+						} else if (f.getType().getComponentType() == Character.TYPE) {
+							return new MultiDTaintedCharArrayWithObjTag((Object[]) taint, (char[]) ret);
+						} else if (f.getType().getComponentType() == Double.TYPE) {
+							return new MultiDTaintedDoubleArrayWithObjTag((Object[]) taint, (double[]) ret);
+						} else if (f.getType().getComponentType() == Float.TYPE) {
+							return new MultiDTaintedFloatArrayWithObjTag((Object[]) taint, (float[]) ret);
+						} else if (f.getType().getComponentType() == Integer.TYPE) {
+							return new MultiDTaintedIntArrayWithObjTag((Object[]) taint, (int[]) ret);
+						} else if (f.getType().getComponentType() == Long.TYPE) {
+							return new MultiDTaintedLongArrayWithObjTag((Object[]) taint, (long[]) ret);
+						} else if (f.getType().getComponentType() == Short.TYPE) {
+							return new MultiDTaintedShortArrayWithObjTag((Object[]) taint, (short[]) ret);
+						}
 					}
 				}
 			} catch (Exception e) {

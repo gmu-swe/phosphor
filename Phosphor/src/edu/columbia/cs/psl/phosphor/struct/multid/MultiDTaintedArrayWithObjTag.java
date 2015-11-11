@@ -1,7 +1,10 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+
 import org.objectweb.asm.Type;
+
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
 
 public abstract class MultiDTaintedArrayWithObjTag {
@@ -61,6 +64,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 	}
 
 	public static final Type getTypeForType(final Type originalElementType) {
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.getTypeForType(originalElementType);
 		if (originalElementType.getSort() != Type.ARRAY)
 			throw new IllegalArgumentException("passed " + originalElementType);
 		Class clazz = getClassForComponentType(originalElementType.getElementType().getSort());
@@ -91,6 +96,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 	}
 
 	public static final String isPrimitiveBoxClass(Class c) {
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.isPrimitiveBoxClass(c);
 		while (c.isArray())
 			c = c.getComponentType();
 		if (c == MultiDTaintedDoubleArrayWithObjTag.class)
@@ -113,6 +120,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 	}
 
 	public static final String getPrimitiveTypeForWrapper(Class c) {
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.getPrimitiveTypeForWrapper(c);
 		while (c.isArray())
 			c = c.getComponentType();
 		if (c == MultiDTaintedDoubleArrayWithObjTag.class)
@@ -137,6 +146,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 
 	public static final Class getUnderlyingBoxClassForUnderlyingClass(Class c)
 	{
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.getUnderlyingBoxClassForUnderlyingClass(c);
 		int dims = 0;
 		if(c.isArray())
 		{
@@ -208,6 +219,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 		throw new IllegalArgumentException("Can't handle that many dims yet: "+dims);
 	}
 	public static final Class getClassForComponentType(final int componentSort) {
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.getClassForComponentType(componentSort);
 		switch (componentSort) {
 		case Type.BOOLEAN:
 			return MultiDTaintedBooleanArrayWithObjTag.class;
@@ -231,6 +244,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 	}
 
 	public static final Object unboxRaw(final Object in) {
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.unboxRaw(in);
 		if(in == null)
 			return null;
 		if (!in.getClass().isArray()) {
@@ -247,7 +262,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 	}
 
 	public static final Object unboxVal(final Object _in, final int componentType, final int dims) {
-
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.unboxVal(_in, componentType, dims);
 		if (dims == 0) {
 			switch (componentType) {
 			case Type.BOOLEAN:
@@ -388,6 +404,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 	}
 	public static int getSortForBoxClass(Class c)
 	{
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.getSortForBoxClass(c);
 		if(c == MultiDTaintedIntArrayWithObjTag.class)
 			return Type.INT;
 		if(c == MultiDTaintedBooleanArrayWithObjTag.class)
@@ -408,6 +426,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 	}
 	public static int getSort(Class c)
 	{
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.getSort(c);
 		if(c == Integer.TYPE)
 			return Type.INT;
 		if(c == Boolean.TYPE)
@@ -427,6 +447,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 		throw new IllegalArgumentException();
 	}
 	public static final Object boxIfNecessary(final Object in) {
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.boxIfNecessary(in);
 		if (in != null && in.getClass().isArray()) {
 			if (in.getClass().getComponentType().isPrimitive()) {
 				//Is prim arraytype
@@ -474,6 +496,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 	}
 
 	public static final Object initWithEmptyTaints(final Object[] ar, final int componentType, final int dims) {
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.initWithEmptyTaints(ar, componentType, dims);
 		if (dims == 2) {
 			Object[] ret;
 			switch (componentType) {
@@ -638,6 +662,10 @@ public abstract class MultiDTaintedArrayWithObjTag {
 	}
 
 	public static final void initLastDim(final Object[] ar, final int lastDimSize, final int componentType) {
+		if (Configuration.SINGLE_TAG_PER_ARRAY) {
+			MultiDTaintedArrayWithSingleObjTag.initLastDim(ar, lastDimSize, componentType);
+			return;
+		}
 		for (int i = 0; i < ar.length; i++) {
 			if (ar[i] == null) {
 				switch (componentType) {
@@ -675,6 +703,8 @@ public abstract class MultiDTaintedArrayWithObjTag {
 	}
 
 	public static Type getPrimitiveTypeForWrapper(String internalName) {
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+			return MultiDTaintedArrayWithSingleObjTag.getPrimitiveTypeForWrapper(internalName);
 		try {
 			return Type.getType(getPrimitiveTypeForWrapper(Class.forName(internalName.replace("/", "."))));
 		} catch (ClassNotFoundException e) {

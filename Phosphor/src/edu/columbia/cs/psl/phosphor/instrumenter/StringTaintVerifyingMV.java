@@ -44,6 +44,41 @@ NeverNullArgAnalyzerAdapter analyzer;
 			return;
 		}
 		Type t = Type.getType(desc);
+		if(Configuration.SINGLE_TAG_PER_ARRAY &&
+				(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && t.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_FIELD) && !name.equals("taint") && 
+						t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1 && !checkedThisFrame.contains(owner+"."+name)
+						&& (owner.equals("java/lang/String") || implementsSerializable))
+				){
+			super.visitInsn(SWAP);
+			super.visitInsn(POP);
+			
+			//Make sure that it's been initialized
+			Label isOK = new Label();
+			Label doInit = new Label();
+			
+			FrameNode fn1 = TaintAdapter.getCurrentFrameNode(analyzer);
+			super.visitInsn(DUP);
+			super.visitFieldInsn(opcode, owner, name,desc);
+			super.visitJumpInsn(IFNULL, isOK); //if value is null, do nothing
+			
+			super.visitInsn(DUP);
+			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+			super.visitJumpInsn(IFNONNULL, isOK); //if taint is null, def init
+			TaintAdapter.acceptFn(fn1, this);
+			super.visitInsn(DUP); // O O
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "createEmptyTaint", "()"+Configuration.TAINT_TAG_DESC, false);
+
+			super.visitFieldInsn(PUTFIELD, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC); // O
+			super.visitLabel(isOK);
+			TaintAdapter.acceptFn(fn1, this);
+			//O
+			super.visitInsn(DUP);
+			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+			super.visitInsn(SWAP);
+			super.visitFieldInsn(opcode, owner, name, desc);
+
+			return;
+		}
 		if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && t.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_FIELD) && !name.equals("taint") && 
 				t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1 && !checkedThisFrame.contains(owner+"."+name)
 				&& (owner.equals("java/lang/String") || implementsSerializable)

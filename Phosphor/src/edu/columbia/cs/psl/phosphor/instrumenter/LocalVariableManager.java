@@ -122,7 +122,10 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		super.visitLabel(lbl);
 
 		LocalVariableNode newLVN = new LocalVariableNode("phosphorShadowLVFor" + shadows+"XX"+createdLVIdx, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), idx);
-
+		if(type.getDescriptor().equals("LLedu/columbia/cs/psl/phosphor/runtime/Taint;;"))
+		{
+			throw new IllegalArgumentException();
+		}
 		createdLVs.add(newLVN);
 		curLocalIdxToLVNode.put(idx, newLVN);
 		createdLVIdx++;
@@ -212,7 +215,10 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		super.visitLabel(lbl);
 		curLocalIdxToLVNode.get(local).end = new LabelNode(lbl);
 		super.remapLocal(local, type);
-
+		if(type.getDescriptor().equals("LLedu/columbia/cs/psl/phosphor/runtime/Taint;;"))
+		{
+			throw new IllegalArgumentException();
+		}
 		LocalVariableNode newLVN = new LocalVariableNode("phosphorShadowLV" + createdLVIdx, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), local);
 		createdLVs.add(newLVN);
 		curLocalIdxToLVNode.put(local, newLVN);
@@ -481,7 +487,10 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
             	{
             		Type _t = Type.getObjectType((String) t);
             		if(_t.getSort() == Type.ARRAY && _t.getDimensions() == 1 && _t.getElementType().getSort() != Type.OBJECT)
-            			shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
+            			if(Configuration.SINGLE_TAG_PER_ARRAY)
+            				shadowType = Configuration.TAINT_TAG_STACK_TYPE;
+            			else
+            				shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
             	}
             	if(!disabled && shadowType != null)
             	{

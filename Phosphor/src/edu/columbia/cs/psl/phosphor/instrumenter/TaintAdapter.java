@@ -374,6 +374,12 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 	 * same length.
 	 */
 	protected void generateEmptyTaintArray(String arrayDesc) {
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+		{
+			super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+			super.visitInsn(SWAP);
+			return;
+		}
 		Type arrayType = Type.getType(arrayDesc);
 		Label isNull = new Label();
 		Label done = new Label();
@@ -509,6 +515,12 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 		return ret;
 	}
 	public static void createNewTaintArray(String arrayDesc, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor mv, LocalVariableManager lvs) {
+		if(Configuration.SINGLE_TAG_PER_ARRAY)
+		{
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "createEmptyTaint", "()"+Configuration.TAINT_TAG_DESC, false);
+			mv.visitInsn(Opcodes.SWAP);
+			return;
+		}
 		Type arrayType = Type.getType(arrayDesc);
 		Label isNull = new Label();
 		Label done = new Label();
