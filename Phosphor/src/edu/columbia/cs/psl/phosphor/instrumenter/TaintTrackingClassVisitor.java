@@ -75,8 +75,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	List<FieldNode> fields;
 	private boolean ignoreFrames;
 	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields) {
-		super(Opcodes.ASM5,  //cv
-				new CheckClassAdapter(cv,false)
+		super(Opcodes.ASM5,  cv
+//				new CheckClassAdapter(cv,false)
 				);
 		DO_OPT = DO_OPT && !IS_RUNTIME_INST;
 		this.ignoreFrames = skipFrames;
