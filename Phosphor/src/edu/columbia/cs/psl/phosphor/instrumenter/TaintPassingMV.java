@@ -1268,7 +1268,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			primitiveArrayType = getTopOfStackType();
 			//TA A
 			super.visitInsn(SWAP);
-			super.visitMethodInsn(opcode, "java/lang/Object", "clone", "()Ljava/lang/Object;",false);
+			if(Configuration.SINGLE_TAG_PER_ARRAY)
+				super.visitMethodInsn(opcode, Configuration.TAINT_TAG_INTERNAL_NAME, "clone", "()Ljava/lang/Object;",false);
+			else
+				super.visitMethodInsn(opcode, "java/lang/Object", "clone", "()Ljava/lang/Object;",false);
 			super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
 			//A TA'
 			super.visitInsn(SWAP);

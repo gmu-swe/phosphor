@@ -52,7 +52,7 @@ echo "target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$P
 target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness $bm
 
 echo "target/jre-inst-obj-singlearray/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj-singlearraytag/ -Declipse.java.home=$JAVA_HOME Harness $bm"
-target/jre-inst-obj-singlearray/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj-singlearraytag/ -Declipse.java.home=$JAVA_HOME Harness $bm
+target/jre-inst-obj-singlearray/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR=singlearraytag -cp target/dacapo-inst-obj-singlearraytag/ -Declipse.java.home=$JAVA_HOME Harness $bm
 if [ $? -ne 0 ]; then
 HAD_ERROR=`expr $HAD_ERROR + 1`
 fi

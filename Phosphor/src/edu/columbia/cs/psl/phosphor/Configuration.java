@@ -86,6 +86,7 @@ public class Configuration {
 			TAINT_TAG_ARRAYDESC = TAINT_TAG_DESC;
 			TAINT_TAG_ARRAY_INTERNAL_NAME = TAINT_TAG_INTERNAL_NAME;
 			TAINT_TAG_ARRAY_STACK_TYPE = TAINT_TAG_STACK_TYPE;
+			TAINT_TAG_OBJ_ARRAY_CLASS = Taint.class;
 			if(!MULTI_TAINTING)
 				throw new IllegalArgumentException("Invalid config: To use a single tag per array, you must also use multi-tainting");
 		}

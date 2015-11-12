@@ -9,10 +9,14 @@ import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
-public final class Taint {
+public final class Taint implements Cloneable {
 	public static final Object EMPTY = new Object();
 	public static boolean IGNORE_TAINTING;
 
+	public Object clone() throws CloneNotSupportedException {
+		// TODO Auto-generated method stub
+		return super.clone();
+	}
 	public static final Taint copyTaint(Taint in)
 	{
 		if(in == null)

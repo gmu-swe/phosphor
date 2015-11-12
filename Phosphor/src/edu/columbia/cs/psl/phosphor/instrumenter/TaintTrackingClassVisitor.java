@@ -1468,24 +1468,21 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			if (origReturn.getSort() == Type.ARRAY) {
 				if (origReturn.getDimensions() > 1) {
 					//							System.out.println(an.stack + " > " + newReturn);
-					if (Configuration.SINGLE_TAG_PER_ARRAY) {
-						ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
-					} else {
-						Label isOK = new Label();
-						ga.visitInsn(Opcodes.DUP);
-						ga.visitJumpInsn(Opcodes.IFNULL, isOK);
-						ga.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/lang/Object;");
-						//							//	public static Object[] initWithEmptyTaints(Object[] ar, int componentType, int dims) {
-						ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getElementType().getSort());
-						ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getDimensions());
-						ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)),
-								"initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;", false);
-						FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
-						fn.stack.set(fn.stack.size() - 1, "java/lang/Object");
-						ga.visitLabel(isOK);
-						TaintAdapter.acceptFn(fn, lvs);
-						ga.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getDescriptor());
-					}
+					Label isOK = new Label();
+					ga.visitInsn(Opcodes.DUP);
+					ga.visitJumpInsn(Opcodes.IFNULL, isOK);
+					ga.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/lang/Object;");
+					//							//	public static Object[] initWithEmptyTaints(Object[] ar, int componentType, int dims) {
+					ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getElementType().getSort());
+					ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getDimensions());
+					ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)),
+							"initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;", false);
+					FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
+					fn.stack.set(fn.stack.size() - 1, "java/lang/Object");
+					ga.visitLabel(isOK);
+					TaintAdapter.acceptFn(fn, lvs);
+					ga.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getDescriptor());
+					
 				} else {
 					TaintAdapter.createNewTaintArray(origReturn.getDescriptor(), an, lvs, lvs);
 
