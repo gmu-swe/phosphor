@@ -28,6 +28,13 @@ fi
     else
     echo "Not regenerating obj tag instrumented dacapo";
     fi
+    if [ ! -d "target/dacapo-inst-singlearraytag" ]; then
+    echo "Creating obj tag single array tag instrumented dacapo";
+    java -Xmx6g -XX:MaxPermSize=512m  -jar $PHOSPHOR_JAR -singleArrayTag -multiTaint -forceUnboxAcmpEq -withEnumsByValue $DACAPO_DIR target/dacapo-inst-obj-singlearraytag
+    else
+    echo "Not regenerating obj tag instrumented dacapo w single array tag";
+    fi
+
 #    if [ ! -d "target/dacapo-inst-implicit" ]; then
 #    echo "Creating obj tag + implicit flow instrumented dacapo\n";
 #    java -Xmx6g -XX:MaxPermSize=512m -jar $PHOSPHOR_JAR -controlTrack -multiTaint $DACAPO_DIR target/dacapo-inst-implicit;
@@ -43,6 +50,9 @@ echo "target/jre-inst-int/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$P
 target/jre-inst-int/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness $bm
 echo "target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness $bm"
 target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness $bm
+
+echo "target/jre-inst-obj-singlearray/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj-singlearraytag/ -Declipse.java.home=$JAVA_HOME Harness $bm"
+target/jre-inst-obj-singlearray/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj-singlearraytag/ -Declipse.java.home=$JAVA_HOME Harness $bm
 if [ $? -ne 0 ]; then
 HAD_ERROR=`expr $HAD_ERROR + 1`
 fi
