@@ -89,13 +89,13 @@ public class ReflectionMasker {
 				return m;
 			}
 			x = 0;
-			if(chars.length > SUFFIX_LEN+2)
-			for (int i = chars.length - SUFFIX_LEN-2; i < chars.length; i++) {
-				if (chars[i] != SUFFIX2CHARS[x]) {
-					isEq = false;
+			if (Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
+				for (int i = chars.length - SUFFIX_LEN - 2; i < chars.length; i++) {
+					if (chars[i] != SUFFIX2CHARS[x]) {
+						isEq = false;
+					}
+					x++;
 				}
-				x++;
-			}
 			if (isEq) {
 				if (!IS_KAFFE)
 					m.PHOSPHOR_TAGmarked = true;
@@ -239,7 +239,7 @@ public class ReflectionMasker {
 				return m;
 			}
 			x = 0;
-			if (chars.length > SUFFIX_LEN + 2)
+			if (Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
 				for (int i = chars.length - SUFFIX_LEN - 2; i < chars.length; i++) {
 					if (chars[i] != SUFFIX2CHARS[x]) {
 						isEq = false;
@@ -506,7 +506,7 @@ public class ReflectionMasker {
 		//			System.out.println("Returning " + lastMethod);
 		//			return lastMethod;
 		//		}
-		if(m.getName().endsWith("$$PHOSPHORUNTAGGED"))
+		if(Configuration.GENERATE_UNINST_STUBS && m.getName().endsWith("$$PHOSPHORUNTAGGED"))
 		{
 			String origName = m.getName().replace("$$PHOSPHORUNTAGGED", "");
 			try {
@@ -1418,7 +1418,7 @@ public class ReflectionMasker {
 					x++;
 				}
 				x = 0;
-				if (!matched && chars.length > SUFFIX_LEN + 2)
+				if (!matched && Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
 					for (int i = chars.length - SUFFIX_LEN -2; i < chars.length; i++) {
 						if (chars[i] != SUFFIX2CHARS[x]) {
 							ret.add(f);

@@ -292,6 +292,8 @@ public class PreMain {
 					Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
 					_cv = extra.newInstance(_cv, skipFrames);
 				}
+				if(TaintUtils.VERIFY_CLASS_GENERATION)
+					_cv = new CheckClassAdapter(_cv, false);
 				_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
 				if (Configuration.WITH_SELECTIVE_INST)
 					cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
