@@ -53,8 +53,9 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		}
 		super.visitVarInsn(opcode, var);
 	}
+	private boolean hasPreallocPassed;
 	public HashMap<Integer, Integer> varToShadowVar = new HashMap<Integer, Integer>();
-	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV) {
+	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean hasPrealloc) {
 		super(ASM5, access, desc, mv);
 		this.analyzer = analyzer;
 		this.uninstMV = uninstMV;
@@ -81,6 +82,10 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 //		System.out.println("New LVS");
 //		System.out.println("LVS thinks its at " + lastArg);
 		preAllocedReturnTypes.put(returnType,lastArg);
+		lvOfSingleWrapperArray = lastArg;
+		this.hasPreallocPassed = hasPrealloc;
+		if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			changed = true;
 	}
 
 	public void freeTmpLV(int idx) {
@@ -340,9 +345,10 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		}
 	}
 
+	int lvOfSingleWrapperArray;
 	public void visitCode() {
 		super.visitCode();
-		if (primitiveArrayFixer != null)
+		if (primitiveArrayFixer != null && !TaintUtils.PREALLOC_RETURN_ARRAY)
 			for (Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
 				if (t.equals(returnType)) {
 					preAllocedReturnTypes.put(t, lastArg);
@@ -356,6 +362,13 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 					//				System.out.println("Created LV Storage at " + lv);
 				}
 			}
+		else if(TaintUtils.PREALLOC_RETURN_ARRAY && !hasPreallocPassed)
+		{
+			int lv = newPreAllocedReturnType(Type.getType("[Ljava/lang/Object;"));
+			lvOfSingleWrapperArray = lv;
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "createPreallocReturnArray", "()[Ljava/lang/Object;", false);
+			mv.visitVarInsn(ASTORE, lv);
+		}
 	}
 
 	HashMap<Type, Integer> preAllocedReturnTypes = new HashMap<Type, Integer>();
@@ -369,6 +382,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
 	public int getPreAllocedReturnTypeVar(Type newReturnType) {
 //		System.out.println(preAllocedReturnTypes);
+		if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			return lvOfSingleWrapperArray;
 		if(!preAllocedReturnTypes.containsKey(newReturnType))
 			throw new IllegalArgumentException("Got " + newReturnType + " but have " + preAllocedReturnTypes);
 		return preAllocedReturnTypes.get(newReturnType);
@@ -446,18 +461,21 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         // copies types from 'local' to 'newLocals'
         // 'newLocals' currently empty
 
-        if(!disabled)
-        for(Type t : preAllocedReturnTypes.keySet())
-        {
-//        	System.out.println(t);
-        	if(t.getSort() != Type.OBJECT)
-        		continue;
-        	int idx = preAllocedReturnTypes.get(t);
-        	if(idx >= 0)
-        	{
-        		setFrameLocal(idx, t.getInternalName());
-        	}
-        }
+		if (!disabled) {
+			if (TaintUtils.PREALLOC_RETURN_ARRAY) {
+				setFrameLocal(lvOfSingleWrapperArray, "[Ljava/lang/Object;");
+			} else {
+				for (Type t : preAllocedReturnTypes.keySet()) {
+					//        	System.out.println(t);
+					if (t.getSort() != Type.OBJECT)
+						continue;
+					int idx = preAllocedReturnTypes.get(t);
+					if (idx >= 0) {
+						setFrameLocal(idx, t.getInternalName());
+					}
+				}
+			}
+		}
 //        System.out.println(Arrays.toString(newLocals));
         int index = 0; // old local variable index
         int number = 0; // old local variable number

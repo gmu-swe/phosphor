@@ -115,6 +115,24 @@ public class TaintUtils {
 	public static final boolean DEBUG_OPT = false;
 	public static final boolean DEBUG_PURE = false;
 
+	public static final boolean PREALLOC_RETURN_ARRAY = true;
+	public static final int PREALLOC_BOOLEAN=0;
+	public static final int PREALLOC_BYTE=1;
+	public static final int PREALLOC_CHAR=2;
+	public static final int PREALLOC_DOUBLE=3;
+	public static final int PREALLOC_FLOAT=4;
+	public static final int PREALLOC_INT=5;
+	public static final int PREALLOC_LONG=6;
+	public static final int PREALLOC_SHORT=7;
+	public static final int PREALLOC_BOOLEANARRAY=8;
+	public static final int PREALLOC_BYTEARRAY=9;
+	public static final int PREALLOC_CHARARRAY=10;
+	public static final int PREALLOC_DOUBLEARRAY=11;
+	public static final int PREALLOC_FLOATARRAY=12;
+	public static final int PREALLOC_INTARRAY=13;
+	public static final int PREALLOC_LONGARRAY=14;
+	public static final int PREALLOC_SHORTARRAY=15;
+	
 	public static final boolean ADD_BASIC_ARRAY_CONSTRAINTS = true;
 	public static final boolean ADD_HEAVYWEIGHT_ARRAY_TAINTS = ADD_BASIC_ARRAY_CONSTRAINTS || true;
 
@@ -130,10 +148,115 @@ public class TaintUtils {
 
 	public static final int UNCONSTRAINED_NEW_STRING = 4;
 
-	public static final boolean VERIFY_CLASS_GENERATION = false;
+	public static final boolean VERIFY_CLASS_GENERATION = true;
 
 	public static final String METHOD_SUFFIX_UNINST = "$$PHOSPHORUNTAGGED";
 
+	public static final int getPreAllocArrayIdxForType(Type t)
+	{
+		switch(t.getSort())
+		{
+		case Type.BOOLEAN:
+			return PREALLOC_BOOLEAN;
+		case Type.BYTE:
+			return PREALLOC_BYTE;
+		case Type.CHAR:
+			return PREALLOC_CHAR;
+		case Type.DOUBLE:
+			return PREALLOC_DOUBLE;
+		case Type.FLOAT:
+			return PREALLOC_FLOAT;
+		case Type.INT:
+			return PREALLOC_INT;
+		case Type.LONG:
+			return PREALLOC_LONG;
+		case Type.SHORT:
+			return PREALLOC_SHORT;
+		case Type.ARRAY:
+			switch (t.getElementType().getSort()) {
+			case Type.BOOLEAN:
+				return PREALLOC_BOOLEANARRAY;
+			case Type.BYTE:
+				return PREALLOC_BYTEARRAY;
+			case Type.CHAR:
+				return PREALLOC_CHARARRAY;
+			case Type.DOUBLE:
+				return PREALLOC_DOUBLEARRAY;
+			case Type.FLOAT:
+				return PREALLOC_FLOATARRAY;
+			case Type.INT:
+				return PREALLOC_INTARRAY;
+			case Type.LONG:
+				return PREALLOC_LONGARRAY;
+			case Type.SHORT:
+				return PREALLOC_SHORTARRAY;
+			}
+		}
+		return -1;
+	}
+	public static final Object[] createPreallocReturnArray()
+	{
+		if(Configuration.MULTI_TAINTING)
+		{
+			if(Configuration.SINGLE_TAG_PER_ARRAY)
+				return new Object[]{
+					new TaintedBooleanWithObjTag(),
+					new TaintedByteWithObjTag(),
+					new TaintedCharWithObjTag(),
+					new TaintedDoubleWithObjTag(),
+					new TaintedFloatWithObjTag(),
+					new TaintedIntWithObjTag(),
+					new TaintedLongWithObjTag(),
+					new TaintedShortWithObjTag(),
+					new TaintedBooleanArrayWithSingleObjTag(),
+					new TaintedByteArrayWithSingleObjTag(),
+					new TaintedCharArrayWithSingleObjTag(),
+					new TaintedDoubleArrayWithSingleObjTag(),
+					new TaintedFloatArrayWithSingleObjTag(),
+					new TaintedIntArrayWithSingleObjTag(),
+					new TaintedLongArrayWithSingleObjTag(),
+					new TaintedShortArrayWithSingleObjTag()
+			};
+			else
+				return new Object[]{
+					new TaintedBooleanWithObjTag(),
+					new TaintedByteWithObjTag(),
+					new TaintedCharWithObjTag(),
+					new TaintedDoubleWithObjTag(),
+					new TaintedFloatWithObjTag(),
+					new TaintedIntWithObjTag(),
+					new TaintedLongWithObjTag(),
+					new TaintedShortWithObjTag(),
+					new TaintedBooleanArrayWithObjTag(),
+					new TaintedByteArrayWithObjTag(),
+					new TaintedCharArrayWithObjTag(),
+					new TaintedDoubleArrayWithObjTag(),
+					new TaintedFloatArrayWithObjTag(),
+					new TaintedIntArrayWithObjTag(),
+					new TaintedLongArrayWithObjTag(),
+					new TaintedShortArrayWithObjTag()
+			};
+		}
+		else
+			return new Object[]{
+					new TaintedBooleanWithIntTag(),
+					new TaintedByteWithIntTag(),
+					new TaintedCharWithIntTag(),
+					new TaintedDoubleWithIntTag(),
+					new TaintedFloatWithIntTag(),
+					new TaintedIntWithIntTag(),
+					new TaintedLongWithIntTag(),
+					new TaintedShortWithIntTag(),
+					new TaintedBooleanArrayWithIntTag(),
+					new TaintedByteArrayWithIntTag(),
+					new TaintedCharArrayWithIntTag(),
+					new TaintedDoubleArrayWithIntTag(),
+					new TaintedFloatArrayWithIntTag(),
+					new TaintedIntArrayWithIntTag(),
+					new TaintedLongArrayWithIntTag(),
+					new TaintedShortArrayWithIntTag()
+			};
+	}
 	/*
 	 * Start: Conversion of method signature from doop format to bytecode format
 	 */
@@ -315,6 +438,8 @@ public class TaintUtils {
 	public static boolean isPreAllocReturnType(String methodDescriptor)
 	{
 		Type retType = Type.getReturnType(methodDescriptor);
+		if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			return true;
 		if(retType.getSort() == Type.OBJECT || retType.getSort() == Type.VOID)
 			return false;
 		if(retType.getSort() == Type.ARRAY && retType.getElementType().getSort() != Type.OBJECT && retType.getDimensions() == 1)

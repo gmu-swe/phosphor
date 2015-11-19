@@ -838,6 +838,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		super(Opcodes.ASM5);
 		this.mv = new PrimitiveArrayAnalyzerMN(access, name, desc, signature, exceptions, className, cmv);
 	}
+	
 	public PrimitiveArrayAnalyzer(Type singleWrapperTypeToAdd) {
 		super(Opcodes.ASM5);
 		this.mv = new PrimitiveArrayAnalyzerMN(0, null,null,null,null,null, null);

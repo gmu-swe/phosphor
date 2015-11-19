@@ -1467,10 +1467,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(ACONST_NULL);
 			newDesc = newDesc.substring(0, newDesc.indexOf(")")) + Type.getDescriptor(TaintSentinel.class) + ")" + Type.getReturnType(newDesc).getDescriptor();
 		}
-		if (isPreAllocedReturnType) {
-//			System.out.println("\t\tAdding stuff for " + owner + "." + name + newDesc);
+		if (isPreAllocedReturnType || TaintUtils.PREALLOC_RETURN_ARRAY) {
+			System.out.println("\t\tAdding stuff for " + owner + "." + name + newDesc);
 			Type t = Type.getReturnType(newDesc);
-			newDesc = newDesc.substring(0, newDesc.indexOf(")")) + t.getDescriptor() + ")" + t.getDescriptor();
+			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+				newDesc = newDesc.substring(0, newDesc.indexOf(")")) + "[Ljava/lang/Object;)" + t.getDescriptor();
+			else
+				newDesc = newDesc.substring(0, newDesc.indexOf(")")) + t.getDescriptor() + ")" + t.getDescriptor();
 			super.visitVarInsn(ALOAD, lvs.getPreAllocedReturnTypeVar(t));
 //			System.out.println("n: " + lvs.getPreAllocedReturnTypeVar(t));
 //			System.out.println("Analyzer lcoal is: " + analyzer.locals.get(lvs.getPreAllocedReturnTypeVar(t)));
@@ -1498,7 +1501,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		int n = 1;
 		boolean ignoreNext = false;
 
-//										System.out.println("12dw23 Calling "+owner+"."+name+newDesc + "with " + analyzer.stack);
+										System.out.println("12dw23 Calling "+owner+"."+name+newDesc + "with " + analyzer.stack);
 		for (Type t : argsInReverse) {
 			if (analyzer.stack.get(analyzer.stack.size() - i) == Opcodes.TOP)
 				i++;
@@ -2733,13 +2736,31 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			int retIdx = lvs.getPreAllocedReturnTypeVar(newReturnType);
 			
 			super.visitVarInsn(ALOAD, retIdx);
+			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			{
+				super.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(originalMethodReturnType));
+				super.visitInsn(Opcodes.AALOAD);
+				super.visitTypeInsn(Opcodes.CHECKCAST, newReturnType.getInternalName());
+			}
 			super.visitInsn(DUP_X2);
 			super.visitInsn(POP);
 			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());
 			super.visitVarInsn(ALOAD, retIdx);
+			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			{
+				super.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(originalMethodReturnType));
+				super.visitInsn(Opcodes.AALOAD);
+				super.visitTypeInsn(Opcodes.CHECKCAST, newReturnType.getInternalName());
+			}
 			super.visitInsn(SWAP);
 			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", (!Configuration.MULTI_TAINTING ? "I":"Ljava/lang/Object;"));
 			super.visitVarInsn(ALOAD, retIdx);
+			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			{
+				super.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(originalMethodReturnType));
+				super.visitInsn(Opcodes.AALOAD);
+				super.visitTypeInsn(Opcodes.CHECKCAST, newReturnType.getInternalName());
+			}
 			super.visitInsn(ARETURN);
 			break;
 		case Opcodes.IRETURN:
@@ -2748,12 +2769,24 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			//					+ TaintUtils.getContainerReturnType(originalMethodReturnType).getDescriptor());
 			retIdx = lvs.getPreAllocedReturnTypeVar(newReturnType);
 			super.visitVarInsn(ALOAD, retIdx);
+			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			{
+				super.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(originalMethodReturnType));
+				super.visitInsn(Opcodes.AALOAD);
+				super.visitTypeInsn(Opcodes.CHECKCAST, newReturnType.getInternalName());
+			}
 			super.visitInsn(SWAP);
 			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());
 			super.visitVarInsn(ALOAD, retIdx);
 			super.visitInsn(SWAP);
 			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", (!Configuration.MULTI_TAINTING ? "I":"Ljava/lang/Object;"));
 			super.visitVarInsn(ALOAD, retIdx);
+			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			{
+				super.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(originalMethodReturnType));
+				super.visitInsn(Opcodes.AALOAD);
+				super.visitTypeInsn(Opcodes.CHECKCAST, newReturnType.getInternalName());
+			}
 			super.visitInsn(ARETURN);
 			break;
 		case Opcodes.ARETURN:
@@ -2796,6 +2829,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					//					super.visitInsn(opcode);
 					retIdx = lvs.getPreAllocedReturnTypeVar(newReturnType);
 					super.visitVarInsn(ALOAD, retIdx);
+					if(TaintUtils.PREALLOC_RETURN_ARRAY)
+					{
+						super.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(originalMethodReturnType));
+						super.visitInsn(Opcodes.AALOAD);
+						super.visitTypeInsn(Opcodes.CHECKCAST, newReturnType.getInternalName());
+					}
 					super.visitInsn(SWAP);
 					super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());
 					super.visitVarInsn(ALOAD, retIdx);
@@ -2808,6 +2847,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						else
 						super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", "[Ljava/lang/Object;");
 					super.visitVarInsn(ALOAD, retIdx);
+					if(TaintUtils.PREALLOC_RETURN_ARRAY)
+					{
+						super.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(originalMethodReturnType));
+						super.visitInsn(Opcodes.AALOAD);
+						super.visitTypeInsn(Opcodes.CHECKCAST, newReturnType.getInternalName());
+					}
 					super.visitInsn(ARETURN);
 					break;
 				default:

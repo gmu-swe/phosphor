@@ -235,12 +235,18 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			desc = "(Ljava/lang/reflect/Field;" + desc.substring(1);
 			if(name.equals("get"))
 			{
-				desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Z)Ljava/lang/Object;";
+				if(TaintUtils.PREALLOC_RETURN_ARRAY)
+					desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;[Ljava/lang/Object;Z)Ljava/lang/Object;";
+				else
+					desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Z)Ljava/lang/Object;";
 				super.visitInsn((Configuration.MULTI_TAINTING ? Opcodes.ICONST_1 : Opcodes.ICONST_0));
 			}
 			else if(name.equals("set"))
 			{
-				desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;Z)V";
+				if (TaintUtils.PREALLOC_RETURN_ARRAY)
+					desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;Z)V";
+				else
+					desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;Z)V";
 				super.visitInsn((Configuration.MULTI_TAINTING ? Opcodes.ICONST_1 : Opcodes.ICONST_0));
 			}
 		}
