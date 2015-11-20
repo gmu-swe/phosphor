@@ -64,29 +64,29 @@ public class PartialInstrumentationInferencerCV extends ClassVisitor{
 			SelectiveInstrumentationManager.methodsToInstrument.add(mdesc);
 		
 		
-		if(!this.className.startsWith("java/") && !this.className.startsWith("sun/") && !this.className.startsWith("javax/")) {
-			Set<String> supers = ClassHierarchyCreator.allSupers(this.className);
-			
-			for(String inter : supers) {
-				MethodDescriptor supr = new MethodDescriptor(name, inter, desc);
-				if(SelectiveInstrumentationManager.methodsToInstrument.contains(supr)) {
-					SelectiveInstrumentationManager.methodsToInstrument.add(mdesc);
-					break;
-				}	
-			}
-		}
+//		if(!this.className.startsWith("java/") && !this.className.startsWith("sun/") && !this.className.startsWith("javax/")) {
+//			Set<String> supers = ClassHierarchyCreator.allSupers(this.className);
+//			
+//			for(String inter : supers) {
+//				MethodDescriptor supr = new MethodDescriptor(name, inter, desc);
+//				if(SelectiveInstrumentationManager.methodsToInstrument.contains(supr)) {
+//					SelectiveInstrumentationManager.methodsToInstrument.add(mdesc);
+//					break;
+//				}	
+//			}
+//		}
 		
-		for(String inter : interfaces) {
-			MethodDescriptor supr = new MethodDescriptor(name, inter, desc);
-			if(SelectiveInstrumentationManager.methodsToInstrument.contains(supr)) {
-				SelectiveInstrumentationManager.methodsToInstrument.add(mdesc);
-				break;
-			}	
-		}
-		MethodDescriptor supr = new MethodDescriptor(name, superClass, desc);
-		
-		if(SelectiveInstrumentationManager.methodsToInstrument.contains(supr))
-			SelectiveInstrumentationManager.methodsToInstrument.add(mdesc);
+//		for(String inter : interfaces) {
+//			MethodDescriptor supr = new MethodDescriptor(name, inter, desc);
+//			if(SelectiveInstrumentationManager.methodsToInstrument.contains(supr)) {
+//				SelectiveInstrumentationManager.methodsToInstrument.add(mdesc);
+//				break;
+//			}	
+//		}
+//		MethodDescriptor supr = new MethodDescriptor(name, superClass, desc);
+//		
+//		if(SelectiveInstrumentationManager.methodsToInstrument.contains(supr))
+//			SelectiveInstrumentationManager.methodsToInstrument.add(mdesc);
 		
 		MethodVisitor next = super.visitMethod(access, name, desc, signature, exceptions);
 		map.put(mdesc, new ArrayList<MethodDescriptor>());

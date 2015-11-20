@@ -996,9 +996,10 @@ public class ReflectionMasker {
 			ret.m = m;
 			return ret;
 		}
-		if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m)))
+		if(Configuration.WITH_SELECTIVE_INST)// && Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m)))
 		{
-			ret.m = getUnTaintMethod(m, isObjTags);
+//			ret.m = getUnTaintMethod(m, isObjTags);
+			ret.m = getOrigMethod(m, isObjTags);
 			ret.o = owner;
 			ret.a = in;
 			if(ret.a != null && ret.a.getClass().isArray() && ret.a.getClass().getComponentType() == Object.class)

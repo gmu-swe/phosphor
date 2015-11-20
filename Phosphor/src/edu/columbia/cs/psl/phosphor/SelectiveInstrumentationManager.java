@@ -14,7 +14,7 @@ public class SelectiveInstrumentationManager {
 	public static boolean inited = false;
 	public static Set<MethodDescriptor> methodsToInstrument = new HashSet<MethodDescriptor>();
 	
-	public static HashMap<String, HashSet<String>> methodsToInstrumentByClass = new HashMap<String, HashSet<String>>();
+//	public static HashMap<String, HashSet<String>> methodsToInstrumentByClass = new HashMap<String, HashSet<String>>();
 	public static void populateMethodsToInstrument(String file) {
 		if(inited)
 			return;
@@ -30,9 +30,9 @@ public class SelectiveInstrumentationManager {
 				if(line.length() > 0) {
 					MethodDescriptor desc = TaintUtils.getMethodDesc(line);
 					methodsToInstrument.add(desc);
-					if(!methodsToInstrumentByClass.containsKey(desc.getOwner()))
-						methodsToInstrumentByClass.put(desc.getOwner(), new HashSet<String>());
-					methodsToInstrumentByClass.get(desc.getOwner()).add(desc.getName()+desc.getDesc());
+//					if(!methodsToInstrumentByClass.containsKey(desc.getOwner()))
+//						methodsToInstrumentByClass.put(desc.getOwner(), new HashSet<String>());
+//					methodsToInstrumentByClass.get(desc.getOwner()).add(desc.getName()+desc.getDesc());
 				}
 			
 		} catch(IOException ex) {

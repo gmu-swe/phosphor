@@ -164,6 +164,11 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 			Type t = Type.getType(type);
 			if (t.getSort() == Type.ARRAY && t.getDimensions() > 1 && t.getElementType().getSort() != Type.OBJECT) 
 				type = MultiDTaintedArray.getTypeForType(t).getDescriptor();
+			else if(t.getSort() == Type.ARRAY && t.getDimensions() == 1 && t.getElementType().getSort() != Type.OBJECT
+					&& getTopOfStackObject().equals("java/lang/Object"))
+			{
+				type = MultiDTaintedArray.getTypeForType(t).getInternalName();
+			}
 		}
 		super.visitTypeInsn(opcode, type);
 	}

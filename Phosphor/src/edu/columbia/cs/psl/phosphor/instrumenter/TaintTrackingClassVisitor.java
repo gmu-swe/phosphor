@@ -249,7 +249,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		if(name.equals("equals") && desc.equals("(Ljava/lang/Object;)Z"))
 			generateEquals = false;
 		superMethodsToOverride.remove(name + desc);
+		if (name.equals("compareTo"))
+			implementsComparable = false;
 
+		if (name.equals("hasAnyTaints"))
+			isProxyClass = true;
 		if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(className, name, desc)){
 //			if (TaintUtils.DEBUG_CALLS)
 //				System.out.println("Skipping instrumentation for  class: " + className + " method: " + name + " desc: " + desc);
@@ -321,11 +325,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		if (originalName.contains("$$INVIVO")) {
 			name = name + "_orig";
 		}
-		if (name.equals("compareTo"))
-			implementsComparable = false;
-
-		if (name.equals("hasAnyTaints"))
-			isProxyClass = true;
+		
 
 		//We will need to add shadow args for each parameter that is a primitive. Because that worked so well last time.
 		Type[] argTypes = Type.getArgumentTypes(desc);
