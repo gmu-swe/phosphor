@@ -70,8 +70,13 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 			hasTaintSentinalAddedToDesc = true;
 			newArgOffset++;
 		}
+		if(!name.equals("<clinit>") && TaintUtils.PREALLOC_RETURN_ARRAY)
+		{
+			lvForReturnVar = originalLastArgIdx + newArgOffset;
+			newArgOffset++;
+		}
 	}
-
+	int lvForReturnVar;
 	public int getNewArgOffset() {
 		return newArgOffset;
 	}

@@ -305,12 +305,14 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 			} else
 				name += TaintUtils.METHOD_SUFFIX_UNINST;
 			desc = TaintUtils.remapMethodDescForUninst(desc);
+			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+				super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
 			super.visitMethodInsn(opcode, owner, name, desc, itf);
 		} else if (!Instrumenter.isIgnoredClass(owner) && !owner.startsWith("[") && !isCalledOnArrayType) {
 			//call into the instrumented version			
 			boolean hasChangedDesc = false;
 
-			if (desc.equals(TaintUtils.remapMethodDesc(desc))) {
+			if (desc.equals(TaintUtils.remapMethodDesc(desc)) && !TaintUtils.PREALLOC_RETURN_ARRAY) {
 				//Calling an instrumented method possibly!
 				Type[] args = Type.getArgumentTypes(desc);
 				int argsSize = 0;
@@ -384,7 +386,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 			if (name.equals("<init>") && hasChangedDesc) {
 				super.visitInsn(Opcodes.ACONST_NULL);
 				desc = desc.substring(0, desc.indexOf(')')) + Type.getDescriptor(TaintSentinel.class) + ")" + desc.substring(desc.indexOf(')') + 1);
-			} else {
+			} else if(!TaintUtils.PREALLOC_RETURN_ARRAY) {
 				if ((origReturnType.getSort() == Type.ARRAY && origReturnType.getDimensions() == 1 && origReturnType.getElementType().getSort() != Type.OBJECT)
 						|| (origReturnType.getSort() != Type.ARRAY && origReturnType.getSort() != Type.OBJECT && origReturnType.getSort() != Type.VOID)) {
 					desc = desc.substring(0, desc.indexOf(')')) + newReturnType.getDescriptor() + ")" + desc.substring(desc.indexOf(')') + 1);
@@ -392,6 +394,13 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 					name += TaintUtils.METHOD_SUFFIX;
 				} else if (hasChangedDesc)
 					name += TaintUtils.METHOD_SUFFIX;
+			}
+			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			{
+				desc = desc.substring(0, desc.indexOf(')')) + "[Ljava/lang/Object;)" + desc.substring(desc.indexOf(')') + 1);
+				if(!name.equals("<init>"))
+					name += TaintUtils.METHOD_SUFFIX;
+				super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
 			}
 			super.visitMethodInsn(opcode, owner, name, desc, itf);
 			if (origReturnType.getSort() == Type.ARRAY && origReturnType.getDimensions() == 1 && origReturnType.getElementType().getSort() != Type.OBJECT) {

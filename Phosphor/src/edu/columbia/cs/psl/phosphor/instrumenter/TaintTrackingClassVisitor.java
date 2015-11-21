@@ -42,6 +42,7 @@ import org.objectweb.asm.tree.ParameterNode;
 import org.objectweb.asm.util.CheckClassAdapter;
 
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
+import edu.columbia.cs.psl.phosphor.runtime.PreAllocHelper;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
@@ -266,7 +267,6 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			}
 			newDesc = TaintUtils.remapMethodDescForUninst(newDesc);
 			MethodVisitor mv = super.visitMethod(access, newName, newDesc, signature, exceptions);
-			mv = new UninstTaintSentinalArgFixer(mv, access, newName, newDesc, desc);
 			mv = new SpecialOpcodeRemovingMV(mv, ignoreFrames, className, fixLdcClass);
 			MethodVisitor _mv = mv;
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
@@ -278,6 +278,8 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
 			lvs.disable();
 			mv = lvs;
+			mv = new UninstTaintSentinalArgFixer(mv, access, newName, newDesc, desc);
+
 			final MethodVisitor cmv = mv;
 			MethodNode wrapper = new MethodNode(Opcodes.ASM5, (isInterface ? access : access & ~Opcodes.ACC_ABSTRACT), name, desc, signature, exceptions) {
 				public void visitEnd() {
@@ -838,7 +840,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 						}
 						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, mv);
 						MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
-						LocalVariableManager lvs = new LocalVariableManager(m.access, m.name, m.desc, soc, an, mv, false);
+						LocalVariableManager lvs = new LocalVariableManager(m.access, m.name, m.desc, soc, an, mv, (m.name.endsWith("$$PHOSPHORTAGGED")));
 						lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 						GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name, m.desc);
 						Label startLabel = new Label();
@@ -1086,6 +1088,8 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 					mToCall += TaintUtils.METHOD_SUFFIX_UNINST;
 					descToCall = TaintUtils.remapMethodDescForUninst(descToCall);
 				}
+				if(TaintUtils.PREALLOC_RETURN_ARRAY)
+					mDesc = mDesc.substring(0, m.desc.indexOf(')')) + "[Ljava/lang/Object;)" + mDesc.substring(mDesc.indexOf(')') + 1);
 				MethodVisitor mv = super.visitMethod(m.access, mName, mDesc, m.signature, (String[]) m.exceptions.toArray(new String[0]));
 				visitAnnotations(mv, m);
 
@@ -1111,6 +1115,15 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 					}
 					if(isInit)
 						ga.visitInsn(Opcodes.ACONST_NULL);
+					if(TaintUtils.PREALLOC_RETURN_ARRAY)
+					{
+						int idx = 0;
+						if (((m.access & Opcodes.ACC_STATIC) == 0))
+							idx++;
+						for(Type t : Type.getArgumentTypes(mDesc))
+							idx += t.getSize();
+						ga.visitVarInsn(Opcodes.ALOAD, idx - 1);
+					}
 					Type retType = Type.getReturnType(m.desc);
 					ga.visitMethodInsn(opcode, className, mToCall, descToCall, false);
 					if(retType.getSort() == Type.ARRAY && retType.getDimensions() > 1 && retType.getElementType().getSort() != Type.OBJECT)
@@ -1142,6 +1155,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 					mName += TaintUtils.METHOD_SUFFIX_UNINST;
 				}
 				MethodVisitor mv = super.visitMethod(mn.access & ~Opcodes.ACC_NATIVE, mName, mDesc, mn.signature, (String[]) mn.exceptions.toArray(new String[0]));
+
 				MethodNode meth = forMore.get(mn);
 
 				if ((mn.access & Opcodes.ACC_NATIVE) != 0) {
@@ -1176,29 +1190,29 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 					mv = new UninstrumentedReflectionHidingMV(mv, className);
 					UninstrumentedReflectionHidingMV ta = (UninstrumentedReflectionHidingMV) mv;
 					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc,mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames);
-					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.name, mn.desc, mv, analyzer, analyzer, false);
+					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.name, mn.desc, mv, analyzer, analyzer, true);
 					final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, mn.access, mn.name, mn.desc, null, null, null);
 					lvs.disable();
 					lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
 					((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
 					ta.setLvs(lvs);
 					mv = lvs;
-					meth.accept(new MethodVisitor(Opcodes.ASM5) {
-						@Override
-						public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-							//determine if this is going to be uninst, and then if we need to pre-alloc for its return :/
-							if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc)){
-								//uninst
-							}
-							else
-							{
-								Type returnType = Type.getReturnType(desc);
-								Type newReturnType = TaintUtils.getContainerReturnType(returnType);
-								if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY && returnType.getDimensions() > 1))
-									primArrayAnalyzer.wrapperTypesToPreAlloc.add(newReturnType);
-							}
-						};
-					});
+					mv = new UninstTaintSentinalArgFixer(mv, mn.access, mName, mDesc, mn.desc);
+					if (!TaintUtils.PREALLOC_RETURN_ARRAY)
+						meth.accept(new MethodVisitor(Opcodes.ASM5) {
+							@Override
+							public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
+								//determine if this is going to be uninst, and then if we need to pre-alloc for its return :/
+								if (Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc)) {
+									//uninst
+								} else {
+									Type returnType = Type.getReturnType(desc);
+									Type newReturnType = TaintUtils.getContainerReturnType(returnType);
+									if (newReturnType != returnType && !(returnType.getSort() == Type.ARRAY && returnType.getDimensions() > 1))
+										primArrayAnalyzer.wrapperTypesToPreAlloc.add(newReturnType);
+								}
+							};
+						});
 					meth.accept(mv);
 				}
 			}
@@ -1389,11 +1403,10 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			newDesc += Type.getDescriptor(ControlTaintTagStack.class);
 		if(m.name.equals("<init>"))
 			newDesc += Type.getDescriptor(TaintSentinel.class);
-		if(isPreAllocReturnType)
-			if(TaintUtils.PREALLOC_RETURN_ARRAY)
-				newDesc += "[Ljava/lang/Object;";
-			else
-				newDesc += newReturn.getDescriptor();
+		if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			newDesc += "[Ljava/lang/Object;";
+		else if(isPreAllocReturnType)
+			newDesc += newReturn.getDescriptor();
 		newDesc += ")" + newReturn.getDescriptor();
 
 		MethodVisitor mv;
@@ -1488,10 +1501,29 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			//call with uninst sentinel
 			descToCall = descToCall.substring(0,descToCall.indexOf(')'))+Type.getDescriptor(UninstrumentedTaintSentinel.class)+")"+descToCall.substring(descToCall.indexOf(')')+1);
 			ga.visitInsn(Opcodes.ACONST_NULL);
+			if (TaintUtils.PREALLOC_RETURN_ARRAY && methodNameToCall.contains("$$PHOSPHORUNTAGGED")) {
+				int _idx = 0;
+				if (((m.access & Opcodes.ACC_STATIC) == 0))
+					_idx++;
+				for (Type t : Type.getArgumentTypes(newDesc))
+					_idx += t.getSize();
+				ga.visitVarInsn(Opcodes.ALOAD, _idx - 1);
+			}
 			ga.visitMethodInsn(opcode, className, m.name, descToCall,false);
 		}
 		else
+		{
+			if (TaintUtils.PREALLOC_RETURN_ARRAY && methodNameToCall.contains("$$PHOSPHORUNTAGGED")){
+				System.out.println(newDesc);
+					int _idx = 0;
+					if (((m.access & Opcodes.ACC_STATIC) == 0))
+						_idx++;
+					for (Type t : Type.getArgumentTypes(newDesc))
+						_idx += t.getSize();
+					ga.visitVarInsn(Opcodes.ALOAD, _idx - 1);
+				}
 			ga.visitMethodInsn(opcode, className, methodNameToCall, descToCall,false);
+		}
 		if (origReturn != newReturn) {
 
 			if (origReturn.getSort() == Type.ARRAY) {

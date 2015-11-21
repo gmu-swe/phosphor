@@ -1398,6 +1398,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				else
 					name += TaintUtils.METHOD_SUFFIX_UNINST;
 			}
+			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+				super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
 			super.visitMethodInsn(opcode, owner, name, TaintUtils.remapMethodDescForUninst(desc), itfc);
 			if (isCallToPrimitiveArrayClone) {
 				//Now we have cloned (but not casted) array, and a clopned( but not casted) taint array

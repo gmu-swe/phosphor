@@ -80,7 +80,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		}
 		lastArg--;
 		end = new Label();
-//		System.out.println("New LVS" +desc);
+//		System.out.println("New LVS" +name+desc);
 //		System.out.println("LVS thinks its at " + lastArg);
 		preAllocedReturnTypes.put(returnType,lastArg);
 		lvOfSingleWrapperArray = lastArg;

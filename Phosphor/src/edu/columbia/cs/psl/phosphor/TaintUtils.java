@@ -938,6 +938,8 @@ public class TaintUtils {
 			else
 				r += t;
 		}
+		if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			r += "[Ljava/lang/Object;";
 		Type ret = Type.getReturnType(desc);
 		if(ret.getSort() == Type.ARRAY && ret.getDimensions() > 1 && ret.getElementType().getSort() != Type.OBJECT)
 			r += ")"+MultiDTaintedArrayWithIntTag.getTypeForType(ret).getDescriptor();
