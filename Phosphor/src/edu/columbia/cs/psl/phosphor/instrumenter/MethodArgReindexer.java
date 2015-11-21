@@ -97,6 +97,8 @@ public class MethodArgReindexer extends MethodVisitor {
 				System.out.println(">>>>" + oldVarCount + "->" + oldArgMappings[oldVarCount]);
 			oldVarCount += oldArgTypes[i].getSize();
 		}
+		if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			hasBeenRemapped = true;
 		if(Configuration.IMPLICIT_TRACKING && !name.equals("<clinit>"))
 			newArgOffset++;
 		if (name.equals("<init>") && hasBeenRemapped) {
@@ -104,15 +106,20 @@ public class MethodArgReindexer extends MethodVisitor {
 			newArgOffset++;
 		}
 		hasPreAllocedReturnAddr = TaintUtils.isPreAllocReturnType(originalDesc);
+		if(name.equals("<clinit>"))
+			hasPreAllocedReturnAddr = false;
 		if (hasPreAllocedReturnAddr) {
-			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			if (TaintUtils.PREALLOC_RETURN_ARRAY)
 				newReturnType = Type.getType("[Ljava/lang/Object;");
 			else
-			newReturnType = Type.getReturnType(desc);
+				newReturnType = Type.getReturnType(desc);
+//			System.out.println("Original lastarg " + originalLastArgIdx + " in " + originalDesc);
+			idxOfReturnPrealloc = originalLastArgIdx + newArgOffset;
 			newArgOffset++;
-			idxOfReturnPrealloc = originalLastArgIdx + newArgOffset - 1;
+
 		}
 //		System.out.println(name+desc+"NEWARGOFFSET: "  + newArgOffset);
+//		System.out.println(name+desc + " prealloc at " + idxOfReturnPrealloc);
 		if (TaintUtils.DEBUG_FRAMES || TaintUtils.DEBUG_LOCAL)
 			System.out.println(name + " origLastArg " + originalLastArgIdx + ", oldvarcount = " + oldVarCount + ", newargoffset " + newArgOffset);
 	}
@@ -162,7 +169,7 @@ public class MethodArgReindexer extends MethodVisitor {
 
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-		Object[] remappedLocals = new Object[local.length + newArgOffset + 1]; //was +1, not sure why??
+		Object[] remappedLocals = new Object[Math.max(local.length + newArgOffset + 2, origNumArgs + newArgOffset + 2)]; //was +1, not sure why??
 		if (TaintUtils.DEBUG_FRAMES) {
 			System.out.println(name + desc + " orig nArgs = " + origNumArgs);
 			System.out.println("Pre-reindex Frame: " + Arrays.toString(local) + ";" + nLocal + " ; " + type);
@@ -171,16 +178,10 @@ public class MethodArgReindexer extends MethodVisitor {
 		int newIdx = 0;
 		int origNLocal = nLocal;
 //		System.out.println("MAR stac " + Arrays.toString(stack));
-//		System.out.println("Orig locals: " + Arrays.toString(local));
+//		System.out.println("Orig locals: " + Arrays.toString(local) + nLocal);
 		if (type == Opcodes.F_FULL || type == Opcodes.F_NEW) {
 			if (origNumArgs == 0 && Configuration.IMPLICIT_TRACKING && !name.equals("<clinit>")) {
 				remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
-				newIdx++;
-				nLocal++;
-			}
-			if (origNumArgs == 0 && hasPreAllocedReturnAddr) {
-				//					System.out.println("Adding local storage for " + newReturnType.getInternalName() + " At " + newIdx);
-				remappedLocals[newIdx] = newReturnType.getInternalName();
 				newIdx++;
 				nLocal++;
 			}
@@ -273,6 +274,18 @@ public class MethodArgReindexer extends MethodVisitor {
 					nLocal++;
 				}
 //				System.out.println(remappedLocals[newIdx]);
+				
+//				System.out.println(newIdx + " vs " + idxOfReturnPrealloc);
+				if(i == origNumArgs && hasPreAllocedReturnAddr){
+//				if (origNumArgs!=0 && i ==origNumArgs-1 && hasPreAllocedReturnAddr) {
+//				if (i ==origNumArgs && hasPreAllocedReturnAddr) {
+//					System.out.println("Adding local storage for " + newReturnType.getInternalName() + " At " + newIdx + " in " + name + desc);
+//					remappedLocals[newIdx] = newReturnType.getInternalName();
+//					System.out.println("Added return storage at " + newIdx);
+					newIdx++;
+//					nLocal++;
+				}
+				
 				remappedLocals[newIdx] = local[i];
 				if (local[i] != Opcodes.TOP && local[i] instanceof String &&((String) local[i]).length() > 1 && ((String) local[i]).charAt(1) == '[' && Type.getObjectType((String) local[i]).getElementType().getSort() != Type.OBJECT) {
 					remappedLocals[newIdx] = MultiDTaintedArray.getTypeForType(Type.getObjectType((String) local[i])).getInternalName();
@@ -285,14 +298,7 @@ public class MethodArgReindexer extends MethodVisitor {
 					newIdx++;
 					nLocal++;
 				}
-//				System.out.println(newIdx + " vs " + idxOfReturnPrealloc);
-//				if (origNumArgs!=0 && i ==origNumArgs-1 && hasPreAllocedReturnAddr) {
-//				if (i ==origNumArgs && hasPreAllocedReturnAddr) {
-//					System.out.println("Adding local storage for " + newReturnType.getInternalName() + " At " + newIdx + " in " + name + desc);
-//					remappedLocals[newIdx] = newReturnType.getInternalName();
-//					newIdx++;
-//					nLocal++;
-//				}
+
 
 			}
 
@@ -300,8 +306,11 @@ public class MethodArgReindexer extends MethodVisitor {
 			remappedLocals = local;
 		}
 		if(hasPreAllocedReturnAddr)
-			remappedLocals[idxOfReturnPrealloc] = newReturnType.getInternalName();
-//		System.out.println("New locals : " + name + desc + ":\t\t" + Arrays.toString(remappedLocals));
+		{
+			remappedLocals[origNumArgs+newArgOffset-1] = newReturnType.getInternalName();
+			nLocal++;
+		}
+//		System.out.println("New locals : " + name + desc + ":\t\t" + Arrays.toString(remappedLocals) + " size: " + nLocal);
 		ArrayList<Object> newStack = new ArrayList<Object>();
 		int origNStack = nStack;
 		for (int i = 0; i < origNStack; i++) {

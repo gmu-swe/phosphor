@@ -5,6 +5,10 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 
 public class VM {
+	public static TaintedBooleanWithIntTag isBooted$$PHOSPHORTAGGED(Object[] in)
+	{
+		return null;
+	}
 	public static TaintedBooleanWithIntTag isBooted$$PHOSPHORTAGGED(TaintedBooleanWithIntTag in)
 	{
 		return in;

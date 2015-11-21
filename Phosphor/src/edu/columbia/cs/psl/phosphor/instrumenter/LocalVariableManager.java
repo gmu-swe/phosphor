@@ -18,6 +18,7 @@ import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.util.Printer;
 
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
+import edu.columbia.cs.psl.phosphor.runtime.PreAllocHelper;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
@@ -55,7 +56,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	}
 	private boolean hasPreallocPassed;
 	public HashMap<Integer, Integer> varToShadowVar = new HashMap<Integer, Integer>();
-	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean hasPrealloc) {
+	public LocalVariableManager(int access, String name, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean hasPrealloc) {
 		super(ASM5, access, desc, mv);
 		this.analyzer = analyzer;
 		this.uninstMV = uninstMV;
@@ -79,11 +80,13 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		}
 		lastArg--;
 		end = new Label();
-//		System.out.println("New LVS");
+//		System.out.println("New LVS" +desc);
 //		System.out.println("LVS thinks its at " + lastArg);
 		preAllocedReturnTypes.put(returnType,lastArg);
 		lvOfSingleWrapperArray = lastArg;
 		this.hasPreallocPassed = hasPrealloc;
+		if(name.equals("<clinit>"))
+			this.hasPreallocPassed = false;
 		if(TaintUtils.PREALLOC_RETURN_ARRAY)
 			changed = true;
 	}
@@ -366,7 +369,15 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		{
 			int lv = newPreAllocedReturnType(Type.getType("[Ljava/lang/Object;"));
 			lvOfSingleWrapperArray = lv;
-			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "createPreallocReturnArray", "()[Ljava/lang/Object;", false);
+			if(Configuration.MULTI_TAINTING)
+			{
+				if(Configuration.SINGLE_TAG_PER_ARRAY)
+					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArrayMultiTaintSingleTag", "()[Ljava/lang/Object;", false);
+				else
+					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArrayMultiTaint", "()[Ljava/lang/Object;", false);
+			}
+			else
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArray", "()[Ljava/lang/Object;", false);
 			mv.visitVarInsn(ASTORE, lv);
 		}
 	}
@@ -414,7 +425,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         }
         isFirstFrame = false;
 //        System.out.println("nlocal " + nLocal);
-//        System.out.println(Arrays.toString(local));
+//        System.out.println("Start" + Arrays.toString(local));
 //        System.out.println(Arrays.toString(newLocals));
         // creates a copy of newLocals
         Object[] oldLocals = new Object[newLocals.length];

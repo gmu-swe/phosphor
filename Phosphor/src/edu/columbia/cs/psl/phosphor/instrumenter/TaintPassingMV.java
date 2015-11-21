@@ -1220,7 +1220,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
 		}
-		boolean isPreAllocedReturnType = TaintUtils.isPreAllocReturnType(desc);
+		boolean isPreAllocedReturnType = TaintUtils.isPreAllocReturnType(desc) && !owner.startsWith("[");
 		if (Instrumenter.isClassWithHashmapTag(owner) && name.equals("valueOf")) {
 			Type[] args = Type.getArgumentTypes(desc);
 			if (args[0].getSort() != Type.OBJECT) {
@@ -1448,8 +1448,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			
 
 			
-			return;
+			return; //END: ignored method
 		}
+		
 		String newDesc = TaintUtils.remapMethodDesc(desc);
 		if(Configuration.IMPLICIT_TRACKING)
 		{
@@ -1462,13 +1463,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				hasNewName = false;
 		}
 		//		boolean pushNull = false;
-		if (name.equals("<init>") && !newDesc.equals(desc)) {
+		if (name.equals("<init>") && (!newDesc.equals(desc) || TaintUtils.PREALLOC_RETURN_ARRAY)) {
 			//Add the taint sentinel to the desc
 			super.visitInsn(ACONST_NULL);
 			newDesc = newDesc.substring(0, newDesc.indexOf(")")) + Type.getDescriptor(TaintSentinel.class) + ")" + Type.getReturnType(newDesc).getDescriptor();
 		}
-		if (isPreAllocedReturnType || TaintUtils.PREALLOC_RETURN_ARRAY) {
-			System.out.println("\t\tAdding stuff for " + owner + "." + name + newDesc);
+		if (isPreAllocedReturnType || (TaintUtils.PREALLOC_RETURN_ARRAY && !owner.startsWith("["))) {
+			//			System.out.println("\t\tAdding stuff for " + owner + "." + name + newDesc);
 			Type t = Type.getReturnType(newDesc);
 			if(TaintUtils.PREALLOC_RETURN_ARRAY)
 				newDesc = newDesc.substring(0, newDesc.indexOf(")")) + "[Ljava/lang/Object;)" + t.getDescriptor();
@@ -1478,11 +1479,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //			System.out.println("n: " + lvs.getPreAllocedReturnTypeVar(t));
 //			System.out.println("Analyzer lcoal is: " + analyzer.locals.get(lvs.getPreAllocedReturnTypeVar(t)));
 		}
+
 		Type origReturnType = Type.getReturnType(desc);
 		Type returnType = TaintUtils.getContainerReturnType(Type.getReturnType(desc));
 		if (TaintUtils.DEBUG_CALLS)
 			System.out.println("Remapped call from " + owner + "." + name + desc + " to " + owner + "." + name + newDesc);
-		if (!name.contains("<") && hasNewName)
+		if (!name.contains("<") && (hasNewName || TaintUtils.PREALLOC_RETURN_ARRAY) && !owner.startsWith("["))
 			name += TaintUtils.METHOD_SUFFIX;
 		if (TaintUtils.DEBUG_CALLS) {
 			System.out.println("Calling w/ stack: " + analyzer.stack);
@@ -1501,7 +1503,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		int n = 1;
 		boolean ignoreNext = false;
 
-										System.out.println("12dw23 Calling "+owner+"."+name+newDesc + "with " + analyzer.stack);
+//										System.out.println("12dw23 Calling "+owner+"."+name+newDesc + "with " + analyzer.stack);
 		for (Type t : argsInReverse) {
 			if (analyzer.stack.get(analyzer.stack.size() - i) == Opcodes.TOP)
 				i++;
@@ -2778,6 +2780,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);
 			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());
 			super.visitVarInsn(ALOAD, retIdx);
+			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			{
+				super.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(originalMethodReturnType));
+				super.visitInsn(Opcodes.AALOAD);
+				super.visitTypeInsn(Opcodes.CHECKCAST, newReturnType.getInternalName());
+			}
 			super.visitInsn(SWAP);
 			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", (!Configuration.MULTI_TAINTING ? "I":"Ljava/lang/Object;"));
 			super.visitVarInsn(ALOAD, retIdx);
@@ -2838,6 +2846,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(SWAP);
 					super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());
 					super.visitVarInsn(ALOAD, retIdx);
+					if(TaintUtils.PREALLOC_RETURN_ARRAY)
+					{
+						super.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(originalMethodReturnType));
+						super.visitInsn(Opcodes.AALOAD);
+						super.visitTypeInsn(Opcodes.CHECKCAST, newReturnType.getInternalName());
+					}
 					super.visitInsn(SWAP);
 					if(!Configuration.MULTI_TAINTING)
 						super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", Configuration.TAINT_TAG_ARRAYDESC);

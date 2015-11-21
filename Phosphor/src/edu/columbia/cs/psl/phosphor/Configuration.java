@@ -15,6 +15,46 @@ import org.objectweb.asm.Opcodes;
 
 import edu.columbia.cs.psl.phosphor.runtime.DerivedTaintListener;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithSingleObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithSingleObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithSingleObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithSingleObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithSingleObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithSingleObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithSingleObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithSingleObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 
 public class Configuration {
 	public static String ADDL_IGNORE = null;
@@ -118,4 +158,5 @@ public class Configuration {
 				}
 		}
 	}
+
 }

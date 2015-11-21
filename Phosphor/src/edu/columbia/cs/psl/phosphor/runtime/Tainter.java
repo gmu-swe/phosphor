@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
@@ -30,6 +31,13 @@ public class Tainter {
 	{
 		throw new IllegalStateException("Phosphor not engaged");
 	}
+	public static void taintedObject$$PHOSPHORTAGGED(Object obj, int tag_tag, int tag, Object[] prealloc)
+	{
+		if(obj instanceof MultiDTaintedArrayWithIntTag)
+			obj = ((MultiDTaintedArrayWithIntTag) obj).getVal();
+		if(obj instanceof TaintedWithIntTag)
+			((TaintedWithIntTag) obj).setPHOSPHOR_TAG(tag);
+	}
 	public static void taintedObject$$PHOSPHORTAGGED(Object obj, int tag_tag, int tag)
 	{
 		if(obj instanceof MultiDTaintedArrayWithIntTag)
@@ -46,6 +54,12 @@ public class Tainter {
 		if(obj instanceof TaintedWithIntTag)
 			ret.val = ((TaintedWithIntTag) obj).getPHOSPHOR_TAG();
 		return ret;
+	}
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(Object obj,Object[] ret)
+	{
+		if(obj instanceof TaintedWithIntTag)
+			((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]).val = ((TaintedWithIntTag) obj).getPHOSPHOR_TAG();
+		return ((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]);
 	}
 	public static TaintedShortWithIntTag taintedShort$$PHOSPHORTAGGED(int i, short s, int z, int tag, TaintedShortWithIntTag ret)
 	{
@@ -117,6 +131,14 @@ public class Tainter {
 		for(int i = 0; i < ca.length; i++)
 			ret.taint[i] = tag;
 		return ret;
+	}
+	public static TaintedCharArrayWithIntTag taintedCharArray$$PHOSPHORTAGGED(int[] oldCA, char[] ca, int b, int tag, Object[] ret)
+	{
+		((TaintedCharArrayWithIntTag)ret[10]).val = ca;
+		((TaintedCharArrayWithIntTag)ret[10]).taint = new int[ca.length];
+		for(int i = 0; i < ca.length; i++)
+			((TaintedCharArrayWithIntTag)ret[10]).taint[i] = tag;
+		return ((TaintedCharArrayWithIntTag)ret[10]);
 	}
 	public static boolean[] taintedBooleanArray(boolean[] ca, int tag)
 	{
@@ -237,11 +259,18 @@ public class Tainter {
 	{
 		return 0;
 	}
-	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, char c, TaintedIntWithIntTag ret)
-	{
+
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, char c, TaintedIntWithIntTag ret) {
 		ret.taint = t;
 		ret.val = t;
-		return ret;	}
+		return ret;
+	}
+
+	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, char c, Object[] ret) {
+		((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]).taint = t;
+		((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]).val = t;
+		return ((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]);
+	}
 	public static int getTaint(byte c)
 	{
 		return 0;

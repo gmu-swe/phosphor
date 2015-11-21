@@ -15,6 +15,7 @@ import org.objectweb.asm.Type;
 
 import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
+import edu.columbia.cs.psl.phosphor.runtime.PreAllocHelper;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
@@ -194,69 +195,7 @@ public class TaintUtils {
 		}
 		return -1;
 	}
-	public static final Object[] createPreallocReturnArray()
-	{
-		if(Configuration.MULTI_TAINTING)
-		{
-			if(Configuration.SINGLE_TAG_PER_ARRAY)
-				return new Object[]{
-					new TaintedBooleanWithObjTag(),
-					new TaintedByteWithObjTag(),
-					new TaintedCharWithObjTag(),
-					new TaintedDoubleWithObjTag(),
-					new TaintedFloatWithObjTag(),
-					new TaintedIntWithObjTag(),
-					new TaintedLongWithObjTag(),
-					new TaintedShortWithObjTag(),
-					new TaintedBooleanArrayWithSingleObjTag(),
-					new TaintedByteArrayWithSingleObjTag(),
-					new TaintedCharArrayWithSingleObjTag(),
-					new TaintedDoubleArrayWithSingleObjTag(),
-					new TaintedFloatArrayWithSingleObjTag(),
-					new TaintedIntArrayWithSingleObjTag(),
-					new TaintedLongArrayWithSingleObjTag(),
-					new TaintedShortArrayWithSingleObjTag()
-			};
-			else
-				return new Object[]{
-					new TaintedBooleanWithObjTag(),
-					new TaintedByteWithObjTag(),
-					new TaintedCharWithObjTag(),
-					new TaintedDoubleWithObjTag(),
-					new TaintedFloatWithObjTag(),
-					new TaintedIntWithObjTag(),
-					new TaintedLongWithObjTag(),
-					new TaintedShortWithObjTag(),
-					new TaintedBooleanArrayWithObjTag(),
-					new TaintedByteArrayWithObjTag(),
-					new TaintedCharArrayWithObjTag(),
-					new TaintedDoubleArrayWithObjTag(),
-					new TaintedFloatArrayWithObjTag(),
-					new TaintedIntArrayWithObjTag(),
-					new TaintedLongArrayWithObjTag(),
-					new TaintedShortArrayWithObjTag()
-			};
-		}
-		else
-			return new Object[]{
-					new TaintedBooleanWithIntTag(),
-					new TaintedByteWithIntTag(),
-					new TaintedCharWithIntTag(),
-					new TaintedDoubleWithIntTag(),
-					new TaintedFloatWithIntTag(),
-					new TaintedIntWithIntTag(),
-					new TaintedLongWithIntTag(),
-					new TaintedShortWithIntTag(),
-					new TaintedBooleanArrayWithIntTag(),
-					new TaintedByteArrayWithIntTag(),
-					new TaintedCharArrayWithIntTag(),
-					new TaintedDoubleArrayWithIntTag(),
-					new TaintedFloatArrayWithIntTag(),
-					new TaintedIntArrayWithIntTag(),
-					new TaintedLongArrayWithIntTag(),
-					new TaintedShortArrayWithIntTag()
-			};
-	}
+	
 	/*
 	 * Start: Conversion of method signature from doop format to bytecode format
 	 */
@@ -699,7 +638,11 @@ public class TaintUtils {
 
 	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (!Configuration.SINGLE_TAG_PER_ARRAY && VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithIntTag()).val && srcTaint != null && destTaint != null) {
+		if (!Configuration.SINGLE_TAG_PER_ARRAY && 
+				(
+						(!PREALLOC_RETURN_ARRAY && VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithIntTag()).val) ||
+						(PREALLOC_RETURN_ARRAY && VM.isBooted$$PHOSPHORTAGGED(PreAllocHelper.createPreallocReturnArray()).val) 
+						)&& srcTaint != null && destTaint != null) {
 			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
 		}
@@ -1062,6 +1005,9 @@ public class TaintUtils {
 			}
 		}
 		return ret;
+	}
+	public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name, Object[] prealloc) {
+		return enumValueOf(enumType, name);
 	}
 	public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name, ControlTaintTagStack ctrl) {
 		T ret = Enum.valueOf(enumType, name);

@@ -65,6 +65,18 @@ public class ArrayReflectionMasker {
 		}
 		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
 	}
+	public static TaintedIntWithIntTag getLength$$PHOSPHORTAGGED(Object obj, Object[] ret) {
+		if (obj.getClass().isArray()) {
+			((TaintedIntWithIntTag)ret[TaintUtils.PREALLOC_INT]).taint = 0;
+			((TaintedIntWithIntTag)ret[TaintUtils.PREALLOC_INT]).val = Array.getLength(obj);
+			return ((TaintedIntWithIntTag)ret[TaintUtils.PREALLOC_INT]);
+		} else if (obj instanceof MultiDTaintedArrayWithIntTag) {
+			((TaintedIntWithIntTag)ret[TaintUtils.PREALLOC_INT]).taint = 0;
+			((TaintedIntWithIntTag)ret[TaintUtils.PREALLOC_INT]).val = Array.getLength(((MultiDTaintedArrayWithIntTag) obj).getVal());
+			return ((TaintedIntWithIntTag)ret[TaintUtils.PREALLOC_INT]);
+		}
+		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
+	}
 	public static int getLength(Object obj) {
 		if (obj.getClass().isArray()) {
 			return Array.getLength(obj);
@@ -115,7 +127,9 @@ public class ArrayReflectionMasker {
 	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, int lenTaint, int len, ControlTaintTagStack zz) {
 		return newInstance$$PHOSPHORTAGGED(clazz, lenTaint, len);
 	}
-
+	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, int lenTaint, int len, Object[] tags) {
+		return newInstance$$PHOSPHORTAGGED(clazz, lenTaint, len);
+	}
 	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, int lenTaint, int len) {
 		Class tmp = clazz;
 		int dims = 0;
@@ -155,7 +169,9 @@ public class ArrayReflectionMasker {
 	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, int[] dimsTaint, int[] dims, ControlTaintTagStack ctrl) {
 		return newInstance$$PHOSPHORTAGGED(clazz, dimsTaint, dims);
 	}
-
+	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, int[] dimsTaint, int[] dims, Object[] prealloc) {
+		return newInstance$$PHOSPHORTAGGED(clazz, dimsTaint, dims);
+	}
 	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, int[] dimsTaint, int[] dims) {
 		//		System.out.println("22Creating array instance of type " + clazz);
 		Type t = Type.getType(clazz);
@@ -498,7 +514,79 @@ public class ArrayReflectionMasker {
 		}
 		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
 	}
+	
+	public static TaintedBooleanWithIntTag getBoolean$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx, Object[] ret) {
+		if (obj instanceof MultiDTaintedBooleanArrayWithIntTag) {
+			MultiDTaintedBooleanArrayWithIntTag ar = (MultiDTaintedBooleanArrayWithIntTag) obj;
+			((TaintedBooleanWithIntTag) ret[TaintUtils.PREALLOC_BOOLEAN]).val = ar.val[idx];
+			((TaintedBooleanWithIntTag) ret[TaintUtils.PREALLOC_BOOLEAN]).taint = ar.taint[idx];
+			return ((TaintedBooleanWithIntTag) ret[TaintUtils.PREALLOC_BOOLEAN]);
+		}
+		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
+	}
 
+	public static TaintedCharWithIntTag getChar$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx, Object[] ret) {
+		if (obj instanceof MultiDTaintedCharArrayWithIntTag) {
+			MultiDTaintedCharArrayWithIntTag ar = (MultiDTaintedCharArrayWithIntTag) obj;
+			((TaintedCharWithIntTag) ret[TaintUtils.PREALLOC_CHAR]).val = ar.val[idx];
+			((TaintedCharWithIntTag) ret[TaintUtils.PREALLOC_CHAR]).taint = ar.taint[idx];
+			return ((TaintedCharWithIntTag) ret[TaintUtils.PREALLOC_CHAR]);
+		}
+		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
+	}
+
+	public static TaintedDoubleWithIntTag getDouble$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx, Object[] ret) {
+		if (obj instanceof MultiDTaintedDoubleArrayWithIntTag) {
+			MultiDTaintedDoubleArrayWithIntTag ar = (MultiDTaintedDoubleArrayWithIntTag) obj;
+			((TaintedDoubleWithIntTag) ret[TaintUtils.PREALLOC_DOUBLE]).val = ar.val[idx];
+			((TaintedDoubleWithIntTag) ret[TaintUtils.PREALLOC_DOUBLE]).taint = ar.taint[idx];
+			return ((TaintedDoubleWithIntTag) ret[TaintUtils.PREALLOC_DOUBLE]);
+		}
+		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
+	}
+
+	public static TaintedIntWithIntTag getInt$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx, Object[] ret) {
+		if (obj instanceof MultiDTaintedIntArrayWithIntTag) {
+			MultiDTaintedIntArrayWithIntTag ar = (MultiDTaintedIntArrayWithIntTag) obj;
+			((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]).val = ar.val[idx];
+			((TaintedDoubleWithIntTag) ret[TaintUtils.PREALLOC_INT]).taint = ar.taint[idx];
+			return ((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]);
+		}
+		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
+	}
+
+	public static TaintedLongWithIntTag getLong$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx, Object[] ret) {
+		if (obj instanceof MultiDTaintedLongArrayWithIntTag) {
+			MultiDTaintedLongArrayWithIntTag ar = (MultiDTaintedLongArrayWithIntTag) obj;
+			((TaintedLongWithIntTag) ret[TaintUtils.PREALLOC_LONG]).val = ar.val[idx];
+			((TaintedLongWithIntTag) ret[TaintUtils.PREALLOC_LONG]).taint = ar.taint[idx];
+			return ((TaintedLongWithIntTag) ret[TaintUtils.PREALLOC_LONG]);
+		}
+		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
+	}
+
+	public static TaintedShortWithIntTag getShort$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx, Object[] ret) {
+		if (obj instanceof MultiDTaintedShortArrayWithIntTag) {
+			MultiDTaintedShortArrayWithIntTag ar = (MultiDTaintedShortArrayWithIntTag) obj;
+			((TaintedShortWithIntTag) ret[TaintUtils.PREALLOC_SHORT]).val = ar.val[idx];
+			((TaintedShortWithIntTag) ret[TaintUtils.PREALLOC_SHORT]).taint = ar.taint[idx];
+			return ((TaintedShortWithIntTag) ret[TaintUtils.PREALLOC_SHORT]);
+		}
+		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
+	}
+
+	public static TaintedFloatWithIntTag getFloat$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx, Object[] ret) {
+		if (obj instanceof MultiDTaintedFloatArrayWithIntTag) {
+			MultiDTaintedFloatArrayWithIntTag ar = (MultiDTaintedFloatArrayWithIntTag) obj;
+			((TaintedFloatWithIntTag) ret[TaintUtils.PREALLOC_FLOAT]).val = ar.val[idx];
+			((TaintedFloatWithIntTag) ret[TaintUtils.PREALLOC_FLOAT]).taint = ar.taint[idx];
+			return ((TaintedFloatWithIntTag) ret[TaintUtils.PREALLOC_FLOAT]);
+		}
+		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
+	}
+	public static Object get$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx, Object[] prealloc) {
+		return get$$PHOSPHORTAGGED(obj, idxTaint, idx);
+	}
 	public static Object get$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx) {
 		if (obj instanceof MultiDTaintedBooleanArrayWithIntTag)
 			return getBoolean$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedBooleanWithIntTag()).toPrimitiveType();
@@ -522,7 +610,9 @@ public class ArrayReflectionMasker {
 	public static Object get$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx, ControlTaintTagStack ctrl) {
 		return get$$PHOSPHORTAGGED(obj, idxTaint, idx);
 	}
-
+	public static Object get$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx, Object[] prealloc) {
+		return get$$PHOSPHORTAGGED(obj, idxTaint, idx);
+	}
 	public static Object get$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx) {
 		if(Configuration.SINGLE_TAG_PER_ARRAY)
 		{
@@ -645,6 +735,39 @@ public class ArrayReflectionMasker {
 		setShort$$PHOSPHORTAGGED(obj, idxtaint, idx, taint, val);
 	}
 
+	
+	public static void setBoolean$$PHOSPHORTAGGED(Object obj, int idxtaint, int idx, int taint, boolean val, Object[] prealloc) {
+		setBoolean$$PHOSPHORTAGGED(obj, idxtaint, idx, taint, val);
+	}
+
+	public static void setByte$$PHOSPHORTAGGED(Object obj, int idxtaint, int idx, int taint, byte val, Object[] prealloc) {
+		setByte$$PHOSPHORTAGGED(obj, idxtaint, idx, taint, val);
+	}
+
+	public static void setChar$$PHOSPHORTAGGED(Object obj, int idxtaint, int idx, int taint, char val, Object[] prealloc) {
+		setChar$$PHOSPHORTAGGED(obj, idxtaint, idx, taint, val);
+	}
+
+	public static void setDouble$$PHOSPHORTAGGED(Object obj, int idxtaint, int idx, int taint, double val, Object[] prealloc) {
+		setDouble$$PHOSPHORTAGGED(obj, idxtaint, idx, taint, val);
+	}
+
+	public static void setFloat$$PHOSPHORTAGGED(Object obj, int idxtaint, int idx, int taint, float val, Object[] prealloc) {
+		setFloat$$PHOSPHORTAGGED(obj, idxtaint, idx, taint, val);
+	}
+
+	public static void setInt$$PHOSPHORTAGGED(Object obj, int idxtaint, int idx, int taint, int val, Object[] prealloc) {
+		setInt$$PHOSPHORTAGGED(obj, idxtaint, idx, taint, val);
+	}
+
+	public static void setLong$$PHOSPHORTAGGED(Object obj, int idxtaint, int idx, int taint, long val, Object[] prealloc) {
+		setLong$$PHOSPHORTAGGED(obj, idxtaint, idx, taint, val);
+	}
+
+	public static void setShort$$PHOSPHORTAGGED(Object obj, int idxtaint, int idx, int taint, short val, Object[] prealloc) {
+		setShort$$PHOSPHORTAGGED(obj, idxtaint, idx, taint, val);
+	}
+	
 	public static void setBoolean$$PHOSPHORTAGGED(Object obj, int idxtaint, int idx, int taint, boolean val) {
 		if (obj instanceof MultiDTaintedBooleanArrayWithIntTag) {
 			MultiDTaintedBooleanArrayWithIntTag a = (MultiDTaintedBooleanArrayWithIntTag) obj;

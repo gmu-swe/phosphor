@@ -174,6 +174,25 @@ public class PreMain {
 		}
 
 		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint,
+				byte[] classfileBuffer, Object[] ret) throws IllegalClassFormatException {
+			Configuration.taintTagFactory.instrumentationStarting(className);
+
+			if (!INITED) {
+				Configuration.IMPLICIT_TRACKING = false;
+				Configuration.MULTI_TAINTING = false;
+				Configuration.init();
+				INITED = true;
+			}
+			if (className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+				((TaintedByteArrayWithIntTag) ret[9]).val = classfileBuffer;
+			else
+				((TaintedByteArrayWithIntTag) ret[9]).val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			((TaintedByteArrayWithIntTag) ret[9]).taint = new int[((TaintedByteArrayWithIntTag) ret[9]).val.length];
+			Configuration.taintTagFactory.instrumentationEnding(className);
+			return ((TaintedByteArrayWithIntTag)ret[9]);
+		}
+		
+		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint,
 				byte[] classfileBuffer, TaintedByteArrayWithIntTag ret) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
@@ -412,6 +431,10 @@ public class PreMain {
 	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, ControlTaintTagStack ctrl) {
 		Configuration.IMPLICIT_TRACKING = true;
 		Configuration.MULTI_TAINTING = true;
+		Configuration.init();
+		premain(args, inst);
+	}
+	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, Object[] prealloc) {
 		Configuration.init();
 		premain(args, inst);
 	}

@@ -63,7 +63,7 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithSingleOb
  * @author jon
  * 
  */
-public class TaintTrackingClassVisitor extends ClassVisitor {
+public class TaintTrackingClassVisitor extends ClinitCheckCV {
 	public static boolean IS_RUNTIME_INST = true;
 	public static boolean FIELDS_ONLY = false;
 	public static boolean GEN_HAS_TAINTS_METHOD = false;
@@ -272,7 +272,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
 			mv = new UninstrumentedCompatMV(access,className,name,newDesc,signature,(String[])exceptions,mv,analyzer,ignoreFrames);
-			LocalVariableManager lvs = new LocalVariableManager(access, newDesc, mv, analyzer, _mv, true);
+			LocalVariableManager lvs = new LocalVariableManager(access, name, newDesc, mv, analyzer, _mv, true);
 			((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
 			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, null);
 			lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
@@ -357,6 +357,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			isRewrittenDesc = true;
 			newArgTypes.add(Type.getType(ControlTaintTagStack.class));
 		}
+		if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			isRewrittenDesc = true;
 		if (isRewrittenDesc && name.equals("<init>"))
 			newArgTypes.add(Type.getType(TaintSentinel.class));
 		//If we are rewriting the return type, also add a param to pass for pre-alloc
@@ -379,6 +381,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			methodsToAddWrappersFor.add(wrapper);
 
 		String newDesc = Type.getMethodDescriptor(newReturnType, newArgs);
+		if(name.equals("<clinit>"))
+			newDesc = "()V";
 		//		System.out.println("olddesc " + desc + " newdesc " + newDesc);
 		if ((access & Opcodes.ACC_NATIVE) == 0 && !methodIsTooBigAlready(name, desc)) {
 			//not a native method
@@ -417,7 +421,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV);
 				tmv.setFields(fields);
 				TaintAdapter custom = null;
-				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv, true);
+				lvs = new LocalVariableManager(access, name, newDesc, tmv, analyzer,mv, true);
 
 				nextMV = lvs;
 				if(Configuration.extensionMethodVisitor != null)
@@ -587,13 +591,26 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			return;
 		if ((isAbstractClass || isInterface) && implementsComparable && !goLightOnGeneratedStuff) {
 			//Need to add this to interfaces so that we can call it on the interface
-			if(Configuration.IMPLICIT_TRACKING)
-				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;"+Type.getDescriptor(ControlTaintTagStack.class)+Configuration.TAINTED_INT_DESC+")" + Configuration.TAINTED_INT_DESC, null, null);
-			else
-				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;"+Configuration.TAINTED_INT_DESC+")" + Configuration.TAINTED_INT_DESC, null, null);
-			if(Configuration.GENERATE_UNINST_STUBS)
-			{
-				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORUNTAGGED", "(Ljava/lang/Object;)I" , null, null);
+			if (TaintUtils.PREALLOC_RETURN_ARRAY) {
+				if (Configuration.IMPLICIT_TRACKING)
+					super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;[Ljava/lang/Object;" + Type.getDescriptor(ControlTaintTagStack.class)
+							+ Configuration.TAINTED_INT_DESC + ")" + Configuration.TAINTED_INT_DESC, null, null);
+				else
+					super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;[Ljava/lang/Object;)"
+							+ Configuration.TAINTED_INT_DESC, null, null);
+				if (Configuration.GENERATE_UNINST_STUBS) {
+					super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORUNTAGGED", "(Ljava/lang/Object;[Ljava/lang/Object;)I", null, null);
+				}
+			} else {
+				if (Configuration.IMPLICIT_TRACKING)
+					super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;" + Type.getDescriptor(ControlTaintTagStack.class)
+							+ Configuration.TAINTED_INT_DESC + ")" + Configuration.TAINTED_INT_DESC, null, null);
+				else
+					super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;" + Configuration.TAINTED_INT_DESC + ")"
+							+ Configuration.TAINTED_INT_DESC, null, null);
+				if (Configuration.GENERATE_UNINST_STUBS) {
+					super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORUNTAGGED", "(Ljava/lang/Object;)I", null, null);
+				}
 			}
 		}
 
@@ -821,7 +838,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						}
 						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, mv);
 						MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
-						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, soc, an, mv, false);
+						LocalVariableManager lvs = new LocalVariableManager(m.access, m.name, m.desc, soc, an, mv, false);
 						lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 						GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name, m.desc);
 						Label startLabel = new Label();
@@ -1159,7 +1176,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv = new UninstrumentedReflectionHidingMV(mv, className);
 					UninstrumentedReflectionHidingMV ta = (UninstrumentedReflectionHidingMV) mv;
 					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc,mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames);
-					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.desc, mv, analyzer, analyzer, false);
+					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.name, mn.desc, mv, analyzer, analyzer, false);
 					final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, mn.access, mn.name, mn.desc, null, null, null);
 					lvs.disable();
 					lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
@@ -1388,7 +1405,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv = super.visitMethod(m.access&~Opcodes.ACC_NATIVE, m.name + TaintUtils.METHOD_SUFFIX, newDesc, m.signature, exceptions);
 		NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, newDesc, mv);
 		MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
-		LocalVariableManager lvs = new LocalVariableManager(m.access,newDesc, soc, an, mv, true);
+		LocalVariableManager lvs = new LocalVariableManager(m.access, m.name, newDesc, soc, an, mv, true);
 		lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 		GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name + TaintUtils.METHOD_SUFFIX, newDesc);
 		if(isInterface)
@@ -1515,6 +1532,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitInsn(Opcodes.SWAP);
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
+					if(TaintUtils.PREALLOC_RETURN_ARRAY)
+					{
+						an.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(origReturn));
+						an.visitInsn(Opcodes.AALOAD);
+						an.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getInternalName());
+					}
 					ga.visitInsn(Opcodes.SWAP);
 					if (!Configuration.MULTI_TAINTING)
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "[I");
