@@ -38,7 +38,7 @@ public class MethodDescriptor {
 	}
 	
 	@Override
-	public int hashCode() {
+	public int hashCode() {	
 		return name.hashCode() ^ owner.hashCode() ^ desc.hashCode();
 	}
 	

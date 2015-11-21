@@ -348,24 +348,24 @@ public class Instrumenter {
 				n = 0;
 				int size = SelectiveInstrumentationManager.methodsToInstrument.size();
 				_main(line.getArgs());
-				for (String clazz : SelectiveInstrumentationManager.methodsToInstrumentByClass.keySet()) {
-					Set<String> supers = ClassHierarchyCreator.allSupers(clazz);
-					for (String s : supers) {
-						ClassNode cn = allClasses.get(s);
-						if (cn != null) {
-							for (String meth : SelectiveInstrumentationManager.methodsToInstrumentByClass.get(clazz)) {
-								for (Object o: cn.methods) {
-									MethodNode mn = (MethodNode) o;
-									if (meth.equals(mn.name + mn.desc)) {
-										MethodDescriptor d = new MethodDescriptor(mn.name, cn.name, mn.desc);
-										if (!SelectiveInstrumentationManager.methodsToInstrument.contains(d))
-											SelectiveInstrumentationManager.methodsToInstrument.add(d);
-									}
-								}
-							}
-						}
-					}
-				}
+//				for (String clazz : SelectiveInstrumentationManager.methodsToInstrumentByClass.keySet()) {
+//					Set<String> supers = ClassHierarchyCreator.allSupers(clazz);
+//					for (String s : supers) {
+//						ClassNode cn = allClasses.get(s);
+//						if (cn != null) {
+//							for (String meth : SelectiveInstrumentationManager.methodsToInstrumentByClass.get(clazz)) {
+//								for (Object o: cn.methods) {
+//									MethodNode mn = (MethodNode) o;
+//									if (meth.equals(mn.name + mn.desc)) {
+//										MethodDescriptor d = new MethodDescriptor(mn.name, cn.name, mn.desc);
+//										if (!SelectiveInstrumentationManager.methodsToInstrument.contains(d))
+//											SelectiveInstrumentationManager.methodsToInstrument.add(d);
+//									}
+//								}
+//							}
+//						}
+//					}
+//				}
 				int size_new = SelectiveInstrumentationManager.methodsToInstrument.size();
 				if (size == size_new)
 					break;
