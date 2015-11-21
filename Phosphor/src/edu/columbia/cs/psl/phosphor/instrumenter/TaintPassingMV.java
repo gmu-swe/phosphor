@@ -25,6 +25,7 @@ import org.objectweb.asm.util.Textifier;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
@@ -1219,6 +1220,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if (isIgnoreAllInstrumenting || ignoreLoadingNextTaint || isRawInsns) {
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
+		}
+		//Stupid workaround for eclipse benchmark
+		if(name.equals("getProperty") && className.equals("org/eclipse/jdt/core/tests/util/Util"))
+		{
+			owner = Type.getInternalName(ReflectionMasker.class);
+			name = "getPropertyHideBootClasspath";
 		}
 		boolean isPreAllocedReturnType = TaintUtils.isPreAllocReturnType(desc) && !owner.startsWith("[");
 		if (Instrumenter.isClassWithHashmapTag(owner) && name.equals("valueOf")) {

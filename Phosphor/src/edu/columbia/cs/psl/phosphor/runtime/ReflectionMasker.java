@@ -70,6 +70,14 @@ public class ReflectionMasker {
 
 	public static final boolean IS_KAFFE = false;
 
+	public static String getPropertyHideBootClasspath(String prop)
+	{
+		if(prop.equals("sun.boot.class.path"))
+			return null;
+		else if(prop.equals("os.name"))
+			return "linux";
+		return System.getProperty(prop);
+	}
 	public static Method getTaintMethodControlTrack(Method m) {
 		if (m.getDeclaringClass().isAnnotation())
 			return m;
