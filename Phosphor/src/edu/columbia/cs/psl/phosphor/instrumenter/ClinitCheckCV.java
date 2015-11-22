@@ -13,6 +13,12 @@ public class ClinitCheckCV extends ClassVisitor {
 	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 		if(name.equals("<clinit>") && desc.length()>3)
 			throw new IllegalStateException("Desc " + desc + "on clinit!");
+//		if(name.equals("getSubstitutionHead"))
+//		{
+//			System.err.println(name);
+//			System.out.println("Abtract?"+((Opcodes.ACC_ABSTRACT & access) != 0));
+//			new Exception().printStackTrace();
+//		}
 		return super.visitMethod(access, name, desc, signature, exceptions);
 	}
 }

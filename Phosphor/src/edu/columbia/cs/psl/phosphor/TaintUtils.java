@@ -71,6 +71,11 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 public class TaintUtils {
 	static Object lock = new Object();
 
+	public static ThreadLocal<Object[]> prealloc;// = new ThreadLocal<Object[]>();
+//	static
+//	{
+//		prealloc.set(PreAllocHelper.createPreallocReturnArray());
+//	}
 	public static final boolean TAINT_THROUGH_SERIALIZATION = false;
 	public static final boolean OPT_PURE_METHODS = false;
 
@@ -576,19 +581,38 @@ public class TaintUtils {
 			throw ex;
 		}
 	}
+	public static void arraycopy(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, Object[] preqlloc) {
+		try {
+			if (!src.getClass().isArray() && !dest.getClass().isArray()) {
+				System.arraycopy(((MultiDTaintedArrayWithIntTag) src).getVal(), srcPos, ((MultiDTaintedArrayWithIntTag) dest).getVal(), destPos, length);
+				System.arraycopy(((MultiDTaintedArrayWithIntTag) src).taint, srcPos, ((MultiDTaintedArrayWithIntTag) dest).taint, destPos, length);
+			} else if (!dest.getClass().isArray()) {
+				//src is a regular array, dest is multidtaintedarraywithinttag
+				System.arraycopy(src, srcPos, ((MultiDTaintedArrayWithIntTag) dest).getVal(), destPos, length);
+			} else {
+				System.arraycopy(src, srcPos, dest, destPos, length);
+			}
+		} catch (ArrayStoreException ex) {
+			System.out.println("Src " + src);
+			System.out.println(((Object[]) src)[0]);
+			System.out.println("Dest " + dest);
+			ex.printStackTrace();
+			throw ex;
+		}
+	}
 	public static void arraycopy(Object src, int srcPos, Object dest, int destPos, int length) {
 		try{
-		if(!src.getClass().isArray() && !dest.getClass().isArray())
+		if(src instanceof MultiDTaintedArrayWithIntTag)
 		{
 			System.arraycopy(((MultiDTaintedArrayWithIntTag)src).getVal(), srcPos, ((MultiDTaintedArrayWithIntTag)dest).getVal(), destPos, length);
 			System.arraycopy(((MultiDTaintedArrayWithIntTag)src).taint, srcPos, ((MultiDTaintedArrayWithIntTag)dest).taint, destPos, length);
 		}
-		else if(!dest.getClass().isArray())
-		{
-			//src is a regular array, dest is multidtaintedarraywithinttag
-			System.arraycopy(src, srcPos, ((MultiDTaintedArrayWithIntTag)dest).getVal(), destPos, length);
-		}
-		else
+//		else if(!dest.getClass().isArray())
+//		{
+//			//src is a regular array, dest is multidtaintedarraywithinttag
+//			System.arraycopy(src, srcPos, ((MultiDTaintedArrayWithIntTag)dest).getVal(), destPos, length);
+//		}
+//		else
 			System.arraycopy(src, srcPos, dest, destPos, length);
 		}
 		catch(ArrayStoreException ex)
@@ -640,13 +664,22 @@ public class TaintUtils {
 		System.arraycopy(src, srcPos, dest, destPos, length);
 		if (!Configuration.SINGLE_TAG_PER_ARRAY && 
 				(
-						(!PREALLOC_RETURN_ARRAY && VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithIntTag()).val) ||
-						(PREALLOC_RETURN_ARRAY && VM.isBooted$$PHOSPHORTAGGED(PreAllocHelper.createPreallocReturnArray()).val) 
+						(!PREALLOC_RETURN_ARRAY && VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithIntTag()).val) 
+						
 						)&& srcTaint != null && destTaint != null) {
 			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
 		}
 	}
+
+	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, Object[] prealloc) {
+		System.arraycopy(src, srcPos, dest, destPos, length);
+		if (!Configuration.SINGLE_TAG_PER_ARRAY && (PREALLOC_RETURN_ARRAY && VM.isBooted$$PHOSPHORTAGGED(prealloc).val) && srcTaint != null && destTaint != null) {
+			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
+				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
+		}
+	}
+
 	public static void arraycopyControlTrack(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
 		if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithIntTag()).val && srcTaint != null && destTaint != null) {

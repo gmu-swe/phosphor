@@ -31,7 +31,7 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 	Type[] oldArgTypes;
 
 	Type[] firstFrameLocals;
-	int idxOfReturnPrealloc;
+//	int idxOfReturnPrealloc;
 
 	boolean hasPreAllocedReturnAddr;
 	Type newReturnType;
@@ -53,7 +53,7 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 		if (!isStatic)
 			origNumArgs++;
 		newArgOffset = 0;
-		//		System.out.println(name+originalDesc + " -> origLastArg is " + originalLastArgIdx + "orig nargs " + origNumArgs);
+//				System.out.println(name+originalDesc + " "+isStatic+" -> origLastArg is " + originalLastArgIdx + "orig nargs " + origNumArgs);
 		oldArgTypesList = new ArrayList<Type>();
 		oldTypesDoublesAreOne = new ArrayList<Type>();
 		if (!isStatic) {
@@ -75,8 +75,9 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 			lvForReturnVar = originalLastArgIdx + newArgOffset;
 			newArgOffset++;
 		}
+//		System.out.println("PRealloc at " + lvForReturnVar);
 	}
-	int lvForReturnVar;
+	public int lvForReturnVar;
 	public int getNewArgOffset() {
 		return newArgOffset;
 	}
@@ -101,7 +102,7 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-		Object[] remappedLocals = new Object[local.length + newArgOffset + 1]; //was +1, not sure why??
+		Object[] remappedLocals = new Object[local.length + newArgOffset + 2]; //was +1, not sure why??
 		if (TaintUtils.DEBUG_FRAMES) {
 			System.out.println(name + desc + " orig nArgs = " + origNumArgs);
 			System.out.println("Pre-reindex Frame: " + Arrays.toString(local) + ";" + nLocal + " ; " + type);
@@ -117,6 +118,11 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 
 				if (i == origNumArgs && hasTaintSentinalAddedToDesc) {
 					remappedLocals[newIdx] = Opcodes.TOP;
+					newIdx++;
+					nLocal++;
+				}
+				if (i == origNumArgs && TaintUtils.PREALLOC_RETURN_ARRAY && !name.equals("<clinit>")) {
+					remappedLocals[newIdx] = "[Ljava/lang/Object;";
 					newIdx++;
 					nLocal++;
 				}

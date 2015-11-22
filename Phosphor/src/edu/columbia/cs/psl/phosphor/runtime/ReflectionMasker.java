@@ -484,7 +484,9 @@ public class ReflectionMasker {
 				newArgs.add(c);
 				continue;
 			}
-		}		
+		}
+		newArgs.add(Object[].class);
+		madeChange = true;
 		if (madeChange) {
 			Class[] args = new Class[newArgs.size()];
 			newArgs.toArray(args);
@@ -985,27 +987,31 @@ public class ReflectionMasker {
 		//		System.out.println("Fix all args fast: " + Arrays.toString(ret) + " for " + m);
 		return ret;
 	}
-	
-	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, boolean isObjTags) {
+
+	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, boolean isObjTags, Object[] prealloc) {
+		if(c == null)
+			return in;
 		Class[] params = c.getParameterTypes();
 		if(params.length == 0)
 			return in;
-		if(params[params.length - 1] == UninstrumentedTaintSentinel.class)
+
+		if(params.length >= 2 && params[params.length - 2] == UninstrumentedTaintSentinel.class)
 		{
-			Object[] ret = new Object[in.length + 1];
+			Object[] ret = new Object[in.length + 2];
 			System.arraycopy(in, 0, ret, 0, in.length);
+			ret[ret.length+1] = prealloc;
 			return ret;
 		}
-		else if(params[params.length - 1] == TaintSentinel.class)
+		else if(params.length >= 2 && params[params.length - 2] == TaintSentinel.class)
 		{
-			return fixAllArgs(in, c, isObjTags);
+			return fixAllArgs(in, c, isObjTags,prealloc);
 		}
 		return in;
 	}
 	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, ControlTaintTagStack ctrl) {
 		return in;
 	}
-	public static MethodInvoke fixAllArgsUninst(Method m, Object owner, Object[] in, boolean isObjTags) {
+	public static MethodInvoke fixAllArgsUninst(Method m, Object owner, Object[] in, Object[] prelloc, boolean isObjTags) {
 		MethodInvoke ret = new MethodInvoke();
 		if (m == null) {
 			ret.a = in;
@@ -1013,27 +1019,26 @@ public class ReflectionMasker {
 			ret.m = m;
 			return ret;
 		}
-		if(Configuration.WITH_SELECTIVE_INST)// && Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m)))
+		if (Configuration.WITH_SELECTIVE_INST)// && Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m)))
 		{
-//			ret.m = getUnTaintMethod(m, isObjTags);
-			ret.m = getOrigMethod(m, isObjTags);
+			ret.m = getUnTaintMethod(m, isObjTags);
+			//			ret.m = getOrigMethod(m, isObjTags);
 			ret.o = owner;
 			ret.a = in;
-			if(ret.a != null && ret.a.getClass().isArray() && ret.a.getClass().getComponentType() == Object.class)
-			for(int i = 0; i < ret.a.length; i++)
-			{
-				if(ret.a[i] instanceof MultiDTaintedArrayWithIntTag)
-				{
-					ret.a[i] = ((MultiDTaintedArrayWithIntTag)ret.a[i]).getVal();
+			if (ret.a != null && ret.a.getClass().isArray() && ret.a.getClass().getComponentType() == Object.class) {
+				ret.a = new Object[in.length + 1];
+				System.arraycopy(in, 0, ret.a, 0, in.length);
+				for (int i = 0; i < ret.a.length; i++) {
+					if (ret.a[i] instanceof MultiDTaintedArrayWithIntTag) {
+						ret.a[i] = ((MultiDTaintedArrayWithIntTag) ret.a[i]).getVal();
+					} else if (ret.a[i] instanceof MultiDTaintedArrayWithObjTag) {
+						ret.a[i] = ((MultiDTaintedArrayWithObjTag) ret.a[i]).getVal();
+					}
 				}
-				else if(ret.a[i] instanceof MultiDTaintedArrayWithObjTag)
-				{
-					ret.a[i] = ((MultiDTaintedArrayWithObjTag)ret.a[i]).getVal();
-				}
-			}
-		}
-		else
-		{
+				ret.a[ret.a.length - 1] = prelloc;
+			} else
+				ret.a = new Object[] { prelloc };
+		} else {
 			ret = fixAllArgs(m, owner, in, isObjTags);
 		}
 		return ret;

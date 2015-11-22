@@ -17,6 +17,7 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 
+import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
@@ -26,14 +27,30 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 public class UninstrumentedCompatMV extends TaintAdapter {
 	private NeverNullArgAnalyzerAdapter analyzer;
 	private boolean skipFrames;
+	int preallocArg = 0;
+	private MethodVisitor uninst;
 
 	public UninstrumentedCompatMV(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer,
-			boolean skipFrames) {
+			boolean skipFrames,MethodVisitor uninst) {
 		super(access, className, name, desc, signature, exceptions, mv, analyzer);
+		this.uninst=uninst;
 		this.analyzer = analyzer;
 		this.skipFrames = skipFrames;
+		if((access & Opcodes.ACC_STATIC) == 0)
+		{
+			preallocArg++;
+		}
+		for(Type t:Type.getArgumentTypes(desc))
+			preallocArg += t.getSize();
+		if(name.equals("<init>"))
+			preallocArg++;
 	}
 
+	@Override
+	public void visitCode() {
+		super.visitCode();
+		analyzer.locals.add("[Ljava/lang/Object;");
+	}
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
 		Object[] newLocal = new Object[local.length];
@@ -274,6 +291,11 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 			super.visitMethodInsn(opcode, owner, name, desc, itf);
 			return;
 		}
+		//Stupid workaround for eclipse benchmark
+		if (name.equals("getProperty") && className.equals("org/eclipse/jdt/core/tests/util/Util")) {
+			owner = Type.getInternalName(ReflectionMasker.class);
+			name = "getPropertyHideBootClasspath";
+		}
 		Type ownerType = Type.getObjectType(owner);
 		if (opcode == INVOKEVIRTUAL && ownerType.getSort() == Type.ARRAY && ownerType.getElementType().getSort() != Type.OBJECT && ownerType.getDimensions() > 1) {
 			//			System.out.println("got to change the owner on primitive array call from " +owner+" to " + MultiDTaintedArray.getTypeForType(ownerType));
@@ -311,7 +333,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 				name += TaintUtils.METHOD_SUFFIX_UNINST;
 			desc = TaintUtils.remapMethodDescForUninst(desc);
 			if(TaintUtils.PREALLOC_RETURN_ARRAY)
-				super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
+				analyzer.visitVarInsn(Opcodes.ALOAD, preallocArg);
 			super.visitMethodInsn(opcode, owner, name, desc, itf);
 		} else if (!Instrumenter.isIgnoredClass(owner) && !owner.startsWith("[") && !isCalledOnArrayType) {
 			//call into the instrumented version			
@@ -405,7 +427,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 				desc = desc.substring(0, desc.indexOf(')')) + "[Ljava/lang/Object;)" + desc.substring(desc.indexOf(')') + 1);
 				if(!name.equals("<init>"))
 					name += TaintUtils.METHOD_SUFFIX;
-				super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
+				analyzer.visitVarInsn(Opcodes.ALOAD, preallocArg);
 			}
 			super.visitMethodInsn(opcode, owner, name, desc, itf);
 			if (origReturnType.getSort() == Type.ARRAY && origReturnType.getDimensions() == 1 && origReturnType.getElementType().getSort() != Type.OBJECT) {

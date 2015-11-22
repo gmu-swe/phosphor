@@ -114,40 +114,7 @@ public class Instrumenter {
 	public static boolean isIgnoredClass(String owner) {
 		if(Configuration.taintTagFactory.isIgnoredClass(owner))
 			return true;
-		if(IS_ANDROID_INST && ! TaintTrackingClassVisitor.IS_RUNTIME_INST)
-		{
-//			System.out.println("IN ANDROID INST:");
-			return owner.startsWith("java/lang/Object")
-					|| owner.startsWith("java/lang/Number") || owner.startsWith("java/lang/Comparable") 
-					|| owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
-					|| owner.startsWith("java/lang/ref/FinalizerReference")
-					//																|| owner.startsWith("java/awt/image/BufferedImage")
-					//																|| owner.equals("java/awt/Image")
-				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
-					||owner.startsWith("sun/awt/image/codec/");
-		}
-		else if(IS_KAFFE_INST || IS_HARMONY_INST)
-		{
-			return owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
-					|| owner.startsWith("java/lang/Byte")
-					|| owner.startsWith("java/lang/Short")
-//					|| owner.startsWith("java/lang/System")
-//					|| owner.startsWith("org/apache/harmony/drlvm/gc_gen/GCHelper")
-//					|| owner.startsWith("edu/columbia/cs/psl/microbench")
-//					|| owner.startsWith("java/lang/Number") 
-					|| owner.startsWith("java/lang/VMObject")
-					|| owner.startsWith("java/lang/VMString")
-					|| (IS_KAFFE_INST && owner.startsWith("java/lang/reflect"))
-//					|| owner.startsWith("gnu/")
-										|| owner.startsWith("java/lang/VMClass")
-
-					|| owner.startsWith("java/lang/Comparable") || owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
-					//																|| owner.startsWith("java/awt/image/BufferedImage")
-					//																|| owner.equals("java/awt/Image")
-					|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
-					||owner.startsWith("sun/awt/image/codec/") || (IS_HARMONY_INST && (owner.equals("java/io/Serializable")));
-		}
-		else
+		
 		return (Configuration.ADDL_IGNORE != null && owner.startsWith(Configuration.ADDL_IGNORE)) || owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
 				|| owner.startsWith("java/lang/Byte")
 				|| owner.startsWith("java/lang/Short")
@@ -169,6 +136,7 @@ public class Instrumenter {
 				|| owner.startsWith("sun/reflect/GeneratedMethodAccessor") || owner.startsWith("sun/reflect/GeneratedConstructorAccessor")
 				|| owner.startsWith("sun/reflect/GeneratedSerializationConstructor") || owner.startsWith("sun/awt/image/codec/")
 				|| owner.startsWith("java/lang/invoke/LambdaForm")
+				|| owner.startsWith("java/lang/invoke/MethodHandle")
 				;
 	}
 

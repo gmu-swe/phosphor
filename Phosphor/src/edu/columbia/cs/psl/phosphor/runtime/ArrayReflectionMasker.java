@@ -89,6 +89,9 @@ public class ArrayReflectionMasker {
 		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
 	}
 
+	public static Object newInstance$$PHOSPHORUNTAGGED(Class clazz, int len, Object[] prealloc) {
+		return newInstance(clazz, len);
+	}
 	public static Object newInstance(Class clazz, int len) {
 		Class tmp = clazz;
 		int dims = 0;

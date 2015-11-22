@@ -407,7 +407,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	@Override
     public void visitFrame(final int type, final int nLocal,
             final Object[] local, final int nStack, final Object[] stack) {
-//		System.out.println("VF");
+//		System.out.println("VF have the prealloc at " + lvOfSingleWrapperArray);
 		if(type == TaintUtils.RAW_INSN)
 		{
 //			System.out.println("ZZ");

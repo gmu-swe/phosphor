@@ -211,6 +211,24 @@ public class PreMain {
 			return ret;
 		}
 
+		public byte[] transform$$PHOSPHORUNTAGGED(ClassLoader loader, final String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer,
+				Object[] prealloc) throws IllegalClassFormatException {
+			Configuration.taintTagFactory.instrumentationStarting(className);
+
+			if (!INITED) {
+				Configuration.IMPLICIT_TRACKING = false;
+				Configuration.MULTI_TAINTING = false;
+				Configuration.init();
+				INITED = true;
+			}
+			byte[] ret;
+			if (className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+				ret = classfileBuffer;
+			else
+				ret = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			Configuration.taintTagFactory.instrumentationEnding(className);
+			return ret;
+		}
 		public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
 				throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className2);

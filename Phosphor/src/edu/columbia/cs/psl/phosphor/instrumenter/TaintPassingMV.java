@@ -1339,6 +1339,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					}
 				}
 			}
+			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			{
+				super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
+				desc = desc.substring(0,desc.length()-2)+"[Ljava/lang/Object;)V";
+			}
 		}
 		if (owner.startsWith("edu/columbia/cs/psl/phosphor") && !name.equals("printConstraints") && !name.equals("hasNoDependencies") && !desc.equals("(I)V") && !owner.endsWith("Tainter")) {
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
@@ -1350,9 +1355,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		{
 			hasNewName = false;
 		}
+		boolean isIgnoredClass = Instrumenter.isIgnoredClass(owner);
 		boolean isIgnoredForTaints = Configuration.WITH_SELECTIVE_INST && 
 				Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc);
-		if ((Instrumenter.isIgnoredClass(owner) || isIgnoredForTaints || Instrumenter.isIgnoredMethod(owner, name, desc))  && !owner.startsWith("edu/columbia/cs/psl/phosphor/runtime")){
+		if ((isIgnoredClass || isIgnoredForTaints || Instrumenter.isIgnoredMethod(owner, name, desc))  && !owner.startsWith("edu/columbia/cs/psl/phosphor/runtime")){
 			Type[] args = Type.getArgumentTypes(desc);
 			if (TaintUtils.DEBUG_CALLS) {
 				System.out.println("Calling non-inst: " + owner + "." + name + desc + " stack " + analyzer.stack);
@@ -1388,7 +1394,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					isCalledOnAPrimitiveArrayType = true;
 			}
 
-			if(isIgnoredForTaints && !owner.startsWith("[") && !Instrumenter.isIgnoredClass(owner))
+			if(!isIgnoredClass && isIgnoredForTaints && !owner.startsWith("[") && !Instrumenter.isIgnoredClass(owner))
 			{
 				if(name.equals("<init>"))
 				{
@@ -1398,9 +1404,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				else
 					name += TaintUtils.METHOD_SUFFIX_UNINST;
 			}
-			if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			if(!isIgnoredClass && TaintUtils.PREALLOC_RETURN_ARRAY)
 				super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
-			super.visitMethodInsn(opcode, owner, name, TaintUtils.remapMethodDescForUninst(desc), itfc);
+			super.visitMethodInsn(opcode, owner, name, (isIgnoredClass ? desc : TaintUtils.remapMethodDescForUninst(desc)), itfc);
 			if (isCallToPrimitiveArrayClone) {
 				//Now we have cloned (but not casted) array, and a clopned( but not casted) taint array
 				//TA A
