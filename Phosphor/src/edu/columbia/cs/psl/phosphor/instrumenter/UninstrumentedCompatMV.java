@@ -215,10 +215,10 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 			break;
 		case Opcodes.MONITORENTER:
 		case Opcodes.MONITOREXIT:
-			if (getTopOfStackObject().equals("java/lang/Object")) {
-				//never allow monitor to occur on a multid type
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-			}
+//			if (getTopOfStackObject().equals("java/lang/Object")) {
+//				//never allow monitor to occur on a multid type
+//				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+//			}
 			super.visitInsn(opcode);
 			break;
 		case Opcodes.ARRAYLENGTH:
