@@ -3,9 +3,11 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.WeakHashMap;
 
+import sun.misc.VM;
 import sun.reflect.ReflectionFactory;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
@@ -223,7 +225,90 @@ public class ReflectionMasker {
 		}
 	}
 	static boolean isSelectiveInstManagerInit = false;
-
+	public static Constructor getTaintConstructorPrealloc(Constructor m, boolean isObjTags) {
+		if(m.PHOSPHOR_TAGconstructor != null)
+			return m.PHOSPHOR_TAGconstructor;
+		if(m.PHOSPHOR_TAGmarked)
+			return m;
+		if(!VM.booted)
+			return m;
+		if(Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/')))
+		{
+			m.PHOSPHOR_TAGmarked=true;
+			return m;
+		}
+		ArrayList<Class> newArgs = new ArrayList<Class>();
+		boolean madeChange = false;
+		for (final Class c : m.getParameterTypes()) {
+			if (c.isArray()) {
+				if (c.getComponentType().isPrimitive()) {
+					//1d primitive array
+					madeChange = true;
+					if (isObjTags)
+						newArgs.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
+					else
+						newArgs.add(int[].class);
+					newArgs.add(c);
+					continue;
+				} else {
+					Class elementType = c.getComponentType();
+					while (elementType.isArray())
+						elementType = elementType.getComponentType();
+					if (elementType.isPrimitive()) {
+						//2d primtiive array
+						madeChange = true;
+						try {
+							if(isObjTags)
+								newArgs.add(Class.forName(MultiDTaintedArrayWithObjTag.getTypeForType(Type.getType(c)).getInternalName()));
+							else
+								newArgs.add(Class.forName(MultiDTaintedArrayWithIntTag.getTypeForType(Type.getType(c)).getInternalName()));
+						} catch (ClassNotFoundException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						continue;
+					} else {
+						//reference array
+						newArgs.add(c);
+						continue;
+					}
+				}
+			} else if (c.isPrimitive()) {
+				madeChange = true;
+				if (isObjTags)
+					newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
+				else
+					newArgs.add(Integer.TYPE);
+				newArgs.add(c);
+				continue;
+			} else {
+				//anything else
+				newArgs.add(c);
+				continue;
+			}
+		}
+		newArgs.add(TaintSentinel.class);
+		if (TaintUtils.PREALLOC_RETURN_ARRAY)
+		{
+			newArgs.add(Object[].class);
+			madeChange = true;
+		}
+		Class[] a = new Class[newArgs.size()];
+		newArgs.toArray(a);
+		Constructor r;
+		try {
+			r = m.getDeclaringClass().getDeclaredConstructor(a);
+			m.PHOSPHOR_TAGconstructor=r;
+			r.PHOSPHOR_TAGmarked=true;
+			r.setAccessible(true);
+			return r;
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 	@SuppressWarnings("rawtypes")
 	public static Method getTaintMethod(Method m, boolean isObjTags) {
 		//		if (m.INVIVO_PC_TAINTmarked)
@@ -662,6 +747,8 @@ public class ReflectionMasker {
 			} else if (!c.equals(ControlTaintTagStack.class))
 				origArgs.add(c);
 		}
+		if(TaintUtils.PREALLOC_RETURN_ARRAY)
+			origArgs.removeLast();
 		if (hasSentinel) {
 			Class[] args = new Class[origArgs.size()];
 			origArgs.toArray(args);
@@ -825,12 +912,76 @@ public class ReflectionMasker {
 		return ret;
 	}
 	public static Object[] fixAllArgs(Object[] in, Constructor c, boolean isObjTags, Object[] prealloc) {
-		return fixAllArgs(in, c, isObjTags);
-	}
+//		if(VM.booted)
+//		{System.out.println("Making call to constructor " + c);
+//		new Exception().printStackTrace();
+//		}
+		if (c != null && in != null && c.getParameterTypes().length != in.length) {
+			Object[] ret = new Object[c.getParameterTypes().length];
+			int j = 0;
+			for (int i = 0; i < in.length; i++) {
+				if (c.getParameterTypes()[j].isPrimitive()) {
+					if (in[i] instanceof TaintedWithIntTag)
+						ret[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
+					else if(in[i] instanceof TaintedWithObjTag)
+						ret[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
+					else
+						ret[j] = 0;
+					j++;
+				} else if (c.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_CLASS){
+					if(in[i] instanceof TaintedWithObjTag)
+						ret[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
+					else
+						ret[j] = null;
+					j++;
+				} else if (c.getParameterTypes()[j].isArray() && (c.getParameterTypes()[j].getComponentType().isPrimitive() || c.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
+					if (!isObjTags) {
+						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
+						ret[j] = arr.taint;
+						j++;
+						ret[j] = arr.getVal();
+						j++;
+					} else {
+						MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
+						ret[j] = arr.taint;
+						j++;
+						ret[j] = arr.getVal();
+						j++;
+					}
+					continue;
+				}
+				ret[j] = in[i];
+				j++;
+			}
+			ret[ret.length - 1] = prealloc;
+
+//			if (VM.booted)
+//				System.out.println(Arrays.toString(ret));
+			return ret;
+		} else if (in == null && c.getParameterTypes().length == 2) {
+			Object[] ret = new Object[2];
+			ret[0] = null;
+			ret[1] = prealloc;
+//			if (VM.booted)
+//				System.out.println(Arrays.toString(ret));
+			return ret;
+		} else if (in == null && c.getParameterTypes().length == 3) {
+			Object[] ret = new Object[3];
+			ret[0] = new ControlTaintTagStack();
+			ret[1] = null;
+			ret[2] = prealloc;
+//			if (VM.booted)
+//				System.out.println(Arrays.toString(ret));
+			return ret;
+		}
+//		if (VM.booted)
+//			System.out.println(Arrays.toString(in));
+		return in;
+		}
 	@SuppressWarnings("rawtypes")
 	public static Object[] fixAllArgs(Object[] in, Constructor c, boolean isObjTags) {
 		//		if(VM.isBooted())
-		//		System.out.println("Making constructo rcall to " + c);
+//				System.out.println("Making constructo rcall to " + c);
 		if (c != null && in != null && c.getParameterTypes().length != in.length) {
 			Object[] ret = new Object[c.getParameterTypes().length];
 			int j = 0;
@@ -1069,7 +1220,16 @@ public class ReflectionMasker {
 	}
 	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, Object[] prealloc, boolean isObjTags) {
 		MethodInvoke ret = new MethodInvoke();
-		if (m == null) {
+		if (m == null || m.getDeclaringClass().getName().startsWith("java.lang.invoke.LambdaForm")) {
+			ret.a = in;
+			ret.o = owner;
+			ret.m = m;
+			return ret;
+		}
+//		System.out.println("FAA: " +m);
+//		if(m.getName().equals("defineClass"))
+//			System.out.println("Last");
+		if (m.getDeclaringClass().isAnnotation()) {
 			ret.a = in;
 			ret.o = owner;
 			ret.m = m;
@@ -1087,7 +1247,10 @@ public class ReflectionMasker {
 		ret.a = in;
 		ret.o = owner;
 		ret.m = m;
-//				System.out.println("FAA: " +m + " "+owner + " " + in);
+
+
+//				if(in != null)
+//					System.out.println(Arrays.toString(in));
 		int j = 0;
 		if (in != null && m.getParameterTypes().length != in.length) {
 			ret.a = new Object[m.getParameterTypes().length];
@@ -1129,10 +1292,32 @@ public class ReflectionMasker {
 			}
 		}
 		if ((in == null && m != null && m.getParameterTypes().length == 1) || (in != null && j != in.length - 1)) {
-			if (in == null)
+			if (in == null || in.length == 0)
 				ret.a = new Object[1];
 			ret.a[j] = prealloc;
 		}
+		//Now try to verify
+//		if(ret.a != null && ret.a.length > 0)
+//		{
+//			int idx2 = 0;
+//			Class[] p =ret.m.getParameterTypes();
+//			for(int i = 0; i < ret.a.length; i++)
+//			{
+////				if(i == 0 && !Modifier.isStatic(m.getModifiers()))
+////					continue;
+//				if(ret.a[i] == null || p[idx2].isAssignableFrom(ret.a.getClass()))
+//				{
+//					//OK
+//					System.out.println(i + " OK");
+//				}
+//				else
+//				{
+//					System.err.println("Not assignable: "+i);
+//					System.out.println(ret.a[i].getClass() + " vs " + p[idx2]);
+//				}
+//				idx2++;
+//			}
+//		}
 		//		if(VM.isBooted())
 		//			System.out.println(Arrays.toString(m.getParameterTypes()) + " and OUT " + Arrays.toString(ret.a));
 		//		System.out.println("Fix all args slow: " + Arrays.toString(ret.a) + " for " + m);
@@ -1540,7 +1725,7 @@ public class ReflectionMasker {
 		ArrayList<Constructor> ret = new ArrayList<Constructor>();
 		for (Constructor f : in) {
 			Class[] params = f.getParameterTypes();
-			if (params.length > 0
+			if (params.length > taintsentineloffset-1
 					&& (params[params.length - taintsentineloffset].getName().equals("edu.columbia.cs.psl.phosphor.runtime.TaintSentinel") || params[params.length - 1].getName().equals(
 							"edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel"))) {
 

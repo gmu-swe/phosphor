@@ -35,4 +35,10 @@ public class ArrayList<T> {
 	public void toArray(T[] dest) {
 		System.arraycopy(array, 0, dest, 0, max);
 	}
+	public void removeLast() {
+		if(max > 0){
+		array[max-1] = null;
+		max--;
+		}
+	}
 }

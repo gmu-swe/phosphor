@@ -205,9 +205,12 @@ public class TaintUtils {
 	 * Start: Conversion of method signature from doop format to bytecode format
 	 */
 	
-	private static Map<String, String> typeToSymbol = new HashMap<String, String>();
-	
-	static {
+	private static Map<String, String> typeToSymbol;
+
+	static void initDoopConversion() {
+		doopTypeToSymbolinited =  true;
+		typeToSymbol = new HashMap<String, String>();
+
 		typeToSymbol.put("byte", "B");
 		typeToSymbol.put("char", "C");
 		typeToSymbol.put("double", "D");
@@ -217,7 +220,8 @@ public class TaintUtils {
 		typeToSymbol.put("short", "S");
 		typeToSymbol.put("void", "V");
 		typeToSymbol.put("boolean", "Z");
-	}	
+	}
+	static boolean doopTypeToSymbolinited;
 	private static final String processSingleType(String in)
 	{
 		if(in.equals("byte"))
@@ -256,6 +260,8 @@ public class TaintUtils {
 	}
 	
 	private static String processReverse(String type) {
+		if(!doopTypeToSymbolinited)
+			initDoopConversion();
 		type = type.trim();
 		if(type.length() == 1)  {
 			for(String s : typeToSymbol.keySet()) 
@@ -639,6 +645,21 @@ public class TaintUtils {
 		else
 			System.arraycopy(src, srcPos, dest, destPos, length);
 	}
+	public static void arraycopy(Object src, Object srcPosTaint, int srcPos, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length, Object[] prealloc) {
+		if(!src.getClass().isArray() && !dest.getClass().isArray())
+		{
+			System.arraycopy(((MultiDTaintedArrayWithObjTag)src).getVal(), srcPos, ((MultiDTaintedArrayWithObjTag)dest).getVal(), destPos, length);
+			if(!Configuration.SINGLE_TAG_PER_ARRAY)
+				System.arraycopy(((MultiDTaintedArrayWithObjTag)src).taint, srcPos, ((MultiDTaintedArrayWithObjTag)dest).taint, destPos, length);
+		}
+		else if(!dest.getClass().isArray())
+		{
+			System.arraycopy(src, srcPos, ((MultiDTaintedArrayWithObjTag)dest).getVal(), destPos, length);
+		}
+		else
+			System.arraycopy(src, srcPos, dest, destPos, length);
+	}
+
 
 	public static void arraycopyVM(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		if(!src.getClass().isArray())
@@ -674,7 +695,7 @@ public class TaintUtils {
 
 	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, Object[] prealloc) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (!Configuration.SINGLE_TAG_PER_ARRAY && (PREALLOC_RETURN_ARRAY && VM.isBooted$$PHOSPHORTAGGED(prealloc).val) && srcTaint != null && destTaint != null) {
+		if (!Configuration.SINGLE_TAG_PER_ARRAY && (VM.booted) && srcTaint != null && destTaint != null) {
 			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
 		}
@@ -682,12 +703,30 @@ public class TaintUtils {
 
 	public static void arraycopyControlTrack(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithIntTag()).val && srcTaint != null && destTaint != null) {
+		if (VM.booted && srcTaint != null && destTaint != null) {
 			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
 		}
 	}
 	
+	public static void arraycopy(Object srcTaint, Object src, Object srcPosTaint, int srcPos, Object destTaint, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length, Object[] prealloc) {
+		System.arraycopy(src, srcPos, dest, destPos, length);
+		if (VM.booted && 
+				srcTaint != null && destTaint != null) {
+			if(Configuration.SINGLE_TAG_PER_ARRAY || (destTaint instanceof Taint))
+			{
+				Taint _srcT = (Taint) srcTaint;
+				Taint _destT = (Taint) destTaint;
+				if(_srcT.lbl != Taint.EMPTY)
+				{
+					_destT.lbl = null;
+					_destT.addDependency(_srcT);
+				}
+			}
+			else if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
+				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
+		}
+	}
 	public static void arraycopy(Object srcTaint, Object src, Object srcPosTaint, int srcPos, Object destTaint, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
 		if (VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null) {

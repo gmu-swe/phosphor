@@ -144,6 +144,8 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 			owner = Type.getInternalName(ArrayReflectionMasker.class);
 			if(Configuration.MULTI_TAINTING)
 				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
+			if(!Configuration.MULTI_TAINTING && TaintUtils.PREALLOC_RETURN_ARRAY && name.startsWith("getLength"))
+				name += "Int";
 		}
 		super.visitMethodInsn(opcode, owner, name, desc,itfc);
 		if (owner.equals("java/lang/Class") && desc.endsWith("[Ljava/lang/reflect/Field;")) {

@@ -121,10 +121,10 @@ public class Instrumenter {
 				|| owner.startsWith("org/jikesrvm") || owner.startsWith("com/ibm/tuningfork") || owner.startsWith("org/mmtk") || owner.startsWith("org/vmmagic")
 //				|| owner.startsWith("edu/columbia/cs/psl/microbench")
 				|| owner.startsWith("java/lang/Number") || owner.startsWith("java/lang/Comparable") || owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
-				//																|| owner.startsWith("java/awt/image/BufferedImage")
-				//																|| owner.equals("java/awt/Image")
+//																				|| owner.startsWith("java/awt/image/BufferedImage")
+//																				|| owner.equals("java/awt/Image")
 				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
-				||owner.startsWith("sun/awt/image/codec/")
+//				||owner.startsWith("sun/awt/image/codec/")
 								|| (owner.startsWith("sun/reflect/Reflection")) //was on last
 				|| owner.equals("java/lang/reflect/Proxy") //was on last
 				|| owner.startsWith("sun/reflection/annotation/AnnotationParser") //was on last
@@ -134,9 +134,13 @@ public class Instrumenter {
 				|| owner.startsWith("sun/reflect/SerializationConstructorAccessor")
 
 				|| owner.startsWith("sun/reflect/GeneratedMethodAccessor") || owner.startsWith("sun/reflect/GeneratedConstructorAccessor")
-				|| owner.startsWith("sun/reflect/GeneratedSerializationConstructor") || owner.startsWith("sun/awt/image/codec/")
+				|| owner.startsWith("sun/reflect/GeneratedSerializationConstructor") 
+				|| (owner.startsWith("sun/awt/image/codec/") && !owner.equals("sun/awt/image/codec/JPEGParam"))
+				|| owner.startsWith("com/sun/image/codec/jpeg/JPEGImageDecoder")
 				|| owner.startsWith("java/lang/invoke/LambdaForm")
 				|| owner.startsWith("java/lang/invoke/MethodHandle")
+								|| owner.startsWith("java/lang/invoke/DelegatingMethodHandle")
+
 				;
 	}
 
@@ -196,7 +200,7 @@ public class Instrumenter {
 			}
 
 			buffer.flush();
-			PreMain.PCLoggingTransformer transformer = new PreMain.PCLoggingTransformer();
+			PreMain.TaintTrackingClassTransformer transformer = new PreMain.TaintTrackingClassTransformer();
 			byte[] ret = transformer.transform(Instrumenter.loader, path, null, null, buffer.toByteArray());
 			curPath = null;
 			return ret;
@@ -887,7 +891,7 @@ public class Instrumenter {
 
 	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc) {
 		if (!owner.startsWith("edu/columbia/cs/psl/phosphor") &&!owner.startsWith("[")
-//			&& !owner.startsWith("java")
+ && !owner.startsWith("java") && !owner.startsWith("com/sun") && !owner.startsWith("sun/")
 				&& !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
 			if (TaintUtils.DEBUG_CALLS)
 				System.out.println("Using uninstrument method call for class: " + owner + " method: " + name + " desc: " + desc);

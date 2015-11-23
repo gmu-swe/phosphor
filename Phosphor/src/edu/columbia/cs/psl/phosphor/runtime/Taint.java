@@ -130,6 +130,13 @@ public final class Taint implements Cloneable {
 		ret.taint = null;
 		return ret;
 	}
+	public TaintedBooleanWithObjTag hasNoDependencies$$PHOSPHORTAGGED(Object[] ret)
+	{
+		((TaintedBooleanWithObjTag) ret[TaintUtils.PREALLOC_BOOLEAN]).val = hasNoDependencies();
+		((TaintedBooleanWithObjTag) ret[TaintUtils.PREALLOC_BOOLEAN]).taint = null;
+		return ((TaintedBooleanWithObjTag) ret[TaintUtils.PREALLOC_BOOLEAN]);
+	}
+
 	public boolean hasNoDependencies() {
 		return dependencies.getFirst() == null || dependencies.getFirst().entry == null;
 	}

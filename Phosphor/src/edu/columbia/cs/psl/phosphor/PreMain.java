@@ -51,7 +51,7 @@ public class PreMain {
 
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
 
-	public static final class PCLoggingTransformer implements ClassFileTransformer {
+	public static final class TaintTrackingClassTransformer implements ClassFileTransformer {
 		private final class HackyClassWriter extends ClassWriter {
 
 			private HackyClassWriter(ClassReader classReader, int flags) {
@@ -122,6 +122,25 @@ public class PreMain {
 
 			return ret;
 		}
+		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint[] classtaint,
+				byte[] classfileBuffer, Object[] ret) throws IllegalClassFormatException {
+			Configuration.taintTagFactory.instrumentationStarting(className);
+
+			if (!INITED) {
+				Configuration.IMPLICIT_TRACKING = false;
+				Configuration.MULTI_TAINTING = true;
+				Configuration.init();
+				INITED = true;
+			}
+			if (className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+				((TaintedByteArrayWithObjTag) ret[9]).val = classfileBuffer;
+			else
+				((TaintedByteArrayWithObjTag) ret[9]).val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			((TaintedByteArrayWithObjTag) ret[9]).taint = new Taint[((TaintedByteArrayWithObjTag) ret[9]).val.length];
+			Configuration.taintTagFactory.instrumentationEnding(className);
+			return ((TaintedByteArrayWithObjTag)ret[9]);
+		}
+
 
 		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint[] classtaint,
 				byte[] classfileBuffer, ControlTaintTagStack ctrl, TaintedByteArrayWithObjTag ret) throws IllegalClassFormatException {
@@ -154,6 +173,23 @@ public class PreMain {
 			ret.taint = null;
 			Configuration.taintTagFactory.instrumentationEnding(className);
 			return ret;
+		}
+		
+		public TaintedByteArrayWithSingleObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint classtaint,
+				byte[] classfileBuffer, Object[] ret) throws IllegalClassFormatException {
+			Configuration.taintTagFactory.instrumentationStarting(className);
+
+			if (!INITED) {
+				Configuration.IMPLICIT_TRACKING = false;
+				Configuration.MULTI_TAINTING = true;
+				Configuration.SINGLE_TAG_PER_ARRAY = true;
+				Configuration.init();
+				INITED = true;
+			}
+			((TaintedByteArrayWithSingleObjTag)ret[TaintUtils.PREALLOC_BYTEARRAY]).val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			((TaintedByteArrayWithSingleObjTag)ret[TaintUtils.PREALLOC_BYTEARRAY]).taint = null;
+			Configuration.taintTagFactory.instrumentationEnding(className);
+			return ((TaintedByteArrayWithSingleObjTag)ret[TaintUtils.PREALLOC_BYTEARRAY]);
 		}
 		
 		public TaintedByteArrayWithSingleObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint classtaint,
@@ -486,7 +522,7 @@ public class PreMain {
 		Configuration.init();
 		if (Instrumenter.loader == null)
 			Instrumenter.loader = bigLoader;
-		ClassFileTransformer transformer = new PCLoggingTransformer();
+		ClassFileTransformer transformer = new TaintTrackingClassTransformer();
 		inst.addTransformer(transformer);
 
 	}

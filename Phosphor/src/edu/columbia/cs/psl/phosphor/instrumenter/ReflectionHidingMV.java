@@ -4,11 +4,13 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FrameNode;
+
 import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
@@ -167,11 +169,19 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 
 				} else {
+					if (className.equals("java/io/ObjectStreamClass")) {
+						super.visitMethodInsn(opcode, owner, name, desc, itfc);
+						return;
+					}
 					if(TaintUtils.PREALLOC_RETURN_ARRAY)
 					{
 						super.visitInsn(Opcodes.POP);
 						super.visitInsn(Opcodes.SWAP);
 						//[A C
+						super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getTaintConstructorPrealloc",
+								"(Ljava/lang/reflect/Constructor;Z)Ljava/lang/reflect/Constructor;", false);
+
 						super.visitInsn(Opcodes.DUP_X1);
 						//C [A C
 						super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
@@ -184,6 +194,10 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					{
 						super.visitInsn(Opcodes.SWAP);
 						//[A C
+						super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getTaintConstructor",
+								"(Ljava/lang/reflect/Constructor;Z)Ljava/lang/reflect/Constructor;", false);
+						
 						super.visitInsn(Opcodes.DUP_X1);
 						//C [A C
 						super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
@@ -276,6 +290,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			owner = Type.getInternalName(ArrayReflectionMasker.class);
 			if(Configuration.MULTI_TAINTING)
 				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
+			if(!Configuration.MULTI_TAINTING && TaintUtils.PREALLOC_RETURN_ARRAY && name.startsWith("getLength"))
+				name += "Int";
 		}
 		if (owner.equals("java/lang/reflect/Field")
 				&& opcode == Opcodes.INVOKEVIRTUAL
@@ -287,6 +303,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			owner = Type.getInternalName(RuntimeReflectionPropogator.class);
 			opcode = Opcodes.INVOKESTATIC;
 			desc = "(Ljava/lang/reflect/Field;" + desc.substring(1);
+			if(Configuration.MULTI_TAINTING && TaintUtils.PREALLOC_RETURN_ARRAY && name.startsWith("get"))
+				name += "Obj";
 			if(name.equals("get") || name.equals("get$$PHOSPHORTAGGED"))
 			{
 				if(TaintUtils.PREALLOC_RETURN_ARRAY)
