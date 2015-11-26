@@ -566,7 +566,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 	@Override
 	public void visitEnd() {
 
-		if((className.equals("java/lang/Enum")) && Configuration.WITH_ENUM_BY_VAL && !isEnum)
+		if((isEnum || className.equals("java/lang/Enum")) && Configuration.WITH_ENUM_BY_VAL)
 		{
 			MethodVisitor mv = super.visitMethod(Opcodes.ACC_PUBLIC, "clone", "()Ljava/lang/Object;", null, new String[]{"java/lang/CloneNotSupportedException"});
 			mv.visitCode();
@@ -600,7 +600,10 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 //			}
 		}
 		if(this.className.equals("java/lang/reflect/Method"))
+		{
+			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD+"method", "Ljava/lang/reflect/Method;", null, 0);
 			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD+"marked", "Z", null, 0);
+		}
 		else if(this.className.equals("java/lang/reflect/Constructor"))
 		{
 			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD+"marked", "Z", null, 0);

@@ -85,13 +85,13 @@ public final class NativeHelper {
 							ex.printStackTrace();
 						}
 					}
-					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithIntTag.boxIfNecessary(o), new TaintedBooleanWithIntTag());
+					tmp.add(MultiDTaintedArrayWithIntTag.boxIfNecessary(o));
 				} else
 					break;
 			}
 			if (tmp != null) {
 				in.clear();
-				tmp.add$$PHOSPHORTAGGED(tmp, new TaintedBooleanWithIntTag());
+				tmp.add(tmp);
 			}
 		}
 		return in;

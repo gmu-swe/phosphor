@@ -485,6 +485,7 @@ public class PreMain {
 	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, ControlTaintTagStack ctrl) {
 		Configuration.IMPLICIT_TRACKING = true;
 		Configuration.MULTI_TAINTING = true;
+		TaintUtils.PREALLOC_RETURN_ARRAY = false;
 		Configuration.init();
 		premain(args, inst);
 	}

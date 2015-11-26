@@ -313,6 +313,10 @@ public class ReflectionMasker {
 	public static Method getTaintMethod(Method m, boolean isObjTags) {
 		//		if (m.INVIVO_PC_TAINTmarked)
 		//			return m;
+		if(m.PHOSPHOR_TAGmethod != null)
+			return m.PHOSPHOR_TAGmethod;
+		if(VM.booted)
+		System.out.println("Get taint method " + m);
 		if (m.getDeclaringClass().isAnnotation())
 			return m;
 		
@@ -493,6 +497,8 @@ public class ReflectionMasker {
 			newArgs.toArray(args);
 			Method ret = null;
 			try {
+				if(VM.booted)
+					System.out.println("Looking for: "+m.getName() + "$$PHOSPHORTAGGED"+Arrays.toString( args));
 				ret = m.getDeclaringClass().getDeclaredMethod(m.getName() + "$$PHOSPHORTAGGED", args);
 			} catch (NoSuchMethodException e) {
 				e.printStackTrace();
@@ -503,12 +509,14 @@ public class ReflectionMasker {
 			//			lastTaintMethod = ret;
 			//			methodCache.put(m, ret);
 			//			ret.INVIVO_PC_TAINTmarked = true;
+			m.PHOSPHOR_TAGmethod = ret;
 			return ret;
 		} else {
 			//			lastTaintMethodOrig = m;
 			//			lastTaintMethod = m;
 			//			methodCache.put(m, m);
 			//			m.INVIVO_PC_TAINTmarked = true;
+			m.PHOSPHOR_TAGmethod = m;
 			return m;
 		}
 	}

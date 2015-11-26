@@ -85,7 +85,7 @@ public final
     // potentially many Method objects pointing to it.)
     private Method              root;
     public  boolean PHOSPHOR_TAGmarked;
-
+    public  Method PHOSPHOR_TAGmethod;
    // Generics infrastructure
 
     private String getGenericSignature() {return signature;}

@@ -132,7 +132,6 @@ public class Configuration {
 		}
 		if(WITH_SELECTIVE_INST)
 			GENERATE_UNINST_STUBS = true;
-
 		if (TaintTrackingClassVisitor.class != null && TaintTrackingClassVisitor.class.getClassLoader() != null) {
 			URL r = TaintTrackingClassVisitor.class.getClassLoader().getResource("phosphor-mv");
 			if (r != null)
