@@ -12,6 +12,7 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FrameNode;
 
 import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
+import edu.columbia.cs.psl.phosphor.runtime.JDTReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -356,9 +357,11 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		} else if (owner.equals("java/lang/Object") && name.equals("getClass")) {
 			super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
 			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeTaintClass", "(Ljava/lang/Class;Z)Ljava/lang/Class;", false);
-
 		}
-
+		else if(owner.equals("org/eclipse/jdt/internal/compiler/classfmt/ClassFileReader") && name.startsWith("getMethods"))
+		{
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(JDTReflectionMasker.class), "removeTaintMethods", "([Lorg/eclipse/jdt/internal/compiler/env/IBinaryMethod;)[Lorg/eclipse/jdt/internal/compiler/env/IBinaryMethod;", false);
+		}
 		if ((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && !(className.equals("java/lang/Class")) && 
 				(name.equals("invoke") || name.equals("newInstance") || name.equals("invoke$$PHOSPHORTAGGED") 
 						|| name.equals("newInstance$$PHOSPHORTAGGED"))) {

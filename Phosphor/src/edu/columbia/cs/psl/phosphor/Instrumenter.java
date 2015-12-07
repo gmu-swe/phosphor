@@ -140,7 +140,7 @@ public class Instrumenter {
 				|| owner.startsWith("java/lang/invoke/LambdaForm")
 				|| owner.startsWith("java/lang/invoke/MethodHandle")
 								|| owner.startsWith("java/lang/invoke/DelegatingMethodHandle")
-|| owner.startsWith("org/apache/jasper/runtime/HttpJspBase")
+//|| owner.startsWith("org/apache/jasper/runtime/HttpJspBase")
 				;
 	}
 

@@ -419,7 +419,23 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 				name = name + TaintUtils.METHOD_SUFFIX;
 //			if(className.equals("sun/misc/URLClassPath$JarLoader"))
 //				System.out.println("\t\t:"+name+newDesc);
-			MethodVisitor mv = super.visitMethod(access, name, newDesc, signature, exceptions);
+			MethodVisitor mv = null;
+			if(!requiresNoChange && isAbstractClass && !isInterface && !name.contains("<") && ((access & Opcodes.ACC_ABSTRACT) != 0))
+			{
+				//Abstract method - will have no body. So let's add one that does nothing. Nobody
+				//should ever call it anyway.
+				mv = super.visitMethod(access & ~Opcodes.ACC_ABSTRACT, name, newDesc, signature, exceptions);
+				mv.visitCode();
+				mv.visitTypeInsn(Opcodes.NEW, Type.getInternalName(UnsupportedOperationException.class));
+				mv.visitInsn(Opcodes.DUP);
+				mv.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(UnsupportedOperationException.class), "<init>", "()V", false);
+				mv.visitInsn(Opcodes.ATHROW);
+				mv.visitMaxs(0, 0);
+			}
+			else
+				mv = super.visitMethod(access, name, newDesc, signature, exceptions);
+			
+			
 			mv = new TaintTagFieldCastMV(mv);
 
 			MethodVisitor rootmV = mv;
