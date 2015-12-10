@@ -1,0 +1,6 @@
+<edu.columbia.cs.psl.test.phosphor.InstUninstIntTagPartialInstITCase: void instrumented()>
+<edu.columbia.cs.psl.test.phosphor.InstUninstIntTagPartialInstITCase: void testReflectionInstrumented()>
+<edu.columbia.cs.psl.test.phosphor.InstUninstIntTagPartialInstITCase: void beforeInstrumented()>
+<edu.columbia.cs.psl.test.phosphor.InstUninstIntTagPartialInstITCase: void inst(java.lang.Object, int)>
+<edu.columbia.cs.psl.test.phosphor.PartiallyInstrumentedClass: void foo()>
+<edu.columbia.cs.psl.test.phosphor.PartiallyInstrumentedClass: boolean uninst()>

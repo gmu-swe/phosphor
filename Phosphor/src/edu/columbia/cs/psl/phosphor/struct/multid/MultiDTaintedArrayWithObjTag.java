@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
 
 public abstract class MultiDTaintedArrayWithObjTag {
@@ -459,6 +459,14 @@ public abstract class MultiDTaintedArrayWithObjTag {
 					if(tmp == Short.TYPE)
 						return new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray(((short[]) in).length), ((short[]) in));
 						throw new IllegalArgumentException();
+				}
+			}
+			else if(in.getClass().getComponentType().getName().equals("java.lang.Object"))
+			{
+				Object[] _in = (Object[]) in;
+				for(int i = 0; i < _in.length;i++)
+				{
+					_in[i] = boxIfNecessary(_in[i]);
 				}
 			}
 		}

@@ -2,82 +2,127 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
-public class ControlTaintTagStack {
+public final class ControlTaintTagStack {
 	public Taint taint;
 	boolean invalidated;
-	public Taint parentTaint;
-	ControlTaintTagStack[] children;
+	DoubleLinkedList<EnqueuedTaint> children = new  DoubleLinkedList<EnqueuedTaint>();
 
 	public final boolean isEmpty() {
-		return taint.lbl == null && taint.hasNoDependencies();
+		return taint == null || (taint.lbl == null && taint.hasNoDependencies());
 	}
-
+	public ControlTaintTagStack(int zz) {
+		this();
+	}
 	public ControlTaintTagStack() {
-		this.taint = new Taint();
 	}
-
-	public ControlTaintTagStack(int nJump) {
-		this.children = new ControlTaintTagStack[nJump];
-		this.taint = new Taint();
-	}
-
-	public ControlTaintTagStack(int nJump, ControlTaintTagStack parent) {
-		this.taint = new Taint();
-		this.parentTaint = parent.taint;
-		this.children = new ControlTaintTagStack[nJump];
+	public Taint copyTag()
+	{
+		if(taint ==null || getTag() == null)
+			return null;
+		return taint.copy();
 	}
 
 	public final void recalculate() {
-		taint = new Taint();
-		taint.addDependency(parentTaint);
-		for (ControlTaintTagStack t : children) {
-			if (t != null)
-				taint.addDependency(t.taint);
-		}
-	}
-
-	public final void appendTag(Object ob, int child) {
-		if (ob instanceof Tainted) {
-			if (ob instanceof TaintedWithObjTag)
-				appendTag((Taint) (((TaintedWithObjTag) ob).getPHOSPHOR_TAG()), child);
-		}
-	}
-
-	public final void appendTag(Taint tag, int child) {
-		if (tag == null)
+		if(!invalidated)
 			return;
-		if (tag.lbl != null) {
-			if (children[child - 1] == null)
-				children[child - 1] = new ControlTaintTagStack();
-			if (children[child - 1].taint.addDependency(tag))
-				taint.addDependency(tag);
-		} else if (!tag.hasNoDependencies()) //addign a tag with a bunch of deps
-		{
-			if (children[child - 1] == null)
-				children[child - 1] = new ControlTaintTagStack();
-			edu.columbia.cs.psl.phosphor.struct.LinkedList.Node<Taint> n = tag.dependencies.getFirst();
-			while (n != null) {
-				if (n.entry != null && n.entry.lbl != null)
-					if (children[child - 1].taint.addDependency(n.entry))
-						taint.addDependency(n.entry);
+		invalidated = false;
+
+		if (children != null) {
+			taint = new Taint();
+
+			DoubleLinkedList.Node<EnqueuedTaint> n = children.getFirst();
+			while(n != null) {
+				Taint t = n.entry.taint;
+				if (t != null) {
+					if (t.lbl != null)
+						taint.addDependency(t);
+					else if (!(t.hasNoDependencies())) {
+						taint.dependencies.addAll(t.dependencies);
+					}
+				}
 				n = n.next;
 			}
 		}
+		else
+			taint = null;
+	}
+	
+	public final EnqueuedTaint push(Object ob,EnqueuedTaint prev) {
+		if (ob instanceof Tainted) {
+			if (ob instanceof TaintedWithObjTag)
+				return push((Taint) (((TaintedWithObjTag) ob).getPHOSPHOR_TAG()), prev);
+		}
+		return prev;
+	}
+	public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
+		if (tag == null || tag == taint)
+			return prev;
+		//Ensure not already enqueued in this thread's control flow
+		if(tag.enqueuedInControlFlow == null)
+			tag.enqueuedInControlFlow = new LinkedList<EnqueuedTaint>();
+		LinkedList.Node<EnqueuedTaint> e = tag.enqueuedInControlFlow.getFirst();
+		while (e != null) {
+			if (e.entry != null && e.entry.controlTag == this)
+				return prev; //already have this taint tag in this controlflowtainttagstack
+			e = e.next;
+		}
+		EnqueuedTaint entry = new EnqueuedTaint(tag, this);
+
+		entry.prev = prev;
+		entry.place = children.add(entry);
+		tag.enqueuedInControlFlow.addFast(entry);
+		if(taint == null)
+			taint = new Taint();
+		taint.addDependency(tag);
+		invalidated = true;
+		return entry;
 	}
 
-	public final void appendTag(Taint tag, Taint tag2, int child) {
-		appendTag(tag, child);
-		appendTag(tag2, child);
-	}
+	public final void pop(EnqueuedTaint enq) {
+		if(enq == null || enq.taint == null)
+		{
+			return;
+		}
+		invalidated = true;
 
-	public final void pop(int child) {
-		boolean recalc = children[child - 1] != null;
-		children[child - 1] = null;
+		Taint tag = enq.taint;
+		boolean recalc = tag.lbl != null || !tag.hasNoDependencies();
+		LinkedList.Node<EnqueuedTaint> e = tag.enqueuedInControlFlow.getFirst();
+		LinkedList.Node<EnqueuedTaint> p = null;
+		while(e != null)
+		{
+			if(e.entry.controlTag == this)
+			{
+				//Remove from controltag's list
+				DoubleLinkedList.Node<EnqueuedTaint> pl = e.entry.place;
+				if(pl.prev != null)
+					pl.prev.next = pl.next;
+				if(pl.next != null)
+					pl.next.prev  = pl.prev;
+				//Remove from tag's list
+				if(p != null)
+					p.next = e.next;
+				else
+					tag.enqueuedInControlFlow.clear();
+			}
+			p = e;
+			e = e.next;
+		}
+		if(enq.prev != null)
+			pop(enq.prev);
 		if (recalc)
+		{
 			recalculate();
+		}
 	}
 
 	public Taint getTag() {
+		if(taint == null || (taint.hasNoDependencies() && taint.lbl == null))
+			return null;
 		return taint;
+	}
+	public void reset() {
+		children = new DoubleLinkedList<EnqueuedTaint>();
+		taint = null;
 	}
 }

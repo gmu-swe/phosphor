@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
@@ -16,8 +18,18 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
-public class MultiTainter {
+public final class MultiTainter {
+	public static ControlTaintTagStack getControlFlow()
+	{
+		throw new IllegalStateException();
+	}
+	public static ControlTaintTagStack getControlFlow$$PHOSPHORTAGGED(ControlTaintTagStack ctrl)
+	{
+		return ctrl;
+	}
 	public static boolean taintedBoolean(boolean in, Object lbl)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
@@ -47,10 +59,6 @@ public class MultiTainter {
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static short taintedShort(short in, Object lbl)
-	{
-		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
-	}
-	public static String taintedString(String in, Object lbl)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
@@ -200,9 +208,6 @@ public class MultiTainter {
 		ret.val = in;
 		return ret;
 	}
-
-
-	
 	public static TaintedBooleanArrayWithObjTag taintedBooleanArray$$PHOSPHORTAGGED(Taint[] oldTag, boolean[] in, Object lbl, TaintedBooleanArrayWithObjTag ret)
 	{
 		ret.taint = new Taint[in.length];
@@ -266,5 +271,60 @@ public class MultiTainter {
 			ret.taint[i] = new Taint(lbl);
 		ret.val = in;
 		return ret;
+	}
+	public static Taint getTaint$$PHOSPHORTAGGED(Object obj)
+	{
+		return getTaint(obj);
+	}
+
+	public static final Taint getTaint(Object obj)
+	{
+		if(obj instanceof MultiDTaintedArrayWithObjTag)
+			obj = ((MultiDTaintedArrayWithObjTag) obj).getVal();
+		if(Configuration.taintTagFactory == null)
+			return null;
+		if(obj instanceof TaintedWithObjTag)
+		{
+			Taint ret = (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
+			if(ret == null)
+			{
+				ret = Configuration.taintTagFactory.dynamicallyGenerateEmptyTaint();
+				taintedObject(obj, ret);
+			}
+			return ret;
+		}
+		else if(obj != null && ArrayHelper.engaged == 1)
+		{
+			Taint ret = ArrayHelper.getTag(obj);
+			if(ret == null)
+			{
+				ret = Configuration.taintTagFactory.dynamicallyGenerateEmptyTaint();
+				taintedObject(obj, ret);
+			}
+			return ret;
+		}
+		else
+			return null;
+	}
+	public static Taint getTaint$$PHOSPHORTAGGED(Object obj, ControlTaintTagStack ctrl)
+	{
+		return getTaint(obj);
+	}
+	public static void taintedObject(Object obj, Taint tag)
+	{
+		if(obj instanceof MultiDTaintedArrayWithObjTag)
+			obj = ((MultiDTaintedArrayWithObjTag) obj).getVal();
+		if(obj instanceof TaintedWithObjTag)
+			((TaintedWithObjTag) obj).setPHOSPHOR_TAG(tag);
+		else if(obj != null && ArrayHelper.engaged == 1)
+			ArrayHelper.setTag(obj, tag);
+	}
+	public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint tag, ControlTaintTagStack ctrl)
+	{
+		taintedObject(obj, tag);
+	}
+	public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint tag)
+	{
+		taintedObject(obj, tag);
 	}
 }

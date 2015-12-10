@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import java.lang.reflect.Array;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+import org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
@@ -52,6 +52,48 @@ public class ArrayReflectionMasker {
 			return ret;
 		}
 		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
+	}
+	public static int getLength(Object obj) {
+		if (obj.getClass().isArray()) {
+			return Array.getLength(obj);
+		} else if (obj instanceof MultiDTaintedArrayWithIntTag) {
+			return Array.getLength(((MultiDTaintedArrayWithIntTag) obj).getVal());
+		}
+		else if (obj instanceof MultiDTaintedArrayWithObjTag) {
+			return Array.getLength(((MultiDTaintedArrayWithObjTag) obj).getVal());
+		}
+		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
+	}
+
+	public static Object newInstance(Class clazz, int len) {
+		Class tmp = clazz;
+		int dims = 0;
+		while (tmp.isArray()) {
+			tmp = tmp.getComponentType();
+			dims++;
+		}
+		if (tmp.isPrimitive()) {
+			if (dims == 0) {
+				if (tmp == Double.TYPE)
+					return new MultiDTaintedDoubleArrayWithIntTag(new int[len], new double[len]);
+				if (tmp == Float.TYPE)
+					return new MultiDTaintedFloatArrayWithIntTag(new int[len], new float[len]);
+				if (tmp == Integer.TYPE)
+					return new MultiDTaintedIntArrayWithIntTag(new int[len], new int[len]);
+				if (tmp == Long.TYPE)
+					return new MultiDTaintedLongArrayWithIntTag(new int[len], new long[len]);
+				if (tmp == Short.TYPE)
+					return new MultiDTaintedShortArrayWithIntTag(new int[len], new short[len]);
+				if (tmp == Boolean.TYPE)
+					return new MultiDTaintedBooleanArrayWithIntTag(new int[len], new boolean[len]);
+				if (tmp == Byte.TYPE)
+					return new MultiDTaintedByteArrayWithIntTag(new int[len], new byte[len]);
+				if (tmp == Character.TYPE)
+					return new MultiDTaintedCharArrayWithIntTag(new int[len], new char[len]);
+			} else
+				clazz = MultiDTaintedArrayWithIntTag.getUnderlyingBoxClassForUnderlyingClass(clazz);
+		}
+		return Array.newInstance(clazz, len);
 	}
 
 	public static TaintedIntWithIntTag getLength$$PHOSPHORTAGGED(Object obj, ControlTaintTagStack ctlr, TaintedIntWithIntTag ret) {
@@ -398,21 +440,21 @@ public class ArrayReflectionMasker {
 	}
 
 	public static Object get$$PHOSPHORTAGGED(Object obj, Object idxTaint, int idx) {
-		if (obj instanceof MultiDTaintedBooleanArrayWithIntTag)
+		if (obj instanceof MultiDTaintedBooleanArrayWithObjTag)
 			return getBoolean$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedBooleanWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedByteArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedByteArrayWithObjTag)
 			return getByte$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedByteWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedCharArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedCharArrayWithObjTag)
 			return getChar$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedCharWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedDoubleArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedDoubleArrayWithObjTag)
 			return getDouble$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedDoubleWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedFloatArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedFloatArrayWithObjTag)
 			return getFloat$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedFloatWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedIntArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedIntArrayWithObjTag)
 			return getInt$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedIntWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedLongArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedLongArrayWithObjTag)
 			return getLong$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedLongWithObjTag()).toPrimitiveType();
-		else if (obj instanceof MultiDTaintedShortArrayWithIntTag)
+		else if (obj instanceof MultiDTaintedShortArrayWithObjTag)
 			return getShort$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedShortWithObjTag()).toPrimitiveType();
 		return Array.get(obj, idx);
 	}

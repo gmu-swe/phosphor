@@ -9,7 +9,10 @@ import java.util.HashSet;
 import java.util.Scanner;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.ClassNode;
+
 import edu.columbia.cs.psl.phosphor.struct.CallGraph;
 import edu.columbia.cs.psl.phosphor.struct.MiniClassNode;
 
@@ -90,17 +93,15 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			System.out.println("Loaded " + sinks.size() + " sinks and " + sources.size() + " sources");
 		}
 	}
-	CallGraph g;
-
-	public BasicSourceSinkManager(CallGraph g) {
-		this.g = g;
+	
+	public BasicSourceSinkManager() {
 	}
 
 	static BasicSourceSinkManager instance;
 
-	public static BasicSourceSinkManager getInstance(CallGraph g) {
+	public static BasicSourceSinkManager getInstance() {
 		if (instance == null) {
-			instance = new BasicSourceSinkManager(g);
+			instance = new BasicSourceSinkManager();
 		}
 		return instance;
 	}
@@ -108,10 +109,10 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	boolean c1IsSuperforC2(String c1, String c2) {
 		if (c1.equals(c2))
 			return true;
-		MiniClassNode cn = g.getClassNode(c2);
+		ClassNode cn = Instrumenter.classes.get(c2);
 		if (cn.interfaces != null)
-			for (String s : cn.interfaces) {
-				if (c1IsSuperforC2(c1, s))
+			for (Object s : cn.interfaces) {
+				if (c1IsSuperforC2(c1, (String) s))
 					return true;
 			}
 

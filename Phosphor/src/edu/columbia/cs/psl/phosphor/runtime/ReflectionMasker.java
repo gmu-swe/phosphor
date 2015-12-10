@@ -8,8 +8,13 @@ import java.util.WeakHashMap;
 
 import sun.reflect.ReflectionFactory;
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.MethodDescriptor;
+import edu.columbia.cs.psl.phosphor.SelectiveInstrumentationManager;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+
+import org.objectweb.asm.Type;
+
 import edu.columbia.cs.psl.phosphor.struct.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
@@ -78,6 +83,19 @@ public class ReflectionMasker {
 				}
 				x++;
 			}
+			if (isEq) {
+				if (!IS_KAFFE)
+					m.PHOSPHOR_TAGmarked = true;
+				return m;
+			}
+			x = 0;
+			if (Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
+				for (int i = chars.length - SUFFIX_LEN - 2; i < chars.length; i++) {
+					if (chars[i] != SUFFIX2CHARS[x]) {
+						isEq = false;
+					}
+					x++;
+				}
 			if (isEq) {
 				if (!IS_KAFFE)
 					m.PHOSPHOR_TAGmarked = true;
@@ -196,6 +214,7 @@ public class ReflectionMasker {
 			return m;
 		}
 	}
+	static boolean isSelectiveInstManagerInit = false;
 
 	@SuppressWarnings("rawtypes")
 	public static Method getTaintMethod(Method m, boolean isObjTags) {
@@ -203,6 +222,7 @@ public class ReflectionMasker {
 		//			return m;
 		if (m.getDeclaringClass().isAnnotation())
 			return m;
+		
 		final char[] chars = m.getName().toCharArray();
 		if (chars.length > SUFFIX_LEN) {
 			boolean isEq = true;
@@ -213,6 +233,19 @@ public class ReflectionMasker {
 				}
 				x++;
 			}
+			if (isEq) {
+				if (!IS_KAFFE)
+					m.PHOSPHOR_TAGmarked = true;
+				return m;
+			}
+			x = 0;
+			if (Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
+				for (int i = chars.length - SUFFIX_LEN - 2; i < chars.length; i++) {
+					if (chars[i] != SUFFIX2CHARS[x]) {
+						isEq = false;
+					}
+					x++;
+				}
 			if (isEq) {
 				if (!IS_KAFFE)
 					m.PHOSPHOR_TAGmarked = true;
@@ -237,7 +270,7 @@ public class ReflectionMasker {
 				} else {
 					Class elementType = c.getComponentType();
 					while (elementType.isArray())
-						elementType = c.getComponentType();
+						elementType = elementType.getComponentType();
 					if (elementType.isPrimitive()) {
 						//2d primtiive array
 						madeChange = true;
@@ -380,6 +413,87 @@ public class ReflectionMasker {
 		}
 	}
 
+	@SuppressWarnings("rawtypes")
+	public static Method getUnTaintMethod(Method m, boolean isObjTags) {
+		//		if (m.INVIVO_PC_TAINTmarked)
+		//			return m;
+		if (m.getDeclaringClass().isAnnotation())
+			return m;
+		
+		final char[] chars = m.getName().toCharArray();
+		if (chars.length > SUFFIX_LEN + 2) {
+			boolean isEq = true;
+			int x = 0;
+			for (int i = chars.length - SUFFIX_LEN -2; i < chars.length; i++) {
+				if (chars[i] != SUFFIX2CHARS[x]) {
+					isEq = false;
+				}
+				x++;
+			}
+			if (isEq) {
+
+				return m;
+			}
+		}
+		ArrayList<Class> newArgs = new ArrayList<Class>();
+		boolean madeChange = false;
+		for (final Class c : m.getParameterTypes()) {
+			if (c.isArray()) {
+				if (c.getComponentType().isPrimitive()) {
+					newArgs.add(c);
+					continue;
+				} else {
+					Class elementType = c.getComponentType();
+					String s = "";
+					while (elementType.isArray())
+						elementType = elementType.getComponentType();
+					if (elementType.isPrimitive()) {
+						//2d primtiive array
+						madeChange = true;
+						if (isObjTags)
+							newArgs.add(MultiDTaintedArrayWithObjTag.getUnderlyingBoxClassForUnderlyingClass(c));
+						else
+							newArgs.add(MultiDTaintedArrayWithIntTag.getUnderlyingBoxClassForUnderlyingClass(c));
+						continue;
+					} else {
+						//reference array
+						newArgs.add(c);
+						continue;
+					}
+				}
+			} else if (c.isPrimitive()) {
+				newArgs.add(c);
+				continue;
+			} else {
+				//anything else
+				newArgs.add(c);
+				continue;
+			}
+		}		
+		if (madeChange) {
+			Class[] args = new Class[newArgs.size()];
+			newArgs.toArray(args);
+			Method ret = null;
+			try {
+				ret = m.getDeclaringClass().getDeclaredMethod(m.getName() + "$$PHOSPHORUNTAGGED", args);
+			} catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			} catch (SecurityException e) {
+				e.printStackTrace();
+			}
+			//			lastTaintMethodOrig = m;
+			//			lastTaintMethod = ret;
+			//			methodCache.put(m, ret);
+			//			ret.INVIVO_PC_TAINTmarked = true;
+			return ret;
+		} else {
+			//			lastTaintMethodOrig = m;
+			//			lastTaintMethod = m;
+			//			methodCache.put(m, m);
+			//			m.INVIVO_PC_TAINTmarked = true;
+			return m;
+		}
+	}
 	//	static Method lastOrigMethod;
 	//	static Method lastMethod;
 
@@ -392,7 +506,18 @@ public class ReflectionMasker {
 		//			System.out.println("Returning " + lastMethod);
 		//			return lastMethod;
 		//		}
-		if (m.getName().endsWith("$$PHOSPHORTAGGED")) {
+		if(Configuration.GENERATE_UNINST_STUBS && m.getName().endsWith("$$PHOSPHORUNTAGGED"))
+		{
+			String origName = m.getName().replace("$$PHOSPHORUNTAGGED", "");
+			try {
+				return m.getDeclaringClass().getDeclaredMethod(origName, m.getParameterTypes());
+			} catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			} catch (SecurityException e) {
+				e.printStackTrace();
+			}
+		}
+		else if (m.getName().endsWith("$$PHOSPHORTAGGED")) {
 			String origName = m.getName().replace("$$PHOSPHORTAGGED", "");
 			ArrayList<Class> origArgs = new ArrayList<Class>();
 			boolean dontIgnorePrimitive = false;
@@ -843,7 +968,83 @@ public class ReflectionMasker {
 		//		System.out.println("Fix all args fast: " + Arrays.toString(ret) + " for " + m);
 		return ret;
 	}
-
+	
+	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, boolean isObjTags) {
+		Class[] params = c.getParameterTypes();
+		if(params.length == 0)
+			return in;
+		if(params[params.length - 1] == UninstrumentedTaintSentinel.class)
+		{
+			Object[] ret = new Object[in.length + 1];
+			System.arraycopy(in, 0, ret, 0, in.length);
+			return ret;
+		}
+		else if(params[params.length - 1] == TaintSentinel.class)
+		{
+			return fixAllArgs(in, c, isObjTags);
+		}
+		return in;
+	}
+	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, ControlTaintTagStack ctrl) {
+		return in;
+	}
+	public static MethodInvoke fixAllArgsUninst(Method m, Object owner, Object[] in, boolean isObjTags) {
+		MethodInvoke ret = new MethodInvoke();
+		if (m == null) {
+			ret.a = in;
+			ret.o = owner;
+			ret.m = m;
+			return ret;
+		}
+		if(Configuration.WITH_SELECTIVE_INST)// && Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m)))
+		{
+//			ret.m = getUnTaintMethod(m, isObjTags);
+			ret.m = getOrigMethod(m, isObjTags);
+			ret.o = owner;
+			ret.a = in;
+			if(ret.a != null && ret.a.getClass().isArray() && ret.a.getClass().getComponentType() == Object.class)
+			for(int i = 0; i < ret.a.length; i++)
+			{
+				if(ret.a[i] instanceof MultiDTaintedArrayWithIntTag)
+				{
+					ret.a[i] = ((MultiDTaintedArrayWithIntTag)ret.a[i]).getVal();
+				}
+				else if(ret.a[i] instanceof MultiDTaintedArrayWithObjTag)
+				{
+					ret.a[i] = ((MultiDTaintedArrayWithObjTag)ret.a[i]).getVal();
+				}
+			}
+		}
+		else
+		{
+			ret = fixAllArgs(m, owner, in, isObjTags);
+		}
+		return ret;
+	}
+	public static MethodInvoke fixAllArgsUninst(Method m, Object owner, Object[] in, ControlTaintTagStack ctrl) {
+		MethodInvoke ret = new MethodInvoke();
+		if (m == null) {
+			ret.a = in;
+			ret.o = owner;
+			ret.m = m;
+			return ret;
+		}
+		ret.m = getOrigMethod(m, true);
+		ret.o = owner;
+		ret.a = in;
+		for(int i = 0; i < ret.a.length; i++)
+		{
+			if(ret.a[i] instanceof MultiDTaintedArrayWithIntTag)
+			{
+				ret.a[i] = ((MultiDTaintedArrayWithIntTag)ret.a[i]).getVal();
+			}
+			else if(ret.a[i] instanceof MultiDTaintedArrayWithObjTag)
+			{
+				ret.a[i] = ((MultiDTaintedArrayWithObjTag)ret.a[i]).getVal();
+			}
+		}
+		return ret;
+	}
 	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, boolean isObjTags) {
 		//		System.out.println("Making slow call to  " + m);
 		MethodInvoke ret = new MethodInvoke();
@@ -1185,7 +1386,8 @@ public class ReflectionMasker {
 	static final int GETSETLEN = "setPHOSPHOR_TAG".length();
 	static final char[] GETSETCHARS = "setPHOSPHOR_TAG".toCharArray();
 	static final char[] SUFFIXCHARS = "$$PHOSPHORTAGGED".toCharArray();
-
+	static final char[] SUFFIX2CHARS = "$$PHOSPHORUNTAGGED".toCharArray();
+	
 	static final char[] FIELDSUFFIXCHARS = TaintUtils.TAINT_FIELD.toCharArray();
 	static final int FIELDSUFFIXLEN = FIELDSUFFIXCHARS.length;
 
@@ -1208,13 +1410,25 @@ public class ReflectionMasker {
 			}
 			if (!match && chars.length > SUFFIX_LEN) {
 				int x = 0;
+				boolean matched = true;
 				for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
 					if (chars[i] != SUFFIXCHARS[x]) {
-						ret.add(f);
+						matched = false;
 						break;
 					}
 					x++;
 				}
+				x = 0;
+				if (!matched && Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
+					for (int i = chars.length - SUFFIX_LEN -2; i < chars.length; i++) {
+						if (chars[i] != SUFFIX2CHARS[x]) {
+							ret.add(f);
+							break;
+						}
+						x++;
+					}
+				else if(!matched)
+					ret.add(f);
 			} else if (!match) {
 				ret.add(f);
 			}

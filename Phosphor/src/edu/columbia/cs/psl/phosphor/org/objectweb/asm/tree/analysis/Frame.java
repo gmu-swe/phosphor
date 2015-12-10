@@ -32,14 +32,17 @@ package edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis;
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.AbstractInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.IincInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.InvokeDynamicInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MultiANewArrayInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.IincInsnNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MultiANewArrayInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.analysis.AnalyzerException;
+import org.objectweb.asm.tree.analysis.Interpreter;
+import org.objectweb.asm.tree.analysis.Value;
 
 /**
  * A symbolic execution stack frame. A stack frame contains a set of local
@@ -240,7 +243,7 @@ public class Frame<V extends Value> {
     }
 
     public void execute(final AbstractInsnNode insn,
-            final Interpreter<V> interpreter) throws AnalyzerException {
+            final Interpreter interpreter) throws AnalyzerException {
         V value1, value2, value3, value4;
         List<V> values;
         int var;
@@ -266,14 +269,14 @@ public class Frame<V extends Value> {
         case Opcodes.BIPUSH:
         case Opcodes.SIPUSH:
         case Opcodes.LDC:
-            push(interpreter.newOperation(insn));
+            push((V) interpreter.newOperation(insn));
             break;
         case Opcodes.ILOAD:
         case Opcodes.LLOAD:
         case Opcodes.FLOAD:
         case Opcodes.DLOAD:
         case Opcodes.ALOAD:
-            push(interpreter.copyOperation(insn,
+            push((V) interpreter.copyOperation(insn,
                     getLocal(((VarInsnNode) insn).var)));
             break;
         case Opcodes.IALOAD:
@@ -286,23 +289,23 @@ public class Frame<V extends Value> {
         case Opcodes.SALOAD:
             value2 = pop();
             value1 = pop();
-            push(interpreter.binaryOperation(insn, value1, value2));
+            push((V) interpreter.binaryOperation(insn, value1, value2));
             break;
         case Opcodes.ISTORE:
         case Opcodes.LSTORE:
         case Opcodes.FSTORE:
         case Opcodes.DSTORE:
         case Opcodes.ASTORE:
-            value1 = interpreter.copyOperation(insn, pop());
+            value1 = (V) interpreter.copyOperation(insn, pop());
             var = ((VarInsnNode) insn).var;
             setLocal(var, value1);
             if (value1.getSize() == 2) {
-                setLocal(var + 1, interpreter.newValue(null));
+                setLocal(var + 1, (V) interpreter.newValue(null));
             }
             if (var > 0) {
                 Value local = getLocal(var - 1);
                 if (local != null && local.getSize() == 2) {
-                    setLocal(var - 1, interpreter.newValue(null));
+                    setLocal(var - 1, (V) interpreter.newValue(null));
                 }
             }
             break;
@@ -337,7 +340,7 @@ public class Frame<V extends Value> {
                 throw new AnalyzerException(insn, "Illegal use of DUP");
             }
             push(value1);
-            push(interpreter.copyOperation(insn, value1));
+            push((V) interpreter.copyOperation(insn, value1));
             break;
         case Opcodes.DUP_X1:
             value1 = pop();
@@ -345,7 +348,7 @@ public class Frame<V extends Value> {
             if (value1.getSize() != 1 || value2.getSize() != 1) {
                 throw new AnalyzerException(insn, "Illegal use of DUP_X1");
             }
-            push(interpreter.copyOperation(insn, value1));
+            push((V) interpreter.copyOperation(insn, value1));
             push(value2);
             push(value1);
             break;
@@ -356,14 +359,14 @@ public class Frame<V extends Value> {
                 if (value2.getSize() == 1) {
                     value3 = pop();
                     if (value3.getSize() == 1) {
-                        push(interpreter.copyOperation(insn, value1));
+                        push((V) interpreter.copyOperation(insn, value1));
                         push(value3);
                         push(value2);
                         push(value1);
                         break;
                     }
                 } else {
-                    push(interpreter.copyOperation(insn, value1));
+                    push((V) interpreter.copyOperation(insn, value1));
                     push(value2);
                     push(value1);
                     break;
@@ -377,13 +380,13 @@ public class Frame<V extends Value> {
                 if (value2.getSize() == 1) {
                     push(value2);
                     push(value1);
-                    push(interpreter.copyOperation(insn, value2));
-                    push(interpreter.copyOperation(insn, value1));
+                    push((V) interpreter.copyOperation(insn, value2));
+                    push((V) interpreter.copyOperation(insn, value1));
                     break;
                 }
             } else {
                 push(value1);
-                push(interpreter.copyOperation(insn, value1));
+                push((V) interpreter.copyOperation(insn, value1));
                 break;
             }
             throw new AnalyzerException(insn, "Illegal use of DUP2");
@@ -394,8 +397,8 @@ public class Frame<V extends Value> {
                 if (value2.getSize() == 1) {
                     value3 = pop();
                     if (value3.getSize() == 1) {
-                        push(interpreter.copyOperation(insn, value2));
-                        push(interpreter.copyOperation(insn, value1));
+                        push((V) interpreter.copyOperation(insn, value2));
+                        push((V) interpreter.copyOperation(insn, value1));
                         push(value3);
                         push(value2);
                         push(value1);
@@ -405,7 +408,7 @@ public class Frame<V extends Value> {
             } else {
                 value2 = pop();
                 if (value2.getSize() == 1) {
-                    push(interpreter.copyOperation(insn, value1));
+                    push((V) interpreter.copyOperation(insn, value1));
                     push(value2);
                     push(value1);
                     break;
@@ -421,8 +424,8 @@ public class Frame<V extends Value> {
                     if (value3.getSize() == 1) {
                         value4 = pop();
                         if (value4.getSize() == 1) {
-                            push(interpreter.copyOperation(insn, value2));
-                            push(interpreter.copyOperation(insn, value1));
+                            push((V) interpreter.copyOperation(insn, value2));
+                            push((V) interpreter.copyOperation(insn, value1));
                             push(value4);
                             push(value3);
                             push(value2);
@@ -430,8 +433,8 @@ public class Frame<V extends Value> {
                             break;
                         }
                     } else {
-                        push(interpreter.copyOperation(insn, value2));
-                        push(interpreter.copyOperation(insn, value1));
+                        push((V) interpreter.copyOperation(insn, value2));
+                        push((V) interpreter.copyOperation(insn, value1));
                         push(value3);
                         push(value2);
                         push(value1);
@@ -443,14 +446,14 @@ public class Frame<V extends Value> {
                 if (value2.getSize() == 1) {
                     value3 = pop();
                     if (value3.getSize() == 1) {
-                        push(interpreter.copyOperation(insn, value1));
+                        push((V) interpreter.copyOperation(insn, value1));
                         push(value3);
                         push(value2);
                         push(value1);
                         break;
                     }
                 } else {
-                    push(interpreter.copyOperation(insn, value1));
+                    push((V) interpreter.copyOperation(insn, value1));
                     push(value2);
                     push(value1);
                     break;
@@ -463,8 +466,8 @@ public class Frame<V extends Value> {
             if (value1.getSize() != 1 || value2.getSize() != 1) {
                 throw new AnalyzerException(insn, "Illegal use of SWAP");
             }
-            push(interpreter.copyOperation(insn, value2));
-            push(interpreter.copyOperation(insn, value1));
+            push((V) interpreter.copyOperation(insn, value2));
+            push((V) interpreter.copyOperation(insn, value1));
             break;
         case Opcodes.IADD:
         case Opcodes.LADD:
@@ -488,13 +491,13 @@ public class Frame<V extends Value> {
         case Opcodes.DREM:
             value2 = pop();
             value1 = pop();
-            push(interpreter.binaryOperation(insn, value1, value2));
+            push((V) interpreter.binaryOperation(insn, value1, value2));
             break;
         case Opcodes.INEG:
         case Opcodes.LNEG:
         case Opcodes.FNEG:
         case Opcodes.DNEG:
-            push(interpreter.unaryOperation(insn, pop()));
+            push((V) interpreter.unaryOperation(insn, pop()));
             break;
         case Opcodes.ISHL:
         case Opcodes.LSHL:
@@ -510,11 +513,11 @@ public class Frame<V extends Value> {
         case Opcodes.LXOR:
             value2 = pop();
             value1 = pop();
-            push(interpreter.binaryOperation(insn, value1, value2));
+            push((V) interpreter.binaryOperation(insn, value1, value2));
             break;
         case Opcodes.IINC:
             var = ((IincInsnNode) insn).var;
-            setLocal(var, interpreter.unaryOperation(insn, getLocal(var)));
+            setLocal(var, (V) interpreter.unaryOperation(insn, getLocal(var)));
             break;
         case Opcodes.I2L:
         case Opcodes.I2F:
@@ -531,7 +534,7 @@ public class Frame<V extends Value> {
         case Opcodes.I2B:
         case Opcodes.I2C:
         case Opcodes.I2S:
-            push(interpreter.unaryOperation(insn, pop()));
+            push((V) interpreter.unaryOperation(insn, pop()));
             break;
         case Opcodes.LCMP:
         case Opcodes.FCMPL:
@@ -540,7 +543,7 @@ public class Frame<V extends Value> {
         case Opcodes.DCMPG:
             value2 = pop();
             value1 = pop();
-            push(interpreter.binaryOperation(insn, value1, value2));
+            push((V) interpreter.binaryOperation(insn, value1, value2));
             break;
         case Opcodes.IFEQ:
         case Opcodes.IFNE:
@@ -565,7 +568,7 @@ public class Frame<V extends Value> {
         case Opcodes.GOTO:
             break;
         case Opcodes.JSR:
-            push(interpreter.newOperation(insn));
+            push((V) interpreter.newOperation(insn));
             break;
         case Opcodes.RET:
             break;
@@ -588,13 +591,13 @@ public class Frame<V extends Value> {
             }
             break;
         case Opcodes.GETSTATIC:
-            push(interpreter.newOperation(insn));
+            push((V) interpreter.newOperation(insn));
             break;
         case Opcodes.PUTSTATIC:
             interpreter.unaryOperation(insn, pop());
             break;
         case Opcodes.GETFIELD:
-            push(interpreter.unaryOperation(insn, pop()));
+            push((V) interpreter.unaryOperation(insn, pop()));
             break;
         case Opcodes.PUTFIELD:
             value2 = pop();
@@ -616,7 +619,7 @@ public class Frame<V extends Value> {
             if (Type.getReturnType(desc) == Type.VOID_TYPE) {
                 interpreter.naryOperation(insn, values);
             } else {
-                push(interpreter.naryOperation(insn, values));
+                push((V) interpreter.naryOperation(insn, values));
             }
             break;
         }
@@ -629,24 +632,24 @@ public class Frame<V extends Value> {
             if (Type.getReturnType(desc) == Type.VOID_TYPE) {
                 interpreter.naryOperation(insn, values);
             } else {
-                push(interpreter.naryOperation(insn, values));
+                push((V) interpreter.naryOperation(insn, values));
             }
             break;
         }
         case Opcodes.NEW:
-            push(interpreter.newOperation(insn));
+            push((V) interpreter.newOperation(insn));
             break;
         case Opcodes.NEWARRAY:
         case Opcodes.ANEWARRAY:
         case Opcodes.ARRAYLENGTH:
-            push(interpreter.unaryOperation(insn, pop()));
+            push((V) interpreter.unaryOperation(insn, pop()));
             break;
         case Opcodes.ATHROW:
             interpreter.unaryOperation(insn, pop());
             break;
         case Opcodes.CHECKCAST:
         case Opcodes.INSTANCEOF:
-            push(interpreter.unaryOperation(insn, pop()));
+            push((V) interpreter.unaryOperation(insn, pop()));
             break;
         case Opcodes.MONITORENTER:
         case Opcodes.MONITOREXIT:
@@ -657,13 +660,13 @@ public class Frame<V extends Value> {
             for (int i = ((MultiANewArrayInsnNode) insn).dims; i > 0; --i) {
                 values.add(0, pop());
             }
-            push(interpreter.naryOperation(insn, values));
+            push((V) interpreter.naryOperation(insn, values));
             break;
         case Opcodes.IFNULL:
         case Opcodes.IFNONNULL:
             interpreter.unaryOperation(insn, pop());
             break;
-//        default:
+//        default: //PHOSPHOR
 //            throw new RuntimeException("Illegal opcode " + insn.getOpcode());
         }
     }
@@ -681,13 +684,13 @@ public class Frame<V extends Value> {
      *             if the frames have incompatible sizes.
      */
     public boolean merge(final Frame<? extends V> frame,
-            final Interpreter<V> interpreter) throws AnalyzerException {
+            final Interpreter interpreter) throws AnalyzerException {
         if (top != frame.top) {
             throw new AnalyzerException(null, "Incompatible stack heights");
         }
         boolean changes = false;
         for (int i = 0; i < locals + top; ++i) {
-            V v = interpreter.merge(values[i], frame.values[i]);
+            V v = (V) interpreter.merge(values[i], frame.values[i]);
             if (!v.equals(values[i])) {
                 values[i] = v;
                 changes = true;

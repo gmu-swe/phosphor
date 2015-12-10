@@ -6,17 +6,17 @@ import java.util.Arrays;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.InstructionAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.InstructionAdapter;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodNode;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
-public class MethodArgReindexer extends InstructionAdapter {
+public class MethodArgReindexer extends MethodVisitor {
 	int originalLastArgIdx;
 	int[] oldArgMappings;
 	int newArgOffset;
@@ -29,6 +29,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 	Type[] oldArgTypes;
 	MethodNode lvStore;
 
+	Type[] firstFrameLocals;
 	int idxOfReturnPrealloc;
 
 	boolean hasPreAllocedReturnAddr;
@@ -60,9 +61,18 @@ public class MethodArgReindexer extends InstructionAdapter {
 			oldArgTypesList.add(Type.getType("Lthis;"));
 			oldTypesDoublesAreOne.add(Type.getType("Lthis;"));
 		}
+		firstFrameLocals = new Type[origNumArgs];
+		int ffl = 0;
+		if(!isStatic)
+		{
+			firstFrameLocals[0] = Type.getObjectType("java/lang/Object");
+			ffl++;
+		}
 		for (Type t : Type.getArgumentTypes(originalDesc)) {
 			oldArgTypesList.add(t);
 			oldTypesDoublesAreOne.add(t);
+			firstFrameLocals[ffl] = t;
+			ffl++;
 			if (t.getSize() == 2)
 				oldArgTypesList.add(Type.getType("LTOP;"));
 		}
@@ -116,9 +126,12 @@ public class MethodArgReindexer extends InstructionAdapter {
 	public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
 		if (index < originalLastArgIdx) {
 			boolean found = false;
-			for (LocalVariableNode lv : lvStore.localVariables)
+			for (Object _lv : lvStore.localVariables)
+			{
+				LocalVariableNode lv = (LocalVariableNode) _lv;
 				if (lv != null && lv.name != null && lv.name.equals(name) && lv.index == index)
 					found = true;
+			}
 			if (!found)
 				lvStore.localVariables.add(new LocalVariableNode(name, desc, signature, null, null, index));
 		}
@@ -197,6 +210,12 @@ public class MethodArgReindexer extends InstructionAdapter {
 							remappedLocals[newIdx] = t.getInternalName();
 							newIdx++;
 							idxToUseForArgs++;
+							if(i == origNumArgs-1 && origNumArgs !=0 && Configuration.IMPLICIT_TRACKING)
+							{
+								remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
+								newIdx++;
+								nLocal++;
+							}
 							continue;
 						}
 					} else if(local[i] == Opcodes.TOP)
@@ -216,7 +235,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 							nLocal++;
 						}
 					}
-					else if (TaintAdapter.isPrimitiveStackType(local[i])) {
+					else if (TaintAdapter.isPrimitiveType(firstFrameLocals[i])) {
 						if (!(local[i] != Opcodes.TOP && local[i] instanceof String && ((String) local[i]).charAt(1) == '[')) {
 							if (local[i] != Opcodes.TOP) {
 								try {
@@ -226,7 +245,7 @@ public class MethodArgReindexer extends InstructionAdapter {
 
 									newIdx++;
 									nLocal++;
-//									System.out.println("Adding taint storage for local type " + local[i]);
+//									System.out.println("Adding taint storage for local type " + local[i] +", ffl is " + firstFrameLocals[i]);
 								} catch (IllegalArgumentException ex) {
 									System.err.println("Locals were: " + Arrays.toString(local) + ", curious about " + i);
 									throw ex;
@@ -322,8 +341,6 @@ public class MethodArgReindexer extends InstructionAdapter {
 
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
-		if (opcode == Opcodes.INVOKEINTERFACE)
-			Instrumenter.interfaces.add(owner);
 		super.visitMethodInsn(opcode, owner, name, desc, itfc);
 	}
 

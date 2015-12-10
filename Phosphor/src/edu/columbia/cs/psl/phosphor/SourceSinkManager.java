@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.MethodInsnNode;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;

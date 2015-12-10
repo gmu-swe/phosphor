@@ -1,12 +1,21 @@
 package edu.columbia.cs.psl.phosphor;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Array;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import sun.misc.VM;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
-import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
+
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+
+import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
@@ -56,7 +65,6 @@ public class TaintUtils {
 
 	public static final boolean TAINT_THROUGH_SERIALIZATION = false;
 	public static final boolean OPT_PURE_METHODS = false;
-	public static final boolean GENERATE_FASTPATH_VERSIONS = false;
 
 	public static final boolean OPT_IGNORE_EXTRA_TAINTS = true;
 
@@ -67,7 +75,7 @@ public class TaintUtils {
 	public static final int IGNORE_EVERYTHING = 203;
 	public static final int NO_TAINT_UNBOX = 204;
 	public static final int DONT_LOAD_TAINT = 205;
-	public static final int GENERATETAINTANDSWAP = 206;
+	public static final int GENERATETAINT = 206;
 
 	public static final int NEXTLOAD_IS_TAINTED = 207;
 	public static final int NEXTLOAD_IS_NOT_TAINTED = 208;
@@ -82,6 +90,9 @@ public class TaintUtils {
 	public static final int FORCE_CTRL_STORE = 216;
 
 	public static final int FOLLOWED_BY_FRAME = 217;
+	public static final int CUSTOM_SIGNAL_1 = 218;
+	public static final int CUSTOM_SIGNAL_2 = 219;
+	public static final int CUSTOM_SIGNAL_3 = 220;
 	
 	public static final String TAINT_FIELD = "PHOSPHOR_TAG";
 //	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
@@ -114,6 +125,186 @@ public class TaintUtils {
 
 	public static final boolean VERIFY_CLASS_GENERATION = false;
 
+	public static final String METHOD_SUFFIX_UNINST = "$$PHOSPHORUNTAGGED";
+
+	/*
+	 * Start: Conversion of method signature from doop format to bytecode format
+	 */
+	
+	private static Map<String, String> typeToSymbol = new HashMap<String, String>();
+	
+	static {
+		typeToSymbol.put("byte", "B");
+		typeToSymbol.put("char", "C");
+		typeToSymbol.put("double", "D");
+		typeToSymbol.put("float", "F");
+		typeToSymbol.put("int", "I");
+		typeToSymbol.put("long", "J");
+		typeToSymbol.put("short", "S");
+		typeToSymbol.put("void", "V");
+		typeToSymbol.put("boolean", "Z");
+	}	
+	private static final String processSingleType(String in)
+	{
+		if(in.equals("byte"))
+			return "B";
+		else if(in.equals("char"))
+			return "C";
+		else if(in.equals("double"))
+			return "D";
+		else if(in.equals("float"))
+			return "F";
+		else if(in.equals("int"))
+			return "I";
+		else if(in.equals("long"))
+			return "J";
+		else if(in.equals("short"))
+			return "S";
+		else if(in.equals("void"))
+			return "V";
+		else if(in.equals("boolean"))
+			return "Z";
+		return "L"+in.replace('.', '/')+";";
+	}
+	private static String processType(String type) {
+		StringBuffer typeBuffer = new StringBuffer();
+		type = type.trim();
+		int firstBracket = type.indexOf('[');
+		if(firstBracket >= 0) {
+			for(int i = firstBracket; i < type.length();i+=2)
+				typeBuffer.append("[");
+			type = type.substring(0,firstBracket);
+			typeBuffer.append(processSingleType(type));
+		}
+		else
+			typeBuffer.append(processSingleType(type));
+		return typeBuffer.toString();
+	}
+	
+	private static String processReverse(String type) {
+		type = type.trim();
+		if(type.length() == 1)  {
+			for(String s : typeToSymbol.keySet()) 
+				if(typeToSymbol.get(s).equals(type))
+					return s;
+			throw new IllegalArgumentException("Invalid type string");
+		}
+			
+		if(type.startsWith("[")) {
+			// is an array
+			int idx = 0;
+			String suffix = "";
+			while(type.charAt(idx) == '[') {
+				idx++;
+				suffix = suffix+"[]";
+			}
+			return processReverse(type.substring(idx))+suffix;
+			
+		} else {
+			type = type.replaceAll("/", ".");
+			type = type.substring(1, type.length()-1); //remove L and ;
+			return type;
+		}
+	}
+	public static void main(String[] args) {
+		System.out.println(getMethodDesc("<java.lang.Runtime: java.lang.Process[][][] exec(java.lang.String,java.lang.String[],java.io.File)>"));
+	}
+	//<java.lang.Runtime: java.lang.Process[][][] exec(java.lang.String,java.lang.String[],java.io.File)>
+	public static MethodDescriptor getMethodDesc(String signature) {
+		// get return type
+		char[] chars = signature.toCharArray();
+		String[] parts = signature.split(": ");
+		int idxOfColon = signature.indexOf(':');
+		String temp = signature.substring(idxOfColon+2);
+		int nameStart = temp.indexOf(' ')+1;
+		int nameEnd = temp.indexOf('(');
+		String owner = signature.substring(1,idxOfColon).replace('.', '/');
+		String name = temp.substring(nameStart,nameEnd);
+		
+		String returnTypeSymbol = processType(temp.substring(0, temp.indexOf(" ")).trim());
+		 
+		// get args list
+		temp = temp.substring(nameEnd+1,temp.length()-2);
+		StringBuffer argsBuffer = new StringBuffer();
+	
+		argsBuffer.append("(");
+		if(temp != null && !temp.isEmpty()) {
+			for(String arg : temp.split(",")) 
+				argsBuffer.append(processType(arg.trim()));
+		}
+		argsBuffer.append(")");
+	
+		argsBuffer.append(returnTypeSymbol);
+		return new MethodDescriptor(name, owner, argsBuffer.toString());
+	}
+	
+	public static String getMethodDesc(MethodDescriptor desc) {
+		String owner = desc.getOwner().replaceAll("/", ".");
+		String methodName = desc.getName();
+		String returnType = desc.getDesc().substring(desc.getDesc().indexOf(")")+1);
+		String actualReturnType = processReverse(returnType);
+		String args = desc.getDesc().substring(desc.getDesc().indexOf("(")+1, desc.getDesc().indexOf(")"));
+		boolean noargs = (args.length() == 0);
+		int idx = 0;
+		List<String> arguments = new ArrayList<String>(); 
+		while(args.length() > 0) {
+			idx = 0;
+			if(args.charAt(idx) == 'L') {
+				arguments.add(processReverse(args.substring(idx, args.indexOf(";")+1)));
+				idx=args.indexOf(";")+1;
+			} else if(args.charAt(idx) == '[') {
+				while(args.charAt(idx) == '[') 
+					idx++;
+				if(args.charAt(idx) == 'L') {
+					arguments.add(processReverse(args.substring(0,args.indexOf(";")+1)));
+					idx=args.indexOf(";")+1; 
+				} else {
+					arguments.add(processReverse(args.substring(0,idx+1)));
+					idx=idx+1;
+				}
+			} else {
+				arguments.add(processReverse(args.charAt(idx)+""));
+				idx=idx+1;
+			}
+			args = args.substring(idx);
+		}
+		StringBuffer buf = new StringBuffer();
+		buf.append("<").append(owner).append(": ").append(actualReturnType).append(" ").append(methodName).append("(");
+		for(String s : arguments)
+			buf.append(s).append(",");
+		if(!noargs)
+			buf.setLength(buf.length()-1);
+		buf.append(")>");
+		return buf.toString();
+	}
+	
+	public static void writeToFile(File file, String content) {
+		FileOutputStream fop = null;
+		
+		try {
+			fop = new FileOutputStream(file); 
+			if (!file.exists()) 
+				file.createNewFile();		 
+			byte[] contentInBytes = content.getBytes();
+ 			fop.write(contentInBytes);
+			fop.flush();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (fop != null) {
+					fop.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	/*
+	 * End: Conversion of method signature from doop format to bytecode format
+	 */
+	
 	public static boolean isPreAllocReturnType(String methodDescriptor)
 	{
 		Type retType = Type.getReturnType(methodDescriptor);
@@ -202,10 +393,14 @@ public class TaintUtils {
 	}
 
 	public static Object getTaintObj(Object obj) {
-		if(obj == null)
+		if(obj == null || Taint.IGNORE_TAINTING)
 			return null;
 		if (obj instanceof TaintedWithObjTag) {
 			return ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
+		}
+		else if(ArrayHelper.engaged == 1)
+		{
+			return ArrayHelper.getTag(obj);
 		}
 		else if(obj instanceof Taint[])
 		{
@@ -292,20 +487,58 @@ public class TaintUtils {
 	public static int OKtoDebugPHOSPHOR_TAG;
 
 	public static void arraycopy(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
-		if(!src.getClass().isArray())
+		try {
+			if (!src.getClass().isArray() && !dest.getClass().isArray()) {
+				System.arraycopy(((MultiDTaintedArrayWithIntTag) src).getVal(), srcPos, ((MultiDTaintedArrayWithIntTag) dest).getVal(), destPos, length);
+				System.arraycopy(((MultiDTaintedArrayWithIntTag) src).taint, srcPos, ((MultiDTaintedArrayWithIntTag) dest).taint, destPos, length);
+			} else if (!dest.getClass().isArray()) {
+				//src is a regular array, dest is multidtaintedarraywithinttag
+				System.arraycopy(src, srcPos, ((MultiDTaintedArrayWithIntTag) dest).getVal(), destPos, length);
+			} else {
+				System.arraycopy(src, srcPos, dest, destPos, length);
+			}
+		} catch (ArrayStoreException ex) {
+			System.out.println("Src " + src);
+			System.out.println(((Object[]) src)[0]);
+			System.out.println("Dest " + dest);
+			ex.printStackTrace();
+			throw ex;
+		}
+	}
+	public static void arraycopy(Object src, int srcPos, Object dest, int destPos, int length) {
+		try{
+		if(!src.getClass().isArray() && !dest.getClass().isArray())
 		{
 			System.arraycopy(((MultiDTaintedArrayWithIntTag)src).getVal(), srcPos, ((MultiDTaintedArrayWithIntTag)dest).getVal(), destPos, length);
 			System.arraycopy(((MultiDTaintedArrayWithIntTag)src).taint, srcPos, ((MultiDTaintedArrayWithIntTag)dest).taint, destPos, length);
 		}
+		else if(!dest.getClass().isArray())
+		{
+			//src is a regular array, dest is multidtaintedarraywithinttag
+			System.arraycopy(src, srcPos, ((MultiDTaintedArrayWithIntTag)dest).getVal(), destPos, length);
+		}
 		else
 			System.arraycopy(src, srcPos, dest, destPos, length);
+		}
+		catch(ArrayStoreException ex)
+		{
+			System.out.println("Src " + src);
+			System.out.println(((Object[])src)[0]);
+			System.out.println("Dest " + dest);
+			ex.printStackTrace();
+			throw ex;
+		}
 	}
 	
 	public static void arraycopy(Object src, Object srcPosTaint, int srcPos, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length) {
-		if(!src.getClass().isArray())
+		if(!src.getClass().isArray() && !dest.getClass().isArray())
 		{
 			System.arraycopy(((MultiDTaintedArrayWithObjTag)src).getVal(), srcPos, ((MultiDTaintedArrayWithObjTag)dest).getVal(), destPos, length);
 			System.arraycopy(((MultiDTaintedArrayWithObjTag)src).taint, srcPos, ((MultiDTaintedArrayWithObjTag)dest).taint, destPos, length);
+		}
+		else if(!dest.getClass().isArray())
+		{
+			System.arraycopy(src, srcPos, ((MultiDTaintedArrayWithObjTag)dest).getVal(), destPos, length);
 		}
 		else
 			System.arraycopy(src, srcPos, dest, destPos, length);
@@ -373,15 +606,7 @@ public class TaintUtils {
 //		}
 
 	}
-	static int bar;
-	static void truep()
-	{
-		bar++;
-	}
-	static void falsep()
-	{
-		bar++;
-	}
+
 //	public static void arraycopyHarmony(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 //		if(!src.getClass().isArray())
 //		{
@@ -588,6 +813,24 @@ public class TaintUtils {
 		return r;
 	}
 
+	public static String remapMethodDescForUninst(String desc) {
+		String r = "(";
+		for (Type t : Type.getArgumentTypes(desc)) {
+			if(t.getSort() == Type.ARRAY && t.getElementType().getSort()!= Type.OBJECT && t.getDimensions() > 1)
+			{
+				r += MultiDTaintedArray.getTypeForType(t);
+			}
+			else
+				r += t;
+		}
+		Type ret = Type.getReturnType(desc);
+		if(ret.getSort() == Type.ARRAY && ret.getDimensions() > 1 && ret.getElementType().getSort() != Type.OBJECT)
+			r += ")"+MultiDTaintedArrayWithIntTag.getTypeForType(ret).getDescriptor();
+		else
+		r += ")" + ret.getDescriptor();
+		return r;
+	}
+	
 	public static Object getStackTypeForType(Type t)
 	{
 		switch(t.getSort())
@@ -617,5 +860,56 @@ public class TaintUtils {
 	public static Object[] newTaintArray(int len)
 	{
 		return (Object[]) Array.newInstance(Configuration.TAINT_TAG_OBJ_CLASS, len);
+	}
+	private static <T> T shallowClone(T obj)
+	{
+		try{
+			Method m =  obj.getClass().getDeclaredMethod("clone");
+			m.setAccessible(true);
+			return (T) m.invoke(obj);
+		}
+		catch(Exception ex)
+		{
+			ex.printStackTrace();
+			return null;
+		}
+	}
+	public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name) {
+		T ret = Enum.valueOf(enumType, name);
+		if (((Object)name) instanceof TaintedWithIntTag) {
+			int tag = ((TaintedWithIntTag) ((Object)name)).getPHOSPHOR_TAG();
+			if (tag != 0) {
+				ret = shallowClone(ret);
+				((TaintedWithIntTag) ret).setPHOSPHOR_TAG(tag);
+			}
+		} else if (((Object)name) instanceof TaintedWithObjTag) {
+			Object tag = ((TaintedWithObjTag) ((Object)name)).getPHOSPHOR_TAG();
+			if (tag != null) {
+				ret = shallowClone(ret);
+				((TaintedWithObjTag) ret).setPHOSPHOR_TAG(tag);
+			}
+		}
+		return ret;
+	}
+	public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name, ControlTaintTagStack ctrl) {
+		T ret = Enum.valueOf(enumType, name);
+		Taint tag = (Taint) ((TaintedWithObjTag) ((Object)name)).getPHOSPHOR_TAG();
+		tag = Taint.combineTags(tag, ctrl);
+		if (tag != null && !(tag.getLabel() == null && tag.hasNoDependencies())) {
+			ret = shallowClone(ret);
+			((TaintedWithObjTag) ret).setPHOSPHOR_TAG(tag);
+		}
+		return ret;
+	}
+
+	public static Object ensureUnboxed(Object o)
+	{
+		if(o instanceof MultiDTaintedArrayWithIntTag)
+			return ((MultiDTaintedArrayWithIntTag) o).getVal();
+		else if(o instanceof MultiDTaintedArrayWithObjTag)
+			return ((MultiDTaintedArrayWithObjTag) o).getVal();
+		else if(o instanceof Enum<?>)
+			return ((Enum) o).valueOf(((Enum) o).getDeclaringClass(), ((Enum) o).name());
+		return o;
 	}
 }

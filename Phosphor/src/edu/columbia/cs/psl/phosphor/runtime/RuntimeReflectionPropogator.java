@@ -6,7 +6,9 @@ import java.util.WeakHashMap;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
+
+import org.objectweb.asm.Type;
+
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
@@ -42,10 +44,41 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedByteArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedByteArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedDoubleArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedDoubleArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedFloatArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedFloatArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedIntArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedIntArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedLongArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedLongArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithObjTag;
 
 public class RuntimeReflectionPropogator {
-
+	public static void setUNINST(Field f, Object obj, Object val) throws IllegalArgumentException, IllegalAccessException {
+		if (MultiDTaintedArray.class.isAssignableFrom(f.getType())) {
+			throw new UnsupportedOperationException();
+		}
+		f.setAccessible(true);
+		f.set(obj, val);
+	}
+	public static Object getUNINST(Field f, Object obj) throws IllegalArgumentException, IllegalAccessException {
+		if (MultiDTaintedArray.class.isAssignableFrom(f.getType())) {
+			throw new UnsupportedOperationException();
+		}
+		f.setAccessible(true);
+		return f.get(obj);
+	}
 	public static Class<?> getType$$PHOSPHORTAGGED(Field f,ControlTaintTagStack ctrl)
 	{
 		return getType(f);
@@ -63,6 +96,20 @@ public class RuntimeReflectionPropogator {
 			for(int i = 0; i < t.getDimensions(); i++)
 				newType += "[";
 			newType += MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(component);
+			try {
+				ret = Class.forName(newType);
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		else if(MultiDTaintedArrayWithObjTag.class.isAssignableFrom(component))
+		{
+			Type t = Type.getType(ret);
+			String newType = "[";
+			for(int i = 0; i < t.getDimensions(); i++)
+				newType += "[";
+			newType += MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(component);
 			try {
 				ret = Class.forName(newType);
 			} catch (ClassNotFoundException e) {
@@ -126,18 +173,25 @@ public class RuntimeReflectionPropogator {
 		else 
 			ret = f.get(obj);
 		if (f.getType().isArray() && f.getType().getComponentType().isPrimitive()) {
+			Object taint = null;
+
 			try {
-				Object taint = null;
 				try {
-					Field taintField;
-					if (fieldToField.containsKey(f))
-						taintField = fieldToField.get(f);
-					else {
-						taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
-						taintField.setAccessible(true);
-						fieldToField.put(f, taintField);
+					if (ret instanceof MultiDTaintedArrayWithIntTag) {
+						return ret;
+					} else if (ret instanceof MultiDTaintedArrayWithObjTag) {
+						return ret;
+					} else {
+						Field taintField;
+						if (fieldToField.containsKey(f))
+							taintField = fieldToField.get(f);
+						else {
+							taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+							taintField.setAccessible(true);
+							fieldToField.put(f, taintField);
+						}
+						taint = taintField.get(obj);
 					}
-					taint = taintField.get(obj);
 				} catch (NoSuchFieldException t) {
 					if(isObjTags)
 					{
@@ -150,44 +204,46 @@ public class RuntimeReflectionPropogator {
 							taint = new Taint[Array.getLength(ret)];
 					}
 				}
+				if(ret == null)
+					return null;
 				if(!isObjTags)
 				{
 					if (f.getType().getComponentType() == Boolean.TYPE) {
-						return new TaintedBooleanArrayWithIntTag((int[]) taint, (boolean[]) ret);
+						return new MultiDTaintedBooleanArrayWithIntTag((int[]) taint, (boolean[]) ret);
 					} else if (f.getType().getComponentType() == Byte.TYPE) {
-						return new TaintedByteArrayWithIntTag((int[]) taint, (byte[]) ret);
-					} else if (f.getType().getComponentType() == Character.TYPE) {
-						return new TaintedCharArrayWithIntTag((int[]) taint, (char[]) ret);
+						return new MultiDTaintedByteArrayWithIntTag((int[]) taint, (byte[]) ret);
+		 			} else if (f.getType().getComponentType() == Character.TYPE) {
+						return new MultiDTaintedCharArrayWithIntTag((int[]) taint, (char[]) ret);
 					} else if (f.getType().getComponentType() == Double.TYPE) {
-						return new TaintedDoubleArrayWithIntTag((int[]) taint, (double[]) ret);
+						return new MultiDTaintedDoubleArrayWithIntTag((int[]) taint, (double[]) ret);
 					} else if (f.getType().getComponentType() == Float.TYPE) {
-						return new TaintedFloatArrayWithIntTag((int[]) taint, (float[]) ret);
+						return new MultiDTaintedFloatArrayWithIntTag((int[]) taint, (float[]) ret);
 					} else if (f.getType().getComponentType() == Integer.TYPE) {
-						return new TaintedIntArrayWithIntTag((int[]) taint, (int[]) ret);
+						return new MultiDTaintedIntArrayWithIntTag((int[]) taint, (int[]) ret);
 					} else if (f.getType().getComponentType() == Long.TYPE) {
-						return new TaintedLongArrayWithIntTag((int[]) taint, (long[]) ret);
+						return new MultiDTaintedLongArrayWithIntTag((int[]) taint, (long[]) ret);
 					} else if (f.getType().getComponentType() == Short.TYPE) {
-						return new TaintedShortArrayWithIntTag((int[]) taint, (short[]) ret);
+						return new MultiDTaintedShortArrayWithIntTag((int[]) taint, (short[]) ret);
 					}
 				}
 				else
 				{
 					if (f.getType().getComponentType() == Boolean.TYPE) {
-						return new TaintedBooleanArrayWithObjTag((Object[]) taint, (boolean[]) ret);
+						return new MultiDTaintedBooleanArrayWithObjTag((Object[]) taint, (boolean[]) ret);
 					} else if (f.getType().getComponentType() == Byte.TYPE) {
-						return new TaintedByteArrayWithObjTag((Object[]) taint, (byte[]) ret);
+						return new MultiDTaintedByteArrayWithObjTag((Object[]) taint, (byte[]) ret);
 					} else if (f.getType().getComponentType() == Character.TYPE) {
-						return new TaintedCharArrayWithObjTag((Object[]) taint, (char[]) ret);
+						return new MultiDTaintedCharArrayWithObjTag((Object[]) taint, (char[]) ret);
 					} else if (f.getType().getComponentType() == Double.TYPE) {
-						return new TaintedDoubleArrayWithObjTag((Object[]) taint, (double[]) ret);
+						return new MultiDTaintedDoubleArrayWithObjTag((Object[]) taint, (double[]) ret);
 					} else if (f.getType().getComponentType() == Float.TYPE) {
-						return new TaintedFloatArrayWithObjTag((Object[]) taint, (float[]) ret);
+						return new MultiDTaintedFloatArrayWithObjTag((Object[]) taint, (float[]) ret);
 					} else if (f.getType().getComponentType() == Integer.TYPE) {
-						return new TaintedIntArrayWithObjTag((Object[]) taint, (int[]) ret);
+						return new MultiDTaintedIntArrayWithObjTag((Object[]) taint, (int[]) ret);
 					} else if (f.getType().getComponentType() == Long.TYPE) {
-						return new TaintedLongArrayWithObjTag((Object[]) taint, (long[]) ret);
+						return new MultiDTaintedLongArrayWithObjTag((Object[]) taint, (long[]) ret);
 					} else if (f.getType().getComponentType() == Short.TYPE) {
-						return new TaintedShortArrayWithObjTag((Object[]) taint, (short[]) ret);
+						return new MultiDTaintedShortArrayWithObjTag((Object[]) taint, (short[]) ret);
 					}
 				}
 			} catch (Exception e) {
@@ -490,7 +546,7 @@ public class RuntimeReflectionPropogator {
 
 	public static TaintedDoubleWithObjTag getDouble$$PHOSPHORTAGGED(Field f, Object obj, TaintedDoubleWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
-		ret.val = f.getInt(obj);
+		ret.val = f.getDouble(obj);
 		try {
 			Field taintField;
 			if (fieldToField.containsKey(f))

@@ -3,9 +3,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>edu.columbia.cs.psl.phosphor</groupId>
 	<artifactId>Phosphor</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
+	<properties>
+		<dacapo.skip>true</dacapo.skip>
+	</properties>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
+		<testSourceDirectory>test</testSourceDirectory>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -45,11 +49,103 @@
 									<pattern>org.apache.commons.cli</pattern>
 									<shadedPattern>edu.columbia.cs.psl.phosphor.org.apache.commons.cli</shadedPattern>
 								</relocation>
+								<relocation>
+									<pattern>org.objectweb.asm</pattern>
+									<shadedPattern>edu.columbia.cs.psl.phosphor.org.objectweb.asm</shadedPattern>
+								</relocation>
 							</relocations>
+							<filters>
+								<filter>
+									<artifact>org.ow2.asm:asm-all</artifact>
+									<excludes>
+										<!-- These classes will be overridden by the ones inside the JAR -->
+										<exclude>edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/analysis/Frame.class</exclude>
+										<exclude>edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/FrameNode.class</exclude>
+									</excludes>
+								</filter>
+							</filters>
 							<minimizeJar>true</minimizeJar>
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>2.18.1</version>
+				<executions>
+					<execution>
+						<id>integration-test-int-tags-notagtest</id>
+						<configuration>
+							<skipTests>${skipIntTagNoInstTests}</skipTests>
+							<jvm>${project.build.directory}/jre-inst-int-untaggedwrappers/bin/java</jvm>
+							<includes>
+								<include>**/*IntTagPartialInstITCase.java</include>
+							</includes>
+							<reuseForks>false</reuseForks>
+							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-int-untaged,withSelectiveInst=${basedir}/resources/test-methods</argLine>
+						</configuration>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>integration-test-int-tags</id>
+						<configuration>
+							<skipTests>${skipIntTagTests}</skipTests>
+							<jvm>${project.build.directory}/jre-inst-int/bin/java</jvm>
+							<includes>
+								<include>**/*IntTagITCase.java</include>
+							</includes>
+							<reuseForks>false</reuseForks>
+							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-int</argLine>
+						</configuration>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>integration-test-obj-tags</id>
+						<configuration>
+							<skipTests>${skipObjTagTests}</skipTests>
+							<jvm>${project.build.directory}/jre-inst-obj/bin/java</jvm>
+							<includes>
+								<include>**/*ObjTagITCase.java</include>
+							</includes>
+							<reuseForks>false</reuseForks>
+							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-obj</argLine>
+						</configuration>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>integration-test-implicit-tracking</id>
+						<configuration>
+							<skipTests>${skipImplicitTests}</skipTests>
+							<jvm>${project.build.directory}/jre-inst-implicit/bin/java</jvm>
+							<includes>
+								<include>**/*ImplicitITCase.java</include>
+							</includes>
+							<reuseForks>false</reuseForks>
+							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-implicit</argLine>
+						</configuration>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -63,14 +159,59 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<artifactId>exec-maven-plugin</artifactId>
+				<groupId>org.codehaus.mojo</groupId>
+				<executions>
+					<execution>
+						<id>instrument-jre</id>
+						<phase>pre-integration-test</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>${basedir}/instrumentJRE.sh</executable>
+						</configuration>
+					</execution>
+					<execution>
+						<id>run-dacapo</id>
+						<phase>integration-test</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<skip>${dacapo.skip}</skip>
+							<executable>${basedir}/runDacapo.sh</executable>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
 	<dependencies>
 		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>commons-cli</groupId>
 			<artifactId>commons-cli</artifactId>
 			<version>1.2</version>
 		</dependency>
+		<dependency>
+			<groupId>org.ow2.asm</groupId>
+			<artifactId>asm-all</artifactId>
+			<version>5.0.3</version>
+		</dependency>
 	</dependencies>
+	<distributionManagement>
+		<snapshotRepository>
+			<id>psl.internal</id>
+			<name>PSL Internal Repository</name>
+			<url>http://ase.cs.columbia.edu:8282/repository/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
 </project>

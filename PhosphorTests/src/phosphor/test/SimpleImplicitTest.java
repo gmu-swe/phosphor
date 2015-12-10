@@ -20,6 +20,8 @@ public class SimpleImplicitTest {
 
 	public static void main(String[] args) {
 		int i = MultiTainter.taintedInt(1, "a");
+		int m = MultiTainter.taintedInt(1, "a");
+
 		System.out.println(i + " i - taint is " + MultiTainter.getTaint(i));
 
 		int k;
@@ -28,11 +30,18 @@ public class SimpleImplicitTest {
 		{
 			k = 5;
 			System.out.println(MultiTainter.getTaint(k));
-
+			if(m > 0)// add m
+				k++;
+			//remove m
 		}
 		else
+		{
 			//control-tag-add-i
 			k = 6;
+			if(m > 0)// add m
+				k++;
+			//remove m
+		}
 		int f = MultiTainter.taintedInt(4, "Foo");
 		//control-tag-remove-i
 		int r = 54;

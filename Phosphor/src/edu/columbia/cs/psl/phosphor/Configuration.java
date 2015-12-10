@@ -5,19 +5,34 @@ import java.net.URL;
 import java.util.Properties;
 import java.util.Scanner;
 
-import edu.columbia.cs.psl.phosphor.instrumenter.EmptyTaintTagFactory;
-import edu.columbia.cs.psl.phosphor.instrumenter.NullTaintTagFactory;
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintTagFactory;
+import edu.columbia.cs.psl.phosphor.instrumenter.DataAndControlFlowTagFactory;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
+
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
+
 import edu.columbia.cs.psl.phosphor.runtime.DerivedTaintListener;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public class Configuration {
+	public static String ADDL_IGNORE = null;
 	public static boolean MULTI_TAINTING = true;
 	public static boolean IMPLICIT_TRACKING = true; //must be set to TRUE for MULTI_TAINTING to work!
 	public static boolean DATAFLOW_TRACKING = true; //default
+	public static boolean ARRAY_LENGTH_TRACKING = false;
+	public static boolean WITH_ENUM_BY_VAL = false;
+	public static boolean WITH_UNBOX_ACMPEQ = false;
 
+	public static boolean WITH_SELECTIVE_INST = false;
+	public static String selective_inst_config;
+	
+	public static boolean WITHOUT_PROPOGATION = false;
+	public static boolean WITHOUT_FIELD_HIDING = false;
+	
+	public static boolean GENERATE_UNINST_STUBS = false;
+	
 	/*
 	 * Derived configuration values
 	 */
@@ -40,8 +55,11 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
 
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
-	public static EmptyTaintTagFactory taintTagFactory = new NullTaintTagFactory();
+	public static Class extensionClassVisitor;
+
+	public static TaintTagFactory taintTagFactory = new DataAndControlFlowTagFactory();
 	public static DerivedTaintListener derivedTaintListener;
+	public static String CACHE_DIR = null;
 
 	public static void init() {
 		TAINT_TAG_DESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "I");
@@ -61,6 +79,9 @@ public class Configuration {
 		OPT_CONSTANT_ARITHMETIC = true && !IMPLICIT_TRACKING;
 		TAINT_TAG_OBJ_ARRAY_CLASS = (MULTI_TAINTING ? Taint[].class : int[].class);
 		TAINT_TAG_OBJ_CLASS = (MULTI_TAINTING ? Taint.class : Integer.TYPE);
+		
+		if(WITH_SELECTIVE_INST)
+			GENERATE_UNINST_STUBS = true;
 
 		if (TaintTrackingClassVisitor.class != null && TaintTrackingClassVisitor.class.getClassLoader() != null) {
 			URL r = TaintTrackingClassVisitor.class.getClassLoader().getResource("phosphor-mv");
@@ -70,8 +91,10 @@ public class Configuration {
 					props.load(r.openStream());
 					if (props.containsKey("extraMV"))
 						extensionMethodVisitor = (Class<? extends TaintAdapter>) Class.forName(props.getProperty("extraMV"));
+					if (props.containsKey("extraCV"))
+						extensionClassVisitor = (Class<? extends ClassVisitor>) Class.forName(props.getProperty("extraCV"));
 					if (props.containsKey("taintTagFactory"))
-						taintTagFactory = (EmptyTaintTagFactory) Class.forName(props.getProperty("taintTagFactory")).newInstance();
+						taintTagFactory = (TaintTagFactory) Class.forName(props.getProperty("taintTagFactory")).newInstance();
 					if (props.containsKey("derivedTaintListener"))
 						derivedTaintListener = (DerivedTaintListener) Class.forName(props.getProperty("derivedTaintListener")).newInstance();
 				} catch (IOException ex) {

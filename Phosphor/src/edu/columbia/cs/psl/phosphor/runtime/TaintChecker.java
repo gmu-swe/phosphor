@@ -114,7 +114,7 @@ public class TaintChecker {
 			str.valuePHOSPHOR_TAG = new Taint[str.length()];
 		for (int i = 0; i < str.length(); i++) {
 			if (tag != null) {
-				str.valuePHOSPHOR_TAG[i] = new Taint((Taint) tag);
+				str.valuePHOSPHOR_TAG[i] = ((Taint) tag).copy();
 				str.valuePHOSPHOR_TAG[i].lbl = ((Taint) tag).lbl;
 			}
 			else

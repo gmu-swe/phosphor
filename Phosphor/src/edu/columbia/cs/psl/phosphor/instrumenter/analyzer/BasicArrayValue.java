@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.BasicValue;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.analysis.BasicValue;
 
 public class BasicArrayValue extends BasicValue {
 	public static final BasicArrayValue INT_ARRAY = new BasicArrayValue(Type.getType("[I"));

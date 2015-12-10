@@ -3,19 +3,22 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.AnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.AbstractInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.FieldInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.InsnList;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.InsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.IntInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MethodNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.MultiANewArrayInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.TypeInsnNode;
+
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.AnalyzerAdapter;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.IntInsnNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.MultiANewArrayInsnNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
@@ -23,9 +26,10 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 public class ConstantValueNullTaintGenerator extends MethodVisitor implements Opcodes {
 	public ConstantValueNullTaintGenerator(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv) {
 		super(Opcodes.ASM5, new MethodNode(Opcodes.ASM5,access, name, desc, signature, exceptions) {
+
 			@Override
 			public void visitEnd() {
-				final MethodNode uninstrumented = new MethodNode(api, access, name, desc, signature, exceptions.toArray(new String[4]));
+				final MethodNode uninstrumented = new MethodNode(api, access, name, desc, signature, (String[]) exceptions.toArray(new String[4]));
 				uninstrumented.instructions = new InsnList();
 				AbstractInsnNode i = instructions.getFirst();
 				if (i != null) {
@@ -35,7 +39,7 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 					}
 					uninstrumented.instructions.add(i);
 				}
-				this.accept(new MethodNode(api, access, name, desc, signature, exceptions.toArray(new String[4])) {
+				this.accept(new MethodNode(api, access, name, desc, signature, (String[]) exceptions.toArray(new String[4])) {
 
 					boolean hasNonConstantOps = false;
 
@@ -83,8 +87,8 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 					void generateEmptyTaintAndAppend()
 					{
 						MethodNode mn = new MethodNode();
-						Configuration.taintTagFactory.generateEmptyTaint(mn);
-						this.instructions.insert(this.instructions.getLast(), mn.instructions);
+//						Configuration.taintTagFactory.generateEmptyTaint(mn);
+						this.instructions.insert(this.instructions.getLast(), new InsnNode(TaintUtils.GENERATETAINT));
 					}
 					@Override
 					public void visitIntInsn(int opcode, int operand) {
@@ -177,9 +181,18 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 					public void visitEnd() {
 						AbstractInsnNode insn = this.instructions.getFirst();
 						if (hasNonConstantOps && this.instructions.size() > 30000) {
-//							System.out.println("Bailing on " + className + "." + name + "cuz it's already got " + this.instructions.size());
+//							System.out.println("Bailing on " + className + "." + name + " - it's already got " + this.instructions.size());
+							insn = uninstrumented.instructions.getFirst();
+							while(insn != null)
+							{
+								AbstractInsnNode next = insn.getNext();
+								if(insn.getOpcode() > 200)
+									uninstrumented.instructions.remove(insn);
+								insn = next;
+							}
 							uninstrumented.instructions.insertBefore(uninstrumented.instructions.getFirst(), new InsnNode(TaintUtils.IGNORE_EVERYTHING));
 							uninstrumented.instructions.add(new InsnNode(TaintUtils.IGNORE_EVERYTHING));
+
 							uninstrumented.accept(cmv);
 							return;
 						}
@@ -380,9 +393,9 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 										} else if (ret.getSize() == 2 && insn.getNext() != null && insn.getNext().getType() == AbstractInsnNode.INSN && insn.getNext().getOpcode() == Opcodes.POP2) {
 											//											System.out.println("pop2");
 
-											instructions.insertBefore(insn, new InsnNode(TaintUtils.NO_TAINT_UNBOX));
-											instructions.remove(insn.getNext());
-											instructions.insert(insn, new InsnNode(Opcodes.POP));
+//											instructions.insertBefore(insn, new InsnNode(TaintUtils.NO_TAINT_UNBOX));
+//											instructions.remove(insn.getNext());
+//											instructions.insert(insn, new InsnNode(Opcodes.POP));
 
 										}
 									}

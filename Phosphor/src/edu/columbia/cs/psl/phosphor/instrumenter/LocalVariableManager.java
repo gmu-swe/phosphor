@@ -8,17 +8,21 @@ import java.util.HashSet;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Label;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.LocalVariablesSorter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LabelNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.LocalVariableNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.util.Printer;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 
-public class LocalVariableManager extends LocalVariablesSorter implements Opcodes {
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.util.Printer;
+
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
+
+public class LocalVariableManager extends OurLocalVariablesSorter implements Opcodes {
 	private NeverNullArgAnalyzerAdapter analyzer;
 	private static final boolean DEBUG = false;
 	int createdLVIdx = 0;
@@ -67,7 +71,10 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 			{
 				oldArgTypes.add(Type.getType("Ltop;"));
 			}
-			
+			if(args[i].getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class)))
+			{
+				idxOfMasterControlLV = lastArg-1;
+			}
 		}
 		lastArg--;
 		end = new Label();
@@ -126,21 +133,41 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 	}
 
 	int jumpIdx;
-	int idxOfMasterControlLV;
+	int idxOfMasterControlLV = -1;
 
-	public int newControlTaintLV(int depth)
+	public int getIdxOfMasterControlLV() {
+		return idxOfMasterControlLV;
+	}
+	private Label ctrlTagStartLbl;
+	public int createMasterControlTaintLV()
 	{
 		int idx = super.newLocal(Type.getType(ControlTaintTagStack.class));
-		Label lbl = new Label();
-		super.visitLabel(lbl);
-
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(lbl), new LabelNode(end), idx);
+		if (ctrlTagStartLbl == null) {
+			ctrlTagStartLbl = new Label();
+			super.visitLabel(ctrlTagStartLbl);
+		}
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
 		createdLVs.add(newLVN);
+		analyzer.locals.add(idx, Type.getInternalName(ControlTaintTagStack.class));
 		this.idxOfMasterControlLV = idx;
 		jumpIdx++;
 		return idx;
 	}
-	@Override
+	public int newControlTaintLV()
+	{
+		int idx = super.newLocal(Type.getType("Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"));
+		if (ctrlTagStartLbl == null) {
+			ctrlTagStartLbl = new Label();
+			super.visitLabel(ctrlTagStartLbl);
+		}
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
+		createdLVs.add(newLVN);
+//		System.out.println("Create taint tag at " + idx);
+		analyzer.locals.add(idx, "edu/columbia/cs/psl/phosphor/struct/EnqueuedTaint");
+		jumpIdx++;
+		return idx;
+	}
+
 	protected int remap(int var, Type type) {
 		
 		int ret = super.remap(var, type);
@@ -278,12 +305,16 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 	Label end;
 
 	@Override
-	public void visitEnd() {
+	public void visitMaxs(int maxStack, int maxLocals) {
 		if(!endVisited)
 		{
 			super.visitLabel(end);
 			endVisited = true;
 		}
+		super.visitMaxs(maxStack, maxLocals);
+	}
+	@Override
+	public void visitEnd() {
 		super.visitEnd();
 		for (TmpLV l : tmpLVs) {
 			if (l.inUse)
@@ -305,23 +336,20 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
 
 	public void visitCode() {
 		super.visitCode();
-		for(Type t : primitiveArrayFixer.wrapperTypesToPreAlloc)
-		{
-			if(t.equals(returnType))
-			{
-				preAllocedReturnTypes.put(t, lastArg);
+		if (primitiveArrayFixer != null)
+			for (Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
+				if (t.equals(returnType)) {
+					preAllocedReturnTypes.put(t, lastArg);
+				} else {
+					int lv = newPreAllocedReturnType(t);
+					preAllocedReturnTypes.put(t, lv);
+					super.visitTypeInsn(NEW, t.getInternalName());
+					super.visitInsn(DUP);
+					super.visitMethodInsn(INVOKESPECIAL, t.getInternalName(), "<init>", "()V", false);
+					mv.visitVarInsn(ASTORE, lv);
+					//				System.out.println("Created LV Storage at " + lv);
+				}
 			}
-			else
-			{
-				int lv = newPreAllocedReturnType(t);
-				preAllocedReturnTypes.put(t,lv);
-				super.visitTypeInsn(NEW, t.getInternalName());
-				super.visitInsn(DUP);
-				super.visitMethodInsn(INVOKESPECIAL, t.getInternalName(),"<init>", "()V",false);
-				mv.visitVarInsn(ASTORE, lv);
-//				System.out.println("Created LV Storage at " + lv);
-			}
-		}
 	}
 
 	HashMap<Type, Integer> preAllocedReturnTypes = new HashMap<Type, Integer>();
@@ -412,6 +440,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
         // copies types from 'local' to 'newLocals'
         // 'newLocals' currently empty
 
+        if(!disabled)
         for(Type t : preAllocedReturnTypes.keySet())
         {
 //        	System.out.println(t);
@@ -454,7 +483,7 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
             		if(_t.getSort() == Type.ARRAY && _t.getDimensions() == 1 && _t.getElementType().getSort() != Type.OBJECT)
             			shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
             	}
-            	if(shadowType != null)
+            	if(!disabled && shadowType != null)
             	{
 
             		int newVar = remap(index, typ);
@@ -544,4 +573,8 @@ public class LocalVariableManager extends LocalVariablesSorter implements Opcode
         // restores original value of 'newLocals'
         newLocals = oldLocals;
     }
+	private boolean disabled = false;
+	public void disable() {
+		disabled = true;
+	}
 }

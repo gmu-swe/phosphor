@@ -35,8 +35,11 @@ import java.util.List;
 import java.util.Map;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.MethodVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
+
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.LabelNode;
 
 /**
  * A node that represents a stack map frame. These nodes are pseudo instruction
@@ -147,7 +150,7 @@ public class FrameNode extends AbstractInsnNode {
         switch (type) {
         case Opcodes.F_NEW:
         case Opcodes.F_FULL:
-        case TaintUtils.RAW_INSN:
+        case TaintUtils.RAW_INSN: //PHOSPHOR
             mv.visitFrame(type, local.size(), asArray(local), stack.size(),
                     asArray(stack));
             break;
@@ -167,7 +170,7 @@ public class FrameNode extends AbstractInsnNode {
     }
 
     @Override
-    public AbstractInsnNode clone(final Map<LabelNode, LabelNode> labels) {
+    public AbstractInsnNode clone(final Map labels) {
         FrameNode clone = new FrameNode();
         clone.type = type;
         if (local != null) {

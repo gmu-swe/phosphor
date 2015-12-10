@@ -1,11 +1,11 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.AbstractInsnNode;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.AnalyzerException;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.BasicInterpreter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.BasicValue;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.analysis.AnalyzerException;
+import org.objectweb.asm.tree.analysis.BasicInterpreter;
+import org.objectweb.asm.tree.analysis.BasicValue;
 
 public class BasicArrayInterpreter extends BasicInterpreter{
 	

@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -42,11 +43,14 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassReader;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.ClassVisitor;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Opcodes;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.Type;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.ClassNode;
+
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
+
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.CallGraph;
 import edu.columbia.cs.psl.phosphor.struct.MethodInformation;
@@ -67,217 +71,18 @@ public class Instrumenter {
 	static int nChanges = 0;
 	static boolean analysisInvalidated = false;
 
-	static void propogateUp(String owner, String name, String desc, MethodInformation toPropogate) {
-		propogateUp(owner, name, desc, toPropogate, new HashSet<String>());
-	}
 
-	static void propogateUp(String owner, String name, String desc, MethodInformation toPropogate, HashSet<String> tried) {
-		if (tried.contains(owner))
-			return;
-		tried.add(owner);
-		if (name.equals("<clinit>"))
-			return;
-		MiniClassNode c = callgraph.getClassNode(owner);
-		if (!owner.equals(toPropogate.getOwner())) {
-			MethodInformation m = callgraph.getMethodNodeIfExists(owner, name, desc);
-			if (m != null) {
-				//				System.out.println(owner+"."+name+desc +" from " + toPropogate.getOwner());
-				boolean wasPure = m.isPure();
-				boolean wasCallsTainted = m.callsTaintSourceMethods();
-				if (wasPure && !toPropogate.isPure()) {
-					m.setPure(false);
-					analysisInvalidated = true;
-					nChanges++;
-				}
-				if (!wasCallsTainted && toPropogate.callsTaintSourceMethods()) {
-					m.setDoesNotCallTaintedMethods(false);
-					m.setCallsTaintedMethods(true);
-					analysisInvalidated = true;
-					nChanges++;
-					;
-				}
-			}
-		}
-		if (c.superName != null && !c.superName.equals(owner))
-			propogateUp(c.superName, name, desc, toPropogate, tried);
-		if (c.interfaces != null)
-			for (String s : c.interfaces)
-				propogateUp(s, name, desc, toPropogate, tried);
-	}
-
-	static boolean callsTaintSourceMethods(MethodInformation m) {
-		if (m.isCalculated() || m.callsTaintSourceMethods()) {
-			//			if(m.callsTaintSourceMethods() && ! m.isCalculated())
-			//			System.out.println("defaulting on " + m);
-			if (m.callsTaintSourceMethods())
-				return true;
-			if (m.doesNotCallTaintSourceMethods())
-				return false;
-		}
-		if (callgraph.getClassNode(m.getOwner()).interfaces == null || !m.isVisited()) {
-			m.setPure(false);
-			m.setCallsTaintedMethods(true);
-			return true;
-		}
-		if (m.isTaintCallExplorationInProgress())
-			return false;
-		if (BasicSourceSinkManager.getInstance(callgraph).isSource(m.getOwner() + "." + m.getName() + m.getDesc())) {
-			m.setCallsTaintedMethods(true);
-			m.setPure(false);
-			m.setCalculated(true);
-			return true;
-		}
-		m.setTaintCallExplorationInProgress(true);
-		HashSet<MethodInformation> origCalled = new HashSet<MethodInformation>(m.getMethodsCalled());
-		for (MethodInformation mm : origCalled) {
-			if (!mm.isVisited() && !mm.getName().equals("<clinit>")) {
-				m.getMethodsCalled().remove(mm);
-				MethodInformation omm = mm;
-				mm = callgraph.getMethodNodeIfExistsInHierarchy(mm.getOwner(), mm.getName(), mm.getDesc());
-				if (mm == null) {
-					if (TaintUtils.DEBUG_PURE)
-						System.err.println("Unable to find info about method " + omm.getOwner() + "." + omm.getName() + omm.getDesc());
-					m.setPure(false);
-					m.setCallsTaintedMethods(true);
-					m.setTaintCallExplorationInProgress(false);
-					m.setCalculated(true);
-					propogateUp(m.getOwner(), m.getName(), m.getDesc(), m);
-					return true;
-				} else
-					m.getMethodsCalled().add(mm);
-			}
-			if (callsTaintSourceMethods(mm)) {
-				//				boolean wasPure = m.isPure(); 
-				//				boolean wasCallsTainted = m.callsTaintSourceMethods();
-				m.setPure(false);
-				m.setCallsTaintedMethods(true);
-				m.setTaintCallExplorationInProgress(false);
-				m.setCalculated(true);
-				analysisInvalidated = true;
-				nChanges++;
-				//				if((wasPure&& !m.isPure()) || (!wasCallsTainted && m.callsTaintSourceMethods()))
-				propogateUp(m.getOwner(), m.getName(), m.getDesc(), m);
-				return true;
-			}
-			boolean wasPure = m.isPure();
-			//			if(!mm.isVisited())
-			//			{
-			//				m.setPure(false);
-			//				m.setCallsTaintedMethods(true);
-			//				m.setDoesNotCallTaintedMethods(false);
-			//				m.setCalculated(true);
-			//			}
-			//			else
-			if (mm.isVisited()) {
-				m.setPure(m.isPure() && mm.isPure());
-				//			if (!m.isPure() && wasPure)
-				propogateUp(m.getOwner(), m.getName(), m.getDesc(), m);
-			}
-		}
-		m.setDoesNotCallTaintedMethods(true);
-		m.setCallsTaintedMethods(false);
-		m.setTaintCallExplorationInProgress(false);
-		m.setCalculated(true);
-		return false;
-	}
 
 	public static void preAnalysis() {
-		File graphDir = new File("pc-graphs");
-		if (!graphDir.exists())
-			graphDir.mkdir();
-		for (File f : graphDir.listFiles()) {
-			try {
-				ObjectInputStream ois = new ObjectInputStream(new FileInputStream(f));
-				CallGraph g = (CallGraph) ois.readObject();
-				callgraph.addAll(g);
-			} catch (Exception x) {
-				x.printStackTrace();
-			}
-		}
-	}
 
-	public static boolean isPure(String owner, String name, String desc) {
-		MethodInformation min = callgraph.getMethodNodeIfExistsInHierarchy(owner, name, desc);
-		if (min == null) {
-			//			System.err.println("Can't find method info for " + owner + "." + name + desc);
-			return false;
-		}
-		return min.isPure();
 	}
 
 	public static void finishedAnalysis() {
-		int iter = 0;
-//		do {
-//			System.out.println("iterating.." + nChanges);
-//			nChanges = 0;
-//			analysisInvalidated = false;
-//			if (iter > 0) {
-//				for (MethodInformation m : callgraph.getMethods()) {
-//					m.setCalculated(false);
-//				}
-//			}
-//			for (MethodInformation m : callgraph.getMethods()) {
-//				callsTaintSourceMethods(m);
-//				iter++;
-//				//				if(m.isPure())
-//				//				{
-//				//					System.out.println("pure: " + m);
-//				//				}
-//				//				if (m.getOwner().startsWith("java/io/FileOutput") || m.getOwner().startsWith("java/io/OutputStream")) {
-//				//					System.out.println((m.isPure() ? "Pure: " : "") + (m.callsTaintSourceMethods() ? " SOURCE " : "" ) + m.toString());
-//				//				}
-//			}
-//		} while (analysisInvalidated);
-		//System.exit(-1);
-				File graphDir = new File("pc-graphs");
-				if (!graphDir.exists())
-					graphDir.mkdir();
-//						File outFile = new File("pc-graphs/graph-" + System.currentTimeMillis());
-//						try {
-//							ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(outFile));
-//							oos.writeObject(callgraph);
-//							oos.close();
-//						} catch (Exception ex) {
-//							ex.printStackTrace();
-//						}
 		System.out.println("Analysis Completed: Beginning Instrumentation Phase");
 
 	}
 
 	static String curPath;
-
-	static HashSet<String> notInterfaces = new HashSet<String>();
-	static HashSet<String> annotations = new HashSet<String>();
-	static HashSet<String> notAnnotations = new HashSet<String>();
-
-	public static boolean isAnnotation(String owner) {
-//		if (annotations.contains(owner))
-//			return true;
-//		if (notAnnotations.contains(owner))
-//			return false;
-//		try {
-//			Class c;
-//			try {
-//				if (loader == null)
-//					c = Class.forName(owner.replace("/", "."));
-//				else
-//					c = loader.loadClass(owner.replace("/", "."));
-//				if (c.isAnnotation()) {
-//					annotations.add(owner);
-////					System.out.println("Annotation: " + c);
-//					return true;
-//				}
-//				notAnnotations.add(owner);
-//			} catch (Throwable ex) {
-//				//TODO fix this
-//			}
-//			return false;
-//		} catch (Exception ex) {
-//			//			System.out.println("Unable to load for annotation-checking purposes: " + owner);
-//			notAnnotations.add(owner);
-//		}
-		return false;
-	}
 
 	public static boolean isCollection(String internalName) {
 		try {
@@ -295,27 +100,7 @@ public class Instrumenter {
 		return false;
 	}
 
-	public static boolean isInterface(String internalName) {
-		if (interfaces.contains(internalName))
-			return true;
-		//		if(notInterfaces.contains(internalName))
-		//			return false;
-		//		try
-		//		{
-		//			Class c = Class.forName(internalName.replace("/", "."));
-		//			if(c.isInterface())
-		//			{
-		//				interfaces.add(internalName);
-		//				return true;
-		//			}
-		//		}
-		//		catch(Throwable t)
-		//		{
-		//			
-		//		}
-		//		notInterfaces.add(internalName);
-		return false;
-	}
+	
     public static boolean IS_KAFFE_INST = Boolean.valueOf(System.getProperty("KAFFE", "false"));
     public static boolean IS_HARMONY_INST = Boolean.valueOf(System.getProperty("HARMONY", "false"));
 
@@ -327,6 +112,8 @@ public class Instrumenter {
 	}
 
 	public static boolean isIgnoredClass(String owner) {
+		if(Configuration.taintTagFactory.isIgnoredClass(owner))
+			return true;
 		if(IS_ANDROID_INST && ! TaintTrackingClassVisitor.IS_RUNTIME_INST)
 		{
 //			System.out.println("IN ANDROID INST:");
@@ -361,7 +148,7 @@ public class Instrumenter {
 					||owner.startsWith("sun/awt/image/codec/") || (IS_HARMONY_INST && (owner.equals("java/io/Serializable")));
 		}
 		else
-		return owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
+		return (Configuration.ADDL_IGNORE != null && owner.startsWith(Configuration.ADDL_IGNORE)) || owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
 				|| owner.startsWith("java/lang/Byte")
 				|| owner.startsWith("java/lang/Short")
 				|| owner.startsWith("org/jikesrvm") || owner.startsWith("com/ibm/tuningfork") || owner.startsWith("org/mmtk") || owner.startsWith("org/vmmagic")
@@ -385,8 +172,7 @@ public class Instrumenter {
 				;
 	}
 
-	public static HashSet<String> interfaces = new HashSet<String>();
-	public static CallGraph callgraph = new CallGraph();
+	static HashMap<String, ClassNode> allClasses = new HashMap<String, ClassNode>();
 
 	public static HashMap<String, ClassNode> classes = new HashMap<String, ClassNode>();
 	public static void analyzeClass(InputStream is) {
@@ -394,24 +180,29 @@ public class Instrumenter {
 		nTotal++;
 		try {
 			cr = new ClassReader(is);
-			if (callgraph.containsClass(cr.getClassName()))
-				return;
-			cr.accept(new CallGraphBuildingClassVisitor(new ClassVisitor(Opcodes.ASM5) {
+			if (Configuration.WITH_SELECTIVE_INST) {
+				try {
+					ClassNode cn = new ClassNode();
+					cr.accept(cn, ClassReader.SKIP_CODE);
+					allClasses.put(cn.name, cn);
+
+					cr.accept(new ClassHierarchyCreator(), ClassReader.EXPAND_FRAMES);
+					cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
+				} catch (ClassFormatError ex) {
+					ex.printStackTrace();
+				}
+			}
+			cr.accept(new ClassVisitor(Opcodes.ASM5) {
 				@Override
 				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 					super.visit(version, access, name, signature, superName, interfaces);
 					ClassNode cn = new ClassNode();
 					cn.name = name;
-					cn.methods = new LinkedList();
 					cn.superName = superName;
 					cn.interfaces = new ArrayList<String>();
-					for(String s : interfaces)
-						cn.interfaces.add(s);
 					Instrumenter.classes.put(name, cn);
-					if ((access & Opcodes.ACC_INTERFACE) != 0)
-						Instrumenter.interfaces.add(name);
 				}
-			}, callgraph), 0);
+			}, ClassReader.SKIP_CODE);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -453,6 +244,15 @@ public class Instrumenter {
 	static Option opt_dataTrack = new Option("withoutDataTrack", "Disable taint tracking through data flow (on by default)");
 	static Option opt_controlTrack = new Option("controlTrack", "Enable taint tracking through control flow");
 	static Option opt_multiTaint = new Option("multiTaint", "Support for 2^32 tags instead of just 32");
+	static Option opt_trackArrayLengthTaints = new Option("withArrayLengthTags", "Tracks taint tags on array lengths - requires use of JVMTI runtime library when running");
+	static Option opt_withoutFieldHiding = new Option("withoutFieldHiding", "Disable hiding of taint fields via reflection");
+	static Option opt_withoutPropogation = new Option("withoutPropogation","Disable all tag propogation - still create method stubs and wrappers as per other options, but don't actually propogate tags");
+	static Option opt_enumPropogation = new Option("withEnumsByValue","Propogate tags to enums as if each enum were a value (not a reference) through the Enum.valueOf method");
+	static Option opt_unboxAcmpEq = new Option("forceUnboxAcmpEq","At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)");
+
+	static Option opt_withSelectiveInst = new Option("withSelectiveInst",true,"Enable selective instrumentation");
+	static Option opt_uninstCopies = new Option("generateUninstStubs","Add extra copies of each method, so there's always one instrumented and one not.");
+	
 	static Option help = new Option( "help", "print this message" );
 
 	public static String sourcesFile;
@@ -467,7 +267,13 @@ public class Instrumenter {
 		options.addOption(opt_dataTrack);
 		options.addOption(opt_taintSinks);
 		options.addOption(opt_taintSources);
-		
+		options.addOption(opt_trackArrayLengthTaints);
+		options.addOption(opt_withoutFieldHiding);
+		options.addOption(opt_withoutPropogation);
+		options.addOption(opt_enumPropogation);
+		options.addOption(opt_unboxAcmpEq);
+		options.addOption(opt_withSelectiveInst);
+		options.addOption(opt_uninstCopies);
 	    CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
 	    try {
@@ -493,9 +299,20 @@ public class Instrumenter {
 		Configuration.DATAFLOW_TRACKING = !line.hasOption("withoutDataTrack");
 		if(Configuration.IMPLICIT_TRACKING)
 			Configuration.MULTI_TAINTING = true;
+		Configuration.GENERATE_UNINST_STUBS = line.hasOption("generateUninstStubs");
 
+		Configuration.ARRAY_LENGTH_TRACKING = line.hasOption("withArrayLengthTags");
+		Configuration.WITHOUT_FIELD_HIDING = line.hasOption("withoutFieldHiding");
+		Configuration.WITHOUT_PROPOGATION = line.hasOption("withoutPropogation");
+		Configuration.WITH_ENUM_BY_VAL = line.hasOption("withEnumsByValue");
+		Configuration.WITH_UNBOX_ACMPEQ = line.hasOption("forceUnboxAcmpEq");
+		Configuration.WITH_SELECTIVE_INST = line.hasOption("withSelectiveInst");
+		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
 		Configuration.init();
 		
+		
+		if(Configuration.WITH_SELECTIVE_INST)
+			System.out.println("Performing selective instrumentation");
 		
 		if(Configuration.DATAFLOW_TRACKING)
 			System.out.println("Data flow tracking: enabled");
@@ -513,15 +330,58 @@ public class Instrumenter {
 		else
 			System.out.println("Taints will be combined with logical-or.");
 
+		if(Configuration.WITH_SELECTIVE_INST)
+		{
+			System.out.println("Loading selective instrumentation configuration");
+			SelectiveInstrumentationManager.populateMethodsToInstrument(Configuration.selective_inst_config);
+		}
 		TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
 		ANALYZE_ONLY = true;
 		System.out.println("Starting analysis");
-//		preAnalysis();
-		_main(line.getArgs());
+		//		preAnalysis();
+		if (Configuration.WITH_SELECTIVE_INST) {
+			while (true) {
+				System.out.println("Waiting for convergence..");
+				n = 0;
+				int size = SelectiveInstrumentationManager.methodsToInstrument.size();
+				_main(line.getArgs());
+//				for (String clazz : SelectiveInstrumentationManager.methodsToInstrumentByClass.keySet()) {
+//					Set<String> supers = ClassHierarchyCreator.allSupers(clazz);
+//					for (String s : supers) {
+//						ClassNode cn = allClasses.get(s);
+//						if (cn != null) {
+//							for (String meth : SelectiveInstrumentationManager.methodsToInstrumentByClass.get(clazz)) {
+//								for (Object o: cn.methods) {
+//									MethodNode mn = (MethodNode) o;
+//									if (meth.equals(mn.name + mn.desc)) {
+//										MethodDescriptor d = new MethodDescriptor(mn.name, cn.name, mn.desc);
+//										if (!SelectiveInstrumentationManager.methodsToInstrument.contains(d))
+//											SelectiveInstrumentationManager.methodsToInstrument.add(d);
+//									}
+//								}
+//							}
+//						}
+//					}
+//				}
+				int size_new = SelectiveInstrumentationManager.methodsToInstrument.size();
+				if (size == size_new)
+					break;
+			}
+
+		} else {
+			_main(line.getArgs());
+		}
 		System.out.println("Analysis Completed: Beginning Instrumentation Phase");
 //		finishedAnalysis();
 		ANALYZE_ONLY = false;
 		_main(line.getArgs());
+		if (Configuration.WITH_SELECTIVE_INST) {
+			// write out file again
+			StringBuffer buf = new StringBuffer();
+			for (MethodDescriptor desc : SelectiveInstrumentationManager.methodsToInstrument)
+				buf.append(TaintUtils.getMethodDesc(desc)).append("\n");
+			TaintUtils.writeToFile(new File(rootOutputDir.getAbsolutePath() + "/methods"), buf.toString());
+		}
 		System.out.println("Done");
 
 	}
@@ -529,7 +389,8 @@ public class Instrumenter {
 	static boolean ANALYZE_ONLY;
 
 	public static void _main(String[] args) {
-
+		if(PreMain.DEBUG)
+			System.err.println("Warning: Debug output enabled (uses a lot of IO!)");
 		String outputFolder = args[1];
 		rootOutputDir = new File(outputFolder);
 		if (!rootOutputDir.exists())
@@ -1053,6 +914,17 @@ public class Instrumenter {
 		return false;
 	}
 
+	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc) {
+		if (!owner.startsWith("edu/columbia/cs/psl/phosphor") &&!owner.startsWith("[")
+			&& !owner.startsWith("java")
+				&& !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
+			if (TaintUtils.DEBUG_CALLS)
+				System.out.println("Using uninstrument method call for class: " + owner + " method: " + name + " desc: " + desc);
+			return true;
+		}
+		return false;
+	}
+	
 	public static boolean isIgnoredMethod(String owner, String name, String desc) {
 		if (name.equals("wait") && desc.equals("(J)V"))
 			return true;
