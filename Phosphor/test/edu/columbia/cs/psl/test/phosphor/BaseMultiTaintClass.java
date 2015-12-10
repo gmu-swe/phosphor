@@ -61,13 +61,41 @@ public class BaseMultiTaintClass {
 		Node<Object> dep = obj.dependencies.getFirst();
 		while(dep != null)
 		{
-			if(dep.entry != null && dep.entry == lbl)
+			if(dep.entry != null && dep.entry == lbl && dep.next == null)
 				return;
 			else if(dep.entry != null)
 				fail("Expected taint contained ONLY "+ lbl+", found " + dep.entry);
 
 			dep = dep.next;
 		}
+		fail("Expected taint contained "+ lbl+", has " + obj);
+	}
+	public static void assertTaintHasOnlyLabels(Taint obj, Object lbl, Object lbl2)
+	{
+		assertNotNull(obj);
+		if(obj.lbl == lbl)
+			return;
+		if(obj.hasNoDependencies())
+			fail("Expected taint contained "+ lbl+", has nothing");
+		Node<Object> dep = obj.dependencies.getFirst();
+		boolean l1 = false;
+		boolean l2 = false;
+		while(dep != null)
+		{
+			if(dep.entry != null && dep.entry == lbl)
+			{
+				l1 = true;
+			}
+			else if(dep.entry != null && dep.entry == lbl2)
+			{
+				l2 = true;
+			} else if (dep.entry != null)
+				fail("Expected taint contained ONLY " + lbl + "," + lbl2 + ", found " + dep.entry);
+
+			dep = dep.next;
+		}
+		if(l1 && l2)
+			return;
 		fail("Expected taint contained "+ lbl+", has " + obj);
 	}
 }

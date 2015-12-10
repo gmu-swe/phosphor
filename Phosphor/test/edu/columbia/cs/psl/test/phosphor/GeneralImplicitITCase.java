@@ -63,6 +63,39 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 			return 10;
 		return 12;
 	}
+	
+	public static void testA(int x, int y, boolean b) {  
+       
+    }
+	@Test
+	public void testRelationalConditional() throws Exception {
+		int x = -1;
+        int y = -1;
+        boolean b = true;
+
+        Object labelX = "x";
+        Object labelY = "y";
+        Object labelB = "b";
+        int xt = MultiTainter.taintedInt(x, labelX);
+        int yt = MultiTainter.taintedInt(y, labelY);
+        boolean bt = MultiTainter.taintedBoolean(b, labelB);
+
+        int e = xt + 1;
+        int f = yt + 2;
+        assertTaintHasOnlyLabel(MultiTainter.getTaint(e), labelX);
+        assertTaintHasOnlyLabel(MultiTainter.getTaint(f), labelY);
+
+        boolean b1 = e > 0;
+        boolean b2 = f > -1;
+        boolean b3 = e > -1 && bt;
+        assertTaintHasOnlyLabel(MultiTainter.getTaint(b1), labelX);
+        assertTaintHasOnlyLabel(MultiTainter.getTaint(b2), labelY);
+        
+        assertTaintHasOnlyLabels(MultiTainter.getTaint(b3), labelX, labelB);
+        
+        testA(xt, yt, bt);
+	}
+
 	@After
 	public void resetState() {
 		MultiTainter.getControlFlow().reset();
