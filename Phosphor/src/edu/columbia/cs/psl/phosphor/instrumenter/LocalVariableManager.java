@@ -88,7 +88,11 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		if(name.equals("<clinit>"))
 			this.hasPreallocPassed = false;
 		if(TaintUtils.PREALLOC_RETURN_ARRAY)
+		{
 			changed = true;
+			if(hasPreallocPassed)
+				createdLVs.add(new LocalVariableNode("phosphorReturnHolder", "[Ljava/lang/Object;", null, new LabelNode(start), new LabelNode(end), lastArg));
+		}
 	}
 
 	public void freeTmpLV(int idx) {
@@ -347,10 +351,11 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 			return "TmpLV [idx=" + idx + ", type=" + type + ", inUse=" + inUse + "]";
 		}
 	}
-
+	Label start = new Label();
 	int lvOfSingleWrapperArray;
 	public void visitCode() {
 		super.visitCode();
+		super.visitLabel(start);
 		if (primitiveArrayFixer != null && !TaintUtils.PREALLOC_RETURN_ARRAY)
 			for (Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
 				if (t.equals(returnType)) {

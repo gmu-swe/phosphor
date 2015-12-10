@@ -55,11 +55,10 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					int argsVar = lvs.getTmpLV(Type.getType("[Ljava/lang/Object;"));
 					int objVar = lvs.getTmpLV(Type.getType("Ljava/lang/Object;"));
 					int methodVar = lvs.getTmpLV(Type.getType("Ljava/lang/reflect/Method;"));
-					int preAllocVar = 0;
+					int preAllocVar = lvs.lvOfSingleWrapperArray;
 					if(TaintUtils.PREALLOC_RETURN_ARRAY)
 					{
-						preAllocVar = lvs.getTmpLV(Type.getType("[Ljava/lang/Object;"));
-						super.visitVarInsn(ASTORE, preAllocVar);
+						super.visitInsn(POP);
 					}
 					super.visitVarInsn(ASTORE, argsVar);
 					super.visitVarInsn(ASTORE, objVar);

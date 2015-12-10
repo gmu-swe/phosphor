@@ -9,6 +9,8 @@ import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.security.acl.Owner;
 import java.text.Normalizer.Form;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -108,12 +110,14 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 	private boolean fixLdcClass;
 	
 	private boolean isEnum;
+	private boolean isjava8;
 	
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		addTaintField = true;
 		addTaintMethod = true;
 		this.fixLdcClass = (version & 0xFFFF) < Opcodes.V1_5;
+		this.isjava8 = (version & 0xFFFF) >= Opcodes.V1_8;
 		if(Instrumenter.IS_KAFFE_INST && name.endsWith("java/lang/VMSystem"))
 			access = access | Opcodes.ACC_PUBLIC;
 		else if(Instrumenter.IS_HARMONY_INST && name.endsWith("java/lang/VMMemoryManager"))
@@ -1131,22 +1135,100 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 				String _desc = mn.desc;
 				if(TaintUtils.PREALLOC_RETURN_ARRAY)
 					_desc = _desc.substring(0, _desc.indexOf(')')) + "[Ljava/lang/Object;)" + _desc.substring(_desc.indexOf(')') + 1);
-//				System.out.println("Making unisnt wrapper around "+mn.name);
 				MethodVisitor mv = super.visitMethod((isInterface ? mn.access : mn.access & ~Opcodes.ACC_ABSTRACT), mn.name + TaintUtils.METHOD_SUFFIX_UNINST, _desc, mn.signature,
 						(String[]) mn.exceptions.toArray(new String[0]));
-				GeneratorAdapter ga = new GeneratorAdapter(mv, mn.access, mn.name, mn.desc);
+				NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, mn.access, mn.name, _desc, mv);
+				mv = an;
+				GeneratorAdapter ga = new GeneratorAdapter(mv, mn.access, mn.name, _desc);
 				visitAnnotations(mv, mn);
 				if (!isInterface) {
+					Type[] args = Type.getArgumentTypes(_desc);
 					mv.visitCode();
+					ArrayList<Object> stack = new ArrayList<Object>();
 					int opcode;
 					if ((mn.access & Opcodes.ACC_STATIC) == 0) {
 						ga.loadThis();
+						stack.add(className);
 						opcode = Opcodes.INVOKESPECIAL;
 					} else
 						opcode = Opcodes.INVOKESTATIC;
-					ga.loadArgs();
-
-					ga.visitMethodInsn(opcode, className, mn.name, mn.desc, false);
+					for(int i = 0; i < args.length; i++)
+					{
+						Type t = args[i];
+						switch(t.getSort())
+						{
+						case Type.OBJECT:
+							ga.loadArg(i);
+							break;
+						case Type.ARRAY:
+							switch(t.getElementType().getSort())
+							{
+							case Type.OBJECT:
+								ga.loadArg(i);
+								break;
+								default: //primitive array
+									ga.loadArg(i);
+									FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
+									fn.type = Opcodes.F_NEW;
+									mv.visitInsn(Opcodes.DUP);
+									Label isNull = new Label();
+									Label ok = new Label();
+									mv.visitJumpInsn(Opcodes.IFNULL, isNull);
+									mv.visitInsn(Opcodes.DUP);
+									mv.visitInsn(Opcodes.ARRAYLENGTH);
+									if(Configuration.MULTI_TAINTING)
+										mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
+									else
+										mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+									mv.visitInsn(Opcodes.SWAP);
+									FrameNode fn2 = TaintAdapter.getCurrentFrameNode(an);
+									fn2.type = Opcodes.F_NEW;
+									mv.visitJumpInsn(Opcodes.GOTO, ok);
+									fn.accept(mv);
+									mv.visitLabel(isNull);
+									mv.visitInsn(Opcodes.ACONST_NULL);
+									mv.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+									mv.visitInsn(Opcodes.SWAP);
+									mv.visitLabel(ok);
+									fn2.accept(mv);
+									break;
+							}
+							break;
+						default: //primitive 
+							ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							ga.loadArg(i);
+						}
+					}
+					String nameToCall = mn.name;
+					String descToCall = TaintUtils.remapMethodDesc(mn.desc);
+					boolean requiresNoChange = !TaintUtils.PREALLOC_RETURN_ARRAY && descToCall.equals(mn.desc);
+					if(!requiresNoChange)
+					{
+						if(mn.name.equals("<init>"))
+							descToCall = descToCall.substring(0, descToCall.indexOf(')')) + Type.getDescriptor(TaintSentinel.class)+")" + descToCall.substring(descToCall.indexOf(')') + 1);
+						else
+							nameToCall += TaintUtils.METHOD_SUFFIX;
+					}
+					if(TaintUtils.PREALLOC_RETURN_ARRAY)
+						descToCall = descToCall.substring(0, descToCall.indexOf(')')) + "[Ljava/lang/Object;)" + descToCall.substring(descToCall.indexOf(')') + 1);
+					ga.visitMethodInsn(opcode, className, nameToCall, descToCall, false);
+					//need to unwrap if its a prim
+					Type origReturn = Type.getReturnType(mn.desc);
+					Type newReturn = Type.getReturnType(descToCall);
+					switch(origReturn.getSort())
+					{
+					case Type.OBJECT:
+					case Type.VOID:
+						break;
+					case Type.ARRAY:
+						if(origReturn.getDimensions() > 1)
+							break;
+						if(origReturn.getElementType().getSort() == Type.OBJECT)
+							break;
+					default:
+						ga.visitFieldInsn(Opcodes.GETFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
+						break;
+					}
 					ga.returnValue();
 					mv.visitMaxs(0, 0);
 					mv.visitEnd();
@@ -1263,6 +1345,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			for (MethodNode mn : forMore.keySet()) {
 				if(mn.name.equals("<clinit>"))
 					continue;
+				//this generates the $$UNTAGGED version if the method is actually tagged.
 				String mName = mn.name;
 				String mDesc = mn.desc;
 				if(mName.equals("<init>"))
@@ -1274,91 +1357,110 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 					mName += TaintUtils.METHOD_SUFFIX_UNINST;
 				}
 				mDesc = TaintUtils.remapMethodDescForUninst(mDesc);
-				
+//				System.out.println("Making unisnt wrapper 111 around "+mn.name);
+
 				MethodVisitor mv = super.visitMethod(mn.access & ~Opcodes.ACC_NATIVE, mName, mDesc, mn.signature, (String[]) mn.exceptions.toArray(new String[0]));
+				visitAnnotations(mv, mn);
+
 				if((mn.access & Opcodes.ACC_ABSTRACT) == 0)
 				{
-					String methodToCall = mn.name;
-					String descToCall = mn.desc;
-					
-					NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, mn.access, mName, mDesc, mv);
-					LocalVariableManager lvs = new LocalVariableManager(mn.access, mName, mDesc, mv, an, mv, true);
-					GeneratorAdapter ga = new GeneratorAdapter(an, mn.access, mn.name, mn.desc);
-					visitAnnotations(mv, mn);
-					mv.visitCode();
-					int opcode;
-					if ((mn.access & Opcodes.ACC_STATIC) == 0) {
-						ga.loadThis();
-						opcode = Opcodes.INVOKESPECIAL;
-					} else
-						opcode = Opcodes.INVOKESTATIC;
-					Type[] args = Type.getArgumentTypes(mn.desc);
-					for(int i = 0; i < args.length; i++)
-					{
-//						switch(args[i].getSort() )
-//						{
-//						case Type.OBJECT:
-//							ga.loadArg(i);
-//							break;
-//						case Type.ARRAY:
-//							if(args[i].getElementType().getSort() != Type.OBJECT && args[i].getDimensions() == 1)
-//							{
-//								ga.loadArg(i);
-//								TaintAdapter.createNewTaintArray("[I", an, an, lvs);
-//							}
-//							else
-//								ga.loadArg(i);
-//							break;
-//							default:
-//								ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
-//								ga.loadArg(i);
-//
-//						}
-						ga.loadArg(i);
+					NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, mn.access, mName,mDesc, mv);
+					mv = an;
+					GeneratorAdapter ga = new GeneratorAdapter(mv, mn.access, mName, mDesc);
+					if (!isInterface || isjava8) {
+						Type[] args = Type.getArgumentTypes(mDesc);
+						mv.visitCode();
+						int opcode;
+						if ((mn.access & Opcodes.ACC_STATIC) == 0) {
+							ga.loadThis();
+							opcode = Opcodes.INVOKESPECIAL;
+						} else
+							opcode = Opcodes.INVOKESTATIC;
+						for(int i = 0; i < args.length; i++)
+						{
+							Type t = args[i];
+							switch(t.getSort())
+							{
+							case Type.OBJECT:
+								if(t.equals(Type.getType(UninstrumentedTaintSentinel.class)))
+									ga.visitInsn(Opcodes.ACONST_NULL);
+								else
+									ga.loadArg(i);
+								break;
+							case Type.ARRAY:
+								switch(t.getElementType().getSort())
+								{
+								case Type.OBJECT:
+									ga.loadArg(i);
+									break;
+									default: //primitive array
+										ga.loadArg(i);
+										FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
+										fn.type = Opcodes.F_NEW;
+										mv.visitInsn(Opcodes.DUP);
+										Label isNull = new Label();
+										Label ok = new Label();
+										mv.visitJumpInsn(Opcodes.IFNULL, isNull);
+										mv.visitInsn(Opcodes.DUP);
+										mv.visitInsn(Opcodes.ARRAYLENGTH);
+										if(Configuration.MULTI_TAINTING)
+											mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
+										else
+											mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+										mv.visitInsn(Opcodes.SWAP);
+										FrameNode fn2 = TaintAdapter.getCurrentFrameNode(an);
+										fn2.type = Opcodes.F_NEW;
+										mv.visitJumpInsn(Opcodes.GOTO, ok);
+										fn.accept(mv);
+										mv.visitLabel(isNull);
+										mv.visitInsn(Opcodes.ACONST_NULL);
+										mv.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+										mv.visitInsn(Opcodes.SWAP);
+										mv.visitLabel(ok);
+										fn2.accept(mv);
+										break;
+								}
+								break;
+							default: //primitive 
+								ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+								ga.loadArg(i);
+							}
+						}
+						String nameToCall = mn.name;
+						String descToCall = TaintUtils.remapMethodDesc(mn.desc);
+						boolean requiresNoChange = !TaintUtils.PREALLOC_RETURN_ARRAY && descToCall.equals(mn.desc);
+						if(!requiresNoChange)
+						{
+							if(mn.name.equals("<init>"))
+								descToCall = descToCall.substring(0, descToCall.indexOf(')')) + Type.getDescriptor(TaintSentinel.class)+")" + descToCall.substring(descToCall.indexOf(')') + 1);
+							else
+								nameToCall += TaintUtils.METHOD_SUFFIX;
+						}
+						if(TaintUtils.PREALLOC_RETURN_ARRAY)
+							descToCall = descToCall.substring(0, descToCall.indexOf(')')) + "[Ljava/lang/Object;)" + descToCall.substring(descToCall.indexOf(')') + 1);
+						ga.visitMethodInsn(opcode, className, nameToCall, descToCall, false);
+						//need to unwrap if its a prim
+						Type origReturn = Type.getReturnType(mn.desc);
+						Type newReturn = Type.getReturnType(descToCall);
+						switch(origReturn.getSort())
+						{
+						case Type.OBJECT:
+						case Type.VOID:
+							break;
+						case Type.ARRAY:
+							if(origReturn.getDimensions() > 1)
+								break;
+							if(origReturn.getElementType().getSort() == Type.OBJECT)
+								break;
+						default:
+							ga.visitFieldInsn(Opcodes.GETFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
+							break;
+						}
+						ga.returnValue();
+						mv.visitMaxs(0, 0);
+						mv.visitEnd();
 					}
-
-					ga.visitMethodInsn(opcode, className, mn.name, mn.desc, false);
-					ga.returnValue();
-					mv.visitMaxs(0, 0);
-					mv.visitEnd();
 				}
-//				} else {
-//					mv = new SpecialOpcodeRemovingMV(mv, ignoreFrames, className, fixLdcClass);
-//
-//					NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, mn.access, mn.name, mDesc, mv);
-//					mv = analyzer;
-//					UninstrumentedReflectionHidingMV hider = new UninstrumentedReflectionHidingMV(mv, className);
-//					mv = hider;
-//					UninstrumentedReflectionHidingMV ta = (UninstrumentedReflectionHidingMV) mv;
-//					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc,mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames,analyzer);
-//					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.name, mDesc, mv, analyzer, analyzer, true);
-//					final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, mn.access, mn.name, mn.desc, null, null, null);
-//					lvs.disable();
-//					lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
-//					((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
-//					ta.setLvs(lvs);
-//					hider.setLvs(lvs);
-//					mv = lvs;
-//					mv = new UninstTaintSentinalArgFixer(mv, mn.access, mName, mDesc, mn.desc);
-//					lvs.lvOfSingleWrapperArray = ((UninstTaintSentinalArgFixer) mv).lvForReturnVar;
-//
-//					if (!TaintUtils.PREALLOC_RETURN_ARRAY)
-//						meth.accept(new MethodVisitor(Opcodes.ASM5) {
-//							@Override
-//							public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-//								//determine if this is going to be uninst, and then if we need to pre-alloc for its return :/
-//								if (Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc)) {
-//									//uninst
-//								} else {
-//									Type returnType = Type.getReturnType(desc);
-//									Type newReturnType = TaintUtils.getContainerReturnType(returnType);
-//									if (newReturnType != returnType && !(returnType.getSort() == Type.ARRAY && returnType.getDimensions() > 1))
-//										primArrayAnalyzer.wrapperTypesToPreAlloc.add(newReturnType);
-//								}
-//							};
-//						});
-//					meth.accept(mv);
-//				}
 			}
 		}
 //		if (!goLightOnGeneratedStuff && TaintUtils.GENERATE_FASTPATH_VERSIONS)

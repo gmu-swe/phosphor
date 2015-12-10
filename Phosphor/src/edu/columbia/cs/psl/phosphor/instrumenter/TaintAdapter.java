@@ -626,6 +626,29 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 			return Type.getType("Luninitialized;");
 		throw new IllegalArgumentException("got " + obj + " zzz" + obj.getClass());
 	}
+	
+	public static Object getStackTypeForType(Type t) {
+		switch(t.getSort())
+		{
+		case Type.ARRAY:
+		case Type.OBJECT:
+			return t.getInternalName();
+		case Type.BOOLEAN:
+		case Type.BYTE:
+		case Type.CHAR:
+		case Type.INT:
+		case Type.SHORT:
+			return Opcodes.INTEGER;
+		case Type.FLOAT:
+			return Opcodes.FLOAT;
+		case Type.DOUBLE:
+			return Opcodes.DOUBLE;
+		case Type.LONG:
+			return Opcodes.LONG;
+		}
+		throw new IllegalArgumentException();
+	}
+
 
 	public static boolean isPrimitiveStackType(Object obj) {
 		if (obj instanceof String) {

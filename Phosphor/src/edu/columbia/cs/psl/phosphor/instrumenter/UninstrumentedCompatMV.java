@@ -57,7 +57,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 		Object[] newStack = new Object[stack.length];
 		for (int i = 0; i < local.length; i++) {
 			if (local[i] instanceof String) {
-				Type t = Type.getType(((String) local[i]));
+				Type t = Type.getObjectType(((String) local[i]));
 				if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() > 1)
 					newLocal[i] = MultiDTaintedArray.getTypeForType(t).getInternalName();
 				else
@@ -67,7 +67,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 		}
 		for (int i = 0; i < stack.length; i++) {
 			if (stack[i] instanceof String) {
-				Type t = Type.getType(((String) stack[i]));
+				Type t = Type.getObjectType(((String) stack[i]));
 				if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() > 1)
 					newStack[i] = MultiDTaintedArray.getTypeForType(t).getInternalName();
 				else

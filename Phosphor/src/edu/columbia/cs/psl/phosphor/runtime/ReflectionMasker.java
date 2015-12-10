@@ -240,6 +240,12 @@ public class ReflectionMasker {
 		ArrayList<Class> newArgs = new ArrayList<Class>();
 		boolean madeChange = false;
 		for (final Class c : m.getParameterTypes()) {
+			if(c == TaintSentinel.class  || c == UninstrumentedTaintSentinel.class)
+			{
+				//Its already instrumented
+				m.PHOSPHOR_TAGmarked = true;
+				return m;
+			}
 			if (c.isArray()) {
 				if (c.getComponentType().isPrimitive()) {
 					//1d primitive array
@@ -1172,15 +1178,17 @@ public class ReflectionMasker {
 	}
 	public static MethodInvoke fixAllArgsUninst(Method m, Object owner, Object[] in, Object[] prelloc, boolean isObjTags) {
 		MethodInvoke ret = new MethodInvoke();
+		ret.t = prelloc;
 		if (m == null) {
 			ret.a = in;
 			ret.o = owner;
 			ret.m = m;
 			return ret;
 		}
-		if (Configuration.WITH_SELECTIVE_INST)// && Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m)))
+		if (Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m)))
 		{
 			ret.m = getUnTaintMethod(m, isObjTags);
+			ret.m.setAccessible(true);
 			//			ret.m = getOrigMethod(m, isObjTags);
 			ret.o = owner;
 			ret.a = in;
