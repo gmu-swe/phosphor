@@ -169,6 +169,7 @@ public class Instrumenter {
 				|| owner.startsWith("sun/reflect/GeneratedMethodAccessor") || owner.startsWith("sun/reflect/GeneratedConstructorAccessor")
 				|| owner.startsWith("sun/reflect/GeneratedSerializationConstructor") || owner.startsWith("sun/awt/image/codec/")
 				|| owner.startsWith("java/lang/invoke/LambdaForm")
+				|| owner.startsWith("edu/columbia/cs/psl/phosphor/struct/TaintedWith")
 				;
 	}
 

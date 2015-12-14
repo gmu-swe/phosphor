@@ -1300,7 +1300,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 			}
 		}
-		if (owner.startsWith("edu/columbia/cs/psl/phosphor") && !name.equals("printConstraints") && !name.equals("hasNoDependencies") && !desc.equals("(I)V") && !owner.endsWith("Tainter")) {
+		if (owner.startsWith("edu/columbia/cs/psl/phosphor") && !name.equals("printConstraints") && !name.equals("hasNoDependencies") && !desc.equals("(I)V") && !owner.endsWith("Tainter")
+				&&!name.equals("getPHOSPHOR_TAG") && !name.equals("setPHOSPHOR_TAG")) {
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
 		}
