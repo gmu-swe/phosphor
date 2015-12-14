@@ -122,7 +122,7 @@ public class TaintUtils {
 	public static final boolean DEBUG_OPT = false;
 	public static final boolean DEBUG_PURE = false;
 
-	public static boolean PREALLOC_RETURN_ARRAY = true;
+	public static boolean PREALLOC_RETURN_ARRAY = false;
 	public static final int PREALLOC_BOOLEAN=0;
 	public static final int PREALLOC_BYTE=1;
 	public static final int PREALLOC_CHAR=2;
