@@ -11,9 +11,11 @@ import java.util.List;
 import java.util.Stack;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -328,6 +330,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 										Type outputTopType = TaintAdapter.getTypeForStackType(output1Top);
 										if ((output1Top == Opcodes.NULL) && inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() != Type.OBJECT
 												&& inputTopType.getDimensions() == 1) {
+											if(!uninstMode)
 											insertACONSTNULLBEFORE.add(toMerge);
 										} else if ((inputTopType.getSort() == Type.OBJECT || (inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() == Type.OBJECT)) && outputTopType.getSort() == Type.ARRAY && outputTopType.getElementType().getSort() != Type.OBJECT
 												&& inputTopType.getDimensions() == 1) {
@@ -830,8 +833,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		super.visitMethodInsn(opcode, owner, name, desc,itfc);
 		Type returnType = Type.getReturnType(desc);
 		Type newReturnType = TaintUtils.getContainerReturnType(returnType);
-		if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY && returnType.getDimensions() > 1))
-			wrapperTypesToPreAlloc.add(newReturnType);
+		if(!Configuration.WITH_SELECTIVE_INST || !Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc))
+			if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY && returnType.getDimensions() > 1))
+				wrapperTypesToPreAlloc.add(newReturnType);
 	}
 
 	public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv) {
@@ -847,8 +851,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	}
 
 	NeverNullArgAnalyzerAdapter analyzer;
-
+	
 	public void setAnalyzer(NeverNullArgAnalyzerAdapter preAnalyzer) {
 		analyzer = preAnalyzer;
+	}
+	
+	private boolean uninstMode;
+	public void setUninstMode() {
+		this.uninstMode = true;
 	}
 }

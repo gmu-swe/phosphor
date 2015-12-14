@@ -140,6 +140,7 @@ public class Instrumenter {
 				|| owner.startsWith("java/lang/invoke/LambdaForm")
 				|| owner.startsWith("java/lang/invoke/MethodHandle")
 								|| owner.startsWith("java/lang/invoke/DelegatingMethodHandle")
+								|| owner.startsWith("com/jprofiler")
 //|| owner.startsWith("org/apache/jasper/runtime/HttpJspBase")
 				;
 	}
@@ -890,8 +891,9 @@ public class Instrumenter {
 	}
 
 	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc) {
-		if (!owner.startsWith("edu/columbia/cs/psl/phosphor") &&!owner.startsWith("[")
- && !owner.startsWith("java") && !owner.startsWith("com/sun") && !owner.startsWith("sun/")
+		if (!owner.startsWith("edu/columbia/cs/psl/phosphor") && 
+				!owner.startsWith("[") && !owner.startsWith("java") 
+				&& !owner.startsWith("com/sun") && !owner.startsWith("sun/")
 				&& !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
 			if (TaintUtils.DEBUG_CALLS)
 				System.out.println("Using uninstrument method call for class: " + owner + " method: " + name + " desc: " + desc);

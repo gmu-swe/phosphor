@@ -57,6 +57,8 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithSingleObjTag;
@@ -71,7 +73,6 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 public class TaintUtils {
 	static Object lock = new Object();
 
-	public static ThreadLocal<Object[]> prealloc;// = new ThreadLocal<Object[]>();
 //	static
 //	{
 //		prealloc.set(PreAllocHelper.createPreallocReturnArray());
@@ -587,7 +588,7 @@ public class TaintUtils {
 			throw ex;
 		}
 	}
-	public static void arraycopy(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, Object[] preqlloc) {
+	public static void arraycopy(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, TaintedReturnHolderWithIntTag[] preqlloc) {
 		try {
 			if (!src.getClass().isArray() && !dest.getClass().isArray()) {
 				System.arraycopy(((MultiDTaintedArrayWithIntTag) src).getVal(), srcPos, ((MultiDTaintedArrayWithIntTag) dest).getVal(), destPos, length);
@@ -684,16 +685,19 @@ public class TaintUtils {
 	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
 		if (!Configuration.SINGLE_TAG_PER_ARRAY && 
-				(
-						(!PREALLOC_RETURN_ARRAY && VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithIntTag()).val) 
-						
-						)&& srcTaint != null && destTaint != null) {
+				VM.booted && srcTaint != null && destTaint != null) {
 			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
 				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
 		}
 	}
-
-	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, Object[] prealloc) {
+	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, TaintedReturnHolderWithIntTag[] prealloc) {
+		System.arraycopy(src, srcPos, dest, destPos, length);
+		if (VM.booted && srcTaint != null && destTaint != null) {
+			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
+				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
+		}
+	}
+	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, TaintedReturnHolderWithObjTag[] prealloc) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
 		if (!Configuration.SINGLE_TAG_PER_ARRAY && (VM.booted) && srcTaint != null && destTaint != null) {
 			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
@@ -1011,7 +1015,7 @@ public class TaintUtils {
 				r += t;
 		}
 		if(TaintUtils.PREALLOC_RETURN_ARRAY)
-			r += "[Ljava/lang/Object;";
+			r += Configuration.TAINTED_RETURN_HOLDER_DESC;
 		Type ret = Type.getReturnType(desc);
 		if(ret.getSort() == Type.ARRAY && ret.getDimensions() > 1 && ret.getElementType().getSort() != Type.OBJECT)
 			r += ")"+MultiDTaintedArrayWithIntTag.getTypeForType(ret).getDescriptor();

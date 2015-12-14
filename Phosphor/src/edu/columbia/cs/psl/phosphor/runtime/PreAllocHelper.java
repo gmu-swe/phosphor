@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import inst.CallProfiler;
+import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithSingleObjTag;
@@ -35,6 +37,9 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithSingleObjTag;
@@ -42,9 +47,9 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 
 public class PreAllocHelper {
-	public static final Object[] createPreallocReturnArrayMultiTaint()
+	public static final TaintedReturnHolderWithObjTag[] createPreallocReturnArrayMultiTaint()
 	{
-				return new Object[]{
+				return new TaintedReturnHolderWithObjTag[]{
 					new TaintedBooleanWithObjTag(),
 					new TaintedByteWithObjTag(),
 					new TaintedCharWithObjTag(),
@@ -62,10 +67,10 @@ public class PreAllocHelper {
 					new TaintedLongArrayWithObjTag(),
 					new TaintedShortArrayWithObjTag()};
 	}
-	public static final Object[] createPreallocReturnArrayMultiTaintSingleTag()
+	public static final TaintedReturnHolderWithSingleObjTag[] createPreallocReturnArrayMultiTaintSingleTag()
 	{
 		
-				return new Object[]{
+				return new TaintedReturnHolderWithSingleObjTag[]{
 					new TaintedBooleanWithObjTag(),
 					new TaintedByteWithObjTag(),
 					new TaintedCharWithObjTag(),
@@ -84,25 +89,53 @@ public class PreAllocHelper {
 					new TaintedShortArrayWithSingleObjTag()
 			};
 	}
-	public static final Object[] createPreallocReturnArray()
+	public static final TaintedReturnHolderWithIntTag[] createPreallocReturnArray()
 	{
-			return new Object[]{
-					new TaintedBooleanWithIntTag(),
-					new TaintedByteWithIntTag(),
-					new TaintedCharWithIntTag(),
-					new TaintedDoubleWithIntTag(),
-					new TaintedFloatWithIntTag(),
-					new TaintedIntWithIntTag(),
-					new TaintedLongWithIntTag(),
-					new TaintedShortWithIntTag(),
-					new TaintedBooleanArrayWithIntTag(),
-					new TaintedByteArrayWithIntTag(),
-					new TaintedCharArrayWithIntTag(),
-					new TaintedDoubleArrayWithIntTag(),
-					new TaintedFloatArrayWithIntTag(),
-					new TaintedIntArrayWithIntTag(),
-					new TaintedLongArrayWithIntTag(),
-					new TaintedShortArrayWithIntTag()
-			};
+		if(VM.booted)
+		{
+			Object cache = Thread.currentThread().preallocReturns;
+			if(cache == null)
+			{
+				cache = new TaintedReturnHolderWithIntTag[]{
+						new TaintedBooleanWithIntTag(),
+						new TaintedByteWithIntTag(),
+						new TaintedCharWithIntTag(),
+						new TaintedDoubleWithIntTag(),
+						new TaintedFloatWithIntTag(),
+						new TaintedIntWithIntTag(),
+						new TaintedLongWithIntTag(),
+						new TaintedShortWithIntTag(),
+						new TaintedBooleanArrayWithIntTag(),
+						new TaintedByteArrayWithIntTag(),
+						new TaintedCharArrayWithIntTag(),
+						new TaintedDoubleArrayWithIntTag(),
+						new TaintedFloatArrayWithIntTag(),
+						new TaintedIntArrayWithIntTag(),
+						new TaintedLongArrayWithIntTag(),
+						new TaintedShortArrayWithIntTag()
+				};
+			}
+//			CallProfiler.logInvoke$$PHOSPHORTAGGED((TaintedReturnHolderWithIntTag[]) cache);
+
+			return (TaintedReturnHolderWithIntTag[]) cache;
+		}
+		return new TaintedReturnHolderWithIntTag[]{
+				new TaintedBooleanWithIntTag(),
+				new TaintedByteWithIntTag(),
+				new TaintedCharWithIntTag(),
+				new TaintedDoubleWithIntTag(),
+				new TaintedFloatWithIntTag(),
+				new TaintedIntWithIntTag(),
+				new TaintedLongWithIntTag(),
+				new TaintedShortWithIntTag(),
+				new TaintedBooleanArrayWithIntTag(),
+				new TaintedByteArrayWithIntTag(),
+				new TaintedCharArrayWithIntTag(),
+				new TaintedDoubleArrayWithIntTag(),
+				new TaintedFloatArrayWithIntTag(),
+				new TaintedIntArrayWithIntTag(),
+				new TaintedLongArrayWithIntTag(),
+				new TaintedShortArrayWithIntTag()
+		};
 	}
 }

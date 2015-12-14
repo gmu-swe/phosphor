@@ -38,6 +38,10 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 
 	ArrayList<Type> oldTypesDoublesAreOne;
 
+	@Override
+	public void visitMaxs(int maxStack, int maxLocals) {
+		super.visitMaxs(maxStack, maxLocals+2);
+	}
 	public UninstTaintSentinalArgFixer(MethodVisitor mv, int access, String name, String desc, String originalDesc) {
 		super(Opcodes.ASM5, mv);
 		this.name = name;
@@ -117,12 +121,12 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 			for (int i = 0; i < origNLocal; i++) {
 
 				if (i == origNumArgs && hasTaintSentinalAddedToDesc) {
-					remappedLocals[newIdx] = Opcodes.TOP;
+					remappedLocals[newIdx] = Opcodes.NULL;
 					newIdx++;
 					nLocal++;
 				}
 				if (i == origNumArgs && TaintUtils.PREALLOC_RETURN_ARRAY && !name.equals("<clinit>")) {
-					remappedLocals[newIdx] = "[Ljava/lang/Object;";
+					remappedLocals[newIdx] = Configuration.TAINTED_RETURN_HOLDER_DESC;
 					newIdx++;
 					nLocal++;
 				}

@@ -1,6 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-public abstract class TaintedPrimitiveWithIntTag {
+public abstract class TaintedPrimitiveWithIntTag implements TaintedReturnHolderWithIntTag {
 	public int taint;
 	public abstract Object getValue();
 	public final Object toPrimitiveType()

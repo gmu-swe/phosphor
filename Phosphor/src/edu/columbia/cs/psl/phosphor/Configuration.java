@@ -50,6 +50,9 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithSingleObjTag;
@@ -95,6 +98,9 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_CLASS = (Taint.class);
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
 
+	public static Class TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithIntTag[].class;
+	public static String TAINTED_RETURN_HOLDER_DESC = "[Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithIntTag;";
+	
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
 	public static Class extensionClassVisitor;
 
@@ -121,8 +127,21 @@ public class Configuration {
 		TAINT_TAG_OBJ_ARRAY_CLASS = (MULTI_TAINTING ? Taint[].class : int[].class);
 		TAINT_TAG_OBJ_CLASS = (MULTI_TAINTING ? Taint.class : Integer.TYPE);
 		
+		if(MULTI_TAINTING)
+		{
+			TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithObjTag[].class;
+			TAINTED_RETURN_HOLDER_DESC = "[Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithObjTag;";
+		}
+		else
+		{
+			TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithIntTag[].class;
+			TAINTED_RETURN_HOLDER_DESC = "[Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithIntTag;";
+		}
 		if(SINGLE_TAG_PER_ARRAY)
 		{
+			TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithSingleObjTag[].class;
+			TAINTED_RETURN_HOLDER_DESC = "[Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithSingleObjTag;";
+			
 			TAINT_TAG_ARRAYDESC = TAINT_TAG_DESC;
 			TAINT_TAG_ARRAY_INTERNAL_NAME = TAINT_TAG_INTERNAL_NAME;
 			TAINT_TAG_ARRAY_STACK_TYPE = TAINT_TAG_STACK_TYPE;

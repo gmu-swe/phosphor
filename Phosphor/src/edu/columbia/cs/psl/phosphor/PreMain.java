@@ -40,6 +40,9 @@ import edu.columbia.cs.psl.phosphor.struct.Tainted;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithSingleObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithSingleObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
@@ -123,7 +126,7 @@ public class PreMain {
 			return ret;
 		}
 		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint[] classtaint,
-				byte[] classfileBuffer, Object[] ret) throws IllegalClassFormatException {
+				byte[] classfileBuffer, TaintedReturnHolderWithObjTag[] ret) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
@@ -176,7 +179,7 @@ public class PreMain {
 		}
 		
 		public TaintedByteArrayWithSingleObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint classtaint,
-				byte[] classfileBuffer, Object[] ret) throws IllegalClassFormatException {
+				byte[] classfileBuffer, TaintedReturnHolderWithSingleObjTag[] ret) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
@@ -210,7 +213,7 @@ public class PreMain {
 		}
 
 		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint,
-				byte[] classfileBuffer, Object[] ret) throws IllegalClassFormatException {
+				byte[] classfileBuffer, TaintedReturnHolderWithIntTag[] ret) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
@@ -248,12 +251,30 @@ public class PreMain {
 		}
 
 		public byte[] transform$$PHOSPHORUNTAGGED(ClassLoader loader, final String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer,
-				Object[] prealloc) throws IllegalClassFormatException {
+				TaintedReturnHolderWithIntTag[] prealloc) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
 				Configuration.IMPLICIT_TRACKING = false;
 				Configuration.MULTI_TAINTING = false;
+				Configuration.init();
+				INITED = true;
+			}
+			byte[] ret;
+			if (className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+				ret = classfileBuffer;
+			else
+				ret = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			Configuration.taintTagFactory.instrumentationEnding(className);
+			return ret;
+		}
+		public byte[] transform$$PHOSPHORUNTAGGED(ClassLoader loader, final String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer,
+				TaintedReturnHolderWithObjTag[] prealloc) throws IllegalClassFormatException {
+			Configuration.taintTagFactory.instrumentationStarting(className);
+
+			if (!INITED) {
+				Configuration.IMPLICIT_TRACKING = false;
+				Configuration.MULTI_TAINTING = true;
 				Configuration.init();
 				INITED = true;
 			}
@@ -489,7 +510,17 @@ public class PreMain {
 		Configuration.init();
 		premain(args, inst);
 	}
-	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, Object[] prealloc) {
+	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, TaintedReturnHolderWithIntTag[] prealloc) {
+		Configuration.MULTI_TAINTING = false;
+		TaintUtils.PREALLOC_RETURN_ARRAY = true;
+
+		Configuration.init();
+		premain(args, inst);
+	}
+	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, TaintedReturnHolderWithObjTag[] prealloc) {
+		Configuration.MULTI_TAINTING = true;
+		TaintUtils.PREALLOC_RETURN_ARRAY = true;
+		
 		Configuration.init();
 		premain(args, inst);
 	}

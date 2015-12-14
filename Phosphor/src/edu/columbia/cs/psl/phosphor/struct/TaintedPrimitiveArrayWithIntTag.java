@@ -1,6 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-public abstract class TaintedPrimitiveArrayWithIntTag {
+public abstract class TaintedPrimitiveArrayWithIntTag implements TaintedReturnHolderWithIntTag{
 	public int[] taint;
 
 	public abstract Object toStackType();

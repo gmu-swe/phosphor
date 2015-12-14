@@ -51,7 +51,7 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
 				if (TaintUtils.PREALLOC_RETURN_ARRAY) {
 					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgsUninst",
-							"(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;[Ljava/lang/Object;Z)" + Type.getDescriptor(MethodInvoke.class), false);
+							"(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;"+Configuration.TAINTED_RETURN_HOLDER_DESC+"Z)" + Type.getDescriptor(MethodInvoke.class), false);
 				} else
 					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgsUninst", "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;Z)"
 							+ Type.getDescriptor(MethodInvoke.class), false);
@@ -71,19 +71,32 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 					super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "a", "[Ljava/lang/Object;");
 					super.visitInsn(Opcodes.SWAP);
 					super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "t", "[Ljava/lang/Object;");
+					super.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINTED_RETURN_HOLDER_DESC);
 				} else
 					super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "a", "[Ljava/lang/Object;");
 			} else {
-				super.visitInsn(Opcodes.POP);
-				super.visitInsn(Opcodes.SWAP);
-				//[A C
-				super.visitInsn(Opcodes.DUP_X1);
-				//C [A C
-				super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
-				super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgsUninst",
-						"([Ljava/lang/Object;Ljava/lang/reflect/Constructor;Z[Ljava/lang/Object;)[Ljava/lang/Object;", false);
-				super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
+				if(TaintUtils.PREALLOC_RETURN_ARRAY){
+					super.visitInsn(Opcodes.POP);
+					super.visitInsn(Opcodes.SWAP);
+					//[A C
+					super.visitInsn(Opcodes.DUP_X1);
+					//C [A C
+					super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+					super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgsUninst", "([Ljava/lang/Object;Ljava/lang/reflect/Constructor;Z"
+							+ Configuration.TAINTED_RETURN_HOLDER_DESC + ")[Ljava/lang/Object;", false);
+					super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
+				}
+				else
+				{
+					super.visitInsn(Opcodes.SWAP);
+					//[A C
+					super.visitInsn(Opcodes.DUP_X1);
+					//C [A C
+					super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgsUninst",
+							"([Ljava/lang/Object;Ljava/lang/reflect/Constructor;Z)[Ljava/lang/Object;", false);
+				}
 			}
 		}
 		else if (!Instrumenter.IS_ANDROID_INST && owner.equals("java/lang/Class") && (name.equals("copyMethods") || name.equals("copyFields") || name.equals("copyConstructors")))

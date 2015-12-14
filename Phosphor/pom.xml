@@ -23,6 +23,7 @@
 						<exclude>org/eclipse</exclude>
 						<exclude>java/</exclude>
 						<exclude>sun/</exclude>
+						<excludes>inst/</excludes>
 					</excludes>
 				</configuration>
 			</plugin>

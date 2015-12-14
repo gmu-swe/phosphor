@@ -91,7 +91,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		{
 			changed = true;
 			if(hasPreallocPassed)
-				createdLVs.add(new LocalVariableNode("phosphorReturnHolder", "[Ljava/lang/Object;", null, new LabelNode(start), new LabelNode(end), lastArg));
+				createdLVs.add(new LocalVariableNode("phosphorReturnHolder", Configuration.TAINTED_RETURN_HOLDER_DESC, null, new LabelNode(start), new LabelNode(end), lastArg));
 		}
 	}
 
@@ -372,17 +372,17 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 			}
 		else if(TaintUtils.PREALLOC_RETURN_ARRAY && !hasPreallocPassed)
 		{
-			int lv = newPreAllocedReturnType(Type.getType("[Ljava/lang/Object;"));
+			int lv = newPreAllocedReturnType(Type.getType(Configuration.TAINTED_RETURN_HOLDER_DESC));
 			lvOfSingleWrapperArray = lv;
 			if(Configuration.MULTI_TAINTING)
 			{
 				if(Configuration.SINGLE_TAG_PER_ARRAY)
-					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArrayMultiTaintSingleTag", "()[Ljava/lang/Object;", false);
+					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArrayMultiTaintSingleTag", "()"+Configuration.TAINTED_RETURN_HOLDER_DESC, false);
 				else
-					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArrayMultiTaint", "()[Ljava/lang/Object;", false);
+					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArrayMultiTaint", "()"+Configuration.TAINTED_RETURN_HOLDER_DESC, false);
 			}
 			else
-			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArray", "()[Ljava/lang/Object;", false);
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArray", "()"+Configuration.TAINTED_RETURN_HOLDER_DESC, false);
 			mv.visitVarInsn(ASTORE, lv);
 		}
 	}
@@ -477,9 +477,10 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         // copies types from 'local' to 'newLocals'
         // 'newLocals' currently empty
 
-		if (!disabled) {
+//		if (!disabled) 
+		{
 			if (TaintUtils.PREALLOC_RETURN_ARRAY) {
-				setFrameLocal(lvOfSingleWrapperArray, "[Ljava/lang/Object;");
+				setFrameLocal(lvOfSingleWrapperArray, Configuration.TAINTED_RETURN_HOLDER_DESC);
 			} else {
 				for (Type t : preAllocedReturnTypes.keySet()) {
 					//        	System.out.println(t);

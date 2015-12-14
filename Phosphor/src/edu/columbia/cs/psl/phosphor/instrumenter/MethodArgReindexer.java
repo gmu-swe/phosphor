@@ -35,13 +35,15 @@ public class MethodArgReindexer extends MethodVisitor {
 	boolean hasPreAllocedReturnAddr;
 	Type newReturnType;
 
+	String className;
 	ArrayList<Type> oldTypesDoublesAreOne;
-	public MethodArgReindexer(MethodVisitor mv, int access, String name, String desc, String originalDesc, MethodNode lvStore) {
+	public MethodArgReindexer(MethodVisitor mv, int access,String className, String name, String desc, String originalDesc, MethodNode lvStore) {
 		super(Opcodes.ASM5,mv);
 		this.lvStore = lvStore;
 		lvStore.localVariables = new ArrayList<LocalVariableNode>();
 		this.name = name;
 		this.desc = desc;
+		this.className = className;
 		oldArgTypes = Type.getArgumentTypes(originalDesc);
 		Type[] newArgTypes = Type.getArgumentTypes(desc);
 		origNumArgs = oldArgTypes.length;
@@ -110,11 +112,11 @@ public class MethodArgReindexer extends MethodVisitor {
 			hasPreAllocedReturnAddr = false;
 		if (hasPreAllocedReturnAddr) {
 			if (TaintUtils.PREALLOC_RETURN_ARRAY)
-				newReturnType = Type.getType("[Ljava/lang/Object;");
+				newReturnType = Type.getType(Configuration.TAINTED_RETURN_HOLDER_DESC);
 			else
 				newReturnType = Type.getReturnType(desc);
 //			System.out.println("Original lastarg " + originalLastArgIdx + " in " + originalDesc);
-			idxOfReturnPrealloc = originalLastArgIdx + newArgOffset;
+			idxOfReturnPrealloc = origNumArgs + newArgOffset;
 			newArgOffset++;
 
 		}
@@ -180,11 +182,19 @@ public class MethodArgReindexer extends MethodVisitor {
 //		System.out.println("MAR stac " + Arrays.toString(stack));
 //		System.out.println("Orig locals: " + Arrays.toString(local) + nLocal);
 		if (type == Opcodes.F_FULL || type == Opcodes.F_NEW) {
+			if(nLocal == 0 && !isStatic)
+			{
+				nLocal = 1;
+				local = new Object[]{className};
+				origNLocal = 1;
+			}
 			if (origNumArgs == 0 && Configuration.IMPLICIT_TRACKING && !name.equals("<clinit>")) {
 				remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
 				newIdx++;
 				nLocal++;
 			}
+//			System.out.println("zzOrig locals: " + Arrays.toString(local) + nLocal);
+
 			int numLocalsToIterateOverForArgs = origNumArgs;
 			int idxToUseForArgs =0;
 			boolean lastWasTop2Words = false;
@@ -307,7 +317,7 @@ public class MethodArgReindexer extends MethodVisitor {
 		}
 		if(hasPreAllocedReturnAddr)
 		{
-			remappedLocals[origNumArgs+newArgOffset-1] = newReturnType.getInternalName();
+			remappedLocals[idxOfReturnPrealloc] = newReturnType.getInternalName();
 			nLocal++;
 		}
 //		System.out.println("New locals : " + name + desc + ":\t\t" + Arrays.toString(remappedLocals) + " size: " + nLocal);

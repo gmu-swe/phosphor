@@ -1342,10 +1342,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			if(TaintUtils.PREALLOC_RETURN_ARRAY)
 			{
 				super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
-				desc = desc.substring(0,desc.length()-2)+"[Ljava/lang/Object;)V";
+				desc = desc.substring(0,desc.length()-2)+Configuration.TAINTED_RETURN_HOLDER_DESC+")V";
 			}
 		}
-		if (owner.startsWith("edu/columbia/cs/psl/phosphor") && !name.equals("printConstraints") && !name.equals("hasNoDependencies") && !desc.equals("(I)V") && !owner.endsWith("Tainter")) {
+		if (owner.startsWith("edu/columbia/cs/psl/phosphor") && !name.equals("printConstraints") && !name.equals("hasNoDependencies") && !desc.equals("(I)V") && !owner.endsWith("Tainter")
+				&& !owner.endsWith("ObjectMethodHelper")) {
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
 		}
@@ -1487,7 +1488,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			//			System.out.println("\t\tAdding stuff for " + owner + "." + name + newDesc);
 			Type t = Type.getReturnType(newDesc);
 			if(TaintUtils.PREALLOC_RETURN_ARRAY)
-				newDesc = newDesc.substring(0, newDesc.indexOf(")")) + "[Ljava/lang/Object;)" + t.getDescriptor();
+				newDesc = newDesc.substring(0, newDesc.indexOf(")")) + Configuration.TAINTED_RETURN_HOLDER_DESC+")" + t.getDescriptor();
 			else
 				newDesc = newDesc.substring(0, newDesc.indexOf(")")) + t.getDescriptor() + ")" + t.getDescriptor();
 			super.visitVarInsn(ALOAD, lvs.getPreAllocedReturnTypeVar(t));
@@ -1630,7 +1631,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
 		if (TaintUtils.DEBUG_FRAMES)
-			System.out.println("TMV sees frame: " + type + Arrays.toString(local) + ", stack " + Arrays.toString(stack));
+			System.out.println("TMV sees frame: " + type + Arrays.toString(local) + ","+nLocal+", stack " + Arrays.toString(stack));
 //			new Exception().printStackTrace();
 		super.visitFrame(type, nLocal, local, nStack, stack);
 

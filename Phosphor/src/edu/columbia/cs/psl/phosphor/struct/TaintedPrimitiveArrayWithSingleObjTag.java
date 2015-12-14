@@ -1,6 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-public abstract class TaintedPrimitiveArrayWithSingleObjTag {
+public abstract class TaintedPrimitiveArrayWithSingleObjTag implements TaintedReturnHolderWithSingleObjTag {
 	public Object taint;
 
 	public abstract Object toStackType();
