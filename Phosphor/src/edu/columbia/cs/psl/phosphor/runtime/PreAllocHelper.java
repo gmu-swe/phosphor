@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import inst.CallProfiler;
 import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
@@ -115,8 +114,6 @@ public class PreAllocHelper {
 						new TaintedShortArrayWithIntTag()
 				};
 			}
-//			CallProfiler.logInvoke$$PHOSPHORTAGGED((TaintedReturnHolderWithIntTag[]) cache);
-
 			return (TaintedReturnHolderWithIntTag[]) cache;
 		}
 		return new TaintedReturnHolderWithIntTag[]{
