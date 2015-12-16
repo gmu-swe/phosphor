@@ -8,6 +8,7 @@ import java.util.HashSet;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -38,6 +39,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	boolean isIgnoreEverything = false;
 	@Override
 	public void visitInsn(int opcode) {
+		if(opcode == TaintUtils.NEXT_INSN_TAINT_AWARE)
+			System.out.println("LVM NEXT TAINT");
 		if(opcode == TaintUtils.IGNORE_EVERYTHING)
 			isIgnoreEverything = !isIgnoreEverything;
 		super.visitInsn(opcode);
@@ -93,7 +96,9 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 			if(hasPreallocPassed)
 				createdLVs.add(new LocalVariableNode("phosphorReturnHolder", Configuration.TAINTED_RETURN_HOLDER_DESC, null, new LabelNode(start), new LabelNode(end), lastArg));
 		}
+		this.name = name;
 	}
+	String name;
 
 	public void freeTmpLV(int idx) {
 		for (TmpLV v : tmpLVs) {
@@ -116,11 +121,11 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		Label lbl = new Label();
 		super.visitLabel(lbl);
 
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorShadowLV" + createdLVIdx, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), idx);
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorTmpLV" + createdLVIdx, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), idx);
 		createdLVs.add(newLVN);
 		curLocalIdxToLVNode.put(idx, newLVN);
 		createdLVIdx++;
-
+		
 		return idx;
 	}
 
@@ -231,7 +236,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		{
 			throw new IllegalArgumentException();
 		}
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorShadowLV" + createdLVIdx, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), local);
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorShadowLVZZZ" + createdLVIdx, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), local);
 		createdLVs.add(newLVN);
 		curLocalIdxToLVNode.put(local, newLVN);
 
@@ -424,13 +429,13 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
             throw new IllegalStateException(
                     "ClassReader.accept() should be called with EXPAND_FRAMES flag");
         }
-        if (!changed && !isFirstFrame) { // optimization for the case where mapping = identity
-            mv.visitFrame(type, nLocal, local, nStack, stack);
-            return;
-        }
+//        if (!changed && !isFirstFrame) { // optimization for the case where mapping = identity
+//            mv.visitFrame(type, nLocal, local, nStack, stack);
+//            return;
+//        }
         isFirstFrame = false;
 //        System.out.println("nlocal " + nLocal);
-//        System.out.println("Start" + Arrays.toString(local));
+        System.out.println(this.name+"Start" + Arrays.toString(local));
 //        System.out.println(Arrays.toString(newLocals));
         // creates a copy of newLocals
         Object[] oldLocals = new Object[newLocals.length];
@@ -511,33 +516,45 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
                     typ = Type.DOUBLE_TYPE;
                 } else if (t instanceof String) {
                     typ = Type.getObjectType((String) t);
+                } else if(t instanceof TaggedValue)
+                {
+                	if(((TaggedValue)t).v instanceof String)
+                		typ = Type.getObjectType((String) ((TaggedValue)t).v);
+
                 }
                 setFrameLocal(remap(index, typ), t);
                 Object shadowType = null;
-            	if(t instanceof Integer && t != Opcodes.NULL && t != Opcodes.UNINITIALIZED_THIS)
-            	{
-            		shadowType = Configuration.TAINT_TAG_STACK_TYPE;
-            	}
-            	else if(t instanceof String)
-            	{
-            		Type _t = Type.getObjectType((String) t);
-            		if(_t.getSort() == Type.ARRAY && _t.getDimensions() == 1 && _t.getElementType().getSort() != Type.OBJECT)
-            			if(Configuration.SINGLE_TAG_PER_ARRAY)
-            				shadowType = Configuration.TAINT_TAG_STACK_TYPE;
-            			else
-            				shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
-            	}
-            	if(!disabled && shadowType != null)
-            	{
+				if (!disabled) {
+					if (t instanceof Integer && t != Opcodes.NULL && t != Opcodes.UNINITIALIZED_THIS) {
+						shadowType = Configuration.TAINT_TAG_STACK_TYPE;
+					} else if (t instanceof String) {
+						Type _t = Type.getObjectType((String) t);
+						if (_t.getSort() == Type.ARRAY && _t.getDimensions() == 1 && _t.getElementType().getSort() != Type.OBJECT)
+							if (Configuration.SINGLE_TAG_PER_ARRAY)
+								shadowType = Configuration.TAINT_TAG_STACK_TYPE;
+							else
+								shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
+					}
+				}
+				if (t instanceof TaggedValue) {
+					t = ((TaggedValue) t).v;
+					System.out.println("Tagged val" + index);
+					if(t instanceof String)
+						shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
+					else
+						shadowType = Configuration.TAINT_TAG_STACK_TYPE;
+				}
+				if (shadowType != null) {
 
             		int newVar = remap(index, typ);
             		int shadowVar = 0;
 					if (newVar > lastArg) {
 						if (!varToShadowVar.containsKey(newVar))
-							shadowVar = newShadowLV(typ, newVar);
+							shadowVar = newShadowLV((shadowType == Configuration.TAINT_TAG_ARRAY_STACK_TYPE ? 
+									Type.getType(Configuration.TAINT_TAG_ARRAYDESC) : Type.getType(Configuration.TAINT_TAG_DESC)), newVar);
 						else
 							shadowVar = varToShadowVar.get(newVar);
-//						            		System.out.println("Adding storage for " + newVar + " at  " + shadowVar);
+						            		System.out.println("Adding storage for " + newVar + "("+index+"-"+t+") at  " + shadowVar);
 						setFrameLocal(shadowVar, shadowType);
 					}
 					else
@@ -612,7 +629,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         }
         // visits remapped frame
         mv.visitFrame(type, number, newLocals, nStack, stack);
-//        System.out.println("fin" + Arrays.toString(newLocals));
+        System.out.println("fin" + Arrays.toString(newLocals));
         
         // restores original value of 'newLocals'
         newLocals = oldLocals;

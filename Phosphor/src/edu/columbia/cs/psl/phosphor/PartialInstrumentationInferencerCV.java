@@ -9,6 +9,7 @@ import java.util.Set;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 /**
  * Infers additional methods to instrument apart from the list fed to phosphor
@@ -56,7 +57,7 @@ public class PartialInstrumentationInferencerCV extends ClassVisitor{
 	public MethodVisitor visitMethod(int access, String name, String desc,
 			String signature, String[] exceptions) {
 			
-		MethodDescriptor mdesc = new MethodDescriptor(name, className, desc);
+		final MethodDescriptor mdesc = new MethodDescriptor(name, className, desc);
 		
 		if(this.className.contains("NioEndpoint") && superClass.equals("java/util/concurrent/ConcurrentLinkedQueue") && name.equals("offer"))
 			SelectiveInstrumentationManager.methodsToInstrument.add(mdesc);
@@ -90,7 +91,22 @@ public class PartialInstrumentationInferencerCV extends ClassVisitor{
 		
 		MethodVisitor next = super.visitMethod(access, name, desc, signature, exceptions);
 		map.put(mdesc, new ArrayList<MethodDescriptor>());
-		return next;
-//		return new PartialInstrumentationInferencerMV(Opcodes.ASM5, mdesc, next, map, this.superClasses);
+//		return next;
+//		if (Instrumenter.isIgnoredMethodFromOurAnalysis(className, name, desc))
+//			return new MethodVisitor(Opcodes.ASM5, next) {
+//				@Override
+//				public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
+//					boolean hasPrimArrays = false;
+//					for (Type t : Type.getArgumentTypes(desc)) {
+//						if (t.getSort() == Type.ARRAY && t.getDimensions() == 1 && t.getElementType().getSort() != Type.OBJECT)
+//							hasPrimArrays = true;
+//					}
+//					if (hasPrimArrays && !Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc)) {
+//						SelectiveInstrumentationManager.methodsToInstrument.add(mdesc);
+//					}
+//				}
+//			};
+//		else
+			return next;
 	}
 }

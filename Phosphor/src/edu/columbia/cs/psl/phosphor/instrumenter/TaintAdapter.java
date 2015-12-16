@@ -6,6 +6,7 @@ import java.util.List;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 import org.objectweb.asm.Label;
@@ -659,6 +660,8 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 			}
 			return false;
 		}
+		else if(obj instanceof TaggedValue)
+			return isPrimitiveStackType(((TaggedValue) obj).v);
 		return obj == Opcodes.INTEGER || obj == Opcodes.FLOAT || obj == Opcodes.DOUBLE || obj == Opcodes.LONG || obj == Opcodes.TOP;
 	}
 

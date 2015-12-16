@@ -91,6 +91,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
      */
     public List<Object> stack;
     public List<Object> stackConstantVals;
+    public List<Boolean> stackTaintedVector;
 
     
     /**
@@ -175,6 +176,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         frameLocals = new ArrayList<Object>();
         stack = new ArrayList<Object>();
         stackConstantVals = new ArrayList<Object>();
+        stackTaintedVector = new ArrayList<Boolean>();
         uninitializedTypes = new HashMap<Object, Object>();
         args = new ArrayList<Object>();
         if ((access & Opcodes.ACC_STATIC) == 0) {
@@ -247,24 +249,42 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             this.locals.clear();
             this.stack.clear();
             this.stackConstantVals.clear();
+            this.stackTaintedVector.clear();
         } else {
         	this.frameLocals = new ArrayList<Object>();
             this.locals = new ArrayList<Object>();
             this.stack = new ArrayList<Object>();
             this.stackConstantVals = new ArrayList<Object>(nStack);
+            this.stackTaintedVector = new ArrayList<Boolean>(nStack);
         }
         visitFrameTypes(nLocal, local, this.frameLocals);
         visitFrameTypes(nLocal, local, this.locals);
         visitFrameTypes(nStack, stack, this.stack);
+        visitFrameTypesForTaintedVector(nStack, stack, this.stackTaintedVector);
         while(this.stack.size() > this.stackConstantVals.size())
         	this.stackConstantVals.add(null);
+        
         maxStack = Math.max(maxStack, this.stack.size());
     }
-
+    private static void visitFrameTypesForTaintedVector(final int n, final Object[] types,
+            final List<Boolean> result) {
+        for (int i = 0; i < n; ++i) {
+            Object type = types[i];
+            if(type instanceof TaggedValue)
+            	result.add(true);
+            else
+            	result.add(null);
+            if (type == Opcodes.LONG || type == Opcodes.DOUBLE) {
+            	result.add(null);
+            }
+        }
+    }
     private static void visitFrameTypes(final int n, final Object[] types,
             final List<Object> result) {
         for (int i = 0; i < n; ++i) {
             Object type = types[i];
+            if(type instanceof TaggedValue)
+            	type = ((TaggedValue) type).v;
             if(type.equals("java/lang/Object;"))
             	throw new IllegalArgumentException("Got " + type + " IN" + Arrays.toString(types));
             result.add(type);
@@ -274,11 +294,16 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         }
     }
 
+    boolean nextIsTainted;
     @Override
     public void visitInsn(final int opcode) {
 
         if (mv != null) {
             mv.visitInsn(opcode);
+        }
+        if(opcode == TaintUtils.NEXT_INSN_TAINT_AWARE)
+        {
+        	nextIsTainted = true;
         }
     	noInsnsSinceListFrame = false;
         if(opcode > 200)
@@ -297,6 +322,8 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if (mv != null) {
             mv.visitIntInsn(opcode, operand);
         }
+        if(opcode > 200)
+        	return;
         execute(opcode, operand, null);
     }
 
@@ -377,6 +404,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
                       if (stack.get(i) == t) {
                           stack.set(i, u);
                           stackConstantVals.set(i, null);
+                          stackTaintedVector.set(i, null);
                       }
                   }
               }
@@ -412,6 +440,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             this.locals = null;
             this.stack = null;
             this.stackConstantVals = null;
+            this.stackTaintedVector = null;
         }
     }
 
@@ -483,7 +512,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         this.locals = null;
         this.stack = null;
         this.stackConstantVals = null;
-
+        this.stackTaintedVector = null;
     }
 
     @Override
@@ -496,7 +525,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         this.locals = null;
         this.stack = null;
         this.stackConstantVals = null;
-
+        this.stackTaintedVector = null;
     }
 
     @Override
@@ -549,6 +578,10 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     		throw new IllegalArgumentException("Got " + type);
     	 stack.add(type);
     	 stackConstantVals.add(val);
+    	 if(nextIsTainted)
+    		 stackTaintedVector.add(true);
+    	 else
+    		 stackTaintedVector.add(null);
          maxStack = Math.max(maxStack, stack.size());    	
     }
     private void push(final Object type) {
@@ -597,6 +630,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
 
     private Object pop() {
     	stackConstantVals.remove(stackConstantVals.size() - 1);
+    	stackTaintedVector.remove(stackTaintedVector.size() - 1);
         return stack.remove(stack.size() - 1);
     }
 
@@ -606,6 +640,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         for (int i = size - 1; i >= end; --i) {
             stack.remove(i);
             stackConstantVals.remove(i);
+            stackTaintedVector.remove(i);
         }
     }
 
@@ -630,6 +665,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
 
         if (this.locals == null) {
             labels = null;
+            nextIsTainted = false;
             return;
         }
         
@@ -1038,6 +1074,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             break;
         }
         labels = null;
+        nextIsTainted = false;
 
     }
 }

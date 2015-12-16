@@ -4,3 +4,4 @@
 <edu.columbia.cs.psl.test.phosphor.InstUninstIntTagPartialInstITCase: void inst(java.lang.Object, int)>
 <edu.columbia.cs.psl.test.phosphor.PartiallyInstrumentedClass: void foo()>
 <edu.columbia.cs.psl.test.phosphor.PartiallyInstrumentedClass: boolean uninst()>
+<UninstLoad: void inst(int[], int, boolean)>

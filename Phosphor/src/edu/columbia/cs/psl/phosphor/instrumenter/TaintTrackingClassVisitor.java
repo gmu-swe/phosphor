@@ -83,8 +83,8 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 	List<FieldNode> fields;
 	private boolean ignoreFrames;
 	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields) {
-		super(Opcodes.ASM5,  cv
-//				new CheckClassAdapter(cv,false)
+		super(Opcodes.ASM5, // cv
+				new CheckClassAdapter(cv,false)
 				);
 		DO_OPT = DO_OPT && !IS_RUNTIME_INST;
 		this.ignoreFrames = skipFrames;
@@ -317,10 +317,16 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			UninstrumentedReflectionHidingMV hider = new UninstrumentedReflectionHidingMV(analyzer, className);
 			mv = hider;
-			mv = new UninstrumentedCompatMV(access,className,name,desc,signature,(String[])exceptions,mv,analyzer,ignoreFrames, _mv);
+			UninstrumentedCompatMV ucmv = new UninstrumentedCompatMV(access,className,name,desc,signature,(String[])exceptions,mv,analyzer,ignoreFrames, _mv);
+			mv = ucmv;
+			PartialInstrumentationMV pimv = new PartialInstrumentationMV(className, access, name, newDesc, mv,analyzer);
+			mv = pimv;
 			LocalVariableManager lvs = new LocalVariableManager(access, name, newDesc, mv, analyzer, _mv, true);
-			((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
-			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, newDescWithoutPrealloc, signature, exceptions, lvs);
+			ucmv.setLocalVariableSorter(lvs);
+			pimv.setLvs(lvs);
+			mv = new UninstTaintLoadCoercer(className, access, newName, desc, signature, exceptions, lvs);
+
+			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, newDescWithoutPrealloc, signature, exceptions, mv);
 			lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
 			NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, newName, newDescWithoutPrealloc, primArrayAnalyzer);
 			primArrayAnalyzer.setAnalyzer(preAnalyzer);
@@ -340,20 +346,6 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 				public void visitEnd() {
 					super.visitEnd();
 					this.accept(cmv);
-				};
-				public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-					//determine if this is going to be uninst, and then if we need to pre-alloc for its return :/
-					if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethod(owner, name, desc)){
-						//uninst
-					}
-					else
-					{
-						Type returnType = Type.getReturnType(desc);
-						Type newReturnType = TaintUtils.getContainerReturnType(returnType);
-						if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY && returnType.getDimensions() > 1))
-							primArrayAnalyzer.wrapperTypesToPreAlloc.add(newReturnType);
-					}
-					super.visitMethodInsn(opcode, owner, name, desc, itf);
 				};
 			};
 			if(!name.equals("<clinit>"))

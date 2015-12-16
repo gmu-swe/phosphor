@@ -1,10 +1,13 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class SpecialOpcodeRemovingMV extends MethodVisitor {
@@ -13,13 +16,14 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	private String clazz;
 
 	private boolean fixLdcClass;
+
 	public SpecialOpcodeRemovingMV(MethodVisitor sup, boolean ignoreFrames, String clazz, boolean fixLdcClass) {
 		super(Opcodes.ASM5, sup);
 		this.ignoreFrames = ignoreFrames;
 		this.clazz = clazz;
 		this.fixLdcClass = fixLdcClass;
 	}
-
+	
 	@Override
 	public void visitVarInsn(int opcode, int var) {
 		switch (opcode) {
@@ -32,6 +36,10 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 		}
 	}
 
+	@Override
+	public void visitLabel(Label label) {
+		super.visitLabel(label);
+	}
 	@Override
 	public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
 		Type descType = Type.getType(desc);
@@ -46,6 +54,10 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
 		if (type == TaintUtils.RAW_INSN)
 			type = Opcodes.F_NEW;
+		for(int i = 0; i < nLocal; i++)
+			local[i] = (local[i] instanceof TaggedValue ? ((TaggedValue) local[i]).v : local[i]);
+		for(int i = 0; i < nStack; i++)
+			stack[i] = (stack[i] instanceof TaggedValue ? ((TaggedValue) stack[i]).v : stack[i]);
 		if (!ignoreFrames)
 			super.visitFrame(type, nLocal, local, nStack, stack);
 	}
@@ -78,6 +90,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 		case TaintUtils.CUSTOM_SIGNAL_2:
 		case TaintUtils.CUSTOM_SIGNAL_3:
 		case TaintUtils.FORCE_CTRL_STORE:
+		case TaintUtils.NEXT_INSN_TAINT_AWARE:
 			break;
 		default:
 			super.visitInsn(opcode);

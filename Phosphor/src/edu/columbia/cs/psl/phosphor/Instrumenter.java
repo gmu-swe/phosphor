@@ -321,24 +321,6 @@ public class Instrumenter {
 				n = 0;
 				int size = SelectiveInstrumentationManager.methodsToInstrument.size();
 				_main(line.getArgs());
-//				for (String clazz : SelectiveInstrumentationManager.methodsToInstrumentByClass.keySet()) {
-//					Set<String> supers = ClassHierarchyCreator.allSupers(clazz);
-//					for (String s : supers) {
-//						ClassNode cn = allClasses.get(s);
-//						if (cn != null) {
-//							for (String meth : SelectiveInstrumentationManager.methodsToInstrumentByClass.get(clazz)) {
-//								for (Object o: cn.methods) {
-//									MethodNode mn = (MethodNode) o;
-//									if (meth.equals(mn.name + mn.desc)) {
-//										MethodDescriptor d = new MethodDescriptor(mn.name, cn.name, mn.desc);
-//										if (!SelectiveInstrumentationManager.methodsToInstrument.contains(d))
-//											SelectiveInstrumentationManager.methodsToInstrument.add(d);
-//									}
-//								}
-//							}
-//						}
-//					}
-//				}
 				int size_new = SelectiveInstrumentationManager.methodsToInstrument.size();
 				if (size == size_new)
 					break;
@@ -891,8 +873,10 @@ public class Instrumenter {
 	}
 
 	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc) {
+		if(name.equals("arraycopy") && owner.equals("java/lang/System"))
+				return true;
 		if (!owner.startsWith("edu/columbia/cs/psl/phosphor") && 
-				!owner.startsWith("[") && !owner.startsWith("java") 
+				!owner.startsWith("[") && !owner.startsWith("java") && !owner.startsWith("jdk/")
 				&& !owner.startsWith("com/sun") && !owner.startsWith("sun/")
 				&& !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
 			if (TaintUtils.DEBUG_CALLS)

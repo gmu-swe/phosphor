@@ -18,6 +18,7 @@ public class SelectiveInstrumentationManager {
 	public static void populateMethodsToInstrument(String file) {
 		if(inited)
 			return;
+		methodsToInstrument.add(new MethodDescriptor("arraycopy", "java/lang/System", "(Ljava/lang/Object;ILjava/lang/Object;II)V"));
 		inited = true;
 		FileInputStream fis = null;
 		BufferedReader br = null;

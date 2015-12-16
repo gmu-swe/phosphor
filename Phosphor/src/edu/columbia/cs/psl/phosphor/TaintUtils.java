@@ -107,6 +107,7 @@ public class TaintUtils {
 	public static final int CUSTOM_SIGNAL_1 = 218;
 	public static final int CUSTOM_SIGNAL_2 = 219;
 	public static final int CUSTOM_SIGNAL_3 = 220;
+	public static final int NEXT_INSN_TAINT_AWARE = 221; //Signals that the next instruction SHOULD generate a taint/accept a taint
 	
 	public static final String TAINT_FIELD = "PHOSPHOR_TAG";
 //	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
@@ -385,7 +386,9 @@ public class TaintUtils {
 	/*
 	 * End: Conversion of method signature from doop format to bytecode format
 	 */
-	
+	public static boolean isPrimitiveArrayType(Type t) {
+		return t != null && t.getSort() == Type.ARRAY && t.getDimensions() == 1 && t.getElementType().getSort() != Type.OBJECT;
+	}
 	public static boolean isPreAllocReturnType(String methodDescriptor)
 	{
 		Type retType = Type.getReturnType(methodDescriptor);
