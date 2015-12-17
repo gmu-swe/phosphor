@@ -303,6 +303,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         }
         if(opcode == TaintUtils.NEXT_INSN_TAINT_AWARE)
         {
+        	System.out.println("Analyzer taint aware on");
         	nextIsTainted = true;
         }
     	noInsnsSinceListFrame = false;
@@ -404,7 +405,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
                       if (stack.get(i) == t) {
                           stack.set(i, u);
                           stackConstantVals.set(i, null);
-                          stackTaintedVector.set(i, null);
+                          stackTaintedVector.set(i, false);
                       }
                   }
               }
@@ -466,28 +467,28 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             return;
         }
         if (cst instanceof Integer) {
-            push(Opcodes.INTEGER,cst);
+            push(Opcodes.INTEGER,cst,false);
         } else if (cst instanceof Long) {
-            push(Opcodes.LONG,cst);
+            push(Opcodes.LONG,cst,false);
             push(Opcodes.TOP);
         } else if (cst instanceof Float) {
-            push(Opcodes.FLOAT,cst);
+            push(Opcodes.FLOAT,cst,false);
         } else if (cst instanceof Double) {
-            push(Opcodes.DOUBLE,cst);
+            push(Opcodes.DOUBLE,cst,false);
             push(Opcodes.TOP);
         } else if (cst instanceof String) {
-            push("java/lang/String",cst);
+            push("java/lang/String",cst,false);
         } else if (cst instanceof Type) {
             int sort = ((Type) cst).getSort();
             if (sort == Type.OBJECT || sort == Type.ARRAY) {
-                push("java/lang/Class",cst);
+                push("java/lang/Class",cst,false);
             } else if (sort == Type.METHOD) {
-                push("java/lang/invoke/MethodType",cst);
+                push("java/lang/invoke/MethodType",cst,false);
             } else {
                 throw new IllegalArgumentException();
             }
         } else if (cst instanceof Handle) {
-            push("java/lang/invoke/MethodHandle",cst);
+            push("java/lang/invoke/MethodHandle",cst,false);
         } else {
             throw new IllegalArgumentException();
         }
@@ -572,7 +573,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     	if(stackConstantVals.size() > 0)
     		stackConstantVals.set(stackConstantVals.size() - 1, null);
     }
-    private void push(final Object type, final Object val)
+    private void push(final Object type, final Object val, final boolean tainted)
     {
     	if(type.equals("java/lang/Object;"))
     		throw new IllegalArgumentException("Got " + type);
@@ -581,11 +582,11 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     	 if(nextIsTainted)
     		 stackTaintedVector.add(true);
     	 else
-    		 stackTaintedVector.add(null);
+    		 stackTaintedVector.add(tainted);
          maxStack = Math.max(maxStack, stack.size());    	
     }
     private void push(final Object type) {
-       push(type, null);
+       push(type, null,false);
     }
 
     private void pushDesc(final String desc) {
@@ -687,53 +688,53 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             push(Opcodes.NULL);
             break;
         case Opcodes.ICONST_M1:
-        	push(Opcodes.INTEGER,-1);
+        	push(Opcodes.INTEGER,-1,false);
         	break;
         case Opcodes.ICONST_0:
-        	push(Opcodes.INTEGER,0);
+        	push(Opcodes.INTEGER,0,false);
         	break;
         case Opcodes.ICONST_1:
-        	push(Opcodes.INTEGER,1);
+        	push(Opcodes.INTEGER,1,false);
         	break;
         case Opcodes.ICONST_2:
-        	push(Opcodes.INTEGER,2);
+        	push(Opcodes.INTEGER,2,false);
         	break;
         case Opcodes.ICONST_3:
-        	push(Opcodes.INTEGER,3);
+        	push(Opcodes.INTEGER,3,false);
         	break;
         case Opcodes.ICONST_4:
-        	push(Opcodes.INTEGER,4);
+        	push(Opcodes.INTEGER,4,false);
         	break;
         case Opcodes.ICONST_5:
-        	push(Opcodes.INTEGER,5);
+        	push(Opcodes.INTEGER,5,false);
         	break;
         case Opcodes.BIPUSH:
         case Opcodes.SIPUSH:
-            push(Opcodes.INTEGER,iarg);
+            push(Opcodes.INTEGER,iarg,false);
             break;
         case Opcodes.LCONST_0:
-            push(Opcodes.LONG,0L);
+            push(Opcodes.LONG,0L,false);
             push(Opcodes.TOP);
             break;
         case Opcodes.LCONST_1:
-            push(Opcodes.LONG,1L);
+            push(Opcodes.LONG,1L,false);
             push(Opcodes.TOP);
             break;
         case Opcodes.FCONST_0:
-            push(Opcodes.FLOAT,0F);
+            push(Opcodes.FLOAT,0F,false);
             break;
         case Opcodes.FCONST_1:
-            push(Opcodes.FLOAT,1F);
+            push(Opcodes.FLOAT,1F,false);
             break;
         case Opcodes.FCONST_2:
-            push(Opcodes.FLOAT,2F);
+            push(Opcodes.FLOAT,2F,false);
             break;
         case Opcodes.DCONST_0:
-            push(Opcodes.DOUBLE,0D);
+            push(Opcodes.DOUBLE,0D,false);
             push(Opcodes.TOP);
             break;
         case Opcodes.DCONST_1:
-            push(Opcodes.DOUBLE,1D);
+            push(Opcodes.DOUBLE,1D,false);
             push(Opcodes.TOP);
             break;
         case Opcodes.ILOAD:
@@ -849,77 +850,98 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             break;
         case Opcodes.DUP:
         	Object z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	Boolean ta1 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t1 = pop();
-            push(t1,z);
-            push(t1,z);
+            push(t1,z,ta1);
+            push(t1,z,ta1);
             break;
         case Opcodes.DUP_X1:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	ta1 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t1 = pop();
             Object z2 = stackConstantVals.get(stackConstantVals.size() - 1);
+            Boolean ta2 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t2 = pop();
-            push(t1,z);
-            push(t2,z2);
-            push(t1,z);
+            push(t1,z,ta1);
+            push(t2,z2,ta2);
+            push(t1,z,ta1);
             break;
         case Opcodes.DUP_X2:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	ta1 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t1 = pop();
             z2 = stackConstantVals.get(stackConstantVals.size() - 1);
+            ta2 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t2 = pop();
             Object z3 = stackConstantVals.get(stackConstantVals.size() - 1);
+            Boolean ta3 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t3 = pop();
-            push(t1,z);
-            push(t3,z3);
-            push(t2,z2);
-            push(t1,z);
+            push(t1,z,ta1);
+            push(t3,z3,ta3);
+            push(t2,z2,ta2);
+            push(t1,z,ta1);
             break;
         case Opcodes.DUP2:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	ta1 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t1 = pop();
         	z2 = stackConstantVals.get(stackConstantVals.size() - 1);
-            t2 = pop();
-            push(t2,z2);
-            push(t1,z);
-            push(t2,z2);
-            push(t1,z);
+        	ta2 = stackTaintedVector.get(stackTaintedVector.size() - 1);
+			t2 = pop();
+			push(t2, z2, ta2);
+			push(t1, z, ta1);
+			push(t2, z2, ta2);
+			push(t1, z, ta1);
             break;
         case Opcodes.DUP2_X1:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	ta1 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t1 = pop();
         	z2 = stackConstantVals.get(stackConstantVals.size() - 1);
+        	ta2 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t2 = pop();
         	z3 = stackConstantVals.get(stackConstantVals.size() - 1);
-            t3 = pop();
-            push(t2,z2);
-            push(t1,z);
-            push(t3,z3);
-            push(t2,z2);
-            push(t1,z);
+			ta3 = stackTaintedVector.get(stackTaintedVector.size() - 1);
+			t3 = pop();
+			push(t2, z2, ta2);
+			push(t1, z, ta1);
+			push(t3, z3, ta3);
+			push(t2, z2, ta2);
+			push(t1, z, ta1);
             break;
         case Opcodes.DUP2_X2:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	ta1 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t1 = pop();
         	z2 = stackConstantVals.get(stackConstantVals.size() - 1);
+        	ta2 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t2 = pop();
         	z3 = stackConstantVals.get(stackConstantVals.size() - 1);
+        	ta3 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t3 = pop();
         	Object z4 = stackConstantVals.get(stackConstantVals.size() - 1);
+        	Boolean ta4 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t4 = pop();
-            push(t2,z2);
-            push(t1,z);
-            push(t4,z4);
-            push(t3,z3);
-            push(t2,z2);
-            push(t1,z);
-            break;
+			push(t2, z2, ta2);
+			push(t1, z, ta1);
+			push(t4, z4, ta4);
+			push(t3, z3, ta3);
+			push(t2, z2, ta2);
+			push(t1, z, ta1);
+			break;
         case Opcodes.SWAP:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	ta1 = stackTaintedVector.get(stackTaintedVector.size() - 1);
             t1 = pop();
         	z2 = stackConstantVals.get(stackConstantVals.size() - 1);
+        	ta2 = stackTaintedVector.get(stackTaintedVector.size() - 1);
+        	System.out.println(stackTaintedVector);
+        	System.out.println(t1);
+        	System.out.println(z2);
+        	System.out.println(ta2);
             t2 = pop();
-            push(t1,z);
-            push(t2,z2);
+			push(t1, z, ta1);
+			push(t2, z2, ta2);
             break;
         case Opcodes.IADD:
         case Opcodes.ISUB:

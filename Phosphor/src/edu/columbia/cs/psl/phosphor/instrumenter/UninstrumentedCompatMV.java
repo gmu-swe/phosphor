@@ -107,7 +107,11 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 						super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 					}
 					else
+					{
 						super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+						super.visitFieldInsn(opcode, owner, name, desc);
+
+					}
 				}
 				else
 					super.visitFieldInsn(opcode, owner, name, desc);

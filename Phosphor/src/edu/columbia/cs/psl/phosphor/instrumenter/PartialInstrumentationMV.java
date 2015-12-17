@@ -8,6 +8,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FrameNode;
+import org.objectweb.asm.util.Printer;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
@@ -43,10 +44,12 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(DUP);
 				super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, taintDesc);
 				super.visitInsn(SWAP);
+				analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 				super.visitFieldInsn(opcode, owner, name, desc);
 				break;
 			case Opcodes.GETSTATIC:
 				super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, taintDesc);
+				analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 				super.visitFieldInsn(opcode, owner, name, desc);
 				break;
 			default:
@@ -194,6 +197,7 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 		else
 			analyzer.visitTypeInsn(CHECKCAST, Type.getType(TaintUtils.getShadowTaintType(arrayDesc.getDescriptor())).getInternalName());
 		analyzer.visitInsn(SWAP);
+		analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 		analyzer.visitTypeInsn(CHECKCAST, type);
 		analyzer.visitLabel(isDone);
 		acceptFn(fn2, analyzer);
@@ -207,6 +211,7 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 				Type t = Type.getType(type);
 				if (t.getSort() == Type.ARRAY && t.getDimensions() == 1 && t.getElementType().getSort() != Type.OBJECT) {
 					if (getTopOfStackObject() == Opcodes.NULL) {
+						analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 						analyzer.visitTypeInsn(opcode, type);
 						analyzer.visitInsn(Opcodes.ACONST_NULL);
 						analyzer.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
@@ -236,6 +241,7 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 				else
 					super.visitIntInsn(NEWARRAY, Opcodes.T_INT);
 				super.visitInsn(SWAP);
+				analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 				super.visitIntInsn(opcode, operand);
 				break;
 			default:
@@ -268,13 +274,14 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(DUP);
 					super.visitFieldInsn(GETFIELD, newReturnType.getInternalName(), "taint", Configuration.TAINT_TAG_ARRAYDESC);
 					super.visitInsn(SWAP);
+					analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 					super.visitFieldInsn(GETFIELD, newReturnType.getInternalName(), "val", origReturnType.getDescriptor());
 				} else if (origReturnType.getSort() != Type.ARRAY && origReturnType.getSort() != Type.OBJECT && origReturnType.getSort() != Type.VOID) {
 					//unbox prim
 					super.visitInsn(DUP);
 					super.visitFieldInsn(GETFIELD, newReturnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 					super.visitInsn(SWAP);
-
+					analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 					super.visitFieldInsn(GETFIELD, newReturnType.getInternalName(), "val", origReturnType.getDescriptor());
 				}
 			}
@@ -290,7 +297,7 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 		case TaintUtils.NEXT_INSN_TAINT_AWARE:
 			System.out.println("next tint awayre");
 			doTaint = true;
-			break;
+			return;
 		case Opcodes.ACONST_NULL:
 			if (doTaint) {
 				super.visitInsn(ACONST_NULL);
@@ -315,7 +322,39 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 				return;
 			} else
 				break;
+		case Opcodes.DUP_X1:
+			boolean v0 = isTopOfStackTainted();
+			boolean v1 = isStackTaintedAt(1);
+			if(v0)
+			{
+				if(v1)
+				{
+					// X X T V -> T V X X T V
+					super.visitInsn(DUP2_X2);					
+				}
+				else
+				{
+					//X T V -> T V X TV
+					super.visitInsn(DUP2_X1);
+				}
+			}
+			else
+			{
+				if(v1)
+				{
+					// X X V -> V X X V
+					super.visitInsn(DUP_X2);
+				}
+				else
+				{
+					//X V -> V X V
+					super.visitInsn(DUP_X1);
+				}
+			}
+			break;
 		default:
+			if(opcode < 200)
+				System.out.println(Printer.OPCODES[opcode] + analyzer.stackTaintedVector +", " + analyzer.stack);
 			doTaint = false;
 		}
 		super.visitInsn(opcode);

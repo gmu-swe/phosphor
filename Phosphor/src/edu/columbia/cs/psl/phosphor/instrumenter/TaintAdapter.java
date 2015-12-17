@@ -128,6 +128,18 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 		return stackElIsNull(0);
 	}
 
+	public boolean isTopOfStackTainted()
+	{
+		if(analyzer.stack == null)
+			throw new NullPointerException();
+		return analyzer.stackTaintedVector.get(analyzer.stack.size() - 1);
+	}
+	public boolean isStackTaintedAt(int offset)
+	{
+		if(analyzer.stack == null)
+			throw new NullPointerException();
+		return analyzer.stackTaintedVector.get(analyzer.stack.size() - 1-offset);
+	}
 	public Type getTopOfStackType() {
 		if(analyzer.stack == null)
 			throw new NullPointerException();

@@ -73,7 +73,7 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 
 		if (v.equals(w))
 			return v;
-		System.out.println("Merge " + v + w);
+//		System.out.println("Merge " + v + w);
 
 		if (v instanceof SinkableArrayValue && w instanceof SinkableArrayValue) {
 
@@ -81,7 +81,7 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 			SinkableArrayValue sw = (SinkableArrayValue) w;
 			if ((v.getType() == null || v.getType().getDescriptor().equals("Lnull;")) && (w.getType() == null || w.getType().getDescriptor().equals("Lnull;")))
 			{
-				if ((sw.src != null && sv.deps != null && sv.deps.contains(sw)) || (sw.src == null && sw.deps != null && sv.deps.containsAll(sw.deps)))
+				if ((sw.src != null && sv.deps != null && sw != null && sv.deps.contains(sw)) || (sw.src == null && sw.deps != null &&sv.deps != null && sv.deps.containsAll(sw.deps)))
 					return v;
 				else {
 					sv.addDep(sw);
