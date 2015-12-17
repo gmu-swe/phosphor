@@ -253,6 +253,7 @@ public class Instrumenter {
 
 	static Option opt_withSelectiveInst = new Option("withSelectiveInst",true,"Enable selective instrumentation");
 	static Option opt_uninstCopies = new Option("generateUninstStubs","Add extra copies of each method, so there's always one instrumented and one not.");
+	static Option opt_disableJumpOptimizations = new Option("disableJumpOptimizations","Do not optimize taint removal at jump calls");
 	
 	static Option help = new Option( "help", "print this message" );
 
@@ -275,6 +276,7 @@ public class Instrumenter {
 		options.addOption(opt_unboxAcmpEq);
 		options.addOption(opt_withSelectiveInst);
 		options.addOption(opt_uninstCopies);
+		options.addOption(opt_disableJumpOptimizations);
 	    CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
 	    try {
@@ -310,7 +312,7 @@ public class Instrumenter {
 		Configuration.WITH_SELECTIVE_INST = line.hasOption("withSelectiveInst");
 		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
 		Configuration.init();
-		
+		TaintUtils.OPT_IGNORE_EXTRA_TAINTS = !line.hasOption("disableJumpOptimizations");
 		
 		if(Configuration.WITH_SELECTIVE_INST)
 			System.out.println("Performing selective instrumentation");
