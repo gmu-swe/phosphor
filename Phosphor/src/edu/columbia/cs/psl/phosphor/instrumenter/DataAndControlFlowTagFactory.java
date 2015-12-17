@@ -22,6 +22,9 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	}
 
 	@Override
+	public void lineNumberVisited(int line) {
+	}
+	@Override
 	public void methodEntered(String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
 	}
 	@Override

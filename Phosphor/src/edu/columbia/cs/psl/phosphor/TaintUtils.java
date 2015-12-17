@@ -66,7 +66,7 @@ public class TaintUtils {
 	public static final boolean TAINT_THROUGH_SERIALIZATION = false;
 	public static final boolean OPT_PURE_METHODS = false;
 
-	public static final boolean OPT_IGNORE_EXTRA_TAINTS = true;
+	public static boolean OPT_IGNORE_EXTRA_TAINTS = true;
 
 	public static final boolean OPT_USE_STACK_ONLY = false; //avoid using LVs where possible if true
 	
