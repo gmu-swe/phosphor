@@ -17,6 +17,7 @@ import org.objectweb.asm.commons.InstructionAdapter;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.analysis.Analyzer;
 
 public class TaintAdapter extends MethodVisitor implements Opcodes {
 
@@ -997,7 +998,13 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 		if(a.locals == null || a.stack == null)
 			throw new IllegalArgumentException();
 		Object[] locals = removeLongsDoubleTopVal(a.locals);
-		Object[] stack = removeLongsDoubleTopVal(a.stack);
+		List<Object> _stack = new ArrayList<Object>(a.stack);
+		for(int i = 0; i < _stack.size(); i++)
+		{
+			if(a.stackTaintedVector.get(i) == true)
+				_stack.set(i, new TaggedValue(_stack.get(i)));
+		}
+		Object[] stack = removeLongsDoubleTopVal(_stack);
 		FrameNode ret = new FrameNode(Opcodes.F_FULL, locals.length, locals, stack.length, stack);
 		ret.type = TaintUtils.RAW_INSN;
 		return ret;

@@ -53,7 +53,8 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 				super.visitFieldInsn(opcode, owner, name, desc);
 				break;
 			default:
-				throw new IllegalArgumentException();
+				super.visitFieldInsn(opcode, owner, name, desc);
+//				throw new IllegalArgumentException();
 			}
 			doTaint = false;
 		} else
@@ -62,6 +63,7 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 	}
 
 	void generateTaintArray() {
+		System.out.println("Pre generate taint array, stack tags are " + analyzer.stackTaintedVector);
 		FrameNode fn = getCurrentFrameNode();
 		analyzer.visitInsn(DUP);
 		Label ok = new Label();
@@ -81,7 +83,10 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 		analyzer.visitLabel(ok);
 		fn.stack = new LinkedList(fn.stack);
 		fn.stack.add(Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+		System.out.println("FN stack is " + fn.stack);
 		fn.accept(analyzer);
+		System.out.println("New stack is " + analyzer.stack);
+		System.out.println("New stack is " + analyzer.stackTaintedVector);
 		analyzer.visitInsn(SWAP);
 	}
 
@@ -89,6 +94,8 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 	public void visitVarInsn(int opcode, int var) {
 		if (doTaint) {
 			System.out.println("Dotaint on  var");
+			System.out.println(analyzer.stack);
+			System.out.println(analyzer.stackTaintedVector);
 			Type shadowType = Type.getType(Configuration.TAINT_TAG_DESC);
 			if (opcode == Opcodes.ALOAD || opcode == Opcodes.ASTORE)
 				shadowType = Type.getType(Configuration.TAINT_TAG_ARRAYDESC);
@@ -104,13 +111,16 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 				if (var <= lvs.lastArg) {
 					if (Configuration.SINGLE_TAG_PER_ARRAY) {
 						analyzer.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+						analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 						analyzer.visitVarInsn(Opcodes.ALOAD, var);
 					} else {
+						analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 						analyzer.visitVarInsn(Opcodes.ALOAD, var);
 						generateTaintArray();
 					}
 				} else {
 					super.visitVarInsn(Opcodes.ALOAD, shadow);
+					analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 					super.visitVarInsn(Opcodes.ALOAD, var);
 				}
 				break;
@@ -323,35 +333,59 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 			} else
 				break;
 		case Opcodes.DUP_X1:
-			boolean v0 = isTopOfStackTainted();
-			boolean v1 = isStackTaintedAt(1);
-			if(v0)
-			{
-				if(v1)
-				{
-					// X X T V -> T V X X T V
-					super.visitInsn(DUP2_X2);					
-				}
-				else
-				{
-					//X T V -> T V X TV
-					super.visitInsn(DUP2_X1);
+			if (doTaint) {
+				boolean v0 = isTopOfStackTainted();
+				boolean v1 = isStackTaintedAt(1);
+				if (v0) {
+					if (v1) {
+						// X X T V -> T V X X T V
+						super.visitInsn(DUP2_X2);
+					} else {
+						//X T V -> T V X TV
+						super.visitInsn(DUP2_X1);
+					}
+				} else {
+					if (v1) {
+						// X X V -> V X X V
+						super.visitInsn(DUP_X2);
+					} else {
+						//X V -> V X V
+						super.visitInsn(DUP_X1);
+					}
 				}
 			}
 			else
 			{
-				if(v1)
-				{
-					// X X V -> V X X V
-					super.visitInsn(DUP_X2);
-				}
-				else
-				{
-					//X V -> V X V
-					super.visitInsn(DUP_X1);
+				//plan is STILL do to dup_x1, but ONLY dup the top item
+				boolean v0 = isTopOfStackTainted();
+				boolean v1 = isStackTaintedAt(1);
+				if (v0) {
+					if (v1) {
+						// X X T V -> V X X T V
+						super.visitInsn(SWAP);
+						//X X V T
+						Type t1=  getTopOfStackType();
+						int lv1 = lvs.getTmpLV(t1);
+						super.visitVarInsn(t1.getOpcode(ISTORE), lv1);
+						//X X V
+						super.visitInsn(DUP_X2);
+						super.visitVarInsn(t1.getOpcode(ILOAD), lv1);
+						super.visitInsn(SWAP);
+					} else {
+						//X T V -> V X T V
+						super.visitInsn(DUP_X2);
+					}
+				} else {
+					if (v1) {
+						// X X V -> V X X V
+						super.visitInsn(DUP_X2);
+					} else {
+						//X V -> V X V
+						super.visitInsn(DUP_X1);
+					}
 				}
 			}
-			break;
+			return;
 		default:
 			if(opcode < 200)
 				System.out.println(Printer.OPCODES[opcode] + analyzer.stackTaintedVector +", " + analyzer.stack);

@@ -15,6 +15,7 @@ import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.IntInsnNode;
+import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
@@ -161,15 +162,33 @@ public class UninstTaintLoadCoercer extends MethodVisitor implements Opcodes {
 					insn = this.instructions.getFirst();
 					for(int i = 0; i < frames.length; i++)
 					{
+//						System.out.print(i + " " );
+//						String fr = "";
+//						if(frames[i] != null)
+//						for(int j = 0; j < frames[i].getStackSize(); j++)
+//							fr += (frames[i].getStack(j))+ " ";
+//						System.out.println(fr);
+//						this.instructions.insertBefore(insn, new LdcInsnNode(fr));
 						if(insn.getType() == AbstractInsnNode.FRAME)
 						{
 							FrameNode fn = (FrameNode) insn;
+							System.out.println("Found frame " + i +", stack size" + fn.stack.size() + ", fn stack " + frames[i].getStackSize());
 							int cnt = 0;
 							for (int j = 0; j < fn.local.size(); j++) {
 								Object l = fn.local.get(j);
 								BasicValue v = (BasicValue) frames[i].getLocal(cnt);
 								if (v instanceof SinkableArrayValue && ((SinkableArrayValue) v).flowsToInstMethodCall) {
 									fn.local.set(j, new TaggedValue(l));
+								}
+								cnt += v.getSize();
+							}
+							for(int j = 0; j < fn.stack.size(); j++)
+							{
+								Object l = fn.stack.get(j);
+								BasicValue v = (BasicValue) frames[i].getStack(fn.stack.size() - j - 1);
+//								System.out.println(j + "ZZZ "+ l + " vs " + v);
+								if (v instanceof SinkableArrayValue && ((SinkableArrayValue) v).flowsToInstMethodCall) {
+									fn.stack.set(j, new TaggedValue(l));
 								}
 								cnt += v.getSize();
 							}

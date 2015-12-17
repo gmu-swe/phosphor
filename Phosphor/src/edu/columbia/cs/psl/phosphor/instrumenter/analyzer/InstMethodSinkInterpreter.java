@@ -32,10 +32,10 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 		if (_v instanceof SinkableArrayValue) {
 			SinkableArrayValue ret = new SinkableArrayValue(_v.getType());
 			ret.addDep(((SinkableArrayValue) _v));
-			if (insn.getOpcode() == Opcodes.ALOAD || insn.getOpcode() == Opcodes.ASTORE) {
+//			if (insn.getOpcode() == Opcodes.ALOAD || insn.getOpcode() == Opcodes.ASTORE || insns) {
 				ret.src = insn;
-			} else
-				ret.src = ((SinkableArrayValue) _v).src;
+//			} else
+//				ret.src = ((SinkableArrayValue) _v).src;
 			if (ret.src == null && insn.getType() == Opcodes.ALOAD)
 				throw new NullPointerException();
 			return ret;
@@ -54,6 +54,7 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 	@Override
 	public BasicValue binaryOperation(AbstractInsnNode insn, BasicValue value1, BasicValue value2) throws AnalyzerException {
 		if (insn.getOpcode() == Opcodes.AALOAD) {
+			System.out.println("AALOAD " + value1.getType());
 			Type t = Type.getType(value1.getType().getDescriptor().substring(1));
 			if (TaintUtils.isPrimitiveArrayType(t)) {
 				SinkableArrayValue ret = new SinkableArrayValue(t);
@@ -69,11 +70,11 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 		if (v == BasicValue.UNINITIALIZED_VALUE && w == BasicValue.UNINITIALIZED_VALUE)
 			return v;
 		if (!(v instanceof SinkableArrayValue || w instanceof SinkableArrayValue))
-			return v;
+			return super.merge(v, w);
 
 		if (v.equals(w))
 			return v;
-//		System.out.println("Merge " + v + w);
+		System.out.println("Merge " + v + w);
 
 		if (v instanceof SinkableArrayValue && w instanceof SinkableArrayValue) {
 
@@ -112,11 +113,11 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 						//						return v;
 						//					else if (sv.deps == null)
 						//						return w;
-						if (sv.getType().equals(sw.getType()) && sv.deps != null)
-							if ((sw.src != null && sv.deps.contains(sw)) || (sw.src == null && sw.deps != null && sv.deps.containsAll(sw.deps)))
-								return v;
-							else {
-								sv.deps.add(sw);
+						if (sv.getType().equals(sw.getType())){
+//							if ((sw.src != null && sv.deps.contains(sw)) )//|| (sw.src == null && sw.deps != null && sv.deps.containsAll(sw.deps)))
+//								return v;
+//							else {
+								sv.addDep(sw);
 								return v;
 							}
 						//					System.out.println(System.identityHashCode(sv) + " and " + System.identityHashCode(sw));

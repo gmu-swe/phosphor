@@ -54,12 +54,14 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
 		if (type == TaintUtils.RAW_INSN)
 			type = Opcodes.F_NEW;
+		Object[] newLocal = new Object[local.length];
+		Object[] newStack = new Object[stack.length];
 		for(int i = 0; i < nLocal; i++)
-			local[i] = (local[i] instanceof TaggedValue ? ((TaggedValue) local[i]).v : local[i]);
+			newLocal[i] = (local[i] instanceof TaggedValue ? ((TaggedValue) local[i]).v : local[i]);
 		for(int i = 0; i < nStack; i++)
-			stack[i] = (stack[i] instanceof TaggedValue ? ((TaggedValue) stack[i]).v : stack[i]);
+			newStack[i] = (stack[i] instanceof TaggedValue ? ((TaggedValue) stack[i]).v : stack[i]);
 		if (!ignoreFrames)
-			super.visitFrame(type, nLocal, local, nStack, stack);
+			super.visitFrame(type, nLocal, newLocal, nStack, newStack);
 	}
 
 	@Override

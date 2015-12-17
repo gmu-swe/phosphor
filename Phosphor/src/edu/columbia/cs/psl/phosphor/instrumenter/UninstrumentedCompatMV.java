@@ -357,18 +357,20 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 			super.visitLabel(newDest);
 			fn.accept(this);
 			for (Integer var : boxAtNextJump) {
-				String arT = (String)analyzer.locals.get(var);
-				Type newT = Type.getType(MultiDTaintedArray.getClassForComponentType(Type.getObjectType(arT).getElementType().getSort()));
-				super.visitTypeInsn(Opcodes.NEW, newT.getInternalName());
-				super.visitInsn(DUP);
-				super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
-				super.visitVarInsn(ALOAD, var);
-				if (!Configuration.MULTI_TAINTING)
-					super.visitMethodInsn(INVOKESPECIAL, newT.getInternalName(), "<init>", "([I" + arT + ")V", false);
-				else
-					super.visitMethodInsn(INVOKESPECIAL, newT.getInternalName(), "<init>", "([Ljava/lang/Object;" + arT + ")V", false);
-				
-				super.visitVarInsn(ASTORE, var);
+				if (lvs.varToShadowVar.containsKey(var)) {
+					String arT = (String) analyzer.locals.get(var);
+					Type newT = Type.getType(MultiDTaintedArray.getClassForComponentType(Type.getObjectType(arT).getElementType().getSort()));
+					super.visitTypeInsn(Opcodes.NEW, newT.getInternalName());
+					super.visitInsn(DUP);
+					super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
+					super.visitVarInsn(ALOAD, var);
+					if (!Configuration.MULTI_TAINTING)
+						super.visitMethodInsn(INVOKESPECIAL, newT.getInternalName(), "<init>", "([I" + arT + ")V", false);
+					else
+						super.visitMethodInsn(INVOKESPECIAL, newT.getInternalName(), "<init>", "([Ljava/lang/Object;" + arT + ")V", false);
+
+					super.visitVarInsn(ASTORE, var);
+				}
 			}
 			super.visitJumpInsn(GOTO, origDest);
 			super.visitLabel(origFalseLoc);
@@ -583,6 +585,8 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 				String newDesc = TaintUtils.remapMethodDesc(desc);
 
 				System.out.println("Have to dael with" + newDesc);
+				System.out.println(analyzer.stack);
+				System.out.println(analyzer.stackTaintedVector);
 				int[] argStorage = new int[nArgsActaul];
 				int argStorageIdx = nArgsActaul - 1;
 				for (int i = 0; i < args.length; i++) {

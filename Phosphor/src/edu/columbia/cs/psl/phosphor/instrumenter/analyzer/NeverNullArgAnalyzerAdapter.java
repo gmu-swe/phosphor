@@ -35,7 +35,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -236,6 +238,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             throw new IllegalStateException(
                     "ClassReader.accept() should be called with EXPAND_FRAMES flag");
         }
+        System.out.println("VF " + Arrays.toString(stack));
         if(noInsnsSinceListFrame && this.locals != null)
         {
         	return;
@@ -259,32 +262,43 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         }
         visitFrameTypes(nLocal, local, this.frameLocals);
         visitFrameTypes(nLocal, local, this.locals);
-        visitFrameTypes(nStack, stack, this.stack);
         visitFrameTypesForTaintedVector(nStack, stack, this.stackTaintedVector);
+        visitFrameTypes(nStack, stack, this.stack);
+        System.out.println("VF2 " + this.stack);
+        System.out.println("VF2 " + this.stackTaintedVector);
         while(this.stack.size() > this.stackConstantVals.size())
         	this.stackConstantVals.add(null);
         
         maxStack = Math.max(maxStack, this.stack.size());
     }
-    private static void visitFrameTypesForTaintedVector(final int n, final Object[] types,
+    private static int visitFrameTypesForTaintedVector(final int n, final Object[] types,
             final List<Boolean> result) {
+    	int ret = n;
         for (int i = 0; i < n; ++i) {
             Object type = types[i];
             if(type instanceof TaggedValue)
+            {
+            	result.add(false);
             	result.add(true);
+            	ret++;
+            }
             else
-            	result.add(null);
+            	result.add(false);
             if (type == Opcodes.LONG || type == Opcodes.DOUBLE) {
-            	result.add(null);
+            	result.add(false);
             }
         }
+        return ret;
     }
     private static void visitFrameTypes(final int n, final Object[] types,
             final List<Object> result) {
         for (int i = 0; i < n; ++i) {
             Object type = types[i];
             if(type instanceof TaggedValue)
+            {
+            	result.add(Configuration.TAINT_TAG_ARRAY_STACK_TYPE);
             	type = ((TaggedValue) type).v;
+            }
             if(type.equals("java/lang/Object;"))
             	throw new IllegalArgumentException("Got " + type + " IN" + Arrays.toString(types));
             result.add(type);
