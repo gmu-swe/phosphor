@@ -1,10 +1,10 @@
 #!/bin/bash
 DACAPO_DIR=dacapo
 PHOSPHOR_JAR=`pwd`/target/Phosphor-0.0.2-SNAPSHOT.jar
-BENCHMARKS=(avrora batik fop h2 jython luindex lusearch pmd sunflow tomcat xalan) #tradebeans tradesoap are disabled in this script because of the PITA with distributing the openjdk jce.jar file with everything, then switching it in...
+BENCHMARKS=(avrora batik eclipse fop h2 jython luindex pmd sunflow tomcat xalan) #tradebeans tradesoap are disabled in this script because of the PITA with distributing the openjdk jce.jar file with everything, then switching it in...
 #if you want to run them, copy the jce.jar file from an openjdk distribution of the same version into your hotspot jvm that you are going to instrument before instrumenting it.
 # (export controls are annoying)
-# also disable eclipse because there are weird things going on with JAVA_HOME on travis
+# ..also disable lusearch because travis seems unhappy when we run it there
 
 HAD_ERROR=0
 if [ ! -d "$DACAPO_DIR" ]; then
