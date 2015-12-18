@@ -115,7 +115,10 @@ public class PreMain {
 				Configuration.init();
 				INITED = true;
 			}
-			ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+				ret.val = classfileBuffer;
+			else
+				ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 			ret.taint = null;
 			Configuration.taintTagFactory.instrumentationEnding(className);
 
@@ -132,7 +135,10 @@ public class PreMain {
 				Configuration.init();
 				INITED = true;
 			}
-			ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+				ret.val = classfileBuffer;
+			else
+				ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 			ret.taint = null;
 			Configuration.taintTagFactory.instrumentationEnding(className);
 			return ret;
@@ -148,7 +154,7 @@ public class PreMain {
 				Configuration.init();
 				INITED = true;
 			}
-			if (className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
 				ret.val = classfileBuffer;
 			else
 				ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);

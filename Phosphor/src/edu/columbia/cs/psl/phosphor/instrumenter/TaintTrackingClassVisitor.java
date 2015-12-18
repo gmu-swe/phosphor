@@ -782,8 +782,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		}
 		
 
-		if(Configuration.MULTI_TAINTING)
-			generateStrLdcWrapper();
+//		if(Configuration.MULTI_TAINTING)
+//			generateStrLdcWrapper();
 		if (!goLightOnGeneratedStuff)
 			for (MethodNode m : methodsToAddWrappersFor) {
 				if ((m.access & Opcodes.ACC_NATIVE) == 0) {
@@ -845,7 +845,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 							if(NATIVE_BOX_UNBOX && t.getSort() == Type.OBJECT && Instrumenter.isCollection(t.getInternalName()))
 							{
 								////  public final static ensureIsBoxed(Ljava/util/Collection;)Ljava/util/Collection;
-								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsBoxed", "(Ljava/util/Collection;)Ljava/util/Collection;",false);
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsBoxed"+(Configuration.MULTI_TAINTING ? "ObjTags":""), "(Ljava/util/Collection;)Ljava/util/Collection;",false);
 								ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
 							}
 							if(t.getDescriptor().endsWith("java/lang/Object;"))
@@ -911,7 +911,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 							{
 								////  public final static ensureIsBoxed(Ljava/util/Collection;)Ljava/util/Collection;
 								ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
-								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsUnBoxed", "(Ljava/util/Collection;)Ljava/util/Collection;",false);
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsUnBoxed"+(Configuration.MULTI_TAINTING ? "ObjTags":""), "(Ljava/util/Collection;)Ljava/util/Collection;",false);
 								ga.visitInsn(Opcodes.POP);
 							}
 							idx += t.getSize();
