@@ -331,7 +331,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 										if ((output1Top == Opcodes.NULL) && inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() != Type.OBJECT
 												&& inputTopType.getDimensions() == 1) {
 											if(!uninstMode)
-											insertACONSTNULLBEFORE.add(toMerge);
+												insertACONSTNULLBEFORE.add(toMerge);
 										} else if ((inputTopType.getSort() == Type.OBJECT || (inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() == Type.OBJECT)) && outputTopType.getSort() == Type.ARRAY && outputTopType.getElementType().getSort() != Type.OBJECT
 												&& inputTopType.getDimensions() == 1) {
 											insertACHECKCASTBEFORE.add(toMerge);
@@ -505,7 +505,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 					if (insertACONSTNULLBEFORE.contains(i)) {
 						if (DEBUG)
-							System.out.println("Adding Null before: " + i);
+							System.out.println(this.name +this.desc+uninstMode+"Adding Null before: " + i);
 						if (insertAfter.getOpcode() == Opcodes.GOTO)
 							insertAfter = insertAfter.getPrevious();
 						this.instructions.insert(insertAfter, new InsnNode(Opcodes.ACONST_NULL));

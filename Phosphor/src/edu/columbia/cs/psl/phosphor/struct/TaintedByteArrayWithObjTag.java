@@ -17,4 +17,8 @@ public final class TaintedByteArrayWithObjTag extends TaintedPrimitiveArrayWithO
 		this.val = val;
 		this.taint = taint;
 	}
+	@Override
+	public Object getValue() {
+		return val;
+	}
 }

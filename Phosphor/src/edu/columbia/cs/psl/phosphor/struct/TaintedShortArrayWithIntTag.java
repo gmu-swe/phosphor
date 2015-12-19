@@ -16,4 +16,8 @@ public final class TaintedShortArrayWithIntTag extends TaintedPrimitiveArrayWith
 
 	public TaintedShortArrayWithIntTag() {
 	}
+	@Override
+	public Object getValue() {
+		return val;
+	}
 }

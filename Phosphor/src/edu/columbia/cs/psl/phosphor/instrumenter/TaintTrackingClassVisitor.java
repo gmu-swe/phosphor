@@ -319,7 +319,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			mv = hider;
 			UninstrumentedCompatMV ucmv = new UninstrumentedCompatMV(access,className,name,desc,signature,(String[])exceptions,mv,analyzer,ignoreFrames, _mv);
 			mv = ucmv;
-			PartialInstrumentationMV pimv = new PartialInstrumentationMV(className, access, name, newDesc, mv,analyzer);
+			PartialInstrumentationMV pimv = new PartialInstrumentationMV(className, access, name, newDesc, mv,analyzer,_mv);
 			mv = pimv;
 			LocalVariableManager lvs = new LocalVariableManager(access, name, newDesc, mv, analyzer, _mv, true);
 			ucmv.setLocalVariableSorter(lvs);

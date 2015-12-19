@@ -38,7 +38,7 @@ public class UninstDebugPrinter {
 					return super.getCommonSuperClass(type1, type2);
 				} catch (Exception ex) {
 					//					System.err.println("err btwn " + type1 + " " +type2);
-					return "java/lang/Unknown";
+					return type1+type2;
 				}
 			}
 		};
@@ -67,6 +67,7 @@ public class UninstDebugPrinter {
 				mv = new UninstTaintLoadCoercer(className, access, name, desc, signature, exceptions, mv);
 				mv = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, mv);
 				NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(cr.getClassName(), access, name, desc, mv);
+				((PrimitiveArrayAnalyzer)mv).setUninstMode();
 				((PrimitiveArrayAnalyzer) mv).setAnalyzer(an);
 				mv = an;
 				return mv;

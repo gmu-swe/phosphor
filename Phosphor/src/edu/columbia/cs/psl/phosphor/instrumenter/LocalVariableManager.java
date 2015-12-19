@@ -39,8 +39,6 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	boolean isIgnoreEverything = false;
 	@Override
 	public void visitInsn(int opcode) {
-		if(opcode == TaintUtils.NEXT_INSN_TAINT_AWARE)
-			System.out.println("LVM NEXT TAINT");
 		if(opcode == TaintUtils.IGNORE_EVERYTHING)
 			isIgnoreEverything = !isIgnoreEverything;
 		super.visitInsn(opcode);
@@ -435,7 +433,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 //        }
         isFirstFrame = false;
 //        System.out.println("nlocal " + nLocal);
-        System.out.println(this.name+"Start" + Arrays.toString(local));
+//        System.out.println(this.name+"Start" + Arrays.toString(local));
 //        System.out.println(Arrays.toString(newLocals));
         // creates a copy of newLocals
         Object[] oldLocals = new Object[newLocals.length];
@@ -538,7 +536,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 				}
 				if (t instanceof TaggedValue) {
 					t = ((TaggedValue) t).v;
-					System.out.println("Tagged val" + index);
+//					System.out.println("Tagged val" + index);
 					if(t instanceof String)
 						shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
 					else
@@ -548,13 +546,13 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
             		int newVar = remap(index, typ);
             		int shadowVar = 0;
-					if (newVar > lastArg) {
+					if (newVar > lastArg || disabled) {
 						if (!varToShadowVar.containsKey(newVar))
 							shadowVar = newShadowLV((shadowType == Configuration.TAINT_TAG_ARRAY_STACK_TYPE ? 
 									Type.getType(Configuration.TAINT_TAG_ARRAYDESC) : Type.getType(Configuration.TAINT_TAG_DESC)), newVar);
 						else
 							shadowVar = varToShadowVar.get(newVar);
-						            		System.out.println("Adding storage for " + newVar + "("+index+"-"+t+") at  " + shadowVar);
+//						            		System.out.println("Adding storage for " + newVar + "("+index+"-"+t+") at  " + shadowVar);
 						setFrameLocal(shadowVar, shadowType);
 					}
 					else
@@ -629,7 +627,6 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         }
         // visits remapped frame
         mv.visitFrame(type, number, newLocals, nStack, stack);
-        System.out.println("fin" + Arrays.toString(newLocals));
         
         // restores original value of 'newLocals'
         newLocals = oldLocals;

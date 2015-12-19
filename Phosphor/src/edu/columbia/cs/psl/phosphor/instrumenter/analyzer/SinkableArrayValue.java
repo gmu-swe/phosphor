@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.analysis.BasicValue;
@@ -14,7 +15,9 @@ public class SinkableArrayValue extends BasicValue {
 	public boolean flowsToInstMethodCall;
 	public HashSet<SinkableArrayValue> deps;
 	public AbstractInsnNode src;
-
+	public SinkableArrayValue srcVal;
+	public boolean isStickyDup;
+	
 	public void addDep(SinkableArrayValue d) {
 		if (d != null && deps == null)
 			deps = new HashSet<SinkableArrayValue>();
@@ -47,11 +50,39 @@ public class SinkableArrayValue extends BasicValue {
 		}
 	}
 
+	public Collection<SinkableArrayValue> resolveDupIssues()
+	{
+		LinkedList<SinkableArrayValue> ret = new LinkedList<SinkableArrayValue>();
+		if(flowsToInstMethodCall && isStickyDup)
+		{
+			if(deps != null)
+			{
+				if(deps.iterator().hasNext() && deps.iterator().next().flowsToInstMethodCall)
+				{
+					isStickyDup = false;
+					return ret;
+				}
+				for(SinkableArrayValue v : deps)
+				{
+					if(!v.flowsToInstMethodCall)
+					{
+						ret.addAll(v.tag());
+					}
+				}
+			}
+		}
+		return ret;
+	}
 	public Collection<SinkableArrayValue> tag() {
 		LinkedList<SinkableArrayValue> ret = new LinkedList<SinkableArrayValue>();
 		if (!flowsToInstMethodCall) {
 			flowsToInstMethodCall = true;
 			ret.add(this);
+			if(src != null && src.getOpcode() == Opcodes.DUP)
+			{
+				isStickyDup = true;
+			}
+			else
 			if (deps != null)
 				for (SinkableArrayValue v : deps) {
 					if (!v.flowsToInstMethodCall)

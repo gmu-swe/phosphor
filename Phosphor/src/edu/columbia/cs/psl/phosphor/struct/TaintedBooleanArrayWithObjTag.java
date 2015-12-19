@@ -17,4 +17,8 @@ public final class TaintedBooleanArrayWithObjTag extends TaintedPrimitiveArrayWi
 		this.taint = taint;
 		this.val = val;
 	}
+	@Override
+	public Object getValue() {
+		return val;
+	}
 }

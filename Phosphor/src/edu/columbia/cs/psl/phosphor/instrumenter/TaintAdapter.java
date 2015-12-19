@@ -638,6 +638,8 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 			return Type.getType("Ljava/lang/Object;");
 		if (obj instanceof Label || obj == Opcodes.UNINITIALIZED_THIS)
 			return Type.getType("Luninitialized;");
+		else if(obj instanceof TaggedValue)
+			return getTypeForStackType(((TaggedValue)obj).v);
 		throw new IllegalArgumentException("got " + obj + " zzz" + obj.getClass());
 	}
 	
@@ -720,6 +722,8 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 		switch (n) {
 		case 1:
 			switch (u) {
+			case 0:
+				break;
 			case 1:
 				super.visitInsn(DUP_X1);
 				break;

@@ -54,6 +54,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
@@ -73,6 +74,15 @@ public class ReflectionMasker {
 
 	public static final boolean IS_KAFFE = false;
 
+	public static Object maybeUnboxStackType(Object o) {
+		if(o == null)
+			return null;
+		if(o instanceof TaintedReturnHolderWithIntTag)
+			return ((TaintedReturnHolderWithIntTag)o).getValue();
+		if(o instanceof TaintedReturnHolderWithObjTag)
+			return ((TaintedReturnHolderWithObjTag)o).getValue();
+		return o;
+	}
 	public static String getPropertyHideBootClasspath(String prop)
 	{
 		if(prop.equals("sun.boot.class.path"))
@@ -1314,7 +1324,7 @@ public class ReflectionMasker {
 			ret.m = m;
 			return ret;
 		}
-		if (Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m)))
+		if (Configuration.WITH_SELECTIVE_INST && !m.getName().contains("PHOSPHORTAGGED") &&Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m)))
 		{
 			ret.m = getUnTaintMethod(m, isObjTags);
 			ret.m.setAccessible(true);

@@ -18,4 +18,8 @@ public final class TaintedFloatArrayWithIntTag extends TaintedPrimitiveArrayWith
 		this.taint = taint;
 		this.val = val;
 	}
+	@Override
+	public Object getValue() {
+		return val;
+	}
 }

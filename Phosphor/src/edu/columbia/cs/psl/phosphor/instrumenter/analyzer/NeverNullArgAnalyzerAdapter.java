@@ -238,7 +238,6 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             throw new IllegalStateException(
                     "ClassReader.accept() should be called with EXPAND_FRAMES flag");
         }
-        System.out.println("VF " + Arrays.toString(stack));
         if(noInsnsSinceListFrame && this.locals != null)
         {
         	return;
@@ -260,12 +259,10 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             this.stackConstantVals = new ArrayList<Object>(nStack);
             this.stackTaintedVector = new ArrayList<Boolean>(nStack);
         }
-        visitFrameTypes(nLocal, local, this.frameLocals);
-        visitFrameTypes(nLocal, local, this.locals);
+        visitFrameTypesLocals(nLocal, local, this.frameLocals);
+        visitFrameTypesLocals(nLocal, local, this.locals);
         visitFrameTypesForTaintedVector(nStack, stack, this.stackTaintedVector);
-        visitFrameTypes(nStack, stack, this.stack);
-        System.out.println("VF2 " + this.stack);
-        System.out.println("VF2 " + this.stackTaintedVector);
+        visitFrameTypesStack(nStack, stack, this.stack);
         while(this.stack.size() > this.stackConstantVals.size())
         	this.stackConstantVals.add(null);
         
@@ -290,7 +287,23 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         }
         return ret;
     }
-    private static void visitFrameTypes(final int n, final Object[] types,
+    private static void visitFrameTypesLocals(final int n, final Object[] types,
+            final List<Object> result) {
+        for (int i = 0; i < n; ++i) {
+            Object type = types[i];
+            if(type instanceof TaggedValue)
+            {
+            	type = ((TaggedValue) type).v;
+            }
+            if(type.equals("java/lang/Object;"))
+            	throw new IllegalArgumentException("Got " + type + " IN" + Arrays.toString(types));
+            result.add(type);
+            if (type == Opcodes.LONG || type == Opcodes.DOUBLE) {
+                result.add(Opcodes.TOP);
+            }
+        }
+    }
+    private static void visitFrameTypesStack(final int n, final Object[] types,
             final List<Object> result) {
         for (int i = 0; i < n; ++i) {
             Object type = types[i];
@@ -317,7 +330,6 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         }
         if(opcode == TaintUtils.NEXT_INSN_TAINT_AWARE)
         {
-        	System.out.println("Analyzer taint aware on");
         	nextIsTainted = true;
         }
     	noInsnsSinceListFrame = false;
@@ -949,10 +961,6 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             t1 = pop();
         	z2 = stackConstantVals.get(stackConstantVals.size() - 1);
         	ta2 = stackTaintedVector.get(stackTaintedVector.size() - 1);
-        	System.out.println(stackTaintedVector);
-        	System.out.println(t1);
-        	System.out.println(z2);
-        	System.out.println(ta2);
             t2 = pop();
 			push(t1, z, ta1);
 			push(t2, z2, ta2);

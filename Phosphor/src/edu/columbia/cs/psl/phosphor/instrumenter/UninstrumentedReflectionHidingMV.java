@@ -8,12 +8,17 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.FrameNode;
 
 import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
 
 public class UninstrumentedReflectionHidingMV extends MethodVisitor implements Opcodes {
 
@@ -185,7 +190,10 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 		} else if (owner.equals("java/lang/Object") && name.equals("getClass")) {
 			super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
 			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeTaintClass", "(Ljava/lang/Class;Z)Ljava/lang/Class;", false);
-
+		}	else if ((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && !(className.equals("java/lang/Class")) && 
+				(name.equals("invoke") || name.equals("newInstance") || name.equals("invoke$$PHOSPHORTAGGED") 
+						|| name.equals("newInstance$$PHOSPHORTAGGED"))) {
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "maybeUnboxStackType", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 		}
 
 		Instrumenter.IS_ANDROID_INST = origAndroidInst;
