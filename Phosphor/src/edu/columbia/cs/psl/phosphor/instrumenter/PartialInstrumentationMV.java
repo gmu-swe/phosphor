@@ -109,6 +109,12 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 
 	@Override
 	public void visitVarInsn(int opcode, int var) {
+//		if(opcode < 200)
+//		System.out.println(Printer.OPCODES[opcode] +var);
+//		System.out.println(analyzer.stack);
+//		System.out.println(analyzer.locals);
+//		if(opcode == Opcodes.ILOAD)
+//			System.out.println("ILOAD " + var + " - " + analyzer.locals.get(var));
 		if (doTaint) {
 //			System.out.println("Dotaint on  var" + Printer.OPCODES[opcode] +var);
 //			System.out.println(analyzer.stack);
@@ -124,7 +130,7 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 			int shadow = lvs.varToShadowVar.get(var);
 			switch (opcode) {
 			case ALOAD:
-				if (isPrimitiveStackType(analyzer.locals.get(var))) {
+				if (isPrimitiveStackType(analyzer.locals.get(var)) || analyzer.locals.get(var) == Opcodes.NULL) {
 					if (var <= lvs.lastArg) {
 						if (Configuration.SINGLE_TAG_PER_ARRAY) {
 							analyzer.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
@@ -338,6 +344,7 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 		case Opcodes.ACONST_NULL:
 			if (doTaint) {
 				super.visitInsn(ACONST_NULL);
+				super.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 				super.visitInsn(ACONST_NULL);
 				doTaint = false;
 				return;

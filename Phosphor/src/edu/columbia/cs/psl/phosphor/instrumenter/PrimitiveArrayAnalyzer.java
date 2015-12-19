@@ -527,37 +527,43 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							nNewNulls++;
 						}
 					} else if (alwaysAutoBoxByFrame.containsKey(i)) {
-						for (int j : alwaysAutoBoxByFrame.get(i)) {
-//							System.out.println("Adding checkcast always: before " + i + " (plus " + nNewNulls + ")");
-//								while(insertAfter.getType() == AbstractInsnNode.LABEL || 
-//										insertAfter.getType() == AbstractInsnNode.LINE|| 
-//										insertAfter.getType() == AbstractInsnNode.FRAME)
-//									insertAfter = insertAfter.getNext();
-							AbstractInsnNode query = insertAfter.getNext();
-							while(query.getNext() != null && (query.getType() == AbstractInsnNode.LABEL || query.getType() == AbstractInsnNode.LINE || query.getType() == AbstractInsnNode.FRAME))
-								query = query.getNext();
-							if(query.getOpcode() == Opcodes.ALOAD && query.getNext().getOpcode() == Opcodes.MONITOREXIT)
-								insertAfter = query.getNext();
-							if(insertAfter.getType() == AbstractInsnNode.JUMP_INSN)
+						//						System.out.println("Adding checkcast always: before " + i + " (plus " + nNewNulls + ")");
+						//						while(insertAfter.getType() == AbstractInsnNode.LABEL || 
+						//								insertAfter.getType() == AbstractInsnNode.LINE|| 
+						//								insertAfter.getType() == AbstractInsnNode.FRAME)
+						//							insertAfter = insertAfter.getNext();
+						AbstractInsnNode query = insertAfter.getNext();
+						while (query.getNext() != null && (query.getType() == AbstractInsnNode.LABEL || query.getType() == AbstractInsnNode.LINE || query.getType() == AbstractInsnNode.FRAME))
+							query = query.getNext();
+						if (query.getOpcode() == Opcodes.ALOAD && query.getNext().getOpcode() == Opcodes.MONITOREXIT)
+							insertAfter = query.getNext();
+//						System.out.println("Autobox by frame search for " + " near " + i);
+//						System.out.println("Insertafter this: " + insertAfter + " " + insertAfter.getOpcode());
+						int opcode = 0;
+						if(insertAfter.getType() == AbstractInsnNode.JUMP_INSN)
+						{
+							insertAfter = insertAfter.getPrevious();
+//							System.out.println("Insertafter getnext: " + insertAfter.getNext().getOpcode());
+//							System.out.println("insertbefore  : " + ((JumpInsnNode) insertAfter.getNext()).toString());
+							if(insertAfter.getNext().getOpcode() != Opcodes.GOTO)
 							{
-								insertAfter = insertAfter.getPrevious();
-//								System.out.println("insertbefore  : " + ((JumpInsnNode) insertAfter.getNext()).toString());
-								if(insertAfter.getNext().getOpcode() != Opcodes.GOTO)
-								{
 
-									this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_BOX_JUMP, j));
-								}
-								else
-								{
-//									System.out.println("box immediately");
-									this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
-								}
+								opcode = TaintUtils.ALWAYS_BOX_JUMP;
 							}
 							else
 							{
-//								System.out.println("InsertAfter: " + insertAfter);
-								this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
+//								System.out.println("box immediately");
+								opcode = TaintUtils.ALWAYS_AUTOBOX;
 							}
+						}
+						else
+						{
+//							System.out.println("InsertAfter: " + insertAfter);
+							opcode = TaintUtils.ALWAYS_AUTOBOX;
+						}
+						for (int j : alwaysAutoBoxByFrame.get(i)) {
+							this.instructions.insert(insertAfter, new VarInsnNode(opcode, j));
+
 							nNewNulls++;
 						}
 					}

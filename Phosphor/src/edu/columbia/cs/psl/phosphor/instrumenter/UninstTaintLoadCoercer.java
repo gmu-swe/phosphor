@@ -211,14 +211,18 @@ public class UninstTaintLoadCoercer extends MethodVisitor implements Opcodes {
 						{
 							FrameNode fn = (FrameNode) insn;
 //							System.out.println("Found frame " + i +", stack size" + fn.stack.size() + ", fn stack " + frames[i].getStackSize() + ", local size " + fn.local.size() + ", fn " + frames[i].getLocals());
+							int analyzerFrameIdx = 0;
 							for (int j = 0; j < fn.local.size(); j++) {
 								Object l = fn.local.get(j);
-								BasicValue v = (BasicValue) frames[i].getLocal(j);
+								BasicValue v = (BasicValue) frames[i].getLocal(analyzerFrameIdx);
 
 								if (v instanceof SinkableArrayValue && ((SinkableArrayValue) v).flowsToInstMethodCall && TaintAdapter.isPrimitiveStackType(l)) {
 //									System.out.println(l + " vs  " + v);
 									fn.local.set(j, new TaggedValue(l));
 								}
+								analyzerFrameIdx++;
+								if(l == Opcodes.DOUBLE || l == Opcodes.LONG)
+									analyzerFrameIdx++;
 							}
 							for(int j = 0; j < fn.stack.size(); j++)
 							{
