@@ -309,19 +309,33 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				name += "Obj";
 			if(name.equals("get") || name.equals("get$$PHOSPHORTAGGED"))
 			{
-				if(TaintUtils.PREALLOC_RETURN_ARRAY)
-					desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;"+Configuration.TAINTED_RETURN_HOLDER_DESC+"Z)Ljava/lang/Object;";
+				if(Configuration.IMPLICIT_TRACKING)
+				{
+					desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;"+Type.getDescriptor(ControlTaintTagStack.class)+")Ljava/lang/Object;";
+				}
 				else
-					desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Z)Ljava/lang/Object;";
-				super.visitInsn((Configuration.MULTI_TAINTING ? Opcodes.ICONST_1 : Opcodes.ICONST_0));
+				{
+					if (TaintUtils.PREALLOC_RETURN_ARRAY)
+						desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;" + Configuration.TAINTED_RETURN_HOLDER_DESC + "Z)Ljava/lang/Object;";
+					else
+						desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Z)Ljava/lang/Object;";
+					super.visitInsn((Configuration.MULTI_TAINTING ? Opcodes.ICONST_1 : Opcodes.ICONST_0));
+				}
 			}
 			else if(name.equals("set") || name.equals("set$$PHOSPHORTAGGED"))
 			{
-				if (TaintUtils.PREALLOC_RETURN_ARRAY)
-					desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;"+Configuration.TAINTED_RETURN_HOLDER_DESC+"Z)V";
-				else
-					desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;Z)V";
-				super.visitInsn((Configuration.MULTI_TAINTING ? Opcodes.ICONST_1 : Opcodes.ICONST_0));
+				if(Configuration.IMPLICIT_TRACKING)
+				{
+					desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;" + Type.getDescriptor(ControlTaintTagStack.class) + ")V";
+
+				}
+				else {
+					if (TaintUtils.PREALLOC_RETURN_ARRAY)
+						desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;" + Configuration.TAINTED_RETURN_HOLDER_DESC + "Z)V";
+					else
+						desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;Z)V";
+					super.visitInsn((Configuration.MULTI_TAINTING ? Opcodes.ICONST_1 : Opcodes.ICONST_0));
+				}
 			}
 		}
 		if (!Instrumenter.IS_ANDROID_INST && owner.equals("java/lang/Class") && (name.equals("copyMethods") || name.equals("copyFields") || name.equals("copyConstructors")))
