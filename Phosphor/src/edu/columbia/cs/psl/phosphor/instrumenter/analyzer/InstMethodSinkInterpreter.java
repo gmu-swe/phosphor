@@ -48,6 +48,12 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 
 	@Override
 	public BasicValue unaryOperation(AbstractInsnNode insn, BasicValue value) throws AnalyzerException {
+		if(insn.getOpcode() == Opcodes.CHECKCAST)
+		{
+			//are we checkcasting from a prim array to a prim array?
+			if(value instanceof SinkableArrayValue && TaintUtils.isPrimitiveArrayType(value.getType()))
+				return value;
+		}
 		BasicValue v = super.unaryOperation(insn, value);
 		if (v instanceof SinkableArrayValue)
 			((SinkableArrayValue) v).src = insn;

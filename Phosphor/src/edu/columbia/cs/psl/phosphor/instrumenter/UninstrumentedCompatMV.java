@@ -186,6 +186,8 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 	@Override
 	public void visitTypeInsn(int opcode, String type) {
 		if (opcode == Opcodes.CHECKCAST) {
+			if(TaintUtils.isPrimitiveArrayType(Type.getObjectType(type)) && getTopOfStackType().getInternalName().equals(type))
+				return;
 			if (analyzer.stack.size() > 0 && "java/lang/Object".equals(analyzer.stack.get(analyzer.stack.size() - 1)) && type.startsWith("[") && type.length() == 2) {
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "maybeUnbox", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 			}

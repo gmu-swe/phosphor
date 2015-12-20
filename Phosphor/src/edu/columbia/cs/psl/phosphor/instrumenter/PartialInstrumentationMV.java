@@ -240,6 +240,7 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 	@Override
 	public void visitTypeInsn(int opcode, String type) {
 		if (doTaint) {
+			doTaint = false;
 			switch (opcode) {
 			case Opcodes.CHECKCAST:
 				Type t = Type.getType(type);
@@ -253,15 +254,17 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 					} else {
 						retrieveTaintedArray(type);
 					}
+					return;
 				} else
+				{
 					super.visitTypeInsn(opcode, type);
-				break;
+					return;
+				}
 			default:
 				throw new IllegalArgumentException();
 			}
 		}
 		super.visitTypeInsn(opcode, type);
-		doTaint = false;
 	}
 
 	@Override

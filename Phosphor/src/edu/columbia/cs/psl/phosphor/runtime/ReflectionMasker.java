@@ -1070,7 +1070,8 @@ public class ReflectionMasker {
 				ret[j] = in[i];
 				j++;
 			}
-			ret[ret.length - 1] = prealloc;
+			if(prealloc != null)
+				ret[ret.length - 1] = prealloc;
 
 //			if (VM.booted)
 //				System.out.println(Arrays.toString(ret));
@@ -1087,6 +1088,13 @@ public class ReflectionMasker {
 			ret[0] = new ControlTaintTagStack();
 			ret[1] = null;
 			ret[2] = prealloc;
+//			if (VM.booted)
+//				System.out.println(Arrays.toString(ret));
+			return ret;
+		} else if(in == null && c.getParameterTypes().length == 1)
+		{
+			Object[] ret = new Object[1];
+			ret[0] = null;
 //			if (VM.booted)
 //				System.out.println(Arrays.toString(ret));
 			return ret;
@@ -1255,19 +1263,22 @@ public class ReflectionMasker {
 		//		System.out.println("Fix all args fast: " + Arrays.toString(ret) + " for " + m);
 		return ret;
 	}
+	
 	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, boolean isObjTags) {
 		return fixAllArgsUninst(in, c, isObjTags, null);
 	}
 	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, boolean isObjTags, TaintedReturnHolderWithIntTag[] prealloc) {
 		if(c == null)
 			return in;
+//		if(VM.booted)
+//			System.out.println("FAU" + c);
 		Class[] params = c.getParameterTypes();
 		if(params.length == 0)
 			return in;
 		
-		if(params.length >= 2 && params[params.length - 2] == UninstrumentedTaintSentinel.class)
+		if(params.length >= taintsentineloffset && params[params.length - taintsentineloffset] == UninstrumentedTaintSentinel.class)
 		{
-			Object[] ret = new Object[in.length + 2];
+			Object[] ret = new Object[in.length + taintsentineloffset];
 			System.arraycopy(in, 0, ret, 0, in.length);
 			//Make sure nothing is boxed!
 			for(int i = 0; i < ret.length; i++)
@@ -1281,10 +1292,11 @@ public class ReflectionMasker {
 					ret[i] = ((MultiDTaintedArrayWithObjTag)ret[i]).getVal();
 				}
 			}
-			ret[ret.length+1] = prealloc;
+			if(prealloc != null)
+				ret[ret.length+1] = prealloc;
 			return ret;
 		}
-		else if(params.length >= 2 && params[params.length - 2] == TaintSentinel.class)
+		else if(params.length >= taintsentineloffset && params[params.length - taintsentineloffset] == TaintSentinel.class)
 		{
 			return fixAllArgs(in, c, isObjTags,prealloc);
 		}
