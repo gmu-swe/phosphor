@@ -40,8 +40,10 @@ The next step is to instrument the code which you would like to track. We'll sta
 This will create the folder inst, and place in it the instrumented version of the demo suite jar.
 
 We can now run the instrumented demo suite using our instrumented JRE, as such:
-`JAVA_HOME=jre-inst/ $JAVA_HOME/bin/java  -Xbootclasspath/a:Phosphor-0.0.2-SNAPSHOT.jar -cp inst/phosphortests.jar -ea phosphor.test.DroidBenchTest`
+`JAVA_HOME=jre-inst/ $JAVA_HOME/bin/java  -Xbootclasspath/a:Phosphor-0.0.2-SNAPSHOT.jar -javaagent:Phosphor-0.0.2-SNAPSHOT.jar -cp inst/phosphortests.jar -ea phosphor.test.DroidBenchTest`
 The result should be a list of test cases, with assertion errors for each "testImplicitFlow" test case.
+
+Note: It is not 100% necessary to instrument your application/library code in advance - the javaagent will detect any uninstrumented class files as they are being loaded into the JVM and instrument them as necessary. If you want to do this, then you may want to add the flag `-javaagent:Phosphor-0.0.2-SNAPSHOT.jar=cacheDir=someCacheFolder` and Phosphor will cache the generated files in `someCacheFolder` so they aren't regenerated every run. If you take a look at the execution of Phosphor's JUnit tests, you'll notice that this is how they are instrumented. It's always necessary to instrument the JRE in advance though for bootstrapping.
 
 Interacting with Phosphor
 -----
