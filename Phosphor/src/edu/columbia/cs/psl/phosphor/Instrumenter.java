@@ -933,6 +933,8 @@ public class Instrumenter {
 			return true;
 		if (name.equals("wait") && desc.equals("(JI)V"))
 			return true;
+		if(Configuration.IMPLICIT_TRACKING && owner.equals("java/lang/invoke/MethodHandle") && (name.equals("invoke") || name.equals("invokeBasic")))
+			return true;
 		return false;
 	}
 

@@ -102,6 +102,10 @@ public class ReflectionMasker {
 				return m;
 			}
 		}
+		if(Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/')))
+		{
+			return m;
+		}
 		//		if (methodCache.containsKey(m))
 		//			return methodCache.get(m);
 		ArrayList<Class> newArgs = new ArrayList<Class>();
@@ -1132,6 +1136,13 @@ public class ReflectionMasker {
 		//		System.out.println("Making slow call to  " + m);
 		MethodInvoke ret = new MethodInvoke();
 		m.setAccessible(true);
+		if(Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/')))
+		{
+			ret.a = in;
+			ret.o = owner;
+			ret.m = m;
+			return ret;
+		}
 		if ((IS_KAFFE) || !m.PHOSPHOR_TAGmarked) {
 			if (IS_KAFFE) {
 				if (in.length > 0)
