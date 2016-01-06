@@ -259,22 +259,22 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             this.stackConstantVals = new ArrayList<Object>(nStack);
             this.stackTaintedVector = new ArrayList<Boolean>(nStack);
         }
-        visitFrameTypesLocals(nLocal, local, this.frameLocals);
-        visitFrameTypesLocals(nLocal, local, this.locals);
-        visitFrameTypesForTaintedVector(nStack, stack, this.stackTaintedVector);
-        visitFrameTypesStack(nStack, stack, this.stack);
+		visitFrameTypesLocals(nLocal, local, this.frameLocals);
+		visitFrameTypesLocals(nLocal, local, this.locals);
+		visitFrameTypesForTaintedVector(nStack, stack, this.stackTaintedVector, type == TaintUtils.RAW_INSN);
+		visitFrameTypesStack(nStack, stack, this.stack, type == TaintUtils.RAW_INSN);
         while(this.stack.size() > this.stackConstantVals.size())
         	this.stackConstantVals.add(null);
-        
         maxStack = Math.max(maxStack, this.stack.size());
     }
     private static int visitFrameTypesForTaintedVector(final int n, final Object[] types,
-            final List<Boolean> result) {
+            final List<Boolean> result, boolean isSynthetic) {
     	int ret = n;
         for (int i = 0; i < n; ++i) {
             Object type = types[i];
             if(type instanceof TaggedValue)
             {
+            	if(!isSynthetic)
             	result.add(false);
             	result.add(true);
             	ret++;
@@ -304,11 +304,12 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         }
     }
     private static void visitFrameTypesStack(final int n, final Object[] types,
-            final List<Object> result) {
+            final List<Object> result, boolean isSynthetic) {
         for (int i = 0; i < n; ++i) {
             Object type = types[i];
             if(type instanceof TaggedValue)
             {
+            	if(!isSynthetic)
             	result.add(Configuration.TAINT_TAG_ARRAY_STACK_TYPE);
             	type = ((TaggedValue) type).v;
             }
@@ -341,6 +342,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             this.locals = null;
             this.stack = null;
             this.stackConstantVals = null;
+            this.stackTaintedVector = null;
         }
     }
 
@@ -601,12 +603,16 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     }
     private void push(final Object type, final Object val, final boolean tainted)
     {
+    	if(stack.size() != stackTaintedVector.size())
+    		throw new IllegalStateException();
     	if(type.equals("java/lang/Object;"))
     		throw new IllegalArgumentException("Got " + type);
     	 stack.add(type);
     	 stackConstantVals.add(val);
     	 if(nextIsTainted)
+    	 {
     		 stackTaintedVector.add(true);
+    	 }
     	 else
     		 stackTaintedVector.add(tainted);
          maxStack = Math.max(maxStack, stack.size());    	

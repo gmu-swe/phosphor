@@ -13,7 +13,7 @@ public class SelectiveInstrumentationManager {
 	
 	public static boolean inited = false;
 	public static Set<MethodDescriptor> methodsToInstrument = new HashSet<MethodDescriptor>();
-	
+	public static Set<MethodDescriptor> methodsGoEitherWay = new HashSet<MethodDescriptor>();
 //	public static HashMap<String, HashSet<String>> methodsToInstrumentByClass = new HashMap<String, HashSet<String>>();
 	public static void populateMethodsToInstrument(String file) {
 		if(inited)
@@ -51,6 +51,40 @@ public class SelectiveInstrumentationManager {
 			}
 		}
 	}
+	
+	public static void populateGreylist(String file) {
+		FileInputStream fis = null;
+		BufferedReader br = null;
+		try {
+			fis = new FileInputStream(new File(file));
+			br = new BufferedReader(new InputStreamReader(fis));
+		 
+			String line = null;
+			while ((line = br.readLine()) != null)
+				if(line.length() > 0) {
+					MethodDescriptor desc = TaintUtils.getMethodDesc(line);
+					methodsGoEitherWay.add(desc);
+//					if(!methodsToInstrumentByClass.containsKey(desc.getOwner()))
+//						methodsToInstrumentByClass.put(desc.getOwner(), new HashSet<String>());
+//					methodsToInstrumentByClass.get(desc.getOwner()).add(desc.getName()+desc.getDesc());
+				}
+			
+		} catch(IOException ex) {
+			ex.printStackTrace();
+		} finally {
+			try {
+				br.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			try {
+				fis.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
 	
 	public static void main(String[] args) {
 		String s = "<java.awt.geom.PathIterator: int currentSegment(float[])>";

@@ -79,7 +79,8 @@ public class TaintUtils {
 //	}
 	public static final boolean TAINT_THROUGH_SERIALIZATION = false;
 	public static final boolean OPT_PURE_METHODS = false;
-
+	public static final boolean LAZY_TAINT_ARRAY_INIT = false;
+	
 	public static final boolean OPT_IGNORE_EXTRA_TAINTS = true;
 
 	public static final boolean OPT_USE_STACK_ONLY = false; //avoid using LVs where possible if true
@@ -388,6 +389,9 @@ public class TaintUtils {
 	 */
 	public static boolean isPrimitiveArrayType(Type t) {
 		return t != null && t.getSort() == Type.ARRAY && t.getDimensions() == 1 && t.getElementType().getSort() != Type.OBJECT;
+	}
+	public static boolean isPrimitiveType(Type t) {
+		return t != null && t.getSort() != Type.ARRAY && t.getSort() != Type.OBJECT && t.getSort() != Type.VOID;
 	}
 	public static boolean isPreAllocReturnType(String methodDescriptor)
 	{
@@ -1014,6 +1018,11 @@ public class TaintUtils {
 			{
 				r += MultiDTaintedArray.getTypeForType(t);
 			}
+			else if(TaintUtils.isPrimitiveArrayType(t))
+			{
+				r += Configuration.TAINT_TAG_ARRAYDESC;
+				r += t;
+			}
 			else
 				r += t;
 		}
@@ -1026,6 +1035,25 @@ public class TaintUtils {
 		r += ")" + ret.getDescriptor();
 		return r;
 	}
+	
+	public static String remapMethodDescForUninstIgnoringMultiD(String desc, boolean isinit) {
+		String r = "(";
+		for (Type t : Type.getArgumentTypes(desc)) {
+			if (TaintUtils.isPrimitiveArrayType(t)) {
+				r += Configuration.TAINT_TAG_ARRAYDESC;
+				r += t;
+			} else
+				r += t;
+		}
+		if (TaintUtils.PREALLOC_RETURN_ARRAY)
+			r += Configuration.TAINTED_RETURN_HOLDER_DESC;
+		if (isinit)
+			r += Type.getDescriptor(UninstrumentedTaintSentinel.class);
+		Type ret = Type.getReturnType(desc);
+		r += ")" + ret.getDescriptor();
+		return r;
+	}
+
 	
 	public static Object getStackTypeForType(Type t)
 	{

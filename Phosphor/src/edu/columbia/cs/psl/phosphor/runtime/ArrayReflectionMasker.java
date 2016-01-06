@@ -67,6 +67,15 @@ public class ArrayReflectionMasker {
 		}
 		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
 	}
+	public static int getLength$$PHOSPHORUNTAGGED(Object obj) {
+		if (obj.getClass().isArray()) {
+			return Array.getLength(obj);
+		} else if (obj instanceof MultiDTaintedArrayWithIntTag) {
+			return Array.getLength(((MultiDTaintedArrayWithIntTag) obj).getVal());
+		}
+		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
+	}
+
 	public static TaintedIntWithObjTag getLength$$PHOSPHORTAGGED(Object obj, TaintedReturnHolderWithObjTag[] ret) {
 		if (obj.getClass().isArray()) {
 			((TaintedIntWithObjTag)ret[TaintUtils.PREALLOC_INT]).taint = null;
@@ -609,6 +618,9 @@ public class ArrayReflectionMasker {
 	public static Object get$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx, TaintedReturnHolderWithObjTag[] prealloc) {
 		return get$$PHOSPHORTAGGED(obj, idxTaint, idx);
 	}
+	public static Object get$$PHOSPHORUNTAGGED(Object obj, int idx) {
+		return get$$PHOSPHORTAGGED(obj, 0, idx);
+	}
 	public static Object get$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx) {
 		if (obj instanceof MultiDTaintedBooleanArrayWithIntTag)
 			return getBoolean$$PHOSPHORTAGGED(obj, idxTaint, idx, new TaintedBooleanWithIntTag()).toPrimitiveType();
@@ -698,6 +710,9 @@ public class ArrayReflectionMasker {
 		} catch (Exception ex) {
 			return null;
 		}
+	}
+	public static void set$$PHOSPHORUNTAGGED(Object obj, int idx, Object val) {
+		set$$PHOSPHORTAGGED(obj, 0, idx, val);
 	}
 	public static void set$$PHOSPHORTAGGED(Object obj, int idxtaint, int idx, Object val, TaintedReturnHolderWithObjTag[] prealloc) {
 		set$$PHOSPHORTAGGED(obj, idxtaint, idx, val);

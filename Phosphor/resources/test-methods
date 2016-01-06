@@ -5,3 +5,6 @@
 <edu.columbia.cs.psl.test.phosphor.PartiallyInstrumentedClass: void foo()>
 <edu.columbia.cs.psl.test.phosphor.PartiallyInstrumentedClass: boolean uninst()>
 <UninstLoad: void inst(int[], int, boolean)>
+<UninstLoad: void inst(java.lang.Object, int, boolean)>
+<UninstLoad: void inst2(int[], int, boolean)>
+<UninstLoad: void inst3(int, int[], int, boolean)>

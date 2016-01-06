@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -17,6 +18,8 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
 	private boolean fixLdcClass;
 
+	private boolean lastWasFrame;
+	
 	public SpecialOpcodeRemovingMV(MethodVisitor sup, boolean ignoreFrames, String clazz, boolean fixLdcClass) {
 		super(Opcodes.ASM5, sup);
 		this.ignoreFrames = ignoreFrames;
@@ -26,6 +29,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	
 	@Override
 	public void visitVarInsn(int opcode, int var) {
+		lastWasFrame = false;
 		switch (opcode) {
 		case TaintUtils.BRANCH_END:
 		case TaintUtils.BRANCH_START:
@@ -52,6 +56,9 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
+		if(lastWasFrame)
+			return;
+		lastWasFrame = true;
 		if (type == TaintUtils.RAW_INSN)
 			type = Opcodes.F_NEW;
 		Object[] newLocal = new Object[local.length];
@@ -66,6 +73,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
 	@Override
 	public void visitLdcInsn(Object cst) {
+		lastWasFrame = false;
 		if (cst instanceof Type && fixLdcClass) {
 			super.visitLdcInsn(((Type) cst).getInternalName().replace("/", "."));
 			super.visitInsn(Opcodes.ICONST_0);
@@ -78,7 +86,53 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	}
 
 	@Override
+	public void visitFieldInsn(int opcode, String owner, String name, String desc) {
+		lastWasFrame = false;
+		super.visitFieldInsn(opcode, owner, name, desc);
+	}
+	@Override
+	public void visitIincInsn(int var, int increment) {
+		lastWasFrame = false;
+		super.visitIincInsn(var, increment);
+	}
+	@Override
+	public void visitIntInsn(int opcode, int operand) {
+		lastWasFrame = false;
+		super.visitIntInsn(opcode, operand);
+	}
+	@Override
+	public void visitJumpInsn(int opcode, Label label) {
+		lastWasFrame = false;
+		super.visitJumpInsn(opcode, label);
+	}
+	@Override
+	public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
+		lastWasFrame = false;
+		super.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
+	}
+	@Override
+	public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
+		lastWasFrame = false;
+		super.visitLookupSwitchInsn(dflt, keys, labels);
+	}
+	@Override
+	public void visitMultiANewArrayInsn(String desc, int dims) {
+		lastWasFrame = false;
+		super.visitMultiANewArrayInsn(desc, dims);
+	}
+	@Override
+	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
+		lastWasFrame = false;
+		super.visitMethodInsn(opcode, owner, name, desc, itf);
+	}
+	@Override
+	public void visitTypeInsn(int opcode, String type) {
+		lastWasFrame = false;
+		super.visitTypeInsn(opcode, type);
+	}
+	@Override
 	public void visitInsn(int opcode) {
+		lastWasFrame = false;
 		switch (opcode) {
 		case TaintUtils.FOLLOWED_BY_FRAME:
 		case TaintUtils.RAW_INSN:

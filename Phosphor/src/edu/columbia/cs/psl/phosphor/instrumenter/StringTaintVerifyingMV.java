@@ -81,7 +81,7 @@ NeverNullArgAnalyzerAdapter analyzer;
 		}
 		if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && t.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_FIELD) && !name.equals("taint") && 
 				t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1 && !checkedThisFrame.contains(owner+"."+name)
-				&& (owner.equals("java/lang/String") || implementsSerializable)
+				&& (owner.equals("java/lang/String") || implementsSerializable || TaintUtils.LAZY_TAINT_ARRAY_INIT)
 				)
 		{
 //			checkedThisFrame.add(owner+"."+name);

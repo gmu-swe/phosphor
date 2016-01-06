@@ -40,7 +40,7 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 
 	@Override
 	public void visitMaxs(int maxStack, int maxLocals) {
-		super.visitMaxs(maxStack, maxLocals+2);
+		super.visitMaxs(maxStack, maxLocals+newArgOffset);
 	}
 	public UninstTaintSentinalArgFixer(MethodVisitor mv, int access, String name, String desc, String originalDesc) {
 		super(Opcodes.ASM5, mv);
@@ -57,6 +57,24 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 		if (!isStatic)
 			origNumArgs++;
 		newArgOffset = 0;
+		firstFrameLocals = new Type[origNumArgs];
+
+		boolean hasBeenRemapped = false;
+		oldArgMappings = new int[originalLastArgIdx + 1];
+		int oldVarCount = (isStatic ? 0 : 1);
+		for (int i = 0; i < oldArgTypes.length; i++) {
+			if (oldArgTypes[i].getSort() == Type.ARRAY) {
+				if (oldArgTypes[i].getElementType().getSort() != Type.OBJECT) {
+					if (oldArgTypes[i].getDimensions() == 1)
+						newArgOffset++;
+					hasBeenRemapped = true;
+				}
+			}
+			oldArgMappings[oldVarCount] = oldVarCount + newArgOffset;
+			if (TaintUtils.DEBUG_LOCAL)
+				System.out.println(">>>> OVC" + oldVarCount + "->" + oldArgMappings[oldVarCount]);
+			oldVarCount += oldArgTypes[i].getSize();
+		}
 //				System.out.println(name+originalDesc + " "+isStatic+" -> origLastArg is " + originalLastArgIdx + "orig nargs " + origNumArgs);
 		oldArgTypesList = new ArrayList<Type>();
 		oldTypesDoublesAreOne = new ArrayList<Type>();
@@ -64,9 +82,17 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 			oldArgTypesList.add(Type.getType("Lthis;"));
 			oldTypesDoublesAreOne.add(Type.getType("Lthis;"));
 		}
+		int ffl = 0;
+		if(!isStatic)
+		{
+			firstFrameLocals[0] = Type.getObjectType("java/lang/Object");
+			ffl++;
+		}
 		for (Type t : Type.getArgumentTypes(originalDesc)) {
 			oldArgTypesList.add(t);
 			oldTypesDoublesAreOne.add(t);
+			firstFrameLocals[ffl] = t;
+			ffl++;
 			if (t.getSize() == 2)
 				oldArgTypesList.add(Type.getType("LTOP;"));
 		}
@@ -95,7 +121,7 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 		if (!isStatic && index == 0)
 			super.visitLocalVariable(name, desc, signature, start, end, index);
 		else if (index < originalLastArgIdx) {
-			super.visitLocalVariable(name, desc, signature, start, end, index);
+			super.visitLocalVariable(name, desc, signature, start, end, oldArgMappings[index] );
 			if (index == originalLastArgIdx - 1 && this.name.equals("<init>") && hasTaintSentinalAddedToDesc) {
 				super.visitLocalVariable("TAINT_STUFF_TO_IGNORE_HAHA", "Ljava/lang/Object;", null, start, end, originalLastArgIdx+ (Configuration.IMPLICIT_TRACKING ? 2 : 1));
 			}
@@ -106,7 +132,7 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-		Object[] remappedLocals = new Object[local.length + newArgOffset + 2]; //was +1, not sure why??
+		Object[] remappedLocals = new Object[Math.max(local.length + newArgOffset + 2, origNumArgs + newArgOffset + 2)]; //was +1, not sure why??
 		if (TaintUtils.DEBUG_FRAMES) {
 			System.out.println(name + desc + " orig nArgs = " + origNumArgs);
 			System.out.println("Pre-reindex Frame: " + Arrays.toString(local) + ";" + nLocal + " ; " + type);
@@ -130,6 +156,11 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 					newIdx++;
 					nLocal++;
 				}
+				if (i < firstFrameLocals.length && TaintUtils.isPrimitiveArrayType(firstFrameLocals[i])) {
+					remappedLocals[newIdx] = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
+					newIdx++;
+					nLocal++;
+				}
 				remappedLocals[newIdx] = local[i];
 				
 				newIdx++;
@@ -139,6 +170,7 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 		} else {
 			remappedLocals = local;
 		}
+//		System.out.println("Remaped locals:  "+ Arrays.toString(remappedLocals));
 		super.visitFrame(type, nLocal, remappedLocals, nStack, stack);
 
 	}
@@ -149,7 +181,8 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 		if (!isStatic && var == 0)
 			var = 0;
 		else if (var < originalLastArgIdx) {
-			//nothing
+			//accessing an arg; remap it
+			var = oldArgMappings[var];// + (isStatic?0:1);
 		} else {
 			//not accessing an arg. just add offset.
 			var += newArgOffset;
@@ -173,12 +206,12 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 		if (!isStatic && var == 0)
 			var = 0;
 		else if (var < originalLastArgIdx) {
-			//nothing
+			//accessing an arg; remap it
+			var = oldArgMappings[var];// + (isStatic?0:1);
 		} else {
 			//not accessing an arg. just add offset.
 			var += newArgOffset;
 		}
-
 		super.visitVarInsn(opcode, var);
 	}
 }

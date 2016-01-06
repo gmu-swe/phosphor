@@ -1358,33 +1358,85 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		boolean isIgnoredClass = Instrumenter.isIgnoredClass(owner);
 		boolean isIgnoredForTaints = Configuration.WITH_SELECTIVE_INST && 
-				Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc);
+				Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc, false);
 		if ((isIgnoredClass || isIgnoredForTaints || Instrumenter.isIgnoredMethod(owner, name, desc))  && !owner.startsWith("edu/columbia/cs/psl/phosphor/runtime")){
-			Type[] args = Type.getArgumentTypes(desc);
+			Type[] args = Type.getArgumentTypes((isIgnoredClass ? desc : TaintUtils.remapMethodDescForUninst(desc)));
 			if (TaintUtils.DEBUG_CALLS) {
 				System.out.println("Calling non-inst: " + owner + "." + name + desc + " stack " + analyzer.stack);
 			}
 			int argsSize = 0;
-			for (int i = 0; i < args.length; i++) {
-				argsSize += args[args.length - i - 1].getSize();
-								if (TaintUtils.DEBUG_CALLS)
-				System.out.println(i + ", " + analyzer.stack.get(analyzer.stack.size() - argsSize) + " " + args[args.length - i - 1]);
-				if(args[args.length - i - 1].getSort() == Type.ARRAY && args[args.length - i - 1].getElementType().getSort() != Type.OBJECT && args[args.length - i - 1].getDimensions() > 1)
-				{
-					if(!isIgnoredForTaints)
-					ensureUnBoxedAt(i, args[args.length-i-1]);
-//					unboxTaintArrayAt(i+1, args[args.length - i - 1].getDescriptor());
-				}
-				else if (isPrimitiveType(args[args.length - i - 1])
-						|| (args[args.length - i - 1].equals(Type.getType(Object.class)) && isPrimitiveStackType(analyzer.stack.get(analyzer.stack.size() - argsSize)))) {
-					//Wooahhh let's do nothing here if it's a null on the stack
-					if (isPrimitiveType(args[args.length - i - 1]) && analyzer.stack.get(analyzer.stack.size() - argsSize) == Opcodes.NULL) {
+			if (isIgnoredClass) {
+				for (int i = 0; i < args.length; i++) {
+					argsSize += args[args.length - i - 1].getSize();
+					if (TaintUtils.DEBUG_CALLS)
+						System.out.println(i + ", " + analyzer.stack.get(analyzer.stack.size() - argsSize) + " " + args[args.length - i - 1]);
+					if (args[args.length - i - 1].getSort() == Type.ARRAY && args[args.length - i - 1].getElementType().getSort() != Type.OBJECT && args[args.length - i - 1].getDimensions() > 1) {
+						if (!isIgnoredForTaints)
+							ensureUnBoxedAt(i, args[args.length - i - 1]);
+						//					unboxTaintArrayAt(i+1, args[args.length - i - 1].getDescriptor());
+					} else if (isPrimitiveType(args[args.length - i - 1])
+							|| (args[args.length - i - 1].equals(Type.getType(Object.class)) && isPrimitiveStackType(analyzer.stack.get(analyzer.stack.size() - argsSize)))) {
+						//Wooahhh let's do nothing here if it's a null on the stack
+						if (isPrimitiveType(args[args.length - i - 1]) && analyzer.stack.get(analyzer.stack.size() - argsSize) == Opcodes.NULL) {
 
-					} else
-						popAt(i + 1);
+						} else if (isIgnoredClass || TaintUtils.isPrimitiveType(args[args.length - i - 1])) //only pop tags for primitives, not arrays when calling into code ignored for taints
+							popAt(i + 1);
+					}
+				}
+			} else {
+
+				boolean ignoreNext = false;
+				Type[] argsInReverse = new Type[args.length];
+				for (int i = 0; i < args.length; i++) {
+					argsInReverse[args.length - i - 1] = args[i];
+					argsSize += args[i].getSize();
+				}
+				int i =1;
+				int n = 1;
+				System.out.println(Arrays.toString(argsInReverse));
+				for (Type t : argsInReverse) {
+					if (analyzer.stack.get(analyzer.stack.size() - i) == Opcodes.TOP)
+						i++;
+
+					//			if(ignoreNext)
+					//				System.out.println("ignore next i");
+					Type onStack = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - i));
+													System.out.println(name+ " ONStack: " + onStack + " and t = " + t);
+													System.out.println(ignoreNext + " and "+ analyzer.stack.get(analyzer.stack.size() - i) );
+					if (!ignoreNext && t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
+						//										System.out.println("t " + t + " and " + analyzer.stack.get(analyzer.stack.size() - i) + " j23oij4oi23");
+
+						//Need to check to see if there's a null on the stack in this position
+						if (analyzer.stack.get(analyzer.stack.size() - i) == Opcodes.NULL) {
+							if (TaintUtils.DEBUG_CALLS)
+								System.err.println("Adding a null in call at " + n);
+							insertNullAt(n);
+						} else if (onStack.getSort() == Type.OBJECT && (!isIgnoredForTaints || t.getDimensions() == 1)) {
+							//Unbox this
+							unboxTaintArrayAt(n, t.getDescriptor());
+						}
+					} else if (!ignoreNext && onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT) {
+						//There is an extra taint on the stack at this position
+						if (TaintUtils.DEBUG_CALLS)
+							System.err.println("removing taint array in call at " + n);
+						storeTaintArrayAt(n, onStack.getDescriptor());
+					}
+					if ((t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) || (!Configuration.SINGLE_TAG_PER_ARRAY && t.getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC)))
+						ignoreNext = !ignoreNext;
+					else if (Configuration.SINGLE_TAG_PER_ARRAY && ignoreNext && t.getDescriptor().equals(Configuration.TAINT_TAG_DESC))
+					{
+						ignoreNext = false;
+					}
+					else if(TaintUtils.isPrimitiveType(t))
+					{
+						System.out.println("Pop at " + (n+1));
+					popAt(n);
+					}
+					n++;
+					i++;
 				}
 			}
-//			System.out.println("After modifying, Calling non-inst: " + owner + "." + name + desc + " stack " + analyzer.stack);
+			System.out.println("After modifying, Calling non-inst: " + owner + "." + name + (isIgnoredClass ? desc : TaintUtils.remapMethodDescForUninst(desc)) + " stack " + analyzer.stack);
 
 			boolean isCalledOnAPrimitiveArrayType = false;
 			if (opcode == INVOKEVIRTUAL) {
@@ -1407,6 +1459,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 			if(!isIgnoredClass && TaintUtils.PREALLOC_RETURN_ARRAY)
 				super.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
+//			System.out.println("Pre call: " +name+(isIgnoredClass ? desc : TaintUtils.remapMethodDescForUninst(desc))+ analyzer.stack);
 			super.visitMethodInsn(opcode, owner, name, (isIgnoredClass ? desc : TaintUtils.remapMethodDescForUninst(desc)), itfc);
 			if (isCallToPrimitiveArrayClone) {
 				//Now we have cloned (but not casted) array, and a clopned( but not casted) taint array

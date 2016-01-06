@@ -1014,22 +1014,22 @@ public class ReflectionMasker {
 
 	@SuppressWarnings("rawtypes")
 	public static StackTraceElement[] removeExtraStackTraceElements(StackTraceElement[] in, Class clazz) {
-		//		return in;
-		int depthToCut = 0;
-		String toFind = clazz.getName();
-		if (clazz == null || in == null)
-			return in;
-
-		for (int i = 0; i < in.length; i++) {
-			if (in[i].getClassName().equals(toFind) && !(i + 1 < in.length && in[i + 1].getClassName().equals(toFind))) {
-				depthToCut = i + 1;
-				break;
-			}
-		}
-		StackTraceElement[] ret = new StackTraceElement[in.length - depthToCut];
-		System.arraycopy(in, depthToCut, ret, 0, ret.length);
-		//		System.out.println("From " + Arrays.toString(in) + " to " + Arrays.toString(ret));
-		return ret;
+				return in;
+//		int depthToCut = 0;
+//		String toFind = clazz.getName();
+//		if (clazz == null || in == null)
+//			return in;
+//
+//		for (int i = 0; i < in.length; i++) {
+//			if (in[i].getClassName().equals(toFind) && !(i + 1 < in.length && in[i + 1].getClassName().equals(toFind))) {
+//				depthToCut = i + 1;
+//				break;
+//			}
+//		}
+//		StackTraceElement[] ret = new StackTraceElement[in.length - depthToCut];
+//		System.arraycopy(in, depthToCut, ret, 0, ret.length);
+//		//		System.out.println("From " + Arrays.toString(in) + " to " + Arrays.toString(ret));
+//		return ret;
 	}
 	public static Object[] fixAllArgs(Object[] in, Constructor c, boolean isObjTags, TaintedReturnHolderWithIntTag[] prealloc) {
 
@@ -1336,21 +1336,38 @@ public class ReflectionMasker {
 			ret.m = m;
 			return ret;
 		}
-		if (Configuration.WITH_SELECTIVE_INST && !m.getName().contains("PHOSPHORTAGGED") &&Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m)))
+		if (Configuration.WITH_SELECTIVE_INST && !m.getName().contains("PHOSPHORTAGGED") &&Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m),true))
 		{
 			ret.m = getUnTaintMethod(m, isObjTags);
+			m = ret.m;
 			ret.m.setAccessible(true);
 			//			ret.m = getOrigMethod(m, isObjTags);
 			ret.o = owner;
 			ret.a = in;
 			if (ret.a != null) {
-				ret.a = new Object[in.length];
-				System.arraycopy(in, 0, ret.a, 0, in.length);
-				for (int i = 0; i < ret.a.length; i++) {
-					if (ret.a[i] instanceof MultiDTaintedArrayWithIntTag) {
-						ret.a[i] = ((MultiDTaintedArrayWithIntTag) ret.a[i]).getVal();
-					} else if (ret.a[i] instanceof MultiDTaintedArrayWithObjTag) {
-						ret.a[i] = ((MultiDTaintedArrayWithObjTag) ret.a[i]).getVal();
+				ret.a = new Object[m.getParameterTypes().length];
+				int j = 0;
+				for (int i = 0; i < in.length; i++) {
+					if (m.getParameterTypes()[j].isArray() && (m.getParameterTypes()[j].getComponentType().isPrimitive() || m.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS)))
+					{
+						if (!isObjTags) {
+							MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
+							ret.a[j] = arr.taint;
+							j++;
+							ret.a[j] = arr.getVal();
+							j++;
+						} else {
+							MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
+							ret.a[j] = arr.taint;
+							j++;
+							ret.a[j] = arr.getVal();
+							j++;
+						}
+					}
+					else
+					{
+						ret.a[j] = in[i];
+						j++;
 					}
 				}
 			} 
@@ -1383,7 +1400,7 @@ public class ReflectionMasker {
 			ret.m = m;
 			return ret;
 		}
-		if (Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m)))
+		if (Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(m.getDeclaringClass().getName().replace(".", "/"), m.getName(), Type.getMethodDescriptor(m), true))
 		{
 			ret.m = getUnTaintMethod(m, isObjTags);
 			ret.m.setAccessible(true);

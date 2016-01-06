@@ -225,6 +225,8 @@ public class Instrumenter {
 	static Option opt_singleTagArrays = new Option("singleArrayTag","Store only a single tag for all values in a prim array");
 
 	static Option opt_withSelectiveInst = new Option("withSelectiveInst",true,"Enable selective instrumentation");
+	static Option opt_withGreylist = new Option("withGreylist",true,"Enable selective instrumentation greylisting (grey list methods are created as inst and uninst, and uninst methods call uninst)");
+
 	static Option opt_uninstCopies = new Option("generateUninstStubs","Add extra copies of each method, so there's always one instrumented and one not.");
 	
 	static Option help = new Option( "help", "print this message" );
@@ -249,6 +251,7 @@ public class Instrumenter {
 		options.addOption(opt_withSelectiveInst);
 		options.addOption(opt_uninstCopies);
 		options.addOption(opt_singleTagArrays);
+		options.addOption(opt_withGreylist);
 	    CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
 	    try {
@@ -311,6 +314,10 @@ public class Instrumenter {
 			System.out.println("Loading selective instrumentation configuration");
 			SelectiveInstrumentationManager.populateMethodsToInstrument(Configuration.selective_inst_config);
 		}
+		if(line.hasOption("withGreylist"))
+		{
+			SelectiveInstrumentationManager.populateGreylist(line.getOptionValue("withGreylist"));
+		}
 		TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
 		ANALYZE_ONLY = true;
 		System.out.println("Starting analysis");
@@ -320,12 +327,14 @@ public class Instrumenter {
 				System.out.println("Waiting for convergence..");
 				n = 0;
 				int size = SelectiveInstrumentationManager.methodsToInstrument.size();
+				int size_2 = SelectiveInstrumentationManager.methodsGoEitherWay.size();
 				_main(line.getArgs());
 				int size_new = SelectiveInstrumentationManager.methodsToInstrument.size();
-				if (size == size_new)
+				int size2_new = SelectiveInstrumentationManager.methodsGoEitherWay.size();
+				if (size == size_new && size_2 == size2_new)
 					break;
 			}
-
+			System.out.println("Tenative methods: " + SelectiveInstrumentationManager.methodsGoEitherWay.size());
 		} else {
 			_main(line.getArgs());
 		}
@@ -339,6 +348,10 @@ public class Instrumenter {
 			for (MethodDescriptor desc : SelectiveInstrumentationManager.methodsToInstrument)
 				buf.append(TaintUtils.getMethodDesc(desc)).append("\n");
 			TaintUtils.writeToFile(new File(rootOutputDir.getAbsolutePath() + "/methods"), buf.toString());
+			buf = new StringBuffer();
+			for (MethodDescriptor desc : SelectiveInstrumentationManager.methodsGoEitherWay)
+				buf.append(TaintUtils.getMethodDesc(desc)).append("\n");
+			TaintUtils.writeToFile(new File(rootOutputDir.getAbsolutePath() + "/greyMethods"), buf.toString());
 		}
 		System.out.println("Done");
 
@@ -871,13 +884,20 @@ public class Instrumenter {
 			return true;
 		return false;
 	}
-
-	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc) {
+	
+	public static boolean isGreyIgnoredMethod(String owner, String name, String desc) {
+		return SelectiveInstrumentationManager.methodsGoEitherWay.contains(new MethodDescriptor(name, owner, desc));
+	}
+	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc, boolean inUninstNow) {
+		if (inUninstNow && (isGreyIgnoredMethod(owner, name, desc) || owner.equals("java/lang/Math") || owner.equals("java/lang/StrictMath") || owner.equals("java/lang/String")))
+			return true;
+		if(Instrumenter.isIgnoredClass(owner))
+			return true;
 		if(name.equals("arraycopy") && owner.equals("java/lang/System"))
-				return true;
+			return true;
 		if (!owner.startsWith("edu/columbia/cs/psl/phosphor") && 
 				!owner.startsWith("[") && !owner.startsWith("java") && !owner.startsWith("jdk/")
-				&& !owner.startsWith("com/sun") && !owner.startsWith("sun/")
+				&& !owner.startsWith("com/sun") && !owner.startsWith("sun/") && !owner.startsWith("com/oracle")
 				&& !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
 			if (TaintUtils.DEBUG_CALLS)
 				System.out.println("Using uninstrument method call for class: " + owner + " method: " + name + " desc: " + desc);

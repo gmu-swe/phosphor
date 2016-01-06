@@ -296,10 +296,13 @@ public class PreMain {
 
 		MessageDigest md5inst;
 
-		private byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
+		private byte[] _transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
 				throws IllegalClassFormatException {
-			ClassReader cr = new ClassReader(classfileBuffer);
-			String className = cr.getClassName();
+			if(!RUNTIME_INST)
+			{
+				ClassReader cr = new ClassReader(classfileBuffer);
+				className = cr.getClassName();
+			}
 			innerException = false;
 //			bigLoader = loader;
 //			Instrumenter.loader = bigLoader;
@@ -307,6 +310,7 @@ public class PreMain {
 				//				System.out.println("Premain.java ignore: " + className);
 				return classfileBuffer;
 			}
+			ClassReader cr = new ClassReader(classfileBuffer);
 			
 			ClassNode cn = new ClassNode();
 			cr.accept(cn, ClassReader.SKIP_CODE);

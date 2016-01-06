@@ -47,6 +47,7 @@ public class LinkedList<T> implements Cloneable {
 	}
 	public synchronized void addFast(T o)
 	{
+		size++;
 		Node<T> n = new Node<T>();
 		n.entry = o;
 		if(first.next == null)
@@ -64,6 +65,14 @@ public class LinkedList<T> implements Cloneable {
 	public synchronized void add(T o)
 	{
 		addUnique(o);
+	}
+	public int size;
+	public T pop()
+	{
+		size--;
+		T ret = first.next.entry;
+		first.next = first.next.next;
+		return ret;
 	}
 	public Node<T> getFirst()
 	{

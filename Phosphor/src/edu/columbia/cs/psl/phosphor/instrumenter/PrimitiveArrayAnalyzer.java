@@ -839,7 +839,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		super.visitMethodInsn(opcode, owner, name, desc,itfc);
 		Type returnType = Type.getReturnType(desc);
 		Type newReturnType = TaintUtils.getContainerReturnType(returnType);
-		if(!Configuration.WITH_SELECTIVE_INST || !Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc))
+		if(!Configuration.WITH_SELECTIVE_INST || !Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc, uninstMode))
 			if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY && returnType.getDimensions() > 1))
 				wrapperTypesToPreAlloc.add(newReturnType);
 	}

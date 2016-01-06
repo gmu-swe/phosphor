@@ -21,8 +21,11 @@ import org.objectweb.asm.util.Printer;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
 import edu.columbia.cs.psl.phosphor.runtime.PreAllocHelper;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.runtime.TaintedWithIntReturnHolderPool;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 
 public class LocalVariableManager extends OurLocalVariablesSorter implements Opcodes {
 	private NeverNullArgAnalyzerAdapter analyzer;
@@ -41,6 +44,23 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	public void visitInsn(int opcode) {
 		if(opcode == TaintUtils.IGNORE_EVERYTHING)
 			isIgnoreEverything = !isIgnoreEverything;
+		switch(opcode)
+		{
+		case Opcodes.ATHROW:
+		case Opcodes.IRETURN:
+		case Opcodes.LRETURN:
+		case Opcodes.FRETURN:
+		case Opcodes.ARETURN:
+		case Opcodes.RETURN:
+		case Opcodes.DRETURN:
+			if(releaseTaintedIntAt >= 0)
+			{
+				mv.visitVarInsn(Opcodes.ALOAD, releaseTaintedIntAt);
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintedWithIntReturnHolderPool.class), "releaseTaintedInt", "("+Type.getDescriptor(TaintedIntWithIntTag.class)+")V", false);
+
+			}
+			break;
+		}
 		super.visitInsn(opcode);
 	}
 	@Override
@@ -63,6 +83,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		this.uninstMV = uninstMV;
 		returnType = Type.getReturnType(desc);
 		Type[] args = Type.getArgumentTypes(desc);
+//		System.out.println("LVM " + name+desc);
 		if((access & Opcodes.ACC_STATIC) == 0){
 			lastArg++;
 			oldArgTypes.add(Type.getType("Lthis;"));
@@ -356,6 +377,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	}
 	Label start = new Label();
 	int lvOfSingleWrapperArray;
+	int releaseTaintedIntAt= -1;
 	public void visitCode() {
 		super.visitCode();
 		super.visitLabel(start);
@@ -366,9 +388,14 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 				} else {
 					int lv = newPreAllocedReturnType(t);
 					preAllocedReturnTypes.put(t, lv);
-					super.visitTypeInsn(NEW, t.getInternalName());
-					super.visitInsn(DUP);
-					super.visitMethodInsn(INVOKESPECIAL, t.getInternalName(), "<init>", "()V", false);
+					if (disabled && t.getInternalName().equals(Type.getInternalName(TaintedIntWithIntTag.class))) {
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintedWithIntReturnHolderPool.class), "getTaintedInt", "()"+t.getDescriptor(), false);
+						releaseTaintedIntAt = lv;
+					} else {
+						super.visitTypeInsn(NEW, t.getInternalName());
+						super.visitInsn(DUP);
+						super.visitMethodInsn(INVOKESPECIAL, t.getInternalName(), "<init>", "()V", false);
+					}
 					mv.visitVarInsn(ASTORE, lv);
 					//				System.out.println("Created LV Storage at " + lv);
 				}
@@ -522,7 +549,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
                 }
                 setFrameLocal(remap(index, typ), t);
                 Object shadowType = null;
-				if (!disabled) {
+				if (!disabled || t instanceof String) {
 					if (t instanceof Integer && t != Opcodes.NULL && t != Opcodes.UNINITIALIZED_THIS) {
 						shadowType = Configuration.TAINT_TAG_STACK_TYPE;
 					} else if (t instanceof String) {
@@ -545,8 +572,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 				if (shadowType != null) {
 
             		int newVar = remap(index, typ);
-            		int shadowVar = 0;
-					if (newVar > lastArg || disabled) {
+					int shadowVar = 0;
+					if (newVar > lastArg || (disabled && !(t instanceof String))) {
 						if (!varToShadowVar.containsKey(newVar))
 							shadowVar = newShadowLV((shadowType == Configuration.TAINT_TAG_ARRAY_STACK_TYPE ? 
 									Type.getType(Configuration.TAINT_TAG_ARRAYDESC) : Type.getType(Configuration.TAINT_TAG_DESC)), newVar);

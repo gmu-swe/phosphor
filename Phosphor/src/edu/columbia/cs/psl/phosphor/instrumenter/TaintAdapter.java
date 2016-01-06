@@ -1005,7 +1005,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 		List<Object> _stack = new ArrayList<Object>(a.stack);
 		for(int i = 0; i < _stack.size(); i++)
 		{
-			if(a.stackTaintedVector.get(i) == true)
+			if(a.stackTaintedVector.get(i) == true && !(_stack.get(i) instanceof TaggedValue))
 				_stack.set(i, new TaggedValue(_stack.get(i)));
 		}
 		Object[] stack = removeLongsDoubleTopVal(_stack);
