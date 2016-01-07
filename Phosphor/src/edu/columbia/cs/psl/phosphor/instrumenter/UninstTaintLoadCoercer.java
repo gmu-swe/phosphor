@@ -176,7 +176,7 @@ public class UninstTaintLoadCoercer extends MethodVisitor implements Opcodes {
 								SinkableArrayValue v = (SinkableArrayValue) o;
 								Type t = margs[j];
 								//if we make an inst call and are passing a prim array type, then we need the tags
-								if (!uninstCall && TaintUtils.isPrimitiveArrayType(t) && !v.flowsToInstMethodCall) {
+								if (!uninstCall && TaintUtils.isPrimitiveArrayType(t) && !v.flowsToInstMethodCall &&!TaintUtils.LAZY_TAINT_ARRAY_INIT) {
 									relevantValues.addAll(v.tag());
 									//										System.out.println("relevant!");
 								}
