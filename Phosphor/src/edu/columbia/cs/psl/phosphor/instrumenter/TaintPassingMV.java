@@ -24,6 +24,7 @@ import org.objectweb.asm.util.Textifier;
 
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
@@ -1809,20 +1810,26 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		case Opcodes.CALOAD:
 		case Opcodes.SALOAD:
 			String elType = null;
+			String elName = null;
 			switch (opcode) {
 			case Opcodes.LALOAD:
+				elName = "Long";
 				elType = "J";
 				break;
 			case Opcodes.DALOAD:
+				elName = "Double";
 				elType = "D";
 				break;
 			case Opcodes.IALOAD:
+				elName = "Int";
 				elType = "I";
 				break;
 			case Opcodes.FALOAD:
+				elName = "Float";
 				elType = "F";
 				break;
 			case Opcodes.BALOAD:
+				elName = "Byte";
 				//				System.out.println("BALOAD " + analyzer.stack);
 				if (analyzer.stack.get(analyzer.stack.size() - 3) instanceof Integer)
 					elType = "B";
@@ -1830,9 +1837,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					elType = Type.getType((String) analyzer.stack.get(analyzer.stack.size() - 3)).getElementType().getDescriptor();
 				break;
 			case Opcodes.CALOAD:
+				elName = "Char";
 				elType = "C";
 				break;
 			case Opcodes.SALOAD:
+				elName = "Short";
 				elType = "S";
 				break;
 			}
@@ -1878,30 +1887,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 				else
 				{
+					Type retType = Type.getObjectType("edu/columbia/cs/psl/phosphor/struct/Tainted"+elName+"With"+(Configuration.MULTI_TAINTING?"Obj":"Int")+"Tag");
+					
+					int prealloc = lvs.getPreAllocedReturnTypeVar(retType);
+					super.visitVarInsn(ALOAD, prealloc);
+					super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, LazyArrayIntTags.INTERNAL_NAME, "get", "([" + elType + "II"  + retType.getDescriptor()+")"+retType.getDescriptor(), false);
+					super.visitInsn(DUP);
+					super.visitFieldInsn(GETFIELD, retType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 					super.visitInsn(SWAP);
-					super.visitInsn(POP);
-					//TA A I
-					super.visitInsn(DUP_X1);
-					//TA I A I
-					super.visitInsn(opcode);
-					//TA I V V?
-					if (opcode == LALOAD || opcode == DALOAD) {
-						super.visitInsn(DUP2_X2);
-						super.visitInsn(POP2);
-						//V V TA I
-						super.visitInsn(Configuration.TAINT_ARRAY_LOAD_OPCODE);
-						//V V T
-						super.visitInsn(DUP_X2);
-						// T V V T
-						super.visitInsn(POP);
-					} else {
-						//TA I V
-						super.visitInsn(DUP_X2);
-						super.visitInsn(POP);
-						//V TA I
-						super.visitInsn(Configuration.TAINT_ARRAY_LOAD_OPCODE);
-						super.visitInsn(SWAP);
-					}
+					super.visitFieldInsn(GETFIELD, retType.getInternalName(), "val", elType);
 				}
 			}
 			break;
@@ -1937,13 +1931,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			if (isTaintlessArrayStore) {
 				isTaintlessArrayStore = false;
 				super.visitInsn(opcode);
+//				System.out.println("Taintless.");
+//				System.out.println("00POST-AASTORE w/ mutlid array " + ": " + analyzer.stack);
 				return;
 			}
 			//need to drop the taint on the index
 			// A T I V
 			arrayType = analyzer.stack.get(analyzer.stack.size() - 1);
 			t = getTypeForStackType(arrayType);
-			Type taintArrayType = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 2));
+//			Type taintArrayType = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 2));
 //									System.out.println("AASTORE of " + arrayType + " ONTO ...");
 //									System.out.println(analyzer.stack);
 			//better look to see if we are storing a NULL into a multidemnsional array...
@@ -1991,7 +1987,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					}
 				}
 				//this is a multi-d array. make it work, even if it's nasty.
-				//				System.out.println("PRE-AASTORE w/ multid array: " + t + " : " + analyzer.stack);
+//								System.out.println("22PRE-AASTORE w/ multid array: " + t + " : " + analyzer.stack);
 				super.visitInsn(SWAP);
 				super.visitInsn(TaintUtils.IS_TMP_STORE);
 				int tmpLocal = lvs.getTmpLV();
@@ -2007,13 +2003,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				lvs.freeTmpLV(tmpLocal);
 				super.visitInsn(opcode);
 				if (TaintUtils.DEBUG_FRAMES)
-					System.out.println("POST-AASTORE w/ mutlid array " + t + ": " + analyzer.stack);
+					System.out.println("22POST-AASTORE w/ mutlid array " + t + ": " + analyzer.stack);
 
 			} else {
 				super.visitInsn(DUP2_X1);
 				super.visitInsn(POP2);
 				super.visitInsn(POP);
 				super.visitInsn(opcode);
+//				System.out.println("33POST-AASTORE w/ mutlid array " + t + ": " + analyzer.stack);
 			}
 			break;
 		case Opcodes.IASTORE:
@@ -2076,32 +2073,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				System.out.println(analyzer.stack);
 			}
 
-			 {
-				//int[] TArray, X[] Array, int idxTaint, int idx, int valTaint, X val
-				//TA A IT I VT V
-				int tmp1, tmp2;
-				super.visitInsn(TaintUtils.IS_TMP_STORE);
-				tmp1 = lvs.getTmpLV(getTopOfStackType());
-				super.visitVarInsn(valStoreOpcode, tmp1);
-				tmp2 = lvs.getTmpLV(getTopOfStackType());
-				super.visitInsn(TaintUtils.IS_TMP_STORE);
-				super.visitVarInsn(Configuration.TAINT_STORE_OPCODE, tmp2);
-				if (isTaintlessArrayStore) {
-					isTaintlessArrayStore = false;
-				} else {
-					super.visitInsn(SWAP);
-					super.visitInsn(POP);
-				}
-				//tarray[] array[] idx
-				super.visitInsn(DUP_X1);
-				//tarray idx array idx
-				super.visitVarInsn(valLoadOpcode, tmp1);
-				super.visitInsn(opcode);
-				super.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, tmp2);
-				super.visitInsn(Configuration.TAINT_ARRAY_STORE_OPCODE);
-				lvs.freeTmpLV(tmp1);
-				lvs.freeTmpLV(tmp2);
-			}
+			if(isTaintlessArrayStore)
+				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, LazyArrayIntTags.INTERNAL_NAME, "set", "([" + elType + "II"  + elType+")V", false);
+			else
+				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, LazyArrayIntTags.INTERNAL_NAME, "set", "([" + elType + "III"  + elType+")V", false);
+			isTaintlessArrayStore = false;
 			break;
 		case Opcodes.POP:
 		case Opcodes.POP2:

@@ -45,7 +45,7 @@ public class DebugPrinter {
 		}, ClassReader.EXPAND_FRAMES);
 		final ClassReader cr = new ClassReader(cw1.toByteArray());
 
-		TraceClassVisitor tcv = new TraceClassVisitor(new ClassVisitor(Opcodes.ASM5) {
+		TraceClassVisitor tcv = new TraceClassVisitor(new ClassVisitor(Opcodes.ASM5, new ClassWriter(0)) {
 			String className;
 
 			@Override

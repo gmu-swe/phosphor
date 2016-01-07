@@ -382,10 +382,11 @@ public class TaintUtils {
 		}
 		else if(obj instanceof MultiDTaintedArrayWithIntTag)
 		{
-			int ret = 0;
-			for(int i : ((MultiDTaintedArrayWithIntTag) obj).taint)
-				ret |= i;
-			return ret;
+//			int ret = 0;
+//			for(int i : ((MultiDTaintedArrayWithIntTag) obj).taint)
+//				ret |= i;
+//			return ret;
+			throw new UnsupportedOperationException();
 		}
 //		if(BoxedPrimitiveStoreWithIntTags.tags.containsKey(obj))
 //			return BoxedPrimitiveStoreWithIntTags.tags.get(obj);

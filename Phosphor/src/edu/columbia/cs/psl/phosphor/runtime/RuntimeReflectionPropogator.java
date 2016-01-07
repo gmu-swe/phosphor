@@ -209,21 +209,21 @@ public class RuntimeReflectionPropogator {
 				if(!isObjTags)
 				{
 					if (f.getType().getComponentType() == Boolean.TYPE) {
-						return new MultiDTaintedBooleanArrayWithIntTag((int[]) taint, (boolean[]) ret);
+						return new MultiDTaintedBooleanArrayWithIntTag(new LazyArrayIntTags(), (boolean[]) ret);
 					} else if (f.getType().getComponentType() == Byte.TYPE) {
-						return new MultiDTaintedByteArrayWithIntTag((int[]) taint, (byte[]) ret);
+						return new MultiDTaintedByteArrayWithIntTag(new LazyArrayIntTags(), (byte[]) ret);
 		 			} else if (f.getType().getComponentType() == Character.TYPE) {
-						return new MultiDTaintedCharArrayWithIntTag((int[]) taint, (char[]) ret);
+						return new MultiDTaintedCharArrayWithIntTag(new LazyArrayIntTags(), (char[]) ret);
 					} else if (f.getType().getComponentType() == Double.TYPE) {
-						return new MultiDTaintedDoubleArrayWithIntTag((int[]) taint, (double[]) ret);
+						return new MultiDTaintedDoubleArrayWithIntTag(new LazyArrayIntTags(), (double[]) ret);
 					} else if (f.getType().getComponentType() == Float.TYPE) {
-						return new MultiDTaintedFloatArrayWithIntTag((int[]) taint, (float[]) ret);
+						return new MultiDTaintedFloatArrayWithIntTag(new LazyArrayIntTags(), (float[]) ret);
 					} else if (f.getType().getComponentType() == Integer.TYPE) {
-						return new MultiDTaintedIntArrayWithIntTag((int[]) taint, (int[]) ret);
+						return new MultiDTaintedIntArrayWithIntTag(new LazyArrayIntTags(), (int[]) ret);
 					} else if (f.getType().getComponentType() == Long.TYPE) {
-						return new MultiDTaintedLongArrayWithIntTag((int[]) taint, (long[]) ret);
+						return new MultiDTaintedLongArrayWithIntTag(new LazyArrayIntTags(), (long[]) ret);
 					} else if (f.getType().getComponentType() == Short.TYPE) {
-						return new MultiDTaintedShortArrayWithIntTag((int[]) taint, (short[]) ret);
+						return new MultiDTaintedShortArrayWithIntTag(new LazyArrayIntTags(), (short[]) ret);
 					}
 				}
 				else

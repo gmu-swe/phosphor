@@ -2,26 +2,30 @@ package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import org.objectweb.asm.Type;
 
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 
 public abstract class MultiDTaintedArrayWithIntTag {
 	public static final long serialVersionUID = 40523489234L;
 	public int sort;
-	public int length;
 
 	public boolean hasTaints()
 	{
-		for(int i : taint)
+		if(taint == null)
+			return false;
+		for(int i : taint.taints)
 			if(i != 0)
 				return true;
 		return false;
 	}
 	public void setTaints(int t)
 	{
-		for(int i = 0; i < taint.length; i++)
-		{
-			taint[i] = t;
-		}
+//		if(taint)
+//		for(int i = 0; i < taint.length; i++)
+//		{
+//			taint[i] = t;
+//		}
+		throw new UnsupportedOperationException();
 	}
 	public MultiDTaintedArrayWithIntTag() {
 
@@ -33,13 +37,12 @@ public abstract class MultiDTaintedArrayWithIntTag {
 		return sort;
 	}
 
-	protected MultiDTaintedArrayWithIntTag(int[] taint, int sort) {
+	protected MultiDTaintedArrayWithIntTag(LazyArrayIntTags taint, int sort) {
 		this.taint = taint;
 		this.sort = sort;
-		this.length = taint.length;
 	}
 
-	public int[] taint;
+	public LazyArrayIntTags taint;
 
 	public abstract Object clone();
 
@@ -458,21 +461,21 @@ public abstract class MultiDTaintedArrayWithIntTag {
 					return initWithEmptyTaints((Object[]) in, t.getElementType().getSort(), t.getDimensions());
 				} else {
 					if(tmp == Boolean.TYPE)
-						return new MultiDTaintedBooleanArrayWithIntTag(new int[(((boolean[]) in)).length], ((boolean[]) in));
+						return new MultiDTaintedBooleanArrayWithIntTag(new LazyArrayIntTags(), ((boolean[]) in));
 					if(tmp == Byte.TYPE)
-						return new MultiDTaintedByteArrayWithIntTag(new int[(((byte[]) in)).length], ((byte[]) in));
+						return new MultiDTaintedByteArrayWithIntTag(new LazyArrayIntTags(), ((byte[]) in));
 					if(tmp == Character.TYPE)
-						return new MultiDTaintedCharArrayWithIntTag(new int[(((char[]) in)).length], ((char[]) in));
+						return new MultiDTaintedCharArrayWithIntTag(new LazyArrayIntTags(), ((char[]) in));
 					if(tmp == Double.TYPE)
-						return new MultiDTaintedDoubleArrayWithIntTag(new int[(((double[]) in)).length], ((double[]) in));
+						return new MultiDTaintedDoubleArrayWithIntTag(new LazyArrayIntTags(), ((double[]) in));
 					if(tmp == Float.TYPE)
-						return new MultiDTaintedFloatArrayWithIntTag(new int[(((float[]) in)).length], ((float[]) in));
+						return new MultiDTaintedFloatArrayWithIntTag(new LazyArrayIntTags(), ((float[]) in));
 					if(tmp == Integer.TYPE)
-						return new MultiDTaintedIntArrayWithIntTag(new int[(((int[]) in)).length], ((int[]) in));
+						return new MultiDTaintedIntArrayWithIntTag(new LazyArrayIntTags(), ((int[]) in));
 					if(tmp == Long.TYPE)
-						return new MultiDTaintedLongArrayWithIntTag(new int[(((long[]) in)).length], ((long[]) in));
+						return new MultiDTaintedLongArrayWithIntTag(new LazyArrayIntTags(), ((long[]) in));
 					if(tmp == Short.TYPE)
-						return new MultiDTaintedShortArrayWithIntTag(new int[(((short[]) in)).length], ((short[]) in));
+						return new MultiDTaintedShortArrayWithIntTag(new LazyArrayIntTags(), ((short[]) in));
 						throw new IllegalArgumentException();
 				}
 			}
@@ -524,28 +527,28 @@ public abstract class MultiDTaintedArrayWithIntTag {
 					Object entry = (Object) ar[i];
 					switch (componentType) {
 					case Type.BOOLEAN:
-						ret[i] = new MultiDTaintedBooleanArrayWithIntTag(new int[(((boolean[]) entry)).length], ((boolean[]) entry));
+						ret[i] = new MultiDTaintedBooleanArrayWithIntTag(new LazyArrayIntTags(), ((boolean[]) entry));
 						break;
 					case Type.BYTE:
-						ret[i] = new MultiDTaintedByteArrayWithIntTag(new int[(((byte[]) entry)).length], ((byte[]) entry));
+						ret[i] = new MultiDTaintedByteArrayWithIntTag(new LazyArrayIntTags(), ((byte[]) entry));
 						break;
 					case Type.CHAR:
-						ret[i] = new MultiDTaintedCharArrayWithIntTag(new int[(((char[]) entry)).length], ((char[]) entry));
+						ret[i] = new MultiDTaintedCharArrayWithIntTag(new LazyArrayIntTags(), ((char[]) entry));
 						break;
 					case Type.DOUBLE:
-						ret[i] = new MultiDTaintedDoubleArrayWithIntTag(new int[(((double[]) entry)).length], ((double[]) entry));
+						ret[i] = new MultiDTaintedDoubleArrayWithIntTag(new LazyArrayIntTags(), ((double[]) entry));
 						break;
 					case Type.FLOAT:
-						ret[i] = new MultiDTaintedFloatArrayWithIntTag(new int[(((float[]) entry)).length], ((float[]) entry));
+						ret[i] = new MultiDTaintedFloatArrayWithIntTag(new LazyArrayIntTags(), ((float[]) entry));
 						break;
 					case Type.INT:
-						ret[i] = new MultiDTaintedIntArrayWithIntTag(new int[(((int[]) entry)).length], ((int[]) entry));
+						ret[i] = new MultiDTaintedIntArrayWithIntTag(new LazyArrayIntTags(), ((int[]) entry));
 						break;
 					case Type.LONG:
-						ret[i] = new MultiDTaintedLongArrayWithIntTag(new int[(((long[]) entry)).length], ((long[]) entry));
+						ret[i] = new MultiDTaintedLongArrayWithIntTag(new LazyArrayIntTags(), ((long[]) entry));
 						break;
 					case Type.SHORT:
-						ret[i] = new MultiDTaintedShortArrayWithIntTag(new int[(((short[]) entry)).length], ((short[]) entry));
+						ret[i] = new MultiDTaintedShortArrayWithIntTag(new LazyArrayIntTags(), ((short[]) entry));
 						break;
 					default:
 						throw new IllegalArgumentException();
@@ -618,28 +621,28 @@ public abstract class MultiDTaintedArrayWithIntTag {
 						Object entry = (Object) entry1[j];
 						switch (componentType) {
 						case Type.BOOLEAN:
-							ret[i][j] = new MultiDTaintedBooleanArrayWithIntTag(new int[(((boolean[]) entry)).length], ((boolean[]) entry));
+							ret[i][j] = new MultiDTaintedBooleanArrayWithIntTag(new LazyArrayIntTags(), ((boolean[]) entry));
 							break;
 						case Type.BYTE:
-							ret[i][j] = new MultiDTaintedByteArrayWithIntTag(new int[(((byte[]) entry)).length], ((byte[]) entry));
+							ret[i][j] = new MultiDTaintedByteArrayWithIntTag(new LazyArrayIntTags(), ((byte[]) entry));
 							break;
 						case Type.CHAR:
-							ret[i][j] = new MultiDTaintedCharArrayWithIntTag(new int[(((char[]) entry)).length], ((char[]) entry));
+							ret[i][j] = new MultiDTaintedCharArrayWithIntTag(new LazyArrayIntTags(), ((char[]) entry));
 							break;
 						case Type.DOUBLE:
-							ret[i][j] = new MultiDTaintedDoubleArrayWithIntTag(new int[(((double[]) entry)).length], ((double[]) entry));
+							ret[i][j] = new MultiDTaintedDoubleArrayWithIntTag(new LazyArrayIntTags(), ((double[]) entry));
 							break;
 						case Type.FLOAT:
-							ret[i][j] = new MultiDTaintedFloatArrayWithIntTag(new int[(((float[]) entry)).length], ((float[]) entry));
+							ret[i][j] = new MultiDTaintedFloatArrayWithIntTag(new LazyArrayIntTags(), ((float[]) entry));
 							break;
 						case Type.INT:
-							ret[i][j] = new MultiDTaintedIntArrayWithIntTag(new int[(((int[]) entry)).length], ((int[]) entry));
+							ret[i][j] = new MultiDTaintedIntArrayWithIntTag(new LazyArrayIntTags(), ((int[]) entry));
 							break;
 						case Type.LONG:
-							ret[i][j] = new MultiDTaintedLongArrayWithIntTag(new int[(((long[]) entry)).length], ((long[]) entry));
+							ret[i][j] = new MultiDTaintedLongArrayWithIntTag(new LazyArrayIntTags(), ((long[]) entry));
 							break;
 						case Type.SHORT:
-							ret[i][j] = new MultiDTaintedShortArrayWithIntTag(new int[(((short[]) entry)).length], ((short[]) entry));
+							ret[i][j] = new MultiDTaintedShortArrayWithIntTag(new LazyArrayIntTags(), ((short[]) entry));
 							break;
 						default:
 							throw new IllegalArgumentException();
@@ -657,28 +660,28 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			if (ar[i] == null) {
 				switch (componentType) {
 				case Type.BOOLEAN:
-					ar[i] = new MultiDTaintedBooleanArrayWithIntTag(new int[lastDimSize], new boolean[lastDimSize]);
+					ar[i] = new MultiDTaintedBooleanArrayWithIntTag(new LazyArrayIntTags(), new boolean[lastDimSize]);
 					break;
 				case Type.BYTE:
-					ar[i] = new MultiDTaintedByteArrayWithIntTag(new int[lastDimSize], new byte[lastDimSize]);
+					ar[i] = new MultiDTaintedByteArrayWithIntTag(new LazyArrayIntTags(), new byte[lastDimSize]);
 					break;
 				case Type.CHAR:
-					ar[i] = new MultiDTaintedCharArrayWithIntTag(new int[lastDimSize], new char[lastDimSize]);
+					ar[i] = new MultiDTaintedCharArrayWithIntTag(new LazyArrayIntTags(), new char[lastDimSize]);
 					break;
 				case Type.DOUBLE:
-					ar[i] = new MultiDTaintedDoubleArrayWithIntTag(new int[lastDimSize], new double[lastDimSize]);
+					ar[i] = new MultiDTaintedDoubleArrayWithIntTag(new LazyArrayIntTags(), new double[lastDimSize]);
 					break;
 				case Type.FLOAT:
-					ar[i] = new MultiDTaintedFloatArrayWithIntTag(new int[lastDimSize], new float[lastDimSize]);
+					ar[i] = new MultiDTaintedFloatArrayWithIntTag(new LazyArrayIntTags(), new float[lastDimSize]);
 					break;
 				case Type.INT:
-					ar[i] = new MultiDTaintedIntArrayWithIntTag(new int[lastDimSize], new int[lastDimSize]);
+					ar[i] = new MultiDTaintedIntArrayWithIntTag(new LazyArrayIntTags(), new int[lastDimSize]);
 					break;
 				case Type.LONG:
-					ar[i] = new MultiDTaintedLongArrayWithIntTag(new int[lastDimSize], new long[lastDimSize]);
+					ar[i] = new MultiDTaintedLongArrayWithIntTag(new LazyArrayIntTags(), new long[lastDimSize]);
 					break;
 				case Type.SHORT:
-					ar[i] = new MultiDTaintedShortArrayWithIntTag(new int[lastDimSize], new short[lastDimSize]);
+					ar[i] = new MultiDTaintedShortArrayWithIntTag(new LazyArrayIntTags(), new short[lastDimSize]);
 					break;
 				default:
 					throw new IllegalArgumentException();
@@ -697,4 +700,5 @@ public abstract class MultiDTaintedArrayWithIntTag {
 		}
 		return null;
 	}
+	public abstract int getLength();
 }

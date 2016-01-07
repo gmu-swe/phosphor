@@ -65,14 +65,12 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				}
 			} else {
 				mv.visitInsn(SWAP);
-				mv.visitInsn(POP);
-				mv.visitInsn(DUP);
-				if (!Configuration.MULTI_TAINTING)
-					mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
-				else
-					mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-				mv.visitInsn(SWAP);
+				mv.visitInsn(POP);//drop the tag of the array length
 				mv.visitIntInsn(opcode, arg);
+				mv.visitTypeInsn(NEW, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+				mv.visitInsn(DUP);
+				mv.visitMethodInsn(INVOKESPECIAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "<init>", "()V", false);
+				mv.visitInsn(SWAP);
 			}
 			break;
 

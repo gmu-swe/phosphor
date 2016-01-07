@@ -41,12 +41,12 @@ public class TaintChecker {
 		}
 		else if(obj instanceof MultiDTaintedArrayWithIntTag)
 		{
-			int[] tags = ((MultiDTaintedArrayWithIntTag) obj).taint;
-			for(int i : tags)
-			{
-				if(i > 0)
-					throw new IllegalAccessError("Argument carries taints - example: "+ i);
-			}
+			LazyArrayIntTags tags = ((MultiDTaintedArrayWithIntTag) obj).taint;
+			if (tags.taints != null)
+				for (int i : tags.taints) {
+					if (i > 0)
+						throw new IllegalAccessError("Argument carries taints - example: " + i);
+				}
 		}
 		else if(obj instanceof MultiDTaintedArrayWithObjTag)
 		{
@@ -93,9 +93,11 @@ public class TaintChecker {
 		} else if (obj instanceof TaintedPrimitiveArrayWithIntTag){
 			((TaintedPrimitiveArrayWithIntTag)obj).setTaints(tag);
 		}else if (obj instanceof MultiDTaintedArrayWithIntTag) {
-			int[] taints = ((MultiDTaintedArrayWithIntTag) obj).taint;
-			for (int i = 0; i < taints.length; i++)
-				taints[i] = tag;
+			LazyArrayIntTags _taints = ((MultiDTaintedArrayWithIntTag) obj).taint;
+			if(_taints.taints == null)
+				_taints.taints = new int[((MultiDTaintedArrayWithIntTag) obj).getLength()];
+			for (int i = 0; i < _taints.taints.length; i++)
+				_taints.taints[i] = tag;
 		} else if (obj.getClass().isArray()) {
 			
 				Object[] ar = (Object[]) obj;

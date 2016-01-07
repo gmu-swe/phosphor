@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithIntTag;
 
 public final class TaintedShortArrayWithIntTag extends TaintedPrimitiveArrayWithIntTag {
@@ -7,7 +8,7 @@ public final class TaintedShortArrayWithIntTag extends TaintedPrimitiveArrayWith
 
 	@Override
 	public Object toStackType() {
-		return new MultiDTaintedShortArrayWithIntTag(taint, val);
+		return new MultiDTaintedShortArrayWithIntTag(new LazyArrayIntTags(taint), val);
 	}
 	public TaintedShortArrayWithIntTag(int[] taint, short[] val) {
 		this.taint = taint;
