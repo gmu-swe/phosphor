@@ -85,46 +85,61 @@ NeverNullArgAnalyzerAdapter analyzer;
 				)
 		{
 //			checkedThisFrame.add(owner+"."+name);
-			
+			//Tag Obj
 			super.visitInsn(SWAP);
+ 			//Obj Tag
 			super.visitInsn(POP);
+			//Obj
 			
 			//Make sure that it's been initialized
 			Label isOK = new Label();
-			Label doInit = new Label();
+//			Label doInit = new Label();
 			
 			FrameNode fn1 = TaintAdapter.getCurrentFrameNode(analyzer);
 			super.visitInsn(DUP);
+			//Obj Obj
 			super.visitFieldInsn(opcode, owner, name,desc);
+			//Obj F
 			super.visitJumpInsn(IFNULL, isOK); //if value is null, do nothing
-			
+			//Obj
 			super.visitInsn(DUP);
+			//Obj Obj
 			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
-			super.visitJumpInsn(IFNULL, doInit); //if taint is null, def init
+			//Obj tf
+			super.visitJumpInsn(IFNONNULL, isOK); //if taint is null, def init
+			//Obj
 			//if taint is not null, check the length
-			super.visitInsn(DUP); // O O
-			super.visitInsn(DUP); // O O O
-			super.visitFieldInsn(opcode, owner, name,desc);
-			super.visitInsn(ARRAYLENGTH);
-			super.visitInsn(SWAP);
-			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
-			super.visitInsn(ARRAYLENGTH);
-			super.visitJumpInsn(IF_ICMPLE, isOK); //if taint is shorter than value, reinit it
-			super.visitLabel(doInit);
-			TaintAdapter.acceptFn(fn1, this);
-			super.visitInsn(DUP); // O O
-			super.visitInsn(DUP); // O O O
-			super.visitFieldInsn(opcode, owner, name, desc); //O O A
-			super.visitInsn(ARRAYLENGTH);//O O L
-			if (!Configuration.MULTI_TAINTING)
-				super.visitIntInsn(NEWARRAY, T_INT);//O O A
-			else
-				super.visitTypeInsn(ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
+//			super.visitInsn(DUP); // O O
+//			super.visitInsn(DUP); // O O O
+//			super.visitFieldInsn(opcode, owner, name,desc);
+//			super.visitInsn(ARRAYLENGTH);
+//			super.visitInsn(SWAP);
+//			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+//			super.visitInsn(ARRAYLENGTH);
+//			super.visitJumpInsn(IF_ICMPLE, isOK); //if taint is shorter than value, reinit it
+//			super.visitLabel(doInit);
+//			TaintAdapter.acceptFn(fn1, this);
+//			super.visitInsn(DUP); // O O
+//			super.visitInsn(DUP); // O O O
+//			super.visitFieldInsn(opcode, owner, name, desc); //O O A
+//			super.visitInsn(ARRAYLENGTH);//O O L
+//			if (!Configuration.MULTI_TAINTING)
+//				super.visitIntInsn(NEWARRAY, T_INT);//O O A
+//			else
+//				super.visitTypeInsn(ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
+			super.visitInsn(DUP);
+			//Obj Obj
+			super.visitTypeInsn(NEW, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+			super.visitInsn(DUP);
+			super.visitMethodInsn(INVOKESPECIAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "<init>", "()V", false);
+			//Obj Obj TF
 			super.visitFieldInsn(PUTFIELD, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC); // O
+			//Obj
 			super.visitLabel(isOK);
 			TaintAdapter.acceptFn(fn1, this);
 			//O
 			super.visitInsn(DUP);
+			//OO
 			super.visitFieldInsn(opcode, owner, name+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 			super.visitInsn(SWAP);
 			super.visitFieldInsn(opcode, owner, name, desc);

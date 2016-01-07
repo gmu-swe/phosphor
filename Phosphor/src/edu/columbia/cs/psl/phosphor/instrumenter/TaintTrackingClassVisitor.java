@@ -794,16 +794,20 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 					mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
-						if (Configuration.SINGLE_TAG_PER_ARRAY) {
-							mv.visitVarInsn(Opcodes.ILOAD, 1);
-							mv.visitVarInsn(Opcodes.ALOAD, 0);
-							mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
-						} else {
-							mv.visitVarInsn(Opcodes.ALOAD, 0);
-							mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
-							mv.visitVarInsn(Opcodes.ILOAD, 1);
-							mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
-						}
+
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitTypeInsn(Opcodes.NEW, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+						mv.visitInsn(Opcodes.DUP);
+						mv.visitMethodInsn(Opcodes.INVOKESPECIAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "<init>", "()V", false);
+						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+						
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value", "[C");
+						mv.visitInsn(Opcodes.ARRAYLENGTH);
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+						mv.visitVarInsn(Opcodes.ILOAD, 1);
+						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(I"+Configuration.TAINT_TAG_ARRAYDESC+Configuration.TAINT_TAG_DESC+")V", false);
 					}
 					mv.visitInsn(Opcodes.RETURN);
 					mv.visitMaxs(0, 0);
@@ -993,7 +997,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 							if(NATIVE_BOX_UNBOX && t.getSort() == Type.OBJECT && Instrumenter.isCollection(t.getInternalName()))
 							{
 								////  public final static ensureIsBoxed(Ljava/util/Collection;)Ljava/util/Collection;
-								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsBoxed", "(Ljava/util/Collection;)Ljava/util/Collection;",false);
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsBoxed"+(Configuration.MULTI_TAINTING ? "ObjTags":""), "(Ljava/util/Collection;)Ljava/util/Collection;",false);
 								ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
 							}
 //							if(t.getDescriptor().endsWith("java/lang/Object;"))
@@ -1062,7 +1066,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 							{
 								////  public final static ensureIsBoxed(Ljava/util/Collection;)Ljava/util/Collection;
 								ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
-								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsUnBoxed", "(Ljava/util/Collection;)Ljava/util/Collection;",false);
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsUnBoxed"+(Configuration.MULTI_TAINTING ? "ObjTags":""), "(Ljava/util/Collection;)Ljava/util/Collection;",false);
 								ga.visitInsn(Opcodes.POP);
 							}
 							idx += t.getSize();
@@ -1984,13 +1988,9 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 						an.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getInternalName());
 					}
 					ga.visitInsn(Opcodes.SWAP);
-					if (!Configuration.MULTI_TAINTING)
-						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "[I");
-					else
-						if(Configuration.SINGLE_TAG_PER_ARRAY)
-							ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "Ljava/lang/Object;");
-						else
-							ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "[Ljava/lang/Object;");
+
+					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_ARRAYDESC);
+
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
 					if(TaintUtils.PREALLOC_RETURN_ARRAY)
 					{

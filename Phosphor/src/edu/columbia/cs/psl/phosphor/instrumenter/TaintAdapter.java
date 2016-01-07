@@ -460,20 +460,24 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 			super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
 			super.visitJumpInsn(IFNULL, isNull);
 			super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
+//			super.visitInsn(DUP);
+//			super.visitInsn(ARRAYLENGTH);
+//			if(!Configuration.MULTI_TAINTING)
+//				super.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+//			else
+//			{
+//				super.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);	
+//				if(!(Configuration.taintTagFactory instanceof DataAndControlFlowTagFactory))
+//				{
+//					super.visitInsn(DUP);
+//					super.visitInsn(ICONST_1);
+//					super.visitMethodInsn(Opcodes.INVOKEINTERFACE, Type.getInternalName(TaintTagFactory.class), "generateEmptyTaintArray", "([Ljava/lang/Object;I)V", false);
+//				}
+//			}
+			super.visitTypeInsn(NEW, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
 			super.visitInsn(DUP);
-			super.visitInsn(ARRAYLENGTH);
-			if(!Configuration.MULTI_TAINTING)
-				super.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
-			else
-			{
-				super.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);	
-				if(!(Configuration.taintTagFactory instanceof DataAndControlFlowTagFactory))
-				{
-					super.visitInsn(DUP);
-					super.visitInsn(ICONST_1);
-					super.visitMethodInsn(Opcodes.INVOKEINTERFACE, Type.getInternalName(TaintTagFactory.class), "generateEmptyTaintArray", "([Ljava/lang/Object;I)V", false);
-				}
-			}
+			super.visitMethodInsn(INVOKESPECIAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "<init>", "()V", false);
+//			super.visitInsn(SWAP);
 			super.visitInsn(SWAP);
 			FrameNode fn2 = getCurrentFrameNode();
 
@@ -594,13 +598,17 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 		}
 		else
 		{
-			mv.visitInsn(Opcodes.DUP);
-			mv.visitInsn(Opcodes.ARRAYLENGTH);
-			if(!Configuration.MULTI_TAINTING)
-				mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
-			else
-				mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-			mv.visitInsn(Opcodes.SWAP);
+//			mv.visitInsn(Opcodes.DUP);
+//			mv.visitInsn(Opcodes.ARRAYLENGTH);
+//			if(!Configuration.MULTI_TAINTING)
+//				mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+//			else
+//				mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
+//			mv.visitInsn(Opcodes.SWAP);
+			mv.visitTypeInsn(NEW, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+			mv.visitInsn(DUP);
+			mv.visitMethodInsn(INVOKESPECIAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "<init>", "()V", false);
+			mv.visitInsn(SWAP);
 		}
 
 		Object[] locals = removeLongsDoubleTopVal(analyzer.locals);

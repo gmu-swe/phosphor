@@ -16,6 +16,7 @@ import org.objectweb.asm.Type;
 import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
 import edu.columbia.cs.psl.phosphor.runtime.PreAllocHelper;
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
@@ -79,9 +80,10 @@ public class TaintUtils {
 //	}
 	public static final boolean TAINT_THROUGH_SERIALIZATION = false;
 	public static final boolean OPT_PURE_METHODS = false;
+
 	public static final boolean LAZY_TAINT_ARRAY_INIT = false;
 	
-	public static final boolean OPT_IGNORE_EXTRA_TAINTS = true;
+	public static boolean OPT_IGNORE_EXTRA_TAINTS = true;
 
 	public static final boolean OPT_USE_STACK_ONLY = false; //avoid using LVs where possible if true
 	
@@ -472,10 +474,11 @@ public class TaintUtils {
 		}
 		else if(obj instanceof MultiDTaintedArrayWithIntTag)
 		{
-			int ret = 0;
-			for(int i : ((MultiDTaintedArrayWithIntTag) obj).taint)
-				ret |= i;
-			return ret;
+//			int ret = 0;
+//			for(int i : ((MultiDTaintedArrayWithIntTag) obj).taint)
+//				ret |= i;
+//			return ret;
+			throw new UnsupportedOperationException();
 		}
 //		if(BoxedPrimitiveStoreWithIntTags.tags.containsKey(obj))
 //			return BoxedPrimitiveStoreWithIntTags.tags.get(obj);
@@ -691,24 +694,21 @@ public class TaintUtils {
 
 	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (!Configuration.SINGLE_TAG_PER_ARRAY && 
-				VM.booted && srcTaint != null && destTaint != null) {
-			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
-				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
-		}
-	}
-	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, TaintedReturnHolderWithIntTag[] prealloc) {
-		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (VM.booted && srcTaint != null && destTaint != null) {
-			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
-				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
-		}
-	}
-	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, TaintedReturnHolderWithObjTag[] prealloc) {
-		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (!Configuration.SINGLE_TAG_PER_ARRAY && (VM.booted) && srcTaint != null && destTaint != null) {
-			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
-				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
+		if (!Configuration.SINGLE_TAG_PER_ARRAY && VM.booted && srcTaint != null && destTaint != null) {
+			if (((LazyArrayIntTags) srcTaint).taints == null && ((LazyArrayIntTags) destTaint).taints == null) {
+				return;
+			} else if (((LazyArrayIntTags) srcTaint).taints != null) {
+				if (((LazyArrayIntTags) destTaint).taints == null)
+					((LazyArrayIntTags) destTaint).taints = new int[Array.getLength(dest)];
+				System.arraycopy(((LazyArrayIntTags) srcTaint).taints, srcPos, ((LazyArrayIntTags) destTaint).taints, destPos, length);
+			} else {
+				if (((LazyArrayIntTags) destTaint).taints == null)
+					((LazyArrayIntTags) destTaint).taints = new int[Array.getLength(dest)];
+				else {
+					int[] empty = new int[length];
+					System.arraycopy(empty, 0, ((LazyArrayIntTags) destTaint).taints, destPos, length);
+				}
+			}
 		}
 	}
 

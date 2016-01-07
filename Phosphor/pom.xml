@@ -6,6 +6,10 @@
 	<version>0.0.2-SNAPSHOT</version>
 	<properties>
 		<dacapo.skip>true</dacapo.skip>
+		<skipIntTagNoInstTests>true</skipIntTagNoInstTests>
+		<maven.compiler.testSource>1.8</maven.compiler.testSource>
+		<maven.compiler.testTarget>1.8</maven.compiler.testTarget>
+
 	</properties>
 	<build>
 		<sourceDirectory>src</sourceDirectory>

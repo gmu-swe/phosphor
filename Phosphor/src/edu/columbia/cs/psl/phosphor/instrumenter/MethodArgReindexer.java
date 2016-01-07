@@ -216,11 +216,8 @@ public class MethodArgReindexer extends MethodVisitor {
 					else if (local[i] == Opcodes.NULL) {
 						Type t = oldTypesDoublesAreOne.get(i);
 						if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-							if(Configuration.SINGLE_TAG_PER_ARRAY && !Configuration.MULTI_TAINTING)
-								remappedLocals[newIdx] = Opcodes.INTEGER;
-							else
-								remappedLocals[newIdx] = TaintUtils.getShadowTaintType(t.getDescriptor());
-							
+
+							remappedLocals[newIdx] = TaintUtils.getShadowTaintTypeForFrame(t.getDescriptor());
 							if (TaintUtils.DEBUG_FRAMES)
 								System.out.println("Adding taint storage for local type " + local[i]);
 							newIdx++;
@@ -334,10 +331,7 @@ public class MethodArgReindexer extends MethodVisitor {
 				if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
 					if (TaintUtils.DEBUG_FRAMES)
 						System.out.println("Adding taint storage for type " + stack[i]);
-					if(Configuration.SINGLE_TAG_PER_ARRAY && !Configuration.MULTI_TAINTING)
-						newStack.add(Opcodes.INTEGER);
-					else
-						newStack.add(Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+					newStack.add(TaintUtils.getShadowTaintTypeForFrame(t.getDescriptor()));
 					nStack++;
 				}
 			}

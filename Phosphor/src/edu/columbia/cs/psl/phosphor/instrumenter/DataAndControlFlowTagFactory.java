@@ -22,6 +22,9 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	}
 
 	@Override
+	public void lineNumberVisited(int line) {
+	}
+	@Override
 	public void methodEntered(String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
 	}
 	@Override
@@ -67,16 +70,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					} else {
 						throw new UnsupportedOperationException();
 					}
+
 				} else {
 					mv.visitInsn(SWAP);
-					mv.visitInsn(POP);
-					mv.visitInsn(DUP);
-					if (!Configuration.MULTI_TAINTING)
-						mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
-					else
-						mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-					mv.visitInsn(SWAP);
+					mv.visitInsn(POP);//drop the tag of the array length
 					mv.visitIntInsn(opcode, arg);
+					mv.visitTypeInsn(NEW, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+					mv.visitInsn(DUP);
+					mv.visitMethodInsn(INVOKESPECIAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "<init>", "()V", false);
+					mv.visitInsn(SWAP);
 				}
 			}
 			break;

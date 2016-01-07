@@ -142,6 +142,7 @@ public class Instrumenter {
 								|| owner.startsWith("java/lang/invoke/DelegatingMethodHandle")
 								|| owner.startsWith("com/jprofiler")
 //|| owner.startsWith("org/apache/jasper/runtime/HttpJspBase")
+				|| owner.startsWith("edu/columbia/cs/psl/phosphor/struct/TaintedWith")
 				;
 	}
 
@@ -228,6 +229,7 @@ public class Instrumenter {
 	static Option opt_withGreylist = new Option("withGreylist",true,"Enable selective instrumentation greylisting (grey list methods are created as inst and uninst, and uninst methods call uninst)");
 
 	static Option opt_uninstCopies = new Option("generateUninstStubs","Add extra copies of each method, so there's always one instrumented and one not.");
+	static Option opt_disableJumpOptimizations = new Option("disableJumpOptimizations","Do not optimize taint removal at jump calls");
 	
 	static Option help = new Option( "help", "print this message" );
 
@@ -252,6 +254,8 @@ public class Instrumenter {
 		options.addOption(opt_uninstCopies);
 		options.addOption(opt_singleTagArrays);
 		options.addOption(opt_withGreylist);
+		options.addOption(opt_disableJumpOptimizations);
+
 	    CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
 	    try {
@@ -288,7 +292,7 @@ public class Instrumenter {
 		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
 		Configuration.SINGLE_TAG_PER_ARRAY = line.hasOption("singleArrayTag");
 		Configuration.init();
-		
+		TaintUtils.OPT_IGNORE_EXTRA_TAINTS = !line.hasOption("disableJumpOptimizations");
 		
 		if(Configuration.WITH_SELECTIVE_INST)
 			System.out.println("Performing selective instrumentation");
@@ -910,6 +914,8 @@ public class Instrumenter {
 		if (name.equals("wait") && desc.equals("(J)V"))
 			return true;
 		if (name.equals("wait") && desc.equals("(JI)V"))
+			return true;
+		if(Configuration.IMPLICIT_TRACKING && owner.equals("java/lang/invoke/MethodHandle") && (name.equals("invoke") || name.equals("invokeBasic")))
 			return true;
 		return false;
 	}

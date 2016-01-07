@@ -835,6 +835,34 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	public HashSet<Type> wrapperTypesToPreAlloc = new HashSet<Type>();
 	public int nJumps;
 	@Override
+	public void visitInsn(int opcode) {
+		super.visitInsn(opcode);
+		switch (opcode) {
+		case Opcodes.IALOAD:
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("I"));
+			break;
+		case Opcodes.BALOAD:
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("B"));
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("Z"));
+			break;
+		case Opcodes.CALOAD:
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("C"));
+			break;
+		case Opcodes.DALOAD:
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("D"));
+			break;
+		case Opcodes.LALOAD:
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("J"));
+			break;
+		case Opcodes.FALOAD:
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("F"));
+			break;
+		case Opcodes.SALOAD:
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("S"));
+			break;
+		}
+	}
+	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
 		super.visitMethodInsn(opcode, owner, name, desc,itfc);
 		Type returnType = Type.getReturnType(desc);

@@ -74,6 +74,7 @@ public class ReflectionMasker {
 
 	public static final boolean IS_KAFFE = false;
 
+
 	public static Object maybeUnboxStackType(Object o) {
 		if(o == null)
 			return null;
@@ -83,6 +84,7 @@ public class ReflectionMasker {
 			return ((TaintedReturnHolderWithObjTag)o).getValue();
 		return o;
 	}
+	
 	public static String getPropertyHideBootClasspath(String prop)
 	{
 		if(prop.equals("sun.boot.class.path"))
@@ -91,6 +93,7 @@ public class ReflectionMasker {
 			return "linux";
 		return System.getProperty(prop);
 	}
+	
 	public static Method getTaintMethodControlTrack(Method m) {
 		if (m.getDeclaringClass().isAnnotation())
 			return m;
@@ -122,6 +125,10 @@ public class ReflectionMasker {
 					m.PHOSPHOR_TAGmarked = true;
 				return m;
 			}
+		}
+		if(Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/')))
+		{
+			return m;
 		}
 		//		if (methodCache.containsKey(m))
 		//			return methodCache.get(m);
@@ -468,10 +475,7 @@ public class ReflectionMasker {
 				if (c.getComponentType().isPrimitive()) {
 					//1d primitive array
 					madeChange = true;
-					if (isObjTags)
-						newArgs.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
-					else
-						newArgs.add(int[].class);
+					newArgs.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
 					newArgs.add(c);
 					continue;
 				} else {
@@ -854,7 +858,7 @@ public class ReflectionMasker {
 				} catch (ClassNotFoundException e) {
 					e.printStackTrace();
 				}
-			} else if (c.isArray() && (c.getComponentType().isPrimitive() || c.getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
+			} else if ((c.isArray() &&(c.getComponentType().isPrimitive()) || c == Configuration.TAINT_TAG_OBJ_ARRAY_CLASS)) {
 				if (dontIgnorePrimitive)
 					origArgs.add(c);
 				dontIgnorePrimitive = !dontIgnorePrimitive;
@@ -901,10 +905,7 @@ public class ReflectionMasker {
 				if (t.getSort() == Type.ARRAY) {
 					if (t.getElementType().getSort() != Type.OBJECT) {
 						if (t.getDimensions() == 1) {
-							if (isObjTags)
-								newParams.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
-							else
-								newParams.add(int[].class);
+							newParams.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
 						} else {
 							Type newType = null;
 							if(isObjTags)
@@ -1125,7 +1126,7 @@ public class ReflectionMasker {
 					else
 						ret[j] = null;
 					j++;
-				} else if (c.getParameterTypes()[j].isArray() && (c.getParameterTypes()[j].getComponentType().isPrimitive() || c.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
+				} else if (c.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_ARRAY_CLASS) {
 					if (!isObjTags) {
 						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
 						ret[j] = arr.taint;
@@ -1605,7 +1606,7 @@ public class ReflectionMasker {
 					else
 						ret.a[j] = null;
 					j++;
-				} else if (m.getParameterTypes()[j].isArray() && (m.getParameterTypes()[j].getComponentType().isPrimitive() || m.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
+				} else if (m.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_ARRAY_CLASS) {
 					if (!isObjTags) {
 						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
 						ret.a[j] = arr.taint;
@@ -1650,6 +1651,13 @@ public class ReflectionMasker {
 		//		System.out.println("Making slow call to  " + m);
 		MethodInvoke ret = new MethodInvoke();
 		m.setAccessible(true);
+		if(Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/')))
+		{
+			ret.a = in;
+			ret.o = owner;
+			ret.m = m;
+			return ret;
+		}
 		if ((IS_KAFFE) || !m.PHOSPHOR_TAGmarked) {
 			if (IS_KAFFE) {
 				if (in.length > 0)

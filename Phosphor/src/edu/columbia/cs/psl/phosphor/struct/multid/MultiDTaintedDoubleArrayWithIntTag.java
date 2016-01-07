@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
+
 import org.objectweb.asm.Type;
 
 public final class MultiDTaintedDoubleArrayWithIntTag extends MultiDTaintedArrayWithIntTag implements Serializable {
@@ -14,7 +16,7 @@ public final class MultiDTaintedDoubleArrayWithIntTag extends MultiDTaintedArray
 	private static final long serialVersionUID = 2983786880082730018L;
 	public double[] val;
 
-	public MultiDTaintedDoubleArrayWithIntTag(int[] taint, double[] val) {
+	public MultiDTaintedDoubleArrayWithIntTag(LazyArrayIntTags taint, double[] val) {
 		super(taint, Type.DOUBLE);
 		this.val = val;
 	}
@@ -26,7 +28,7 @@ public final class MultiDTaintedDoubleArrayWithIntTag extends MultiDTaintedArray
 
 	@Override
 	public Object clone() {
-		return new MultiDTaintedDoubleArrayWithIntTag(taint.clone(), val.clone());
+		return new MultiDTaintedDoubleArrayWithIntTag((LazyArrayIntTags) taint.clone(), val.clone());
 	}
 
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
@@ -37,7 +39,7 @@ public final class MultiDTaintedDoubleArrayWithIntTag extends MultiDTaintedArray
 		stream.writeInt(val.length);
 		for (int i = 0; i < val.length; i++) {
 			if (TaintUtils.TAINT_THROUGH_SERIALIZATION)
-				stream.writeInt(taint[i]);
+				stream.writeInt(taint.taints == null ? 0 : taint.taints[i]);
 			stream.writeDouble(val[i]);
 		}
 	}
@@ -45,11 +47,17 @@ public final class MultiDTaintedDoubleArrayWithIntTag extends MultiDTaintedArray
 	private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
 		int len = stream.readInt();
 		val = new double[len];
-		taint = new int[len];
+		taint = new LazyArrayIntTags();
+		taint.taints = new int[len];
 		for (int i = 0; i < len; i++) {
 			if (TaintUtils.TAINT_THROUGH_SERIALIZATION)
-				taint[i] = stream.readInt();
+				taint.taints[i] = stream.readInt();
 			val[i] = stream.readDouble();
 		}
+	}
+	
+	@Override
+	public int getLength() {
+		return val.length;
 	}
 }
