@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.WeakHashMap;
 
+import sun.misc.VM;
 import sun.reflect.ReflectionFactory;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
@@ -69,6 +70,15 @@ public class ReflectionMasker {
 	//	static WeakHashMap<Method, Method> methodCache = new WeakHashMap<Method, Method>();
 
 	public static final boolean IS_KAFFE = false;
+
+	public static String getPropertyHideBootClasspath(String prop)
+	{
+		if(prop.equals("sun.boot.class.path"))
+			return null;
+		else if(prop.equals("os.name"))
+			return "linux";
+		return System.getProperty(prop);
+	}
 
 	public static Method getTaintMethodControlTrack(Method m) {
 		if (m.getDeclaringClass().isAnnotation())
@@ -265,10 +275,7 @@ public class ReflectionMasker {
 				if (c.getComponentType().isPrimitive()) {
 					//1d primitive array
 					madeChange = true;
-					if (isObjTags)
-						newArgs.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
-					else
-						newArgs.add(int[].class);
+					newArgs.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
 					newArgs.add(c);
 					continue;
 				} else {
@@ -636,7 +643,7 @@ public class ReflectionMasker {
 				} catch (ClassNotFoundException e) {
 					e.printStackTrace();
 				}
-			} else if (c.isArray() && (c.getComponentType().isPrimitive() || c.getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
+			} else if ((c.isArray() &&(c.getComponentType().isPrimitive()) || c == Configuration.TAINT_TAG_OBJ_ARRAY_CLASS)) {
 				if (dontIgnorePrimitive)
 					origArgs.add(c);
 				dontIgnorePrimitive = !dontIgnorePrimitive;
@@ -681,10 +688,7 @@ public class ReflectionMasker {
 				if (t.getSort() == Type.ARRAY) {
 					if (t.getElementType().getSort() != Type.OBJECT) {
 						if (t.getDimensions() == 1) {
-							if (isObjTags)
-								newParams.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
-							else
-								newParams.add(int[].class);
+							newParams.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
 						} else {
 							Type newType = null;
 							if(isObjTags)
@@ -834,7 +838,7 @@ public class ReflectionMasker {
 					else
 						ret[j] = null;
 					j++;
-				} else if (c.getParameterTypes()[j].isArray() && (c.getParameterTypes()[j].getComponentType().isPrimitive() || c.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
+				} else if (c.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_ARRAY_CLASS) {
 					if (!isObjTags) {
 						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
 						ret[j] = arr.taint;
@@ -1091,7 +1095,7 @@ public class ReflectionMasker {
 					else
 						ret.a[j] = null;
 					j++;
-				} else if (m.getParameterTypes()[j].isArray() && (m.getParameterTypes()[j].getComponentType().isPrimitive() || m.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
+				} else if (m.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_ARRAY_CLASS) {
 					if (!isObjTags) {
 						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
 						ret.a[j] = arr.taint;

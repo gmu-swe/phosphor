@@ -657,9 +657,18 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
 						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitTypeInsn(Opcodes.NEW, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+						mv.visitInsn(Opcodes.DUP);
+						mv.visitMethodInsn(Opcodes.INVOKESPECIAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "<init>", "()V", false);
+						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+						
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value", "[C");
+						mv.visitInsn(Opcodes.ARRAYLENGTH);
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
 						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 						mv.visitVarInsn(Opcodes.ILOAD, 1);
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
+						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(I"+Configuration.TAINT_TAG_ARRAYDESC+Configuration.TAINT_TAG_DESC+")V", false);
 					}
 					mv.visitInsn(Opcodes.RETURN);
 					mv.visitMaxs(0, 0);
@@ -1479,10 +1488,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
 					ga.visitInsn(Opcodes.SWAP);
-					if (!Configuration.MULTI_TAINTING)
-						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "[I");
-					else
-						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "[Ljava/lang/Object;");
+					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_ARRAYDESC);
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
 				}
 			} else {
@@ -1594,29 +1600,4 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	}
 
-	private void generateStrLdcWrapper() {
-		if (!isNormalClass)
-			return;
-		MethodVisitor mv = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, TaintUtils.STR_LDC_WRAPPER, "(Ljava/lang/String;)Ljava/lang/String;", null, null);
-		mv.visitCode();
-		mv.visitVarInsn(Opcodes.ALOAD, 0); //S
-		mv.visitInsn(Opcodes.DUP); //S S
-		mv.visitInsn(Opcodes.DUP2);
-
-		mv.visitInsn(Opcodes.DUP);
-		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "length", "()I",false);
-		mv.visitInsn(Opcodes.ICONST_1);
-		mv.visitInsn(Opcodes.IADD);
-		if(!Configuration.MULTI_TAINTING)
-			mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
-		else
-			mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-		mv.visitFieldInsn(Opcodes.PUTFIELD, "java/lang/String", "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
-		{
-			mv.visitInsn(Opcodes.POP);
-		}
-		mv.visitInsn(Opcodes.ARETURN);
-		mv.visitMaxs(0, 0);
-		mv.visitEnd();
-	}
 }

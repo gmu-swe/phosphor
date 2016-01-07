@@ -834,6 +834,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			break;
 		case Opcodes.BALOAD:
 			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("B"));
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("Z"));
 			break;
 		case Opcodes.CALOAD:
 			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("C"));

@@ -5,18 +5,23 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedLongArrayWithIntT
 
 public class TaintedLongArrayWithIntTag extends TaintedPrimitiveArrayWithIntTag {
 	public long[] val;
-	
+
 	@Override
 	public Object toStackType() {
-		return new MultiDTaintedLongArrayWithIntTag(new LazyArrayIntTags(taint), val);
+		return new MultiDTaintedLongArrayWithIntTag(taint, val);
 	}
-	public TaintedLongArrayWithIntTag()
-	{
-		
+
+	public TaintedLongArrayWithIntTag() {
+
 	}
-	public TaintedLongArrayWithIntTag(int[] taint, long[] val)
-	{
-		this.taint=taint;
-		this.val=val;
+
+	public TaintedLongArrayWithIntTag(LazyArrayIntTags taint, long[] val) {
+		this.taint = taint;
+		this.val = val;
+	}
+
+	@Override
+	public int getLength() {
+		return val.length;
 	}
 }

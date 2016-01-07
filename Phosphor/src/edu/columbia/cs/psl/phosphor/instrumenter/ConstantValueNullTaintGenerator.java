@@ -310,14 +310,9 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 
 													fin.desc = MultiDTaintedArray.getTypeForType(Type.getType(fin.desc)).getDescriptor();
 												} else {
-													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
-													//Initialize a new 1D array of the right length
-													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
-													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.ARRAYLENGTH));
-													if(!Configuration.MULTI_TAINTING)
-														uninstrumented.instructions.insertBefore(insn, new IntInsnNode(Opcodes.NEWARRAY, Opcodes.T_INT));
-													else
-														uninstrumented.instructions.insertBefore(insn, new TypeInsnNode(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME));
+													uninstrumented.instructions.insertBefore(insn, new TypeInsnNode(NEW, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME));
+													uninstrumented.instructions.insertBefore(insn, new InsnNode(DUP));	
+													uninstrumented.instructions.insertBefore(insn, new MethodInsnNode(INVOKESPECIAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "<init>", "()V", false));	
 													//													uninstrumented.instructions.insertBefore(insn, new InsnNode(Opcodes.DUP));
 													uninstrumented.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, fin.owner, fin.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC));
 												}

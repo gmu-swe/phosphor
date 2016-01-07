@@ -148,11 +148,12 @@ public class TaintChecker {
 		}
 	}
 
-	public static void setTaints(int[] array, int tag) {
-		if(array == null)
+	public static void setTaints(int len, LazyArrayIntTags tags, int tag) {
+		if(len == 0)
 			return;
-		for (int i = 0; i < array.length; i++)
-			array[i] = tag;
+		tags.taints = new int[len];
+		for (int i = 0; i < len; i++)
+			tags.taints[i] = tag;
 	}
 	public static void setTaints(Taint[] array, Taint tag) {
 		if(array == null)

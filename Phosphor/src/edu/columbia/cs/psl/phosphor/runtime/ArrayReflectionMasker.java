@@ -142,11 +142,11 @@ public class ArrayReflectionMasker {
 		return Array.newInstance(clazz, len);
 	}
 
-	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, int[] dimsTaint, int[] dims, ControlTaintTagStack ctrl) {
+	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, LazyArrayIntTags dimsTaint, int[] dims, ControlTaintTagStack ctrl) {
 		return newInstance$$PHOSPHORTAGGED(clazz, dimsTaint, dims);
 	}
 
-	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, int[] dimsTaint, int[] dims) {
+	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, LazyArrayIntTags dimsTaint, int[] dims) {
 		//		System.out.println("22Creating array instance of type " + clazz);
 		Type t = Type.getType(clazz);
 		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {

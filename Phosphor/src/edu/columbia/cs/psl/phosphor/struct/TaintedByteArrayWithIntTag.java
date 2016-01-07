@@ -8,14 +8,18 @@ public final class TaintedByteArrayWithIntTag extends TaintedPrimitiveArrayWithI
 
 	@Override
 	public Object toStackType() {
-		return new MultiDTaintedByteArrayWithIntTag(new LazyArrayIntTags(taint), val);
+		return new MultiDTaintedByteArrayWithIntTag(taint, val);
 	}
 	public TaintedByteArrayWithIntTag()
 	{
 		
 	}
-	public TaintedByteArrayWithIntTag(int[] taint, byte[] val) {
+	public TaintedByteArrayWithIntTag(LazyArrayIntTags taint, byte[] val) {
 		this.val = val;
 		this.taint = taint;
+	}
+	@Override
+	public int getLength() {
+		return val.length;
 	}
 }

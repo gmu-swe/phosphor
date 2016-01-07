@@ -8,15 +8,20 @@ public final class TaintedFloatArrayWithIntTag extends TaintedPrimitiveArrayWith
 
 	@Override
 	public Object toStackType() {
-		return new MultiDTaintedFloatArrayWithIntTag(new LazyArrayIntTags(taint), val);
+		return new MultiDTaintedFloatArrayWithIntTag(taint, val);
 	}
 
 	public TaintedFloatArrayWithIntTag() {
 
 	}
 
-	public TaintedFloatArrayWithIntTag(int[] taint, float[] val) {
+	public TaintedFloatArrayWithIntTag(LazyArrayIntTags taint, float[] val) {
 		this.taint = taint;
 		this.val = val;
+	}
+	
+	@Override
+	public int getLength() {
+		return val.length;
 	}
 }

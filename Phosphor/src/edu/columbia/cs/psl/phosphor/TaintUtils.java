@@ -16,6 +16,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
@@ -568,10 +569,28 @@ public class TaintUtils {
 	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
 		if (VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithIntTag()).val && srcTaint != null && destTaint != null) {
-			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
-				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
+			if(((LazyArrayIntTags)srcTaint).taints == null && ((LazyArrayIntTags)destTaint).taints == null)
+			{
+				return;
+			}
+			else if(((LazyArrayIntTags)srcTaint).taints != null)
+			{
+				if(((LazyArrayIntTags)destTaint).taints == null)
+					((LazyArrayIntTags)destTaint).taints = new int[Array.getLength(dest)];
+				System.arraycopy(((LazyArrayIntTags)srcTaint).taints, srcPos, ((LazyArrayIntTags)destTaint).taints, destPos, length);
+			}
+			else
+			{
+				if(((LazyArrayIntTags)destTaint).taints == null)
+					((LazyArrayIntTags)destTaint).taints = new int[Array.getLength(dest)];
+				else {
+					int[] empty = new int[length];
+					System.arraycopy(empty, 0, ((LazyArrayIntTags)destTaint).taints, destPos, length);
+				}
+			}
 		}
 	}
+
 	public static void arraycopyControlTrack(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
 		if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithIntTag()).val && srcTaint != null && destTaint != null) {

@@ -110,96 +110,104 @@ public class Tainter {
 	{
 		return ca;
 	}
-	public static TaintedCharArrayWithIntTag taintedCharArray$$PHOSPHORTAGGED(int[] oldCA, char[] ca, int b, int tag, TaintedCharArrayWithIntTag ret)
+	public static TaintedCharArrayWithIntTag taintedCharArray$$PHOSPHORTAGGED(LazyArrayIntTags oldCA, char[] ca, int b, int tag, TaintedCharArrayWithIntTag ret)
 	{
 		ret.val = ca;
-		ret.taint = new int[ca.length];
+		ret.taint = new LazyArrayIntTags();
+		ret.taint.taints = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
+			ret.taint.taints[i] = tag;
 		return ret;
 	}
 	public static boolean[] taintedBooleanArray(boolean[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedBooleanArrayWithIntTag taintedBooleanArray$$PHOSPHORTAGGED(int[] oldCA, boolean[] ca, int b, int tag, TaintedBooleanArrayWithIntTag ret)
+	public static TaintedBooleanArrayWithIntTag taintedBooleanArray$$PHOSPHORTAGGED(LazyArrayIntTags oldCA, boolean[] ca, int b, int tag, TaintedBooleanArrayWithIntTag ret)
 	{
 		ret.val = ca;
-		ret.taint = new int[ca.length];
+		ret.taint = new LazyArrayIntTags();
+		ret.taint.taints = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
+			ret.taint.taints[i] = tag;
 		return ret;
 	}
 	public static byte[] taintedByteArray(byte[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedByteArrayWithIntTag taintedByteArray$$PHOSPHORTAGGED(int[] oldCA, byte[] ca, int b, int tag, TaintedByteArrayWithIntTag ret)
+	public static TaintedByteArrayWithIntTag taintedByteArray$$PHOSPHORTAGGED(LazyArrayIntTags oldCA, byte[] ca, int b, int tag, TaintedByteArrayWithIntTag ret)
 	{
 		ret.val = ca;
-		ret.taint = new int[ca.length];
+		ret.taint = new LazyArrayIntTags();
+		ret.taint.taints = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
+			ret.taint.taints[i] = tag;
 		return ret;
 	}
 	public static double[] taintedDoubleArray(double[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedDoubleArrayWithIntTag taintedDoubleArray$$PHOSPHORTAGGED(int[] oldCA, double[] ca, int b, int tag, TaintedDoubleArrayWithIntTag ret)
+	public static TaintedDoubleArrayWithIntTag taintedDoubleArray$$PHOSPHORTAGGED(LazyArrayIntTags oldCA, double[] ca, int b, int tag, TaintedDoubleArrayWithIntTag ret)
 	{
 		ret.val = ca;
-		ret.taint = new int[ca.length];
+		ret.taint = new LazyArrayIntTags();
+		ret.taint.taints = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
+			ret.taint.taints[i] = tag;
 		return ret;
 	}
 	public static float[] taintedFloatArray(float[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedFloatArrayWithIntTag taintedFloatArray$$PHOSPHORTAGGED(int[] oldCA, float[] ca, int b, int tag, TaintedFloatArrayWithIntTag ret)
+	public static TaintedFloatArrayWithIntTag taintedFloatArray$$PHOSPHORTAGGED(LazyArrayIntTags oldCA, float[] ca, int b, int tag, TaintedFloatArrayWithIntTag ret)
 	{
 		ret.val = ca;
-		ret.taint = new int[ca.length];
+		ret.taint = new LazyArrayIntTags();
+		ret.taint.taints = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
+			ret.taint.taints[i] = tag;
 		return ret;
 	}
 	public static int[] taintedIntArray(int[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedIntArrayWithIntTag taintedIntArray$$PHOSPHORTAGGED(int[] oldCA, int[] ca, int b, int tag, TaintedIntArrayWithIntTag ret)
+	public static TaintedIntArrayWithIntTag taintedIntArray$$PHOSPHORTAGGED(LazyArrayIntTags oldCA, int[] ca, int b, int tag, TaintedIntArrayWithIntTag ret)
 	{
 		ret.val = ca;
-		ret.taint = new int[ca.length];
+		ret.taint = new LazyArrayIntTags();
+		ret.taint.taints = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
+			ret.taint.taints[i] = tag;
 		return ret;
 	}
 	public static long[] taintedLongArray(long[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedLongArrayWithIntTag taintedLongArray$$PHOSPHORTAGGED(int[] oldCA, long[] ca, int b, int tag, TaintedLongArrayWithIntTag ret)
+	public static TaintedLongArrayWithIntTag taintedLongArray$$PHOSPHORTAGGED(LazyArrayIntTags oldCA, long[] ca, int b, int tag, TaintedLongArrayWithIntTag ret)
 	{
 		ret.val = ca;
-		ret.taint = new int[ca.length];
+		ret.taint = new LazyArrayIntTags();
+		ret.taint.taints = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
+			ret.taint.taints[i] = tag;
 		return ret;
 	}
 	public static short[] taintedShortArray(short[] ca, int tag)
 	{
 		return ca;
 	}
-	public static TaintedShortArrayWithIntTag taintedShortArray$$PHOSPHORTAGGED(int[] oldCA, short[] ca, int b, int tag, TaintedShortArrayWithIntTag ret)
+	public static TaintedShortArrayWithIntTag taintedShortArray$$PHOSPHORTAGGED(LazyArrayIntTags oldCA, short[] ca, int b, int tag, TaintedShortArrayWithIntTag ret)
 	{
 		ret.val = ca;
-		ret.taint = new int[ca.length];
+		ret.taint = new LazyArrayIntTags();
+		ret.taint.taints = new int[ca.length];
 		for(int i = 0; i < ca.length; i++)
-			ret.taint[i] = tag;
+			ret.taint.taints[i] = tag;
 		return ret;
 	}
 	public static void dumpTaint(byte i)

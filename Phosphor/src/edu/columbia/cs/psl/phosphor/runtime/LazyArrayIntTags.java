@@ -10,7 +10,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 
 public class LazyArrayIntTags implements Cloneable {
-	public static final String INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags";
+//	public static final String INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags";
 	public int[] taints;
 
 	public LazyArrayIntTags(int[] taints) {
@@ -23,7 +23,8 @@ public class LazyArrayIntTags implements Cloneable {
 	@Override
 	public Object clone() {
 		LazyArrayIntTags ret = new LazyArrayIntTags();
-		ret.taints = taints.clone();
+		if(taints != null)
+			ret.taints = taints.clone();
 		return ret;
 	}
 
@@ -63,36 +64,76 @@ public class LazyArrayIntTags implements Cloneable {
 		}
 	}
 
-	public void set(boolean[] ar, int idxtag, int idx, boolean val) {
+	public void set(boolean[] ar, int idx, int tag, boolean val) {
 		ar[idx] = val;
+		if (tag != 0) {
+			if (taints == null)
+				taints = new int[ar.length];
+			taints[idx] = tag;
+		}
 	}
 
-	public void set(byte[] ar, int idxtag, int idx, byte val) {
+	public void set(byte[] ar, int idx, int tag, byte val) {
 		ar[idx] = val;
+		if (tag != 0) {
+			if (taints == null)
+				taints = new int[ar.length];
+			taints[idx] = tag;
+		}
 	}
 
-	public void set(char[] ar, int idxtag, int idx, char val) {
+	public void set(char[] ar, int idx, int tag, char val) {
 		ar[idx] = val;
+		if (tag != 0) {
+			if (taints == null)
+				taints = new int[ar.length];
+			taints[idx] = tag;
+		}
 	}
 
-	public void set(double[] ar, int idxtag, int idx, double val) {
+	public void set(double[] ar, int idx, int tag, double val) {
 		ar[idx] = val;
+		if (tag != 0) {
+			if (taints == null)
+				taints = new int[ar.length];
+			taints[idx] = tag;
+		}
 	}
 
-	public void set(float[] ar, int idxtag, int idx, float val) {
+	public void set(float[] ar, int idx, int tag, float val) {
 		ar[idx] = val;
+		if (tag != 0) {
+			if (taints == null)
+				taints = new int[ar.length];
+			taints[idx] = tag;
+		}
 	}
 
-	public void set(int[] ar, int idxtag, int idx, int val) {
+	public void set(int[] ar, int idx, int tag, int val) {
 		ar[idx] = val;
+		if (tag != 0) {
+			if (taints == null)
+				taints = new int[ar.length];
+			taints[idx] = tag;
+		}
 	}
 
-	public void set(long[] ar, int idxtag, int idx, long val) {
+	public void set(long[] ar, int idx, int tag, long val) {
 		ar[idx] = val;
+		if (tag != 0) {
+			if (taints == null)
+				taints = new int[ar.length];
+			taints[idx] = tag;
+		}
 	}
 
-	public void set(short[] ar, int idxtag, int idx, short val) {
+	public void set(short[] ar, int idx, int tag, short val) {
 		ar[idx] = val;
+		if (tag != 0) {
+			if (taints == null)
+				taints = new int[ar.length];
+			taints[idx] = tag;
+		}
 	}
 
 	public void set(boolean[] ar, int idxtag, int idx, int tag, boolean val) {
@@ -175,6 +216,7 @@ public class LazyArrayIntTags implements Cloneable {
 			ret.taint = taints[idx];
 		return ret;
 	}
+	
 
 	public TaintedFloatWithIntTag get(float[] ar, int idxtag, int idx, TaintedFloatWithIntTag ret) {
 		ret.val = ar[idx];

@@ -8,14 +8,19 @@ public final class TaintedBooleanArrayWithIntTag extends TaintedPrimitiveArrayWi
 
 	@Override
 	public Object toStackType() {
-		return new MultiDTaintedBooleanArrayWithIntTag(new LazyArrayIntTags(taint), val);
+		return new MultiDTaintedBooleanArrayWithIntTag(taint, val);
 	}
 	public TaintedBooleanArrayWithIntTag()
 	{
 		
 	}
-	public TaintedBooleanArrayWithIntTag(int[] taint, boolean[] val) {
+	public TaintedBooleanArrayWithIntTag(LazyArrayIntTags taint, boolean[] val) {
 		this.taint = taint;
 		this.val = val;
+	}
+
+	@Override
+	public int getLength() {
+		return val.length;
 	}
 }
