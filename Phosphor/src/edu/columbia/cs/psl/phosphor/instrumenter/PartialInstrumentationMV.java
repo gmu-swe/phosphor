@@ -25,11 +25,13 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 	private MethodVisitor uninstMV;
 	private StringTaintVerifyingMV stringVerifyingMV;
 	int lastArg;
-	public PartialInstrumentationMV(String className, int access, String methodName, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter an, MethodVisitor uninstMV) {
+	private boolean forceFieldChecks;
+	
+	public PartialInstrumentationMV(String className, int access, String methodName, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter an, MethodVisitor uninstMV, boolean forceFieldChecks) {
 		super(access, className, methodName, desc, null, null, mv, an);
 		this.uninstMV = uninstMV;
 		this.analyzer = an;
-		if(className.equals("java/lang/String"))
+		if(forceFieldChecks)
 			stringVerifyingMV = new StringTaintVerifyingMV(mv, true, an);
 		Type[] newArgTypes = Type.getArgumentTypes(desc);
 		for (Type t : newArgTypes) {
@@ -37,6 +39,7 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 		}
 		if((access & Opcodes.ACC_STATIC) == 0)
 			lastArg++;
+		this.forceFieldChecks = forceFieldChecks;
 	}
 
 	LocalVariableManager lvs;
@@ -86,25 +89,21 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 	}
 
 	void generateTaintArray() {
-		System.out.println("Pre generate taint array, stack tags are " + analyzer.stackTaintedVector);
-		System.out.println(analyzer.stack);
+//		System.out.println("Pre generate taint array, stack tags are " + analyzer.stackTaintedVector);
+//		System.out.println(analyzer.stack);
 		FrameNode fn = getCurrentFrameNode();
 //		removeTaintArraysFromStack(fn);
 		analyzer.visitInsn(DUP);
 		Label ok = new Label();
 		Label isnull = new Label();
 		analyzer.visitJumpInsn(IFNULL, isnull);
+		analyzer.visitTypeInsn(NEW, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
 		analyzer.visitInsn(DUP);
-
-		analyzer.visitInsn(Opcodes.ARRAYLENGTH);
-		if (Configuration.MULTI_TAINTING)
-			analyzer.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-		else
-			analyzer.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+		analyzer.visitMethodInsn(INVOKESPECIAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "<init>", "()V", false);
 		FrameNode fn2 = getCurrentFrameNode();
-		System.out.println("NMIDPT"+analyzer.stack);
-		System.out.println(analyzer.stackTaintedVector);
-		System.out.println(fn2.stack);
+//		System.out.println("NMIDPT"+analyzer.stack);
+//		System.out.println(analyzer.stackTaintedVector);
+//		System.out.println(fn2.stack);
 		analyzer.visitJumpInsn(Opcodes.GOTO, ok);
 		analyzer.visitLabel(isnull);
 		fn.accept(analyzer);
@@ -117,19 +116,19 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 //		System.out.println("New stack is " + analyzer.stack);
 //		System.out.println("New stack is " + analyzer.stackTaintedVector);
 		analyzer.visitInsn(SWAP);
-		System.out.println("POst genreate array " + analyzer.stack + ", " + analyzer.stackTaintedVector);
+//		System.out.println("POst genreate array " + analyzer.stack + ", " + analyzer.stackTaintedVector);
 	}
 
 	@Override
 	public void visitVarInsn(int opcode, int var) {
-		if(opcode < 200)
-		System.out.println("PIMV" + Printer.OPCODES[opcode] +var);
+//		if(opcode < 200)
+//		System.out.println("PIMV" + Printer.OPCODES[opcode] +var);
 //		System.out.println(analyzer.stack);
 //		System.out.println(analyzer.locals);
 //		if(opcode == Opcodes.ILOAD)
 //			System.out.println("ILOAD " + var + " - " + analyzer.locals.get(var));
 		if (doTaint) {
-			System.out.println("Dotaint on  var" + Printer.OPCODES[opcode] +var);
+//			System.out.println("Dotaint on  var" + Printer.OPCODES[opcode] +var);
 //			System.out.println(analyzer.stack);
 //			System.out.println(analyzer.stackTaintedVector);
 			Type shadowType = Type.getType(Configuration.TAINT_TAG_DESC);
@@ -146,7 +145,7 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 //				analyzer.locals.add(shadowType.getInternalName());
 			}
 			int shadow = lvs.varToShadowVar.get(var);
-			System.out.println("Shadow: " + shadow);
+//			System.out.println("Shadow: " + shadow);
 			switch (opcode) {
 			case ALOAD:
 				if (isPrimitiveStackType(analyzer.locals.get(var)) || analyzer.locals.get(var) == Opcodes.NULL) {
@@ -206,8 +205,8 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 
 		FrameNode fn = getCurrentFrameNode();
 
-		System.out.println("RTA " + analyzer.stack);
-		System.out.println(".. and " + analyzer.stackTaintedVector);
+//		System.out.println("RTA " + analyzer.stack);
+//		System.out.println(".. and " + analyzer.stackTaintedVector);
 		analyzer.visitInsn(DUP);
 		analyzer.visitJumpInsn(IFNULL, isNull);
 
@@ -221,31 +220,14 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 		Type arrayDesc = Type.getType(type);
 		//		System.out.println("Get tainted array from " + arrayDesc);
 		//A A
-		if (Configuration.SINGLE_TAG_PER_ARRAY) {
-			if (!Configuration.MULTI_TAINTING)
-				analyzer.visitFieldInsn(GETFIELD, Type.getInternalName(boxType), "taint", "I");
-			else {
-				analyzer.visitFieldInsn(GETFIELD, Type.getInternalName(boxType), "taint", "Ljava/lang/Object;");
-				analyzer.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
-			}
-		} else {
-			if (!Configuration.MULTI_TAINTING)
-				analyzer.visitFieldInsn(GETFIELD, Type.getInternalName(boxType), "taint", "[I");
-			else {
-				if (Configuration.SINGLE_TAG_PER_ARRAY)
-					analyzer.visitFieldInsn(GETFIELD, Type.getInternalName(boxType), "taint", "Ljava/lang/Object;");
-				else
-					analyzer.visitFieldInsn(GETFIELD, Type.getInternalName(boxType), "taint", "[Ljava/lang/Object;");
-				analyzer.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
-			}
-		}
+		analyzer.visitFieldInsn(GETFIELD, Type.getInternalName(boxType), "taint", Configuration.TAINT_TAG_ARRAYDESC);
 		//A TA
 		analyzer.visitInsn(SWAP);
 		analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 		analyzer.visitFieldInsn(GETFIELD, Type.getInternalName(boxType), "val", type);
 		
-		System.out.println("RTA2 " + analyzer.stack);
-		System.out.println(".. and " + analyzer.stackTaintedVector);
+//		System.out.println("RTA2 " + analyzer.stack);
+//		System.out.println(".. and " + analyzer.stackTaintedVector);
 		FrameNode fn2 = getCurrentFrameNode();
 		analyzer.visitJumpInsn(GOTO, isDone);
 		analyzer.visitLabel(isNull);
@@ -299,11 +281,9 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 		if (doTaint) {
 			switch (opcode) {
 			case Opcodes.NEWARRAY:
+				super.visitTypeInsn(NEW, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
 				super.visitInsn(DUP);
-				if (Configuration.MULTI_TAINTING)
-					super.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-				else
-					super.visitIntInsn(NEWARRAY, Opcodes.T_INT);
+				super.visitMethodInsn(INVOKESPECIAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "<init>", "()V", false);
 				super.visitInsn(SWAP);
 				analyzer.visitInsn(TaintUtils.NEXT_INSN_TAINT_AWARE);
 				super.visitIntInsn(opcode, operand);
@@ -372,7 +352,6 @@ public class PartialInstrumentationMV extends TaintAdapter implements Opcodes {
 		}
 		switch (opcode) {
 		case TaintUtils.NEXT_INSN_TAINT_AWARE:
-			System.out.println("next tint awayre");
 			doTaint = true;
 			return;
 		case TaintUtils.DONT_LOAD_TAINT:

@@ -1367,7 +1367,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 				int i =1;
 				int n = 1;
-				System.out.println(Arrays.toString(argsInReverse));
 				for (Type t : argsInReverse) {
 					if (analyzer.stack.get(analyzer.stack.size() - i) == Opcodes.TOP)
 						i++;
@@ -1375,8 +1374,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					//			if(ignoreNext)
 					//				System.out.println("ignore next i");
 					Type onStack = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - i));
-													System.out.println(name+ " ONStack: " + onStack + " and t = " + t);
-													System.out.println(ignoreNext + " and "+ analyzer.stack.get(analyzer.stack.size() - i) );
+//													System.out.println(name+ " ONStack: " + onStack + " and t = " + t);
+//													System.out.println(ignoreNext + " and "+ analyzer.stack.get(analyzer.stack.size() - i) );
 					if (!ignoreNext && t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
 						//										System.out.println("t " + t + " and " + analyzer.stack.get(analyzer.stack.size() - i) + " j23oij4oi23");
 
@@ -1403,7 +1402,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					}
 					else if(TaintUtils.isPrimitiveType(t))
 					{
-						System.out.println("Pop at " + (n+1));
+//						System.out.println("Pop at " + (n+1));
 					popAt(n);
 					}
 					n++;

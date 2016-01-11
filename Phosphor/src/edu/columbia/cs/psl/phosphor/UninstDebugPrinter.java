@@ -38,7 +38,7 @@ public class UninstDebugPrinter {
 					return super.getCommonSuperClass(type1, type2);
 				} catch (Exception ex) {
 					//					System.err.println("err btwn " + type1 + " " +type2);
-					return type1+type2;
+					return "java/lang/Object";
 				}
 			}
 		};

@@ -321,17 +321,17 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			mv = hider;
 			UninstrumentedCompatMV ucmv = new UninstrumentedCompatMV(access,className,name,desc,signature,(String[])exceptions,mv,analyzer,ignoreFrames, _mv);
 			mv = ucmv;
-			PartialInstrumentationMV pimv = new PartialInstrumentationMV(className, access, name, newDesc, mv,analyzer,_mv);
+			PartialInstrumentationMV pimv = new PartialInstrumentationMV(className, access, name, newDesc, mv,analyzer,_mv,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BufferedInputStream") || className.startsWith("sun/nio")));
 			mv = pimv;
 			LocalVariableManager lvs = new LocalVariableManager(access, newName, newDesc, mv, analyzer, _mv, true);
 			ucmv.setLocalVariableSorter(lvs);
 			pimv.setLvs(lvs);
 			UninstTaintLoadCoercer utlc = new UninstTaintLoadCoercer(className, access, newName, TaintUtils.remapMethodDescForUninstIgnoringMultiD(desc, name.equals("<init>")), signature, exceptions, lvs);
 			mv = utlc;
-			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, newDescWithoutPrealloc, signature, exceptions, mv);
+			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, TaintUtils.remapMethodDescForUninstIgnoringMultiD(desc, name.equals("<init>")), signature, exceptions, mv);
 			utlc.setPrimitiveArrayFixer(primArrayAnalyzer);
 			lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
-			NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, newName, newDescWithoutPrealloc, primArrayAnalyzer);
+			NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, newName, TaintUtils.remapMethodDescForUninstIgnoringMultiD(desc, name.equals("<init>")), primArrayAnalyzer);
 			primArrayAnalyzer.setAnalyzer(preAnalyzer);
 			primArrayAnalyzer.setUninstMode();
 			lvs.disable();
@@ -473,7 +473,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 //			optimizer = new PopOptimizingMV(mv, access,className, name, newDesc, signature, exceptions);
 
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
-			mv = new StringTaintVerifyingMV(analyzer,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")),analyzer); //TODO - how do we handle directbytebuffers?
+			mv = new StringTaintVerifyingMV(analyzer,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BufferedInputStream") || className.startsWith("sun/nio")),analyzer); //TODO - how do we handle directbytebuffers?
 			
 			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className,analyzer);
 			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
@@ -1405,7 +1405,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 						opcode = Opcodes.INVOKESPECIAL;
 					} else
 						opcode = Opcodes.INVOKESTATIC;
-					System.out.println("Wrap " + mDesc + " to " +descToCall);
+//					System.out.println("Wrap " + mDesc + " to " +descToCall);
 					Type[] origArgs = Type.getArgumentTypes(mDesc);
 					Type[] newArgs = Type.getArgumentTypes(descToCall);
 //					System.out.println("NW " + mName);
@@ -1534,17 +1534,17 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 							mv = hider;
 							UninstrumentedCompatMV ucmv = new UninstrumentedCompatMV(access, className, name, desc, signature, (String[]) exceptions, mv, analyzer, ignoreFrames, _mv);
 							mv = ucmv;
-							PartialInstrumentationMV pimv = new PartialInstrumentationMV(className, access, name, newDesc, mv, analyzer, _mv);
+							PartialInstrumentationMV pimv = new PartialInstrumentationMV(className, access, name, newDesc, mv, analyzer, _mv,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BufferedInputStream") || className.startsWith("sun/nio")));
 							mv = pimv;
 							LocalVariableManager lvs = new LocalVariableManager(access, name, newDesc, mv, analyzer, _mv, true);
 							ucmv.setLocalVariableSorter(lvs);
 							pimv.setLvs(lvs);
 							UninstTaintLoadCoercer utlc = new UninstTaintLoadCoercer(className, access, newName,TaintUtils.remapMethodDescForUninstIgnoringMultiD(desc, name.equals("<init>")), signature, exceptions, lvs);
 							mv = utlc;
-							final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, newDescWithoutPrealloc, signature, exceptions, mv);
+							final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, TaintUtils.remapMethodDescForUninstIgnoringMultiD(desc, name.equals("<init>")), signature, exceptions, mv);
 							lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
 							utlc.setPrimitiveArrayFixer(primArrayAnalyzer);
-							NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, newName, newDescWithoutPrealloc, primArrayAnalyzer);
+							NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, newName, TaintUtils.remapMethodDescForUninstIgnoringMultiD(desc, name.equals("<init>")), primArrayAnalyzer);
 							primArrayAnalyzer.setAnalyzer(preAnalyzer);
 							primArrayAnalyzer.setUninstMode();
 							lvs.disable();

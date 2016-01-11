@@ -320,6 +320,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								if (outFrames.get(labelToMerge).stack.size() > 0 && inFrames.get(labelToSuccessor).stack.size() > 0) {
 									Object output1Top = outFrames.get(labelToMerge).stack.get(outFrames.get(labelToMerge).stack.size() - 1);
 									Object inputTop = inFrames.get(labelToSuccessor).stack.get(inFrames.get(labelToSuccessor).stack.size() - 1);
+//									System.out.println("inframe: " + inFrames.get(labelToSuccessor).stack);
+//									System.out.println("outframe " + outFrames.get(labelToMerge).stack);
+
 									if (output1Top == Opcodes.TOP)
 										output1Top = outFrames.get(labelToMerge).stack.get(outFrames.get(labelToMerge).stack.size() - 2);
 									if (inputTop == Opcodes.TOP)
@@ -527,43 +530,40 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							nNewNulls++;
 						}
 					} else if (alwaysAutoBoxByFrame.containsKey(i)) {
-						//						System.out.println("Adding checkcast always: before " + i + " (plus " + nNewNulls + ")");
-						//						while(insertAfter.getType() == AbstractInsnNode.LABEL || 
-						//								insertAfter.getType() == AbstractInsnNode.LINE|| 
-						//								insertAfter.getType() == AbstractInsnNode.FRAME)
-						//							insertAfter = insertAfter.getNext();
 						AbstractInsnNode query = insertAfter.getNext();
-						while (query.getNext() != null && (query.getType() == AbstractInsnNode.LABEL || query.getType() == AbstractInsnNode.LINE || query.getType() == AbstractInsnNode.FRAME))
+						while(query.getNext() != null && (query.getType() == AbstractInsnNode.LABEL || query.getType() == AbstractInsnNode.LINE || query.getType() == AbstractInsnNode.FRAME))
 							query = query.getNext();
-						if (query.getOpcode() == Opcodes.ALOAD && query.getNext().getOpcode() == Opcodes.MONITOREXIT)
+						if(query.getOpcode() == Opcodes.ALOAD && query.getNext().getOpcode() == Opcodes.MONITOREXIT)
 							insertAfter = query.getNext();
-//						System.out.println("Autobox by frame search for " + " near " + i);
-//						System.out.println("Insertafter this: " + insertAfter + " " + insertAfter.getOpcode());
-						int opcode = 0;
-						if(insertAfter.getType() == AbstractInsnNode.JUMP_INSN)
-						{
-							insertAfter = insertAfter.getPrevious();
-//							System.out.println("Insertafter getnext: " + insertAfter.getNext().getOpcode());
-//							System.out.println("insertbefore  : " + ((JumpInsnNode) insertAfter.getNext()).toString());
-							if(insertAfter.getNext().getOpcode() != Opcodes.GOTO)
+						for (int j : alwaysAutoBoxByFrame.get(i)) {
+//							System.out.println(name+desc+"Adding autobox always: before " + i + " (plus " + nNewNulls + ")");
+//								while(insertAfter.getType() == AbstractInsnNode.LABEL || 
+//										insertAfter.getType() == AbstractInsnNode.LINE|| 
+//										insertAfter.getType() == AbstractInsnNode.FRAME)
+//									insertAfter = insertAfter.getNext();
+//							System.out.println("Insertafter: " + insertAfter + " " + insertAfter.getOpcode());
+							if(insertAfter.getType() == AbstractInsnNode.JUMP_INSN)
 							{
+//								insertAfter = insertAfter.getPrevious();
+//								System.out.println("insertbefore  : " + (insertAfter.getNext()).toString());
+								if(insertAfter.getOpcode() != Opcodes.GOTO)
+								{
 
-								opcode = TaintUtils.ALWAYS_BOX_JUMP;
+									this.instructions.insert(insertAfter.getPrevious(), new VarInsnNode(TaintUtils.ALWAYS_BOX_JUMP, j));
+								}
+								else
+								{
+//									System.out.println("box immediately");
+									this.instructions.insert(insertAfter.getPrevious(), new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
+								}
 							}
 							else
 							{
-//								System.out.println("box immediately");
-								opcode = TaintUtils.ALWAYS_AUTOBOX;
+//								System.out.println("InsertAfter: " + insertAfter);
+								if (insertAfter.getType() == AbstractInsnNode.TABLESWITCH_INSN || insertAfter.getType() == AbstractInsnNode.LOOKUPSWITCH_INSN)
+									insertAfter = insertAfter.getPrevious();
+								this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
 							}
-						}
-						else
-						{
-//							System.out.println("InsertAfter: " + insertAfter);
-							opcode = TaintUtils.ALWAYS_AUTOBOX;
-						}
-						for (int j : alwaysAutoBoxByFrame.get(i)) {
-							this.instructions.insert(insertAfter, new VarInsnNode(opcode, j));
-
 							nNewNulls++;
 						}
 					}

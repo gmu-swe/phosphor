@@ -227,13 +227,13 @@ public class UninstTaintLoadCoercer extends MethodVisitor implements Opcodes {
 					//						this.instructions.insertBefore(insn, new LdcInsnNode(fr2));
 					if (insn.getType() == AbstractInsnNode.FRAME && frames[i] != null) {
 						FrameNode fn = (FrameNode) insn;
-						//							System.out.println("Found frame " + i +", stack size" + fn.stack.size() + ", fn stack " + frames[i].getStackSize() + ", local size " + fn.local.size() + ", fn " + frames[i].getLocals());
+//						System.out.println("Found frame " + i +", stack size" + fn.stack.size() + ", fn stack " + frames[i].getStackSize() + ", local size " + fn.local.size() + ", fn " + frames[i].getLocals());
 						int analyzerFrameIdx = 0;
 						for (int j = 0; j < fn.local.size(); j++) {
 							Object l = fn.local.get(j);
 							BasicValue v = (BasicValue) frames[i].getLocal(analyzerFrameIdx);
 
-							if (v instanceof SinkableArrayValue && ((SinkableArrayValue) v).flowsToInstMethodCall && TaintAdapter.isPrimitiveStackType(l)) {
+							if (v instanceof SinkableArrayValue && ((SinkableArrayValue) v).flowsToInstMethodCall && (TaintAdapter.isPrimitiveStackType(l) || l == Opcodes.NULL)) {
 								//									System.out.println(l + " vs  " + v);
 								fn.local.set(j, new TaggedValue(l));
 							}
@@ -245,7 +245,7 @@ public class UninstTaintLoadCoercer extends MethodVisitor implements Opcodes {
 							Object l = fn.stack.get(j);
 							BasicValue v = (BasicValue) frames[i].getStack(j);
 							//								System.out.println(j + "ZZZ "+ l + " vs " + v);
-							if (v instanceof SinkableArrayValue && ((SinkableArrayValue) v).flowsToInstMethodCall && TaintAdapter.isPrimitiveStackType(l)) {
+							if (v instanceof SinkableArrayValue && ((SinkableArrayValue) v).flowsToInstMethodCall && (TaintAdapter.isPrimitiveStackType(l) || l == Opcodes.NULL)) {
 								fn.stack.set(j, new TaggedValue(l));
 							}
 						}
@@ -277,7 +277,6 @@ public class UninstTaintLoadCoercer extends MethodVisitor implements Opcodes {
 								if(primitiveArrayFixer != null)
 								primitiveArrayFixer.wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType(Type.getReturnType(min.desc)));
 							}
-							System.out.println("UTLC added before " + v.src);
 						}
 					}
 				}

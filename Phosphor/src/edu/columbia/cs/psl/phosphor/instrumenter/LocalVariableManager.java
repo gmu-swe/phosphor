@@ -561,7 +561,9 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 								shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
 					}
 				}
+				boolean isTagged = false;
 				if (t instanceof TaggedValue) {
+					isTagged = true;
 					t = ((TaggedValue) t).v;
 //					System.out.println("Tagged val" + index);
 					if(t instanceof String)
@@ -573,14 +575,18 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
             		int newVar = remap(index, typ);
 					int shadowVar = 0;
-					if (newVar > lastArg || (disabled && !(t instanceof String))) {
+					if (newVar > lastArg) {
 						if (!varToShadowVar.containsKey(newVar))
 							shadowVar = newShadowLV((shadowType == Configuration.TAINT_TAG_ARRAY_STACK_TYPE ? 
 									Type.getType(Configuration.TAINT_TAG_ARRAYDESC) : Type.getType(Configuration.TAINT_TAG_DESC)), newVar);
 						else
 							shadowVar = varToShadowVar.get(newVar);
-//						            		System.out.println("Adding storage for " + newVar + "("+index+"-"+t+") at  " + shadowVar);
-						setFrameLocal(shadowVar, shadowType);
+//						if(disabled)
+//						System.out.println(name+"Adding storage for " + newVar + "("+index+"-"+t+") at  " + shadowVar);
+						if(!disabled || isTagged)
+							setFrameLocal(shadowVar, shadowType);
+						else
+							setFrameLocal(shadowVar, Opcodes.TOP);
 					}
 					else
 					{
@@ -652,6 +658,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
             }
 
         }
+//        System.out.println("Final LVM " + Arrays.toString(newLocals));
         // visits remapped frame
         mv.visitFrame(type, number, newLocals, nStack, stack);
         
