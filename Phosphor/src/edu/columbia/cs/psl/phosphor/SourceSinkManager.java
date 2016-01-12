@@ -85,90 +85,13 @@ public abstract class SourceSinkManager {
 			else
 				r += t;
 		}
-		r += ")" + remapReturnType(Type.getReturnType(desc));
+		r += ")" + TaintUtils.getOriginalDescriptorForNewReturnType(Type.getReturnType(desc));
 		if(Type.getReturnType(desc).getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct"))
 			r = r.replace(Type.getReturnType(desc).getDescriptor(), "");
 		return r;
 	}
 
-	private static String remapReturnType(Type returnType) {
-		if (returnType.getSort() == Type.OBJECT) {
-			if (returnType.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
-				return MultiDTaintedArray.getPrimitiveTypeForWrapper(returnType.getInternalName()).getDescriptor();
-			}
-			if(Configuration.MULTI_TAINTING)
-			{
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteWithObjTag.class)))
-					return "B";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteArrayWithObjTag.class)))
-					return "[B";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanWithObjTag.class)))
-					return "Z";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanArrayWithObjTag.class)))
-					return "[Z";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharWithObjTag.class)))
-					return "C";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharArrayWithObjTag.class)))
-					return "[C";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleWithObjTag.class)))
-					return "D";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleArrayWithObjTag.class)))
-					return "[D";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntWithObjTag.class)))
-					return "I";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntArrayWithObjTag.class)))
-					return "[I";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatWithObjTag.class)))
-					return "F";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatArrayWithObjTag.class)))
-					return "[F";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongWithObjTag.class)))
-					return "J";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongArrayWithObjTag.class)))
-					return "[J";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortWithObjTag.class)))
-					return "S";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortArrayWithObjTag.class)))
-					return "[S";
-			}
-			else
-			{
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteWithIntTag.class)))
-					return "B";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteArrayWithIntTag.class)))
-					return "[B";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanWithIntTag.class)))
-					return "Z";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanArrayWithIntTag.class)))
-					return "[Z";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharWithIntTag.class)))
-					return "C";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharArrayWithIntTag.class)))
-					return "[C";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleWithIntTag.class)))
-					return "D";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleArrayWithIntTag.class)))
-					return "[D";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntWithIntTag.class)))
-					return "I";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntArrayWithIntTag.class)))
-					return "[I";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatWithIntTag.class)))
-					return "F";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatArrayWithIntTag.class)))
-					return "[F";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongWithIntTag.class)))
-					return "J";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongArrayWithIntTag.class)))
-					return "[J";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortWithIntTag.class)))
-					return "S";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortArrayWithIntTag.class)))
-					return "[S";
-			}
-		}
-		return returnType.getDescriptor();
-	}
+	
 
 	public boolean isSink(String owner, String name, String taintedDesc) {
 		if (name.endsWith("$$PHOSPHORTAGGED"))

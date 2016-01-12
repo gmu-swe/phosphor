@@ -3,12 +3,23 @@ package edu.columbia.cs.psl.phosphor.struct.multid;
 import org.objectweb.asm.Type;
 
 import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 
-public abstract class MultiDTaintedArrayWithIntTag {
+public abstract class MultiDTaintedArrayWithIntTag implements TaintedWithIntTag {
 	public static final long serialVersionUID = 40523489234L;
 	public int sort;
 
+	@Override
+	public int getPHOSPHOR_TAG() {
+		throw new UnsupportedOperationException();
+	}
+	@Override
+	public void setPHOSPHOR_TAG(int i) {
+		throw new UnsupportedOperationException();
+	}
 	public boolean hasTaints()
 	{
 		if(taint == null)
@@ -56,6 +67,27 @@ public abstract class MultiDTaintedArrayWithIntTag {
 		return ret;
 	}
 
+	@Override
+	public TaintedBooleanWithIntTag equals$$PHOSPHORTAGGED(Object obj, TaintedReturnHolderWithIntTag ret) {
+		boolean r;
+		if (obj instanceof MultiDTaintedArrayWithIntTag)
+			r = getVal().equals(((MultiDTaintedArrayWithIntTag) obj).getVal());
+		else
+			r = getVal().equals(obj);
+		ret.z().taint = 0;
+		ret.z().val = r;
+		return ret.z();
+	}
+	@Override
+	public TaintedIntWithIntTag hashCode$$PHOSPHORTAGGED(TaintedReturnHolderWithIntTag ret) {
+		ret.i().taint = 0;
+		ret.i().val = getVal().hashCode();
+		return ret.i();
+	}
+	@Override
+	public String toString$$PHOSPHORTAGGED(TaintedReturnHolderWithIntTag ret) {
+		return toString();
+	}
 	@Override
 	public final boolean equals(Object obj) {
 		if (obj instanceof MultiDTaintedArrayWithIntTag)

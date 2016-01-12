@@ -104,7 +104,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		end = new Label();
 //		System.out.println("New LVS" +name+desc);
 //		System.out.println("LVS thinks its at " + lastArg);
-		preAllocedReturnTypes.put(returnType,lastArg);
+		if(!TaintUtils.PREALLOC_RETURN_ARRAY)
+			preAllocedReturnTypes.put(returnType,lastArg);
 		lvOfSingleWrapperArray = lastArg;
 		this.hasPreallocPassed = hasPrealloc;
 		if(name.equals("<clinit>"))
@@ -381,39 +382,38 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	public void visitCode() {
 		super.visitCode();
 		super.visitLabel(start);
-		if (primitiveArrayFixer != null && !TaintUtils.PREALLOC_RETURN_ARRAY)
-			for (Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
-				if (t.equals(returnType)) {
-					preAllocedReturnTypes.put(t, lastArg);
-				} else {
-					int lv = newPreAllocedReturnType(t);
-					preAllocedReturnTypes.put(t, lv);
-					if (disabled && t.getInternalName().equals(Type.getInternalName(TaintedIntWithIntTag.class))) {
-						super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintedWithIntReturnHolderPool.class), "getTaintedInt", "()"+t.getDescriptor(), false);
-						releaseTaintedIntAt = lv;
-					} else {
-						super.visitTypeInsn(NEW, t.getInternalName());
-						super.visitInsn(DUP);
-						super.visitMethodInsn(INVOKESPECIAL, t.getInternalName(), "<init>", "()V", false);
-					}
-					mv.visitVarInsn(ASTORE, lv);
-					//				System.out.println("Created LV Storage at " + lv);
-				}
-			}
-		else if(TaintUtils.PREALLOC_RETURN_ARRAY && !hasPreallocPassed)
+		if(TaintUtils.PREALLOC_RETURN_ARRAY && !hasPreallocPassed)
 		{
 			int lv = newPreAllocedReturnType(Type.getType(Configuration.TAINTED_RETURN_HOLDER_DESC));
 			lvOfSingleWrapperArray = lv;
-			if(Configuration.MULTI_TAINTING)
-			{
-				if(Configuration.SINGLE_TAG_PER_ARRAY)
-					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArrayMultiTaintSingleTag", "()"+Configuration.TAINTED_RETURN_HOLDER_DESC, false);
-				else
-					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArrayMultiTaint", "()"+Configuration.TAINTED_RETURN_HOLDER_DESC, false);
-			}
-			else
-			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class), "createPreallocReturnArray", "()"+Configuration.TAINTED_RETURN_HOLDER_DESC, false);
+			mv.visitTypeInsn(NEW, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME);
+			mv.visitInsn(DUP);
+			mv.visitMethodInsn(INVOKESPECIAL, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME, "<init>", "()V", false);
 			mv.visitVarInsn(ASTORE, lv);
+		}
+
+		if(returnType.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted"))
+			primitiveArrayFixer.wrapperTypesToPreAlloc.add(returnType);
+		for (Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
+			if (t.equals(returnType) && !TaintUtils.PREALLOC_RETURN_ARRAY) {
+				preAllocedReturnTypes.put(t, lastArg);
+			} else {
+				int lv = newPreAllocedReturnType(t);
+				preAllocedReturnTypes.put(t, lv);
+				if (TaintUtils.PREALLOC_RETURN_ARRAY) {
+					String getter = TaintUtils.getOriginalDescriptorForNewReturnType(t).toLowerCase();
+					if (getter.length() == 2)
+						getter = getter.substring(1) + "a";
+					mv.visitVarInsn(ALOAD, lvOfSingleWrapperArray);
+					super.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME, getter, "()" + t.getDescriptor(), false);
+				} else {
+					super.visitTypeInsn(NEW, t.getInternalName());
+					super.visitInsn(DUP);
+					super.visitMethodInsn(INVOKESPECIAL, t.getInternalName(), "<init>", "()V", false);
+				}
+				mv.visitVarInsn(ASTORE, lv);
+				//				System.out.println("Created LV Storage at " + lv);
+			}
 		}
 	}
 
@@ -427,9 +427,6 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	}
 
 	public int getPreAllocedReturnTypeVar(Type newReturnType) {
-//		System.out.println(preAllocedReturnTypes);
-		if(TaintUtils.PREALLOC_RETURN_ARRAY)
-			return lvOfSingleWrapperArray;
 		if(!preAllocedReturnTypes.containsKey(newReturnType))
 			throw new IllegalArgumentException("Got " + newReturnType + " but have " + preAllocedReturnTypes);
 		return preAllocedReturnTypes.get(newReturnType);
@@ -510,7 +507,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 //		if (!disabled) 
 		{
 			if (TaintUtils.PREALLOC_RETURN_ARRAY) {
-				setFrameLocal(lvOfSingleWrapperArray, Configuration.TAINTED_RETURN_HOLDER_DESC);
+				setFrameLocal(lvOfSingleWrapperArray, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME);
 			} else {
 				for (Type t : preAllocedReturnTypes.keySet()) {
 					//        	System.out.println(t);

@@ -880,7 +880,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	public PrimitiveArrayAnalyzer(Type singleWrapperTypeToAdd) {
 		super(Opcodes.ASM5);
 		this.mv = new PrimitiveArrayAnalyzerMN(0, null,null,null,null,null, null);
-		if(singleWrapperTypeToAdd.getSort() == Type.OBJECT && singleWrapperTypeToAdd.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct") && !singleWrapperTypeToAdd.getInternalName().contains("MultiDTainted"))
+		if(singleWrapperTypeToAdd != null && singleWrapperTypeToAdd.getSort() == Type.OBJECT && singleWrapperTypeToAdd.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct") && !singleWrapperTypeToAdd.getInternalName().contains("MultiDTainted"))
 			this.wrapperTypesToPreAlloc.add(singleWrapperTypeToAdd);
 	}
 

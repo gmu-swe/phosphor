@@ -78,8 +78,10 @@ public class ReflectionMasker {
 	public static Object maybeUnboxStackType(Object o) {
 		if(o == null)
 			return null;
-		if(o instanceof TaintedReturnHolderWithIntTag)
-			return ((TaintedReturnHolderWithIntTag)o).getValue();
+		if(o instanceof TaintedPrimitiveArrayWithIntTag)
+			return ((TaintedPrimitiveArrayWithIntTag)o).getValue();
+		if(o instanceof TaintedPrimitiveWithIntTag)
+			return ((TaintedPrimitiveWithIntTag)o).getValue();
 		if(o instanceof TaintedReturnHolderWithObjTag)
 			return ((TaintedReturnHolderWithObjTag)o).getValue();
 		return o;
@@ -635,6 +637,178 @@ public class ReflectionMasker {
 		}
 	}
 
+	public static Method getTaintMethod(Method m, boolean isObjTags, TaintedReturnHolderWithIntTag prealloc) {
+		//		if (m.INVIVO_PC_TAINTmarked)
+		//			return m;
+		if(m.PHOSPHOR_TAGmethod != null)
+			return m.PHOSPHOR_TAGmethod;
+//		if(VM.booted)
+//		System.out.println("Get taint method " + m);
+		if (m.getDeclaringClass$$PHOSPHORTAGGED(prealloc).isAnnotation$$PHOSPHORTAGGED(prealloc).val)
+			return m;
+		
+		final char[] chars = m.getName$$PHOSPHORTAGGED(prealloc).toCharArray$$PHOSPHORTAGGED(prealloc).val;
+		if (chars.length > SUFFIX_LEN) {
+			boolean isEq = true;
+			int x = 0;
+			for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
+				if (chars[i] != SUFFIXCHARS[x]) {
+					isEq = false;
+				}
+				x++;
+			}
+			if (isEq) {
+				if (!IS_KAFFE)
+					m.PHOSPHOR_TAGmarked = true;
+				return m;
+			}
+			x = 0;
+			if (Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
+				for (int i = chars.length - SUFFIX_LEN - 2; i < chars.length; i++) {
+					if (chars[i] != SUFFIX2CHARS[x]) {
+						isEq = false;
+					}
+					x++;
+				}
+			if (isEq) {
+				if (!IS_KAFFE)
+					m.PHOSPHOR_TAGmarked = true;
+				return m;
+			}
+		}
+		//		if (methodCache.containsKey(m))
+		//			return methodCache.get(m);
+		ArrayList<Class> newArgs = new ArrayList<Class>();
+		boolean madeChange = false;
+		for (final Class c : m.getParameterTypes$$PHOSPHORTAGGED(prealloc)) {
+			if (c.isArray()) {
+				if (c.getComponentType$$PHOSPHORTAGGED(prealloc).isPrimitive$$PHOSPHORTAGGED(prealloc).val) {
+					//1d primitive array
+					madeChange = true;
+					newArgs.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
+					newArgs.add(c);
+					continue;
+				} else {
+					Class elementType = c.getComponentType$$PHOSPHORTAGGED(prealloc);
+					while (elementType.isArray$$PHOSPHORTAGGED(prealloc).val)
+						elementType = elementType.getComponentType$$PHOSPHORTAGGED(prealloc);
+					if (elementType.isPrimitive$$PHOSPHORTAGGED(prealloc).val) {
+						//2d primtiive array
+						madeChange = true;
+						try {
+							if(isObjTags)
+								newArgs.add(Class.forName(MultiDTaintedArrayWithObjTag.getTypeForType(Type.getType(c)).getInternalName()));
+							else
+								newArgs.add(Class.forName(MultiDTaintedArrayWithIntTag.getTypeForType(Type.getType(c)).getInternalName()));
+						} catch (ClassNotFoundException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						continue;
+					} else {
+						//reference array
+						newArgs.add(c);
+						continue;
+					}
+				}
+			} else if (c.isPrimitive()) {
+				madeChange = true;
+				if (isObjTags)
+					newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
+				else
+					newArgs.add(Integer.TYPE);
+				newArgs.add(c);
+				continue;
+			} else {
+				//anything else
+				newArgs.add(c);
+				continue;
+			}
+		}
+		final Class returnType = m.getReturnType$$PHOSPHORTAGGED(prealloc);
+		if (TaintUtils.PREALLOC_RETURN_ARRAY)
+		{
+			newArgs.add(Configuration.TAINTED_RETURN_HOLDER_CLASS);
+			madeChange = true;
+		}
+		else {
+			if (!isObjTags) {
+				if (returnType.isArray$$PHOSPHORTAGGED(prealloc).val) {
+					if (returnType.getComponentType$$PHOSPHORTAGGED(prealloc).isPrimitive$$PHOSPHORTAGGED(prealloc).val) {
+						Class comp = returnType.getComponentType$$PHOSPHORTAGGED(prealloc);
+						if (comp == Integer.TYPE)
+							newArgs.add(TaintedIntArrayWithIntTag.class);
+						else if (comp == Short.TYPE)
+							newArgs.add(TaintedShortArrayWithIntTag.class);
+						else if (comp == Float.TYPE)
+							newArgs.add(TaintedFloatArrayWithIntTag.class);
+						else if (comp == Double.TYPE)
+							newArgs.add(TaintedDoubleArrayWithIntTag.class);
+						else if (comp == Long.TYPE)
+							newArgs.add(TaintedLongArrayWithIntTag.class);
+						else if (comp == Character.TYPE)
+							newArgs.add(TaintedCharArrayWithIntTag.class);
+						else if (comp == Byte.TYPE)
+							newArgs.add(TaintedByteArrayWithIntTag.class);
+						else if (comp == Boolean.TYPE)
+							newArgs.add(TaintedBooleanArrayWithIntTag.class);
+						madeChange = true;
+					}
+				} else if (returnType.isPrimitive$$PHOSPHORTAGGED(prealloc).val && returnType != Void.TYPE) {
+					if (returnType == Integer.TYPE)
+						newArgs.add(TaintedIntWithIntTag.class);
+					else if (returnType == Short.TYPE)
+						newArgs.add(TaintedShortWithIntTag.class);
+					else if (returnType == Float.TYPE)
+						newArgs.add(TaintedFloatWithIntTag.class);
+					else if (returnType == Double.TYPE)
+						newArgs.add(TaintedDoubleWithIntTag.class);
+					else if (returnType == Long.TYPE)
+						newArgs.add(TaintedLongWithIntTag.class);
+					else if (returnType == Character.TYPE)
+						newArgs.add(TaintedCharWithIntTag.class);
+					else if (returnType == Byte.TYPE)
+						newArgs.add(TaintedByteWithIntTag.class);
+					else if (returnType == Boolean.TYPE)
+						newArgs.add(TaintedBooleanWithIntTag.class);
+					madeChange = true;
+				}
+			} 
+		}
+		if (madeChange) {
+			Class[] args = new Class[newArgs.size()];
+			newArgs.toArray(args);
+			Method ret = null;
+			try {
+//				if(VM.booted)
+//					System.out.println("Looking for: "+m.getName() + "$$PHOSPHORTAGGED"+Arrays.toString( args));
+				String s1 = m.getName$$PHOSPHORTAGGED(prealloc);
+				int i = s1.length$$PHOSPHORTAGGED(prealloc).val;
+				char[] newname = new char[i + 16];
+				System.arraycopy(s1.value, 0, newname, 0, s1.value.length);
+				System.arraycopy("$$PHOSPHORTAGGED".value, 0, newname, i, 16);
+				ret = m.getDeclaringClass$$PHOSPHORTAGGED(prealloc).getDeclaredMethod$$PHOSPHORTAGGED(new String(new LazyArrayIntTags(), newname, null,prealloc), args, prealloc);
+			} catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			} catch (SecurityException e) {
+				e.printStackTrace();
+			}
+			//			lastTaintMethodOrig = m;
+			//			lastTaintMethod = ret;
+			//			methodCache.put(m, ret);
+			//			ret.INVIVO_PC_TAINTmarked = true;
+			m.PHOSPHOR_TAGmethod = ret;
+			return ret;
+		} else {
+			//			lastTaintMethodOrig = m;
+			//			lastTaintMethod = m;
+			//			methodCache.put(m, m);
+			//			m.INVIVO_PC_TAINTmarked = true;
+			m.PHOSPHOR_TAGmethod = m;
+			return m;
+		}
+	}
+
 	@SuppressWarnings("rawtypes")
 	public static Method getUnTaintMethod(Method m, boolean isObjTags) {
 		//		if (m.INVIVO_PC_TAINTmarked)
@@ -1032,13 +1206,14 @@ public class ReflectionMasker {
 //		//		System.out.println("From " + Arrays.toString(in) + " to " + Arrays.toString(ret));
 //		return ret;
 	}
-	public static Object[] fixAllArgs(Object[] in, Constructor c, boolean isObjTags, TaintedReturnHolderWithIntTag[] prealloc) {
+	public static Object[] fixAllArgs(Object[] in, Constructor c, boolean isObjTags, TaintedReturnHolderWithIntTag prealloc) {
 
-		if (c != null && in != null && c.getParameterTypes().length != in.length) {
-			Object[] ret = new Object[c.getParameterTypes().length];
+		if (c != null && in != null && c.getParameterTypes$$PHOSPHORTAGGED(prealloc).length != in.length) {
+			Class[] types = c.getParameterTypes$$PHOSPHORTAGGED(prealloc);
+			Object[] ret = new Object[types.length];
 			int j = 0;
 			for (int i = 0; i < in.length; i++) {
-				if (c.getParameterTypes()[j].isPrimitive()) {
+				if (types[j].isPrimitive()) {
 					if (in[i] instanceof TaintedWithIntTag)
 						ret[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
 					else if(in[i] instanceof TaintedWithObjTag)
@@ -1046,13 +1221,13 @@ public class ReflectionMasker {
 					else
 						ret[j] = 0;
 					j++;
-				} else if (c.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_CLASS){
+				} else if (types[j] == Configuration.TAINT_TAG_OBJ_CLASS){
 					if(in[i] instanceof TaintedWithObjTag)
 						ret[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
 					else
 						ret[j] = null;
 					j++;
-				} else if (c.getParameterTypes()[j].isArray() && (c.getParameterTypes()[j].getComponentType().isPrimitive() || c.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
+				} else if (types[j].isArray() && (types[j].getComponentType().isPrimitive() || types[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
 					if (!isObjTags) {
 						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
 						ret[j] = arr.taint;
@@ -1077,14 +1252,14 @@ public class ReflectionMasker {
 //			if (VM.booted)
 //				System.out.println(Arrays.toString(ret));
 			return ret;
-		} else if (in == null && c.getParameterTypes().length == 2) {
+		} else if (in == null && c.getParameterTypes$$PHOSPHORTAGGED(prealloc).length == 2) {
 			Object[] ret = new Object[2];
 			ret[0] = null;
 			ret[1] = prealloc;
 //			if (VM.booted)
 //				System.out.println(Arrays.toString(ret));
 			return ret;
-		} else if (in == null && c.getParameterTypes().length == 3) {
+		} else if (in == null && c.getParameterTypes$$PHOSPHORTAGGED(prealloc).length == 3) {
 			Object[] ret = new Object[3];
 			ret[0] = new ControlTaintTagStack();
 			ret[1] = null;
@@ -1092,7 +1267,7 @@ public class ReflectionMasker {
 //			if (VM.booted)
 //				System.out.println(Arrays.toString(ret));
 			return ret;
-		} else if(in == null && c.getParameterTypes().length == 1)
+		} else if(in == null && c.getParameterTypes$$PHOSPHORTAGGED(prealloc).length == 1)
 		{
 			Object[] ret = new Object[1];
 			ret[0] = null;
@@ -1268,7 +1443,7 @@ public class ReflectionMasker {
 	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, boolean isObjTags) {
 		return fixAllArgsUninst(in, c, isObjTags, null);
 	}
-	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, boolean isObjTags, TaintedReturnHolderWithIntTag[] prealloc) {
+	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, boolean isObjTags, TaintedReturnHolderWithIntTag prealloc) {
 		if(c == null)
 			return in;
 //		if(VM.booted)
@@ -1385,7 +1560,7 @@ public class ReflectionMasker {
 		}
 		return ret;
 	}
-	public static MethodInvoke fixAllArgsUninst(Method m, Object owner, Object[] in, TaintedReturnHolderWithIntTag[] prelloc, boolean isObjTags) {
+	public static MethodInvoke fixAllArgsUninst(Method m, Object owner, Object[] in, TaintedReturnHolderWithIntTag prelloc, boolean isObjTags) {
 		MethodInvoke ret = new MethodInvoke();
 //		if(VM.booted)
 //		{
@@ -1394,6 +1569,7 @@ public class ReflectionMasker {
 //			else
 //				System.out.println("FAAU " + m + "<null>");
 //		}
+
 		ret.t = prelloc;
 		if (m == null) {
 			ret.a = in;
@@ -1459,9 +1635,10 @@ public class ReflectionMasker {
 		}
 		return ret;
 	}
-	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, TaintedReturnHolderWithIntTag[] prealloc, boolean isObjTags) {
+	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, TaintedReturnHolderWithIntTag prealloc, boolean isObjTags) {
 		MethodInvoke ret = new MethodInvoke();
-		if (m == null || m.getDeclaringClass().getName().startsWith("java.lang.invoke.LambdaForm")) {
+		ret.t=prealloc;
+		if (m == null || m.getDeclaringClass$$PHOSPHORTAGGED(prealloc).getName$$PHOSPHORTAGGED(prealloc).startsWith$$PHOSPHORTAGGED("java.lang.invoke.LambdaForm",prealloc).val) {
 			ret.a = in;
 			ret.o = owner;
 			ret.m = m;
@@ -1470,21 +1647,21 @@ public class ReflectionMasker {
 //		System.out.println("FAA: " +m);
 //		if(m.getName().equals("defineClass"))
 //			System.out.println("Last");
-		if (m.getDeclaringClass().isAnnotation()) {
+		if (m.getDeclaringClass$$PHOSPHORTAGGED(prealloc).isAnnotation$$PHOSPHORTAGGED(prealloc).val) {
 			ret.a = in;
 			ret.o = owner;
 			ret.m = m;
 			return ret;
 		}
-		m.setAccessible(true);
-		if (((IS_KAFFE) || !m.PHOSPHOR_TAGmarked) && !"java.lang.Object".equals(m.getDeclaringClass().getName())) {
+		m.setAccessible$$PHOSPHORTAGGED(0, true, prealloc);
+		if (((IS_KAFFE) || !m.PHOSPHOR_TAGmarked) && !"java.lang.Object".equals$$PHOSPHORTAGGED(m.getDeclaringClass$$PHOSPHORTAGGED(prealloc).getName$$PHOSPHORTAGGED(prealloc),prealloc).val) {
 			if (IS_KAFFE) {
 				if (in.length > 0)
-					m = getTaintMethod(m, isObjTags);
+					m = getTaintMethod(m, isObjTags, prealloc);
 			} else
-				m = getTaintMethod(m, isObjTags);
+				m = getTaintMethod(m, isObjTags, prealloc);
 		}
-		m.setAccessible(true);
+		m.setAccessible$$PHOSPHORTAGGED(0, true, prealloc);
 		ret.a = in;
 		ret.o = owner;
 		ret.m = m;
@@ -1493,10 +1670,11 @@ public class ReflectionMasker {
 //				if(in != null)
 //					System.out.println(Arrays.toString(in));
 		int j = 0;
-		if (in != null && m.getParameterTypes().length != in.length) {
-			ret.a = new Object[m.getParameterTypes().length];
+		if (in != null && m.getParameterTypes$$PHOSPHORTAGGED(prealloc).length != in.length) {
+			Class[] types = m.getParameterTypes$$PHOSPHORTAGGED(prealloc);
+			ret.a = new Object[types.length];
 			for (int i = 0; i < in.length; i++) {
-				if (m.getParameterTypes()[j].isPrimitive()) {
+				if (types[j].isPrimitive$$PHOSPHORTAGGED(prealloc).val) {
 					if (in[i] instanceof TaintedWithIntTag)
 						ret.a[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
 					else if(in[i] instanceof TaintedWithObjTag)
@@ -1506,13 +1684,13 @@ public class ReflectionMasker {
 					else
 						ret.a[j] = 0;
 					j++;
-				} else if (m.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_CLASS){
+				} else if (types[j] == Configuration.TAINT_TAG_OBJ_CLASS){
 					if(in[i] instanceof TaintedWithObjTag)
 						ret.a[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
 					else
 						ret.a[j] = null;
 					j++;
-				} else if (m.getParameterTypes()[j].isArray() && (m.getParameterTypes()[j].getComponentType().isPrimitive() || m.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
+				} else if (types[j].isArray$$PHOSPHORTAGGED(prealloc).val && (types[j].getComponentType$$PHOSPHORTAGGED(prealloc).isPrimitive() || types[j].getComponentType$$PHOSPHORTAGGED(prealloc).equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
 					if (!isObjTags) {
 						MultiDTaintedArrayWithIntTag arr = ((MultiDTaintedArrayWithIntTag) in[i]);
 						ret.a[j] = arr.taint;
@@ -1532,7 +1710,7 @@ public class ReflectionMasker {
 				j++;
 			}
 		}
-		if ((in == null && m != null && m.getParameterTypes().length == 1) || (in != null && j != in.length - 1)) {
+		if ((in == null && m != null && m.getParameterTypes$$PHOSPHORTAGGED(prealloc).length == 1) || (in != null && j != in.length - 1)) {
 			if (in == null || in.length == 0)
 				ret.a = new Object[1];
 			ret.a[j] = prealloc;
@@ -1746,13 +1924,12 @@ public class ReflectionMasker {
 	}
 
 
-	static WeakHashMap<Class, Class> cachedClasses = new WeakHashMap<Class, Class>();
 
 	@SuppressWarnings("rawtypes")
 	public static Class removeTaintClass(Class clazz, boolean isObjTags) {
 
-		if (cachedClasses.containsKey(clazz))
-			return cachedClasses.get(clazz);
+		if(clazz.PHOSPHOR_TAGclass != null)
+			return clazz.PHOSPHOR_TAGclass;
 		Type t = Type.getType(clazz);
 		if (t.getSort() == Type.ARRAY) {
 			String cmp = t.getElementType().getDescriptor();
@@ -1768,13 +1945,13 @@ public class ReflectionMasker {
 					newName += "[";
 				try {
 					Class ret = Class.forName(newName + innerType);
-					cachedClasses.put(clazz, ret);
+					clazz.PHOSPHOR_TAGclass = ret;
 					return ret;
 				} catch (ClassNotFoundException e) {
 					e.printStackTrace();
 				}
 			}
-			cachedClasses.put(clazz, clazz);
+			clazz.PHOSPHOR_TAGclass = clazz;
 			return clazz;
 		}
 		String cmp = t.getDescriptor();
@@ -1787,13 +1964,13 @@ public class ReflectionMasker {
 				innerType = (MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(clazz));
 			try {
 				Class ret = Class.forName("[" + innerType);
-				cachedClasses.put(clazz, ret);
+				clazz.PHOSPHOR_TAGclass = ret;
 				return ret;
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
 		}
-		cachedClasses.put(clazz, clazz);
+		clazz.PHOSPHOR_TAGclass = clazz;
 		return clazz;
 	}
 

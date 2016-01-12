@@ -88,51 +88,5 @@ public class PreAllocHelper {
 					new TaintedShortArrayWithSingleObjTag()
 			};
 	}
-	public static final TaintedReturnHolderWithIntTag[] createPreallocReturnArray()
-	{
-		if(VM.booted)
-		{
-			Object cache = Thread.currentThread().preallocReturns;
-			if(cache == null)
-			{
-				cache = new TaintedReturnHolderWithIntTag[]{
-						new TaintedBooleanWithIntTag(),
-						new TaintedByteWithIntTag(),
-						new TaintedCharWithIntTag(),
-						new TaintedDoubleWithIntTag(),
-						new TaintedFloatWithIntTag(),
-						new TaintedIntWithIntTag(),
-						new TaintedLongWithIntTag(),
-						new TaintedShortWithIntTag(),
-						new TaintedBooleanArrayWithIntTag(),
-						new TaintedByteArrayWithIntTag(),
-						new TaintedCharArrayWithIntTag(),
-						new TaintedDoubleArrayWithIntTag(),
-						new TaintedFloatArrayWithIntTag(),
-						new TaintedIntArrayWithIntTag(),
-						new TaintedLongArrayWithIntTag(),
-						new TaintedShortArrayWithIntTag()
-				};
-			}
-			return (TaintedReturnHolderWithIntTag[]) cache;
-		}
-		return new TaintedReturnHolderWithIntTag[]{
-				new TaintedBooleanWithIntTag(),
-				new TaintedByteWithIntTag(),
-				new TaintedCharWithIntTag(),
-				new TaintedDoubleWithIntTag(),
-				new TaintedFloatWithIntTag(),
-				new TaintedIntWithIntTag(),
-				new TaintedLongWithIntTag(),
-				new TaintedShortWithIntTag(),
-				new TaintedBooleanArrayWithIntTag(),
-				new TaintedByteArrayWithIntTag(),
-				new TaintedCharArrayWithIntTag(),
-				new TaintedDoubleArrayWithIntTag(),
-				new TaintedFloatArrayWithIntTag(),
-				new TaintedIntArrayWithIntTag(),
-				new TaintedLongArrayWithIntTag(),
-				new TaintedShortArrayWithIntTag()
-		};
-	}
+
 }

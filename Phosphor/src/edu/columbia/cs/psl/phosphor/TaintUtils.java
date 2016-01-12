@@ -126,7 +126,7 @@ public class TaintUtils {
 	public static final boolean DEBUG_OPT = false;
 	public static final boolean DEBUG_PURE = false;
 
-	public static boolean PREALLOC_RETURN_ARRAY = false;
+	public static boolean PREALLOC_RETURN_ARRAY = true;
 	public static final int PREALLOC_BOOLEAN=0;
 	public static final int PREALLOC_BYTE=1;
 	public static final int PREALLOC_CHAR=2;
@@ -598,7 +598,7 @@ public class TaintUtils {
 			throw ex;
 		}
 	}
-	public static void arraycopy(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, TaintedReturnHolderWithIntTag[] preqlloc) {
+	public static void arraycopy(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, TaintedReturnHolderWithIntTag preqlloc) {
 		try {
 			if (!src.getClass().isArray() && !dest.getClass().isArray()) {
 				System.arraycopy(((MultiDTaintedArrayWithIntTag) src).getVal(), srcPos, ((MultiDTaintedArrayWithIntTag) dest).getVal(), destPos, length);
@@ -692,6 +692,9 @@ public class TaintUtils {
 
 	public static boolean weakHashMapInitialized = false;
 
+	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length, TaintedReturnHolderWithIntTag r) {
+		arraycopy(srcTaint, src, srcPosTaint, srcPos, destTaint, dest, destPosTaint, destPos, lengthTaint, length);
+	}
 	public static void arraycopy(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
 		if (!Configuration.SINGLE_TAG_PER_ARRAY && VM.booted && srcTaint != null && destTaint != null) {
@@ -830,6 +833,84 @@ public class TaintUtils {
 		return Configuration.TAINT_TAG_DESC;
 	}
 
+	public static String getOriginalDescriptorForNewReturnType(Type returnType) {
+		if (returnType.getSort() == Type.OBJECT) {
+			if (returnType.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
+				return MultiDTaintedArray.getPrimitiveTypeForWrapper(returnType.getInternalName()).getDescriptor();
+			}
+			if(Configuration.MULTI_TAINTING)
+			{
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteWithObjTag.class)))
+					return "B";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteArrayWithObjTag.class)))
+					return "[B";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanWithObjTag.class)))
+					return "Z";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanArrayWithObjTag.class)))
+					return "[Z";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharWithObjTag.class)))
+					return "C";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharArrayWithObjTag.class)))
+					return "[C";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleWithObjTag.class)))
+					return "D";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleArrayWithObjTag.class)))
+					return "[D";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntWithObjTag.class)))
+					return "I";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntArrayWithObjTag.class)))
+					return "[I";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatWithObjTag.class)))
+					return "F";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatArrayWithObjTag.class)))
+					return "[F";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongWithObjTag.class)))
+					return "J";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongArrayWithObjTag.class)))
+					return "[J";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortWithObjTag.class)))
+					return "S";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortArrayWithObjTag.class)))
+					return "[S";
+			}
+			else
+			{
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteWithIntTag.class)))
+					return "B";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteArrayWithIntTag.class)))
+					return "[B";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanWithIntTag.class)))
+					return "Z";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanArrayWithIntTag.class)))
+					return "[Z";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharWithIntTag.class)))
+					return "C";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharArrayWithIntTag.class)))
+					return "[C";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleWithIntTag.class)))
+					return "D";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleArrayWithIntTag.class)))
+					return "[D";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntWithIntTag.class)))
+					return "I";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntArrayWithIntTag.class)))
+					return "[I";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatWithIntTag.class)))
+					return "F";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatArrayWithIntTag.class)))
+					return "[F";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongWithIntTag.class)))
+					return "J";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongArrayWithIntTag.class)))
+					return "[J";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortWithIntTag.class)))
+					return "S";
+				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortArrayWithIntTag.class)))
+					return "[S";
+			}
+		}
+		return returnType.getDescriptor();
+	}
 	public static Type getContainerReturnType(String originalReturnType) {
 		return getContainerReturnType(Type.getType(originalReturnType));
 	}

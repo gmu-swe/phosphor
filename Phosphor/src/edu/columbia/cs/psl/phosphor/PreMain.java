@@ -16,6 +16,8 @@ import java.security.MessageDigest;
 import java.security.ProtectionDomain;
 import java.util.List;
 
+import javax.swing.SwingWorker;
+
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 
 import org.objectweb.asm.ClassReader;
@@ -33,6 +35,7 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
+import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
@@ -220,8 +223,8 @@ public class PreMain {
 		}
 
 
-		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint,
-				byte[] classfileBuffer, TaintedReturnHolderWithIntTag[] ret) throws IllegalClassFormatException {
+		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyArrayIntTags classtaint,
+				byte[] classfileBuffer, TaintedReturnHolderWithIntTag ret) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
@@ -230,13 +233,14 @@ public class PreMain {
 				Configuration.init();
 				INITED = true;
 			}
-			if (className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-				((TaintedByteArrayWithIntTag) ret[9]).val = classfileBuffer;
+			
+			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+				ret.ba().val = classfileBuffer;
 			else
-				((TaintedByteArrayWithIntTag) ret[9]).val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
-			((TaintedByteArrayWithIntTag) ret[9]).taint = new LazyArrayIntTags();
+				ret.ba().val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+			ret.ba().taint = new LazyArrayIntTags();
 			Configuration.taintTagFactory.instrumentationEnding(className);
-			return ((TaintedByteArrayWithIntTag)ret[9]);
+			return ret.ba();
 		}
 
 		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyArrayIntTags classtaint,
@@ -523,14 +527,14 @@ public class PreMain {
 		Configuration.init();
 		premain(args, inst);
 	}
-	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, TaintedReturnHolderWithIntTag[] prealloc) {
+	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, TaintedReturnHolderWithIntTag prealloc) {
 		Configuration.MULTI_TAINTING = false;
 		TaintUtils.PREALLOC_RETURN_ARRAY = true;
 
 		Configuration.init();
 		premain(args, inst);
 	}
-	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, TaintedReturnHolderWithObjTag[] prealloc) {
+	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, TaintedReturnHolderWithObjTag prealloc) {
 		Configuration.MULTI_TAINTING = true;
 		TaintUtils.PREALLOC_RETURN_ARRAY = true;
 		

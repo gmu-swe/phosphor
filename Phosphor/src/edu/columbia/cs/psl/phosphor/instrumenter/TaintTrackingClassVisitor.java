@@ -491,7 +491,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 				if(Configuration.extensionMethodVisitor != null)
 				{
 					try {
-						custom = Configuration.extensionMethodVisitor.getConstructor(Integer.TYPE,String.class, String.class, String.class, String.class, String[].class, MethodVisitor.class,
+						custom = (TaintAdapter) Configuration.extensionMethodVisitor.getConstructor(Integer.TYPE,String.class, String.class, String.class, String.class, String[].class, MethodVisitor.class,
 								NeverNullArgAnalyzerAdapter.class).newInstance(Opcodes.ASM5, className, name, desc, signature, exceptions, nextMV, analyzer);
 						nextMV = custom;
 					} catch (InstantiationException e) {
@@ -580,6 +580,8 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 	public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
 		if(className.equals("sun/misc/VM") && name.equals("booted"))
 			access = (access | Opcodes.ACC_PUBLIC) & ~Opcodes.ACC_PRIVATE;
+		else if(className.equals("java/lang/String") && name.equals("value"))
+			access = (access | Opcodes.ACC_PUBLIC) & ~Opcodes.ACC_PRIVATE;
 		Type fieldType = Type.getType(desc);
 		if (TaintUtils.getShadowTaintType(desc) != null) {
 			if(TaintAdapter.canRawTaintAccess(className))
@@ -648,6 +650,11 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD+"marked", "Z", null, 0);
 			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD+"constructor", "Ljava/lang/reflect/Constructor;", null, 0);
 		}
+		else if(this.className.equals("java/lang/Class"))
+		{
+			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD+"class", "Ljava/lang/Class;", null, 0);
+
+		}
 		for (FieldNode fn : extraFieldsToVisit) {
 			if (className.equals("java/lang/Byte") && !fn.name.startsWith("value"))
 				continue;
@@ -692,6 +699,65 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			}
 		}
 
+		if(TaintUtils.PREALLOC_RETURN_ARRAY && superMethodsToOverride.containsKey("toString()Ljava/lang/String;") && !isInterface && !goLightOnGeneratedStuff)
+		{
+			superMethodsToOverride.remove("toString()Ljava/lang/String;");
+			MethodVisitor mv;
+			mv = super.visitMethod(Opcodes.ACC_PUBLIC, "toString"+TaintUtils.METHOD_SUFFIX, "("+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/String;", null, null);
+			
+			NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, Opcodes.ACC_PUBLIC, "toString", "("+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/String;", mv);
+//			TaintPassingMV tmv = new TaintPassingMV(mv, Opcodes.ACC_PUBLIC, className, "toString", "()Ljava/lang/Object;", null, null, "()Ljava/lang/Object;", an, mv);
+			LocalVariableManager lvm = new LocalVariableManager(Opcodes.ACC_PUBLIC, "toString", "("+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/String;", an, an, mv, true);
+			lvm.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(null));
+			Label start = new Label();
+			Label end = new Label();
+			lvm.visitCode();
+			lvm.visitLabel(start);
+			lvm.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
+			lvm.visitInsn(Opcodes.DUP);
+			lvm.visitInsn(Opcodes.ACONST_NULL);
+			an.visitVarInsn(Opcodes.ALOAD, lvm.lvOfSingleWrapperArray);
+			lvm.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "("+Type.getDescriptor(TaintSentinel.class)+Configuration.TAINTED_RETURN_HOLDER_DESC+")V", false);
+			an.visitVarInsn(Opcodes.ALOAD, 0);
+			lvm.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
+			an.visitVarInsn(Opcodes.ALOAD, lvm.lvOfSingleWrapperArray);
+			lvm.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getName"+TaintUtils.METHOD_SUFFIX, "("+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/String;", false);
+			an.visitVarInsn(Opcodes.ALOAD, lvm.lvOfSingleWrapperArray);
+			lvm.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append"+TaintUtils.METHOD_SUFFIX, "(Ljava/lang/String;"+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/StringBuilder;", false);
+			lvm.visitLdcInsn("@");
+			an.visitVarInsn(Opcodes.ALOAD, lvm.lvOfSingleWrapperArray);
+			lvm.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append"+TaintUtils.METHOD_SUFFIX, "(Ljava/lang/String;"+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/StringBuilder;", false);
+			lvm.visitInsn(Opcodes.ICONST_0);
+			an.visitVarInsn(Opcodes.ALOAD, 0);
+			lvm.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Object", "hashCode", "()I", false);
+			an.visitVarInsn(Opcodes.ALOAD, lvm.lvOfSingleWrapperArray);
+			lvm.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "toHexString"+TaintUtils.METHOD_SUFFIX, "(II"+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/String;", false);
+			an.visitVarInsn(Opcodes.ALOAD, lvm.lvOfSingleWrapperArray);
+			lvm.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append"+TaintUtils.METHOD_SUFFIX, "(Ljava/lang/String;"+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/StringBuilder;", false);
+			an.visitVarInsn(Opcodes.ALOAD, lvm.lvOfSingleWrapperArray);
+			lvm.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString"+TaintUtils.METHOD_SUFFIX, "("+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/String;", false);
+			/*
+ *   NEW java/lang/StringBuilder
+    DUP
+    INVOKESPECIAL java/lang/StringBuilder.<init> ()V
+    ALOAD 0
+    INVOKEVIRTUAL java/lang/Object.getClass ()Ljava/lang/Class;
+    INVOKEVIRTUAL java/lang/Class.getName ()Ljava/lang/String;
+    INVOKEVIRTUAL java/lang/StringBuilder.append (Ljava/lang/String;)Ljava/lang/StringBuilder;
+    LDC "@"
+    INVOKEVIRTUAL java/lang/StringBuilder.append (Ljava/lang/String;)Ljava/lang/StringBuilder;
+    ALOAD 0
+    INVOKEVIRTUAL java/lang/Object.hashCode ()I
+    INVOKESTATIC java/lang/Integer.toHexString (I)Ljava/lang/String;
+    INVOKEVIRTUAL java/lang/StringBuilder.append (Ljava/lang/String;)Ljava/lang/StringBuilder;
+    INVOKEVIRTUAL java/lang/StringBuilder.toString ()Ljava/lang/String;
+ */
+			mv.visitLabel(end);
+			mv.visitInsn(Opcodes.ARETURN);
+			mv.visitLocalVariable("this", "L"+className+";", null, start, end, 0);
+			mv.visitMaxs(0, 0);
+			mv.visitEnd();
+		}
 		if (generateEquals && !goLightOnGeneratedStuff) {
 			superMethodsToOverride.remove("equals(Ljava/lang/Object;)Z");
 			methodsToAddWrappersFor.add(new MethodNode(Opcodes.ACC_PUBLIC | Opcodes.ACC_NATIVE | (isInterface ? Opcodes.ACC_ABSTRACT : 0), "equals", "(Ljava/lang/Object;)Z", null, null));
@@ -997,7 +1063,9 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 							if(NATIVE_BOX_UNBOX && t.getSort() == Type.OBJECT && Instrumenter.isCollection(t.getInternalName()))
 							{
 								////  public final static ensureIsBoxed(Ljava/util/Collection;)Ljava/util/Collection;
-								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsBoxed"+(Configuration.MULTI_TAINTING ? "ObjTags":""), "(Ljava/util/Collection;)Ljava/util/Collection;",false);
+								if(TaintUtils.PREALLOC_RETURN_ARRAY)
+									an.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsBoxed"+(Configuration.MULTI_TAINTING ? "ObjTags":""), "(Ljava/util/Collection;"+(TaintUtils.PREALLOC_RETURN_ARRAY ? Configuration.TAINTED_RETURN_HOLDER_DESC : "")+")Ljava/util/Collection;",false);
 								ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
 							}
 //							if(t.getDescriptor().endsWith("java/lang/Object;"))
@@ -1038,10 +1106,15 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 						if(needToPrealloc)
 						{
 							if(TaintUtils.PREALLOC_RETURN_ARRAY)
+							{
 								newDesc += Configuration.TAINTED_RETURN_HOLDER_DESC;
+								an.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
+							}
 							else
+							{
 								newDesc += newReturn.getDescriptor();
-							an.visitVarInsn(Opcodes.ALOAD, lvs.getPreAllocedReturnTypeVar(newReturn));
+								an.visitVarInsn(Opcodes.ALOAD, lvs.getPreAllocedReturnTypeVar(newReturn));
+							}
 						}
 						newDesc += ")" + newReturn.getDescriptor();
 
@@ -1066,7 +1139,9 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 							{
 								////  public final static ensureIsBoxed(Ljava/util/Collection;)Ljava/util/Collection;
 								ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
-								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsUnBoxed"+(Configuration.MULTI_TAINTING ? "ObjTags":""), "(Ljava/util/Collection;)Ljava/util/Collection;",false);
+								if(TaintUtils.PREALLOC_RETURN_ARRAY)
+									an.visitVarInsn(Opcodes.ALOAD, lvs.lvOfSingleWrapperArray);
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsUnBoxed"+(Configuration.MULTI_TAINTING ? "ObjTags":""), "(Ljava/util/Collection;"+(TaintUtils.PREALLOC_RETURN_ARRAY ? Configuration.TAINTED_RETURN_HOLDER_DESC : "")+")Ljava/util/Collection;",false);
 								ga.visitInsn(Opcodes.POP);
 							}
 							idx += t.getSize();
@@ -1320,7 +1395,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 						if(Configuration.extensionMethodVisitor != null)
 						{
 							try {
-								custom = Configuration.extensionMethodVisitor.getConstructor(Integer.TYPE,String.class, String.class, String.class, String.class, String[].class, MethodVisitor.class,
+								custom = (TaintAdapter) Configuration.extensionMethodVisitor.getConstructor(Integer.TYPE,String.class, String.class, String.class, String.class, String[].class, MethodVisitor.class,
 										NeverNullArgAnalyzerAdapter.class).newInstance(Opcodes.ASM5, className, name, desc, signature, exceptions, nextMV, analyzer);
 								nextMV = custom;
 							} catch (InstantiationException e) {
@@ -1441,9 +1516,9 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 //						for(Type t : Type.getArgumentTypes(mDesc))
 //							idx += t.getSize();
 //						ga.visitVarInsn(Opcodes.ALOAD, idx - 1);
-						ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PreAllocHelper.class),
-								(Configuration.MULTI_TAINTING ? (Configuration.SINGLE_TAG_PER_ARRAY ? "createPreallocReturnArrayMultiTaintSingleTag" : "createPreallocReturnArrayMultiTaint")
-										: "createPreallocReturnArray"), "()"+Configuration.TAINTED_RETURN_HOLDER_DESC, false);
+						ga.visitTypeInsn(Opcodes.NEW, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME);
+						ga.visitInsn(Opcodes.DUP);
+						ga.visitMethodInsn(Opcodes.INVOKESPECIAL, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME, "<init>", "()V", false);
 					}
 					retType = Type.getReturnType(m.desc);
 					ga.visitMethodInsn(opcode, className, mToCall, descToCall, false);
@@ -1972,32 +2047,13 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 //					ga.visitMethodInsn(Opcodes.INVOKESPECIAL, newReturn.getInternalName(), "<init>", "([I" + origReturn.getDescriptor() + ")V");
 					int retIdx = lvs.getPreAllocedReturnTypeVar(newReturn);
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					if(TaintUtils.PREALLOC_RETURN_ARRAY)
-					{
-						an.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(origReturn));
-						an.visitInsn(Opcodes.AALOAD);
-						an.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getInternalName());
-					}
+
 					ga.visitInsn(Opcodes.SWAP);
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					if(TaintUtils.PREALLOC_RETURN_ARRAY)
-					{
-						an.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(origReturn));
-						an.visitInsn(Opcodes.AALOAD);
-						an.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getInternalName());
-					}
 					ga.visitInsn(Opcodes.SWAP);
-
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_ARRAYDESC);
-
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					if(TaintUtils.PREALLOC_RETURN_ARRAY)
-					{
-						an.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(origReturn));
-						an.visitInsn(Opcodes.AALOAD);
-						an.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getInternalName());
-					}
 				}
 			} else {
 				//TODO here's where we store to the pre-alloc'ed container
@@ -2005,21 +2061,9 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 				{
 					int retIdx = lvs.getPreAllocedReturnTypeVar(newReturn);
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					if(TaintUtils.PREALLOC_RETURN_ARRAY)
-					{
-						an.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(origReturn));
-						an.visitInsn(Opcodes.AALOAD);
-						an.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getInternalName());
-					}
 					ga.visitInsn(Opcodes.SWAP);
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					if(TaintUtils.PREALLOC_RETURN_ARRAY)
-					{
-						an.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(origReturn));
-						an.visitInsn(Opcodes.AALOAD);
-						an.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getInternalName());
-					}
 					Configuration.taintTagFactory.generateEmptyTaint(ga);
 					idx = 0;
 					if ((m.access & Opcodes.ACC_STATIC) == 0) {
@@ -2049,34 +2093,16 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 					else
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "Ljava/lang/Object;");
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					if(TaintUtils.PREALLOC_RETURN_ARRAY)
-					{
-						an.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(origReturn));
-						an.visitInsn(Opcodes.AALOAD);
-						an.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getInternalName());
-					}
 				}
 				else
 				{
 
 					int retIdx = lvs.getPreAllocedReturnTypeVar(newReturn);
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					if(TaintUtils.PREALLOC_RETURN_ARRAY)
-					{
-						an.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(origReturn));
-						an.visitInsn(Opcodes.AALOAD);
-						an.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getInternalName());
-					}
 					ga.visitInsn(Opcodes.DUP_X2);
 					ga.visitInsn(Opcodes.POP);
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					if(TaintUtils.PREALLOC_RETURN_ARRAY)
-					{
-						an.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(origReturn));
-						an.visitInsn(Opcodes.AALOAD);
-						an.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getInternalName());
-					}
 					Configuration.taintTagFactory.generateEmptyTaint(ga);
 					idx = 0;
 					if ((m.access & Opcodes.ACC_STATIC) == 0) {
@@ -2106,12 +2132,6 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 					else
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", "Ljava/lang/Object;");
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					if(TaintUtils.PREALLOC_RETURN_ARRAY)
-					{
-						an.visitIntInsn(Opcodes.BIPUSH, TaintUtils.getPreAllocArrayIdxForType(origReturn));
-						an.visitInsn(Opcodes.AALOAD);
-						an.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getInternalName());
-					}
 					//					ga.visitInsn(Opcodes.ARETURN);
 				}
 				//				if (origReturn.getSize() == 1)
@@ -2135,7 +2155,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 		ga.returnValue();
 		if(TaintUtils.PREALLOC_RETURN_ARRAY)
 		{
-			lvsToVisit.add(new LocalVariableNode("phosphorReturnHolder", Configuration.TAINTED_RETURN_HOLDER_DESC, null, start, end, lvs.getPreAllocedReturnTypeVar(newReturn)));
+			lvsToVisit.add(new LocalVariableNode("phosphorReturnHolder", Configuration.TAINTED_RETURN_HOLDER_DESC, null, start, end, lvs.lvOfSingleWrapperArray));
 		}
 		else if(isPreAllocReturnType)
 		{

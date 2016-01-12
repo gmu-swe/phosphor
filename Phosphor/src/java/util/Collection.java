@@ -28,6 +28,7 @@ package java.util;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithIntTag;
 
 /**
  * The root interface in the <i>collection hierarchy</i>.  A collection
@@ -273,6 +274,8 @@ public interface Collection<E> extends Iterable<E> {
      *         time due to insertion restrictions
      */
     boolean add(E e);
+    TaintedBooleanWithIntTag add$$PHOSPHORTAGGED(E e, TaintedReturnHolderWithIntTag ret);
+
     TaintedBooleanWithIntTag add$$PHOSPHORTAGGED(E e, TaintedBooleanWithIntTag ret);
     TaintedBooleanWithObjTag add$$PHOSPHORTAGGED(E e, TaintedBooleanWithObjTag ret);
     
@@ -462,4 +465,6 @@ public interface Collection<E> extends Iterable<E> {
      * @see Object#equals(Object)
      */
     int hashCode();
+
+	public Iterator iterator$$PHOSPHORTAGGED(TaintedReturnHolderWithIntTag prealloc);
 }

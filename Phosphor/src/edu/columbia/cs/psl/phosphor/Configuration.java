@@ -99,9 +99,10 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_CLASS = (Taint.class);
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
 
-	public static Class TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithIntTag[].class;
-	public static String TAINTED_RETURN_HOLDER_DESC = "[Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithIntTag;";
-	
+	public static Class TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithIntTag.class;
+	public static String TAINTED_RETURN_HOLDER_DESC = "Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithIntTag;";
+	public static String TAINTED_RETURN_HOLDER_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithIntTag";
+
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
 	public static Class extensionClassVisitor;
 
@@ -130,18 +131,20 @@ public class Configuration {
 		
 		if(MULTI_TAINTING)
 		{
-			TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithObjTag[].class;
-			TAINTED_RETURN_HOLDER_DESC = "[Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithObjTag;";
+			TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithObjTag.class;
+			TAINTED_RETURN_HOLDER_DESC = "Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithObjTag;";
+			TAINTED_RETURN_HOLDER_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithObjTag";
 		}
 		else
 		{
-			TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithIntTag[].class;
-			TAINTED_RETURN_HOLDER_DESC = "[Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithIntTag;";
+			TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithIntTag.class;
+			TAINTED_RETURN_HOLDER_DESC = "Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithIntTag;";
+			TAINTED_RETURN_HOLDER_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithIntTag";
 		}
 		if(SINGLE_TAG_PER_ARRAY)
 		{
-			TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithSingleObjTag[].class;
-			TAINTED_RETURN_HOLDER_DESC = "[Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithSingleObjTag;";
+			TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithSingleObjTag.class;
+			TAINTED_RETURN_HOLDER_DESC = "Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithSingleObjTag;";
 			
 			TAINT_TAG_ARRAYDESC = TAINT_TAG_DESC;
 			TAINT_TAG_ARRAY_INTERNAL_NAME = TAINT_TAG_INTERNAL_NAME;

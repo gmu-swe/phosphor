@@ -111,38 +111,63 @@ public class Instrumenter {
 		return clazz.startsWith("java/lang/Boolean") || clazz.startsWith("java/lang/Character") || clazz.startsWith("java/lang/Byte") || clazz.startsWith("java/lang/Short");
 	}
 
+	public static boolean startsWithInst(String str, String prefix) {
+        char ta[] = str.value;
+        int to = 0;
+        char pa[] = prefix.value;
+        int po = 0;
+        int pc = prefix.value.length;
+        // Note: toffset might be near -1>>>1.
+        if ((0 < 0) || (0 > str.value.length - pc)) {
+            return false;
+        }
+        while (--pc >= 0) {
+            if (ta[to++] != pa[po++]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+	static boolean startsWith(String str, String startsWith)
+	{
+		if(PreMain.RUNTIME_INST)
+			return startsWithInst(str, startsWith);
+		return str.startsWith(startsWith);
+	}
 	public static boolean isIgnoredClass(String owner) {
 		if(Configuration.taintTagFactory.isIgnoredClass(owner))
 			return true;
 		
-		return (Configuration.ADDL_IGNORE != null && owner.startsWith(Configuration.ADDL_IGNORE)) || owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
-				|| owner.startsWith("java/lang/Byte")
-				|| owner.startsWith("java/lang/Short")
-				|| owner.startsWith("org/jikesrvm") || owner.startsWith("com/ibm/tuningfork") || owner.startsWith("org/mmtk") || owner.startsWith("org/vmmagic")
-//				|| owner.startsWith("edu/columbia/cs/psl/microbench")
-				|| owner.startsWith("java/lang/Number") || owner.startsWith("java/lang/Comparable") || owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
-//																				|| owner.startsWith("java/awt/image/BufferedImage")
+		return (Configuration.ADDL_IGNORE != null && startsWith(owner,Configuration.ADDL_IGNORE)) || startsWith(owner,"java/lang/Object") || startsWith(owner,"java/lang/Boolean") || startsWith(owner,"java/lang/Character")
+				|| startsWith(owner,"java/lang/Byte")
+				|| startsWith(owner,"java/lang/Short")
+				|| startsWith(owner,"org/jikesrvm") || startsWith(owner,"com/ibm/tuningfork") || startsWith(owner,"org/mmtk") || startsWith(owner,"org/vmmagic")
+//				|| startsWith(owner,"edu/columbia/cs/psl/microbench")
+				|| startsWith(owner,"java/lang/Number") || startsWith(owner,"java/lang/Comparable") || startsWith(owner,"java/lang/ref/SoftReference") || startsWith(owner,"java/lang/ref/Reference") || startsWith(owner,"java/lang/ref/FinalReference")
+//																				|| startsWith(owner,"java/awt/image/BufferedImage")
 //																				|| owner.equals("java/awt/Image")
-				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
-//				||owner.startsWith("sun/awt/image/codec/")
-								|| (owner.startsWith("sun/reflect/Reflection")) //was on last
+				|| (startsWith(owner,"edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
+//				||startsWith(owner,"sun/awt/image/codec/")
+								|| (startsWith(owner,"sun/reflect/Reflection")) //was on last
 				|| owner.equals("java/lang/reflect/Proxy") //was on last
-				|| owner.startsWith("sun/reflection/annotation/AnnotationParser") //was on last
-				|| owner.startsWith("sun/reflect/MethodAccessor") //was on last
-				|| owner.startsWith("org/apache/jasper/runtime/JspSourceDependent")
-				|| owner.startsWith("sun/reflect/ConstructorAccessor") //was on last
-				|| owner.startsWith("sun/reflect/SerializationConstructorAccessor")
+				|| startsWith(owner,"sun/reflection/annotation/AnnotationParser") //was on last
+				|| startsWith(owner,"sun/reflect/MethodAccessor") //was on last
+				|| startsWith(owner,"org/apache/jasper/runtime/JspSourceDependent")
+				|| startsWith(owner,"sun/reflect/ConstructorAccessor") //was on last
+				|| startsWith(owner,"sun/reflect/SerializationConstructorAccessor")
+				|| startsWith(owner,"java/lang/ref/Finalizer")
 
-				|| owner.startsWith("sun/reflect/GeneratedMethodAccessor") || owner.startsWith("sun/reflect/GeneratedConstructorAccessor")
-				|| owner.startsWith("sun/reflect/GeneratedSerializationConstructor") 
-				|| (owner.startsWith("sun/awt/image/codec/") && !owner.equals("sun/awt/image/codec/JPEGParam"))
-				|| owner.startsWith("com/sun/image/codec/jpeg/JPEGImageDecoder")
-				|| owner.startsWith("java/lang/invoke/LambdaForm")
-				|| owner.startsWith("java/lang/invoke/MethodHandle")
-								|| owner.startsWith("java/lang/invoke/DelegatingMethodHandle")
-								|| owner.startsWith("com/jprofiler")
-//|| owner.startsWith("org/apache/jasper/runtime/HttpJspBase")
-				|| owner.startsWith("edu/columbia/cs/psl/phosphor/struct/TaintedWith")
+				|| startsWith(owner,"sun/reflect/GeneratedMethodAccessor") || startsWith(owner,"sun/reflect/GeneratedConstructorAccessor")
+				|| startsWith(owner,"sun/reflect/GeneratedSerializationConstructor") 
+				|| (startsWith(owner,"sun/awt/image/codec/") && !owner.equals("sun/awt/image/codec/JPEGParam"))
+				|| startsWith(owner,"com/sun/image/codec/jpeg/JPEGImageDecoder")
+				|| startsWith(owner,"java/lang/invoke/LambdaForm")
+				|| startsWith(owner,"java/lang/invoke/MethodHandle")
+								|| startsWith(owner,"java/lang/invoke/DelegatingMethodHandle")
+								|| startsWith(owner,"com/jprofiler")
+//|| startsWith(owner,"org/apache/jasper/runtime/HttpJspBase")
+				|| startsWith(owner,"edu/columbia/cs/psl/phosphor/struct/TaintedWith")
 				;
 	}
 

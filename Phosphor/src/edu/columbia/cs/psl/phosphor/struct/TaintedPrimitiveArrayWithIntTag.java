@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
-public abstract class TaintedPrimitiveArrayWithIntTag implements TaintedReturnHolderWithIntTag{
+public abstract class TaintedPrimitiveArrayWithIntTag {
 	public LazyArrayIntTags taint;
 
 	public abstract Object toStackType();
@@ -14,4 +14,5 @@ public abstract class TaintedPrimitiveArrayWithIntTag implements TaintedReturnHo
 			for (int i = 0; i < taint.taints.length; i++)
 				taint.taints[i] = tag;
 	}
+	public abstract Object getValue();
 }

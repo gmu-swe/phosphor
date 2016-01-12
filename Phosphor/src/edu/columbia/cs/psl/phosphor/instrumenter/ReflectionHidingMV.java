@@ -107,8 +107,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 						super.visitInsn(Opcodes.DUP);
 						super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "a", "[Ljava/lang/Object;");
 						super.visitInsn(Opcodes.SWAP);
-						super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "t", "[Ljava/lang/Object;");
-						super.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINTED_RETURN_HOLDER_DESC);
+						super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "t", "Ljava/lang/Object;");
+						super.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME);
 					}
 					else
 						super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "a", "[Ljava/lang/Object;");
@@ -149,8 +149,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 						super.visitInsn(Opcodes.DUP);
 						super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "a", "[Ljava/lang/Object;");
 						super.visitInsn(Opcodes.SWAP);
-						super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "t", "[Ljava/lang/Object;");
-						super.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINTED_RETURN_HOLDER_DESC);
+						super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "t", "Ljava/lang/Object;");
+						super.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME);
 					}
 					else
 						super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "a", "[Ljava/lang/Object;");

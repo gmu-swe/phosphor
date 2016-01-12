@@ -30,6 +30,7 @@ import java.lang.annotation.AnnotationFormatError;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithIntTag;
 import sun.reflect.CallerSensitive;
 import sun.reflect.MethodAccessor;
 import sun.reflect.Reflection;
@@ -245,7 +246,7 @@ public final
     public Type getGenericReturnType() {
       if (getGenericSignature() != null) {
         return getGenericInfo().getReturnType();
-      } else { return getReturnType();}
+      } else { return (Type) getReturnType();}
     }
 
 
@@ -293,7 +294,7 @@ public final
         if (getGenericSignature() != null)
             return getGenericInfo().getParameterTypes();
         else
-            return getParameterTypes();
+            return (Type[]) getParameterTypes();
     }
 
 
@@ -339,7 +340,7 @@ public final
               ((result = getGenericInfo().getExceptionTypes()).length > 0))
               return result;
           else
-              return getExceptionTypes();
+              return (Type[]) getExceptionTypes();
       }
 
     /**
@@ -699,4 +700,28 @@ public final
                 "Parameter annotations don't match number of parameters");
         return result;
     }
+
+	public Class getDeclaringClass$$PHOSPHORTAGGED(TaintedReturnHolderWithIntTag prealloc) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public Class[] getParameterTypes$$PHOSPHORTAGGED(TaintedReturnHolderWithIntTag prealloc) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public void setAccessible$$PHOSPHORTAGGED(int tag, boolean b, TaintedReturnHolderWithIntTag prealloc) {
+		// TODO Auto-generated method stub
+		
+	}
+	public Class<?> getReturnType$$PHOSPHORTAGGED(TaintedReturnHolderWithIntTag prelloc) {
+        return returnType;
+    }
+
+	public String getName$$PHOSPHORTAGGED(TaintedReturnHolderWithIntTag prealloc) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

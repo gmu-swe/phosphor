@@ -152,7 +152,7 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 					nLocal++;
 				}
 				if (i == origNumArgs && TaintUtils.PREALLOC_RETURN_ARRAY && !name.equals("<clinit>")) {
-					remappedLocals[newIdx] = Configuration.TAINTED_RETURN_HOLDER_DESC;
+					remappedLocals[newIdx] = Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME;
 					newIdx++;
 					nLocal++;
 				}

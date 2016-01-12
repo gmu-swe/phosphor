@@ -1,5 +1,7 @@
 package java.lang.reflect;
 
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithIntTag;
+
 public final class Constructor<T>  {
 	public Constructor PHOSPHOR_TAGconstructor;
 	public boolean PHOSPHOR_TAGmarked;
@@ -20,5 +22,9 @@ public final class Constructor<T>  {
 	public void setAccessible(boolean b) {
 		// TODO Auto-generated method stub
 		
+	}
+	public Class[] getParameterTypes$$PHOSPHORTAGGED(TaintedReturnHolderWithIntTag prealloc) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

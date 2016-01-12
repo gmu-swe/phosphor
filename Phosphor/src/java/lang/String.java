@@ -36,9 +36,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReturnHolderWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 /**
@@ -113,7 +118,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 public class String
     implements java.io.Serializable, Comparable<String>, CharSequence, TaintedWithObjTag {
     /** The value is used for character storage. */
-    private final char value[];
+    public final char value[];
     public Taint[] valuePHOSPHOR_TAG;
     public Taint PHOSPHOR_TAG;
     /** Cache the hash code for the string */
@@ -621,7 +626,11 @@ public class String
         this(value, offset, count);
     }
 
-    /**
+    public String(LazyArrayIntTags z, char[] newname, TaintSentinel object, TaintedReturnHolderWithIntTag prealloc) {
+		value =null;
+	}
+
+	/**
      * Returns the length of this string.
      * The length is equal to the number of <a href="Character.html#unicode">Unicode
      * code units</a> in the string.
@@ -3127,6 +3136,24 @@ public class String
 	public void setPHOSPHOR_TAG(Object t) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	public TaintedBooleanWithIntTag startsWith$$PHOSPHORTAGGED(String string, TaintedReturnHolderWithIntTag prealloc) {
+		return null;
+	}
+
+	public TaintedBooleanWithIntTag equals$$PHOSPHORTAGGED(Object o, TaintedReturnHolderWithIntTag ret) {
+		return null;
+	}
+
+	public TaintedIntWithIntTag length$$PHOSPHORTAGGED(TaintedReturnHolderWithIntTag prealloc) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public TaintedCharArrayWithIntTag toCharArray$$PHOSPHORTAGGED(TaintedReturnHolderWithIntTag prealloc) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
