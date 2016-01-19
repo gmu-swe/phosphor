@@ -145,6 +145,9 @@ public class RuntimeReflectionPropogator {
 	public static Object get$$PHOSPHORTAGGED(Field f, Object obj, Object[] prealloc, boolean z) throws IllegalArgumentException, IllegalAccessException {
 		return get(f, obj, z);
 	}
+	public static Object get$$PHOSPHORTAGGED(Field f, Object obj, TaintedReturnHolderWithIntTag prealloc, boolean z) throws IllegalArgumentException, IllegalAccessException {
+		return get(f, obj, z);
+	}
 	public static Object get$$PHOSPHORTAGGEDObj(Field f, Object obj, Object[] prealloc) throws IllegalArgumentException, IllegalAccessException {
 		return get(f, obj, true);
 	}
@@ -1039,6 +1042,17 @@ public class RuntimeReflectionPropogator {
 			}
 		}
 	}
+	public static void setAccessible$$PHOSPHORTAGGED(Field f, int tag, boolean flag, TaintedReturnHolderWithIntTag ret) {
+		f.setAccessible(flag);
+		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
+			try {
+				f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setAccessible(flag);
+			} catch (SecurityException e) {
+			} catch (NoSuchFieldException e) {
+			}
+		}
+	}
+
 	public static void setAccessible$$PHOSPHORTAGGED(Field f, int tag, boolean flag,Object[] prealloc) {
 		setAccessible$$PHOSPHORTAGGED(f, tag, flag);
 	}
