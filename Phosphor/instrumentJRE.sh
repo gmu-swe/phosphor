@@ -8,6 +8,8 @@ else
 		java -Xmx6g -XX:MaxPermSize=512m -jar target/Phosphor-0.0.2-SNAPSHOT.jar -forceUnboxAcmpEq -withEnumsByValue $JAVA_HOME target/jre-inst-int;
 		chmod +x target/jre-inst-int/bin/*;
 		chmod +x target/jre-inst-int/lib/*;
+		chmod +x target/jre-inst-int/jre/bin/*;
+		chmod +x target/jre-inst-int/jre/lib/*;
 	else
 		echo "Not regenerating int tag instrumented JRE\n";
 	fi
@@ -16,6 +18,8 @@ else
 		java -Xmx6g -XX:MaxPermSize=512m -jar target/Phosphor-0.0.2-SNAPSHOT.jar -forceUnboxAcmpEq -withEnumsByValue -generateUninstStubs $JAVA_HOME target/jre-inst-int-untaggedwrappers;
 		chmod +x target/jre-inst-int-untaggedwrappers/bin/*;
 		chmod +x target/jre-inst-int-untaggedwrappers/lib/*;
+		chmod +x target/jre-inst-int-untaggedwrappers/jre/bin/*;
+		chmod +x target/jre-inst-int-untaggedwrappers/jre/lib/*;
 	else
 		echo "Not regenerating int tag instrumented JRE with untagged wrappers\n";
 	fi
@@ -25,6 +29,8 @@ else
 		java -Xmx6g -XX:MaxPermSize=512m  -jar target/Phosphor-0.0.2-SNAPSHOT.jar -multiTaint -forceUnboxAcmpEq -withEnumsByValue $JAVA_HOME target/jre-inst-obj;
 		chmod +x target/jre-inst-obj/bin/*;
 		chmod +x target/jre-inst-obj/lib/*;
+		chmod +x target/jre-inst-obj/jre/bin/*;
+		chmod +x target/jre-inst-obj/jre/lib/*;
 	else
 		echo "Not regenerating obj tag instrumented JRE\n";
 	fi
@@ -33,6 +39,8 @@ else
 		java -Xmx6g -XX:MaxPermSize=512m -jar target/Phosphor-0.0.2-SNAPSHOT.jar -controlTrack -multiTaint -forceUnboxAcmpEq -withEnumsByValue $JAVA_HOME target/jre-inst-implicit;
 		chmod +x target/jre-inst-implicit/bin/*;
 		chmod +x target/jre-inst-implicit/lib/*;
+		chmod +x target/jre-inst-implicit/jre/bin/*;
+		chmod +x target/jre-inst-implicit/jre/lib/*;
 	else
 		echo "Not regenerating implicit flow instrumented JRE\n";
 	fi
