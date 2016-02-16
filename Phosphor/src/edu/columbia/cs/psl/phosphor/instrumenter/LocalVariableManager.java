@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
@@ -441,15 +442,15 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         // 'newLocals' currently empty
 
         if(!disabled)
-        for(Type t : preAllocedReturnTypes.keySet())
+        for(Entry<Type, Integer> t : preAllocedReturnTypes.entrySet())
         {
 //        	System.out.println(t);
-        	if(t.getSort() != Type.OBJECT)
+        	if(t.getKey().getSort() != Type.OBJECT)
         		continue;
-        	int idx = preAllocedReturnTypes.get(t);
+        	int idx = t.getValue();
         	if(idx >= 0)
         	{
-        		setFrameLocal(idx, t.getInternalName());
+        		setFrameLocal(idx, t.getKey());
         	}
         }
 //        System.out.println(Arrays.toString(newLocals));

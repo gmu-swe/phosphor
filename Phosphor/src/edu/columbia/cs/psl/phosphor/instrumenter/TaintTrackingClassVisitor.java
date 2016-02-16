@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Map.Entry;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
@@ -1092,7 +1093,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		{
 			//make a copy of each raw method, using the proper suffix. right now this only goes 
 			//one level deep - and it will call back into instrumented versions
-			for (MethodNode mn : forMore.keySet()) {
+			for (Entry<MethodNode, MethodNode> am : forMore.entrySet()) {
+			    MethodNode mn = am.getKey();
 				if(mn.name.equals("<clinit>"))
 					continue;
 				String mName = mn.name;
@@ -1106,7 +1108,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mName += TaintUtils.METHOD_SUFFIX_UNINST;
 				}
 				MethodVisitor mv = super.visitMethod(mn.access & ~Opcodes.ACC_NATIVE, mName, mDesc, mn.signature, (String[]) mn.exceptions.toArray(new String[0]));
-				MethodNode meth = forMore.get(mn);
+				MethodNode meth = am.getValue();
 
 				if ((mn.access & Opcodes.ACC_NATIVE) != 0) {
 					GeneratorAdapter ga = new GeneratorAdapter(mv, mn.access, mn.name, mn.desc);

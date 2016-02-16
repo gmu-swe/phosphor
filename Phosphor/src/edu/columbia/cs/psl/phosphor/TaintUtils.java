@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import sun.misc.VM;
 
@@ -184,9 +185,9 @@ public class TaintUtils {
 	private static String processReverse(String type) {
 		type = type.trim();
 		if(type.length() == 1)  {
-			for(String s : typeToSymbol.keySet()) 
-				if(typeToSymbol.get(s).equals(type))
-					return s;
+			for(Entry<String, String> s : typeToSymbol.entrySet()) 
+				if(s.getValue().equals(type))
+					return s.getKey();
 			throw new IllegalArgumentException("Invalid type string");
 		}
 			

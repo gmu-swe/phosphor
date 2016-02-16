@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Stack;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
@@ -300,16 +301,17 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //							System.out.println("OUT: " + i + " " + (outFrames.get(i) == null ? "null" : outFrames.get(i).stack));
 //						}
 
-					for (Integer successor : edges.keySet()) {
-						if (edges.get(successor).size() > 1) {
+					for (Entry<Integer, LinkedList<Integer>> edge : edges.entrySet()) {
+					    Integer successor = edge.getKey();
+						if (edge.getValue().size() > 1) {
 							int labelToSuccessor = getLabel(successor);
 
 							if (DEBUG)
-								System.out.println(name + " Must merge: " + edges.get(successor) + " into " + successor + " AKA " + labelToSuccessor);
+								System.out.println(name + " Must merge: " + edge.getValue() + " into " + successor + " AKA " + labelToSuccessor);
 							if (DEBUG)
 								System.out.println("Input to successor: " + inFrames.get(labelToSuccessor).stack);
 
-							for (Integer toMerge : edges.get(successor)) {
+							for (Integer toMerge : edge.getValue()) {
 								int labelToMerge = getLabel(toMerge);
 								if (DEBUG)
 									System.out.println(toMerge + " AKA " + labelToMerge);
