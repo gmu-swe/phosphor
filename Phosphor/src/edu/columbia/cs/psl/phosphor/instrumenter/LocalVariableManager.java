@@ -289,7 +289,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	@Override
 	public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
 		super.visitLocalVariable(name, desc, signature, start, end, index);
-		if (createdLVs.size() > 0) {
+		if (!createdLVs.isEmpty()) {
 			if(!endVisited)
 			{
 				super.visitLabel(this.end);

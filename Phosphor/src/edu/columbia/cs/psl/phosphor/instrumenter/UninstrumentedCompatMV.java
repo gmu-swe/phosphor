@@ -141,7 +141,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 	@Override
 	public void visitTypeInsn(int opcode, String type) {
 		if (opcode == Opcodes.CHECKCAST) {
-			if (analyzer.stack.size() > 0 && "java/lang/Object".equals(analyzer.stack.get(analyzer.stack.size() - 1)) && type.startsWith("[")
+			if (!analyzer.stack.isEmpty() && "java/lang/Object".equals(analyzer.stack.get(analyzer.stack.size() - 1)) && type.startsWith("[")
 					&& type.length()==2) {
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "maybeUnbox", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 			}
@@ -308,7 +308,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 			super.visitMethodInsn(opcode, owner, name, desc, itf);
 			return;
 		}
-		if((opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESPECIAL) && analyzer.stack.size() > 0)
+		if((opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESPECIAL) && !analyzer.stack.isEmpty())
 		{
 			int argsize = 0;
 			for(Type t : Type.getArgumentTypes(desc))

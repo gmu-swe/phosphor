@@ -540,7 +540,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
 
     private void setTopNolongerConstant()
     {
-    	if(stackConstantVals.size() > 0)
+    	if(!stackConstantVals.isEmpty())
     		stackConstantVals.set(stackConstantVals.size() - 1, null);
     }
     private void push(final Object type, final Object val)

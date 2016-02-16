@@ -1776,7 +1776,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		if (opcode == TaintUtils.FORCE_CTRL_STORE) {
 			//If there is anything on the stack right now, apply the current marker to it
-			if (analyzer.stack.size() == 0 || topOfStackIsNull())
+			if (analyzer.stack.isEmpty() || topOfStackIsNull())
 				return;
 			Type onStack = getTopOfStackType();
 			if (onStack.getSort() != Type.OBJECT && onStack.getSort() != Type.ARRAY) {
@@ -2963,7 +2963,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 				forceCtrlAdd.clear();
 			}
-			if (boxAtNextJump.size() > 0) {
+			if (!boxAtNextJump.isEmpty()) {
 				Label origDest = label;
 				Label newDest = new Label();
 				Label origFalseLoc = new Label();
@@ -2994,7 +2994,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		else
 		{
 
-			if (boxAtNextJump.size() > 0 && opcode != Opcodes.GOTO) {
+			if (!boxAtNextJump.isEmpty() && opcode != Opcodes.GOTO) {
 				Label origDest = label;
 				Label newDest = new Label();
 				Label origFalseLoc = new Label();
