@@ -100,16 +100,16 @@ public class TaintUtils {
 
 	public static final String METHOD_SUFFIX = "$$PHOSPHORTAGGED";
 	public static final boolean DEBUG_ALL = false;
-	public static final boolean DEBUG_DUPSWAP = false || DEBUG_ALL;
-	public static final boolean DEBUG_FRAMES = false || DEBUG_ALL;
-	public static final boolean DEBUG_FIELDS = false || DEBUG_ALL;
-	public static final boolean DEBUG_LOCAL = false || DEBUG_ALL;
-	public static final boolean DEBUG_CALLS = false || DEBUG_ALL;
+	public static final boolean DEBUG_DUPSWAP = DEBUG_ALL;
+	public static final boolean DEBUG_FRAMES = DEBUG_ALL;
+	public static final boolean DEBUG_FIELDS = DEBUG_ALL;
+	public static final boolean DEBUG_LOCAL = DEBUG_ALL;
+	public static final boolean DEBUG_CALLS = DEBUG_ALL;
 	public static final boolean DEBUG_OPT = false;
 	public static final boolean DEBUG_PURE = false;
 
 	public static final boolean ADD_BASIC_ARRAY_CONSTRAINTS = true;
-	public static final boolean ADD_HEAVYWEIGHT_ARRAY_TAINTS = ADD_BASIC_ARRAY_CONSTRAINTS || true;
+	public static final boolean ADD_HEAVYWEIGHT_ARRAY_TAINTS = ADD_BASIC_ARRAY_CONSTRAINTS;
 
 	public static int nextTaint = 0;
 	public static int nextTaintPHOSPHOR_TAG = 0;
