@@ -450,7 +450,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         	int idx = t.getValue();
         	if(idx >= 0)
         	{
-        		setFrameLocal(idx, t.getKey());
+        		setFrameLocal(idx, t.getKey().getInternalName());
         	}
         }
 //        System.out.println(Arrays.toString(newLocals));
