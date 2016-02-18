@@ -129,10 +129,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			String[] inD = str.split("\\.");
 			for (String s : sources) {
 				String d[] = s.split("\\.");
-				if (d[1].equals(inD[1]))//desc is same
+				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
 				{
-					if (c1IsSuperforC2(d[0], inD[0]))
-						return true;
+				    return true;
 				}
 			}
 			return false;
@@ -150,10 +149,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			for (String s : sinks) {
 				String d[] = s.split("\\.");
 
-				if (d[1].equals(inD[1]))//desc is same
+				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
 				{
-					if (c1IsSuperforC2(d[0], inD[0]))
-						return true;
+				    return true;
 				}
 			}
 			return false;

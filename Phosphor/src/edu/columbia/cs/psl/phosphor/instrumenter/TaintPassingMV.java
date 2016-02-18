@@ -711,12 +711,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						super.visitInsn(POP);
 					else
 					{
-						if(shadowType.length() == 1)
+						if(shadowType.length() == 1 && Configuration.MULTI_TAINTING)
 						{
-							if(Configuration.MULTI_TAINTING)
-							{
-								super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
-							}
+						    super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
 						}
 						super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, shadowType);
 					}
