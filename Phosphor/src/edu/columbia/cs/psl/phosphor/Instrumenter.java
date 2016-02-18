@@ -380,7 +380,7 @@ public class Instrumenter {
 		_main(line.getArgs());
 		if (Configuration.WITH_SELECTIVE_INST) {
 			// write out file again
-			StringBuffer buf = new StringBuffer();
+			StringBuilder buf = new StringBuilder();
 			for (MethodDescriptor desc : SelectiveInstrumentationManager.methodsToInstrument)
 				buf.append(TaintUtils.getMethodDesc(desc)).append("\n");
 			TaintUtils.writeToFile(new File(rootOutputDir.getAbsolutePath() + "/methods"), buf.toString());

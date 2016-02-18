@@ -167,7 +167,7 @@ public class TaintUtils {
 		return "L"+in.replace('.', '/')+";";
 	}
 	private static String processType(String type) {
-		StringBuffer typeBuffer = new StringBuffer();
+	    StringBuilder typeBuffer = new StringBuilder();
 		type = type.trim();
 		int firstBracket = type.indexOf('[');
 		if(firstBracket >= 0) {
@@ -225,7 +225,7 @@ public class TaintUtils {
 		 
 		// get args list
 		temp = temp.substring(nameEnd+1,temp.length()-2);
-		StringBuffer argsBuffer = new StringBuffer();
+		StringBuilder argsBuffer = new StringBuilder();
 	
 		argsBuffer.append("(");
 		if(temp != null && !temp.isEmpty()) {
@@ -268,7 +268,7 @@ public class TaintUtils {
 			}
 			args = args.substring(idx);
 		}
-		StringBuffer buf = new StringBuffer();
+		StringBuilder buf = new StringBuilder();
 		buf.append("<").append(owner).append(": ").append(actualReturnType).append(" ").append(methodName).append("(");
 		for(String s : arguments)
 			buf.append(s).append(",");
