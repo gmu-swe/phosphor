@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 
 import org.objectweb.asm.Type;
 
@@ -590,11 +591,11 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
 			if (TaintUtils.DEBUG_OPT)
 				System.out.println(owner + "." + name + "NPOP: " + nPop);
 			HashSet<Integer> lvsToObliterate = new HashSet<Integer>();
-			for (Integer i : lvIsWrittenNotRead.keySet())
-				if (lvIsWrittenNotRead.get(i)) {
+			for (Entry<Integer, Boolean> i : lvIsWrittenNotRead.entrySet())
+				if (i.getValue()) {
 					if (TaintUtils.DEBUG_OPT)
-						System.out.println("BLow away: " + i);
-					lvsToObliterate.add(i);
+						System.out.println("BLow away: " + i.getKey());
+					lvsToObliterate.add(i.getKey());
 				}
 			if (!lvsToObliterate.isEmpty()) {
 				insn = this.instructions.getFirst();
