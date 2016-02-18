@@ -1275,7 +1275,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //        super.visitMethodInsn(opcode, owner, name, newDesc, itfc);
         if(hasNewName && bsmArgs != null)
         {
-            System.out.println(name+newDesc);
             for(int k = 0; k < bsmArgs.length; k++)
             {
                 Object o = bsmArgs[k];
