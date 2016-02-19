@@ -213,8 +213,6 @@ public class TaintUtils {
 	//<java.lang.Runtime: java.lang.Process[][][] exec(java.lang.String,java.lang.String[],java.io.File)>
 	public static MethodDescriptor getMethodDesc(String signature) {
 		// get return type
-		char[] chars = signature.toCharArray();
-		String[] parts = signature.split(": ");
 		int idxOfColon = signature.indexOf(':');
 		String temp = signature.substring(idxOfColon+2);
 		int nameStart = temp.indexOf(' ')+1;

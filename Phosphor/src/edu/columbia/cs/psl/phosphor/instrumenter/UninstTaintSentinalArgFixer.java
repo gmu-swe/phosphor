@@ -43,7 +43,6 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 		this.name = name;
 		this.desc = desc;
 		oldArgTypes = Type.getArgumentTypes(originalDesc);
-		Type[] newArgTypes = Type.getArgumentTypes(desc);
 		origNumArgs = oldArgTypes.length;
 		isStatic = (Opcodes.ACC_STATIC & access) != 0;
 		for (Type t : oldArgTypes)

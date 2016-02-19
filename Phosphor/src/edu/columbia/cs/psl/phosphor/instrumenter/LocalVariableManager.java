@@ -416,7 +416,6 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         	if(o == Opcodes.DOUBLE || o == Opcodes.LONG)
         		locals.add(Opcodes.TOP);
         }
-        boolean[] varsToSetToTop = new boolean[newLocals.length];
 //        for(int var : varsToRemove.keySet())
 //        {
 //        	//var is the var that we want to see if it's a taint-carrying type

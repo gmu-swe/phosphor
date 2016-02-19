@@ -121,7 +121,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //				System.out.println("TPMV "+ className+"."+name+desc);
 		this.name = name;
 		this.className = className;
-		Type[] oldArgTypes = Type.getArgumentTypes(originalDesc);
 		Type[] newArgTypes = Type.getArgumentTypes(desc);
 		lastArg = 0;
 		for (Type t : newArgTypes) {
@@ -557,7 +556,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 	
 		boolean dispatched = false;
-		Type ownerType = Type.getObjectType(owner);
 		Type descType = Type.getType(desc);
 		if (descType.getSort() == Type.ARRAY && descType.getElementType().getSort() != Type.OBJECT && descType.getDimensions() > 1) {
 			desc = MultiDTaintedArray.getTypeForType(descType).getInternalName();
