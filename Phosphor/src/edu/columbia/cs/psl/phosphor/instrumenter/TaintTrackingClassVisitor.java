@@ -255,6 +255,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 		if (name.equals("hasAnyTaints"))
 			isProxyClass = true;
+		
+		if(name.contains(TaintUtils.METHOD_SUFFIX))
+		{
+		    //Some dynamic stuff might result in there being weird stuff here
+		    return new MethodVisitor(Opcodes.ASM5) {
+            };
+		}
 		if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(className, name, desc)){
 //			if (TaintUtils.DEBUG_CALLS)
 //				System.out.println("Skipping instrumentation for  class: " + className + " method: " + name + " desc: " + desc);
@@ -401,7 +408,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			mv = new StringTaintVerifyingMV(analyzer,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")),analyzer); //TODO - how do we handle directbytebuffers?
 
-			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className,analyzer);
+			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className, name, analyzer);
 			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
 			LocalVariableManager lvs;
 			TaintPassingMV tmv;

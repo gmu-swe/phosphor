@@ -185,6 +185,22 @@ public class PreMain {
 				return classfileBuffer;
 			}
 			
+			if (DEBUG) {
+			    try{
+                File debugDir = new File("debug-preinst");
+                if (!debugDir.exists())
+                    debugDir.mkdir();
+                File f = new File("debug-preinst/" + className.replace("/", ".") + ".class");
+                FileOutputStream fos = new FileOutputStream(f);
+                fos.write(classfileBuffer);
+                fos.close();
+			    }
+			    catch(IOException ex)
+			    {
+			        ex.printStackTrace();
+			    }
+            }
+			
 			ClassNode cn = new ClassNode();
 			cr.accept(cn, ClassReader.SKIP_CODE);
 			boolean skipFrames = false;
