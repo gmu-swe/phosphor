@@ -110,6 +110,11 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		if (c1.equals(c2))
 			return true;
 		ClassNode cn = Instrumenter.classes.get(c2);
+
+		if (cn == null) {
+			return false;
+		}
+
 		if (cn.interfaces != null)
 			for (Object s : cn.interfaces) {
 				if (c1IsSuperforC2(c1, (String) s))
