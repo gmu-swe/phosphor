@@ -493,7 +493,7 @@ public class Instrumenter {
 		}
 		if (f.isDirectory())
 			processDirectory(f, rootOutputDir, true);
-		else if (inputFolder.endsWith(".jar") || inputFolder.endsWith(".war"))
+		else if (inputFolder.endsWith(".jar"))
 			//				try {
 			//					FileOutputStream fos =  new FileOutputStream(rootOutputDir.getPath() + File.separator + f.getName());
 			processJar(f, rootOutputDir);
@@ -508,7 +508,7 @@ public class Instrumenter {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		else if (inputFolder.endsWith(".zip")) {
+		else if (inputFolder.endsWith(".zip") || inputFolder.endsWith(".war")) {
 			processZip(f, rootOutputDir);
 		} else {
 			System.err.println("Unknown type for path " + inputFolder);
@@ -562,7 +562,7 @@ public class Instrumenter {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-			else if (fi.getName().endsWith(".jar") || fi.getName().endsWith(".war"))
+			else if (fi.getName().endsWith(".jar"))
 				//				try {
 				//					FileOutputStream fos = new FileOutputStream(thisOutputDir.getPath() + File.separator + f.getName());
 				processJar(fi, thisOutputDir);
@@ -571,7 +571,7 @@ public class Instrumenter {
 			// TODO Auto-generated catch block
 			//					e1.printStackTrace();
 			//				}
-			else if (fi.getName().endsWith(".zip"))
+			else if (fi.getName().endsWith(".zip") || fi.getName().endsWith(".war"))
 				processZip(fi, thisOutputDir);
 			else {
 				File dest = new File(thisOutputDir.getPath() + File.separator + fi.getName());
