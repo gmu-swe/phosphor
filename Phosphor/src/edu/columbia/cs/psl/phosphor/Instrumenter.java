@@ -240,22 +240,53 @@ public class Instrumenter {
 		}
 	}
 
-	static Option opt_taintSources = OptionBuilder.withArgName("taintSources").hasArg().withDescription("File with listing of taint sources to auto-taint").create("taintSources");
-	static Option opt_taintSinks =   OptionBuilder.withArgName("taintSinks").hasArg().withDescription("File with listing of taint sinks to use to check for auto-taints").create("taintSinks");
-	static Option opt_dataTrack = new Option("withoutDataTrack", "Disable taint tracking through data flow (on by default)");
-	static Option opt_controlTrack = new Option("controlTrack", "Enable taint tracking through control flow");
-	static Option opt_multiTaint = new Option("multiTaint", "Support for 2^32 tags instead of just 32");
-	static Option opt_trackArrayLengthTaints = new Option("withArrayLengthTags", "Tracks taint tags on array lengths - requires use of JVMTI runtime library when running");
-	static Option opt_withoutFieldHiding = new Option("withoutFieldHiding", "Disable hiding of taint fields via reflection");
-	static Option opt_withoutPropogation = new Option("withoutPropogation","Disable all tag propogation - still create method stubs and wrappers as per other options, but don't actually propogate tags");
-	static Option opt_enumPropogation = new Option("withEnumsByValue","Propogate tags to enums as if each enum were a value (not a reference) through the Enum.valueOf method");
-	static Option opt_unboxAcmpEq = new Option("forceUnboxAcmpEq","At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)");
-
-	static Option opt_withSelectiveInst = new Option("withSelectiveInst",true,"Enable selective instrumentation");
-	static Option opt_uninstCopies = new Option("generateUninstStubs","Add extra copies of each method, so there's always one instrumented and one not.");
-	static Option opt_disableJumpOptimizations = new Option("disableJumpOptimizations","Do not optimize taint removal at jump calls");
-	
-	static Option help = new Option( "help", "print this message" );
+	static Option opt_taintSources = Option.builder("taintSources")
+		.argName("taintSources")
+		.hasArg()
+		.desc("File with listing of taint sources to auto-taint")
+		.build();
+	static Option opt_taintSinks = Option.builder("taintSinks")
+		.argName("taintSinks")
+		.hasArg()
+		.desc("File with listing of taint sinks to use to check for auto-taints")
+		.build();
+	static Option opt_dataTrack = Option.builder("withoutDataTrack")
+		.desc("Disable taint tracking through data flow (on by default)")
+		.build();
+	static Option opt_controlTrack = Option.builder("controlTrack")
+		.desc("Enable taint tracking through control flow")
+		.build();
+	static Option opt_multiTaint = Option.builder("multiTaint")
+		.desc("Support for 2^32 tags instead of just 32")
+		.build();
+	static Option opt_trackArrayLengthTaints = Option.builder("withArrayLengthTags")
+		.desc("Tracks taint tags on array lengths - requires use of JVMTI runtime library when running")
+		.build();
+	static Option opt_withoutFieldHiding = Option.builder("withoutFieldHiding")
+		.desc("Disable hiding of taint fields via reflection")
+		.build();
+	static Option opt_withoutPropogation = Option.builder("withoutPropogation")
+		.desc("Disable all tag propogation - still create method stubs and wrappers as per other options, but don't actually propogate tags")
+		.build();
+	static Option opt_enumPropogation = Option.builder("withEnumsByValue")
+		.desc("Propogate tags to enums as if each enum were a value (not a reference) through the Enum.valueOf method")
+		.build();
+	static Option opt_unboxAcmpEq = Option.builder("forceUnboxAcmpEq")
+		.desc("At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)")
+		.build();
+	static Option opt_withSelectiveInst = Option.builder("withSelectiveInst")
+		.hasArg()
+		.desc("Enable selective instrumentation")
+		.build();
+	static Option opt_uninstCopies = Option.builder("generateUninstStubs")
+		.desc("Add extra copies of each method, so there's always one instrumented and one not.")
+		.build();
+	static Option opt_disableJumpOptimizations = Option.builder("disableJumpOptimizations")
+		.desc("Do not optimize taint removal at jump calls")
+		.build();
+	static Option help = Option.builder("help")
+		.desc("print this message")
+		.build();
 
 	public static String sourcesFile;
 	public static String sinksFile;
