@@ -525,7 +525,7 @@ public class Instrumenter {
 			processZip(f, rootOutputDir);
 		else if (inputFolder.endsWith(".class"))
 			processClass(f, rootOutputDir);
-		} else {
+		else {
 			System.err.println("Unknown type for path " + inputFolder);
 			System.exit(-1);
 		}
