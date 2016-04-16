@@ -24,6 +24,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.jar.JarEntry;
@@ -204,11 +205,10 @@ public class Instrumenter {
 					Instrumenter.classes.put(name, cn);
 				}
 			}, ClassReader.SKIP_CODE);
+			is.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 	}
 
 	static int nTotal = 0;
@@ -227,6 +227,7 @@ public class Instrumenter {
 			while ((nRead = is.read(data, 0, data.length)) != -1) {
 				buffer.write(data, 0, nRead);
 			}
+			is.close();
 
 			buffer.flush();
 			PreMain.PCLoggingTransformer transformer = new PreMain.PCLoggingTransformer();
@@ -637,6 +638,7 @@ public class Instrumenter {
 										break;
 									zos.write(buffer, 0, count);
 								}
+								is.close();
 							} else
 								zos.write(clazz);
 							zos.closeEntry();
@@ -648,7 +650,11 @@ public class Instrumenter {
 				} else if (e.getName().endsWith(".jar")) {
 					ZipEntry outEntry = new ZipEntry(e.getName());
 
-					File tmp = new File("/tmp/classfile");
+					Random r = new Random();
+					String markFileName = Long.toOctalString(System.currentTimeMillis())
+						+ Integer.toOctalString(r.nextInt(10000))
+						+ e.getName().replace("/", "");
+					File tmp = new File("/tmp/" + markFileName);
 					if (tmp.exists())
 						tmp.delete();
 					FileOutputStream fos = new FileOutputStream(tmp);
@@ -660,14 +666,15 @@ public class Instrumenter {
 					}
 					is.close();
 					fos.close();
-					//						System.out.println("Done reading");
+
 					File tmp2 = new File("/tmp/tmp2");
 					if(!tmp2.exists())
 						tmp2.mkdir();
 					processZip(tmp, tmp2);
+					tmp.delete();
 
 					zos.putNextEntry(outEntry);
-					is = new FileInputStream("/tmp/tmp2/classfile");
+					is = new FileInputStream("/tmp/tmp2/" + markFileName);
 					byte[] buffer = new byte[1024];
 					while (true) {
 						int count = is.read(buffer);
@@ -723,6 +730,7 @@ public class Instrumenter {
 								break;
 							zos.write(buffer, 0, count);
 						}
+						is.close();
 						zos.closeEntry();
 						} catch (ZipException ex) {
 							if (!ex.getMessage().contains("duplicate entry")) {
