@@ -92,6 +92,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 				curLocalIdxToLVNode.get(v.idx).end = new LabelNode(lbl);
 				v.inUse = false;
 				v.owner = null;
+				if(idx < analyzer.locals.size())
+				  analyzer.locals.set(idx, Opcodes.TOP);
 				return;
 			}
 		}
