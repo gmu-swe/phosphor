@@ -49,7 +49,9 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 			super.visitTypeInsn(NEW, Configuration.TAINT_TAG_INTERNAL_NAME);
 			super.visitInsn(DUP);
 			super.visitLdcInsn(lbl);
-			super.visitMethodInsn(INVOKESPECIAL, Configuration.TAINT_TAG_INTERNAL_NAME, "<init>", "(Ljava/lang/Object;)V", false);
+			super.visitMethodInsn(INVOKESPECIAL,
+					Configuration.TAINT_TAG_INTERNAL_NAME,
+					"<init>", "(Ljava/lang/Object;)V", false);
 		} else {
 			super.visitLdcInsn(lbl);
 		}
@@ -68,18 +70,29 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 				if (args[i].getSort() == Type.OBJECT) {
 					super.visitVarInsn(ALOAD, idx);
 					loadSourceLblAndMakeTaint();
-					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+					super.visitMethodInsn(INVOKESTATIC,
+							Type.getInternalName(TaintChecker.class),
+							"setTaints",
+							"(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V",
+							false);
 				} else if (!skipNextArray && args[i].getSort() == Type.ARRAY
-						&& (args[i].getElementType().getSort() != Type.OBJECT || args[i].getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC)) && args[i].getDimensions() == 1) {
+						&& (args[i].getElementType().getSort() != Type.OBJECT
+							|| args[i].getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC))
+						&& args[i].getDimensions() == 1) {
 					skipNextArray = true;
 					super.visitVarInsn(ALOAD, idx);
 					loadSourceLblAndMakeTaint();
-					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(" + Configuration.TAINT_TAG_ARRAYDESC + Configuration.TAINT_TAG_DESC + ")V", false);
+					super.visitMethodInsn(INVOKESTATIC,
+							Type.getInternalName(TaintChecker.class),
+							"setTaints",
+							"(" + Configuration.TAINT_TAG_ARRAYDESC + Configuration.TAINT_TAG_DESC + ")V",
+							false);
 				} else if (skipNextArray)
 					skipNextArray = false;
 				idx += args[i].getSize();
 			}
 		}
+
 		if (sourceSinkManager.isSink(owner, name, desc)) {
 			//TODO - check every arg to see if is taint tag
 			Type[] args = Type.getArgumentTypes(desc);
@@ -88,21 +101,31 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 				idx++;
 			boolean skipNextPrimitive = false;
 			for (int i = 0; i < args.length; i++) {
-				if ((args[i].getSort() == Type.OBJECT && !args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC)) || args[i].getSort() == Type.ARRAY) {
-					if (args[i].getSort() == Type.ARRAY && (args[i].getElementType().getSort() != Type.OBJECT || args[i].getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC))
+				if ((args[i].getSort() == Type.OBJECT
+							&& !args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC))
+						|| args[i].getSort() == Type.ARRAY) {
+					if (args[i].getSort() == Type.ARRAY
+							&& (args[i].getElementType().getSort() != Type.OBJECT
+								|| args[i].getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC))
 							&& args[i].getDimensions() == 1) {
 						if (!skipNextPrimitive) {
 							super.visitVarInsn(ALOAD, idx);
-							super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "checkTaint", "(Ljava/lang/Object;)V", false);
+							super.visitMethodInsn(INVOKESTATIC,
+									Type.getInternalName(TaintChecker.class),
+									"checkTaint", "(Ljava/lang/Object;)V", false);
 						}
 						skipNextPrimitive = !skipNextPrimitive;
 					} else {
 						super.visitVarInsn(ALOAD, idx);
-						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "checkTaint", "(Ljava/lang/Object;)V", false);
+						super.visitMethodInsn(INVOKESTATIC,
+								Type.getInternalName(TaintChecker.class),
+								"checkTaint", "(Ljava/lang/Object;)V", false);
 					}
 				} else if (!skipNextPrimitive) {
 					super.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
-					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "checkTaint", "(" + Configuration.TAINT_TAG_DESC + ")V", false);
+					super.visitMethodInsn(INVOKESTATIC,
+							Type.getInternalName(TaintChecker.class),
+							"checkTaint", "(" + Configuration.TAINT_TAG_DESC + ")V", false);
 					skipNextPrimitive = true;
 				} else if (skipNextPrimitive)
 					skipNextPrimitive = false;
@@ -115,10 +138,15 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 	public void visitInsn(int opcode) {
 		if (opcode == ARETURN && this.thisIsASource) {
 			Type returnType = Type.getReturnType(this.origDesc);
-			if (returnType.getSort() == Type.OBJECT || returnType.getSort() == Type.ARRAY) {
+			if (returnType.getSort() == Type.OBJECT
+					|| returnType.getSort() == Type.ARRAY) {
 				super.visitInsn(DUP);
 				loadSourceLblAndMakeTaint();
-				super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+				super.visitMethodInsn(INVOKESTATIC,
+						Type.getInternalName(TaintChecker.class),
+						"setTaints",
+						"(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V",
+						false);
 			} else if (returnType.getSort() == Type.VOID) {
 
 			} else {
@@ -126,9 +154,13 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 				super.visitInsn(DUP);
 				loadSourceLblAndMakeTaint();
 				if (Configuration.MULTI_TAINTING)
-					super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithObjTag.class), "taint", "Ljava/lang/Object;");
+					super.visitFieldInsn(PUTFIELD,
+							Type.getInternalName(TaintedPrimitiveWithObjTag.class),
+							"taint", "Ljava/lang/Object;");
 				else
-					super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithIntTag.class), "taint", "I");
+					super.visitFieldInsn(PUTFIELD,
+							Type.getInternalName(TaintedPrimitiveWithIntTag.class),
+							"taint", "I");
 			}
 		}
 		super.visitInsn(opcode);
