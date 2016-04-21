@@ -28,33 +28,37 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 	String desc;
 	boolean hasTaintSentinalAddedToDesc = false;
 	ArrayList<Type> oldArgTypesList;
+	ArrayList<Type> oldTypesDoublesAreOne;
 	Type[] oldArgTypes;
-
 	Type[] firstFrameLocals;
 	int idxOfReturnPrealloc;
 
 	boolean hasPreAllocedReturnAddr;
 	Type newReturnType;
+	int nLVTaintsCounted = 0;
+	boolean returnLVVisited = false;
 
-	ArrayList<Type> oldTypesDoublesAreOne;
 
-	public UninstTaintSentinalArgFixer(MethodVisitor mv, int access, String name, String desc, String originalDesc) {
+	public UninstTaintSentinalArgFixer(MethodVisitor mv, int access, String name,
+			String desc, String originalDesc) {
 		super(Opcodes.ASM5, mv);
 		this.name = name;
 		this.desc = desc;
-		oldArgTypes = Type.getArgumentTypes(originalDesc);
-		origNumArgs = oldArgTypes.length;
-		isStatic = (Opcodes.ACC_STATIC & access) != 0;
+		this.oldArgTypes = Type.getArgumentTypes(originalDesc);
+		this.origNumArgs = oldArgTypes.length;
+		this.isStatic = (Opcodes.ACC_STATIC & access) != 0;
+		
 		for (Type t : oldArgTypes)
 			originalLastArgIdx += t.getSize();
 		if (!isStatic)
 			originalLastArgIdx++;
 		if (!isStatic)
 			origNumArgs++;
-		newArgOffset = 0;
-		//		System.out.println(name+originalDesc + " -> origLastArg is " + originalLastArgIdx + "orig nargs " + origNumArgs);
-		oldArgTypesList = new ArrayList<Type>();
-		oldTypesDoublesAreOne = new ArrayList<Type>();
+
+		this.newArgOffset = 0;
+		this.oldArgTypesList = new ArrayList<Type>();
+		this.oldTypesDoublesAreOne = new ArrayList<Type>();
+
 		if (!isStatic) {
 			oldArgTypesList.add(Type.getType("Lthis;"));
 			oldTypesDoublesAreOne.add(Type.getType("Lthis;"));
@@ -75,18 +79,20 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 		return newArgOffset;
 	}
 
-	int nLVTaintsCounted = 0;
-
-	boolean returnLVVisited = false;
-
 	@Override
-	public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
+	public void visitLocalVariable(String name, String desc, String signature,
+			Label start, Label end, int index) {
 		if (!isStatic && index == 0)
 			super.visitLocalVariable(name, desc, signature, start, end, index);
 		else if (index < originalLastArgIdx) {
 			super.visitLocalVariable(name, desc, signature, start, end, index);
-			if (index == originalLastArgIdx - 1 && this.name.equals("<init>") && hasTaintSentinalAddedToDesc) {
-				super.visitLocalVariable("TAINT_STUFF_TO_IGNORE_HAHA", "Ljava/lang/Object;", null, start, end, originalLastArgIdx+ (Configuration.IMPLICIT_TRACKING ? 2 : 1));
+			if (index == originalLastArgIdx - 1
+					&& this.name.equals("<init>")
+					&& hasTaintSentinalAddedToDesc) {
+				super.visitLocalVariable("TAINT_STUFF_TO_IGNORE_HAHA",
+						"Ljava/lang/Object;",
+						null, start, end,
+						originalLastArgIdx + (Configuration.IMPLICIT_TRACKING ? 2 : 1));
 			}
 		} else {
 			super.visitLocalVariable(name, desc, signature, start, end, index + newArgOffset);
@@ -115,7 +121,7 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 					nLocal++;
 				}
 				remappedLocals[newIdx] = local[i];
-				
+
 				newIdx++;
 
 			}
@@ -124,7 +130,6 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 			remappedLocals = local;
 		}
 		super.visitFrame(type, nLocal, remappedLocals, nStack, stack);
-
 	}
 
 	@Override
@@ -144,12 +149,14 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 	}
 
 	@Override
-	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
+	public void visitMethodInsn(int opcode, String owner, String name,
+			String desc, boolean itfc) {
 		super.visitMethodInsn(opcode, owner, name, desc, itfc);
 	}
 
 	public void visitVarInsn(int opcode, int var) {
-		if (opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START) {
+		if (opcode == TaintUtils.BRANCH_END
+				|| opcode == TaintUtils.BRANCH_START) {
 			super.visitVarInsn(opcode, var);
 			return;
 		}
