@@ -14,13 +14,15 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 
 public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 
-	public PrimitiveBoxingFixer(int api, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
-		super(api, className, name, desc, signature, exceptions, mv, analyzer);
-	}
-
 	int tmpInt = -1;;
 	boolean ignoreLoadingTaint;
+	boolean followedByFrame = false;
 
+	public PrimitiveBoxingFixer(int api, String className, String name, String desc,
+			String signature, String[] exceptions,
+			MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
+		super(api, className, name, desc, signature, exceptions, mv, analyzer);
+	}
 
 	@Override
 	public void visitVarInsn(int opcode, int var) {
@@ -28,6 +30,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 		if(followedByFrame)
 			followedByFrame = false;
 	}
+
 	@Override
 	public void visitFieldInsn(int opcode, String owner, String name, String desc) {
 		super.visitFieldInsn(opcode, owner, name, desc);
@@ -41,31 +44,35 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 		if(followedByFrame)
 			followedByFrame = false;
 	}
+	
 	@Override
 	public void visitLdcInsn(Object cst) {
 		super.visitLdcInsn(cst);
 		if(followedByFrame)
 			followedByFrame = false;
 	}
+
 	@Override
 	public void visitTypeInsn(int opcode, String type) {
 		super.visitTypeInsn(opcode, type);
 		if(followedByFrame)
 			followedByFrame = false;
 	}
+
 	@Override
 	public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
 		super.visitLookupSwitchInsn(dflt, keys, labels);
 		if(followedByFrame)
 			followedByFrame = false;
 	}
+
 	@Override
 	public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
 		super.visitTableSwitchInsn(min, max, dflt, labels);
 		if(followedByFrame)
 			followedByFrame = false;
 	}
-	boolean followedByFrame = false;
+	
 	@Override
 	public void visitInsn(int opcode) {
 		if (opcode == TaintUtils.DONT_LOAD_TAINT)
@@ -88,23 +95,27 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 		for (Type t : Type.getArgumentTypes(desc))
 			if (t.getSort() == Type.OBJECT && t.getDescriptor().equals("Ljava/lang/String;"))
 				argIsStr = true;
-		//Get an extra copy of the taint
-		if(Configuration.WITH_ENUM_BY_VAL && opcode == INVOKESTATIC && owner.equals(Type.getInternalName(Enum.class)))
-		{
-			super.visitMethodInsn(opcode, Type.getInternalName(TaintUtils.class), "enumValueOf", desc,itfc);
+		// Get an extra copy of the taint
+		if (Configuration.WITH_ENUM_BY_VAL
+				&& opcode == INVOKESTATIC
+				&& owner.equals(Type.getInternalName(Enum.class))) {
+			super.visitMethodInsn(opcode,
+					Type.getInternalName(TaintUtils.class),
+					"enumValueOf",
+					desc,
+					itfc);
 			return;
-		}
-		else if ((owner.equals(Type.getInternalName(Integer.class))
-		//				|| owner.equals(Type.getInternalName(Byte.class))
-		//				|| owner.equals(Type.getInternalName(Character.class))
-		//				|| owner.equals(Type.getInternalName(Short.class)) ||  owner.equals(Type.getInternalName(Float.class)) 
-				|| owner.equals(Type.getInternalName(Long.class)) || owner.equals(Type.getInternalName(Double.class))) && name.equals("valueOf$$PHOSPHORTAGGED") && nArgs == 2 && !argIsStr) {
+		} else if ((owner.equals(Type.getInternalName(Integer.class))
+					|| owner.equals(Type.getInternalName(Long.class))
+					|| owner.equals(Type.getInternalName(Double.class)))
+				&& name.equals("valueOf$$PHOSPHORTAGGED")
+				&& nArgs == 2
+				&& !argIsStr) {
 			Type argT = Type.getArgumentTypes(desc)[1];
 			int argSize = argT.getSize();
 			if (argSize == 1) {
-//				System.out.println(analyzer.stack);
-				//stack is currently T I <top>
-				//we'll support (Integer) 1 == (Integer) 1 as long as there is no taint on it.
+				// stack is currently T I <top>
+				// we'll support (Integer) 1 == (Integer) 1 as long as there is no taint on it.
 				super.visitInsn(SWAP);
 				FrameNode fn = getCurrentFrameNode();
 				super.visitInsn(DUP);
@@ -124,7 +135,14 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitInsn(Opcodes.POP2);
 				//N N T I
 				super.visitInsn(Opcodes.ACONST_NULL);
-				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V",false);
+				super.visitMethodInsn(Opcodes.INVOKESPECIAL,
+						owner,
+						"<init>",
+						"(" + Configuration.TAINT_TAG_DESC
+							+ Type.getArgumentTypes(desc)[1].getDescriptor()
+							+ Type.getDescriptor(TaintSentinel.class)
+							+ ")V",
+						false);
 				FrameNode fn2 = getCurrentFrameNode();
 				super.visitLabel(isOK);
 				if(!followedByFrame)
@@ -162,74 +180,28 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitVarInsn(argT.getOpcode(ILOAD), tmp);
 
 				super.visitInsn(Opcodes.ACONST_NULL);
-				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V", false);
+				super.visitMethodInsn(Opcodes.INVOKESPECIAL,
+						owner,
+						"<init>",
+						"(" + Configuration.TAINT_TAG_DESC
+							+ Type.getArgumentTypes(desc)[1].getDescriptor()
+							+ Type.getDescriptor(TaintSentinel.class)
+							+ ")V",
+						false);
 				lvs.freeTmpLV(tmp);
 				lvs.freeTmpLV(tmpT);
-        FrameNode fn2 = getCurrentFrameNode();
+				FrameNode fn2 = getCurrentFrameNode();
 				super.visitLabel(isOK);
 				if(!followedByFrame)
 					acceptFn(fn2);
-//				super.visitMethodInsn(opcode, owner, name, desc,itfc);
-
+				// super.visitMethodInsn(opcode, owner, name, desc,itfc);
 			}
-		} 
-//		else if (owner.equals(Type.getInternalName(Integer.class)) && name.equals("parseInt$$PHOSPHORTAGGED")) {
-//			if (nArgs == 2) {
-//				super.visitInsn(Opcodes.DUP);
-//				super.visitMethodInsn(opcode, owner, name, desc,itfc);
-//				super.visitInsn(DUP_X1);
-//				super.visitInsn(SWAP);
-//				retrieveTopOfStackTaintAndPop();
-//			} else if (nArgs == 4) {
-//				//S I I
-//				super.visitInsn(DUP2_X1);
-//				//				//I I S II
-//				super.visitInsn(POP2);
-//				//				//II S
-//				retrieveTopOfStackTaint(true, true);
-//				int tmpInt = lvs.getTmpLV(Type.INT_TYPE);
-//
-//				super.visitVarInsn(ISTORE, tmpInt);
-//				super.visitInsn(DUP_X2);
-//				super.visitInsn(POP);
-//				super.visitMethodInsn(opcode, owner, name, desc,itfc);
-//				super.visitInsn(DUP);
-//				super.visitVarInsn(ILOAD, tmpInt);
-//				lvs.freeTmpLV(tmpInt);
-//
-//			}
-//			//stack is now <Integer Integer taint TOP>
-//			super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedInt.class), "taint", "I");
-//		} 
-			else
-			super.visitMethodInsn(opcode, owner, name, desc,itfc);
+		} else
+			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 
-		//O T
-		//		if((owner.equals(Type.getInternalName(Integer.class))
-		////				|| owner.equals(Type.getInternalName(String.class))
-		//				|| owner.equals(Type.getInternalName(Byte.class))
-		//				|| owner.equals(Type.getInternalName(Character.class))
-		//				|| owner.equals(Type.getInternalName(Short.class))
-		////				|| owner.equals(Type.getInternalName(Long.class))
-		//				|| owner.equals(Type.getInternalName(Float.class))
-		////				|| owner.equals(Type.getInternalName(Double.class))
-		//				)//TODO support strings and long/double
-		//				&& name.equals("valueOf$$PHOSPHORTAGGED") && nArgs == 1 && !argIsStr)		{
-		//			super.visitInsn(Opcodes.DUP_X1); //O T O
-		//			super.visitInsn(Opcodes.SWAP);//T O O
-		////			if(owner.equals("java/lang/String"))
-		////			{
-		//				//Initialize the taint array so each element is the 
-		//				//TODO i think we were supposed to do something here and i forgot.
-		////				super.visitFieldInsn(Opcodes.PUTFIELD, owner, "value"+TaintUtils.TAINT_FIELD, "[I");
-		////			}
-		////			else
-		//			super.visitFieldInsn(Opcodes.PUTFIELD, owner, TaintUtils.TAINT_FIELD, "I");
-		//		}
 		//TODO boxing the other way maybe too?
 		//TODO handle situations with radix param
 		if(followedByFrame)
 			followedByFrame = false;
 	}
-
 }
