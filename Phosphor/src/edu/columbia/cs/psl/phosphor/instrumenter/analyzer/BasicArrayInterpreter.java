@@ -11,36 +11,33 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 	
 	@Override
 	public BasicValue newOperation(AbstractInsnNode insn) throws AnalyzerException {
-		if(insn.getOpcode() == Opcodes.ACONST_NULL)
-		{
+		if (insn.getOpcode() == Opcodes.ACONST_NULL) {
 			return BasicArrayValue.NULL_VALUE;
 		}
+
 		return super.newOperation(insn);
 	}
 	
 	@Override
-	public BasicValue binaryOperation(AbstractInsnNode insn, BasicValue value1, BasicValue value2) throws AnalyzerException {
-		if(insn.getOpcode() == Opcodes.AALOAD)
-		{
+	public BasicValue binaryOperation(AbstractInsnNode insn,
+			BasicValue value1, BasicValue value2) throws AnalyzerException {
+		if (insn.getOpcode() == Opcodes.AALOAD) {
 			return value1;
-		}
-		else
+		} else
 			return super.binaryOperation(insn, value1, value2);
 	}
+
 	@Override
 	public BasicValue newValue(Type type) {
 		if (type == null) {
             return BasicValue.UNINITIALIZED_VALUE;
         }
-		if(type.getSort() == Type.ARRAY)
-		{
-			if(type.getDimensions() > 1)
-			{
+
+		if (type.getSort() == Type.ARRAY) {
+			if (type.getDimensions() > 1) {
 				return new BasicArrayValue(type);
-			}
-			else
-				switch(type.getElementType().getSort())
-				{
+			} else
+				switch (type.getElementType().getSort()) {
 				case Type.BOOLEAN:
 					return BasicArrayValue.BOOLEAN_ARRAY;
 				case Type.BYTE:
@@ -59,11 +56,10 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 					return BasicArrayValue.REFERENCE_VALUE;
 				case Type.SHORT:
 					return BasicArrayValue.SHORT_ARRAY;
-					default:
-						throw new IllegalArgumentException();
+				default:
+					throw new IllegalArgumentException();
 				}
-		}
-		else if(type.equals("Lnull;"))
+		} else if (type.equals("Lnull;"))
 			return BasicArrayValue.NULL_VALUE;
 		else
 			return super.newValue(type);

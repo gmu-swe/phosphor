@@ -17,6 +17,7 @@ public class BasicArrayValue extends BasicValue {
 	public BasicArrayValue(Type type) {
 		super(type);
 	}
+
 	@Override
 	public String toString() {
 		if(this == NULL_VALUE)
