@@ -98,17 +98,19 @@ public final class NativeHelper {
 
 	private static final Collection ensureIsUnBoxedInternal(Collection in, int which) {
 
-		boolean isNull;
+		boolean isNull = true;
 
 		if (in != null) {
 			Collection tmp = null;
 			for (Object o : in) {
+				if (o != null) {
+					isNull = (which < 2)
+						? MultiDTaintedArrayWithObjTag.isPrimitiveBoxClass(o.getClass()) != null
+						: MultiDTaintedArrayWithIntTag.isPrimitiveBoxClass(o.getClass()) != null;
 
-				isNull = (which < 2)
-					? MultiDTaintedArrayWithObjTag.isPrimitiveBoxClass(o.getClass()) != null
-					: MultiDTaintedArrayWithIntTag.isPrimitiveBoxClass(o.getClass()) != null;
+					if (!isNull)
+						break;
 
-				if (o != null && isNull) {
 					if (tmp == null) {
 						try {
 							tmp = (Collection) in.getClass()
