@@ -9,11 +9,11 @@ public final class TaintedShortArrayWithObjTag extends TaintedPrimitiveArrayWith
 	public Object toStackType() {
 		return new MultiDTaintedShortArrayWithObjTag(taint, val);
 	}
+
 	public TaintedShortArrayWithObjTag(Object[] taint, short[] val) {
 		this.taint = taint;
 		this.val = val;
 	}
 
-	public TaintedShortArrayWithObjTag() {
-	}
+	public TaintedShortArrayWithObjTag() {}
 }

@@ -9,10 +9,9 @@ public final class TaintedByteArrayWithObjTag extends TaintedPrimitiveArrayWithO
 	public Object toStackType() {
 		return new MultiDTaintedByteArrayWithObjTag(taint, val);
 	}
-	public TaintedByteArrayWithObjTag()
-	{
-		
-	}
+
+	public TaintedByteArrayWithObjTag() {}
+
 	public TaintedByteArrayWithObjTag(Object[] taint, byte[] val) {
 		this.val = val;
 		this.taint = taint;

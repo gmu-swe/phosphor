@@ -4,10 +4,8 @@ import java.io.IOException;
 import java.io.Serializable;
 
 public final class TaintedLongWithIntTag extends TaintedPrimitiveWithIntTag implements Serializable {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -2036116913949916760L;
+	public long val;
 
 	@Override
 	public Object getValue() {
@@ -24,8 +22,6 @@ public final class TaintedLongWithIntTag extends TaintedPrimitiveWithIntTag impl
 		taint = stream.readInt();
 	}
 
-	public long val;
-
 	public static final TaintedLongWithIntTag valueOf(int taint, long val) {
 		return new TaintedLongWithIntTag(taint, val);
 	}
@@ -35,7 +31,5 @@ public final class TaintedLongWithIntTag extends TaintedPrimitiveWithIntTag impl
 		this.val = val;
 	}
 
-	public TaintedLongWithIntTag() {
-
-	}
+	public TaintedLongWithIntTag() {}
 }

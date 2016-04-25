@@ -4,10 +4,9 @@ import java.io.IOException;
 import java.io.Serializable;
 
 public final class TaintedCharWithObjTag extends TaintedPrimitiveWithObjTag implements Serializable{
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 64664108579896882L;
+	public char val;
+
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
 		stream.writeChar(val);
 		stream.writeObject(taint);
@@ -21,12 +20,10 @@ public final class TaintedCharWithObjTag extends TaintedPrimitiveWithObjTag impl
 	public Object getValue() {
 		return val;
 	}
-	public char val;
 
 	static TaintedCharWithObjTag[] cache;
 	static {
 		cache = new TaintedCharWithObjTag[127 + 1];
-
 		for (int i = 0; i < cache.length; i++)
 			cache[i] = new TaintedCharWithObjTag(null, (char) i);
 	}
@@ -43,6 +40,5 @@ public final class TaintedCharWithObjTag extends TaintedPrimitiveWithObjTag impl
 		this.val = val;
 	}
 
-	public TaintedCharWithObjTag() {
-	}
+	public TaintedCharWithObjTag() {}
 }

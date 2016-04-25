@@ -10,9 +10,7 @@ public final class TaintedCharArrayWithObjTag extends TaintedPrimitiveArrayWithO
 		return new MultiDTaintedCharArrayWithObjTag(taint, val);
 	}
 
-	public TaintedCharArrayWithObjTag() {
-
-	}
+	public TaintedCharArrayWithObjTag() {}
 
 	public TaintedCharArrayWithObjTag(Object[] taint, char[] val) {
 		this.taint = taint;

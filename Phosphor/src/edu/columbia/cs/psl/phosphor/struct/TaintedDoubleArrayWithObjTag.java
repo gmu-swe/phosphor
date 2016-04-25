@@ -10,9 +10,7 @@ public final class TaintedDoubleArrayWithObjTag extends TaintedPrimitiveArrayWit
 		return new MultiDTaintedDoubleArrayWithObjTag(taint, val);
 	}
 
-	public TaintedDoubleArrayWithObjTag() {
-
-	}
+	public TaintedDoubleArrayWithObjTag() {}
 
 	public TaintedDoubleArrayWithObjTag(Object[] taint, double[] val) {
 		this.taint = taint;

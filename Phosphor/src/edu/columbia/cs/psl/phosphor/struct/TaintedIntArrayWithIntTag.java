@@ -9,9 +9,9 @@ public final class TaintedIntArrayWithIntTag extends TaintedPrimitiveArrayWithIn
 	public Object toStackType() {
 		return new MultiDTaintedIntArrayWithIntTag(taint, val);
 	}
-	public TaintedIntArrayWithIntTag(){
-		
-	}
+
+	public TaintedIntArrayWithIntTag() {}
+
 	public TaintedIntArrayWithIntTag(int[] taint, int[] val) {
 		this.taint = taint;
 		this.val = val;

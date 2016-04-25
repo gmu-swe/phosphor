@@ -9,10 +9,9 @@ public final class TaintedBooleanArrayWithIntTag extends TaintedPrimitiveArrayWi
 	public Object toStackType() {
 		return new MultiDTaintedBooleanArrayWithIntTag(taint, val);
 	}
-	public TaintedBooleanArrayWithIntTag()
-	{
-		
-	}
+
+	public TaintedBooleanArrayWithIntTag() {}
+
 	public TaintedBooleanArrayWithIntTag(int[] taint, boolean[] val) {
 		this.taint = taint;
 		this.val = val;

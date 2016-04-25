@@ -10,9 +10,7 @@ public final class TaintedCharArrayWithIntTag extends TaintedPrimitiveArrayWithI
 		return new MultiDTaintedCharArrayWithIntTag(taint, val);
 	}
 
-	public TaintedCharArrayWithIntTag() {
-
-	}
+	public TaintedCharArrayWithIntTag() {}
 
 	public TaintedCharArrayWithIntTag(int[] taint, char[] val) {
 		this.taint = taint;

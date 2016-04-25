@@ -5,10 +5,8 @@ import java.io.Serializable;
 
 
 public final class TaintedBooleanWithObjTag extends TaintedPrimitiveWithObjTag implements Serializable{
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 2665598564631615110L;
+	public boolean val;
 
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
 		stream.writeBoolean(val);
@@ -19,11 +17,11 @@ public final class TaintedBooleanWithObjTag extends TaintedPrimitiveWithObjTag i
 		val = stream.readBoolean();
 		taint = stream.readObject();
 	}
+
 	@Override
 	public Object getValue() {
 		return val;
 	}
-	public boolean val;
 
 	static TaintedBooleanWithObjTag[] cache = new TaintedBooleanWithObjTag[2];
 	static {
@@ -42,7 +40,5 @@ public final class TaintedBooleanWithObjTag extends TaintedPrimitiveWithObjTag i
 		this.val = val;
 	}
 
-	public TaintedBooleanWithObjTag() {
-
-	}
+	public TaintedBooleanWithObjTag() {}
 }

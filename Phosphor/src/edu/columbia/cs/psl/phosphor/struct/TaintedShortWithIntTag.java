@@ -4,10 +4,8 @@ import java.io.IOException;
 import java.io.Serializable;
 
 public final class TaintedShortWithIntTag extends TaintedPrimitiveWithIntTag implements Serializable {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 719385575251672639L;
+	public short val;
 
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
 		stream.writeShort(val);
@@ -18,12 +16,11 @@ public final class TaintedShortWithIntTag extends TaintedPrimitiveWithIntTag imp
 		val = stream.readShort();
 		taint = stream.readInt();
 	}
+
 	@Override
 	public Object getValue() {
 		return val;
 	}
-
-	public short val;
 
 	public static final TaintedShortWithIntTag valueOf(int taint, short val) {
 		return new TaintedShortWithIntTag(taint, val);
@@ -34,7 +31,5 @@ public final class TaintedShortWithIntTag extends TaintedPrimitiveWithIntTag imp
 		this.val = val;
 	}
 
-	public TaintedShortWithIntTag() {
-		// TODO Auto-generated constructor stub
-	}
+	public TaintedShortWithIntTag() {}
 }

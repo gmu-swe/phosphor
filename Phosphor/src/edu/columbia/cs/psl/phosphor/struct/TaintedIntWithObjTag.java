@@ -4,11 +4,8 @@ import java.io.IOException;
 import java.io.Serializable;
 
 public final class TaintedIntWithObjTag extends TaintedPrimitiveWithObjTag implements Serializable {
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -7831608795570286818L;
+	public int val;
 
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
 		stream.writeInt(val);
@@ -25,7 +22,6 @@ public final class TaintedIntWithObjTag extends TaintedPrimitiveWithObjTag imple
 		return val;
 	}
 
-	public int val;
 	static final int cache_low = -127;
 	static final int cache_high = 128;
 
@@ -48,7 +44,5 @@ public final class TaintedIntWithObjTag extends TaintedPrimitiveWithObjTag imple
 		this.val = val;
 	}
 
-	public TaintedIntWithObjTag() {
-		// TODO Auto-generated constructor stub
-	}
+	public TaintedIntWithObjTag() {}
 }
