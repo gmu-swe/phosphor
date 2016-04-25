@@ -9,13 +9,15 @@ public class MethodInformation implements Serializable {
 
 	@Override
 	public String toString() {
-		return owner+"."+name+desc;
+		return owner + "." + name + desc;
 	}
+
 	public MethodInformation(String owner, String name, String desc) {
 		this.owner = owner;
 		this.name = name;
 		this.desc = desc;
 	}
+
 	String owner;
 	String name;
 	String desc;
@@ -27,45 +29,59 @@ public class MethodInformation implements Serializable {
 	public String getOwner() {
 		return owner;
 	}
+
 	public void setOwner(String owner) {
 		this.owner = owner;
 	}
+
 	public String getName() {
 		return name;
 	}
+
 	public void setName(String name) {
 		this.name = name;
 	}
+
 	public String getDesc() {
 		return desc;
 	}
+
 	public void setDesc(String desc) {
 		this.desc = desc;
 	}
+
 	public HashSet<MethodInformation> getMethodsCalled() {
 		return methodsCalled;
 	}
+
 	public void setMethodsCalled(HashSet<MethodInformation> methodsCalled) {
 		this.methodsCalled = methodsCalled;
 	}
+
 	public boolean callsTaintSourceMethods() {
 		return callsTaintedMethods;
 	}
+
 	public void setCallsTaintedMethods(boolean callsTaintedMethods) {
 		this.callsTaintedMethods = callsTaintedMethods;
 	}
+
 	public boolean doesNotCallTaintSourceMethods() {
 		return doesNotCallTaintedMethods;
 	}
+
 	public void setDoesNotCallTaintedMethods(boolean doesNotCallTaintedMethods) {
 		this.doesNotCallTaintedMethods = doesNotCallTaintedMethods;
 	}
+
 	public boolean isTaintCallExplorationInProgress() {
 		return taintCallExplorationInProgress;
 	}
+
 	public void setTaintCallExplorationInProgress(boolean taintCallExplorationInProgress) {
 		this.taintCallExplorationInProgress = taintCallExplorationInProgress;
 	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -75,6 +91,7 @@ public class MethodInformation implements Serializable {
 		result = prime * result + ((owner == null) ? 0 : owner.hashCode());
 		return result;
 	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -101,24 +118,33 @@ public class MethodInformation implements Serializable {
 			return false;
 		return true;
 	}
+
 	boolean isPure = true;
+	
 	public boolean isPure() {
 		return isPure;
 	}
+
 	public void setPure(boolean isPure) {
 		this.isPure = isPure;
 	}
+
 	boolean visited;
+	
 	public void setVisited(boolean b) {
 		this.visited =b;
 	}
+
 	public boolean isVisited() {
 		return visited;
 	}
+
 	boolean calculated;
+	
 	public boolean isCalculated() {
 		return calculated;
 	}
+
 	public void setCalculated(boolean calculated) {
 		this.calculated = calculated;
 	}

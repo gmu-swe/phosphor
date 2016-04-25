@@ -35,8 +35,11 @@ public class CallGraph implements Serializable {
 		return graph.get(owner + "." + name + desc);
 	}
 
-	public void addEdge(String callerOwner, String callerName, String callerDesc, String calleeOwner, String calleeName, String calleeDesc) {
-		getMethodNode(callerOwner, callerName, callerDesc).methodsCalled.add(getMethodNode(calleeOwner, calleeName, calleeDesc));
+	public void addEdge(String callerOwner, String callerName, String callerDesc,
+			String calleeOwner, String calleeName, String calleeDesc) {
+		getMethodNode(callerOwner, callerName, callerDesc)
+			.methodsCalled
+			.add(getMethodNode(calleeOwner, calleeName, calleeDesc));
 	}
 
 	public Collection<MethodInformation> getMethods() {
@@ -47,12 +50,13 @@ public class CallGraph implements Serializable {
 		return getMethodNodeIfExistsInHierarchy(owner, name, desc, new HashSet<String>());
 	}
 
-	public MethodInformation getMethodNodeIfExistsInHierarchy(String owner, String name, String desc, HashSet<String> tried)
-	{
-		if(tried.contains(owner))
+	public MethodInformation getMethodNodeIfExistsInHierarchy(String owner, String name,
+			String desc, HashSet<String> tried) {
+		if (tried.contains(owner))
 			return null;
+
 		tried.add(owner);
-		if(owner.startsWith("["))
+		if (owner.startsWith("["))
 			owner = "java/lang/Object";
 		MethodInformation ret = getMethodNodeIfExists(owner, name, desc);
 		if (ret != null && ret.isVisited())
@@ -66,6 +70,7 @@ public class CallGraph implements Serializable {
 			if (ret != null)
 				return ret;
 		}
+
 		if (cn.interfaces != null)
 			for (String s : cn.interfaces) {
 				ret = getMethodNodeIfExistsInHierarchy(s, name, desc,tried);
@@ -74,6 +79,7 @@ public class CallGraph implements Serializable {
 			}
 		return null;
 	}
+
 	public boolean containsClass(String className) {
 		return classInfo.containsKey(className);
 	}

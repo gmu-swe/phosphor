@@ -63,7 +63,7 @@ public final class ControlTaintTagStack {
 		//Ensure not already enqueued in this thread's control flow
 		if(tag.enqueuedInControlFlow == null)
 			tag.enqueuedInControlFlow = new LinkedList<EnqueuedTaint>();
-		
+
 		LinkedList.Node<EnqueuedTaint> e = tag.enqueuedInControlFlow.getFirst();
 		while (e != null) {
 			if (e.entry != null && e.entry.controlTag == this)
