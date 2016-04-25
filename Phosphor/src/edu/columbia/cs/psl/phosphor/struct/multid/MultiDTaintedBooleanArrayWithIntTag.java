@@ -7,9 +7,6 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.Type;
 
 public final class MultiDTaintedBooleanArrayWithIntTag extends MultiDTaintedArrayWithIntTag implements Serializable {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 8992129368854396408L;
 	public boolean[] val;
 

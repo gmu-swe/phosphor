@@ -7,10 +7,6 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.Type;
 
 public final class MultiDTaintedLongArrayWithObjTag extends MultiDTaintedArrayWithObjTag implements Serializable {
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -1632040273380781122L;
 	public long[] val;
 

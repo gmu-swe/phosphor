@@ -7,20 +7,19 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.Type;
 
 public final class MultiDTaintedShortArrayWithObjTag extends MultiDTaintedArrayWithObjTag implements Serializable{
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 4176487299864850587L;
 	public short[] val;
+
 	public MultiDTaintedShortArrayWithObjTag(Object[] taint, short[] val) {
 		super(taint,Type.SHORT);
 		this.val=val;
 	}
+	
 	@Override
 	public Object getVal() {
 		return val;
 	}
+	
 	@Override
 	public Object clone() {
 		return new MultiDTaintedShortArrayWithObjTag(taint.clone(), val.clone());
@@ -43,8 +42,7 @@ public final class MultiDTaintedShortArrayWithObjTag extends MultiDTaintedArrayW
 		int len = stream.readInt();
 		val = new short[len];
 		taint = TaintUtils.newTaintArray(len);
-		for(int i=0;i<len;i++)
-		{
+		for(int i=0;i<len;i++) {
 			if(TaintUtils.TAINT_THROUGH_SERIALIZATION)
 			taint[i] = stream.readObject();
 			val[i] = stream.readShort();
