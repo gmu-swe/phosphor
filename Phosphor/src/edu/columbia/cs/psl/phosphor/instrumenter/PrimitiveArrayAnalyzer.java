@@ -43,7 +43,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		ArrayList<FrameNode> inFrames = new ArrayList<FrameNode>();
 		ArrayList<FrameNode> outFrames = new ArrayList<FrameNode>();
 
-		public PrimitiveArrayAnalyzerMN(int access, String name, String desc, String signature, String[] exceptions, String className, MethodVisitor cmv) {
+		public PrimitiveArrayAnalyzerMN(int access, String name, String desc,
+				String signature, String[] exceptions, String className,
+				MethodVisitor cmv) {
 			super(Opcodes.ASM5,access, name, desc, signature, exceptions);
 			this.className = className;
 			this.cmv = cmv;
@@ -59,35 +61,19 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 		}
 
-		//			@Override
-		//			public void visitVarInsn(int opcode, int var) {
-		//				if(opcode == Opcodes.ASTORE)
-		//				{
-		//					boolean isPrimArray = TaintAdapter.isPrimitiveStackType(analyzer.stack.get(analyzer.stack.size() - 1));
-		//					if(lvsThatAreArrays.containsKey(var))
-		//					{
-		//						if(lvsThatAreArrays.get(var) != isPrimArray)
-		//						{
-		//							throw new IllegalStateException("This analysis is currently too lazy to handle when you have 1 var slot take different kinds of arrays");
-		//						}
-		//					}
-		//					lvsThatAreArrays.put(var, isPrimArray);
-		//				}
-		//				super.visitVarInsn(opcode, var);
-		//			}
-		 private  void visitFrameTypes(final int n, final Object[] types,
-		            final List<Object> result) {
-		        for (int i = 0; i < n; ++i) {
-		            Object type = types[i];
-		            result.add(type);
-		            if (type == Opcodes.LONG || type == Opcodes.DOUBLE) {
-		                result.add(Opcodes.TOP);
-		            }
-		        }
-		    }
+		private void visitFrameTypes(final int n, final Object[] types,
+				final List<Object> result) {
+			for (int i = 0; i < n; ++i) {
+				Object type = types[i];
+				result.add(type);
+				if (type == Opcodes.LONG || type == Opcodes.DOUBLE) {
+					result.add(Opcodes.TOP);
+				}
+			}
+		}
 
-		FrameNode generateFrameNode(int type, int nLocal, Object[] local, int nStack, Object[] stack)
-		{
+		FrameNode generateFrameNode(int type, int nLocal, Object[] local,
+				int nStack, Object[] stack) {
 			FrameNode ret = new FrameNode(type, nLocal, local, nStack, stack);
 			ret.local = new ArrayList<Object>();
 			ret.stack= new ArrayList<Object>();
@@ -97,43 +83,50 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		}
 
 		@Override
-		public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
+		public void visitFrame(int type, int nLocal, Object[] local,
+				int nStack, Object[] stack) {
 			if (DEBUG)
 				System.out.println("Visitframe curlabel " + (curLabel - 1));
+
 			super.visitFrame(type, nLocal, local, nStack, stack);
+			
 			if (DEBUG)
 				System.out.println("label " + (curLabel - 1) + " reset to " + Arrays.toString(stack));
 			if (inFrames.size() == curLabel - 1)
 				inFrames.add(generateFrameNode(type, nLocal, local, nStack, stack));
 			else
 				inFrames.set(curLabel - 1, generateFrameNode(type, nLocal, local, nStack, stack));
-			//				System.out.println(name+" " +Arrays.toString(local));
-			//				if (curLabel > 0) {
-			//				System.out.println("And resetting outframe " + (curLabel - 2));
-			//					if (outFrames.size() == curLabel - 1)
-			//						outFrames.add(new FrameNode(type, nLocal, local, nStack, stack));
-			//					 if(outFrames.get(curLabel -1) == null)
-			//						outFrames.set(curLabel - 1, new FrameNode(type, nLocal, local, nStack, stack));
-			//				}
 		}
 
 		@Override
 		public void visitLabel(Label label) {
-			//				if (curLabel >= 0)
 			if (DEBUG)
-				System.out.println("Visit label: " + curLabel + " analyzer: " + analyzer.stack + " inframes size " + inFrames.size() + " " + outFrames.size());
+				System.out.println("Visit label: " + curLabel
+						+ " analyzer: " + analyzer.stack
+						+ " inframes size " + inFrames.size()
+						+ " " + outFrames.size());
+
 			if (analyzer.locals == null || analyzer.stack == null)
 				inFrames.add(new FrameNode(0, 0, new Object[0], 0, new Object[0]));
 			else
-				inFrames.add(new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
-			//				if (outFrames.size() <= curLabel) {
-			//					if(analyzer.stack == null)
+				inFrames.add(new FrameNode(0, analyzer.locals.size(),
+							analyzer.locals.toArray(),
+							analyzer.stack.size(),
+							analyzer.stack.toArray()));
+
 			outFrames.add(null);
-			if (curLabel > 0 && outFrames.get(curLabel - 1) == null && analyzer.stack != null)
-				outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
+
+			if (curLabel > 0
+					&& outFrames.get(curLabel - 1) == null
+					&& analyzer.stack != null)
+				outFrames.set(curLabel - 1,
+						new FrameNode(0, analyzer.locals.size(),
+										 analyzer.locals.toArray(),
+										 analyzer.stack.size(),
+										 analyzer.stack.toArray()));
 			if (DEBUG)
-				System.out.println("Added outframe for " + (outFrames.size() - 1) + " : " + analyzer.stack);
-			//				}
+				System.out.println("Added outframe for "
+						+ (outFrames.size() - 1) + " : " + analyzer.stack);
 
 			super.visitLabel(label);
 			curLabel++;
@@ -143,7 +136,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
 			if (DEBUG)
 				System.out.println("Rewriting " + curLabel + " OUT to " + analyzer.stack);
-			outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
+
+			outFrames.set(curLabel - 1,
+					new FrameNode(0, analyzer.locals.size(),
+									 analyzer.locals.toArray(),
+									 analyzer.stack.size(),
+									 analyzer.stack.toArray()));
 			super.visitTableSwitchInsn(min, max, dflt, labels);
 		}
 
@@ -151,7 +149,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
 			if (DEBUG)
 				System.out.println("Rewriting " + curLabel + " OUT to " + analyzer.stack);
-			outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
+
+			outFrames.set(curLabel - 1,
+					new FrameNode(0, analyzer.locals.size(),
+									 analyzer.locals.toArray(),
+									 analyzer.stack.size(),
+									 analyzer.stack.toArray()));
 			super.visitLookupSwitchInsn(dflt, keys, labels);
 		}
 
@@ -160,16 +163,20 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			if (opcode == Opcodes.ATHROW) {
 				if (DEBUG)
 					System.out.println("Rewriting " + curLabel + " OUT to " + analyzer.stack);
+
 				if (analyzer.locals != null && analyzer.stack != null)
-					outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
+					outFrames.set(curLabel - 1,
+							new FrameNode(0, analyzer.locals.size(),
+											 analyzer.locals.toArray(),
+											 analyzer.stack.size(),
+											 analyzer.stack.toArray()));
 			}
 			super.visitInsn(opcode);
 		}
 
 		public void visitJumpInsn(int opcode, Label label) {
-			//				System.out.println(opcode);
-			//				if (opcode == Opcodes.GOTO) {
 			super.visitJumpInsn(opcode, label);
+
 			int nToPop = 0;
 			switch (opcode) {
 			case Opcodes.IFEQ:
@@ -200,9 +207,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			default:
 				throw new IllegalArgumentException();
 			}
-			//The analyzer won't have executed yet, so simulate it did :'(
+			// The analyzer won't have executed yet, so simulate it did :'(
 			List<Object> stack = new ArrayList<Object>(analyzer.stack);
-			//				System.out.println("got to remove " + nToPop +  " from " + analyzer.stack + " in " + className + "."+name );
+			// System.out.println("got to remove " + nToPop
+			// + " from " + analyzer.stack + " in " + className + "."+name );
 			while (nToPop > 0 && !stack.isEmpty()) {
 				stack.remove(stack.size() - 1);
 				nToPop--;
@@ -210,21 +218,28 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 			if (DEBUG)
 				System.out.println(name + " Rewriting " + curLabel + " OUT to " + stack);
-			outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), stack.size(), stack.toArray()));
-			visitLabel(new Label());
-			//				}
 
+			outFrames.set(curLabel - 1,
+					new FrameNode(0, analyzer.locals.size(),
+									 analyzer.locals.toArray(),
+									 stack.size(),
+									 stack.toArray()));
+			visitLabel(new Label());
 		}
 
 		@Override
 		public void visitEnd() {
-			final HashMap<Integer, LinkedList<Integer>> neverAutoBoxByFrame = new HashMap<Integer, LinkedList<Integer>>();
-			final HashMap<Integer, LinkedList<Integer>> alwaysAutoBoxByFrame = new HashMap<Integer, LinkedList<Integer>>();
-			final HashMap<Integer, LinkedList<Integer>> outEdges = new HashMap<Integer, LinkedList<Integer>>();
+			final HashMap<Integer, LinkedList<Integer>> neverAutoBoxByFrame =
+										new HashMap<Integer, LinkedList<Integer>>();
+			final HashMap<Integer, LinkedList<Integer>> alwaysAutoBoxByFrame =
+										new HashMap<Integer, LinkedList<Integer>>();
+			final HashMap<Integer, LinkedList<Integer>> outEdges =
+										new HashMap<Integer, LinkedList<Integer>>();
 			final HashSet<Integer> insertACHECKCASTBEFORE = new HashSet<Integer>();
 			final HashSet<Integer> insertACONSTNULLBEFORE = new HashSet<Integer>();
+
 			Analyzer a = new Analyzer(new BasicArrayInterpreter()) {
-			    protected int[] insnToLabel;
+				protected int[] insnToLabel;
 
 				int getLabel(int insn) {
 					int label = -1;
@@ -258,7 +273,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				int getFirstInsnByLabel(int label) {
 					for (int j = 0; j < insnToLabel.length; j++) {
 						if (insnToLabel[j] == label) {
-							if (instructions.get(j).getType() == AbstractInsnNode.FRAME || instructions.get(j).getType() == AbstractInsnNode.LABEL
+							if (instructions.get(j).getType() == AbstractInsnNode.FRAME
+									|| instructions.get(j).getType() == AbstractInsnNode.LABEL
 									|| instructions.get(j).getType() == AbstractInsnNode.LINE)
 								continue;
 							return j;
@@ -273,7 +289,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					insnToLabel = new int[m.instructions.size()];
 					endsWithGOTO = new boolean[insnToLabel.length];
 
-					//						System.out.println(name);
 					int label = -1;
 					boolean isFirst = true;
 					while (insns.hasNext()) {
@@ -289,8 +304,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						}
 						insnToLabel[idx] = (isFirst ? 1 : label);
 						isFirst = false;
-						//														System.out.println(idx + "->"+label);
+						// System.out.println(idx + "->"+label);
 					}
+
 					Frame[] ret = super.analyze(owner, m);
 //					if (DEBUG)
 //						for (int i = 0; i < inFrames.size(); i++) {
@@ -307,7 +323,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							int labelToSuccessor = getLabel(successor);
 
 							if (DEBUG)
-								System.out.println(name + " Must merge: " + edge.getValue() + " into " + successor + " AKA " + labelToSuccessor);
+								System.out.println(name + " Must merge: " + edge.getValue()
+										+ " into " + successor + " AKA " + labelToSuccessor);
 							if (DEBUG)
 								System.out.println("Input to successor: " + inFrames.get(labelToSuccessor).stack);
 
@@ -316,43 +333,59 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								if (DEBUG)
 									System.out.println(toMerge + " AKA " + labelToMerge);
 								if (DEBUG)
-									System.out.println((outFrames.get(labelToMerge) == null ? "null" : outFrames.get(labelToMerge).stack));
-								if (!outFrames.get(labelToMerge).stack.isEmpty() && !inFrames.get(labelToSuccessor).stack.isEmpty()) {
-									Object output1Top = outFrames.get(labelToMerge).stack.get(outFrames.get(labelToMerge).stack.size() - 1);
-									Object inputTop = inFrames.get(labelToSuccessor).stack.get(inFrames.get(labelToSuccessor).stack.size() - 1);
+									System.out.println((outFrames.get(labelToMerge) == null
+												? "null"
+												: outFrames.get(labelToMerge).stack));
+								if (!outFrames.get(labelToMerge).stack.isEmpty()
+										&& !inFrames.get(labelToSuccessor).stack.isEmpty()) {
+									Object output1Top = outFrames.get(labelToMerge)
+										.stack.get(outFrames.get(labelToMerge).stack.size() - 1);
+									Object inputTop = inFrames.get(labelToSuccessor)
+										.stack.get(inFrames.get(labelToSuccessor).stack.size() - 1);
+
 									if (output1Top == Opcodes.TOP)
-										output1Top = outFrames.get(labelToMerge).stack.get(outFrames.get(labelToMerge).stack.size() - 2);
+										output1Top = outFrames.get(labelToMerge)
+											.stack.get(outFrames.get(labelToMerge).stack.size() - 2);
 									if (inputTop == Opcodes.TOP)
-										inputTop = inFrames.get(labelToSuccessor).stack.get(inFrames.get(labelToSuccessor).stack.size() - 2);
-//									System.out.println(className+"."+name+ " IN"+inputTop +" OUT " + output1Top);
+										inputTop = inFrames.get(labelToSuccessor)
+											.stack.get(inFrames.get(labelToSuccessor).stack.size() - 2);
+
+									// System.out.println(className+"."+name+ " IN"+inputTop +" OUT " + output1Top);
 									if (output1Top != null && output1Top != inputTop) {
 										Type inputTopType = TaintAdapter.getTypeForStackType(inputTop);
 										Type outputTopType = TaintAdapter.getTypeForStackType(output1Top);
-										if ((output1Top == Opcodes.NULL) && inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() != Type.OBJECT
+										if ((output1Top == Opcodes.NULL)
+												&& inputTopType.getSort() == Type.ARRAY
+												&& inputTopType.getElementType().getSort() != Type.OBJECT
 												&& inputTopType.getDimensions() == 1) {
 											insertACONSTNULLBEFORE.add(toMerge);
-										} else if ((inputTopType.getSort() == Type.OBJECT || (inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() == Type.OBJECT)) && outputTopType.getSort() == Type.ARRAY && outputTopType.getElementType().getSort() != Type.OBJECT
+										} else if ((inputTopType.getSort() == Type.OBJECT
+													|| (inputTopType.getSort() == Type.ARRAY
+														&& inputTopType.getElementType().getSort() == Type.OBJECT))
+												&& outputTopType.getSort() == Type.ARRAY
+												&& outputTopType.getElementType().getSort() != Type.OBJECT
 												&& inputTopType.getDimensions() == 1) {
 											insertACHECKCASTBEFORE.add(toMerge);
 										}
 									}
 								}
-								if (!outFrames.get(labelToMerge).local.isEmpty() && !inFrames.get(labelToSuccessor).local.isEmpty()) {
-									for (int i = 0; i < Math.min(outFrames.get(labelToMerge).local.size(), inFrames.get(labelToSuccessor).local.size()); i++) {
+
+								if (!outFrames.get(labelToMerge).local.isEmpty()
+										&& !inFrames.get(labelToSuccessor).local.isEmpty()) {
+									for (int i = 0; i < Math.min(outFrames.get(labelToMerge).local.size(),
+												inFrames.get(labelToSuccessor).local.size()); i++) {
 										Object out = outFrames.get(labelToMerge).local.get(i);
 										Object in = inFrames.get(labelToSuccessor).local.get(i);
 //										System.out.println(name +" " +out + " out, " + in + " In" + " i "+i);
+//
 										if (out instanceof String && in instanceof String) {
 											Type tout = Type.getObjectType((String) out);
 											Type tin = Type.getObjectType((String) in);
-											if (tout.getSort() == Type.ARRAY && tout.getElementType().getSort() != Type.OBJECT && tout.getDimensions() == 1 && tin.getSort() == Type.OBJECT) {
+											if (tout.getSort() == Type.ARRAY
+													&& tout.getElementType().getSort() != Type.OBJECT
+													&& tout.getDimensions() == 1
+													&& tin.getSort() == Type.OBJECT) {
 												int insnN = getLastInsnByLabel(labelToMerge);
-//												System.out.println(name+desc);
-//																							System.out.println(outFrames + " out, " + in + " In" + " i "+i);
-//												System.out.println("T1::"+tout + " to " + tin + " this may be unsupported but should be handled by the above! in label " + instructions.get(insnN));
-//												System.out.println("In insn is " + getFirstInsnByLabel(labelToSuccessor));
-//												System.out.println("insn after frame is " + insnN +", " + instructions.get(insnN) + "<"+instructions.get(insnN).getOpcode());
-//													System.out.println(inFrames.get(labelToSuccessor).local);
 												if (!alwaysAutoBoxByFrame.containsKey(insnN))
 													alwaysAutoBoxByFrame.put(insnN, new LinkedList<Integer>());
 												alwaysAutoBoxByFrame.get(insnN).add(i);
@@ -370,10 +403,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				}
 
 				HashMap<Integer, LinkedList<Integer>> edges = new HashMap<Integer, LinkedList<Integer>>();
-				
-
 				LinkedList<Integer> varsStoredThisInsn = new LinkedList<Integer>();
 				HashSet<String> visited = new HashSet<String>();
+
 				@Override
 				protected void newControlFlowEdge(int insn, int successor) {
 					if(visited.contains(insn+"-"+successor))
@@ -389,24 +421,23 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						outEdges.get(insn).add(successor);
 					
 					BasicBlock fromBlock;
-					if(!implicitAnalysisblocks.containsKey(insn))
-					{
+					if (!implicitAnalysisblocks.containsKey(insn)) {
 						//insn not added yet
 						fromBlock = new BasicBlock();
 						fromBlock.idx = insn;
 						fromBlock.insn = instructions.get(insn);
 						implicitAnalysisblocks.put(insn,fromBlock);
-					}
-					else
+					} else
 						fromBlock = implicitAnalysisblocks.get(insn);
 					
 					AbstractInsnNode insnN = instructions.get(insn);
-					fromBlock.isJump = (insnN.getType()== AbstractInsnNode.JUMP_INSN && insnN.getOpcode() != Opcodes.GOTO)
-							|| insnN.getType() == AbstractInsnNode.LOOKUPSWITCH_INSN || insnN.getType() == AbstractInsnNode.TABLESWITCH_INSN;
-					if(fromBlock.isJump && insnN.getType() == AbstractInsnNode.JUMP_INSN)
-					{
-						switch(insnN.getOpcode())
-						{
+					fromBlock.isJump = (insnN.getType() == AbstractInsnNode.JUMP_INSN
+							&& insnN.getOpcode() != Opcodes.GOTO)
+						|| insnN.getType() == AbstractInsnNode.LOOKUPSWITCH_INSN
+						|| insnN.getType() == AbstractInsnNode.TABLESWITCH_INSN;
+
+					if (fromBlock.isJump && insnN.getType() == AbstractInsnNode.JUMP_INSN) {
+						switch(insnN.getOpcode()) {
 						case Opcodes.IF_ICMPEQ:
 						case Opcodes.IF_ICMPNE:
 						case Opcodes.IF_ICMPGE:
@@ -419,23 +450,19 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							break;
 						}
 					}
+
 					BasicBlock succesorBlock;
-					if(implicitAnalysisblocks.containsKey(successor))
+					if (implicitAnalysisblocks.containsKey(successor))
 						succesorBlock = implicitAnalysisblocks.get(successor);
-					else
-					{
+					else {
 						succesorBlock = new BasicBlock();
 						succesorBlock.idx = successor;
 						succesorBlock.insn = instructions.get(successor);
 						implicitAnalysisblocks.put(successor, succesorBlock);
-						if(succesorBlock.insn.getType() == AbstractInsnNode.IINC_INSN)
-						{
+						if (succesorBlock.insn.getType() == AbstractInsnNode.IINC_INSN) {
 							succesorBlock.varsWritten.add(((IincInsnNode)succesorBlock.insn).var);
-						}
-						else if(succesorBlock.insn.getType() == AbstractInsnNode.VAR_INSN)
-						{
-							switch(succesorBlock.insn.getOpcode())
-							{
+						} else if (succesorBlock.insn.getType() == AbstractInsnNode.VAR_INSN) {
+							switch(succesorBlock.insn.getOpcode()) {
 							case ISTORE:
 							case ASTORE:
 							case DSTORE:
@@ -445,52 +472,26 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							}
 						}
 					}
+
 					fromBlock.successors.add(succesorBlock);
 					succesorBlock.predecessors.add(fromBlock);
-					
-					if(fromBlock.isJump)
-						{
+
+					if(fromBlock.isJump) {
 						if(fromBlock.covered)
 							succesorBlock.onTrueSideOfJumpFrom.add(fromBlock);
-						else
-						{
+						else {
 							succesorBlock.onFalseSideOfJumpFrom.add(fromBlock);
 							fromBlock.covered = true;
 						}
-						}
+					}
 					super.newControlFlowEdge(insn, successor);
 				}
 			};
-			try {
 
+			try {
 				Frame[] frames = a.analyze(className, this);
-//				HashMap<Integer,BasicBlock> cfg = new HashMap<Integer, BasicBlock>();
-//				for(Integer i : outEdges.keySet())
-//				{
-//					BasicBlock b = new BasicBlock();
-//					b.idx = i;
-//					b.outEdges = outEdges.get(i);
-//					int endIdx = this.instructions.size();
-//					for(Integer jj : outEdges.get(i))
-//						if(i < endIdx)
-//							endIdx = jj;
-//					for(int j =i; j < endIdx; j++)
-//					{
-//						if(instructions.get(i) instanceof VarInsnNode)
-//						{
-//							VarInsnNode n = ((VarInsnNode) instructions.get(i));
-//							b.varsAccessed.add(n.var);
-//						}
-//					}
-//					cfg.put(i, b);
-//				}
-//				for(Integer i : cfg.keySet())
-//				{
-//					computeVarsAccessed(i,cfg);
-//				}
 				ArrayList<Integer> toAddNullBefore = new ArrayList<Integer>();
 				toAddNullBefore.addAll(insertACONSTNULLBEFORE);
-
 				toAddNullBefore.addAll(insertACHECKCASTBEFORE);
 				toAddNullBefore.addAll(neverAutoBoxByFrame.keySet());
 				toAddNullBefore.addAll(alwaysAutoBoxByFrame.keySet());
@@ -514,14 +515,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							System.out.println("Adding checkcast before: " + i + " (plus " + nNewNulls + ")");
 						if (insertAfter.getOpcode() == Opcodes.GOTO)
 							insertAfter = insertAfter.getPrevious();
-						this.instructions.insert(insertAfter, new TypeInsnNode(Opcodes.CHECKCAST, Type.getInternalName(Object.class)));
+						this.instructions.insert(insertAfter,
+								new TypeInsnNode(Opcodes.CHECKCAST, Type.getInternalName(Object.class)));
 						nNewNulls++;
 					} else if (neverAutoBoxByFrame.containsKey(i)) {
 						if (insertAfter.getOpcode() == Opcodes.GOTO)
 							insertAfter = insertAfter.getPrevious();
 						for (int j : neverAutoBoxByFrame.get(i)) {
-//							System.out.println("Adding nevefbox: before " + i + " (plus " + nNewNulls + ")");
-
+							// System.out.println("Adding nevefbox: before " + i + " (plus " + nNewNulls + ")");
 							this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.NEVER_AUTOBOX, j));
 							nNewNulls++;
 						}
@@ -533,29 +534,29 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //										insertAfter.getType() == AbstractInsnNode.FRAME)
 //									insertAfter = insertAfter.getNext();
 							AbstractInsnNode query = insertAfter.getNext();
-							while(query.getNext() != null && (query.getType() == AbstractInsnNode.LABEL || query.getType() == AbstractInsnNode.LINE || query.getType() == AbstractInsnNode.FRAME))
+							while (query.getNext() != null
+									&& (query.getType() == AbstractInsnNode.LABEL
+										|| query.getType() == AbstractInsnNode.LINE
+										|| query.getType() == AbstractInsnNode.FRAME))
 								query = query.getNext();
-							if(query.getOpcode() == Opcodes.ALOAD && query.getNext().getOpcode() == Opcodes.MONITOREXIT)
+							if (query.getOpcode() == Opcodes.ALOAD
+									&& query.getNext().getOpcode() == Opcodes.MONITOREXIT)
 								insertAfter = query.getNext();
-							if(insertAfter.getType() == AbstractInsnNode.JUMP_INSN)
-							{
+							if (insertAfter.getType() == AbstractInsnNode.JUMP_INSN) {
 								insertAfter = insertAfter.getPrevious();
 //								System.out.println("insertbefore  : " + ((JumpInsnNode) insertAfter.getNext()).toString());
-								if(insertAfter.getNext().getOpcode() != Opcodes.GOTO)
-								{
-
-									this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_BOX_JUMP, j));
-								}
-								else
-								{
+								if (insertAfter.getNext().getOpcode() != Opcodes.GOTO) {
+									this.instructions.insert(insertAfter,
+											new VarInsnNode(TaintUtils.ALWAYS_BOX_JUMP, j));
+								} else {
 //									System.out.println("box immediately");
-									this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
+									this.instructions.insert(insertAfter,
+											new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
 								}
-							}
-							else
-							{
+							} else {
 //								System.out.println("InsertAfter: " + insertAfter);
-								this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
+								this.instructions.insert(insertAfter,
+										new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
 							}
 							nNewNulls++;
 						}
@@ -571,7 +572,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				boolean hadChanges = true;
 				while (hadChanges) {
 					hadChanges = false;
-
 					HashSet<LocalVariableNode> newLVNodes = new HashSet<LocalVariableNode>();
 					if (this.localVariables != null) {
 						for (Object _lv : this.localVariables) {
@@ -579,13 +579,17 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							AbstractInsnNode toCheck = lv.start;
 							LabelNode veryEnd = lv.end;
 							while (toCheck != null && toCheck != lv.end) {
-								if ((toCheck.getOpcode() == TaintUtils.ALWAYS_BOX_JUMP || toCheck.getOpcode() ==TaintUtils.ALWAYS_AUTOBOX) && ((VarInsnNode) toCheck).var == lv.index) {
-//									System.out.println("LV " + lv.name + " will be a prob around " + toCheck);
+								if ((toCheck.getOpcode() == TaintUtils.ALWAYS_BOX_JUMP
+											|| toCheck.getOpcode() ==TaintUtils.ALWAYS_AUTOBOX)
+										&& ((VarInsnNode) toCheck).var == lv.index) {
+									// System.out.println("LV " + lv.name + " will be a prob around " + toCheck);
 									LabelNode beforeProblem = new LabelNode(new Label());
 									LabelNode afterProblem = new LabelNode(new Label());
 									this.instructions.insertBefore(toCheck, beforeProblem);
 									this.instructions.insert(toCheck.getNext(), afterProblem);
-									LocalVariableNode newLV = new LocalVariableNode(lv.name, lv.desc, lv.signature, afterProblem, veryEnd, lv.index);
+									LocalVariableNode newLV =
+										new LocalVariableNode(lv.name, lv.desc, lv.signature,
+												afterProblem, veryEnd, lv.index);
 									lv.end = beforeProblem;
 									newLVNodes.add(newLV);
 									hadChanges = true;
@@ -597,7 +601,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						this.localVariables.addAll(newLVNodes);
 					}
 				}
-				
 			} catch (AnalyzerException e) {
 				e.printStackTrace();
 			}
@@ -625,9 +628,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								stack.add(s);
 						}
 					}
-					//						calculatePostDominators(implicitAnalysisblocks.get(0));
+					// calculatePostDominators(implicitAnalysisblocks.get(0));
 					for (BasicBlock b : implicitAnalysisblocks.values()) {
-						//						System.out.println(b.domBlocks);
+						// System.out.println(b.domBlocks);
 						for (BasicBlock d : b.onFalseSideOfJumpFrom) {
 							if (b.onTrueSideOfJumpFrom.contains(d)) {
 								b.resolvedBlocks.add(d);
@@ -637,11 +640,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						if (!b.resolvedBlocks.isEmpty()) {
 							b.onTrueSideOfJumpFrom.removeAll(b.resolvedBlocks);
 							b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
-							//							System.out.println("!!Remove " + b.resolvedBlocks + " at " + b.idx + " - " + b.insn);
+							// System.out.println("!!Remove " + b.resolvedBlocks + " at " + b.idx + " - " + b.insn);
 						}
 						b.visited = false;
-						//						System.out.println(b.insn + " dom: "  + b.domBlocks +", antidom: " + b.antiDomBlocks);
+						// System.out.println(b.insn + " dom: "  + b.domBlocks +", antidom: " + b.antiDomBlocks);
 					}
+
 					stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
 					stack.add(implicitAnalysisblocks.get(0));
 					while (!stack.isEmpty()) {
@@ -651,7 +655,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						b.visited = true;
 						b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
 						b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
-						//Propogate markings to successors
+						// Propogate markings to successors
 						for (BasicBlock s : b.successors) {
 							s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
 							s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
@@ -660,7 +664,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								stack.add(s);
 						}
 					}
-					//						calculatePostDominators(implicitAnalysisblocks.get(0));
+					// calculatePostDominators(implicitAnalysisblocks.get(0));
 					boolean hadChanges = true;
 					while (hadChanges) {
 						hadChanges = false;
@@ -677,31 +681,27 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							b.resolvedHereBlocks.removeAll(remove);
 						}
 					}
-					for(BasicBlock j : implicitAnalysisblocks.values())
-					{
-						if(j.isJump)
-						{
+
+					for (BasicBlock j : implicitAnalysisblocks.values()) {
+						if (j.isJump) {
 							stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
 							stack.addAll(j.successors);
-							while(!stack.isEmpty())
-							{
+							while (!stack.isEmpty()) {
 								BasicBlock b = stack.pop();
-								if(b.visited)
+								if (b.visited)
 									continue;
 								b.visited = true;
-								if(b.onFalseSideOfJumpFrom.contains(j))
-								{
+								if (b.onFalseSideOfJumpFrom.contains(j)) {
 									j.varsWrittenTrueSide.addAll(b.varsWritten);
 									stack.addAll(b.successors);
-								}
-								else if(b.onTrueSideOfJumpFrom.contains(j))
-								{
+								} else if (b.onTrueSideOfJumpFrom.contains(j)) {
 									j.varsWrittenFalseSide.addAll(b.varsWritten);
 									stack.addAll(b.successors);
 								}
 							}
 						}
 					}
+
 					HashMap<BasicBlock, Integer> jumpIDs = new HashMap<PrimitiveArrayAnalyzer.BasicBlock, Integer>();
 					int jumpID = 0;
 					for (BasicBlock b : implicitAnalysisblocks.values()) {
@@ -715,65 +715,74 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							diff.addAll(b.varsWrittenFalseSide);
 							diff.removeAll(common);
 
-							for(int i : diff)
-							{
-								instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.FORCE_CTRL_STORE, i));
-								
+							for(int i : diff) {
+								instructions.insertBefore(b.insn,
+										new VarInsnNode(TaintUtils.FORCE_CTRL_STORE, i));
 							}
-							instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
+							instructions.insertBefore(b.insn,
+									new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
 							jumpIDs.put(b, jumpID);
 							if(b.is2ArgJump)
 								jumpID++;
 						}
 					}
+
 					for (BasicBlock b : implicitAnalysisblocks.values()) {
 						for (BasicBlock r : b.resolvedHereBlocks) {
-							//								System.out.println("Resolved: " + jumpIDs.get(r) + " at " + b.idx);
-							//								System.out.println("GOt" + jumpIDs);
+							// System.out.println("Resolved: " + jumpIDs.get(r) + " at " + b.idx);
+							// System.out.println("GOt" + jumpIDs);
 							AbstractInsnNode insn = b.insn;
-							while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
+							while (insn.getType() == AbstractInsnNode.FRAME
+									|| insn.getType() == AbstractInsnNode.LINE
+									|| insn.getType() == AbstractInsnNode.LABEL)
 								insn = insn.getNext();
-							instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
+							instructions.insertBefore(insn,
+									new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
 							if(r.is2ArgJump)
-								instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)+1));
+								instructions.insertBefore(insn,
+										new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)+1));
 						}
-						if(b.successors.isEmpty())
-						{
-							instructions.insertBefore(b.insn, new InsnNode(TaintUtils.FORCE_CTRL_STORE));
-//							if (b.insn.getOpcode() != Opcodes.ATHROW) {
-								HashSet<BasicBlock> live = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>(b.onFalseSideOfJumpFrom);
-								live.addAll(b.onTrueSideOfJumpFrom);
-								for (BasicBlock r : live) {
-									instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
-									if (r.is2ArgJump)
-										instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r) + 1));
-								}
-//							}
+
+						if (b.successors.isEmpty()) {
+							instructions.insertBefore(b.insn,
+									new InsnNode(TaintUtils.FORCE_CTRL_STORE));
+							HashSet<BasicBlock> live =
+								new HashSet<PrimitiveArrayAnalyzer.BasicBlock>(b.onFalseSideOfJumpFrom);
+							live.addAll(b.onTrueSideOfJumpFrom);
+							for (BasicBlock r : live) {
+								instructions.insertBefore(b.insn,
+										new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
+								if (r.is2ArgJump)
+									instructions.insertBefore(b.insn,
+											new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r) + 1));
+							}
 						}
-						//						System.out.println(b.insn + " - " + b.domBlocks + "-" + b.antiDomBlocks);
 					}
 					nJumps = jumpID;
 				}
-
 			}
+
 			AbstractInsnNode insn = instructions.getFirst();
-			while(insn != null)
-			{
-				if(insn.getType() == AbstractInsnNode.FRAME)
-				{
-					//Insert a note before the instruction before this guy
+			while(insn != null) {
+				if (insn.getType() == AbstractInsnNode.FRAME) {
+					// Insert a note before the instruction before this guy
 					AbstractInsnNode insertBefore = insn;
-					while (insertBefore != null && (insertBefore.getType() == AbstractInsnNode.FRAME || insertBefore.getType() == AbstractInsnNode.LINE
-							|| insertBefore.getType() == AbstractInsnNode.LABEL))
+					while (insertBefore != null
+							&& (insertBefore.getType() == AbstractInsnNode.FRAME
+								|| insertBefore.getType() == AbstractInsnNode.LINE
+								|| insertBefore.getType() == AbstractInsnNode.LABEL))
 						insertBefore = insertBefore.getPrevious();
 					if (insertBefore != null)
-						this.instructions.insertBefore(insertBefore, new InsnNode(TaintUtils.FOLLOWED_BY_FRAME));
+						this.instructions.insertBefore(insertBefore,
+								new InsnNode(TaintUtils.FOLLOWED_BY_FRAME));
 				}
 				insn = insn.getNext();
 			}
 			this.accept(cmv);
 		}
-		HashMap<Integer,BasicBlock> implicitAnalysisblocks = new HashMap<Integer,PrimitiveArrayAnalyzer.BasicBlock>();
+
+		HashMap<Integer,BasicBlock> implicitAnalysisblocks =
+			new HashMap<Integer,PrimitiveArrayAnalyzer.BasicBlock>();
 
 		void calculatePostDominators(BasicBlock b)
 		{
@@ -783,8 +792,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
 			b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
 			//Propogate markings to successors
-			for(BasicBlock s : b.successors)
-			{
+			for (BasicBlock s : b.successors) {
 				s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
 				s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
 				s.resolvedBlocks.addAll(b.resolvedBlocks);
@@ -792,62 +800,74 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					calculatePostDominators(s);
 			}
 		}
-
 	}
+
 	static class BasicBlock{
 		int idx;
-//		LinkedList<Integer> outEdges = new LinkedList<Integer>();
-		HashSet<BasicBlock> successors = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-		HashSet<BasicBlock> predecessors  = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
+		// LinkedList<Integer> outEdges = new LinkedList<Integer>();
 		AbstractInsnNode insn;
 		boolean covered;
 		boolean visited;
 		boolean isJump;
 		boolean is2ArgJump;
+		HashSet<BasicBlock> successors = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
+		HashSet<BasicBlock> predecessors  = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<BasicBlock> resolvedHereBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-
 		HashSet<BasicBlock> resolvedBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<BasicBlock> onFalseSideOfJumpFrom = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<BasicBlock> onTrueSideOfJumpFrom = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<Integer> varsWritten = new HashSet<Integer>();
-		
 		HashSet<Integer> varsWrittenTrueSide = new HashSet<Integer>();
 		HashSet<Integer> varsWrittenFalseSide = new HashSet<Integer>();
+
 		@Override
 		public String toString() {
 			return insn.toString();
 		}
 	}
+
 	private static boolean isPrimitiveArrayType(BasicValue v) {
 		if (v == null || v.getType() == null)
 			return false;
-		return v.getType().getSort() == Type.ARRAY && v.getType().getElementType().getSort() != Type.OBJECT;
+		return v.getType().getSort() == Type.ARRAY
+			&& v.getType().getElementType().getSort() != Type.OBJECT;
 	}
 
 	static final boolean DEBUG = false;
 	public HashSet<Type> wrapperTypesToPreAlloc = new HashSet<Type>();
 	public int nJumps;
+
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
 		super.visitMethodInsn(opcode, owner, name, desc,itfc);
 		Type returnType = Type.getReturnType(desc);
 		Type newReturnType = TaintUtils.getContainerReturnType(returnType);
-		if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY && returnType.getDimensions() > 1))
+		if (newReturnType != returnType
+				&& !(returnType.getSort() == Type.ARRAY
+					&& returnType.getDimensions() > 1))
 			wrapperTypesToPreAlloc.add(newReturnType);
 	}
 
-	public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv) {
+	public PrimitiveArrayAnalyzer(final String className, int access, final String name,
+			final String desc, String signature, String[] exceptions,
+			final MethodVisitor cmv) {
 		super(Opcodes.ASM5);
-		this.mv = new PrimitiveArrayAnalyzerMN(access, name, desc, signature, exceptions, className, cmv);
+		this.mv = new PrimitiveArrayAnalyzerMN(access, name,
+				desc, signature, exceptions, className, cmv);
 	}
+
 	public PrimitiveArrayAnalyzer(Type singleWrapperTypeToAdd) {
 		super(Opcodes.ASM5);
-		this.mv = new PrimitiveArrayAnalyzerMN(0, null,null,null,null,null, null);
-		if(singleWrapperTypeToAdd.getSort() == Type.OBJECT && singleWrapperTypeToAdd.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct") && !singleWrapperTypeToAdd.getInternalName().contains("MultiDTainted"))
+		this.mv = new PrimitiveArrayAnalyzerMN(0, null, null, null, null, null, null);
+		if(singleWrapperTypeToAdd.getSort() == Type.OBJECT
+				&& singleWrapperTypeToAdd
+					.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct")
+				&& !singleWrapperTypeToAdd
+					.getInternalName().contains("MultiDTainted"))
 			this.wrapperTypesToPreAlloc.add(singleWrapperTypeToAdd);
 	}
 
-	NeverNullArgAnalyzerAdapter analyzer;
+	private NeverNullArgAnalyzerAdapter analyzer;
 
 	public void setAnalyzer(NeverNullArgAnalyzerAdapter preAnalyzer) {
 		analyzer = preAnalyzer;

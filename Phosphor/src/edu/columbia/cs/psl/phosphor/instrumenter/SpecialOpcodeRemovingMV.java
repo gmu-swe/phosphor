@@ -11,9 +11,10 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
 	private boolean ignoreFrames;
 	private String clazz;
-
 	private boolean fixLdcClass;
-	public SpecialOpcodeRemovingMV(MethodVisitor sup, boolean ignoreFrames, String clazz, boolean fixLdcClass) {
+
+	public SpecialOpcodeRemovingMV(MethodVisitor sup, boolean ignoreFrames,
+			String clazz, boolean fixLdcClass) {
 		super(Opcodes.ASM5, sup);
 		this.ignoreFrames = ignoreFrames;
 		this.clazz = clazz;
@@ -33,10 +34,13 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	}
 
 	@Override
-	public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
+	public void visitLocalVariable(String name, String desc,
+			String signature, Label start, Label end, int index) {
 		Type descType = Type.getType(desc);
-		if (descType.getSort() == Type.ARRAY && descType.getDimensions() > 1 && descType.getElementType().getSort() != Type.OBJECT) {
-			//remap!
+		if (descType.getSort() == Type.ARRAY
+				&& descType.getDimensions() > 1
+				&& descType.getElementType().getSort() != Type.OBJECT) {
+			// remap!
 			desc = MultiDTaintedArray.getTypeForType(descType).getDescriptor();
 		}
 		super.visitLocalVariable(name, desc, signature, start, end, index);
@@ -56,9 +60,21 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 			super.visitLdcInsn(((Type) cst).getInternalName().replace("/", "."));
 			super.visitInsn(Opcodes.ICONST_0);
 			super.visitLdcInsn(clazz.replace("/", "."));
-			super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
-			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;", false);
-			super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", false);
+			super.visitMethodInsn(Opcodes.INVOKESTATIC,
+					"java/lang/Class",
+					"forName",
+					"(Ljava/lang/String;)Ljava/lang/Class;",
+					false);
+			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL,
+					"java/lang/Class",
+					"getClassLoader",
+					"()Ljava/lang/ClassLoader;",
+					false);
+			super.visitMethodInsn(Opcodes.INVOKESTATIC,
+					"java/lang/Class",
+					"forName",
+					"(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;",
+					false);
 		} else
 			super.visitLdcInsn(cst);
 	}

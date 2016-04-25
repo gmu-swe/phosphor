@@ -77,13 +77,11 @@ public class PreMain {
 					c = getClass(type1);
 					d = getClass(type2);
 				} catch (ClassNotFoundException e) {
-					//					System.err.println("Can not do superclass for " + type1 + " and " + type2);
-					//					        	logger.debug("Error while finding common super class for " + type1 +"; " + type2,e);
 					return "java/lang/Object";
-					//					        	throw new RuntimeException(e);
 				} catch (ClassCircularityError e) {
 					return "java/lang/Object";
 				}
+				
 				if (c.isAssignableFrom(d)) {
 					return type1;
 				}
@@ -96,7 +94,6 @@ public class PreMain {
 					do {
 						c = c.getSuperclass();
 					} while (!c.isAssignableFrom(d));
-					//					System.out.println("Returning " + c.getName());
 					return c.getName().replace('.', '/');
 				}
 			}
@@ -105,8 +102,11 @@ public class PreMain {
 		static boolean innerException = false;
 		static boolean INITED = false;
 
-		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint[] classtaint,
+		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader,
+				String className, Class<?> classBeingRedefined,
+				ProtectionDomain protectionDomain, Taint[] classtaint,
 				byte[] classfileBuffer, TaintedByteArrayWithObjTag ret) throws IllegalClassFormatException {
+			
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
@@ -115,18 +115,23 @@ public class PreMain {
 				Configuration.init();
 				INITED = true;
 			}
-			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+			//there are dynamically generated accessors for reflection, we don't want to instrument those.
+			if (className == null || className.startsWith("sun"))
 				ret.val = classfileBuffer;
 			else
 				ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 			ret.taint = null;
-			Configuration.taintTagFactory.instrumentationEnding(className);
 
+			Configuration.taintTagFactory.instrumentationEnding(className);
 			return ret;
 		}
 
-		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint[] classtaint,
-				byte[] classfileBuffer, ControlTaintTagStack ctrl, TaintedByteArrayWithObjTag ret) throws IllegalClassFormatException {
+		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader,
+				String className, Class<?> classBeingRedefined,
+				ProtectionDomain protectionDomain, Taint[] classtaint,
+				byte[] classfileBuffer, ControlTaintTagStack ctrl,
+				TaintedByteArrayWithObjTag ret) throws IllegalClassFormatException {
+
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
@@ -135,17 +140,22 @@ public class PreMain {
 				Configuration.init();
 				INITED = true;
 			}
-			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+			//there are dynamically generated accessors for reflection, we don't want to instrument those.
+			if (className == null || className.startsWith("sun"))
 				ret.val = classfileBuffer;
 			else
 				ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 			ret.taint = null;
+			
 			Configuration.taintTagFactory.instrumentationEnding(className);
 			return ret;
 		}
 
-		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, int[] classtaint,
+		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader,
+				String className, Class<?> classBeingRedefined,
+				ProtectionDomain protectionDomain, int[] classtaint,
 				byte[] classfileBuffer, TaintedByteArrayWithIntTag ret) throws IllegalClassFormatException {
+
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
@@ -154,17 +164,20 @@ public class PreMain {
 				Configuration.init();
 				INITED = true;
 			}
-			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+			//there are dynamically generated accessors for reflection, we don't want to instrument those.
+			if (className == null || className.startsWith("sun"))
 				ret.val = classfileBuffer;
 			else
 				ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 			ret.taint = new int[ret.val.length];
+
 			Configuration.taintTagFactory.instrumentationEnding(className);
 			return ret;
 		}
 
-		public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
-				throws IllegalClassFormatException {
+		public byte[] transform(ClassLoader loader, final String className2,
+				Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
+			throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className2);
 			byte[] ret = _transform(loader, className2, classBeingRedefined, protectionDomain, classfileBuffer);
 			Configuration.taintTagFactory.instrumentationEnding(className2);
@@ -173,39 +186,41 @@ public class PreMain {
 
 		MessageDigest md5inst;
 
-		private byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
-				throws IllegalClassFormatException {
+		private byte[] _transform(ClassLoader loader, final String className2, 
+				Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
+			throws IllegalClassFormatException {
 			ClassReader cr = new ClassReader(classfileBuffer);
 			String className = cr.getClassName();
 			innerException = false;
-//			bigLoader = loader;
-//			Instrumenter.loader = bigLoader;
+
 			if (Instrumenter.isIgnoredClass(className)) {
-				//				System.out.println("Premain.java ignore: " + className);
 				return classfileBuffer;
 			}
-			
+
 			if (DEBUG) {
-			    try{
-                File debugDir = new File("debug-preinst");
-                if (!debugDir.exists())
-                    debugDir.mkdir();
-                File f = new File("debug-preinst/" + className.replace("/", ".") + ".class");
-                FileOutputStream fos = new FileOutputStream(f);
-                fos.write(classfileBuffer);
-                fos.close();
-			    }
-			    catch(IOException ex)
-			    {
-			        ex.printStackTrace();
-			    }
-            }
-			
+				try{
+					File debugDir = new File("debug-preinst");
+					if (!debugDir.exists())
+						debugDir.mkdir();
+					File f = new File("debug-preinst/" + className.replace("/", ".") + ".class");
+					FileOutputStream fos = new FileOutputStream(f);
+					fos.write(classfileBuffer);
+					fos.close();
+				}
+				catch(IOException ex)
+				{
+					ex.printStackTrace();
+				}
+			}
+
 			ClassNode cn = new ClassNode();
 			cr.accept(cn, ClassReader.SKIP_CODE);
 			boolean skipFrames = false;
-			if (cn.version >= 100 || cn.version <= 50 || className.endsWith("$Access4JacksonSerializer") || className.endsWith("$Access4JacksonDeSerializer"))
+			if (cn.version >= 100 || cn.version <= 50
+					|| className.endsWith("$Access4JacksonSerializer")
+					|| className.endsWith("$Access4JacksonDeSerializer"))
 				skipFrames = true;
+
 			if (cn.visibleAnnotations != null)
 				for (Object o : cn.visibleAnnotations) {
 					AnnotationNode an = (AnnotationNode) o;
@@ -213,16 +228,20 @@ public class PreMain {
 						return classfileBuffer;
 					}
 				}
+			
 			if (cn.interfaces != null)
 				for (Object s : cn.interfaces) {
-					if (s.equals(Type.getInternalName(TaintedWithObjTag.class)) || s.equals(Type.getInternalName(TaintedWithIntTag.class))) {
+					if (s.equals(Type.getInternalName(TaintedWithObjTag.class))
+							|| s.equals(Type.getInternalName(TaintedWithIntTag.class))) {
 						return classfileBuffer;
 					}
 				}
+			
 			for (Object mn : cn.methods)
 				if (((MethodNode) mn).name.equals("getPHOSPHOR_TAG")) {
 					return classfileBuffer;
 				}
+
 			if (Configuration.CACHE_DIR != null) {
 				String cacheKey = className.replace("/", ".");
 				File f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".md5sum");
@@ -232,6 +251,7 @@ public class PreMain {
 						byte[] cachedDigest = new byte[1024];
 						fis.read(cachedDigest);
 						fis.close();
+
 						if (md5inst == null)
 							md5inst = MessageDigest.getInstance("MD5");
 						byte[] checksum = md5inst.digest(classfileBuffer);
@@ -246,7 +266,10 @@ public class PreMain {
 								}
 							}
 						if (matches) {
-							byte[] ret = Files.readAllBytes(new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".class").toPath());
+							byte[] ret = Files.readAllBytes(new File(Configuration.CACHE_DIR
+										+ File.separator
+										+ cacheKey
+										+ ".class").toPath());
 							return ret;
 						}
 					} catch (Throwable t) {
@@ -254,41 +277,44 @@ public class PreMain {
 					}
 				}
 			}
+
 			List<FieldNode> fields = cn.fields;
 			if (skipFrames) {
 				cn = null;
-				//This class is old enough to not guarantee frames. Generate new frames for analysis reasons, then make sure to not emit ANY frames.
+				// This class is old enough to not guarantee frames. 
+				// Generate new frames for analysis reasons, 
+				// then make sure to not emit ANY frames.
 				ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
 				cr.accept(new ClassVisitor(Opcodes.ASM5, cw) {
 					@Override
 					public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-						return new JSRInlinerAdapter(super.visitMethod(access, name, desc, signature, exceptions), access, name, desc, signature, exceptions);
+						return new JSRInlinerAdapter(super.visitMethod(access, name, desc, signature, exceptions),
+							access, name, desc, signature, exceptions);
 					}
 				}, 0);
 				cr = new ClassReader(cw.toByteArray());
 			}
-			//			System.out.println("Instrumenting: " + className);
-			//			System.out.println(classBeingRedefined);
-			//Find out if this class already has frames
+			// System.out.println("Instrumenting: " + className);
+			// System.out.println(classBeingRedefined);
+			// Find out if this class already has frames
 			TraceClassVisitor cv = null;
 			try {
-
 				ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
 				ClassVisitor _cv = cw;
 				if (Configuration.extensionClassVisitor != null) {
-					Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
+					Constructor<? extends ClassVisitor> extra = Configuration
+						.extensionClassVisitor
+						.getConstructor(ClassVisitor.class, Boolean.TYPE);
 					_cv = extra.newInstance(_cv, skipFrames);
 				}
+
 				if(TaintUtils.VERIFY_CLASS_GENERATION)
 					_cv = new CheckClassAdapter(_cv, false);
 				_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+				
 				if (Configuration.WITH_SELECTIVE_INST)
 					cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
-				cr.accept(
-				//							new CheckClassAdapter(
-						_cv
-						//									)
-						, ClassReader.EXPAND_FRAMES);
+				cr.accept(_cv, ClassReader.EXPAND_FRAMES);
 
 				if (DEBUG) {
 					File debugDir = new File("debug");
@@ -300,41 +326,15 @@ public class PreMain {
 					fos.close();
 				}
 				{
-					//					if(TaintUtils.DEBUG_FRAMES)
-					//						System.out.println("NOW IN CHECKCLASSADAPTOR");
-					if (DEBUG
-							|| (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler")
-									&& !className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache")
-									&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap") && !className
-										.startsWith("jersey/repackaged/com/google/common/collect/"))) {
+					if (DEBUG || (TaintUtils.VERIFY_CLASS_GENERATION 
+								&& !className.startsWith("org/codehaus/janino/UnitCompiler")
+								&& !className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache")
+								&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap")
+								&& !className.startsWith("jersey/repackaged/com/google/common/collect/"))) {
 						ClassReader cr2 = new ClassReader(cw.toByteArray());
 						cr2.accept(new CheckClassAdapter(new ClassWriter(0)), 0);
-					}
+								}
 				}
-				//				cv= new TraceClassVisitor(null,null);
-				//				try{
-				//					System.err.println("WARN LOGGING CLASS TO ASCII");
-				//					cr = new ClassReader(cw.toByteArray());
-				//					cr.accept(
-				////							new CheckClassAdapter(
-				//									cv	
-				////									)
-				//							, 0);
-				//					PrintWriter pw = null;
-				//					try {
-				//						pw = new PrintWriter(new FileWriter("lastClass.txt"));
-				//					} catch (IOException e) {
-				//						// TODO Auto-generated catch block
-				//						e.printStackTrace();
-				//					}
-				//					cv.p.print(pw);
-				//					pw.flush();
-				//				}
-				//				catch(Throwable t)
-				//				{
-				//					t.printStackTrace();
-				//				}
-				//				System.out.println("Succeeded w " + className);
 				if (Configuration.CACHE_DIR != null) {
 					String cacheKey = className.replace("/", ".");
 					File f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".class");
@@ -359,7 +359,9 @@ public class PreMain {
 				try {
 					ClassVisitor _cv = cv;
 					if (Configuration.extensionClassVisitor != null) {
-						Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
+						Constructor<? extends ClassVisitor> extra = Configuration
+							.extensionClassVisitor
+							.getConstructor(ClassVisitor.class, Boolean.TYPE);
 						_cv = extra.newInstance(_cv, skipFrames);
 					}
 					_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
@@ -367,6 +369,7 @@ public class PreMain {
 					cr.accept(_cv, ClassReader.EXPAND_FRAMES);
 				} catch (Throwable ex2) {
 				}
+
 				ex.printStackTrace();
 				System.err.println("method so far:");
 				if (!innerException) {
@@ -418,20 +421,18 @@ public class PreMain {
 					File f = new File(Configuration.CACHE_DIR);
 					if (!f.exists())
 						f.mkdir();
-				}
-				else if(s.startsWith("withSelectiveInst="))
-				{
+				} else if (s.startsWith("withSelectiveInst=")) {
 					Configuration.WITH_SELECTIVE_INST=true;
 					Configuration.selective_inst_config = s.substring(18);
 					SelectiveInstrumentationManager.populateMethodsToInstrument(Configuration.selective_inst_config);
 				}
 			}
 		}
+
 		if (Instrumenter.loader == null)
 			Instrumenter.loader = bigLoader;
 		ClassFileTransformer transformer = new PCLoggingTransformer();
 		inst.addTransformer(transformer);
-
 	}
 
 	public static Instrumentation getInstrumentation() {

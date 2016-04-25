@@ -10,9 +10,7 @@ public final class TaintedDoubleArrayWithIntTag extends TaintedPrimitiveArrayWit
 		return new MultiDTaintedDoubleArrayWithIntTag(taint, val);
 	}
 
-	public TaintedDoubleArrayWithIntTag() {
-
-	}
+	public TaintedDoubleArrayWithIntTag() {}
 
 	public TaintedDoubleArrayWithIntTag(int[] taint, double[] val) {
 		this.taint = taint;

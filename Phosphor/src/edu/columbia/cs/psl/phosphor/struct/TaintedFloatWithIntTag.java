@@ -4,11 +4,8 @@ import java.io.IOException;
 import java.io.Serializable;
 
 public final class TaintedFloatWithIntTag extends TaintedPrimitiveWithIntTag implements Serializable {
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 4950080138821634577L;
+	public float val;
 
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
 		stream.writeFloat(val);
@@ -25,8 +22,6 @@ public final class TaintedFloatWithIntTag extends TaintedPrimitiveWithIntTag imp
 		return val;
 	}
 
-	public float val;
-
 	public static final TaintedFloatWithIntTag valueOf(int taint, float val) {
 		return new TaintedFloatWithIntTag(taint, val);
 	}
@@ -36,7 +31,5 @@ public final class TaintedFloatWithIntTag extends TaintedPrimitiveWithIntTag imp
 		this.val = val;
 	}
 
-	public TaintedFloatWithIntTag() {
-		// TODO Auto-generated constructor stub
-	}
+	public TaintedFloatWithIntTag() {}
 }

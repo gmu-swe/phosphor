@@ -3,12 +3,9 @@ package edu.columbia.cs.psl.phosphor.struct;
 import java.io.IOException;
 import java.io.Serializable;
 
-
 public final class TaintedBooleanWithIntTag extends TaintedPrimitiveWithIntTag implements Serializable{
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 2665598564631615110L;
+	public boolean val;
 
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
 		stream.writeBoolean(val);
@@ -19,11 +16,11 @@ public final class TaintedBooleanWithIntTag extends TaintedPrimitiveWithIntTag i
 		val = stream.readBoolean();
 		taint = stream.readInt();
 	}
+
 	@Override
 	public Object getValue() {
 		return val;
 	}
-	public boolean val;
 
 	static TaintedBooleanWithIntTag[] cache = new TaintedBooleanWithIntTag[2];
 	static {
@@ -42,7 +39,5 @@ public final class TaintedBooleanWithIntTag extends TaintedPrimitiveWithIntTag i
 		this.val = val;
 	}
 
-	public TaintedBooleanWithIntTag() {
-
-	}
+	public TaintedBooleanWithIntTag() {}
 }

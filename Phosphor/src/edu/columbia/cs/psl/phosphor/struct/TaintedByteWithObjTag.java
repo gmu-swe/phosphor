@@ -4,11 +4,9 @@ import java.io.IOException;
 import java.io.Serializable;
 
 public final class TaintedByteWithObjTag extends TaintedPrimitiveWithObjTag implements Serializable {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -5518767062729812883L;
 	public byte val;
+
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
 		stream.writeByte(val);
 		stream.writeObject(taint);
@@ -18,13 +16,13 @@ public final class TaintedByteWithObjTag extends TaintedPrimitiveWithObjTag impl
 		val = stream.readByte();
 		taint = stream.readObject();
 	}
+
 	@Override
 	public Object getValue() {
 		return val;
 	}
 
 	static final TaintedByteWithObjTag cache[] = new TaintedByteWithObjTag[-(-128) + 127 + 1];
-
 	static {
 		for (int i = 0; i < cache.length; i++)
 			cache[i] = new TaintedByteWithObjTag(null, (byte) (i - 128));
@@ -42,7 +40,5 @@ public final class TaintedByteWithObjTag extends TaintedPrimitiveWithObjTag impl
 		this.taint = taint;
 	}
 
-	public TaintedByteWithObjTag() {
-		// TODO Auto-generated constructor stub
-	}
+	public TaintedByteWithObjTag() {}
 }

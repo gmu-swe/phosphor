@@ -9,12 +9,10 @@ public class TaintedLongArrayWithObjTag extends TaintedPrimitiveArrayWithObjTag 
 	public Object toStackType() {
 		return new MultiDTaintedLongArrayWithObjTag(taint, val);
 	}
-	public TaintedLongArrayWithObjTag()
-	{
-		
-	}
-	public TaintedLongArrayWithObjTag(Object[] taint, long[] val)
-	{
+
+	public TaintedLongArrayWithObjTag() {}
+
+	public TaintedLongArrayWithObjTag(Object[] taint, long[] val) {
 		this.taint=taint;
 		this.val=val;
 	}

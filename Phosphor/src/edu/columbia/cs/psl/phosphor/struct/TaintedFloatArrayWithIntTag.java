@@ -10,9 +10,7 @@ public final class TaintedFloatArrayWithIntTag extends TaintedPrimitiveArrayWith
 		return new MultiDTaintedFloatArrayWithIntTag(taint, val);
 	}
 
-	public TaintedFloatArrayWithIntTag() {
-
-	}
+	public TaintedFloatArrayWithIntTag() {}
 
 	public TaintedFloatArrayWithIntTag(int[] taint, float[] val) {
 		this.taint = taint;

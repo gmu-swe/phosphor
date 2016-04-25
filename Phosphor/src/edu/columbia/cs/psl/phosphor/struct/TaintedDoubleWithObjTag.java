@@ -4,10 +4,8 @@ import java.io.IOException;
 import java.io.Serializable;
 
 public final class TaintedDoubleWithObjTag extends TaintedPrimitiveWithObjTag implements Serializable {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1292260724904675172L;
+	public double val;
 
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
 		stream.writeDouble(val);
@@ -24,8 +22,6 @@ public final class TaintedDoubleWithObjTag extends TaintedPrimitiveWithObjTag im
 		return val;
 	}
 
-	public double val;
-
 	public static final TaintedDoubleWithObjTag valueOf(Object taint, double val) {
 		return new TaintedDoubleWithObjTag(taint, val);
 	}
@@ -35,7 +31,5 @@ public final class TaintedDoubleWithObjTag extends TaintedPrimitiveWithObjTag im
 		this.val = val;
 	}
 
-	public TaintedDoubleWithObjTag() {
-
-	}
+	public TaintedDoubleWithObjTag() {}
 }

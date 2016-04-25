@@ -6,26 +6,23 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 
 public abstract class MultiDTaintedArrayWithIntTag {
 	public static final long serialVersionUID = 40523489234L;
+	public int[] taint;
 	public int sort;
 	public int length;
 
-	public boolean hasTaints()
-	{
-		for(int i : taint)
+	public boolean hasTaints() {
+		for (int i : taint)
 			if(i != 0)
 				return true;
 		return false;
 	}
-	public void setTaints(int t)
-	{
-		for(int i = 0; i < taint.length; i++)
-		{
-			taint[i] = t;
-		}
-	}
-	public MultiDTaintedArrayWithIntTag() {
 
+	public void setTaints(int t) {
+		for (int i = 0; i < taint.length; i++)
+			taint[i] = t;
 	}
+
+	public MultiDTaintedArrayWithIntTag() {}
 
 	public abstract Object getVal();
 
@@ -38,8 +35,6 @@ public abstract class MultiDTaintedArrayWithIntTag {
 		this.sort = sort;
 		this.length = taint.length;
 	}
-
-	public int[] taint;
 
 	public abstract Object clone();
 
@@ -64,7 +59,11 @@ public abstract class MultiDTaintedArrayWithIntTag {
 		if (originalElementType.getSort() != Type.ARRAY)
 			throw new IllegalArgumentException("passed " + originalElementType);
 		Class clazz = getClassForComponentType(originalElementType.getElementType().getSort());
-		return Type.getType(originalElementType.getDescriptor().substring(0, originalElementType.getDescriptor().length() - 2) + Type.getDescriptor(clazz));
+		return Type.getType(
+				originalElementType
+					.getDescriptor()
+					.substring(0, originalElementType.getDescriptor().length() - 2)
+						+ Type.getDescriptor(clazz));
 	}
 
 	@Override
@@ -132,23 +131,18 @@ public abstract class MultiDTaintedArrayWithIntTag {
 		if (c == MultiDTaintedCharArrayWithIntTag.class)
 			return "C";
 		throw new IllegalStateException("Got passed class: " + c);
-
 	}
 
-	public static final Class getUnderlyingBoxClassForUnderlyingClass(Class c)
-	{
+	public static final Class getUnderlyingBoxClassForUnderlyingClass(Class c) {
 		int dims = 0;
-		if(c.isArray())
-		{
-			while(c.isArray())
-			{
+		if (c.isArray()) {
+			while(c.isArray()) {
 				c = c.getComponentType();
 				dims++;
 			}
 		}
 		
-		if(dims == 1)
-		{
+		if (dims == 1) {
 			if (c == Double.TYPE)
 				return MultiDTaintedDoubleArrayWithIntTag.class;
 			if (c == Float.TYPE)
@@ -165,10 +159,7 @@ public abstract class MultiDTaintedArrayWithIntTag {
 				return MultiDTaintedByteArrayWithIntTag.class;
 			if (c == Character.TYPE)
 				return MultiDTaintedCharArrayWithIntTag.class;
-		}
-		else 
-			if(dims == 2)
-		{
+		} else if (dims == 2) {
 			if (c == Double.TYPE)
 				return MultiDTaintedDoubleArrayWithIntTag[].class;
 			if (c == Float.TYPE)
@@ -185,9 +176,7 @@ public abstract class MultiDTaintedArrayWithIntTag {
 				return MultiDTaintedByteArrayWithIntTag[].class;
 			if (c == Character.TYPE)
 				return MultiDTaintedCharArrayWithIntTag[].class;
-		}
-		else if(dims == 3)
-		{
+		} else if (dims == 3) {
 			if (c == Double.TYPE)
 				return MultiDTaintedDoubleArrayWithIntTag[][].class;
 			if (c == Float.TYPE)
@@ -207,6 +196,7 @@ public abstract class MultiDTaintedArrayWithIntTag {
 		}
 		throw new IllegalArgumentException("Can't handle that many dims yet: "+dims);
 	}
+
 	public static final Class getClassForComponentType(final int componentSort) {
 		switch (componentSort) {
 		case Type.BOOLEAN:
@@ -233,13 +223,14 @@ public abstract class MultiDTaintedArrayWithIntTag {
 	public static final Object unboxRaw(final Object in) {
 		if(in == null)
 			return null;
+	
 		if (!in.getClass().isArray()) {
 			return unboxVal(in, getSortForBoxClass(in.getClass()), 0);
 		}
+
 		Class tmp = in.getClass();
 		int dims = 0;
-		while(tmp.isArray())
-		{
+		while (tmp.isArray()) {
 			tmp = tmp.getComponentType();
 			dims++;
 		}
@@ -247,7 +238,6 @@ public abstract class MultiDTaintedArrayWithIntTag {
 	}
 
 	public static final Object unboxVal(final Object _in, final int componentType, final int dims) {
-
 		if (dims == 0) {
 			switch (componentType) {
 			case Type.BOOLEAN:
@@ -402,8 +392,8 @@ public abstract class MultiDTaintedArrayWithIntTag {
 		}
 		throw new IllegalArgumentException();
 	}
-	public static int getSortForBoxClass(Class c)
-	{
+
+	public static int getSortForBoxClass(Class c) {
 		if(c == MultiDTaintedIntArrayWithIntTag.class)
 			return Type.INT;
 		if(c == MultiDTaintedBooleanArrayWithIntTag.class)
@@ -422,8 +412,8 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			return Type.SHORT;
 		throw new IllegalArgumentException();
 	}
-	public static int getSort(Class c)
-	{
+
+	public static int getSort(Class c) {
 		if(c == Integer.TYPE)
 			return Type.INT;
 		if(c == Boolean.TYPE)
@@ -442,45 +432,51 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			return Type.SHORT;
 		throw new IllegalArgumentException();
 	}
+
 	public static final Object boxIfNecessary(final Object in) {
 		if (in != null && in.getClass().isArray()) {
 			Class tmp = in.getClass();
 			int dims = 0;
-			while(tmp.isArray())
-			{
+			while (tmp.isArray()) {
 				tmp = tmp.getComponentType();
 				dims++;
 			}
+
 			if (tmp.isPrimitive()) {
 				//Is prim arraytype
 				if (dims > 1) { //this should never be possible.
 					Type t = Type.getType(in.getClass());
 					return initWithEmptyTaints((Object[]) in, t.getElementType().getSort(), t.getDimensions());
 				} else {
-					if(tmp == Boolean.TYPE)
-						return new MultiDTaintedBooleanArrayWithIntTag(new int[(((boolean[]) in)).length], ((boolean[]) in));
-					if(tmp == Byte.TYPE)
-						return new MultiDTaintedByteArrayWithIntTag(new int[(((byte[]) in)).length], ((byte[]) in));
-					if(tmp == Character.TYPE)
-						return new MultiDTaintedCharArrayWithIntTag(new int[(((char[]) in)).length], ((char[]) in));
-					if(tmp == Double.TYPE)
-						return new MultiDTaintedDoubleArrayWithIntTag(new int[(((double[]) in)).length], ((double[]) in));
-					if(tmp == Float.TYPE)
-						return new MultiDTaintedFloatArrayWithIntTag(new int[(((float[]) in)).length], ((float[]) in));
-					if(tmp == Integer.TYPE)
-						return new MultiDTaintedIntArrayWithIntTag(new int[(((int[]) in)).length], ((int[]) in));
-					if(tmp == Long.TYPE)
-						return new MultiDTaintedLongArrayWithIntTag(new int[(((long[]) in)).length], ((long[]) in));
-					if(tmp == Short.TYPE)
-						return new MultiDTaintedShortArrayWithIntTag(new int[(((short[]) in)).length], ((short[]) in));
+					if (tmp == Boolean.TYPE)
+						return new MultiDTaintedBooleanArrayWithIntTag(
+								new int[(((boolean[]) in)).length], ((boolean[]) in));
+					if (tmp == Byte.TYPE)
+						return new MultiDTaintedByteArrayWithIntTag(
+								new int[(((byte[]) in)).length], ((byte[]) in));
+					if (tmp == Character.TYPE)
+						return new MultiDTaintedCharArrayWithIntTag(
+								new int[(((char[]) in)).length], ((char[]) in));
+					if (tmp == Double.TYPE)
+						return new MultiDTaintedDoubleArrayWithIntTag(
+								new int[(((double[]) in)).length], ((double[]) in));
+					if (tmp == Float.TYPE)
+						return new MultiDTaintedFloatArrayWithIntTag(
+								new int[(((float[]) in)).length], ((float[]) in));
+					if (tmp == Integer.TYPE)
+						return new MultiDTaintedIntArrayWithIntTag(
+								new int[(((int[]) in)).length], ((int[]) in));
+					if (tmp == Long.TYPE)
+						return new MultiDTaintedLongArrayWithIntTag(
+								new int[(((long[]) in)).length], ((long[]) in));
+					if (tmp == Short.TYPE)
+						return new MultiDTaintedShortArrayWithIntTag(
+								new int[(((short[]) in)).length], ((short[]) in));
 						throw new IllegalArgumentException();
 				}
-			}
-			else if(in.getClass().getComponentType().getName().equals("java.lang.Object"))
-			{
+			} else if (in.getClass().getComponentType().getName().equals("java.lang.Object")) {
 				Object[] _in = (Object[]) in;
-				for(int i = 0; i < _in.length;i++)
-				{
+				for (int i = 0; i < _in.length;i++) {
 					_in[i] = boxIfNecessary(_in[i]);
 				}
 			}
@@ -519,33 +515,42 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			default:
 				throw new IllegalArgumentException();
 			}
+
 			for (int i = 0; i < ar.length; i++) {
 				if (ar[i] != null) {
 					Object entry = (Object) ar[i];
 					switch (componentType) {
 					case Type.BOOLEAN:
-						ret[i] = new MultiDTaintedBooleanArrayWithIntTag(new int[(((boolean[]) entry)).length], ((boolean[]) entry));
+						ret[i] = new MultiDTaintedBooleanArrayWithIntTag(
+								new int[(((boolean[]) entry)).length], ((boolean[]) entry));
 						break;
 					case Type.BYTE:
-						ret[i] = new MultiDTaintedByteArrayWithIntTag(new int[(((byte[]) entry)).length], ((byte[]) entry));
+						ret[i] = new MultiDTaintedByteArrayWithIntTag(
+								new int[(((byte[]) entry)).length], ((byte[]) entry));
 						break;
 					case Type.CHAR:
-						ret[i] = new MultiDTaintedCharArrayWithIntTag(new int[(((char[]) entry)).length], ((char[]) entry));
+						ret[i] = new MultiDTaintedCharArrayWithIntTag(
+								new int[(((char[]) entry)).length], ((char[]) entry));
 						break;
 					case Type.DOUBLE:
-						ret[i] = new MultiDTaintedDoubleArrayWithIntTag(new int[(((double[]) entry)).length], ((double[]) entry));
+						ret[i] = new MultiDTaintedDoubleArrayWithIntTag(
+								new int[(((double[]) entry)).length], ((double[]) entry));
 						break;
 					case Type.FLOAT:
-						ret[i] = new MultiDTaintedFloatArrayWithIntTag(new int[(((float[]) entry)).length], ((float[]) entry));
+						ret[i] = new MultiDTaintedFloatArrayWithIntTag(
+								new int[(((float[]) entry)).length], ((float[]) entry));
 						break;
 					case Type.INT:
-						ret[i] = new MultiDTaintedIntArrayWithIntTag(new int[(((int[]) entry)).length], ((int[]) entry));
+						ret[i] = new MultiDTaintedIntArrayWithIntTag(
+								new int[(((int[]) entry)).length], ((int[]) entry));
 						break;
 					case Type.LONG:
-						ret[i] = new MultiDTaintedLongArrayWithIntTag(new int[(((long[]) entry)).length], ((long[]) entry));
+						ret[i] = new MultiDTaintedLongArrayWithIntTag(
+								new int[(((long[]) entry)).length], ((long[]) entry));
 						break;
 					case Type.SHORT:
-						ret[i] = new MultiDTaintedShortArrayWithIntTag(new int[(((short[]) entry)).length], ((short[]) entry));
+						ret[i] = new MultiDTaintedShortArrayWithIntTag(
+								new int[(((short[]) entry)).length], ((short[]) entry));
 						break;
 					default:
 						throw new IllegalArgumentException();
@@ -583,6 +588,7 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			default:
 				throw new IllegalArgumentException();
 			}
+
 			for (int i = 0; i < ar.length; i++) {
 				if (ar[i] != null) {
 					Object[] entry1 = (Object[]) ar[i];
@@ -618,28 +624,36 @@ public abstract class MultiDTaintedArrayWithIntTag {
 						Object entry = (Object) entry1[j];
 						switch (componentType) {
 						case Type.BOOLEAN:
-							ret[i][j] = new MultiDTaintedBooleanArrayWithIntTag(new int[(((boolean[]) entry)).length], ((boolean[]) entry));
+							ret[i][j] = new MultiDTaintedBooleanArrayWithIntTag(
+									new int[(((boolean[]) entry)).length], ((boolean[]) entry));
 							break;
 						case Type.BYTE:
-							ret[i][j] = new MultiDTaintedByteArrayWithIntTag(new int[(((byte[]) entry)).length], ((byte[]) entry));
+							ret[i][j] = new MultiDTaintedByteArrayWithIntTag(
+									new int[(((byte[]) entry)).length], ((byte[]) entry));
 							break;
 						case Type.CHAR:
-							ret[i][j] = new MultiDTaintedCharArrayWithIntTag(new int[(((char[]) entry)).length], ((char[]) entry));
+							ret[i][j] = new MultiDTaintedCharArrayWithIntTag(
+									new int[(((char[]) entry)).length], ((char[]) entry));
 							break;
 						case Type.DOUBLE:
-							ret[i][j] = new MultiDTaintedDoubleArrayWithIntTag(new int[(((double[]) entry)).length], ((double[]) entry));
+							ret[i][j] = new MultiDTaintedDoubleArrayWithIntTag(
+									new int[(((double[]) entry)).length], ((double[]) entry));
 							break;
 						case Type.FLOAT:
-							ret[i][j] = new MultiDTaintedFloatArrayWithIntTag(new int[(((float[]) entry)).length], ((float[]) entry));
+							ret[i][j] = new MultiDTaintedFloatArrayWithIntTag(
+									new int[(((float[]) entry)).length], ((float[]) entry));
 							break;
 						case Type.INT:
-							ret[i][j] = new MultiDTaintedIntArrayWithIntTag(new int[(((int[]) entry)).length], ((int[]) entry));
+							ret[i][j] = new MultiDTaintedIntArrayWithIntTag(
+									new int[(((int[]) entry)).length], ((int[]) entry));
 							break;
 						case Type.LONG:
-							ret[i][j] = new MultiDTaintedLongArrayWithIntTag(new int[(((long[]) entry)).length], ((long[]) entry));
+							ret[i][j] = new MultiDTaintedLongArrayWithIntTag(
+									new int[(((long[]) entry)).length], ((long[]) entry));
 							break;
 						case Type.SHORT:
-							ret[i][j] = new MultiDTaintedShortArrayWithIntTag(new int[(((short[]) entry)).length], ((short[]) entry));
+							ret[i][j] = new MultiDTaintedShortArrayWithIntTag(
+									new int[(((short[]) entry)).length], ((short[]) entry));
 							break;
 						default:
 							throw new IllegalArgumentException();
@@ -657,28 +671,36 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			if (ar[i] == null) {
 				switch (componentType) {
 				case Type.BOOLEAN:
-					ar[i] = new MultiDTaintedBooleanArrayWithIntTag(new int[lastDimSize], new boolean[lastDimSize]);
+					ar[i] = new MultiDTaintedBooleanArrayWithIntTag(
+								new int[lastDimSize], new boolean[lastDimSize]);
 					break;
 				case Type.BYTE:
-					ar[i] = new MultiDTaintedByteArrayWithIntTag(new int[lastDimSize], new byte[lastDimSize]);
+					ar[i] = new MultiDTaintedByteArrayWithIntTag(
+								new int[lastDimSize], new byte[lastDimSize]);
 					break;
 				case Type.CHAR:
-					ar[i] = new MultiDTaintedCharArrayWithIntTag(new int[lastDimSize], new char[lastDimSize]);
+					ar[i] = new MultiDTaintedCharArrayWithIntTag(
+								new int[lastDimSize], new char[lastDimSize]);
 					break;
 				case Type.DOUBLE:
-					ar[i] = new MultiDTaintedDoubleArrayWithIntTag(new int[lastDimSize], new double[lastDimSize]);
+					ar[i] = new MultiDTaintedDoubleArrayWithIntTag(
+								new int[lastDimSize], new double[lastDimSize]);
 					break;
 				case Type.FLOAT:
-					ar[i] = new MultiDTaintedFloatArrayWithIntTag(new int[lastDimSize], new float[lastDimSize]);
+					ar[i] = new MultiDTaintedFloatArrayWithIntTag(
+								new int[lastDimSize], new float[lastDimSize]);
 					break;
 				case Type.INT:
-					ar[i] = new MultiDTaintedIntArrayWithIntTag(new int[lastDimSize], new int[lastDimSize]);
+					ar[i] = new MultiDTaintedIntArrayWithIntTag(
+								new int[lastDimSize], new int[lastDimSize]);
 					break;
 				case Type.LONG:
-					ar[i] = new MultiDTaintedLongArrayWithIntTag(new int[lastDimSize], new long[lastDimSize]);
+					ar[i] = new MultiDTaintedLongArrayWithIntTag(
+								new int[lastDimSize], new long[lastDimSize]);
 					break;
 				case Type.SHORT:
-					ar[i] = new MultiDTaintedShortArrayWithIntTag(new int[lastDimSize], new short[lastDimSize]);
+					ar[i] = new MultiDTaintedShortArrayWithIntTag(
+								new int[lastDimSize], new short[lastDimSize]);
 					break;
 				default:
 					throw new IllegalArgumentException();
@@ -691,7 +713,9 @@ public abstract class MultiDTaintedArrayWithIntTag {
 
 	public static Type getPrimitiveTypeForWrapper(String internalName) {
 		try {
-			return Type.getType(getPrimitiveTypeForWrapper(Class.forName(internalName.replace("/", "."))));
+			return Type.getType(
+					getPrimitiveTypeForWrapper(
+						Class.forName(internalName.replace("/", "."))));
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}

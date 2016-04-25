@@ -46,7 +46,9 @@ public class MethodDescriptor {
 	public boolean equals(Object obj) {
 		if(obj instanceof MethodDescriptor) {
 			MethodDescriptor mdesc = (MethodDescriptor)obj;
-			return mdesc.getDesc().equals(desc) && mdesc.getName().equals(name) && mdesc.getOwner().equals(owner);
+			return mdesc.getDesc().equals(desc)
+				&& mdesc.getName().equals(name)
+				&& mdesc.getOwner().equals(owner);
 		}
 		return false;
 	}
