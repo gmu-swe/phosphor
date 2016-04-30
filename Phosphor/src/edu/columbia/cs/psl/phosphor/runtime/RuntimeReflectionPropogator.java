@@ -373,7 +373,7 @@ public class RuntimeReflectionPropogator {
 
 	public static TaintedDoubleWithIntTag getDouble$$PHOSPHORTAGGED(Field f, Object obj, TaintedDoubleWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
-		ret.val = f.getInt(obj);
+		ret.val = f.getDouble(obj);
 		try {
 			Field taintField;
 			if (fieldToField.containsKey(f))
