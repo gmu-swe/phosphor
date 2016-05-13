@@ -769,6 +769,11 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				}
 			}
 			if (ta.ignoreLoadingNextTaint) {
+			  if(ta.topStackElCarriesTaints())
+			  {
+			    mv.visitInsn(SWAP);
+			    mv.visitInsn(POP);
+			  }
 				mv.visitTypeInsn(opcode, type);
 				if (doIOR)
 					mv.visitInsn(IOR);
