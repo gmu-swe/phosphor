@@ -58,7 +58,7 @@ public class ClassHierarchyCreator extends ClassVisitor {
 					}
 				}
 			}
-			if(temp2.size() == 0)
+			if(temp2.isEmpty())
 				return ret;
 			else {
 				temp1 = temp2;

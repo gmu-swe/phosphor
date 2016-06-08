@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -117,18 +118,18 @@ public class TaintUtils {
 
 	public static final String METHOD_SUFFIX = "$$PHOSPHORTAGGED";
 	public static final boolean DEBUG_ALL = false;
-	public static final boolean DEBUG_DUPSWAP = false || DEBUG_ALL;
-	public static final boolean DEBUG_FRAMES = false || DEBUG_ALL;
-	public static final boolean DEBUG_FIELDS = false || DEBUG_ALL;
-	public static final boolean DEBUG_LOCAL = false || DEBUG_ALL;
-	public static final boolean DEBUG_CALLS = false || DEBUG_ALL;
+	public static final boolean DEBUG_DUPSWAP = DEBUG_ALL;
+	public static final boolean DEBUG_FRAMES = DEBUG_ALL;
+	public static final boolean DEBUG_FIELDS = DEBUG_ALL;
+	public static final boolean DEBUG_LOCAL = DEBUG_ALL;
+	public static final boolean DEBUG_CALLS = DEBUG_ALL;
 	public static final boolean DEBUG_OPT = false;
 	public static final boolean DEBUG_PURE = false;
 
 	public static boolean PREALLOC_RETURN_ARRAY = true;
 
 	public static final boolean ADD_BASIC_ARRAY_CONSTRAINTS = true;
-	public static final boolean ADD_HEAVYWEIGHT_ARRAY_TAINTS = ADD_BASIC_ARRAY_CONSTRAINTS || true;
+	public static final boolean ADD_HEAVYWEIGHT_ARRAY_TAINTS = ADD_BASIC_ARRAY_CONSTRAINTS;
 
 	public static int nextTaint = 0;
 	public static int nextTaintPHOSPHOR_TAG = 0;
@@ -191,7 +192,7 @@ public class TaintUtils {
 		return "L"+in.replace('.', '/')+";";
 	}
 	private static String processType(String type) {
-		StringBuffer typeBuffer = new StringBuffer();
+	    StringBuilder typeBuffer = new StringBuilder();
 		type = type.trim();
 		int firstBracket = type.indexOf('[');
 		if(firstBracket >= 0) {
@@ -210,9 +211,9 @@ public class TaintUtils {
 			initDoopConversion();
 		type = type.trim();
 		if(type.length() == 1)  {
-			for(String s : typeToSymbol.keySet()) 
-				if(typeToSymbol.get(s).equals(type))
-					return s;
+			for(Entry<String, String> s : typeToSymbol.entrySet()) 
+				if(s.getValue().equals(type))
+					return s.getKey();
 			throw new IllegalArgumentException("Invalid type string");
 		}
 			
@@ -238,8 +239,6 @@ public class TaintUtils {
 	//<java.lang.Runtime: java.lang.Process[][][] exec(java.lang.String,java.lang.String[],java.io.File)>
 	public static MethodDescriptor getMethodDesc(String signature) {
 		// get return type
-		char[] chars = signature.toCharArray();
-		String[] parts = signature.split(": ");
 		int idxOfColon = signature.indexOf(':');
 		String temp = signature.substring(idxOfColon+2);
 		int nameStart = temp.indexOf(' ')+1;
@@ -251,7 +250,7 @@ public class TaintUtils {
 		 
 		// get args list
 		temp = temp.substring(nameEnd+1,temp.length()-2);
-		StringBuffer argsBuffer = new StringBuffer();
+		StringBuilder argsBuffer = new StringBuilder();
 	
 		argsBuffer.append("(");
 		if(temp != null && !temp.isEmpty()) {
@@ -294,7 +293,7 @@ public class TaintUtils {
 			}
 			args = args.substring(idx);
 		}
-		StringBuffer buf = new StringBuffer();
+		StringBuilder buf = new StringBuilder();
 		buf.append("<").append(owner).append(": ").append(actualReturnType).append(" ").append(methodName).append("(");
 		for(String s : arguments)
 			buf.append(s).append(",");

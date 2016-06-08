@@ -172,16 +172,16 @@ public final class NativeHelper {
 							ex.printStackTrace();
 						}
 					}
-					tmp.add(MultiDTaintedArrayWithIntTag.unboxRaw(o));
-//					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithIntTag.unboxRaw(o), new TaintedBooleanWithIntTag());
+//					tmp.add(MultiDTaintedArrayWithIntTag.unboxRaw(o));
+					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithIntTag.unboxRaw(o), new TaintedBooleanWithIntTag());
 
 				} else
 					break;
 			}
 			if (tmp != null) {
 				in.clear();
-				tmp.add(tmp);
-//				tmp.add$$PHOSPHORTAGGED(tmp, new TaintedBooleanWithIntTag());
+//				tmp.add(tmp);
+				tmp.add$$PHOSPHORTAGGED(tmp, new TaintedBooleanWithIntTag());
 			}
 		}
 		return in;

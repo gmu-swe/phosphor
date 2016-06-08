@@ -510,15 +510,13 @@ public final
         throws IllegalAccessException, IllegalArgumentException,
            InvocationTargetException
     {
-        if (!override) {
-            if (!Reflection.quickCheckMemberAccess(clazz, modifiers)) {
-                // Until there is hotspot @CallerSensitive support
-                // can't call Reflection.getCallerClass() here
-                // Workaround for now: add a frame getCallerClass to
-                // make the caller at stack depth 2
-                Class<?> caller = getCallerClass();
-                checkAccess(caller, clazz, obj, modifiers);
-            }
+        if (!override && !Reflection.quickCheckMemberAccess(clazz, modifiers)) {
+            // Until there is hotspot @CallerSensitive support
+            // can't call Reflection.getCallerClass() here
+            // Workaround for now: add a frame getCallerClass to
+            // make the caller at stack depth 2
+            Class<?> caller = getCallerClass();
+            checkAccess(caller, clazz, obj, modifiers);
         }
         MethodAccessor ma = methodAccessor;             // read volatile
         if (ma == null) {

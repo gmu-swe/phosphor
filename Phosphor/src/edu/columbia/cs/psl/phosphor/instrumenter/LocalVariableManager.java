@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
@@ -139,6 +140,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 				curLocalIdxToLVNode.get(v.idx).end = new LabelNode(lbl);
 				v.inUse = false;
 				v.owner = null;
+				if(idx < analyzer.locals.size())
+				  analyzer.locals.set(idx, Opcodes.TOP);
 				return;
 			}
 		}
@@ -343,7 +346,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	@Override
 	public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
 		super.visitLocalVariable(name, desc, signature, start, end, index);
-		if (createdLVs.size() > 0) {
+		if (!createdLVs.isEmpty()) {
 			if(!endVisited)
 			{
 				super.visitLabel(this.end);
@@ -496,7 +499,6 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         	if(o == Opcodes.DOUBLE || o == Opcodes.LONG)
         		locals.add(Opcodes.TOP);
         }
-        boolean[] varsToSetToTop = new boolean[newLocals.length];
 //        for(int var : varsToRemove.keySet())
 //        {
 //        	//var is the var that we want to see if it's a taint-carrying type
@@ -521,22 +523,24 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         // copies types from 'local' to 'newLocals'
         // 'newLocals' currently empty
 
-//		if (!disabled) 
-		{
-			if (TaintUtils.PREALLOC_RETURN_ARRAY) {
-				setFrameLocal(lvOfSingleWrapperArray, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME);
-			} else {
-				for (Type t : preAllocedReturnTypes.keySet()) {
-					//        	System.out.println(t);
-					if (t.getSort() != Type.OBJECT)
-						continue;
-					int idx = preAllocedReturnTypes.get(t);
-					if (idx >= 0) {
-						setFrameLocal(idx, t.getInternalName());
-					}
-				}
-			}
-		}
+
+//    if (!disabled)
+    {
+      if (TaintUtils.PREALLOC_RETURN_ARRAY) {
+        setFrameLocal(lvOfSingleWrapperArray,
+            Configuration.TAINTED_RETURN_HOLDER_DESC);
+      } else {
+        for (Entry<Type, Integer> t : preAllocedReturnTypes.entrySet()) {
+          // System.out.println(t);
+          if (t.getKey().getSort() != Type.OBJECT)
+            continue;
+          int idx = t.getValue();
+          if (idx >= 0) {
+            setFrameLocal(idx, t.getKey().getInternalName());
+          }
+        }
+      }
+    }
 //        System.out.println(Arrays.toString(newLocals));
         int index = 0; // old local variable index
         int number = 0; // old local variable number

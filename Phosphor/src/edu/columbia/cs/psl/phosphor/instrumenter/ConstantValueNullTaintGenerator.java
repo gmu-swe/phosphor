@@ -86,7 +86,6 @@ public class ConstantValueNullTaintGenerator extends MethodVisitor implements Op
 					
 					void generateEmptyTaintAndAppend()
 					{
-						MethodNode mn = new MethodNode();
 //						Configuration.taintTagFactory.generateEmptyTaint(mn);
 						this.instructions.insert(this.instructions.getLast(), new InsnNode(TaintUtils.GENERATETAINT));
 					}

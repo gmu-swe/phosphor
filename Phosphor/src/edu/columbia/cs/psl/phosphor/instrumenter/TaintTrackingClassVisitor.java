@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Map.Entry;
 
 import javax.swing.text.html.HTMLDocument.HTMLReader.PreAction;
 
@@ -269,6 +270,14 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 		if (name.equals("hasAnyTaints"))
 			isProxyClass = true;
 		if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(className, name, desc,false)){
+
+		if(name.contains(TaintUtils.METHOD_SUFFIX))
+		{
+		    //Some dynamic stuff might result in there being weird stuff here
+		    return new MethodVisitor(Opcodes.ASM5) {
+            };
+		}
+
 //			if (TaintUtils.DEBUG_CALLS)
 //				System.out.println("Skipping instrumentation for  class: " + className + " method: " + name + " desc: " + desc);
 			if((access & Opcodes.ACC_NATIVE) != 0)
@@ -474,9 +483,11 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 //			optimizer = new PopOptimizingMV(mv, access,className, name, newDesc, signature, exceptions);
 
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
-			mv = new StringTaintVerifyingMV(analyzer,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BufferedInputStream") || className.startsWith("sun/nio")),analyzer); //TODO - how do we handle directbytebuffers?
-			
-			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className,analyzer);
+
+			mv = new StringTaintVerifyingMV(analyzer,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")),analyzer); //TODO - how do we handle directbytebuffers?
+
+			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className, name, analyzer);
+
 			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
 			LocalVariableManager lvs;
 			TaintPassingMV tmv;
@@ -1402,7 +1413,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 					NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 					mv = new StringTaintVerifyingMV(analyzer,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")),analyzer); //TODO - how do we handle directbytebuffers?
 					
-					ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className,analyzer);
+					ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className, name, analyzer);
 					PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
 					LocalVariableManager lvs;
 					TaintPassingMV tmv;
@@ -1592,8 +1603,12 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 		}
 		if(Configuration.GENERATE_UNINST_STUBS)
 		{
-			HashSet<MethodNode> methodsToWrap = new HashSet<MethodNode>();
-			for (MethodNode mn : forMore.keySet()) {
+
+			//make a copy of each raw method, using the proper suffix. right now this only goes 
+			//one level deep - and it will call back into instrumented versions
+			for (Entry<MethodNode, MethodNode> am : forMore.entrySet()) {
+			    MethodNode mn = am.getKey();
+
 				if(mn.name.equals("<clinit>"))
 					continue;
 				
@@ -1627,7 +1642,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 				if ((mn.access & Opcodes.ACC_ABSTRACT) == 0) {
 					if (Instrumenter.isGreyIgnoredMethod(className, mn.name, mn.desc)) {
 						if ((mn.access & Opcodes.ACC_NATIVE) == 0) {
-							MethodNode m = forMore.get(mn);
+							MethodNode m = am.getValue();
 							int access = acc;
 							String name = mn.name;
 							String desc = mn.desc;
@@ -1671,6 +1686,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 							boolean isStatic = (Opcodes.ACC_STATIC & mn.access) != 0;
 							if (!isStatic) {
 								ga.loadThis();
+
 							}
 							Type[] args = Type.getArgumentTypes(mDesc);
 							for(int i = 0; i<args.length; i++)

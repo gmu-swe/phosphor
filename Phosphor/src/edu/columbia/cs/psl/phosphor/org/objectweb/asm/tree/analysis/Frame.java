@@ -328,10 +328,8 @@ public class Frame<V extends Value> {
             }
             break;
         case Opcodes.POP2:
-            if (pop().getSize() == 1) {
-                if (pop().getSize() != 1) {
-                    throw new AnalyzerException(insn, "Illegal use of POP2");
-                }
+            if (pop().getSize() == 1 && pop().getSize() != 1) {
+                throw new AnalyzerException(insn, "Illegal use of POP2");
             }
             break;
         case Opcodes.DUP:
