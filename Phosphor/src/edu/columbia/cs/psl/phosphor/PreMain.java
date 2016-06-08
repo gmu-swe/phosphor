@@ -189,23 +189,6 @@ public class PreMain {
 		}
 		
 		public TaintedByteArrayWithSingleObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint classtaint,
-				byte[] classfileBuffer, TaintedReturnHolderWithSingleObjTag[] ret) throws IllegalClassFormatException {
-			Configuration.taintTagFactory.instrumentationStarting(className);
-
-			if (!INITED) {
-				Configuration.IMPLICIT_TRACKING = false;
-				Configuration.MULTI_TAINTING = true;
-				Configuration.SINGLE_TAG_PER_ARRAY = true;
-				Configuration.init();
-				INITED = true;
-			}
-			((TaintedByteArrayWithSingleObjTag)ret[TaintUtils.PREALLOC_BYTEARRAY]).val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
-			((TaintedByteArrayWithSingleObjTag)ret[TaintUtils.PREALLOC_BYTEARRAY]).taint = null;
-			Configuration.taintTagFactory.instrumentationEnding(className);
-			return ((TaintedByteArrayWithSingleObjTag)ret[TaintUtils.PREALLOC_BYTEARRAY]);
-		}
-		
-		public TaintedByteArrayWithSingleObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint classtaint,
 				byte[] classfileBuffer, ControlTaintTagStack ctrl, TaintedByteArrayWithSingleObjTag ret) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 

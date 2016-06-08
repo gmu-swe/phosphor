@@ -1,8 +1,5 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-import edu.columbia.cs.psl.prof.ILogger;
-import sun.misc.VM;
-
 public final class TaintedReturnHolderWithIntTag {
 	private TaintedIntWithIntTag i;
 	private TaintedIntArrayWithIntTag ia;
@@ -21,10 +18,7 @@ public final class TaintedReturnHolderWithIntTag {
 	private TaintedLongWithIntTag j;
 	private TaintedLongArrayWithIntTag ja;
 
-	public static ILogger logger;
 	public TaintedReturnHolderWithIntTag(){
-		if(logger != null)
-			logger.hit$$PHOSPHORTAGGED(this);
 	}
 	public TaintedIntWithIntTag i()
 	{

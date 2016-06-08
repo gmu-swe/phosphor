@@ -55,12 +55,7 @@ public class Tainter {
 			ret.val = ((TaintedWithIntTag) obj).getPHOSPHOR_TAG();
 		return ret;
 	}
-	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(Object obj,Object[] ret)
-	{
-		if(obj instanceof TaintedWithIntTag)
-			((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]).val = ((TaintedWithIntTag) obj).getPHOSPHOR_TAG();
-		return ((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]);
-	}
+	
 	public static TaintedShortWithIntTag taintedShort$$PHOSPHORTAGGED(int i, short s, int z, int tag, TaintedShortWithIntTag ret)
 	{
 		ret.taint = tag;
@@ -274,11 +269,6 @@ public class Tainter {
 		return ret;
 	}
 
-	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, char c, Object[] ret) {
-		((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]).taint = t;
-		((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]).val = t;
-		return ((TaintedIntWithIntTag) ret[TaintUtils.PREALLOC_INT]);
-	}
 	public static int getTaint(byte c)
 	{
 		return 0;

@@ -127,23 +127,7 @@ public class TaintUtils {
 	public static final boolean DEBUG_PURE = false;
 
 	public static boolean PREALLOC_RETURN_ARRAY = true;
-	public static final int PREALLOC_BOOLEAN=0;
-	public static final int PREALLOC_BYTE=1;
-	public static final int PREALLOC_CHAR=2;
-	public static final int PREALLOC_DOUBLE=3;
-	public static final int PREALLOC_FLOAT=4;
-	public static final int PREALLOC_INT=5;
-	public static final int PREALLOC_LONG=6;
-	public static final int PREALLOC_SHORT=7;
-	public static final int PREALLOC_BOOLEANARRAY=8;
-	public static final int PREALLOC_BYTEARRAY=9;
-	public static final int PREALLOC_CHARARRAY=10;
-	public static final int PREALLOC_DOUBLEARRAY=11;
-	public static final int PREALLOC_FLOATARRAY=12;
-	public static final int PREALLOC_INTARRAY=13;
-	public static final int PREALLOC_LONGARRAY=14;
-	public static final int PREALLOC_SHORTARRAY=15;
-	
+
 	public static final boolean ADD_BASIC_ARRAY_CONSTRAINTS = true;
 	public static final boolean ADD_HEAVYWEIGHT_ARRAY_TAINTS = ADD_BASIC_ARRAY_CONSTRAINTS || true;
 
@@ -163,48 +147,6 @@ public class TaintUtils {
 
 	public static final String METHOD_SUFFIX_UNINST = "$$PHOSPHORUNTAGGED";
 
-	public static final int getPreAllocArrayIdxForType(Type t)
-	{
-		switch(t.getSort())
-		{
-		case Type.BOOLEAN:
-			return PREALLOC_BOOLEAN;
-		case Type.BYTE:
-			return PREALLOC_BYTE;
-		case Type.CHAR:
-			return PREALLOC_CHAR;
-		case Type.DOUBLE:
-			return PREALLOC_DOUBLE;
-		case Type.FLOAT:
-			return PREALLOC_FLOAT;
-		case Type.INT:
-			return PREALLOC_INT;
-		case Type.LONG:
-			return PREALLOC_LONG;
-		case Type.SHORT:
-			return PREALLOC_SHORT;
-		case Type.ARRAY:
-			switch (t.getElementType().getSort()) {
-			case Type.BOOLEAN:
-				return PREALLOC_BOOLEANARRAY;
-			case Type.BYTE:
-				return PREALLOC_BYTEARRAY;
-			case Type.CHAR:
-				return PREALLOC_CHARARRAY;
-			case Type.DOUBLE:
-				return PREALLOC_DOUBLEARRAY;
-			case Type.FLOAT:
-				return PREALLOC_FLOATARRAY;
-			case Type.INT:
-				return PREALLOC_INTARRAY;
-			case Type.LONG:
-				return PREALLOC_LONGARRAY;
-			case Type.SHORT:
-				return PREALLOC_SHORTARRAY;
-			}
-		}
-		return -1;
-	}
 	
 	/*
 	 * Start: Conversion of method signature from doop format to bytecode format

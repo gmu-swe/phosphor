@@ -66,18 +66,7 @@ public class ArrayReflectionMasker {
 		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
 	}
 
-	public static TaintedIntWithObjTag getLength$$PHOSPHORTAGGED(Object obj, TaintedReturnHolderWithObjTag[] ret) {
-		if (obj.getClass().isArray()) {
-			((TaintedIntWithObjTag)ret[TaintUtils.PREALLOC_INT]).taint = null;
-			((TaintedIntWithObjTag)ret[TaintUtils.PREALLOC_INT]).val = Array.getLength(obj);
-			return ((TaintedIntWithObjTag)ret[TaintUtils.PREALLOC_INT]);
-		} else if (obj instanceof MultiDTaintedArrayWithIntTag) {
-			((TaintedIntWithObjTag)ret[TaintUtils.PREALLOC_INT]).taint = null;
-			((TaintedIntWithObjTag)ret[TaintUtils.PREALLOC_INT]).val = Array.getLength(((MultiDTaintedArrayWithObjTag) obj).getVal());
-			return ((TaintedIntWithObjTag)ret[TaintUtils.PREALLOC_INT]);
-		}
-		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
-	}
+	
 	public static TaintedIntWithIntTag getLength$$PHOSPHORTAGGEDInt(Object obj, TaintedReturnHolderWithIntTag ret) {
 		if (obj.getClass().isArray()) {
 			ret.i().taint = 0;
