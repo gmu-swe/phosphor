@@ -45,7 +45,6 @@ public class MethodArgReindexer extends MethodVisitor {
 		this.desc = desc;
 		this.className = className;
 		oldArgTypes = Type.getArgumentTypes(originalDesc);
-		Type[] newArgTypes = Type.getArgumentTypes(desc);
 		origNumArgs = oldArgTypes.length;
 		isStatic = (Opcodes.ACC_STATIC & access) != 0;
 		for (Type t : oldArgTypes)

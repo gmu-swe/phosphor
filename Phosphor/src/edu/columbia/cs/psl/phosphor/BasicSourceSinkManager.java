@@ -110,6 +110,11 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		if (c1.equals(c2))
 			return true;
 		ClassNode cn = Instrumenter.classes.get(c2);
+
+		if (cn == null) {
+			return false;
+		}
+
 		if (cn.interfaces != null)
 			for (Object s : cn.interfaces) {
 				if (c1IsSuperforC2(c1, (String) s))
@@ -129,10 +134,11 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			String[] inD = str.split("\\.");
 			for (String s : sources) {
 				String d[] = s.split("\\.");
-				if (d[1].equals(inD[1]))//desc is same
+				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
 				{
-					if (c1IsSuperforC2(d[0], inD[0]))
-						return true;
+					if(!sourceLabels.containsKey(str))
+						sourceLabels.put(str, sourceLabels.get(s));
+				    return true;
 				}
 			}
 			return false;
@@ -150,10 +156,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			for (String s : sinks) {
 				String d[] = s.split("\\.");
 
-				if (d[1].equals(inD[1]))//desc is same
+				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
 				{
-					if (c1IsSuperforC2(d[0], inD[0]))
-						return true;
+				    return true;
 				}
 			}
 			return false;

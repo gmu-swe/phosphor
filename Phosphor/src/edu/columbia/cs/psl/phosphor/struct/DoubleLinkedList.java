@@ -60,7 +60,7 @@ public class DoubleLinkedList<T> implements Cloneable {
 	}
 	@Override
 	public String toString() {
-		StringBuffer ret = new StringBuffer();
+	    StringBuilder ret = new StringBuilder();
 		ret.append("[");
 		Node<T> e = getFirst();
 		while(e != null)

@@ -12,7 +12,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 
 	public static TaintedBooleanWithIntTag booleanValue(Boolean z) {
 		TaintedBooleanWithIntTag ret = new TaintedBooleanWithIntTag();
-		ret.val = z.booleanValue();
+		ret.val = z;
 		if (tags.containsKey(z))
 			ret.taint = tags.get(z);
 		return ret;
@@ -20,7 +20,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 
 	public static TaintedByteWithIntTag byteValue(Byte z) {
 		TaintedByteWithIntTag ret = new TaintedByteWithIntTag();
-		ret.val = z.byteValue();
+		ret.val = z;
 		if (tags.containsKey(z))
 			ret.taint = tags.get(z);
 		return ret;
@@ -28,7 +28,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 
 	public static TaintedShortWithIntTag shortValue(Short z) {
 		TaintedShortWithIntTag ret = new TaintedShortWithIntTag();
-		ret.val = z.shortValue();
+		ret.val = z;
 		if (tags.containsKey(z))
 			ret.taint = tags.get(z);
 		return ret;

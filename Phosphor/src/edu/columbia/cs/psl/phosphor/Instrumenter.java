@@ -24,6 +24,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.jar.JarEntry;
@@ -177,11 +178,10 @@ public class Instrumenter {
 					Instrumenter.classes.put(name, cn);
 				}
 			}, ClassReader.SKIP_CODE);
+			is.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 	}
 
 	static int nTotal = 0;
@@ -200,6 +200,7 @@ public class Instrumenter {
 			while ((nRead = is.read(data, 0, data.length)) != -1) {
 				buffer.write(data, 0, nRead);
 			}
+			is.close();
 
 			buffer.flush();
 			PreMain.TaintTrackingClassTransformer transformer = new PreMain.TaintTrackingClassTransformer();
@@ -213,28 +214,60 @@ public class Instrumenter {
 		}
 	}
 
-	static Option opt_taintSources = OptionBuilder.withArgName("taintSources").hasArg().withDescription("File with listing of taint sources to auto-taint").create("taintSources");
-	static Option opt_taintSinks =   OptionBuilder.withArgName("taintSinks").hasArg().withDescription("File with listing of taint sinks to use to check for auto-taints").create("taintSinks");
-	static Option opt_dataTrack = new Option("withoutDataTrack", "Disable taint tracking through data flow (on by default)");
-	static Option opt_controlTrack = new Option("controlTrack", "Enable taint tracking through control flow");
-	static Option opt_multiTaint = new Option("multiTaint", "Support for 2^32 tags instead of just 32");
-	static Option opt_trackArrayLengthTaints = new Option("withArrayLengthTags", "Tracks taint tags on array lengths - requires use of JVMTI runtime library when running");
-	static Option opt_withoutFieldHiding = new Option("withoutFieldHiding", "Disable hiding of taint fields via reflection");
-	static Option opt_withoutPropogation = new Option("withoutPropogation","Disable all tag propogation - still create method stubs and wrappers as per other options, but don't actually propogate tags");
-	static Option opt_enumPropogation = new Option("withEnumsByValue","Propogate tags to enums as if each enum were a value (not a reference) through the Enum.valueOf method");
-	static Option opt_unboxAcmpEq = new Option("forceUnboxAcmpEq","At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)");
 	static Option opt_singleTagArrays = new Option("singleArrayTag","Store only a single tag for all values in a prim array");
-
-	static Option opt_withSelectiveInst = new Option("withSelectiveInst",true,"Enable selective instrumentation");
 	static Option opt_withGreylist = new Option("withGreylist",true,"Enable selective instrumentation greylisting (grey list methods are created as inst and uninst, and uninst methods call uninst)");
 
-	static Option opt_uninstCopies = new Option("generateUninstStubs","Add extra copies of each method, so there's always one instrumented and one not.");
-	static Option opt_disableJumpOptimizations = new Option("disableJumpOptimizations","Do not optimize taint removal at jump calls");
-	
-	static Option help = new Option( "help", "print this message" );
+	static Option opt_taintSources = Option.builder("taintSources")
+		.argName("taintSources")
+		.hasArg()
+		.desc("File with listing of taint sources to auto-taint")
+		.build();
+	static Option opt_taintSinks = Option.builder("taintSinks")
+		.argName("taintSinks")
+		.hasArg()
+		.desc("File with listing of taint sinks to use to check for auto-taints")
+		.build();
+	static Option opt_dataTrack = Option.builder("withoutDataTrack")
+		.desc("Disable taint tracking through data flow (on by default)")
+		.build();
+	static Option opt_controlTrack = Option.builder("controlTrack")
+		.desc("Enable taint tracking through control flow")
+		.build();
+	static Option opt_multiTaint = Option.builder("multiTaint")
+		.desc("Support for 2^32 tags instead of just 32")
+		.build();
+	static Option opt_trackArrayLengthTaints = Option.builder("withArrayLengthTags")
+		.desc("Tracks taint tags on array lengths - requires use of JVMTI runtime library when running")
+		.build();
+	static Option opt_withoutFieldHiding = Option.builder("withoutFieldHiding")
+		.desc("Disable hiding of taint fields via reflection")
+		.build();
+	static Option opt_withoutPropogation = Option.builder("withoutPropogation")
+		.desc("Disable all tag propogation - still create method stubs and wrappers as per other options, but don't actually propogate tags")
+		.build();
+	static Option opt_enumPropogation = Option.builder("withEnumsByValue")
+		.desc("Propogate tags to enums as if each enum were a value (not a reference) through the Enum.valueOf method")
+		.build();
+	static Option opt_unboxAcmpEq = Option.builder("forceUnboxAcmpEq")
+		.desc("At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)")
+		.build();
+	static Option opt_withSelectiveInst = Option.builder("withSelectiveInst")
+		.hasArg()
+		.desc("Enable selective instrumentation")
+		.build();
+	static Option opt_uninstCopies = Option.builder("generateUninstStubs")
+		.desc("Add extra copies of each method, so there's always one instrumented and one not.")
+		.build();
+	static Option opt_disableJumpOptimizations = Option.builder("disableJumpOptimizations")
+		.desc("Do not optimize taint removal at jump calls")
+		.build();
+	static Option help = Option.builder("help")
+		.desc("print this message")
+		.build();
 
 	public static String sourcesFile;
 	public static String sinksFile;
+	static boolean ANALYZE_ONLY;
 	
 	public static void main(String[] args) {
 		
@@ -256,18 +289,18 @@ public class Instrumenter {
 		options.addOption(opt_withGreylist);
 		options.addOption(opt_disableJumpOptimizations);
 
-	    CommandLineParser parser = new BasicParser();
+		CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
 	    try {
-	        line = parser.parse( options, args );
-	    }
-	    catch( org.apache.commons.cli.ParseException exp ) {
+	        line = parser.parse(options, args);
+	    } catch( org.apache.commons.cli.ParseException exp ) {
 
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
-	        System.err.println(exp.getMessage() );
+	        System.err.println(exp.getMessage());
 	        return;
 		}
+
 		if (line.hasOption("help") || line.getArgs().length != 2) {
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
@@ -276,13 +309,13 @@ public class Instrumenter {
 		
 		sourcesFile = line.getOptionValue("taintSources");
 		sinksFile = line.getOptionValue("taintSinks");
+		
 		Configuration.MULTI_TAINTING = line.hasOption("multiTaint");
 		Configuration.IMPLICIT_TRACKING = line.hasOption("controlTrack");
 		Configuration.DATAFLOW_TRACKING = !line.hasOption("withoutDataTrack");
-		if(Configuration.IMPLICIT_TRACKING)
+		if (Configuration.IMPLICIT_TRACKING)
 			Configuration.MULTI_TAINTING = true;
 		Configuration.GENERATE_UNINST_STUBS = line.hasOption("generateUninstStubs");
-
 		Configuration.ARRAY_LENGTH_TRACKING = line.hasOption("withArrayLengthTags");
 		Configuration.WITHOUT_FIELD_HIDING = line.hasOption("withoutFieldHiding");
 		Configuration.WITHOUT_PROPOGATION = line.hasOption("withoutPropogation");
@@ -292,36 +325,37 @@ public class Instrumenter {
 		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
 		Configuration.SINGLE_TAG_PER_ARRAY = line.hasOption("singleArrayTag");
 		Configuration.init();
+
 		TaintUtils.OPT_IGNORE_EXTRA_TAINTS = !line.hasOption("disableJumpOptimizations");
 		
-		if(Configuration.WITH_SELECTIVE_INST)
+		if (Configuration.WITH_SELECTIVE_INST)
 			System.out.println("Performing selective instrumentation");
 		
-		if(Configuration.DATAFLOW_TRACKING)
+		if (Configuration.DATAFLOW_TRACKING)
 			System.out.println("Data flow tracking: enabled");
 		else
 			System.out.println("Data flow tracking: disabled");
-		if(Configuration.IMPLICIT_TRACKING)
-		{
+
+		if (Configuration.IMPLICIT_TRACKING)
 			System.out.println("Control flow tracking: enabled");
-		}
 		else
 			System.out.println("Control flow tracking: disabled");
 		
-		if(Configuration.MULTI_TAINTING)
+		if (Configuration.MULTI_TAINTING)
 			System.out.println("Multi taint: enabled");
 		else
 			System.out.println("Taints will be combined with logical-or.");
 
-		if(Configuration.WITH_SELECTIVE_INST)
-		{
+		if (Configuration.WITH_SELECTIVE_INST) {
 			System.out.println("Loading selective instrumentation configuration");
 			SelectiveInstrumentationManager.populateMethodsToInstrument(Configuration.selective_inst_config);
 		}
+
 		if(line.hasOption("withGreylist"))
 		{
 			SelectiveInstrumentationManager.populateGreylist(line.getOptionValue("withGreylist"));
 		}
+
 		TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
 		ANALYZE_ONLY = true;
 		System.out.println("Starting analysis");
@@ -348,36 +382,34 @@ public class Instrumenter {
 		_main(line.getArgs());
 		if (Configuration.WITH_SELECTIVE_INST) {
 			// write out file again
-			StringBuffer buf = new StringBuffer();
+			StringBuilder buf = new StringBuilder();
 			for (MethodDescriptor desc : SelectiveInstrumentationManager.methodsToInstrument)
 				buf.append(TaintUtils.getMethodDesc(desc)).append("\n");
 			TaintUtils.writeToFile(new File(rootOutputDir.getAbsolutePath() + "/methods"), buf.toString());
-			buf = new StringBuffer();
+			buf = new StringBuilder();
 			for (MethodDescriptor desc : SelectiveInstrumentationManager.methodsGoEitherWay)
 				buf.append(TaintUtils.getMethodDesc(desc)).append("\n");
 			TaintUtils.writeToFile(new File(rootOutputDir.getAbsolutePath() + "/greyMethods"), buf.toString());
 		}
 		System.out.println("Done");
-
 	}
-
-	static boolean ANALYZE_ONLY;
 
 	public static void _main(String[] args) {
 		if(PreMain.DEBUG)
 			System.err.println("Warning: Debug output enabled (uses a lot of IO!)");
+
 		String outputFolder = args[1];
 		rootOutputDir = new File(outputFolder);
 		if (!rootOutputDir.exists())
 			rootOutputDir.mkdir();
 		String inputFolder = args[0];
+		
 		// Setup the class loader
 		final ArrayList<URL> urls = new ArrayList<URL>();
 		Path input = FileSystems.getDefault().getPath(args[0]);
 		try {
-			if (Files.isDirectory(input))
+			if (Files.isDirectory(input)) {
 				Files.walkFileTree(input, new FileVisitor<Path>() {
-
 //					@Override
 					public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
 						return FileVisitResult.CONTINUE;
@@ -400,16 +432,15 @@ public class Instrumenter {
 						return FileVisitResult.CONTINUE;
 					}
 				});
-			else if (inputFolder.endsWith(".jar"))
+			} else if (inputFolder.endsWith(".jar"))
 				urls.add(new File(inputFolder).toURI().toURL());
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+
 		try {
 			urls.add(new File(inputFolder).toURI().toURL());
 		} catch (MalformedURLException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 //		System.out.println(urls);
@@ -425,13 +456,10 @@ public class Instrumenter {
 				} else if (f.isDirectory())
 					urls.add(f.toURI().toURL());
 			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (MalformedURLException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		} else if (args.length > 3) {
@@ -453,6 +481,7 @@ public class Instrumenter {
 				}
 			}
 		}
+		
 		URL[] urlArray = new URL[urls.size()];
 		urlArray = urls.toArray(urlArray);
 		loader = new URLClassLoader(urlArray, Instrumenter.class.getClassLoader());
@@ -465,36 +494,21 @@ public class Instrumenter {
 		}
 		if (f.isDirectory())
 			processDirectory(f, rootOutputDir, true);
-		else if (inputFolder.endsWith(".jar") || inputFolder.endsWith(".war"))
-			//				try {
-			//					FileOutputStream fos =  new FileOutputStream(rootOutputDir.getPath() + File.separator + f.getName());
-			processJar(f, rootOutputDir);
-		//				} catch (FileNotFoundException e1) {
-		//					// TODO Auto-generated catch block
-		//					e1.printStackTrace();
-		//				}
-		else if (inputFolder.endsWith(".class"))
-			try {
-				processClass(f.getName(), new FileInputStream(f), rootOutputDir);
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		else if (inputFolder.endsWith(".zip")) {
+		else if (inputFolder.endsWith(".jar") || inputFolder.endsWith(".zip") || inputFolder.endsWith(".war"))
 			processZip(f, rootOutputDir);
-		} else {
+		else if (inputFolder.endsWith(".class"))
+			processClass(f, rootOutputDir);
+		else {
 			System.err.println("Unknown type for path " + inputFolder);
 			System.exit(-1);
 		}
-
-		//		generateInterfaceCLinits(rootOutputDir);
-		// }
-
 	}
 
-	private static void processClass(String name, InputStream is, File outputDir) {
-
+	private static void processClass(File f, File outputDir) {
 		try {
+			String name = f.getName();
+			InputStream is = new FileInputStream(f);
+
 			FileOutputStream fos = new FileOutputStream(outputDir.getPath() + File.separator + name);
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			lastInstrumentedClass = outputDir.getPath() + File.separator + name;
@@ -528,22 +542,8 @@ public class Instrumenter {
 			if (fi.isDirectory())
 				processDirectory(fi, thisOutputDir, false);
 			else if (fi.getName().endsWith(".class"))
-				try {
-					processClass(fi.getName(), new FileInputStream(fi), thisOutputDir);
-				} catch (FileNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			else if (fi.getName().endsWith(".jar") || fi.getName().endsWith(".war"))
-				//				try {
-				//					FileOutputStream fos = new FileOutputStream(thisOutputDir.getPath() + File.separator + f.getName());
-				processJar(fi, thisOutputDir);
-			//					fos.close();
-			//				} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			//					e1.printStackTrace();
-			//				}
-			else if (fi.getName().endsWith(".zip"))
+				processClass(fi, thisOutputDir);
+			else if (fi.getName().endsWith(".jar") || fi.getName().endsWith(".zip") || fi.getName().endsWith(".war"))
 				processZip(fi, thisOutputDir);
 			else {
 				File dest = new File(thisOutputDir.getPath() + File.separator + fi.getName());
@@ -564,7 +564,6 @@ public class Instrumenter {
 						try {
 							source.close();
 						} catch (IOException e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 					}
@@ -572,159 +571,19 @@ public class Instrumenter {
 						try {
 							destination.close();
 						} catch (IOException e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 					}
 				}
-
 			}
 		}
-
 	}
 
-	public static void processJar(File f, File outputDir) {
+	/**
+	 * Handle Jar file, Zip file and War file
+	 */
+	public static void processZip(File f, File outputDir) {
 		try {
-			//			@SuppressWarnings("resource")
-			//			System.out.println("File: " + f.getName());
-			JarFile jar = new JarFile(f);
-			JarOutputStream jos = null;
-			jos = new JarOutputStream(new FileOutputStream(outputDir.getPath() + File.separator + f.getName()));
-			Enumeration<JarEntry> entries = jar.entries();
-			while (entries.hasMoreElements()) {
-				JarEntry e = entries.nextElement();
-				if (e.getName().endsWith(".class")) {
-					{
-						if (ANALYZE_ONLY)
-							analyzeClass(jar.getInputStream(e));
-						else
-							try {
-								JarEntry outEntry = new JarEntry(e.getName());
-								jos.putNextEntry(outEntry);
-								byte[] clazz = instrumentClass(f.getAbsolutePath(), jar.getInputStream(e), true);
-								if (clazz == null) {
-									System.out.println("Failed to instrument " + e.getName() + " in " + f.getName());
-									InputStream is = jar.getInputStream(e);
-									byte[] buffer = new byte[1024];
-									while (true) {
-										int count = is.read(buffer);
-										if (count == -1)
-											break;
-										jos.write(buffer, 0, count);
-									}
-								} else {
-									jos.write(clazz);
-								}
-								jos.closeEntry();
-							} catch (ZipException ex) {
-								ex.printStackTrace();
-								continue;
-							}
-
-					}
-
-				} else {
-					JarEntry outEntry = new JarEntry(e.getName());
-					if (e.isDirectory()) {
-						try{
-						jos.putNextEntry(outEntry);
-						jos.closeEntry();
-						}
-						catch(ZipException exxx)
-						{
-							System.out.println("Ignoring exception: " + exxx);
-						}
-					} else if (e.getName().startsWith("META-INF") && (e.getName().endsWith(".SF") || e.getName().endsWith(".RSA"))) {
-						// don't copy this
-					} else if (e.getName().equals("META-INF/MANIFEST.MF")) {
-						Scanner s = new Scanner(jar.getInputStream(e));
-						jos.putNextEntry(outEntry);
-
-						String curPair = "";
-						while (s.hasNextLine()) {
-							String line = s.nextLine();
-							if (line.equals("")) {
-								curPair += "\n";
-								if (!curPair.contains("SHA1-Digest:"))
-									jos.write(curPair.getBytes());
-								curPair = "";
-							} else {
-								curPair += line + "\n";
-							}
-						}
-						s.close();
-						//						jos.write("\n".getBytes());
-						jos.closeEntry();
-					} else {
-						try {
-							jos.putNextEntry(outEntry);
-							InputStream is = jar.getInputStream(e);
-							byte[] buffer = new byte[1024];
-							while (true) {
-								int count = is.read(buffer);
-								if (count == -1)
-									break;
-								jos.write(buffer, 0, count);
-							}
-							jos.closeEntry();
-						} catch (ZipException ex) {
-							if (!ex.getMessage().contains("duplicate entry")) {
-								ex.printStackTrace();
-								System.out.println("Ignoring above warning from improper source zip...");
-							}
-						}
-					}
-
-				}
-
-			}
-			if (jos != null) {
-				jos.close();
-
-			}
-			jar.close();
-		} catch (Exception e) {
-			System.err.println("Unable to process jar: " + f.getAbsolutePath());
-			e.printStackTrace();
-			//			logger.log(Level.SEVERE, "Unable to process jar: " + f.getAbsolutePath(), e);
-			File dest = new File(outputDir.getPath() + File.separator + f.getName());
-			FileChannel source = null;
-			FileChannel destination = null;
-
-			try {
-				source = new FileInputStream(f).getChannel();
-				destination = new FileOutputStream(dest).getChannel();
-				destination.transferFrom(source, 0, source.size());
-			} catch (Exception ex) {
-				System.err.println("Unable to copy file: " + f.getAbsolutePath());
-				ex.printStackTrace();
-				//				System.exit(-1);
-			} finally {
-				if (source != null) {
-					try {
-						source.close();
-					} catch (IOException e2) {
-						// TODO Auto-generated catch block
-						e2.printStackTrace();
-					}
-				}
-				if (destination != null) {
-					try {
-						destination.close();
-					} catch (IOException e2) {
-						// TODO Auto-generated catch block
-						e2.printStackTrace();
-					}
-				}
-			}
-			//			System.exit(-1);
-		}
-
-	}
-
-	private static void processZip(File f, File outputDir) {
-		try {
-			//			@SuppressWarnings("resource")
 			ZipFile zip = new ZipFile(f);
 			ZipOutputStream zos = null;
 			zos = new ZipOutputStream(new FileOutputStream(outputDir.getPath() + File.separator + f.getName()));
@@ -733,15 +592,16 @@ public class Instrumenter {
 				ZipEntry e = entries.nextElement();
 
 				if (e.getName().endsWith(".class")) {
-					{
-						if (ANALYZE_ONLY)
-							analyzeClass(zip.getInputStream(e));
-						else {
+					if (ANALYZE_ONLY)
+						analyzeClass(zip.getInputStream(e));
+					else {
+						try {
 							ZipEntry outEntry = new ZipEntry(e.getName());
 							zos.putNextEntry(outEntry);
 
 							byte[] clazz = instrumentClass(f.getAbsolutePath(), zip.getInputStream(e), true);
 							if (clazz == null) {
+								System.out.println("Failed to instrument " + e.getName() + " in " + f.getName());
 								InputStream is = zip.getInputStream(e);
 								byte[] buffer = new byte[1024];
 								while (true) {
@@ -750,24 +610,23 @@ public class Instrumenter {
 										break;
 									zos.write(buffer, 0, count);
 								}
+								is.close();
 							} else
 								zos.write(clazz);
 							zos.closeEntry();
+						} catch (ZipException ex) {
+							ex.printStackTrace();
+							continue;
 						}
 					}
-
 				} else if (e.getName().endsWith(".jar")) {
 					ZipEntry outEntry = new ZipEntry(e.getName());
-					//						jos.putNextEntry(outEntry);
-					//						try {
-					//							processJar(jar.getInputStream(e), jos);
-					//							jos.closeEntry();
-					//						} catch (FileNotFoundException e1) {
-					//							// TODO Auto-generated catch block
-					//							e1.printStackTrace();
-					//						}
 
-					File tmp = new File("/tmp/classfile");
+					Random r = new Random();
+					String markFileName = Long.toOctalString(System.currentTimeMillis())
+						+ Integer.toOctalString(r.nextInt(10000))
+						+ e.getName().replace("/", "");
+					File tmp = new File("/tmp/" + markFileName);
 					if (tmp.exists())
 						tmp.delete();
 					FileOutputStream fos = new FileOutputStream(tmp);
@@ -779,14 +638,15 @@ public class Instrumenter {
 					}
 					is.close();
 					fos.close();
-					//						System.out.println("Done reading");
-					File tmp2 = new File("tmp2");
+
+					File tmp2 = new File("/tmp/tmp2");
 					if(!tmp2.exists())
 						tmp2.mkdir();
-					processJar(tmp, new File("tmp2"));
+					processZip(tmp, tmp2);
+					tmp.delete();
 
 					zos.putNextEntry(outEntry);
-					is = new FileInputStream("tmp2/classfile");
+					is = new FileInputStream("/tmp/tmp2/" + markFileName);
 					byte[] buffer = new byte[1024];
 					while (true) {
 						int count = is.read(buffer);
@@ -796,19 +656,18 @@ public class Instrumenter {
 					}
 					is.close();
 					zos.closeEntry();
-					//						jos.closeEntry();
 				} else {
 					ZipEntry outEntry = new ZipEntry(e.getName());
 					if (e.isDirectory()) {
 						try{
-						zos.putNextEntry(outEntry);
-						zos.closeEntry();
-						}
-						catch(ZipException exxxx)
-						{
+							zos.putNextEntry(outEntry);
+							zos.closeEntry();
+						} catch(ZipException exxxx) {
 							System.out.println("Ignoring exception: " + exxxx.getMessage());
 						}
-					} else if (e.getName().startsWith("META-INF") && (e.getName().endsWith(".SF") || e.getName().endsWith(".RSA"))) {
+					} else if (e.getName().startsWith("META-INF")
+							&& (e.getName().endsWith(".SF")
+								|| e.getName().endsWith(".RSA"))) {
 						// don't copy this
 					} else if (e.getName().equals("META-INF/MANIFEST.MF")) {
 						Scanner s = new Scanner(zip.getInputStream(e));
@@ -827,9 +686,13 @@ public class Instrumenter {
 							}
 						}
 						s.close();
-						zos.write("\n".getBytes());
+						// Jar file is different from Zip file. :)
+						if (f.getName().endsWith(".zip"))
+							zos.write("\n".getBytes());
 						zos.closeEntry();
 					} else {
+						try {
+
 						zos.putNextEntry(outEntry);
 						InputStream is = zip.getInputStream(e);
 						byte[] buffer = new byte[1024];
@@ -839,15 +702,23 @@ public class Instrumenter {
 								break;
 							zos.write(buffer, 0, count);
 						}
+						is.close();
 						zos.closeEntry();
+						} catch (ZipException ex) {
+							if (!ex.getMessage().contains("duplicate entry")) {
+								ex.printStackTrace();
+								System.out.println("Ignoring above warning from improper source zip...");
+							}
+						}
 					}
 				}
-
 			}
-			zos.close();
+
+			if (zos != null)
+				zos.close();
 			zip.close();
 		} catch (Exception e) {
-			System.err.println("Unable to process zip: " + f.getAbsolutePath());
+			System.err.println("Unable to process zip/jar: " + f.getAbsolutePath());
 			e.printStackTrace();
 			File dest = new File(outputDir.getPath() + File.separator + f.getName());
 			FileChannel source = null;
@@ -858,15 +729,13 @@ public class Instrumenter {
 				destination = new FileOutputStream(dest).getChannel();
 				destination.transferFrom(source, 0, source.size());
 			} catch (Exception ex) {
-				System.err.println("Unable to copy zip: " + f.getAbsolutePath());
+				System.err.println("Unable to copy zip/jar: " + f.getAbsolutePath());
 				ex.printStackTrace();
-				//				System.exit(-1);
 			} finally {
 				if (source != null) {
 					try {
 						source.close();
 					} catch (IOException e2) {
-						// TODO Auto-generated catch block
 						e2.printStackTrace();
 					}
 				}
@@ -874,13 +743,11 @@ public class Instrumenter {
 					try {
 						destination.close();
 					} catch (IOException e2) {
-						// TODO Auto-generated catch block
 						e2.printStackTrace();
 					}
 				}
 			}
 		}
-
 	}
 
 	public static boolean shouldCallUninstAlways(String owner, String name, String desc) {

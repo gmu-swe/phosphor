@@ -48,9 +48,8 @@ public final class ControlTaintTagStack {
 	}
 	
 	public final EnqueuedTaint push(Object ob,EnqueuedTaint prev) {
-		if (ob instanceof Tainted) {
-			if (ob instanceof TaintedWithObjTag)
-				return push((Taint) (((TaintedWithObjTag) ob).getPHOSPHOR_TAG()), prev);
+		if (ob instanceof Tainted && ob instanceof TaintedWithObjTag) {
+		    return push((Taint) (((TaintedWithObjTag) ob).getPHOSPHOR_TAG()), prev);
 		}
 		return prev;
 	}

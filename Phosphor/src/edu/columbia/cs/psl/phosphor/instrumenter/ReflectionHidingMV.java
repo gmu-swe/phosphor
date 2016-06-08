@@ -27,13 +27,23 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	private String className;
 	private LocalVariableManager lvs;
 	private NeverNullArgAnalyzerAdapter analyzer;
-
-	public ReflectionHidingMV(MethodVisitor mv, String className, NeverNullArgAnalyzerAdapter analyzer) {
+	private String methodName;
+	
+	private boolean disable = false;
+	public ReflectionHidingMV(MethodVisitor mv, String className, String name, NeverNullArgAnalyzerAdapter analyzer) {
 		super(Opcodes.ASM5, mv);
 		this.className = className;
-		this.analyzer = analyzer;
+        this.analyzer = analyzer;
+        this.methodName = name;
+		this.disable = shouldDisable(className, name);
 	}
 
+	private static boolean shouldDisable(String className, String methodName)
+	{
+	    if(className.equals("org/codehaus/groovy/vmplugin/v5/Java5") && methodName.equals("makeInterfaceTypes"))
+	        return true;
+	    return false;
+	}
 	public void setLvs(LocalVariableManager lvs) {
 		this.lvs = lvs;
 	}
@@ -42,6 +52,11 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
 		Type[] args = Type.getArgumentTypes(desc);
 		//TESTING
+		if(disable)
+		{
+		    super.visitMethodInsn(opcode, owner, name, desc, itfc);
+		    return;
+		}
 		boolean origAndroidInst = Instrumenter.IS_ANDROID_INST;
 		Instrumenter.IS_ANDROID_INST = true;
 		if ((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && (name.startsWith("invoke") || name.startsWith("newInstance"))) {

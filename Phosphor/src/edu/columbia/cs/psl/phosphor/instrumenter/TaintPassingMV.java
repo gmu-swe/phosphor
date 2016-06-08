@@ -123,7 +123,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //				System.out.println("TPMV "+ className+"."+name+desc);
 		this.name = name;
 		this.className = className;
-		Type[] oldArgTypes = Type.getArgumentTypes(originalDesc);
 		Type[] newArgTypes = Type.getArgumentTypes(desc);
 		lastArg = 0;
 		for (Type t : newArgTypes) {
@@ -568,7 +567,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 	
 		boolean dispatched = false;
-		Type ownerType = Type.getObjectType(owner);
 		Type descType = Type.getType(desc);
 		if (descType.getSort() == Type.ARRAY && descType.getElementType().getSort() != Type.OBJECT && descType.getDimensions() > 1) {
 			desc = MultiDTaintedArray.getTypeForType(descType).getInternalName();
@@ -723,12 +721,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						super.visitInsn(POP);
 					else
 					{
-						if(shadowType.length() == 1)
+						if(shadowType.length() == 1 && Configuration.MULTI_TAINTING)
 						{
-							if(Configuration.MULTI_TAINTING)
-							{
-								super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
-							}
+						    super.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
 						}
 						super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, shadowType);
 					}
@@ -1177,14 +1172,168 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	@Override
 	public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
-//		System.out.println("INVOKEDYNAMIC" +name+ desc);
-//		System.out.println(analyzer.stack);
-		desc = TaintUtils.remapMethodDesc(desc);
-		if(Configuration.IMPLICIT_TRACKING)
-		{
-			super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-		}
-		super.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
+        String owner = bsm.getOwner();
+        boolean hasNewName = !TaintUtils.remapMethodDesc(desc).equals(desc);
+        String newDesc = TaintUtils.remapMethodDesc(desc);
+        boolean isPreAllocedReturnType = TaintUtils.isPreAllocReturnType(desc);
+        boolean isIgnoredForTaints = Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc, false);
+        int opcode = INVOKEVIRTUAL;
+        if (bsm.getTag() == Opcodes.H_INVOKESTATIC)
+            opcode = INVOKESTATIC;
+
+        if (Configuration.IMPLICIT_TRACKING) {
+            if((isInternalTaintingMethod(owner) || owner.startsWith("[")) && !name.equals("getControlFlow")){
+                newDesc = newDesc.replace(Type.getDescriptor(ControlTaintTagStack.class), "");
+            }
+            else
+                super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+            if(owner.startsWith("["))
+                hasNewName = false;
+        }
+        //      boolean pushNull = false;
+        if (name.equals("<init>") && !newDesc.equals(desc)) {
+            //Add the taint sentinel to the desc
+            super.visitInsn(ACONST_NULL);
+            newDesc = newDesc.substring(0, newDesc.indexOf(")")) + Type.getDescriptor(TaintSentinel.class) + ")" + Type.getReturnType(newDesc).getDescriptor();
+        }
+        if (isPreAllocedReturnType) {
+//          System.out.println("\t\tAdding stuff for " + owner + "." + name + newDesc);
+            Type t = Type.getReturnType(newDesc);
+            newDesc = newDesc.substring(0, newDesc.indexOf(")")) + t.getDescriptor() + ")" + t.getDescriptor();
+            super.visitVarInsn(ALOAD, lvs.getPreAllocedReturnTypeVar(t));
+//          System.out.println("n: " + lvs.getPreAllocedReturnTypeVar(t));
+//          System.out.println("Analyzer lcoal is: " + analyzer.locals.get(lvs.getPreAllocedReturnTypeVar(t)));
+        }
+        Type origReturnType = Type.getReturnType(desc);
+        Type returnType = TaintUtils.getContainerReturnType(Type.getReturnType(desc));
+        if (TaintUtils.DEBUG_CALLS)
+            System.out.println("Remapped call from " + owner + "." + name + desc + " to " + owner + "." + name + newDesc);
+//        if (!name.contains("<") && hasNewName)
+//            name += TaintUtils.METHOD_SUFFIX;
+        if (TaintUtils.DEBUG_CALLS) {
+            System.out.println("Calling w/ stack: " + analyzer.stack);
+        }
+
+        //if you call a method and instead of passing a primitive array you pass ACONST_NULL, we need to insert another ACONST_NULL in the stack
+        //for the taint for that array
+        Type[] args = Type.getArgumentTypes(newDesc);
+        Type[] argsInReverse = new Type[args.length];
+        int argsSize = 0;
+        for (int i = 0; i < args.length; i++) {
+            argsInReverse[args.length - i - 1] = args[i];
+            argsSize += args[i].getSize();
+        }
+        int i = 1;
+        int n = 1;
+        boolean ignoreNext = false;
+
+//                                      System.out.println("12dw23 Calling "+owner+"."+name+newDesc + "with " + analyzer.stack);
+        for (Type t : argsInReverse) {
+            if (analyzer.stack.get(analyzer.stack.size() - i) == Opcodes.TOP)
+                i++;
+
+            //          if(ignoreNext)
+            //              System.out.println("ignore next i");
+            Type onStack = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - i));
+//                      System.out.println(name+ " ONStack: " + onStack + " and t = " + t);
+
+            if (!ignoreNext && t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
+//                              System.out.println("t " + t + " and " + analyzer.stack.get(analyzer.stack.size() - i) + " j23oij4oi23");
+
+                //Need to check to see if there's a null on the stack in this position
+                if (analyzer.stack.get(analyzer.stack.size() - i) == Opcodes.NULL) {
+                    if (TaintUtils.DEBUG_CALLS)
+                        System.err.println("Adding a null in call at " + n);
+                    insertNullAt(n);
+                } else if (onStack.getSort() == Type.OBJECT && (!isIgnoredForTaints || t.getDimensions() == 1)) {
+                    //Unbox this
+                    unboxTaintArrayAt(n, t.getDescriptor());
+                }
+            } else if (!ignoreNext && onStack.getSort() == Type.ARRAY && onStack.getElementType().getSort() != Type.OBJECT) {
+                //There is an extra taint on the stack at this position
+                if (TaintUtils.DEBUG_CALLS)
+                    System.err.println("removing taint array in call at " + n);
+                storeTaintArrayAt(n, onStack.getDescriptor());
+            }
+            if ((t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) || (t.getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC)))
+                ignoreNext = !ignoreNext;
+            n++;
+            i++;
+        }
+
+        //      System.out.println("Args size: " + argsSize + " nargs " + args.length);
+        if (TaintUtils.DEBUG_CALLS)
+            System.out.println("No more changes: calling " + owner + "." + name + newDesc + " w/ stack: " + analyzer.stack);
+
+        boolean isCalledOnAPrimitiveArrayType = false;
+        if (opcode == INVOKEVIRTUAL) {
+            if (analyzer.stack.get(analyzer.stack.size() - argsSize - 1) == null)
+                System.out.println("NULL on stack for calllee???" + analyzer.stack + " argsize " + argsSize);
+            Type callee = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - argsSize - 1));
+            if (TaintUtils.DEBUG_CALLS)
+                System.out.println("CALLEE IS " + callee);
+            if (callee.getSort() == Type.ARRAY && callee.getElementType().getSort() != Type.OBJECT)
+                isCalledOnAPrimitiveArrayType = true;
+        }
+
+//        super.visitMethodInsn(opcode, owner, name, newDesc, itfc);
+        if(hasNewName && bsmArgs != null)
+        {
+            for(int k = 0; k < bsmArgs.length; k++)
+            {
+                Object o = bsmArgs[k];
+                if(o instanceof Handle)
+                {
+                    bsmArgs[k] = new Handle(((Handle) o).getTag(), ((Handle) o).getOwner(), ((Handle) o).getName()+TaintUtils.METHOD_SUFFIX, TaintUtils.remapMethodDesc(((Handle) o).getDesc()));
+                }
+            }
+        }
+        super.visitInvokeDynamicInsn(name, newDesc, bsm, bsmArgs);
+        //      System.out.println("asdfjas;dfdsf  post invoke " + analyzer.stack);
+//      System.out.println("Now: " + analyzer.stack);
+        if (isCalledOnAPrimitiveArrayType) {
+            if (TaintUtils.DEBUG_CALLS)
+                System.out.println("Post invoke stack: " + analyzer.stack);
+            if (Type.getReturnType(desc).getSort() == Type.VOID) {
+                super.visitInsn(POP);
+            } else if (analyzer.stack.size() >= 2) {// && analyzer.stack.get(analyzer.stack.size() - 2).equals("[I")) {
+                //this is so dumb that it's an array type.
+                super.visitInsn(SWAP);
+                super.visitInsn(POP);
+            }
+
+        }
+//      System.out.println("after: " + analyzer.stack);
+
+        if (dontUnboxTaints) {
+            dontUnboxTaints = false;
+            return;
+        }
+        String taintType = TaintUtils.getShadowTaintType(Type.getReturnType(desc).getDescriptor());
+        if (taintType != null) {
+            super.visitInsn(DUP);
+            if (!Configuration.MULTI_TAINTING) {
+                String taintTypeRaw = Configuration.TAINT_TAG_DESC;
+                if (Type.getReturnType(desc).getSort() == Type.ARRAY)
+                    taintTypeRaw = Configuration.TAINT_TAG_ARRAYDESC;
+                super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "taint", taintTypeRaw);
+            } else {
+                String taintTypeRaw = Configuration.TAINT_TAG_INTERNAL_NAME;
+                String fieldType = "Ljava/lang/Object;";
+                if (Type.getReturnType(desc).getSort() == Type.ARRAY) {
+                    taintTypeRaw = Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME;
+                    fieldType = "[Ljava/lang/Object;";
+                }
+                super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "taint", fieldType);
+                super.visitTypeInsn(CHECKCAST, taintTypeRaw);
+            }
+
+            super.visitInsn(SWAP);
+            super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "val", origReturnType.getDescriptor());
+
+        }
+        if (TaintUtils.DEBUG_CALLS)
+            System.out.println("Post invoke stack post swap pop maybe: " + analyzer.stack);
 	}
 	static final boolean isInternalTaintingMethod(String owner)
 	{
@@ -1705,7 +1854,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		if (opcode == TaintUtils.FORCE_CTRL_STORE) {
 			//If there is anything on the stack right now, apply the current marker to it
-			if (analyzer.stack.size() == 0 || topOfStackIsNull())
+			if (analyzer.stack.isEmpty() || topOfStackIsNull())
 				return;
 			Type onStack = getTopOfStackType();
 			if (onStack.getSort() != Type.OBJECT && onStack.getSort() != Type.ARRAY) {
@@ -2941,7 +3090,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 				forceCtrlAdd.clear();
 			}
-			if (boxAtNextJump.size() > 0) {
+			if (!boxAtNextJump.isEmpty()) {
 				Label origDest = label;
 				Label newDest = new Label();
 				Label origFalseLoc = new Label();
@@ -2972,7 +3121,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		else
 		{
 
-			if (boxAtNextJump.size() > 0 && opcode != Opcodes.GOTO) {
+			if (!boxAtNextJump.isEmpty() && opcode != Opcodes.GOTO) {
 				Label origDest = label;
 				Label newDest = new Label();
 				Label origFalseLoc = new Label();

@@ -463,7 +463,7 @@ public class RuntimeReflectionPropogator {
 
 	public static TaintedDoubleWithIntTag getDouble$$PHOSPHORTAGGED(Field f, Object obj, TaintedDoubleWithIntTag ret) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
-		ret.val = f.getInt(obj);
+		ret.val = f.getDouble(obj);
 		try {
 			Field taintField;
 			if (fieldToField.containsKey(f))
@@ -686,6 +686,8 @@ public class RuntimeReflectionPropogator {
 				fieldToField.put(f, taintField);
 			}
 			ret.taint = taintField.get(obj);
+      if (ret.taint instanceof Integer)
+        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
@@ -707,6 +709,8 @@ public class RuntimeReflectionPropogator {
 				fieldToField.put(f, taintField);
 			}
 			ret.taint = taintField.get(obj);
+      if (ret.taint instanceof Integer)
+        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
@@ -728,6 +732,8 @@ public class RuntimeReflectionPropogator {
 				fieldToField.put(f, taintField);
 			}
 			ret.taint = taintField.get(obj);
+      if (ret.taint instanceof Integer)
+        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
@@ -768,6 +774,8 @@ public class RuntimeReflectionPropogator {
 				fieldToField.put(f, taintField);
 			}
 			ret.taint = taintField.get(obj);
+      if (ret.taint instanceof Integer)
+        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
@@ -789,6 +797,8 @@ public class RuntimeReflectionPropogator {
 				fieldToField.put(f, taintField);
 			}
 			ret.taint = taintField.get(obj);
+      if (ret.taint instanceof Integer)
+        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
@@ -810,6 +820,9 @@ public class RuntimeReflectionPropogator {
 				fieldToField.put(f, taintField);
 			}
 			ret.taint = taintField.get(obj);
+      if (ret.taint instanceof Integer)
+        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
+
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		} catch (NoSuchFieldException e) {
@@ -830,7 +843,9 @@ public class RuntimeReflectionPropogator {
 				taintField.setAccessible(true);
 				fieldToField.put(f, taintField);
 			}
-			ret.taint = taintField.get(obj);
+      ret.taint = taintField.get(obj);
+      if (ret.taint instanceof Integer)
+        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
 		} catch (NoSuchFieldException e) {
 		} catch (SecurityException e) {
 		}
@@ -850,6 +865,8 @@ public class RuntimeReflectionPropogator {
 				fieldToField.put(f, taintField);
 			}
 			ret.taint = taintField.get(obj);
+      if (ret.taint instanceof Integer)
+        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
