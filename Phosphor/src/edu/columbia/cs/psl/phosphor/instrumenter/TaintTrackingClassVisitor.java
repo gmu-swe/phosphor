@@ -36,19 +36,20 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.AnalyzerAdapter;
 import org.objectweb.asm.commons.GeneratorAdapter;
+import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.ParameterNode;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
-import edu.columbia.cs.psl.phosphor.runtime.PreAllocHelper;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
@@ -323,7 +324,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			mv = ucmv;
 			PartialInstrumentationMV pimv = new PartialInstrumentationMV(className, access, name, newDesc, mv,analyzer,_mv,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BufferedInputStream") || className.startsWith("sun/nio")));
 			mv = pimv;
-			LocalVariableManager lvs = new LocalVariableManager(access, newName, newDesc, mv, analyzer, _mv, true);
+			LocalVariableManager lvs = new LocalVariableManager(access, className, newName, newDesc, mv, analyzer, _mv, true);
 			ucmv.setLocalVariableSorter(lvs);
 			pimv.setLvs(lvs);
 			UninstTaintLoadCoercer utlc = new UninstTaintLoadCoercer(className, access, newName, TaintUtils.remapMethodDescForUninstIgnoringMultiD(desc, name.equals("<init>")), signature, exceptions, lvs);
@@ -485,7 +486,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 				tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV);
 				tmv.setFields(fields);
 				TaintAdapter custom = null;
-				lvs = new LocalVariableManager(access, name, newDesc, tmv, analyzer,mv, true);
+				lvs = new LocalVariableManager(access, className, name, newDesc, tmv, analyzer,mv, true);
 
 				nextMV = lvs;
 				if(Configuration.extensionMethodVisitor != null)
@@ -707,7 +708,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			
 			NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, Opcodes.ACC_PUBLIC, "toString", "("+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/String;", mv);
 //			TaintPassingMV tmv = new TaintPassingMV(mv, Opcodes.ACC_PUBLIC, className, "toString", "()Ljava/lang/Object;", null, null, "()Ljava/lang/Object;", an, mv);
-			LocalVariableManager lvm = new LocalVariableManager(Opcodes.ACC_PUBLIC, "toString", "("+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/String;", an, an, mv, true);
+			LocalVariableManager lvm = new LocalVariableManager(Opcodes.ACC_PUBLIC, className, "toString", "("+Configuration.TAINTED_RETURN_HOLDER_DESC+")Ljava/lang/String;", an, an, mv, true);
 			lvm.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(null));
 			Label start = new Label();
 			Label end = new Label();
@@ -1023,7 +1024,29 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 						}
 						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, mv);
 						MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
-						LocalVariableManager lvs = new LocalVariableManager(m.access, m.name, m.desc, soc, an, mv, (m.name.endsWith("$$PHOSPHORTAGGED")));
+
+						//Decide if we *really* need to make that lv
+						boolean hasPreallocPassed =  (m.name.endsWith("$$PHOSPHORTAGGED"));
+            LocalVariableManager lvs = new LocalVariableManager(m.access, className, m.name, m.desc, soc, an, mv, hasPreallocPassed);
+						if(!hasPreallocPassed)
+						{
+						  boolean dontNeedPrealloc = true;
+						  if(origReturn != newReturn)
+						    dontNeedPrealloc = false;
+	            AbstractInsnNode ins = fullMethod.instructions.getFirst();
+	            while(dontNeedPrealloc && ins != null)
+	            {
+	              if(ins instanceof MethodInsnNode)
+	              {
+	                MethodInsnNode min = (MethodInsnNode) ins;
+	                if(!Instrumenter.isIgnoredClass(min.owner) || min.name.equals("equals") || min.name.equals("toString") || min.name.equals("hashCode"))
+	                  dontNeedPrealloc = false;
+	              }
+	              ins = ins.getNext();
+	            }
+	            if(dontNeedPrealloc)
+	              lvs.setPreallocToNull();
+						}
 						lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 						GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name, m.desc);
 						Label startLabel = new Label();
@@ -1389,7 +1412,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 						tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV);
 						tmv.setFields(fields);
 						TaintAdapter custom = null;
-						lvs = new LocalVariableManager(access, name, newDesc, tmv, analyzer,mv, true);
+						lvs = new LocalVariableManager(access, className, name, newDesc, tmv, analyzer,mv, true);
 
 						nextMV = lvs;
 						if(Configuration.extensionMethodVisitor != null)
@@ -1510,15 +1533,28 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 						ga.visitInsn(Opcodes.ACONST_NULL);
 					if(TaintUtils.PREALLOC_RETURN_ARRAY && !nativeCall)
 					{
-//						int idx = 0;
-//						if (((m.access & Opcodes.ACC_STATIC) == 0))
-//							idx++;
-//						for(Type t : Type.getArgumentTypes(mDesc))
-//							idx += t.getSize();
-//						ga.visitVarInsn(Opcodes.ALOAD, idx - 1);
-						ga.visitTypeInsn(Opcodes.NEW, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME);
-						ga.visitInsn(Opcodes.DUP);
-						ga.visitMethodInsn(Opcodes.INVOKESPECIAL, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME, "<init>", "()V", false);
+					  boolean dontNeedPrealloc = true;
+					  AbstractInsnNode ins = m.instructions.getFirst();
+					  while(dontNeedPrealloc && ins != null)
+					  {
+					    if(ins instanceof MethodInsnNode)
+					    {
+					      MethodInsnNode min = (MethodInsnNode) ins;
+					      if(!Instrumenter.isIgnoredClass(min.owner))
+					        dontNeedPrealloc = false;
+					    }
+					    ins = ins.getNext();
+					  }
+					  if(dontNeedPrealloc)
+					  {
+					    ga.visitInsn(Opcodes.ACONST_NULL);
+					  }
+					  else
+					  {
+					    ga.visitTypeInsn(Opcodes.NEW, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME);
+					    ga.visitInsn(Opcodes.DUP);
+					    ga.visitMethodInsn(Opcodes.INVOKESPECIAL, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME, "<init>", "()V", false);
+					  }
 					}
 					retType = Type.getReturnType(m.desc);
 					ga.visitMethodInsn(opcode, className, mToCall, descToCall, false);
@@ -1611,7 +1647,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 							mv = ucmv;
 							PartialInstrumentationMV pimv = new PartialInstrumentationMV(className, access, name, newDesc, mv, analyzer, _mv,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BufferedInputStream") || className.startsWith("sun/nio")));
 							mv = pimv;
-							LocalVariableManager lvs = new LocalVariableManager(access, name, newDesc, mv, analyzer, _mv, true);
+							LocalVariableManager lvs = new LocalVariableManager(access, className, name, newDesc, mv, analyzer, _mv, true);
 							ucmv.setLocalVariableSorter(lvs);
 							pimv.setLvs(lvs);
 							UninstTaintLoadCoercer utlc = new UninstTaintLoadCoercer(className, access, newName,TaintUtils.remapMethodDescForUninstIgnoringMultiD(desc, name.equals("<init>")), signature, exceptions, lvs);
@@ -1898,7 +1934,7 @@ public class TaintTrackingClassVisitor extends ClinitCheckCV {
 			mv = super.visitMethod(acc&~Opcodes.ACC_NATIVE, m.name + TaintUtils.METHOD_SUFFIX, newDesc, m.signature, exceptions);
 		NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, newDesc, mv);
 		MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
-		LocalVariableManager lvs = new LocalVariableManager(m.access, m.name + TaintUtils.METHOD_SUFFIX, newDesc, soc, an, mv, true);
+		LocalVariableManager lvs = new LocalVariableManager(m.access, className, m.name + TaintUtils.METHOD_SUFFIX, newDesc, soc, an, mv, true);
 		lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 		GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name + TaintUtils.METHOD_SUFFIX, newDesc);
 		if((m.access & Opcodes.ACC_ABSTRACT) != 0)

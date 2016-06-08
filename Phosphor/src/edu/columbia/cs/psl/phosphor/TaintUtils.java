@@ -15,7 +15,6 @@ import org.objectweb.asm.Type;
 
 import sun.misc.VM;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
-import edu.columbia.cs.psl.phosphor.runtime.PreAllocHelper;
 import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;

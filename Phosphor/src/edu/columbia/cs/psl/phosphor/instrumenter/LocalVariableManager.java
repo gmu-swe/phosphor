@@ -19,7 +19,6 @@ import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.util.Printer;
 
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
-import edu.columbia.cs.psl.phosphor.runtime.PreAllocHelper;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintedWithIntReturnHolderPool;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -85,9 +84,13 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	}
 	private boolean hasPreallocPassed;
 	public HashMap<Integer, Integer> varToShadowVar = new HashMap<Integer, Integer>();
-	public LocalVariableManager(int access, String name, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean hasPrealloc) {
+	private String className;
+	private String desc;
+	public LocalVariableManager(int access, String className, String name, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean hasPrealloc) {
 		super(ASM5, access, desc, mv);
 		this.analyzer = analyzer;
+		this.className = className;
+		this.desc = desc;
 		this.uninstMV = uninstMV;
 		returnType = Type.getReturnType(desc);
 		Type[] args = Type.getArgumentTypes(desc);
@@ -394,9 +397,15 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		{
 			int lv = newPreAllocedReturnType(Type.getType(Configuration.TAINTED_RETURN_HOLDER_DESC));
 			lvOfSingleWrapperArray = lv;
-			mv.visitTypeInsn(NEW, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME);
-			mv.visitInsn(DUP);
-			mv.visitMethodInsn(INVOKESPECIAL, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME, "<init>", "()V", false);
+			if(ignorePrealloc)
+			  mv.visitInsn(ACONST_NULL);
+      else {
+        mv.visitTypeInsn(NEW, Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME);
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESPECIAL,
+            Configuration.TAINTED_RETURN_HOLDER_INTERNAL_NAME, "<init>", "()V",
+            false);
+      }
 			mv.visitVarInsn(ASTORE, lv);
 		}
 
@@ -674,4 +683,9 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	public void disable() {
 		disabled = true;
 	}
+
+	private boolean ignorePrealloc;
+  public void setPreallocToNull() {
+    ignorePrealloc = true;
+  }
 }

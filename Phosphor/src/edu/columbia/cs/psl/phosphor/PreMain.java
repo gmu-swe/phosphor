@@ -14,6 +14,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.ProtectionDomain;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.SwingWorker;
@@ -206,6 +209,7 @@ public class PreMain {
 		}
 
 
+		static boolean initedLoggerThread;
 		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyArrayIntTags classtaint,
 				byte[] classfileBuffer, TaintedReturnHolderWithIntTag ret) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
@@ -216,6 +220,10 @@ public class PreMain {
 				Configuration.init();
 				INITED = true;
 			}
+			boolean isLogging = TaintedReturnHolderWithIntTag.DO_LOGGING;
+			if(isLogging)
+			  TaintedReturnHolderWithIntTag.DO_LOGGING = false;
+
 			
 			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
 				ret.ba().val = classfileBuffer;
@@ -223,6 +231,50 @@ public class PreMain {
 				ret.ba().val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 			ret.ba().taint = new LazyArrayIntTags();
 			Configuration.taintTagFactory.instrumentationEnding(className);
+			
+			if(isLogging)
+			  TaintedReturnHolderWithIntTag.DO_LOGGING = true;
+	     if(Configuration.TRACE_RETURN_HOLDERS && className.contains("avrora") && !initedLoggerThread)
+	      {
+	        TaintedReturnHolderWithIntTag.DO_LOGGING=true;
+	        initedLoggerThread= true;
+	        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+	          
+	          public void run$$PHOSPHORTAGGED(TaintedReturnHolderWithIntTag ret)
+	          {
+	            TaintedReturnHolderWithIntTag.DO_LOGGING = false;
+	            System.out.println("Num containers created: " + TaintedReturnHolderWithIntTag.inst);
+	            String[] debugs = TaintedReturnHolderWithIntTag.debugs;
+	            int n = TaintedReturnHolderWithIntTag.debugsSize;
+	            TaintedReturnHolderWithIntTag.debugsSize = 0;
+	            TaintedReturnHolderWithIntTag.debugs = new String[100000];
+	            HashMap<String, Integer> hm = new HashMap<String, Integer>();
+	            for(int i = 0; i <n;i++ )
+	            {
+	              String s = debugs[i];
+	              if(hm.containsKey(s))
+	                hm.put(s,hm.get(s)+1);
+	              else
+	                hm.put(s, 1);
+	            }
+
+	            ArrayList<String> lines = new ArrayList<String>();
+	            for(String s : hm.keySet())
+	            {
+	              lines.add(String.format("%05d", hm.get(s)) +"\t"+s);
+	            }
+
+	            Collections.sort(lines);
+	            for(String s : lines)
+	              System.out.println(s);
+	          }
+	          @Override
+	          public void run() {
+	            throw new IllegalStateException();
+	          }
+	        }));
+	      }
+	     
 			return ret.ba();
 		}
 

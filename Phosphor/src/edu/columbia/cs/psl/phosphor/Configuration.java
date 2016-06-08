@@ -99,6 +99,7 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_CLASS = (Taint.class);
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
 
+	public static final boolean TRACE_RETURN_HOLDERS = true;
 	public static Class TAINTED_RETURN_HOLDER_CLASS = TaintedReturnHolderWithIntTag.class;
 	public static String TAINTED_RETURN_HOLDER_DESC = "Ledu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithIntTag;";
 	public static String TAINTED_RETURN_HOLDER_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/struct/TaintedReturnHolderWithIntTag";

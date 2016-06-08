@@ -1964,7 +1964,9 @@ public class String
     public CharSequence subSequence(int beginIndex, int endIndex) {
         return this.substring(beginIndex, endIndex);
     }
-
+    public CharSequence subSequence$$PHOSPHORTAGGED(int t1, int beginIndex, int t2, int endIndex, TaintedReturnHolderWithIntTag ret) {
+      return this.substring(beginIndex, endIndex);
+  }
     /**
      * Concatenates the specified string to the end of this string.
      * <p>

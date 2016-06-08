@@ -1,5 +1,9 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import java.util.HashSet;
+
+import edu.columbia.cs.psl.phosphor.Configuration;
+
 public final class TaintedReturnHolderWithIntTag {
 	private TaintedIntWithIntTag i;
 	private TaintedIntArrayWithIntTag ia;
@@ -18,8 +22,30 @@ public final class TaintedReturnHolderWithIntTag {
 	private TaintedLongWithIntTag j;
 	private TaintedLongArrayWithIntTag ja;
 
+	public static int inst;
+	public static boolean DO_LOGGING;
+	public static String[] debugs = new String[500000];
+	public static int debugsSize = 0;
 	public TaintedReturnHolderWithIntTag(){
+  if (DO_LOGGING && Configuration.TRACE_RETURN_HOLDERS) {
+  synchronized (debugs) {
+    DO_LOGGING = false;
+    StackTraceElement[] st = Thread.currentThread().getStackTrace();
+    String debug = st[7].toString();
+    if(st.length > 8)
+      debug += "\t"+st[8].toString();
+    if (debug.equals("java/lang/String.charAt(I)C"))
+      new Exception().printStackTrace();
+    DO_LOGGING = true;
+    debugs[debugsSize] = debug;
+    debugsSize++;        
+  }
+  inst++;
+
+}
 	}
+
+
 	public TaintedIntWithIntTag i()
 	{
 		if(i == null)

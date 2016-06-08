@@ -1003,7 +1003,6 @@ public class ReflectionMasker {
 		boolean hasSentinel = false;
 		boolean dontIgnorePrimitive = false;
 		for (Class c : m.getParameterTypes()) {
-			Type t = Type.getType(c);
 			if (c.getName().startsWith("edu.columbia.cs.psl.phosphor.struct.multid")) {
 				//Remove multid
 				String s = "[";
@@ -1017,8 +1016,10 @@ public class ReflectionMasker {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-			} else if (t.getSort() == Type.ARRAY && t.getElementType().getSort() == Type.OBJECT && t.getElementType().getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
+			} else if (isMultiDType(c)) {
 				//Remove multid
+ 	     Type t = Type.getType(c);
+
 				String s = "";
 				for (int i = 0; i < t.getDimensions(); i++)
 					s += "[";
@@ -1060,6 +1061,65 @@ public class ReflectionMasker {
 		}
 		return m;
 	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+  public static Constructor getOrigMethod(Constructor m, TaintedReturnHolderWithIntTag prealloc) {
+    ArrayList<Class> origArgs = new ArrayList<Class>();
+    boolean hasSentinel = false;
+    boolean dontIgnorePrimitive = false;
+    for (Class c : m.getParameterTypes$$PHOSPHORTAGGED(prealloc)) {
+      if (c.getName$$PHOSPHORTAGGED(prealloc).startsWith$$PHOSPHORTAGGED("edu.columbia.cs.psl.phosphor.struct.multid",prealloc).val) {
+        //Remove multid
+        String s = "[";
+        s += MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(c);
+        try {
+          origArgs.add(Class.forName(s));
+        } catch (ClassNotFoundException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
+      } else if (isMultiDType(c,prealloc)) {
+        //Remove multid
+       Type t = Type.getType(c);
+
+        String s = "";
+        for (int i = 0; i < t.getDimensions(); i++)
+          s += "[";
+        s += "[";
+        s += MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(c);
+        try {
+          origArgs.add(Class.forName(s));
+        } catch (ClassNotFoundException e) {
+          e.printStackTrace();
+        }
+      } else if ((c.isArray() &&(c.getComponentType().isPrimitive()) || c == Configuration.TAINT_TAG_OBJ_ARRAY_CLASS)) {
+        if (dontIgnorePrimitive)
+          origArgs.add(c);
+        dontIgnorePrimitive = !dontIgnorePrimitive;
+      } else if (c.isPrimitive() || c.equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
+        if (dontIgnorePrimitive)
+          origArgs.add(c);
+        dontIgnorePrimitive = !dontIgnorePrimitive;
+      } else if (c.equals(TaintSentinel.class)) {
+        hasSentinel = true;
+      } else if (!c.equals(ControlTaintTagStack.class))
+        origArgs.add(c);
+    }
+    if(TaintUtils.PREALLOC_RETURN_ARRAY)
+      origArgs.removeLast();
+    if (hasSentinel) {
+      Class[] args = new Class[origArgs.size()];
+      origArgs.toArray(args);
+      try {
+        return m.getDeclaringClass().getDeclaredConstructor(args);
+      } catch (NoSuchMethodException e) {
+        e.printStackTrace();
+      } catch (SecurityException e) {
+        e.printStackTrace();
+      }
+    }
+    return m;
+  }
 
 	@SuppressWarnings("rawtypes")
 	public static Class[] addTypeParams(Class[] params, boolean implicitTracking, boolean isObjTags) {
@@ -1925,16 +1985,36 @@ public class ReflectionMasker {
 
 
 
+  private static boolean isMultiDType(Class c) {
+    String cmp = c.getName();
+
+    return cmp.length() >= "edu.columbia.cs.psl.phosphor.struct.multid"
+        .length()
+        && cmp.subSequence(0,
+            "edu.columbia.cs.psl.phosphor.struct.multid".length()).equals(
+            "edu.columbia.cs.psl.phosphor.struct.multid");
+  }
+
+  private static boolean isMultiDType(Class c, TaintedReturnHolderWithIntTag ret) {
+    String cmp = c.getName$$PHOSPHORTAGGED(ret);
+
+    return cmp.length$$PHOSPHORTAGGED(ret).val >= "edu.columbia.cs.psl.phosphor.struct.multid"
+        .length$$PHOSPHORTAGGED(ret).val
+        && "edu.columbia.cs.psl.phosphor.struct.multid".equals$$PHOSPHORTAGGED(
+            cmp.subSequence$$PHOSPHORTAGGED(0, 0, 0,
+                "edu.columbia.cs.psl.phosphor.struct.multid"
+                    .length$$PHOSPHORTAGGED(ret).val, ret), ret).val;
+  }
+  
 	@SuppressWarnings("rawtypes")
 	public static Class removeTaintClass(Class clazz, boolean isObjTags) {
 
 		if(clazz.PHOSPHOR_TAGclass != null)
 			return clazz.PHOSPHOR_TAGclass;
-		Type t = Type.getType(clazz);
-		if (t.getSort() == Type.ARRAY) {
-			String cmp = t.getElementType().getDescriptor();
-			if (cmp.length() >= "Ledu.columbia.cs.psl.phosphor.struct.multid".length()
-					&& cmp.subSequence(0, "Ledu.columbia.cs.psl.phosphor.struct.multid".length()).equals("Ledu/columbia/cs/psl/phosphor/struct/multid")) {
+		if (clazz.isArray()) {
+			if (isMultiDType(clazz)) {
+		    Type t = Type.getType(clazz);
+
 				String innerType = null;
 				if(isObjTags)
 					innerType = (MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(clazz));
@@ -1954,9 +2034,8 @@ public class ReflectionMasker {
 			clazz.PHOSPHOR_TAGclass = clazz;
 			return clazz;
 		}
-		String cmp = t.getDescriptor();
-		if (cmp.length() >= "Ledu.columbia.cs.psl.phosphor.struct.multid".length()
-				&& cmp.subSequence(0, "Ledu.columbia.cs.psl.phosphor.struct.multid".length()).equals("Ledu/columbia/cs/psl/phosphor/struct/multid")) {
+		
+		if (isMultiDType(clazz)) {
 			String innerType = null;
 			if(isObjTags)
 				innerType = (MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(clazz));
@@ -1974,6 +2053,47 @@ public class ReflectionMasker {
 		return clazz;
 	}
 
+	@SuppressWarnings("rawtypes")
+  public static Class removeTaintClass(Class clazz, TaintedReturnHolderWithIntTag prealloc) {
+
+    if(clazz.PHOSPHOR_TAGclass != null)
+      return clazz.PHOSPHOR_TAGclass;
+    if (clazz.isArray$$PHOSPHORTAGGED(prealloc).val) {
+      if (isMultiDType(clazz,prealloc)) {
+        Type t = Type.getType(clazz);
+
+        String innerType = null;
+        innerType = (MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(clazz));
+        String newName = "[";
+        for (int i = 0; i < t.getDimensions(); i++)
+          newName += "[";
+        try {
+          Class ret = Class.forName(newName + innerType);
+          clazz.PHOSPHOR_TAGclass = ret;
+          return ret;
+        } catch (ClassNotFoundException e) {
+          e.printStackTrace();
+        }
+      }
+      clazz.PHOSPHOR_TAGclass = clazz;
+      return clazz;
+    }
+    
+    if (isMultiDType(clazz)) {
+      String innerType = null;
+      innerType = (MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(clazz));
+      try {
+        Class ret = Class.forName("[" + innerType);
+        clazz.PHOSPHOR_TAGclass = ret;
+        return ret;
+      } catch (ClassNotFoundException e) {
+        e.printStackTrace();
+      }
+    }
+    clazz.PHOSPHOR_TAGclass = clazz;
+    return clazz;
+  }
+	
 	public static Field[] removeTaintFields(Field[] in) {
 		//		if(VM.isBooted())
 		//		System.out.println("Remove taint fields " + Arrays.toString(in));
