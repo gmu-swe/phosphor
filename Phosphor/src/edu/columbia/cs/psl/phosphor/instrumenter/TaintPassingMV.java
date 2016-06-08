@@ -1345,8 +1345,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			int argsSize = 0;
 			if (isIgnoredClass) {
 				if (TaintUtils.PREALLOC_RETURN_ARRAY && name.equals("toString") && desc.equals("()Ljava/lang/String;") && opcode == INVOKEVIRTUAL && owner.equals("java/lang/Object")) {
-//					System.out.println("Tostring on " + getTopOfStackObject());
-					if (!Instrumenter.isIgnoredClass((String) getTopOfStackObject())) {
+				  if(getTopOfStackObject() == Opcodes.NULL)
+				  {
+            super.visitMethodInsn(opcode, owner, name, desc, itfc);
+				    return;
+				  }
+				  else if (!Instrumenter.isIgnoredClass((String) getTopOfStackObject())) {
 						String top = (String) getTopOfStackObject();
 						super.visitVarInsn(ALOAD, lvs.lvOfSingleWrapperArray);
 						Type t = Type.getType((Configuration.MULTI_TAINTING ? TaintedWithObjTag.class : TaintedWithIntTag.class));
