@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.WeakHashMap;
 
@@ -751,8 +752,16 @@ public class ReflectionMasker {
 		}
 		if(Instrumenter.isIgnoredClass(czz.getName().replace('.', '/')))
 		    return czz.getMethod(name, params);
+		//Are we calling wait()?
+		if(name.equals("wait"))
+		{
+			if(params.length == 0 || (params.length == 1 && params[0] == Long.TYPE ) || (params.length == 2 && params[0] == Long.TYPE && params[1] == Integer.TYPE) )
+				return czz.getMethod(name, params);
+		}
 		try {
 			Method m = czz.getMethod(name, params);
+			if(Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/')))
+			    return czz.getMethod(name, params);
 			m = getTaintMethod(m, isObjTags);
 			//			System.out.println("returning " + m);
 			return m;
