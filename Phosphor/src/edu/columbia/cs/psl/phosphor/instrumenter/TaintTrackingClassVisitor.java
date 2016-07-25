@@ -75,6 +75,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	}
 	List<FieldNode> fields;
 	private boolean ignoreFrames;
+	private boolean generateExtraLVDebug;
 	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields) {
 		super(Opcodes.ASM5,  cv
 //				new CheckClassAdapter(cv,false)
@@ -108,6 +109,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		addTaintField = true;
 		addTaintMethod = true;
+		this.generateExtraLVDebug = name.equals("java/lang/invoke/MethodType");
 		this.fixLdcClass = (version & 0xFFFF) < Opcodes.V1_5;
 		if(Instrumenter.IS_KAFFE_INST && name.endsWith("java/lang/VMSystem"))
 			access = access | Opcodes.ACC_PUBLIC;
@@ -281,7 +283,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
 			mv = new UninstrumentedCompatMV(access,className,name,newDesc,signature,(String[])exceptions,mv,analyzer,ignoreFrames);
-			LocalVariableManager lvs = new LocalVariableManager(access, newDesc, mv, analyzer, _mv);
+			LocalVariableManager lvs = new LocalVariableManager(access, newDesc, mv, analyzer, _mv, generateExtraLVDebug);
 			((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
 			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, null);
 			lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
@@ -418,7 +420,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV);
 				tmv.setFields(fields);
 				TaintAdapter custom = null;
-				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv);
+				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv, generateExtraLVDebug);
 
 				nextMV = lvs;
 				if(Configuration.extensionMethodVisitor != null)
@@ -813,7 +815,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						}
 						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, mv);
 						MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
-						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, soc, an, mv);
+						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, soc, an, mv, generateExtraLVDebug);
 						lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 						GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name, m.desc);
 						Label startLabel = new Label();
@@ -1149,7 +1151,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv = new UninstrumentedReflectionHidingMV(mv, className);
 					UninstrumentedReflectionHidingMV ta = (UninstrumentedReflectionHidingMV) mv;
 					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc,mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames);
-					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.desc, mv, analyzer, analyzer);
+					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.desc, mv, analyzer, analyzer, generateExtraLVDebug);
 					final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, mn.access, mn.name, mn.desc, null, null, null);
 					lvs.disable();
 					lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
@@ -1375,7 +1377,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv = super.visitMethod(m.access&~Opcodes.ACC_NATIVE, m.name + TaintUtils.METHOD_SUFFIX, newDesc, m.signature, exceptions);
 		NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, newDesc, mv);
 		MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
-		LocalVariableManager lvs = new LocalVariableManager(m.access,newDesc, soc, an, mv);
+		LocalVariableManager lvs = new LocalVariableManager(m.access,newDesc, soc, an, mv, generateExtraLVDebug);
 		lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 		GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name + TaintUtils.METHOD_SUFFIX, newDesc);
 		if(isInterface)

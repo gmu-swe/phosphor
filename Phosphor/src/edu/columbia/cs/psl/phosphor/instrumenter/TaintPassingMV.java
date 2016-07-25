@@ -18,6 +18,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.util.Printer;
 import org.objectweb.asm.util.Textifier;
@@ -56,6 +57,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public void visitCode() {
 //		System.out.println("TPMVStart" + name);
 		super.visitCode();
+		firstLabel = new Label();
+		super.visitLabel(firstLabel);
 		if(Configuration.IMPLICIT_TRACKING)
 		{
 			if (lvs.idxOfMasterControlLV < 0) {
@@ -115,6 +118,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	private String desc;
 	private MethodVisitor passthruMV;
 	int idxOfPassedControlInfo = 0;
+	private boolean rewriteLVDebug = false;
 	public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String signature, String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,MethodVisitor passthruMV) {
 		//		super(Opcodes.ASM4,mv,access,name,desc);
 		super(access, className,name,desc,  signature, exceptions, mv, analyzer);
@@ -146,6 +150,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		this.passthruMV = passthruMV;
 		this.desc = desc;
+		this.rewriteLVDebug = this.className.equals("java/lang/invoke/MethodType");
 	}
 
 	protected Type getLocalType(int n) {
@@ -1163,7 +1168,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			System.out.println("POST POP AT " + n + ":" + analyzer.stack);
 
 	}
-
+	
 	@Override
 	public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
         String owner = bsm.getOwner();
@@ -1176,7 +1181,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             opcode = INVOKESTATIC;
 
         if (Configuration.IMPLICIT_TRACKING) {
-            if((isInternalTaintingMethod(owner) || owner.startsWith("[")) && !name.equals("getControlFlow")){
+          hasNewName = true;
+            if( Instrumenter.isIgnoredClass(owner) || ((isInternalTaintingMethod(owner) || owner.startsWith("[")) && !name.equals("getControlFlow"))){
+            	hasNewName = false;
                 newDesc = newDesc.replace(Type.getDescriptor(ControlTaintTagStack.class), "");
             }
             else
@@ -1202,8 +1209,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         Type returnType = TaintUtils.getContainerReturnType(Type.getReturnType(desc));
         if (TaintUtils.DEBUG_CALLS)
             System.out.println("Remapped call from " + owner + "." + name + desc + " to " + owner + "." + name + newDesc);
-//        if (!name.contains("<") && hasNewName)
-//            name += TaintUtils.METHOD_SUFFIX;
+        if (!name.contains("<") && hasNewName)
+            name += TaintUtils.METHOD_SUFFIX;
         if (TaintUtils.DEBUG_CALLS) {
             System.out.println("Calling w/ stack: " + analyzer.stack);
         }
@@ -1256,8 +1263,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
 
         //      System.out.println("Args size: " + argsSize + " nargs " + args.length);
-        if (TaintUtils.DEBUG_CALLS)
-            System.out.println("No more changes: calling " + owner + "." + name + newDesc + " w/ stack: " + analyzer.stack);
+//        if (TaintUtils.DEBUG_CALLS)
+//            System.out.println("No more changes: calling " + owner + "." + name + newDesc + " w/ stack: " + analyzer.stack);
 
         boolean isCalledOnAPrimitiveArrayType = false;
         if (opcode == INVOKEVIRTUAL) {
@@ -1280,7 +1287,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 {
                     bsmArgs[k] = new Handle(((Handle) o).getTag(), ((Handle) o).getOwner(), ((Handle) o).getName()+TaintUtils.METHOD_SUFFIX, TaintUtils.remapMethodDesc(((Handle) o).getDesc()));
                 }
+                else if(o instanceof Type)
+                {
+                	Type t = (Type) o;
+                	bsmArgs[k] = Type.getMethodType(TaintUtils.remapMethodDesc(t.getDescriptor()));
+                }
             }
+        }
+        if(hasNewName)
+        {
+        	bsm = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName()+TaintUtils.METHOD_SUFFIX, TaintUtils.remapMethodDesc(bsm.getDesc()));
         }
         super.visitInvokeDynamicInsn(name, newDesc, bsm, bsmArgs);
         //      System.out.println("asdfjas;dfdsf  post invoke " + analyzer.stack);
@@ -1718,14 +1734,58 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if (TaintUtils.DEBUG_CALLS)
 			System.out.println("Post invoke stack post swap pop maybe: " + analyzer.stack);
 	}
-
+	private Label firstLabel;
+	private HashSet<LocalVariableNode> lvsFromLastFrame = new HashSet<LocalVariableNode>();
+	@Override
+	public void visitMaxs(int maxStack, int maxLocals) {
+		if(rewriteLVDebug)
+		{
+			Label end = new Label();
+			super.visitLabel(end);
+//			Label thisFrameStart = new Label();
+//			for(LocalVariableNode lv : lvsFromLastFrame)
+//			{
+//				lv.end = new LabelNode(thisFrameStart);
+//				lv.accept(mv);
+//			}
+//			lvsFromLastFrame.clear();
+		}
+		super.visitMaxs(maxStack, maxLocals);
+	}
 	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
 		if (TaintUtils.DEBUG_FRAMES)
 			System.out.println("TMV sees frame: " + type + Arrays.toString(local) + ", stack " + Arrays.toString(stack));
 //			new Exception().printStackTrace();
-		super.visitFrame(type, nLocal, local, nStack, stack);
-
+//		if(rewriteLVDebug)
+//		{
+//			Label thisFrameStart = new Label();
+//			for(LocalVariableNode lv : lvsFromLastFrame)
+//			{
+//				lv.end = new LabelNode(thisFrameStart);
+//				lv.accept(this.passthruMV);
+//			}
+//			lvsFromLastFrame.clear();
+//			int n = 0;
+//			for(int i = 0; i < nLocal; i++)
+//			{
+//				if(local[i] == Opcodes.TOP)
+//				{
+//					n++;
+//					continue;
+//				}
+//				Type t = getTypeForStackType(local[i]);
+//				lvsFromLastFrame.add(new LocalVariableNode("local"+i, t.getDescriptor(), null, new LabelNode(thisFrameStart), null, n));
+//				n+=t.getSize();
+//			}
+//			super.visitLabel(thisFrameStart);
+//			super.visitFrame(type, nLocal, local, nStack, stack);
+//			lastFrameStart = thisFrameStart;
+//		}
+//		else
+		{
+			super.visitFrame(type, nLocal, local, nStack, stack);
+		}
 		varsNeverToForceBox = new HashSet<Integer>();
 	}
 

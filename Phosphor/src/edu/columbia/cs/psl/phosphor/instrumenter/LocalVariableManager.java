@@ -55,16 +55,21 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		super.visitVarInsn(opcode, var);
 	}
 	public HashMap<Integer, Integer> varToShadowVar = new HashMap<Integer, Integer>();
-	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV) {
+	private boolean generateExtraDebug;
+	private Type[] args;
+	private boolean isStatic;
+	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean generateExtraDebug) {
 		super(ASM5, access, desc, mv);
 		this.analyzer = analyzer;
 		this.uninstMV = uninstMV;
 		returnType = Type.getReturnType(desc);
-		Type[] args = Type.getArgumentTypes(desc);
+		args = Type.getArgumentTypes(desc);
 		if((access & Opcodes.ACC_STATIC) == 0){
 			lastArg++;
 			oldArgTypes.add(Type.getType("Lthis;"));
 		}
+		else
+			isStatic = true;
 		for (int i = 0; i < args.length; i++) {
 			lastArg += args[i].getSize();
 			oldArgTypes.add(args[i]);
@@ -82,6 +87,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 //		System.out.println("New LVS");
 //		System.out.println("LVS thinks its at " + lastArg);
 		preAllocedReturnTypes.put(returnType,lastArg);
+		this.generateExtraDebug = generateExtraDebug;
 	}
 
 	public void freeTmpLV(int idx) {
@@ -314,6 +320,20 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 			super.visitLabel(end);
 			endVisited = true;
 		}
+		if(generateExtraDebug)
+		{
+			int n = 0;
+			if(!isStatic)
+			{
+				super.visitLocalVariable("argidx"+n, "Ljava/lang/Object;", null, this.start, this.end, n);
+				n++;
+			}
+			for(Type t : args)
+			{
+				super.visitLocalVariable("argidx"+n, t.getDescriptor(), null, this.start, this.end, n);
+				n+=t.getSize();
+			}
+		}
 		super.visitMaxs(maxStack, maxLocals);
 	}
 	@Override
@@ -337,8 +357,10 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		}
 	}
 
+	Label start = new Label();;
 	public void visitCode() {
 		super.visitCode();
+		super.visitLabel(start);
 		if (primitiveArrayFixer != null)
 			for (Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
 				if (t.equals(returnType)) {
