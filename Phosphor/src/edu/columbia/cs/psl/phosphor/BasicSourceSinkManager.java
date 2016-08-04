@@ -33,6 +33,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 
 		{
 			Scanner s;
+			String lastLine = null;
 			try {
 				if(Instrumenter.sourcesFile != null)
 				{
@@ -43,7 +44,8 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 					while (s.hasNextLine())
 					{
 						String line = s.nextLine();
-						if(!line.startsWith("#"))
+						lastLine = line;
+						if(!line.startsWith("#") && !line.isEmpty())
 						{
 							sources.add(line);
 							if(Configuration.MULTI_TAINTING)
@@ -60,16 +62,16 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 					s.close();
 				}
 				
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			} catch (Throwable e) {
+				System.err.println("Unable to parse sources file: " + Instrumenter.sourcesFile);
+				if (lastLine != null)
+					System.err.println("Last line read: '" + lastLine + "'");
+				throw new RuntimeException(e);
+			} 
 		}
 		{
 			Scanner s;
+			String lastLine = null;
 			try {
 				if(Instrumenter.sinksFile != null)
 				{
@@ -78,15 +80,18 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 
 					while (s.hasNextLine()) {
 						String line = s.nextLine();
-						if (!line.startsWith("#"))
+						lastLine = line;
+						if (!line.startsWith("#") && !line.isEmpty())
 							sinks.add(line);
 					}
 					s.close();
 				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			} catch (Throwable e) {
+				System.err.println("Unable to parse sink file: " + Instrumenter.sourcesFile);
+				if (lastLine != null)
+					System.err.println("Last line read: '" + lastLine + "'");
+				throw new RuntimeException(e);
+			} 
 		}
 		if (!TaintTrackingClassVisitor.IS_RUNTIME_INST)
 		{
