@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class BaseMultiTaintClass {
 
@@ -28,11 +29,19 @@ public class BaseMultiTaintClass {
 		fail("Expected null taint. Got: " + taint);
 	}
 	
+	public static void assertNonNullTaint(Object obj)
+	{
+		Taint t = (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
+		assertNotNull(obj);
+		if(t == null || (t.lbl == null && t.hasNoDependencies()))
+			fail("Expected non-null taint - got: "  + t);
+	}
+
 	public static void assertNonNullTaint(Taint obj)
 	{
 		assertNotNull(obj);
 		if(obj.lbl == null && obj.hasNoDependencies())
-			fail("Expected non-null taint - got"  + obj);
+			fail("Expected non-null taint - got: "  + obj);
 	}
 	
 	public static void assertTaintHasLabel(Taint obj, Object lbl)

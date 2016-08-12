@@ -73,4 +73,25 @@ public class GetSetTaintIntTagITCase {
 		assertTrue(Tainter.getTaint(d) != 0);
 	}
 	
+	@Test
+	public void testToString()
+	{
+		boolean z = Tainter.taintedBoolean(false, 5);
+		byte b = Tainter.taintedByte((byte) 4, 5);
+		char c = Tainter.taintedChar('a', 5);
+		int i = Tainter.taintedInt(4, 5);
+		short s = Tainter.taintedShort((short)5, 5);
+		long l = Tainter.taintedLong((long) 5, 5);
+		float f = Tainter.taintedFloat(4f, 5);
+		double d = Tainter.taintedDouble(4d, 5);
+		assertTrue(Tainter.getTaint(Boolean.toString(z)) != 0);
+		assertTrue(Tainter.getTaint(Byte.toString(b)) != 0);
+		assertTrue(Tainter.getTaint(Character.toString(c)) != 0);
+		assertTrue(Tainter.getTaint(Short.toString(s)) != 0);
+		assertTrue(Tainter.getTaint(Long.toString(l)) != 0);
+		assertTrue(Tainter.getTaint(Float.toString(f)) != 0);
+		assertTrue(Tainter.getTaint(Double.toString(d)) != 0);
+		assertTrue(Tainter.getTaint(Integer.toString(i)) != 0);
+	}	
+	
 }

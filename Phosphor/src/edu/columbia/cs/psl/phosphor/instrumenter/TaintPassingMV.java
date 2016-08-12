@@ -1355,6 +1355,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
 		}
+		if ((owner.equals(Type.getInternalName(Integer.class))
+				|| owner.equals(Type.getInternalName(Byte.class))
+				|| owner.equals(Type.getInternalName(Character.class))
+				|| owner.equals(Type.getInternalName(Short.class))
+				|| owner.equals(Type.getInternalName(Long.class)) || owner.equals(Type.getInternalName(Boolean.class))
+				|| owner.equals(Type.getInternalName(Float.class)) || owner
+					.equals(Type.getInternalName(Double.class))) && (name.equals("toString") || name.equals("toHexString")
+							|| name.equals("toOctalString")	|| name.equals("toBinaryString") || name.equals("toUnsignedString")) && opcode == INVOKESTATIC) {
+			owner = "edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropogator";
+		}
 		boolean isPreAllocedReturnType = TaintUtils.isPreAllocReturnType(desc);
 		if (Instrumenter.isClassWithHashmapTag(owner) && name.equals("valueOf")) {
 			Type[] args = Type.getArgumentTypes(desc);
@@ -1466,7 +1476,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 		}
 		if (owner.startsWith("edu/columbia/cs/psl/phosphor") && !name.equals("printConstraints") && !name.equals("hasNoDependencies") && !desc.equals("(I)V") && !owner.endsWith("Tainter")
-				&&!name.equals("getPHOSPHOR_TAG") && !name.equals("setPHOSPHOR_TAG")) {
+				&&!name.equals("getPHOSPHOR_TAG") && !name.equals("setPHOSPHOR_TAG") && !owner.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropogator")) {
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
 		}

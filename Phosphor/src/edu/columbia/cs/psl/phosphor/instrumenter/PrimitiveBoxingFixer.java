@@ -13,14 +13,12 @@ import org.objectweb.asm.tree.FrameNode;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 
 public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
-
-	public PrimitiveBoxingFixer(int api, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
-		super(api, className, name, desc, signature, exceptions, mv, analyzer);
+	public PrimitiveBoxingFixer(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
+		super(access, className, name, desc, signature, exceptions, mv, analyzer);
 	}
 
 	int tmpInt = -1;;
 	boolean ignoreLoadingTaint;
-
 
 	@Override
 	public void visitVarInsn(int opcode, int var) {

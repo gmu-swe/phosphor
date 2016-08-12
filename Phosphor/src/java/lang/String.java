@@ -3119,13 +3119,14 @@ public class String
 
 	@Override
 	public Object getPHOSPHOR_TAG() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public void setPHOSPHOR_TAG(Object t) {
-		// TODO Auto-generated method stub
+		
+	}
+	public void setPHOSPHOR_TAG(int t) {
 		
 	}
 

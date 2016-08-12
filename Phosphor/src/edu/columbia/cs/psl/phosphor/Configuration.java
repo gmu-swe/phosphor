@@ -53,6 +53,7 @@ public class Configuration {
 	public static boolean OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING;
 	public static Class TAINT_TAG_OBJ_CLASS = (Taint.class);
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
+	public static String TAINT_INTERFACE_INTERNALNAME = !MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedWithObjTag";
 
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
 	public static Class extensionClassVisitor;
@@ -79,7 +80,8 @@ public class Configuration {
 		OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING;
 		TAINT_TAG_OBJ_ARRAY_CLASS = (MULTI_TAINTING ? Taint[].class : int[].class);
 		TAINT_TAG_OBJ_CLASS = (MULTI_TAINTING ? Taint.class : Integer.TYPE);
-		
+		TAINT_INTERFACE_INTERNALNAME = !MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedWithObjTag";
+
 		if(WITH_SELECTIVE_INST)
 			GENERATE_UNINST_STUBS = true;
 
