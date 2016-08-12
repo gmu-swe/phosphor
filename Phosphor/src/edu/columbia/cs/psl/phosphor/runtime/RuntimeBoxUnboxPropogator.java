@@ -42,6 +42,14 @@ public class RuntimeBoxUnboxPropogator {
 		ret.setPHOSPHOR_TAG(t);
 		return ret;
 	}
+	
+	public static String toString$$PHOSPHORTAGGED(int t, int i, int t2, int r) {
+		if (t == 0)
+			return Integer.toString(i, r);
+		String ret = new String(Integer.toString(i, r).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
 
 	public static String toUnsignedString$$PHOSPHORTAGGED(int t, int i) {
 		if (t == 0)
@@ -122,6 +130,14 @@ public class RuntimeBoxUnboxPropogator {
 		ret.setPHOSPHOR_TAG(t);
 		return ret;
 	}
+	
+	public static String toString$$PHOSPHORTAGGED(int t, long i, int t2, int r) {
+		if (t == 0)
+			return Long.toString(i, r);
+		String ret = new String(Long.toString(i, r).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
 
 	public static String toBinaryString$$PHOSPHORTAGGED(int t, long i) {
 		if (t == 0)
@@ -175,6 +191,14 @@ public class RuntimeBoxUnboxPropogator {
 		if (t == null)
 			return Integer.toString(i);
 		String ret = new String(Integer.toString(i).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
+	
+	public static String toString$$PHOSPHORTAGGED(Taint t, int i, Taint t2, int r) {
+		if (t == null)
+			return Integer.toString(i, r);
+		String ret = new String(Integer.toString(i, r).toCharArray());
 		ret.setPHOSPHOR_TAG(t);
 		return ret;
 	}
@@ -255,6 +279,14 @@ public class RuntimeBoxUnboxPropogator {
 		if (t == null)
 			return Long.toString(i);
 		String ret = new String(Long.toString(i).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
+	
+	public static String toString$$PHOSPHORTAGGED(Taint t, long i, Taint t2, int r) {
+		if (t == null)
+			return Long.toString(i, r);
+		String ret = new String(Long.toString(i, r).toCharArray());
 		ret.setPHOSPHOR_TAG(t);
 		return ret;
 	}
@@ -391,6 +423,14 @@ public class RuntimeBoxUnboxPropogator {
 		if (t == null)
 			return Long.toString(i);
 		String ret = new String(Long.toString(i).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
+	
+	public static String toString$$PHOSPHORTAGGED(Taint t, long i, Taint t2, int r, ControlTaintTagStack ctrl) {
+		if (t == null)
+			return Long.toString(i, r);
+		String ret = new String(Long.toString(i, r).toCharArray());
 		ret.setPHOSPHOR_TAG(t);
 		return ret;
 	}
@@ -608,6 +648,8 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	private static int getTaint(Object o) {
+		if(o == null)
+			return 0;
 		return ((TaintedWithIntTag) o).getPHOSPHOR_TAG();
 	}
 
