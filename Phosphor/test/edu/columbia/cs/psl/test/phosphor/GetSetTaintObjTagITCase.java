@@ -95,4 +95,62 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		assertNonNullTaint(Integer.toString(i));
 	}	
 	
+	@Test
+	public void testValueOf()
+	{
+		String hundred = new String(new char[]{'1','0','0'});
+		Object lbl = 5;
+		String TRUE = new String(new char[]{'t','r','u','e'});
+		hundred.setPHOSPHOR_TAG(new Taint(lbl));
+		TRUE.setPHOSPHOR_TAG(new Taint(lbl));
+		boolean z = Boolean.parseBoolean(TRUE);
+		byte b = Byte.valueOf(hundred);
+		byte b2 = Byte.parseByte(hundred);
+		byte b3 = Byte.parseByte(hundred, 10);
+		int i = Integer.valueOf(hundred);
+		int i2 = Integer.valueOf(hundred, 10);
+		int i3 = Integer.parseInt(hundred);
+		int i4 = Integer.parseInt(hundred,10);
+		int i5 = Integer.parseUnsignedInt(hundred);
+		int i6 = Integer.parseUnsignedInt(hundred, 10);
+		short s = Short.parseShort(hundred);
+		short s2 = Short.parseShort(hundred, 10);
+		short s3 = Short.valueOf(hundred);
+		short s4 = Short.valueOf(hundred, 10);
+		long l = Long.valueOf(hundred);
+		long l2 = Long.valueOf(hundred, 10);
+		long l3 = Long.parseLong(hundred);
+		long l4 = Long.parseLong(hundred, 10);
+		long l5 = Long.parseUnsignedLong(hundred);
+		long l6 = Long.parseUnsignedLong(hundred, 10);
+		float f = Float.parseFloat(hundred);
+		float f2 = Float.valueOf(hundred);
+		double d = Double.parseDouble(hundred);
+		double d2 = Double.valueOf(hundred);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(z), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(b), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(b2), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(b3), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(i), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(i2), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(i3), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(i4), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(i5), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(i6), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(s), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(s2), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(s3), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(s4), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(l), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(l2), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(l3), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(l4), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(l5), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(l6), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(f), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(f2), lbl);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(d), lbl);		
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(d2), lbl);
+	}
+
 }

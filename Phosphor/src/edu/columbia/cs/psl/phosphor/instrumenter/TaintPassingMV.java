@@ -1349,21 +1349,56 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	{
 		return owner.equals(Type.getInternalName(Tainter.class)) || owner.equals(Type.getInternalName(MultiTainter.class));
 	}
+	
+	static final String BYTE_NAME = "java/lang/Byte";
+	static final String BOOLEAN_NAME = "java/lang/Boolean";
+	static final String INTEGER_NAME = "java/lang/Integer";
+	static final String FLOAT_NAME = "java/lang/Float";
+	static final String LONG_NAME = "java/lang/Long";
+	static final String CHARACTER_NAME = "java/lang/Character";
+	static final String DOUBLE_NAME = "java/lang/Double";
+	static final String SHORT_NAME = "java/lang/Short";
+
+	static final boolean isBoxUnboxMethodToWrap(String owner, String name, String desc) {
+		if(name.equals("valueOf") && desc.startsWith("(Ljava/lang/String"))
+			return Instrumenter.isIgnoredClass(owner);//All of these no matter what will get caught by parseXXX
+		if ((owner.equals(INTEGER_NAME) || owner.equals(BYTE_NAME) || owner.equals(BOOLEAN_NAME) || owner.equals(CHARACTER_NAME) || owner.equals(SHORT_NAME) || owner.equals(LONG_NAME) || owner.equals(FLOAT_NAME) || owner.equals(DOUBLE_NAME))
+				&& (name.equals("toString") || name.equals("toHexString") || name.equals("toOctalString") || name.equals("toBinaryString") || name.equals("toUnsignedString"))) {
+			return true;
+		} else if ((owner.equals(BOOLEAN_NAME) && name.equals("parseBoolean")) || (owner.equals(BYTE_NAME) && (name.equals("parseByte")))
+				|| (owner.equals(INTEGER_NAME) && (name.equals("parseInt") || name.equals("parseUnsignedInt"))) || (owner.equals(SHORT_NAME) && (name.equals("parseShort")))
+				|| (owner.equals(LONG_NAME) && (name.equals("parseLong") || name.equals("parseUnsignedLong"))) || (owner.equals(FLOAT_NAME) && (name.equals("parseFloat")))
+				|| (owner.equals(DOUBLE_NAME) && (name.equals("parseDouble")))) {
+			return true;
+		}
+		return false;
+	}
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
 		if (isIgnoreAllInstrumenting || ignoreLoadingNextTaint || isRawInsns) {
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
 		}
-		if ((owner.equals(Type.getInternalName(Integer.class))
-				|| owner.equals(Type.getInternalName(Byte.class))
-				|| owner.equals(Type.getInternalName(Character.class))
-				|| owner.equals(Type.getInternalName(Short.class))
-				|| owner.equals(Type.getInternalName(Long.class)) || owner.equals(Type.getInternalName(Boolean.class))
-				|| owner.equals(Type.getInternalName(Float.class)) || owner
-					.equals(Type.getInternalName(Double.class))) && (name.equals("toString") || name.equals("toHexString")
-							|| name.equals("toOctalString")	|| name.equals("toBinaryString") || name.equals("toUnsignedString")) && opcode == INVOKESTATIC) {
-			owner = "edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropogator";
+		if (opcode == INVOKESTATIC && isBoxUnboxMethodToWrap(owner, name, desc)) {
+				if(name.equals("valueOf") && desc.startsWith("(Ljava/lang/String;"))
+				switch(owner)
+				{
+				case BYTE_NAME:
+					name = "valueOfB";
+					break;
+				case BOOLEAN_NAME:
+					name = "valueOfZ";
+					break;
+				case CHARACTER_NAME:
+					name = "valueOfC";
+					break;
+				case SHORT_NAME:
+					name = "valueOfS";
+					break;
+					default:
+						throw new UnsupportedOperationException(owner);
+				}
+				owner = "edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropogator";
 		}
 		boolean isPreAllocedReturnType = TaintUtils.isPreAllocReturnType(desc);
 		if (Instrumenter.isClassWithHashmapTag(owner) && name.equals("valueOf")) {

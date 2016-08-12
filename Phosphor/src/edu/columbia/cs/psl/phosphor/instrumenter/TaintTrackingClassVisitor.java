@@ -670,6 +670,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 						mv.visitVarInsn(Opcodes.ILOAD, 1);
 						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
+					} else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
+							.equals(TaintPassingMV.DOUBLE_NAME))) {
+						//For primitive types, also set the "value" field
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitVarInsn(Opcodes.ILOAD, 1);
+						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 					}
 					mv.visitInsn(Opcodes.RETURN);
 					mv.visitMaxs(0, 0);
@@ -699,6 +705,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 //						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 						mv.visitVarInsn(Opcodes.ALOAD, 1);
 						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/String;Ljava/lang/Object;)V", false);
+					}  else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
+							.equals(TaintPassingMV.DOUBLE_NAME))) {
+						//For primitive types, also set the "value" field
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitVarInsn(Opcodes.ALOAD, 1);
+						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 					}
 					mv.visitInsn(Opcodes.RETURN);
 					mv.visitMaxs(0, 0);
