@@ -10,6 +10,7 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class GetSetTaintIntTagITCase {
 	
@@ -101,8 +102,9 @@ public class GetSetTaintIntTagITCase {
 	{
 		String hundred = new String(new char[]{'1','0','0'});
 		String TRUE = new String(new char[]{'t','r','u','e'});
-		Tainter.taintedObject(hundred, 5);
-		Tainter.taintedObject(TRUE, 5);
+		((TaintedWithIntTag)((Object)hundred)).setPHOSPHOR_TAG(5);
+		((TaintedWithIntTag)((Object)TRUE)).setPHOSPHOR_TAG(5);
+
 		boolean z = Boolean.parseBoolean(TRUE);
 		byte b = Byte.valueOf(hundred);
 		byte b2 = Byte.parseByte(hundred);

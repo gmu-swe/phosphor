@@ -101,8 +101,8 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		String hundred = new String(new char[]{'1','0','0'});
 		Object lbl = 5;
 		String TRUE = new String(new char[]{'t','r','u','e'});
-		hundred.setPHOSPHOR_TAG(new Taint(lbl));
-		TRUE.setPHOSPHOR_TAG(new Taint(lbl));
+		((TaintedWithObjTag) ((Object) hundred)).setPHOSPHOR_TAG(new Taint(lbl));
+		((TaintedWithObjTag) ((Object) TRUE)).setPHOSPHOR_TAG(new Taint(lbl));
 		boolean z = Boolean.parseBoolean(TRUE);
 		byte b = Byte.valueOf(hundred);
 		byte b2 = Byte.parseByte(hundred);
