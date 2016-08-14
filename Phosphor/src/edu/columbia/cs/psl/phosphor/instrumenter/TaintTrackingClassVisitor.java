@@ -258,6 +258,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		if (name.equals("hasAnyTaints"))
 			isProxyClass = true;
 		
+		// Hack needed for java 7 + integer->tostring fixes
+		if ((className.equals("java/lang/Integer") || className.equals("java/lang/Long")) && name.equals("toUnsignedString"))
+			access = (access & ~Opcodes.ACC_PRIVATE) | Opcodes.ACC_PUBLIC;
+		
 		if(name.contains(TaintUtils.METHOD_SUFFIX))
 		{
 		    //Some dynamic stuff might result in there being weird stuff here

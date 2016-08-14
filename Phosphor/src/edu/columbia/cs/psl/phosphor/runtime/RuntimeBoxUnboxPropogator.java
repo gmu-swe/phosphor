@@ -59,6 +59,15 @@ public class RuntimeBoxUnboxPropogator {
 		return ret;
 	}
 
+	public static String toUnsignedString$$PHOSPHORTAGGED(int t, int i, int tr, int r) {
+		if (t == 0)
+			return Integer.toUnsignedString(i, r);
+		String ret = new String(Integer.toUnsignedString(i, r).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
+
+	
 	public static String toOctalString$$PHOSPHORTAGGED(int t, int i) {
 		if (t == 0)
 			return Integer.toOctalString(i);
@@ -163,6 +172,14 @@ public class RuntimeBoxUnboxPropogator {
 		return ret;
 	}
 
+	public static String toUnsignedString$$PHOSPHORTAGGED(int t, long i, int tr, int r) {
+		if (t == 0)
+			return Long.toUnsignedString(i, r);
+		String ret = new String(Long.toUnsignedString(i, r).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
+	
 	public static String toOctalString$$PHOSPHORTAGGED(int t, long i) {
 		if (t == 0)
 			return Long.toOctalString(i);
@@ -211,6 +228,14 @@ public class RuntimeBoxUnboxPropogator {
 		return ret;
 	}
 
+	public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, int i, Taint tr, int r) {
+		if (t == null)
+			return Integer.toUnsignedString(i, r);
+		String ret = new String(Integer.toUnsignedString(i, r).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
+	
 	public static String toOctalString$$PHOSPHORTAGGED(Taint t, int i) {
 		if (t == null)
 			return Integer.toOctalString(i);
@@ -314,6 +339,22 @@ public class RuntimeBoxUnboxPropogator {
 		ret.setPHOSPHOR_TAG(t);
 		return ret;
 	}
+	
+	public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, long i, Taint tr, int r) {
+		if (t == null)
+			return Long.toUnsignedString(i, r);
+		String ret = new String(Long.toUnsignedString(i, r).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
+
+	public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, long i, Taint tr, int r, ControlTaintTagStack ctrl) {
+		if (t == null)
+			return Long.toUnsignedString(i, r);
+		String ret = new String(Long.toUnsignedString(i, r).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
 
 	public static String toOctalString$$PHOSPHORTAGGED(Taint t, long i) {
 		if (t == null)
@@ -351,6 +392,14 @@ public class RuntimeBoxUnboxPropogator {
 		if (t == null)
 			return Integer.toUnsignedString(i);
 		String ret = new String(Integer.toUnsignedString(i).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
+	
+	public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, int i, Taint tr, int r, ControlTaintTagStack ctrl) {
+		if (t == null)
+			return Integer.toUnsignedString(i, r);
+		String ret = new String(Integer.toUnsignedString(i, r).toCharArray());
 		ret.setPHOSPHOR_TAG(t);
 		return ret;
 	}
