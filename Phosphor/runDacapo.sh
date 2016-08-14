@@ -39,11 +39,11 @@ echo "Trying int tag benchmarks. Note: these numbers will not be super accurate 
 for bm in "${BENCHMARKS[@]}"
 do
 echo "$JAVA_HOME/bin/java -cp $DACAPO_DIR Harness $bm"
-$JAVA_HOME/bin/java -cp $DACAPO_DIR Harness $bm
+$JAVA_HOME/bin/java -Xmx1g -cp $DACAPO_DIR Harness $bm
 echo "target/jre-inst-int/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness $bm"
-target/jre-inst-int/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness $bm
+target/jre-inst-int/bin/java -Xmx1g -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness $bm
 echo "target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness $bm"
-target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness $bm
+target/jre-inst-obj/bin/java -Xmx1g -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness $bm
 if [ $? -ne 0 ]; then
 HAD_ERROR=`expr $HAD_ERROR + 1`
 fi

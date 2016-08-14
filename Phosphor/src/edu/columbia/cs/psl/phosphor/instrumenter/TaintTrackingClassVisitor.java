@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Map.Entry;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
@@ -74,6 +75,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	}
 	List<FieldNode> fields;
 	private boolean ignoreFrames;
+	private boolean generateExtraLVDebug;
 	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields) {
 		super(Opcodes.ASM5,  cv
 //				new CheckClassAdapter(cv,false)
@@ -107,6 +109,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		addTaintField = true;
 		addTaintMethod = true;
+		this.generateExtraLVDebug = name.equals("java/lang/invoke/MethodType");
 		this.fixLdcClass = (version & 0xFFFF) < Opcodes.V1_5;
 		if(Instrumenter.IS_KAFFE_INST && name.endsWith("java/lang/VMSystem"))
 			access = access | Opcodes.ACC_PUBLIC;
@@ -254,6 +257,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 		if (name.equals("hasAnyTaints"))
 			isProxyClass = true;
+		
+		if(name.contains(TaintUtils.METHOD_SUFFIX))
+		{
+		    //Some dynamic stuff might result in there being weird stuff here
+		    return new MethodVisitor(Opcodes.ASM5) {
+            };
+		}
 		if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(className, name, desc)){
 //			if (TaintUtils.DEBUG_CALLS)
 //				System.out.println("Skipping instrumentation for  class: " + className + " method: " + name + " desc: " + desc);
@@ -273,7 +283,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
 			mv = new UninstrumentedCompatMV(access,className,name,newDesc,signature,(String[])exceptions,mv,analyzer,ignoreFrames);
-			LocalVariableManager lvs = new LocalVariableManager(access, newDesc, mv, analyzer, _mv);
+			LocalVariableManager lvs = new LocalVariableManager(access, newDesc, mv, analyzer, _mv, generateExtraLVDebug);
 			((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
 			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, null);
 			lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
@@ -400,7 +410,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			mv = new StringTaintVerifyingMV(analyzer,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")),analyzer); //TODO - how do we handle directbytebuffers?
 
-			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className,analyzer);
+			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className, name, analyzer);
 			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
 			LocalVariableManager lvs;
 			TaintPassingMV tmv;
@@ -410,7 +420,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV);
 				tmv.setFields(fields);
 				TaintAdapter custom = null;
-				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv);
+				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv, generateExtraLVDebug);
 
 				nextMV = lvs;
 				if(Configuration.extensionMethodVisitor != null)
@@ -669,6 +679,15 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 						mv.visitVarInsn(Opcodes.ILOAD, 1);
 						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(I"+Configuration.TAINT_TAG_ARRAYDESC+Configuration.TAINT_TAG_DESC+")V", false);
+//=======
+//						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
+					} else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
+							.equals(TaintPassingMV.DOUBLE_NAME))) {
+						//For primitive types, also set the "value" field
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitVarInsn(Opcodes.ILOAD, 1);
+						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+//>>>>>>> master
 					}
 					mv.visitInsn(Opcodes.RETURN);
 					mv.visitMaxs(0, 0);
@@ -698,6 +717,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 //						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 						mv.visitVarInsn(Opcodes.ALOAD, 1);
 						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/String;Ljava/lang/Object;)V", false);
+					}  else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
+							.equals(TaintPassingMV.DOUBLE_NAME))) {
+						//For primitive types, also set the "value" field
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitVarInsn(Opcodes.ALOAD, 1);
+						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 					}
 					mv.visitInsn(Opcodes.RETURN);
 					mv.visitMaxs(0, 0);
@@ -814,7 +839,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						}
 						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, mv);
 						MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
-						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, soc, an, mv);
+						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, soc, an, mv, generateExtraLVDebug);
 						lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 						GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name, m.desc);
 						Label startLabel = new Label();
@@ -1101,7 +1126,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		{
 			//make a copy of each raw method, using the proper suffix. right now this only goes 
 			//one level deep - and it will call back into instrumented versions
-			for (MethodNode mn : forMore.keySet()) {
+			for (Entry<MethodNode, MethodNode> am : forMore.entrySet()) {
+			    MethodNode mn = am.getKey();
 				if(mn.name.equals("<clinit>"))
 					continue;
 				String mName = mn.name;
@@ -1115,7 +1141,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mName += TaintUtils.METHOD_SUFFIX_UNINST;
 				}
 				MethodVisitor mv = super.visitMethod(mn.access & ~Opcodes.ACC_NATIVE, mName, mDesc, mn.signature, (String[]) mn.exceptions.toArray(new String[0]));
-				MethodNode meth = forMore.get(mn);
+				MethodNode meth = am.getValue();
 
 				if ((mn.access & Opcodes.ACC_NATIVE) != 0) {
 					GeneratorAdapter ga = new GeneratorAdapter(mv, mn.access, mn.name, mn.desc);
@@ -1149,7 +1175,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv = new UninstrumentedReflectionHidingMV(mv, className);
 					UninstrumentedReflectionHidingMV ta = (UninstrumentedReflectionHidingMV) mv;
 					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc,mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames);
-					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.desc, mv, analyzer, analyzer);
+					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.desc, mv, analyzer, analyzer, generateExtraLVDebug);
 					final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, mn.access, mn.name, mn.desc, null, null, null);
 					lvs.disable();
 					lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
@@ -1375,7 +1401,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv = super.visitMethod(m.access&~Opcodes.ACC_NATIVE, m.name + TaintUtils.METHOD_SUFFIX, newDesc, m.signature, exceptions);
 		NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, newDesc, mv);
 		MethodVisitor soc = new SpecialOpcodeRemovingMV(an, false, className, false);
-		LocalVariableManager lvs = new LocalVariableManager(m.access,newDesc, soc, an, mv);
+		LocalVariableManager lvs = new LocalVariableManager(m.access,newDesc, soc, an, mv, generateExtraLVDebug);
 		lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 		GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name + TaintUtils.METHOD_SUFFIX, newDesc);
 		if(isInterface)

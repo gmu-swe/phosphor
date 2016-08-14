@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Stack;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
@@ -202,7 +203,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			//The analyzer won't have executed yet, so simulate it did :'(
 			List<Object> stack = new ArrayList<Object>(analyzer.stack);
 			//				System.out.println("got to remove " + nToPop +  " from " + analyzer.stack + " in " + className + "."+name );
-			while (nToPop > 0 && stack.size() > 0) {
+			while (nToPop > 0 && !stack.isEmpty()) {
 				stack.remove(stack.size() - 1);
 				nToPop--;
 			}
@@ -300,22 +301,23 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //							System.out.println("OUT: " + i + " " + (outFrames.get(i) == null ? "null" : outFrames.get(i).stack));
 //						}
 
-					for (Integer successor : edges.keySet()) {
-						if (edges.get(successor).size() > 1) {
+					for (Entry<Integer, LinkedList<Integer>> edge : edges.entrySet()) {
+					    Integer successor = edge.getKey();
+						if (edge.getValue().size() > 1) {
 							int labelToSuccessor = getLabel(successor);
 
 							if (DEBUG)
-								System.out.println(name + " Must merge: " + edges.get(successor) + " into " + successor + " AKA " + labelToSuccessor);
+								System.out.println(name + " Must merge: " + edge.getValue() + " into " + successor + " AKA " + labelToSuccessor);
 							if (DEBUG)
 								System.out.println("Input to successor: " + inFrames.get(labelToSuccessor).stack);
 
-							for (Integer toMerge : edges.get(successor)) {
+							for (Integer toMerge : edge.getValue()) {
 								int labelToMerge = getLabel(toMerge);
 								if (DEBUG)
 									System.out.println(toMerge + " AKA " + labelToMerge);
 								if (DEBUG)
 									System.out.println((outFrames.get(labelToMerge) == null ? "null" : outFrames.get(labelToMerge).stack));
-								if (outFrames.get(labelToMerge).stack.size() > 0 && inFrames.get(labelToSuccessor).stack.size() > 0) {
+								if (!outFrames.get(labelToMerge).stack.isEmpty() && !inFrames.get(labelToSuccessor).stack.isEmpty()) {
 									Object output1Top = outFrames.get(labelToMerge).stack.get(outFrames.get(labelToMerge).stack.size() - 1);
 									Object inputTop = inFrames.get(labelToSuccessor).stack.get(inFrames.get(labelToSuccessor).stack.size() - 1);
 									if (output1Top == Opcodes.TOP)
@@ -335,7 +337,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 										}
 									}
 								}
-								if (outFrames.get(labelToMerge).local.size() > 0 && inFrames.get(labelToSuccessor).local.size() > 0) {
+								if (!outFrames.get(labelToMerge).local.isEmpty() && !inFrames.get(labelToSuccessor).local.isEmpty()) {
 									for (int i = 0; i < Math.min(outFrames.get(labelToMerge).local.size(), inFrames.get(labelToSuccessor).local.size()); i++) {
 										Object out = outFrames.get(labelToMerge).local.get(i);
 										Object in = inFrames.get(labelToSuccessor).local.get(i);
@@ -632,7 +634,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								b.resolvedHereBlocks.add(d);
 							}
 						}
-						if (b.resolvedBlocks.size() > 0) {
+						if (!b.resolvedBlocks.isEmpty()) {
 							b.onTrueSideOfJumpFrom.removeAll(b.resolvedBlocks);
 							b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
 							//							System.out.println("!!Remove " + b.resolvedBlocks + " at " + b.idx + " - " + b.insn);
@@ -735,7 +737,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							if(r.is2ArgJump)
 								instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)+1));
 						}
-						if(b.successors.size() == 0)
+						if(b.successors.isEmpty())
 						{
 							instructions.insertBefore(b.insn, new InsnNode(TaintUtils.FORCE_CTRL_STORE));
 //							if (b.insn.getOpcode() != Opcodes.ATHROW) {

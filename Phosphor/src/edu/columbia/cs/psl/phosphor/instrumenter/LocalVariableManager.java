@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
@@ -54,16 +55,21 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		super.visitVarInsn(opcode, var);
 	}
 	public HashMap<Integer, Integer> varToShadowVar = new HashMap<Integer, Integer>();
-	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV) {
+	private boolean generateExtraDebug;
+	private Type[] args;
+	private boolean isStatic;
+	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean generateExtraDebug) {
 		super(ASM5, access, desc, mv);
 		this.analyzer = analyzer;
 		this.uninstMV = uninstMV;
 		returnType = Type.getReturnType(desc);
-		Type[] args = Type.getArgumentTypes(desc);
+		args = Type.getArgumentTypes(desc);
 		if((access & Opcodes.ACC_STATIC) == 0){
 			lastArg++;
 			oldArgTypes.add(Type.getType("Lthis;"));
 		}
+		else
+			isStatic = true;
 		for (int i = 0; i < args.length; i++) {
 			lastArg += args[i].getSize();
 			oldArgTypes.add(args[i]);
@@ -81,6 +87,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 //		System.out.println("New LVS");
 //		System.out.println("LVS thinks its at " + lastArg);
 		preAllocedReturnTypes.put(returnType,lastArg);
+		this.generateExtraDebug = generateExtraDebug;
 	}
 
 	public void freeTmpLV(int idx) {
@@ -91,6 +98,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 				curLocalIdxToLVNode.get(v.idx).end = new LabelNode(lbl);
 				v.inUse = false;
 				v.owner = null;
+				if(idx < analyzer.locals.size())
+				  analyzer.locals.set(idx, Opcodes.TOP);
 				return;
 			}
 		}
@@ -289,7 +298,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	@Override
 	public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
 		super.visitLocalVariable(name, desc, signature, start, end, index);
-		if (createdLVs.size() > 0) {
+		if (!createdLVs.isEmpty()) {
 			if(!endVisited)
 			{
 				super.visitLabel(this.end);
@@ -310,6 +319,20 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		{
 			super.visitLabel(end);
 			endVisited = true;
+		}
+		if(generateExtraDebug)
+		{
+			int n = 0;
+			if(!isStatic)
+			{
+				super.visitLocalVariable("argidx"+n, "Ljava/lang/Object;", null, this.start, this.end, n);
+				n++;
+			}
+			for(Type t : args)
+			{
+				super.visitLocalVariable("argidx"+n, t.getDescriptor(), null, this.start, this.end, n);
+				n+=t.getSize();
+			}
 		}
 		super.visitMaxs(maxStack, maxLocals);
 	}
@@ -334,8 +357,10 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		}
 	}
 
+	Label start = new Label();;
 	public void visitCode() {
 		super.visitCode();
+		super.visitLabel(start);
 		if (primitiveArrayFixer != null)
 			for (Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
 				if (t.equals(returnType)) {
@@ -415,7 +440,6 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         	if(o == Opcodes.DOUBLE || o == Opcodes.LONG)
         		locals.add(Opcodes.TOP);
         }
-        boolean[] varsToSetToTop = new boolean[newLocals.length];
 //        for(int var : varsToRemove.keySet())
 //        {
 //        	//var is the var that we want to see if it's a taint-carrying type
@@ -441,15 +465,15 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         // 'newLocals' currently empty
 
         if(!disabled)
-        for(Type t : preAllocedReturnTypes.keySet())
+        for(Entry<Type, Integer> t : preAllocedReturnTypes.entrySet())
         {
 //        	System.out.println(t);
-        	if(t.getSort() != Type.OBJECT)
+        	if(t.getKey().getSort() != Type.OBJECT)
         		continue;
-        	int idx = preAllocedReturnTypes.get(t);
+        	int idx = t.getValue();
         	if(idx >= 0)
         	{
-        		setFrameLocal(idx, t.getInternalName());
+        		setFrameLocal(idx, t.getKey().getInternalName());
         	}
         }
 //        System.out.println(Arrays.toString(newLocals));
