@@ -667,6 +667,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
 						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value", "[C");//Force the StringTaintVerifyingMV to make sure there is a taint array here
+						mv.visitInsn(Opcodes.ARRAYLENGTH);
+						mv.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
 						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
 						mv.visitVarInsn(Opcodes.ILOAD, 1);
 						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
@@ -694,6 +701,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 					mv = super.visitMethod(Opcodes.ACC_PUBLIC, "set" + TaintUtils.TAINT_FIELD, "("+(Configuration.MULTI_TAINTING ? "Ljava/lang/Object;" : "I")+")V", null, null);
 					mv = new TaintTagFieldCastMV(mv);
+
 					mv.visitCode();
 					mv.visitVarInsn(Opcodes.ALOAD, 0);
 					mv.visitVarInsn(Opcodes.ALOAD, 1);
