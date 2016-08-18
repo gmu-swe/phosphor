@@ -19,6 +19,43 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 
 public class RuntimeBoxUnboxPropogator {
+	public static void getChars$$PHOSPHORTAGGED(int lt, long l, int idt, int idx, int[] ta, char[] ar)
+	{
+		Long.getChars(l, idx, ar);
+		for (int i = 0; i < ar.length; i++)
+			ta[i] = lt;
+	}
+	public static void getChars$$PHOSPHORTAGGED(int it, int i, int idt, int idx, int[] ta, char[] ar)
+	{
+		Integer.getChars(i, idx, ar);
+		for (int k = 0; k < ar.length; k++)
+			ta[k] |= it;
+	}
+	
+	public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, Taint[] ta, char[] ar)
+	{
+		Long.getChars(l, idx, ar);
+		for (int i = 0; i < ar.length; i++)
+			ta[i] = lt;
+	}
+	public static void getChars$$PHOSPHORTAGGED(Taint it, int i, Taint idt, int idx, Taint[] ta, char[] ar)
+	{
+		Integer.getChars(i, idx, ar);
+		for (int k = 0; k < ar.length; k++)
+			ta[k] = it;
+	}
+	public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, Taint[] ta, char[] ar, ControlTaintTagStack ctrl)
+	{
+		Long.getChars(l, idx, ar);
+		for (int i = 0; i < ar.length; i++)
+			ta[i] = lt;
+	}
+	public static void getChars$$PHOSPHORTAGGED(Taint it, int i, Taint idt, int idx, Taint[] ta, char[] ar, ControlTaintTagStack ctrl)
+	{
+		Integer.getChars(i, idx, ar);
+		for (int k = 0; k < ar.length; k++)
+			ta[k] = it;
+	}
 	public static String toString$$PHOSPHORTAGGED(int t, byte i) {
 		if (t == 0)
 			return Byte.toString(i);

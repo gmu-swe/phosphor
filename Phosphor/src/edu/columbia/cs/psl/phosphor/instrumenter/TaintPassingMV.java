@@ -1371,6 +1371,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				|| (owner.equals(DOUBLE_NAME) && (name.equals("parseDouble")))) {
 			return true;
 		}
+		else if(name.equals("getChars") && (owner.equals(INTEGER_NAME) || owner.equals(LONG_NAME)))
+			return true;
 		return false;
 	}
 	@Override
