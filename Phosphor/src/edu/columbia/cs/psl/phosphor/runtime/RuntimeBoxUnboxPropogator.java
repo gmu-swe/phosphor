@@ -756,6 +756,8 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static Boolean valueOfZ(String s) {
+		if(s == null)
+			return Boolean.FALSE;
 		if (Configuration.MULTI_TAINTING)
 			return BoxedPrimitiveStoreWithObjTags.valueOf(s.getPHOSPHOR_TAG(), Boolean.parseBoolean(s));
 		else
