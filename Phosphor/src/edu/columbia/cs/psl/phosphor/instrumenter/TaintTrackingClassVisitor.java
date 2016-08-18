@@ -326,7 +326,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			access = access & ~Opcodes.ACC_PRIVATE;
 			access = access | Opcodes.ACC_PUBLIC;
 		}
-		
+		else if((className.equals("java/lang/Integer") || className.equals("java/lang/Long")) && name.equals("getChars"))
+		{
+			access = access | Opcodes.ACC_PUBLIC;
+		}
 		String originalName = name;
 		if (FIELDS_ONLY) { // || isAnnotation
 			return super.visitMethod(access, name, desc, signature, exceptions);
