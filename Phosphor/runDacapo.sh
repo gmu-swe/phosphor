@@ -46,6 +46,7 @@ echo "target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$P
 target/jre-inst-obj/bin/java -Xmx1g -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness $bm
 if [ $? -ne 0 ]; then
 HAD_ERROR=`expr $HAD_ERROR + 1`
+echo "ERROR!!!"
 fi
 
 done

@@ -506,7 +506,8 @@ public class RuntimeBoxUnboxPropogator {
 
 	public static TaintedBooleanWithObjTag parseBoolean$$PHOSPHORTAGGED(String s, TaintedBooleanWithObjTag ret) {
 		ret.val = Boolean.parseBoolean(s);
-		ret.taint = s.getPHOSPHOR_TAG();
+		if(s != null)
+			ret.taint = s.getPHOSPHOR_TAG();
 		return ret;
 	}
 
@@ -596,7 +597,8 @@ public class RuntimeBoxUnboxPropogator {
 
 	public static TaintedBooleanWithObjTag parseBoolean$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
 		ret.val = Boolean.parseBoolean(s);
-		ret.taint = s.getPHOSPHOR_TAG();
+		if(s != null)
+			ret.taint = s.getPHOSPHOR_TAG();
 		return ret;
 	}
 
