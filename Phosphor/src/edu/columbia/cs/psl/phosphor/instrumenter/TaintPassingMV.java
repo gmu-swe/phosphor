@@ -1172,7 +1172,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         int opcode = INVOKEVIRTUAL;
         if (bsm.getTag() == Opcodes.H_INVOKESTATIC)
             opcode = INVOKESTATIC;
-
+        boolean isMetaLambda = bsm != null && bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory");
         if (Configuration.IMPLICIT_TRACKING) {
           hasNewName = true;
             if( Instrumenter.isIgnoredClass(owner) || ((isInternalTaintingMethod(owner) || owner.startsWith("[")) && !name.equals("getControlFlow"))){
@@ -1202,7 +1202,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         Type returnType = TaintUtils.getContainerReturnType(Type.getReturnType(desc));
         if (TaintUtils.DEBUG_CALLS)
             System.out.println("Remapped call from " + owner + "." + name + desc + " to " + owner + "." + name + newDesc);
-        if (!name.contains("<") && hasNewName)
+        if (!name.contains("<") && hasNewName && !isMetaLambda)
             name += TaintUtils.METHOD_SUFFIX;
         if (TaintUtils.DEBUG_CALLS) {
             System.out.println("Calling w/ stack: " + analyzer.stack);
@@ -1278,7 +1278,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 Object o = bsmArgs[k];
                 if(o instanceof Handle)
                 {
-                    bsmArgs[k] = new Handle(((Handle) o).getTag(), ((Handle) o).getOwner(), ((Handle) o).getName()+TaintUtils.METHOD_SUFFIX, TaintUtils.remapMethodDesc(((Handle) o).getDesc()));
+                	if(!TaintUtils.remapMethodDesc(((Handle) o).getDesc()).equals(((Handle)o).getDesc()))
+                			bsmArgs[k] = new Handle(((Handle) o).getTag(), ((Handle) o).getOwner(), ((Handle) o).getName()+TaintUtils.METHOD_SUFFIX, TaintUtils.remapMethodDesc(((Handle) o).getDesc()));
                 }
                 else if(o instanceof Type)
                 {
@@ -1289,7 +1290,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
         if(hasNewName)
         {
-        	bsm = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName()+TaintUtils.METHOD_SUFFIX, TaintUtils.remapMethodDesc(bsm.getDesc()));
+        	if(!TaintUtils.remapMethodDesc(bsm.getDesc()).equals(bsm.getDesc()))
+        		bsm = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName()+TaintUtils.METHOD_SUFFIX, TaintUtils.remapMethodDesc(bsm.getDesc()));
         }
         super.visitInvokeDynamicInsn(name, newDesc, bsm, bsmArgs);
         //      System.out.println("asdfjas;dfdsf  post invoke " + analyzer.stack);
