@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import java.lang.reflect.Array;
+
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithObjTag;
@@ -50,12 +52,12 @@ public class TaintChecker {
 		}
 		else if(obj instanceof MultiDTaintedArrayWithObjTag)
 		{
-			Object[] tags = ((MultiDTaintedArrayWithObjTag) obj).taint;
-			for(Object i : tags)
-			{
-				if(i != null)
-					throw new IllegalAccessError("Argument carries taints - example: " + i);
-			}
+			LazyArrayObjTags tags = ((MultiDTaintedArrayWithObjTag) obj).taint;
+			if (tags.taints != null)
+				for (Object i : tags.taints) {
+					if (i != null)
+						throw new IllegalAccessError("Argument carries taints - example: " + i);
+				}
 		}
 		else if(obj instanceof Object[])
 		{
@@ -112,15 +114,24 @@ public class TaintChecker {
 		}
 	}
 	public static void setTaints(String str, Object tag) {
+		if(str == null)
+			return;
+		if(tag == null)
+		{
+			str.valuePHOSPHOR_TAG = new LazyArrayObjTags();
+			return;
+		}
 		if(str.valuePHOSPHOR_TAG == null)
-			str.valuePHOSPHOR_TAG = new Taint[str.length()];
+			str.valuePHOSPHOR_TAG = new LazyArrayObjTags(new Taint[str.length()]);
+		if(str.valuePHOSPHOR_TAG.taints == null)
+			str.valuePHOSPHOR_TAG.taints = new Taint[str.length()];
 		for (int i = 0; i < str.length(); i++) {
 			if (tag != null) {
-				str.valuePHOSPHOR_TAG[i] = ((Taint) tag).copy();
-				str.valuePHOSPHOR_TAG[i].lbl = ((Taint) tag).lbl;
+				str.valuePHOSPHOR_TAG.taints[i] = ((Taint) tag).copy();
+				str.valuePHOSPHOR_TAG.taints[i].lbl = ((Taint) tag).lbl;
 			}
 			else
-				str.valuePHOSPHOR_TAG[i] = null;
+				str.valuePHOSPHOR_TAG.taints[i] = null;
 		}
 	}
 	public static void setTaints(Object obj, Taint tag) {
@@ -131,9 +142,11 @@ public class TaintChecker {
 		} else if (obj instanceof TaintedPrimitiveArrayWithObjTag){
 			((TaintedPrimitiveArrayWithObjTag)obj).setTaints(tag);
 		}else if (obj instanceof MultiDTaintedArrayWithObjTag) {
-			Object[] taints = ((MultiDTaintedArrayWithObjTag) obj).taint;
-			for (int i = 0; i < taints.length; i++)
-				taints[i] = tag;
+			LazyArrayObjTags taints = ((MultiDTaintedArrayWithObjTag) obj).taint;
+			if(taints.taints == null)
+				taints.taints = new Taint[Array.getLength(((MultiDTaintedArrayWithObjTag)obj).getVal())];
+			for (int i = 0; i < taints.taints.length; i++)
+				taints.taints[i] = tag;
 		} else if (obj.getClass().isArray()) {
 			
 				Object[] ar = (Object[]) obj;

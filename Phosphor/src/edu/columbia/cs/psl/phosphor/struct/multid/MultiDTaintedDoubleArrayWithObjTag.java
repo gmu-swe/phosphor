@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
 import org.objectweb.asm.Type;
 
 public final class MultiDTaintedDoubleArrayWithObjTag extends MultiDTaintedArrayWithObjTag implements Serializable {
@@ -14,7 +17,7 @@ public final class MultiDTaintedDoubleArrayWithObjTag extends MultiDTaintedArray
 	private static final long serialVersionUID = 2983786880082730018L;
 	public double[] val;
 
-	public MultiDTaintedDoubleArrayWithObjTag(Object[] taint, double[] val) {
+	public MultiDTaintedDoubleArrayWithObjTag(LazyArrayObjTags taint, double[] val) {
 		super(taint, Type.DOUBLE);
 		this.val = val;
 	}
@@ -26,7 +29,7 @@ public final class MultiDTaintedDoubleArrayWithObjTag extends MultiDTaintedArray
 
 	@Override
 	public Object clone() {
-		return new MultiDTaintedDoubleArrayWithObjTag(taint.clone(), val.clone());
+		return new MultiDTaintedDoubleArrayWithObjTag((LazyArrayObjTags) taint.clone(), val.clone());
 	}
 
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
@@ -37,7 +40,7 @@ public final class MultiDTaintedDoubleArrayWithObjTag extends MultiDTaintedArray
 		stream.writeInt(val.length);
 		for (int i = 0; i < val.length; i++) {
 			if (TaintUtils.TAINT_THROUGH_SERIALIZATION)
-				stream.writeObject(taint[i]);
+				stream.writeObject(taint.taints == null ? null : taint.taints[i]);
 			stream.writeDouble(val[i]);
 		}
 	}
@@ -45,10 +48,10 @@ public final class MultiDTaintedDoubleArrayWithObjTag extends MultiDTaintedArray
 	private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
 		int len = stream.readInt();
 		val = new double[len];
-		taint = TaintUtils.newTaintArray(len);
+		taint = new LazyArrayObjTags(new Taint[len]);
 		for (int i = 0; i < len; i++) {
 			if (TaintUtils.TAINT_THROUGH_SERIALIZATION)
-				taint[i] = stream.readObject();
+				taint.taints[i] = (Taint) stream.readObject();
 			val[i] = stream.readDouble();
 		}
 	}

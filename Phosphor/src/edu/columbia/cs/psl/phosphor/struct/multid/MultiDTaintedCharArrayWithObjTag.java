@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
 import org.objectweb.asm.Type;
 
 public final class MultiDTaintedCharArrayWithObjTag extends MultiDTaintedArrayWithObjTag implements Serializable {
@@ -15,7 +18,7 @@ public final class MultiDTaintedCharArrayWithObjTag extends MultiDTaintedArrayWi
 		super(null, Type.CHAR);
 	}
 
-	public MultiDTaintedCharArrayWithObjTag(Object[] taint, char[] val) {
+	public MultiDTaintedCharArrayWithObjTag(LazyArrayObjTags taint, char[] val) {
 		super(taint, Type.CHAR);
 		this.val = val;
 	}
@@ -27,7 +30,7 @@ public final class MultiDTaintedCharArrayWithObjTag extends MultiDTaintedArrayWi
 
 	@Override
 	public Object clone() {
-		return new MultiDTaintedCharArrayWithObjTag(taint.clone(), val.clone());
+		return new MultiDTaintedCharArrayWithObjTag((LazyArrayObjTags) taint.clone(), val.clone());
 	}
 
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
@@ -40,7 +43,7 @@ public final class MultiDTaintedCharArrayWithObjTag extends MultiDTaintedArrayWi
 		stream.writeInt(val.length);
 		for (int i = 0; i < val.length; i++) {
 			if (TaintUtils.TAINT_THROUGH_SERIALIZATION)
-				stream.writeObject(taint[i]);
+				stream.writeObject(taint == null ? null : taint.taints[i]);
 			stream.writeChar(val[i]);
 		}
 	}
@@ -48,10 +51,10 @@ public final class MultiDTaintedCharArrayWithObjTag extends MultiDTaintedArrayWi
 	private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
 		int len = stream.readInt();
 		val = new char[len];
-		taint = TaintUtils.newTaintArray(len);
+		taint = new LazyArrayObjTags(new Taint[len]);
 		for (int i = 0; i < len; i++) {
 			if (TaintUtils.TAINT_THROUGH_SERIALIZATION)
-				taint[i] = stream.readObject();
+				taint.taints[i] = (Taint) stream.readObject();
 			val[i] = stream.readChar();
 		}
 	}

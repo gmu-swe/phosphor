@@ -229,21 +229,21 @@ public class RuntimeReflectionPropogator {
 				else
 				{
 					if (f.getType().getComponentType() == Boolean.TYPE) {
-						return new MultiDTaintedBooleanArrayWithObjTag((Object[]) taint, (boolean[]) ret);
+						return new MultiDTaintedBooleanArrayWithObjTag((LazyArrayObjTags) taint, (boolean[]) ret);
 					} else if (f.getType().getComponentType() == Byte.TYPE) {
-						return new MultiDTaintedByteArrayWithObjTag((Object[]) taint, (byte[]) ret);
+						return new MultiDTaintedByteArrayWithObjTag((LazyArrayObjTags) taint, (byte[]) ret);
 					} else if (f.getType().getComponentType() == Character.TYPE) {
-						return new MultiDTaintedCharArrayWithObjTag((Object[]) taint, (char[]) ret);
+						return new MultiDTaintedCharArrayWithObjTag((LazyArrayObjTags) taint, (char[]) ret);
 					} else if (f.getType().getComponentType() == Double.TYPE) {
-						return new MultiDTaintedDoubleArrayWithObjTag((Object[]) taint, (double[]) ret);
+						return new MultiDTaintedDoubleArrayWithObjTag((LazyArrayObjTags) taint, (double[]) ret);
 					} else if (f.getType().getComponentType() == Float.TYPE) {
-						return new MultiDTaintedFloatArrayWithObjTag((Object[]) taint, (float[]) ret);
+						return new MultiDTaintedFloatArrayWithObjTag((LazyArrayObjTags) taint, (float[]) ret);
 					} else if (f.getType().getComponentType() == Integer.TYPE) {
-						return new MultiDTaintedIntArrayWithObjTag((Object[]) taint, (int[]) ret);
+						return new MultiDTaintedIntArrayWithObjTag((LazyArrayObjTags) taint, (int[]) ret);
 					} else if (f.getType().getComponentType() == Long.TYPE) {
-						return new MultiDTaintedLongArrayWithObjTag((Object[]) taint, (long[]) ret);
+						return new MultiDTaintedLongArrayWithObjTag((LazyArrayObjTags) taint, (long[]) ret);
 					} else if (f.getType().getComponentType() == Short.TYPE) {
-						return new MultiDTaintedShortArrayWithObjTag((Object[]) taint, (short[]) ret);
+						return new MultiDTaintedShortArrayWithObjTag((LazyArrayObjTags) taint, (short[]) ret);
 					}
 				}
 			} catch (Exception e) {

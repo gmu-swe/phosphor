@@ -1325,7 +1325,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 String fieldType = "Ljava/lang/Object;";
                 if (Type.getReturnType(desc).getSort() == Type.ARRAY) {
                     taintTypeRaw = Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME;
-                    fieldType = "[Ljava/lang/Object;";
+                    fieldType = Configuration.TAINT_TAG_ARRAYDESC;
                 }
                 super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "taint", fieldType);
                 super.visitTypeInsn(CHECKCAST, taintTypeRaw);
@@ -1764,7 +1764,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				String fieldType = "Ljava/lang/Object;";
 				if (Type.getReturnType(desc).getSort() == Type.ARRAY) {
 					taintTypeRaw = Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME;
-					fieldType = "[Ljava/lang/Object;";
+					fieldType = Configuration.TAINT_TAG_ARRAYDESC;
 				}
 				super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "taint", fieldType);
 				super.visitTypeInsn(CHECKCAST, taintTypeRaw);
@@ -2146,9 +2146,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					
 					int prealloc = lvs.getPreAllocedReturnTypeVar(retType);
 					super.visitVarInsn(ALOAD, prealloc);
-					super.visitMethodInsn(Opcodes.INVOKEVIRTUAL,  "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags", "get", "([" + elType + "II"  + retType.getDescriptor()+")"+retType.getDescriptor(), false);
+					super.visitMethodInsn(Opcodes.INVOKEVIRTUAL,  Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "get", "([" + elType + Configuration.TAINT_TAG_DESC + "I"  + retType.getDescriptor()+")"+retType.getDescriptor(), false);
 					super.visitInsn(DUP);
-					super.visitFieldInsn(GETFIELD, retType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
+					if(Configuration.MULTI_TAINTING)
+					{
+						super.visitFieldInsn(GETFIELD, retType.getInternalName(), "taint", "Ljava/lang/Object;");
+						super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+					}
+					else
+						super.visitFieldInsn(GETFIELD, retType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 					super.visitInsn(SWAP);
 					super.visitFieldInsn(GETFIELD, retType.getInternalName(), "val", elType);
 				}
@@ -2333,9 +2339,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 
 			if(isTaintlessArrayStore)
-				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL,  "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags", "set", "([" + elType + "II"  + elType+")V", false);
+				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "set", "([" + elType + "I" + Configuration.TAINT_TAG_DESC  + elType+")V", false);
 			else
-				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL,  "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags", "set", "([" + elType + "III"  + elType+")V", false);
+				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "set", "([" + elType + Configuration.TAINT_TAG_DESC + "I" + Configuration.TAINT_TAG_DESC  + elType+")V", false);
 			isTaintlessArrayStore = false;
 			break;
 		case Opcodes.POP:

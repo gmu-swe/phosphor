@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithObjTag;
 
 public final class TaintedCharArrayWithObjTag extends TaintedPrimitiveArrayWithObjTag {
@@ -13,8 +14,11 @@ public final class TaintedCharArrayWithObjTag extends TaintedPrimitiveArrayWithO
 	public TaintedCharArrayWithObjTag() {
 
 	}
-
-	public TaintedCharArrayWithObjTag(Object[] taint, char[] val) {
+	@Override
+	public int getLength() {
+		return val.length;
+	}
+	public TaintedCharArrayWithObjTag(LazyArrayObjTags taint, char[] val) {
 		this.taint = taint;
 		this.val = val;
 	}

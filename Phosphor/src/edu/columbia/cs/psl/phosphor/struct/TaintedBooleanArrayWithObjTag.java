@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArrayWithObjTag;
 
 public final class TaintedBooleanArrayWithObjTag extends TaintedPrimitiveArrayWithObjTag{
@@ -13,7 +14,11 @@ public final class TaintedBooleanArrayWithObjTag extends TaintedPrimitiveArrayWi
 	{
 		
 	}
-	public TaintedBooleanArrayWithObjTag(Object[] taint, boolean[] val) {
+	@Override
+	public int getLength() {
+		return val.length;
+	}
+	public TaintedBooleanArrayWithObjTag(LazyArrayObjTags taint, boolean[] val) {
 		this.taint = taint;
 		this.val = val;
 	}

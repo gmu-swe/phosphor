@@ -232,21 +232,21 @@ public class ArrayReflectionMasker {
 			//			else
 			if (dims == 0) {
 				if (tmp == Double.TYPE)
-					return new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray(len), new double[len]);
+					return new MultiDTaintedDoubleArrayWithObjTag(new LazyArrayObjTags(), new double[len]);
 				if (tmp == Float.TYPE)
-					return new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray(len), new float[len]);
+					return new MultiDTaintedFloatArrayWithObjTag(new LazyArrayObjTags(), new float[len]);
 				if (tmp == Integer.TYPE)
-					return new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray(len), new int[len]);
+					return new MultiDTaintedIntArrayWithObjTag(new LazyArrayObjTags(), new int[len]);
 				if (tmp == Long.TYPE)
-					return new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray(len), new long[len]);
+					return new MultiDTaintedLongArrayWithObjTag(new LazyArrayObjTags(), new long[len]);
 				if (tmp == Short.TYPE)
-					return new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray(len), new short[len]);
+					return new MultiDTaintedShortArrayWithObjTag(new LazyArrayObjTags(), new short[len]);
 				if (tmp == Boolean.TYPE)
-					return new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray(len), new boolean[len]);
+					return new MultiDTaintedBooleanArrayWithObjTag(new LazyArrayObjTags(), new boolean[len]);
 				if (tmp == Byte.TYPE)
-					return new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray(len), new byte[len]);
+					return new MultiDTaintedByteArrayWithObjTag(new LazyArrayObjTags(), new byte[len]);
 				if (tmp == Character.TYPE)
-					return new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray(len), new char[len]);
+					return new MultiDTaintedCharArrayWithObjTag(new LazyArrayObjTags(), new char[len]);
 			} else
 				clazz = MultiDTaintedArrayWithObjTag.getUnderlyingBoxClassForUnderlyingClass(clazz);
 		}
@@ -282,21 +282,21 @@ public class ArrayReflectionMasker {
 
 				switch (t.getSort()) {
 				case Type.BOOLEAN:
-					return new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new boolean[lastDimSize]);
+					return new MultiDTaintedBooleanArrayWithObjTag(new LazyArrayObjTags(), new boolean[lastDimSize]);
 				case Type.BYTE:
-					return new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new byte[lastDimSize]);
+					return new MultiDTaintedByteArrayWithObjTag(new LazyArrayObjTags(), new byte[lastDimSize]);
 				case Type.CHAR:
-					return new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new char[lastDimSize]);
+					return new MultiDTaintedCharArrayWithObjTag(new LazyArrayObjTags(), new char[lastDimSize]);
 				case Type.DOUBLE:
-					return new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new double[lastDimSize]);
+					return new MultiDTaintedDoubleArrayWithObjTag(new LazyArrayObjTags(), new double[lastDimSize]);
 				case Type.FLOAT:
-					return new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new float[lastDimSize]);
+					return new MultiDTaintedFloatArrayWithObjTag(new LazyArrayObjTags(), new float[lastDimSize]);
 				case Type.INT:
-					return new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new int[lastDimSize]);
+					return new MultiDTaintedIntArrayWithObjTag(new LazyArrayObjTags(), new int[lastDimSize]);
 				case Type.LONG:
-					return new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new long[lastDimSize]);
+					return new MultiDTaintedLongArrayWithObjTag(new LazyArrayObjTags(), new long[lastDimSize]);
 				case Type.SHORT:
-					return new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new short[lastDimSize]);
+					return new MultiDTaintedShortArrayWithObjTag(new LazyArrayObjTags(), new short[lastDimSize]);
 				default:
 					throw new IllegalArgumentException();
 				}
@@ -632,7 +632,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedByteArrayWithObjTag) {
 			MultiDTaintedByteArrayWithObjTag ar = (MultiDTaintedByteArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			ret.taint = ar.taint[idx];
+			ret.taint = ar.taint;
 			return ret;
 		}
 		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
@@ -674,7 +674,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedBooleanArrayWithObjTag) {
 			MultiDTaintedBooleanArrayWithObjTag ar = (MultiDTaintedBooleanArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			ret.taint = ar.taint[idx];
+			ret.taint = ar.taint;
 			return ret;
 		}
 		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
@@ -684,7 +684,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedCharArrayWithObjTag) {
 			MultiDTaintedCharArrayWithObjTag ar = (MultiDTaintedCharArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			ret.taint = ar.taint[idx];
+			ret.taint = ar.taint;
 			return ret;
 		}
 		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
@@ -694,7 +694,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedDoubleArrayWithObjTag) {
 			MultiDTaintedDoubleArrayWithObjTag ar = (MultiDTaintedDoubleArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			ret.taint = ar.taint[idx];
+			ret.taint = ar.taint;
 			return ret;
 		}
 		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
@@ -704,7 +704,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedIntArrayWithObjTag) {
 			MultiDTaintedIntArrayWithObjTag ar = (MultiDTaintedIntArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			ret.taint = ar.taint[idx];
+			ret.taint = ar.taint;
 			return ret;
 		}
 		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
@@ -714,7 +714,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedLongArrayWithObjTag) {
 			MultiDTaintedLongArrayWithObjTag ar = (MultiDTaintedLongArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			ret.taint = ar.taint[idx];
+			ret.taint = ar.taint;
 			return ret;
 		}
 		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
@@ -724,7 +724,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedShortArrayWithObjTag) {
 			MultiDTaintedShortArrayWithObjTag ar = (MultiDTaintedShortArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			ret.taint = ar.taint[idx];
+			ret.taint = ar.taint;
 			return ret;
 		}
 		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
@@ -734,7 +734,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedFloatArrayWithObjTag) {
 			MultiDTaintedFloatArrayWithObjTag ar = (MultiDTaintedFloatArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			ret.taint = ar.taint[idx];
+			ret.taint = ar.taint;
 			return ret;
 		}
 		throw new ArrayStoreException("Called getX, but don't have tainted X array!");
@@ -834,7 +834,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedBooleanArrayWithObjTag) {
 			MultiDTaintedBooleanArrayWithObjTag a = (MultiDTaintedBooleanArrayWithObjTag) obj;
 			a.val[idx] = val;
-			a.taint[idx] = taint;
+			a.taint = (LazyArrayObjTags) taint;
 		} else
 			throw new ArrayStoreException("Called setX, but don't have tainted X array!");
 	}
@@ -843,7 +843,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedByteArrayWithObjTag) {
 			MultiDTaintedByteArrayWithObjTag a = (MultiDTaintedByteArrayWithObjTag) obj;
 			a.val[idx] = val;
-			a.taint[idx] = taint;
+			a.taint = (LazyArrayObjTags) taint;
 		} else
 			throw new ArrayStoreException("Called setX, but don't have tainted X array!, got " + obj.getClass());
 	}
@@ -852,7 +852,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedCharArrayWithObjTag) {
 			MultiDTaintedCharArrayWithObjTag a = (MultiDTaintedCharArrayWithObjTag) obj;
 			a.val[idx] = val;
-			a.taint[idx] = taint;
+			a.taint = (LazyArrayObjTags) taint;
 		} else
 			throw new ArrayStoreException("Called setX, but don't have tainted X array!");
 	}
@@ -861,7 +861,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedDoubleArrayWithObjTag) {
 			MultiDTaintedDoubleArrayWithObjTag a = (MultiDTaintedDoubleArrayWithObjTag) obj;
 			a.val[idx] = val;
-			a.taint[idx] = taint;
+			a.taint = (LazyArrayObjTags) taint;
 		} else
 			throw new ArrayStoreException("Called setX, but don't have tainted X array!");
 	}
@@ -870,7 +870,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedFloatArrayWithObjTag) {
 			MultiDTaintedFloatArrayWithObjTag a = (MultiDTaintedFloatArrayWithObjTag) obj;
 			a.val[idx] = val;
-			a.taint[idx] = taint;
+			a.taint = (LazyArrayObjTags) taint;
 		} else
 			throw new ArrayStoreException("Called setX, but don't have tainted X array!");
 	}
@@ -879,7 +879,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedIntArrayWithObjTag) {
 			MultiDTaintedIntArrayWithObjTag a = (MultiDTaintedIntArrayWithObjTag) obj;
 			a.val[idx] = val;
-			a.taint[idx] = taint;
+			a.taint = (LazyArrayObjTags) taint;
 		} else
 			throw new ArrayStoreException("Called setX, but don't have tainted X array!");
 	}
@@ -888,7 +888,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedLongArrayWithObjTag) {
 			MultiDTaintedLongArrayWithObjTag a = (MultiDTaintedLongArrayWithObjTag) obj;
 			a.val[idx] = val;
-			a.taint[idx] = taint;
+			a.taint = (LazyArrayObjTags) taint;
 		} else
 			throw new ArrayStoreException("Called setX, but don't have tainted X array!");
 	}
@@ -897,7 +897,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedShortArrayWithObjTag) {
 			MultiDTaintedShortArrayWithObjTag a = (MultiDTaintedShortArrayWithObjTag) obj;
 			a.val[idx] = val;
-			a.taint[idx] = taint;
+			a.taint = (LazyArrayObjTags) taint;
 		} else
 			throw new ArrayStoreException("Called setX, but don't have tainted X array!");
 	}

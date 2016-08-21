@@ -36,6 +36,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
@@ -114,7 +115,7 @@ public class String
     implements java.io.Serializable, Comparable<String>, CharSequence, TaintedWithObjTag {
     /** The value is used for character storage. */
     private final char value[];
-    public Taint[] valuePHOSPHOR_TAG;
+    public LazyArrayObjTags valuePHOSPHOR_TAG;
     public Taint PHOSPHOR_TAG;
     /** Cache the hash code for the string */
     private int hash; // Default to 0

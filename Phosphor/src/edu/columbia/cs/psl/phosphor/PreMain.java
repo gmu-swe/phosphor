@@ -34,6 +34,7 @@ import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -106,7 +107,7 @@ public class PreMain {
 		static boolean innerException = false;
 		static boolean INITED = false;
 
-		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, Taint[] classtaint,
+		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyArrayObjTags classtaint,
 				byte[] classfileBuffer, TaintedByteArrayWithObjTag ret) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 

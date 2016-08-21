@@ -15,6 +15,7 @@ import org.objectweb.asm.Opcodes;
 
 import edu.columbia.cs.psl.phosphor.runtime.DerivedTaintListener;
 import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public class Configuration {
@@ -38,9 +39,9 @@ public class Configuration {
 	 * Derived configuration values
 	 */
 	public static String TAINT_TAG_DESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "I");
-	public static String TAINT_TAG_ARRAYDESC = (MULTI_TAINTING ? "[Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "Ledu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags;");
+	public static String TAINT_TAG_ARRAYDESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/LazyArrayObjTags;" : "Ledu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags;");
 	public static String TAINT_TAG_INTERNAL_NAME = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/Taint" : null);
-	public static String TAINT_TAG_ARRAY_INTERNAL_NAME = (MULTI_TAINTING ? "[Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags");
+	public static String TAINT_TAG_ARRAY_INTERNAL_NAME = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/LazyArrayObjTags" : "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags");
 	public static int NULL_TAINT_LOAD_OPCODE = (MULTI_TAINTING ? Opcodes.ACONST_NULL : Opcodes.ICONST_0);
 	public static Object TAINT_TAG_STACK_TYPE = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/Taint" : Opcodes.INTEGER);
 	public static Object TAINT_TAG_ARRAY_STACK_TYPE = TAINT_TAG_ARRAY_INTERNAL_NAME;
@@ -53,7 +54,7 @@ public class Configuration {
 	public static int TAINT_STORE_OPCODE = (!MULTI_TAINTING ? Opcodes.ISTORE : Opcodes.ASTORE);
 	public static boolean OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING;
 	public static Class TAINT_TAG_OBJ_CLASS = (Taint.class);
-	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (Taint[].class);
+	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (LazyArrayObjTags.class);
 	public static String TAINT_INTERFACE_INTERNALNAME = !MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedWithObjTag";
 
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
@@ -65,9 +66,9 @@ public class Configuration {
 
 	public static void init() {
 		TAINT_TAG_DESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "I");
-		TAINT_TAG_ARRAYDESC = (MULTI_TAINTING ? "[Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "Ledu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags;");
+		TAINT_TAG_ARRAYDESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/LazyArrayObjTags;" : "Ledu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags;");
 		TAINT_TAG_INTERNAL_NAME = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/Taint" : null);
-		TAINT_TAG_ARRAY_INTERNAL_NAME = (MULTI_TAINTING ? "[Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags");
+		TAINT_TAG_ARRAY_INTERNAL_NAME = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/LazyArrayObjTags" : "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags");
 		NULL_TAINT_LOAD_OPCODE = (MULTI_TAINTING ? Opcodes.ACONST_NULL : Opcodes.ICONST_0);
 		TAINT_TAG_STACK_TYPE = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/Taint" : Opcodes.INTEGER);
 		TAINT_TAG_ARRAY_STACK_TYPE = TAINT_TAG_ARRAY_INTERNAL_NAME;
@@ -79,7 +80,7 @@ public class Configuration {
 		TAINT_LOAD_OPCODE = (!MULTI_TAINTING ? Opcodes.ILOAD : Opcodes.ALOAD);
 		TAINT_STORE_OPCODE = (!MULTI_TAINTING ? Opcodes.ISTORE : Opcodes.ASTORE);
 		OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING;
-		TAINT_TAG_OBJ_ARRAY_CLASS = (MULTI_TAINTING ? Taint[].class : int[].class);
+		TAINT_TAG_OBJ_ARRAY_CLASS = (MULTI_TAINTING ? LazyArrayObjTags.class : LazyArrayIntTags.class);
 		TAINT_TAG_OBJ_CLASS = (MULTI_TAINTING ? Taint.class : Integer.TYPE);
 		TAINT_INTERFACE_INTERNALNAME = !MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedWithObjTag";
 

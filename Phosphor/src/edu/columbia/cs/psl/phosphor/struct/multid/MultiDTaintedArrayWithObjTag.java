@@ -1,27 +1,29 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+
 import org.objectweb.asm.Type;
+
+import edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
 
 public abstract class MultiDTaintedArrayWithObjTag {
 	public static final long serialVersionUID = 40523489234L;
 	public int sort;
-	public int length;
 
 	public boolean hasTaints()
 	{
-		for(Object o : taint)
-			if(o != null)
+		if(taint == null)
+			return false;
+		for(Taint i : taint.taints)
+			if(i != null)
 				return true;
 		return false;
 	}
 	public void setTaints(Object t)
 	{
-		for(int i = 0; i < taint.length; i++)
-		{
-			taint[i] = t;
-		}
+		throw new UnsupportedOperationException();
 	}
 	public MultiDTaintedArrayWithObjTag() {
 
@@ -33,13 +35,12 @@ public abstract class MultiDTaintedArrayWithObjTag {
 		return sort;
 	}
 
-	protected MultiDTaintedArrayWithObjTag(Object[] taint, int sort) {
+	protected MultiDTaintedArrayWithObjTag(LazyArrayObjTags taint, int sort) {
 		this.taint = taint;
 		this.sort = sort;
-		this.length = taint.length;
 	}
 
-	public Object[] taint;
+	public LazyArrayObjTags taint;
 
 	public abstract Object clone();
 
@@ -443,21 +444,21 @@ public abstract class MultiDTaintedArrayWithObjTag {
 				} else {
 					
 					if(tmp == Boolean.TYPE)
-						return new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray(((boolean[]) in).length), ((boolean[]) in));
+						return new MultiDTaintedBooleanArrayWithObjTag(new LazyArrayObjTags(), ((boolean[]) in));
 					if(tmp == Byte.TYPE)
-						return new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray(((byte[]) in).length), ((byte[]) in));
+						return new MultiDTaintedByteArrayWithObjTag(new LazyArrayObjTags(), ((byte[]) in));
 					if(tmp == Character.TYPE)
-						return new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray(((char[]) in).length), ((char[]) in));
+						return new MultiDTaintedCharArrayWithObjTag(new LazyArrayObjTags(), ((char[]) in));
 					if(tmp == Double.TYPE)
-						return new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray(((double[]) in).length), ((double[]) in));
+						return new MultiDTaintedDoubleArrayWithObjTag(new LazyArrayObjTags(), ((double[]) in));
 					if(tmp == Float.TYPE)
-						return new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray(((float[]) in).length), ((float[]) in));
+						return new MultiDTaintedFloatArrayWithObjTag(new LazyArrayObjTags(), ((float[]) in));
 					if(tmp == Integer.TYPE)
-						return new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray(((int[]) in).length), ((int[]) in));
+						return new MultiDTaintedIntArrayWithObjTag(new LazyArrayObjTags(), ((int[]) in));
 					if(tmp == Long.TYPE)
-						return new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray(((long[]) in).length), ((long[]) in));
+						return new MultiDTaintedLongArrayWithObjTag(new LazyArrayObjTags(), ((long[]) in));
 					if(tmp == Short.TYPE)
-						return new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray(((short[]) in).length), ((short[]) in));
+						return new MultiDTaintedShortArrayWithObjTag(new LazyArrayObjTags(), ((short[]) in));
 						throw new IllegalArgumentException();
 				}
 			}
@@ -509,28 +510,28 @@ public abstract class MultiDTaintedArrayWithObjTag {
 					Object entry = (Object) ar[i];
 					switch (componentType) {
 					case Type.BOOLEAN:
-						ret[i] = new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray((((boolean[]) entry)).length), ((boolean[]) entry));
+						ret[i] = new MultiDTaintedBooleanArrayWithObjTag(new LazyArrayObjTags(), ((boolean[]) entry));
 						break;
 					case Type.BYTE:
-						ret[i] = new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray((((byte[]) entry)).length), ((byte[]) entry));
+						ret[i] = new MultiDTaintedByteArrayWithObjTag(new LazyArrayObjTags(), ((byte[]) entry));
 						break;
 					case Type.CHAR:
-						ret[i] = new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray((((char[]) entry)).length), ((char[]) entry));
+						ret[i] = new MultiDTaintedCharArrayWithObjTag(new LazyArrayObjTags(), ((char[]) entry));
 						break;
 					case Type.DOUBLE:
-						ret[i] = new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray((((double[]) entry)).length), ((double[]) entry));
+						ret[i] = new MultiDTaintedDoubleArrayWithObjTag(new LazyArrayObjTags(), ((double[]) entry));
 						break;
 					case Type.FLOAT:
-						ret[i] = new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray((((float[]) entry)).length), ((float[]) entry));
+						ret[i] = new MultiDTaintedFloatArrayWithObjTag(new LazyArrayObjTags(), ((float[]) entry));
 						break;
 					case Type.INT:
-						ret[i] = new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray((((int[]) entry)).length), ((int[]) entry));
+						ret[i] = new MultiDTaintedIntArrayWithObjTag(new LazyArrayObjTags(), ((int[]) entry));
 						break;
 					case Type.LONG:
-						ret[i] = new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray((((long[]) entry)).length), ((long[]) entry));
+						ret[i] = new MultiDTaintedLongArrayWithObjTag(new LazyArrayObjTags(), ((long[]) entry));
 						break;
 					case Type.SHORT:
-						ret[i] = new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray((((short[]) entry)).length), ((short[]) entry));
+						ret[i] = new MultiDTaintedShortArrayWithObjTag(new LazyArrayObjTags(), ((short[]) entry));
 						break;
 					default:
 						throw new IllegalArgumentException();
@@ -603,28 +604,28 @@ public abstract class MultiDTaintedArrayWithObjTag {
 						Object entry = (Object) entry1[j];
 						switch (componentType) {
 						case Type.BOOLEAN:
-							ret[i][j] = new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray((((boolean[]) entry)).length), ((boolean[]) entry));
+							ret[i][j] = new MultiDTaintedBooleanArrayWithObjTag(new LazyArrayObjTags(), ((boolean[]) entry));
 							break;
 						case Type.BYTE:
-							ret[i][j] = new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray((((byte[]) entry)).length), ((byte[]) entry));
+							ret[i][j] = new MultiDTaintedByteArrayWithObjTag(new LazyArrayObjTags(), ((byte[]) entry));
 							break;
 						case Type.CHAR:
-							ret[i][j] = new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray((((char[]) entry)).length), ((char[]) entry));
+							ret[i][j] = new MultiDTaintedCharArrayWithObjTag(new LazyArrayObjTags(), ((char[]) entry));
 							break;
 						case Type.DOUBLE:
-							ret[i][j] = new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray((((double[]) entry)).length), ((double[]) entry));
+							ret[i][j] = new MultiDTaintedDoubleArrayWithObjTag(new LazyArrayObjTags(), ((double[]) entry));
 							break;
 						case Type.FLOAT:
-							ret[i][j] = new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray((((float[]) entry)).length), ((float[]) entry));
+							ret[i][j] = new MultiDTaintedFloatArrayWithObjTag(new LazyArrayObjTags(), ((float[]) entry));
 							break;
 						case Type.INT:
-							ret[i][j] = new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray((((int[]) entry)).length), ((int[]) entry));
+							ret[i][j] = new MultiDTaintedIntArrayWithObjTag(new LazyArrayObjTags(), ((int[]) entry));
 							break;
 						case Type.LONG:
-							ret[i][j] = new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray((((long[]) entry)).length), ((long[]) entry));
+							ret[i][j] = new MultiDTaintedLongArrayWithObjTag(new LazyArrayObjTags(), ((long[]) entry));
 							break;
 						case Type.SHORT:
-							ret[i][j] = new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray((((short[]) entry)).length), ((short[]) entry));
+							ret[i][j] = new MultiDTaintedShortArrayWithObjTag(new LazyArrayObjTags(), ((short[]) entry));
 							break;
 						default:
 							throw new IllegalArgumentException();
@@ -642,28 +643,28 @@ public abstract class MultiDTaintedArrayWithObjTag {
 			if (ar[i] == null) {
 				switch (componentType) {
 				case Type.BOOLEAN:
-					ar[i] = new MultiDTaintedBooleanArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new boolean[lastDimSize]);
+					ar[i] = new MultiDTaintedBooleanArrayWithObjTag(new LazyArrayObjTags(), new boolean[lastDimSize]);
 					break;
 				case Type.BYTE:
-					ar[i] = new MultiDTaintedByteArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new byte[lastDimSize]);
+					ar[i] = new MultiDTaintedByteArrayWithObjTag(new LazyArrayObjTags(), new byte[lastDimSize]);
 					break;
 				case Type.CHAR:
-					ar[i] = new MultiDTaintedCharArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new char[lastDimSize]);
+					ar[i] = new MultiDTaintedCharArrayWithObjTag(new LazyArrayObjTags(), new char[lastDimSize]);
 					break;
 				case Type.DOUBLE:
-					ar[i] = new MultiDTaintedDoubleArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new double[lastDimSize]);
+					ar[i] = new MultiDTaintedDoubleArrayWithObjTag(new LazyArrayObjTags(), new double[lastDimSize]);
 					break;
 				case Type.FLOAT:
-					ar[i] = new MultiDTaintedFloatArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new float[lastDimSize]);
+					ar[i] = new MultiDTaintedFloatArrayWithObjTag(new LazyArrayObjTags(), new float[lastDimSize]);
 					break;
 				case Type.INT:
-					ar[i] = new MultiDTaintedIntArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new int[lastDimSize]);
+					ar[i] = new MultiDTaintedIntArrayWithObjTag(new LazyArrayObjTags(), new int[lastDimSize]);
 					break;
 				case Type.LONG:
-					ar[i] = new MultiDTaintedLongArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new long[lastDimSize]);
+					ar[i] = new MultiDTaintedLongArrayWithObjTag(new LazyArrayObjTags(), new long[lastDimSize]);
 					break;
 				case Type.SHORT:
-					ar[i] = new MultiDTaintedShortArrayWithObjTag(TaintUtils.newTaintArray(lastDimSize), new short[lastDimSize]);
+					ar[i] = new MultiDTaintedShortArrayWithObjTag(new LazyArrayObjTags(), new short[lastDimSize]);
 					break;
 				default:
 					throw new IllegalArgumentException();
