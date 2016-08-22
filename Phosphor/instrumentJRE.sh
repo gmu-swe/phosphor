@@ -1,6 +1,6 @@
 #!/bin/sh
 if [ -z "$INST_HOME" ]; then
-	INST_HOME = $JAVA_HOME;
+	INST_HOME=$JAVA_HOME;
 fi
 if [ -z "$JAVA_HOME" ]; then
 	echo "Error: Please set \$JAVA_HOME";
