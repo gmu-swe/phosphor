@@ -2106,51 +2106,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				System.out.println(name+desc+"PRE XALOAD " + elType + ": " + analyzer.stack + "; " + analyzer.locals);
 			{
 				//TA A T I
-				if(Configuration.IMPLICIT_TRACKING)
-				{
-					super.visitInsn(SWAP);
-					int tmp = lvs.getTmpLV();
-					super.visitVarInsn(ASTORE, tmp);
-					//TA A I
-					super.visitInsn(DUP_X1);
-					//TA I A I
-					super.visitInsn(opcode);
-					//TA I V V?
-					if (opcode == LALOAD || opcode == DALOAD) {
-						super.visitInsn(DUP2_X2);
-						super.visitInsn(POP2);
-						//V V TA I
-						super.visitInsn(Configuration.TAINT_ARRAY_LOAD_OPCODE);
-						super.visitVarInsn(ALOAD, tmp);
-						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(Taint.class), "combineTags", "("+Configuration.TAINT_TAG_DESC+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
-
-						//V V T
-						super.visitInsn(DUP_X2);
-						// T V V T
-						super.visitInsn(POP);
-					} else {
-						//TA I V
-						super.visitInsn(DUP_X2);
-						super.visitInsn(POP);
-						//V TA I
-						super.visitInsn(Configuration.TAINT_ARRAY_LOAD_OPCODE);
-						super.visitVarInsn(ALOAD, tmp);
-						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(Taint.class), "combineTags", "("+Configuration.TAINT_TAG_DESC+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
-						super.visitInsn(SWAP);
-					}
-					lvs.freeTmpLV(tmp);
-					//T V
-
-				}
-				else
-				{
 					if(elType.equals("Z")) 
 						elName= "Boolean";
 					Type retType = Type.getObjectType("edu/columbia/cs/psl/phosphor/struct/Tainted"+elName+"With"+(Configuration.MULTI_TAINTING?"Obj":"Int")+"Tag");
 					
 					int prealloc = lvs.getPreAllocedReturnTypeVar(retType);
 					super.visitVarInsn(ALOAD, prealloc);
-					super.visitMethodInsn(Opcodes.INVOKEVIRTUAL,  Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "get", "([" + elType + Configuration.TAINT_TAG_DESC + "I"  + retType.getDescriptor()+")"+retType.getDescriptor(), false);
+					String methodName = "get";
+					if(Configuration.IMPLICIT_TRACKING)
+						methodName = "getImplicit";
+					super.visitMethodInsn(Opcodes.INVOKEVIRTUAL,  Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, methodName, "([" + elType + Configuration.TAINT_TAG_DESC + "I"  + retType.getDescriptor()+")"+retType.getDescriptor(), false);
 					super.visitInsn(DUP);
 					if(Configuration.MULTI_TAINTING)
 					{
@@ -2161,7 +2126,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						super.visitFieldInsn(GETFIELD, retType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 					super.visitInsn(SWAP);
 					super.visitFieldInsn(GETFIELD, retType.getInternalName(), "val", elType);
-				}
 			}
 			break;
 		case Opcodes.AALOAD:

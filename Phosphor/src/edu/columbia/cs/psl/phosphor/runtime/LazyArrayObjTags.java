@@ -244,4 +244,85 @@ public class LazyArrayObjTags implements Cloneable {
 			ret.taint = taints[idx];
 		return ret;
 	}
+	
+	public TaintedIntWithObjTag getImplicit(int[] ar, Taint idxtag, int idx, TaintedIntWithObjTag ret) {
+		ret.val = ar[idx];
+		if (taints == null)
+			ret.taint = null;
+		else
+			ret.taint = taints[idx];
+		ret.taint = Taint.combineTags(idxtag, (Taint) ret.taint);
+		return ret;
+	}
+
+	public TaintedShortWithObjTag getImplicit(short[] ar, Taint idxtag, int idx, TaintedShortWithObjTag ret) {
+		ret.val = ar[idx];
+		if (taints == null)
+			ret.taint = null;
+		else
+			ret.taint = taints[idx];
+		ret.taint = Taint.combineTags(idxtag, (Taint) ret.taint);
+		return ret;
+	}
+
+	public TaintedLongWithObjTag getImplicit(long[] ar, Taint idxtag, int idx, TaintedLongWithObjTag ret) {
+		ret.val = ar[idx];
+		if (taints == null)
+			ret.taint = null;
+		else
+			ret.taint = taints[idx];
+		ret.taint = Taint.combineTags(idxtag, (Taint) ret.taint);
+		return ret;
+	}
+
+	public TaintedCharWithObjTag getImplicit(char[] ar, Taint idxtag, int idx, TaintedCharWithObjTag ret) {
+		ret.val = ar[idx];
+		if (taints == null)
+			ret.taint = null;
+		else
+			ret.taint = taints[idx];
+		ret.taint = Taint.combineTags(idxtag, (Taint) ret.taint);
+		return ret;
+	}
+
+	public TaintedByteWithObjTag getImplicit(byte[] ar, Taint idxtag, int idx, TaintedByteWithObjTag ret) {
+		ret.val = ar[idx];
+		if (taints == null)
+			ret.taint = null;
+		else
+			ret.taint = taints[idx];
+		ret.taint = Taint.combineTags(idxtag, (Taint) ret.taint);
+		return ret;
+	}
+	
+
+	public TaintedFloatWithObjTag getImplicit(float[] ar, Taint idxtag, int idx, TaintedFloatWithObjTag ret) {
+		ret.val = ar[idx];
+		if (taints == null)
+			ret.taint = null;
+		else
+			ret.taint = taints[idx];
+		ret.taint = Taint.combineTags(idxtag, (Taint) ret.taint);
+		return ret;
+	}
+
+	public TaintedDoubleWithObjTag getImplicit(double[] ar, Taint idxtag, int idx, TaintedDoubleWithObjTag ret) {
+		ret.val = ar[idx];
+		if (taints == null)
+			ret.taint = null;
+		else
+			ret.taint = taints[idx];
+		ret.taint = Taint.combineTags(idxtag, (Taint) ret.taint);
+		return ret;
+	}
+
+	public TaintedBooleanWithObjTag getImplicit(boolean[] ar, Taint idxtag, int idx, TaintedBooleanWithObjTag ret) {
+		ret.val = ar[idx];
+		if (taints == null)
+			ret.taint = null;
+		else
+			ret.taint = taints[idx];
+		ret.taint = Taint.combineTags(idxtag, (Taint) ret.taint);
+		return ret;
+	}
 }

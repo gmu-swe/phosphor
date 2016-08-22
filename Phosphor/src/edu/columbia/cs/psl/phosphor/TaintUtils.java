@@ -590,29 +590,25 @@ public class TaintUtils {
 			}
 		}
 	}
-
-	public static void arraycopyControlTrack(Object srcTaint, Object src, int srcPosTaint, int srcPos, Object destTaint, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
-		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithIntTag()).val && srcTaint != null && destTaint != null) {
-			if (srcPos == 0 && length <= Array.getLength(destTaint) && length <= Array.getLength(srcTaint))
-				System.arraycopy(srcTaint, srcPos, destTaint, destPos, length);
-		}
-	}
 	
 	public static void arraycopy(Object srcTaint, Object src, Object srcPosTaint, int srcPos, Object destTaint, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
 		if (VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null && ((LazyArrayObjTags) srcTaint).taints != null) {
 			if(((LazyArrayObjTags)destTaint).taints == null)
-				((LazyArrayObjTags)destTaint).taints = new Taint[(((LazyArrayObjTags)srcTaint).taints).length];
+				((LazyArrayObjTags)destTaint).taints = new Taint[Array.getLength(dest)];
 			if (srcPos == 0 && length <= ((LazyArrayObjTags)destTaint).taints.length && length <= (((LazyArrayObjTags)srcTaint).taints).length)
+			{
 				System.arraycopy(((LazyArrayObjTags) srcTaint).taints, srcPos, ((LazyArrayObjTags) destTaint).taints, destPos, length);
+			}
 		}
 	}
 	public static void arraycopyControlTrack(Object srcTaint, Object src, Object srcPosTaint, int srcPos, Object destTaint, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null) {
-			if (srcPos == 0 && length <= Array.getLength(((LazyArrayObjTags)destTaint).taints) && length <= Array.getLength(((LazyArrayObjTags)srcTaint).taints))
-				System.arraycopy(((LazyArrayObjTags) srcTaint), srcPos, (LazyArrayObjTags) destTaint, destPos, length);
+		if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null && ((LazyArrayObjTags) srcTaint).taints != null) {
+			if(((LazyArrayObjTags)destTaint).taints == null)
+				((LazyArrayObjTags)destTaint).taints = new Taint[Array.getLength(dest)];
+			if (srcPos == 0 && length <= ((LazyArrayObjTags)destTaint).taints.length && length <= (((LazyArrayObjTags)srcTaint).taints).length)
+				System.arraycopy(((LazyArrayObjTags) srcTaint).taints, srcPos, ((LazyArrayObjTags) destTaint).taints, destPos, length);
 		}
 	}
 	
