@@ -15,9 +15,12 @@ public final class Taint {
 	public static final Taint copyTaint(Taint in)
 	{
 		if(in == null)
-			return null;
+			return null;			
 		Taint ret = new Taint();
-		ret.addDependency(in);
+		if(in.dependencies == null || in.dependencies.getFirst() == null)
+			ret.lbl = in.lbl;
+		else
+			ret.addDependency(in);
 		return ret;
 	}
 	public Taint copy()
