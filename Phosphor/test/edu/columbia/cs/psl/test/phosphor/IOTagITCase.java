@@ -1,12 +1,16 @@
 package edu.columbia.cs.psl.test.phosphor;
 
 import java.util.ArrayList;
+
+import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 
 public class IOTagITCase {
 	
+	@Test
 	public static void testIncrementArray() {
 		int[] arr = {1, 2, 3};
 		ArrayList<String> lbls = new ArrayList<String>();
