@@ -25,8 +25,10 @@ public class LazyArrayObjTags implements Cloneable {
 	@Override
 	public Object clone() {
 		LazyArrayObjTags ret = new LazyArrayObjTags();
-		if(taints != null)
+		if(taints != null) {
+			ret.arTaint = arTaint.copy();
 			ret.taints = taints.clone();
+		}
 		return ret;
 	}
 

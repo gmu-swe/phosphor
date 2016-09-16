@@ -66,26 +66,50 @@ public final class MultiTainter {
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
+	public static int[] taintedBooleanArray(boolean[] in, Object arrLbl, Object eleLbl)
+    {
+        throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
+    }
 	public static byte[] taintedByteArray(byte[] in, Object lbl)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
+	public static int[] taintedByteArray(byte[] in, Object arrLbl, Object eleLbl)
+    {
+        throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
+    }
 	public static char[] taintedCharArray(char[] in, Object lbl)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
+	public static int[] taintedCharArray(char[] in, Object arrLbl, Object eleLbl)
+    {
+        throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
+    }
 	public static double[] taintedDoubleArray(double[] in, Object lbl)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
+	public static int[] taintedDoubleArray(double[] in, Object arrLbl, Object eleLbl)
+    {
+        throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
+    }
 	public static float[] taintedFloatArray(float[] in, Object lbl)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
+	public static int[] taintedFloatArray(float[] in, Object arrLbl, Object eleLbl)
+    {
+        throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
+    }
 	public static long[] taintedLongArray(long[] in, Object lbl)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
+	public static int[] taintedLongArray(long[] in, Object arrLbl, Object eleLbl)
+    {
+        throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
+    }
 	public static int[] taintedIntArray(int[] in, Object lbl)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
@@ -98,6 +122,10 @@ public final class MultiTainter {
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
+	public static int[] taintedShortArray(short[] in, Object arrLbl, Object eleLbl)
+    {
+        throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
+    }
 	public static Taint getTaint(boolean in)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
@@ -220,6 +248,16 @@ public final class MultiTainter {
 		ret.val = in;
 		return ret;
 	}
+	public static TaintedBooleanArrayWithObjTag taintedBooleanArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, boolean[] in, Object arrLbl, Object eleLbl, TaintedBooleanArrayWithObjTag ret)
+    {
+            ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+            Taint arTaint = new Taint(arrLbl);
+            ret.taint.arTaint = arTaint;
+            for(int i =0 ; i < in.length; i++)
+            	ret.taint.taints[i] = new Taint(eleLbl);
+            ret.val = in;
+            return ret;
+    }
 	public static TaintedByteArrayWithObjTag taintedByteArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, byte[] in, Object lbl, TaintedByteArrayWithObjTag ret)
 	{
 		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
@@ -228,6 +266,16 @@ public final class MultiTainter {
 		ret.val = in;
 		return ret;
 	}
+	public static TaintedByteArrayWithObjTag taintedByteArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, byte[] in, Object arrLbl, Object eleLbl, TaintedByteArrayWithObjTag ret)
+    {
+            ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+            Taint arTaint = new Taint(arrLbl);
+            ret.taint.arTaint = arTaint;
+            for(int i =0 ; i < in.length; i++)
+            	ret.taint.taints[i] = new Taint(eleLbl);
+            ret.val = in;
+            return ret;
+    }
 	public static TaintedCharArrayWithObjTag taintedCharArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, char[] in, Object lbl, TaintedCharArrayWithObjTag ret)
 	{
 		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
@@ -236,6 +284,16 @@ public final class MultiTainter {
 		ret.val = in;
 		return ret;
 	}
+	public static TaintedCharArrayWithObjTag taintedCharArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, char[] in, Object arrLbl, Object eleLbl, TaintedCharArrayWithObjTag ret)
+    {
+            ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+            Taint arTaint = new Taint(arrLbl);
+            ret.taint.arTaint = arTaint;
+            for(int i =0 ; i < in.length; i++)
+            	ret.taint.taints[i] = new Taint(eleLbl);
+            ret.val = in;
+            return ret;
+    }
 	public static TaintedDoubleArrayWithObjTag taintedDoubleArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, double[] in, Object lbl, TaintedDoubleArrayWithObjTag ret)
 	{
 		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
@@ -244,6 +302,16 @@ public final class MultiTainter {
 		ret.val = in;
 		return ret;
 	}
+	public static TaintedDoubleArrayWithObjTag taintedDoubleArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, double[] in, Object arrLbl, Object eleLbl, TaintedDoubleArrayWithObjTag ret)
+    {
+            ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+            Taint arTaint = new Taint(arrLbl);
+            ret.taint.arTaint = arTaint;
+            for(int i =0 ; i < in.length; i++)
+            	ret.taint.taints[i] = new Taint(eleLbl);
+            ret.val = in;
+            return ret;
+    }
 	public static TaintedFloatArrayWithObjTag taintedFloatArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, float[] in, Object lbl, TaintedFloatArrayWithObjTag ret)
 	{
 		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
@@ -252,6 +320,16 @@ public final class MultiTainter {
 		ret.val = in;
 		return ret;
 	}
+	public static TaintedFloatArrayWithObjTag taintedFloatArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, float[] in, Object arrLbl, Object eleLbl, TaintedFloatArrayWithObjTag ret)
+    {
+            ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+            Taint arTaint = new Taint(arrLbl);
+            ret.taint.arTaint = arTaint;
+            for(int i =0 ; i < in.length; i++)
+            	ret.taint.taints[i] = new Taint(eleLbl);
+            ret.val = in;
+            return ret;
+    }
 	public static TaintedIntArrayWithObjTag taintedIntArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, int[] in, Object lbl, TaintedIntArrayWithObjTag ret)
 	{
 		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
@@ -278,6 +356,16 @@ public final class MultiTainter {
 		ret.val = in;
 		return ret;
 	}
+	public static TaintedShortArrayWithObjTag taintedShortArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, short[] in, Object arrLbl, Object eleLbl, TaintedShortArrayWithObjTag ret)
+    {
+            ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+            Taint arTaint = new Taint(arrLbl);
+            ret.taint.arTaint = arTaint;
+            for(int i =0 ; i < in.length; i++)
+            	ret.taint.taints[i] = new Taint(eleLbl);
+            ret.val = in;
+            return ret;
+    }
 	public static TaintedLongArrayWithObjTag taintedLongArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, long[] in, Object lbl, TaintedLongArrayWithObjTag ret)
 	{
 		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
@@ -286,6 +374,16 @@ public final class MultiTainter {
 		ret.val = in;
 		return ret;
 	}
+	public static TaintedLongArrayWithObjTag taintedLongArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, long[] in, Object arrLbl, Object eleLbl, TaintedLongArrayWithObjTag ret)
+    {
+            ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+            Taint arTaint = new Taint(arrLbl);
+            ret.taint.arTaint = arTaint;
+            for(int i =0 ; i < in.length; i++)
+            	ret.taint.taints[i] = new Taint(eleLbl);
+            ret.val = in;
+            return ret;
+    }
 	public static Taint getTaint$$PHOSPHORTAGGED(Object obj)
 	{
 		return getTaint(obj);
