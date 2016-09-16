@@ -90,6 +90,10 @@ public final class MultiTainter {
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
+	public static int[] taintedIntArray(int[] in, Object arrLbl, Object eleLbl)
+    {
+        throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
+    }
 	public static short[] taintedShortArray(short[] in, Object lbl)
 	{
 		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
@@ -256,6 +260,16 @@ public final class MultiTainter {
 		ret.val = in;
 		return ret;
 	}
+	public static TaintedIntArrayWithObjTag taintedIntArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, int[] in, Object arrLbl, Object eleLbl, TaintedIntArrayWithObjTag ret)
+    {
+            ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+            Taint arTaint = new Taint(arrLbl);
+            ret.taint.arTaint = arTaint;
+            for(int i =0 ; i < in.length; i++)
+            	ret.taint.taints[i] = new Taint(eleLbl);
+            ret.val = in;
+            return ret;
+    }
 	public static TaintedShortArrayWithObjTag taintedShortArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, short[] in, Object lbl, TaintedShortArrayWithObjTag ret)
 	{
 		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
@@ -279,8 +293,10 @@ public final class MultiTainter {
 
 	public static final Taint getTaint(Object obj)
 	{
-		if(obj instanceof MultiDTaintedArrayWithObjTag)
-			obj = ((MultiDTaintedArrayWithObjTag) obj).getVal();
+		if(obj instanceof MultiDTaintedArrayWithObjTag) {
+			Taint ret = ((MultiDTaintedArrayWithObjTag) obj).taint.arTaint;
+			return ret;
+		}
 		if(Configuration.taintTagFactory == null)
 			return null;
 		if(obj instanceof TaintedWithObjTag)

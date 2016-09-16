@@ -12,6 +12,8 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 public class LazyArrayObjTags implements Cloneable {
 //	public static final String INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags";
 	public Taint[] taints;
+	
+	public Taint arTaint;
 
 	public LazyArrayObjTags(Taint[] taints) {
 		this.taints = taints;
