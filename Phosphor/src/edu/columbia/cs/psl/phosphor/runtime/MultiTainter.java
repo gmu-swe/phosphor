@@ -286,21 +286,11 @@ public final class MultiTainter {
 		if(obj instanceof TaintedWithObjTag)
 		{
 			Taint ret = (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
-			if(ret == null)
-			{
-				ret = Configuration.taintTagFactory.dynamicallyGenerateEmptyTaint();
-				taintedObject(obj, ret);
-			}
 			return ret;
 		}
 		else if(obj != null && ArrayHelper.engaged == 1)
 		{
 			Taint ret = ArrayHelper.getTag(obj);
-			if(ret == null)
-			{
-				ret = Configuration.taintTagFactory.dynamicallyGenerateEmptyTaint();
-				taintedObject(obj, ret);
-			}
 			return ret;
 		}
 		else
