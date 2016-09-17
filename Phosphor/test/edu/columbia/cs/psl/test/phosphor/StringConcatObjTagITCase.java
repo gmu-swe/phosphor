@@ -27,5 +27,12 @@ public class StringConcatObjTagITCase {
 		assertTrue(MultiTainter.getTaint(str2.charAt(1)) != null);
 	}
 	
-	
+	@Test
+	public void testConcatAndMultiTainter() throws Exception {
+		String str1 = new String("abcdefg");
+		MultiTainter.taintedObject(str1, new Taint("Sensitive"));
+		String str2 = str1 + "a";
+		assertTrue(MultiTainter.getTaint(str2.charAt(0)) != null);
+		assertTrue(MultiTainter.getTaint(str2.charAt(7)) == null);
+	}
 }
