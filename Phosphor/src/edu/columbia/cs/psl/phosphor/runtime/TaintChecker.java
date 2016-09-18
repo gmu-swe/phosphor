@@ -127,10 +127,15 @@ public class TaintChecker {
 			str.valuePHOSPHOR_TAG.taints = new Taint[str.length()];
 		for (int i = 0; i < str.length(); i++) {
 			if (tag != null) {
-				str.valuePHOSPHOR_TAG.taints[i] = ((Taint) tag).copy();
-				str.valuePHOSPHOR_TAG.taints[i].lbl = ((Taint) tag).lbl;
+				if(str.valuePHOSPHOR_TAG.taints[i] != null)
+				{
+					str.valuePHOSPHOR_TAG.taints[i].addDependency(((Taint) tag));
+				} else {
+					str.valuePHOSPHOR_TAG.taints[i] = ((Taint) tag).copy();
+					str.valuePHOSPHOR_TAG.taints[i].lbl = ((Taint) tag).lbl;
+				}
 			}
-			else
+			else if(str.valuePHOSPHOR_TAG.taints[i] == null)
 				str.valuePHOSPHOR_TAG.taints[i] = null;
 		}
 	}
