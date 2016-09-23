@@ -123,6 +123,10 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				//N N T I
 				super.visitInsn(Opcodes.ACONST_NULL);
 				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V",false);
+				super.visitInsn(DUP);
+				super.visitInsn(DUP);
+				super.visitFieldInsn(GETFIELD, owner, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+				super.visitMethodInsn(INVOKEVIRTUAL, owner, "set"+TaintUtils.TAINT_FIELD, "("+(Configuration.MULTI_TAINTING ? "Ljava/lang/Object;" : "I")+")V", false);
 				FrameNode fn2 = getCurrentFrameNode();
 				super.visitLabel(isOK);
 				if(!followedByFrame)
@@ -161,6 +165,11 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 
 				super.visitInsn(Opcodes.ACONST_NULL);
 				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V", false);
+				super.visitInsn(DUP);
+				super.visitInsn(DUP);
+				super.visitFieldInsn(GETFIELD, owner, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+				super.visitMethodInsn(INVOKEVIRTUAL, owner, "set"+TaintUtils.TAINT_FIELD, "("+(Configuration.MULTI_TAINTING ? "Ljava/lang/Object;" : "I")+")V", false);
+
 				lvs.freeTmpLV(tmp);
 				lvs.freeTmpLV(tmpT);
         FrameNode fn2 = getCurrentFrameNode();
