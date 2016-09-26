@@ -674,7 +674,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedBooleanArrayWithObjTag) {
 			MultiDTaintedBooleanArrayWithObjTag ar = (MultiDTaintedBooleanArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			if(ar.taint != null)
+			if(ar.taint != null && ar.taint.taints != null)
 				ret.taint = ar.taint.taints[idx];
 			else
 				ret.taint = null;
@@ -687,7 +687,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedCharArrayWithObjTag) {
 			MultiDTaintedCharArrayWithObjTag ar = (MultiDTaintedCharArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			if(ar.taint != null)
+			if(ar.taint != null && ar.taint.taints != null)
 				ret.taint = ar.taint.taints[idx];
 			else
 				ret.taint = null;
@@ -700,7 +700,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedDoubleArrayWithObjTag) {
 			MultiDTaintedDoubleArrayWithObjTag ar = (MultiDTaintedDoubleArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			if(ar.taint != null)
+			if(ar.taint != null && ar.taint.taints != null)
 				ret.taint = ar.taint.taints[idx];
 			else
 				ret.taint = null;
@@ -713,7 +713,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedIntArrayWithObjTag) {
 			MultiDTaintedIntArrayWithObjTag ar = (MultiDTaintedIntArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			if(ar.taint != null)
+			if(ar.taint != null && ar.taint.taints != null)
 				ret.taint = ar.taint.taints[idx];
 			else
 				ret.taint = null;
@@ -726,7 +726,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedLongArrayWithObjTag) {
 			MultiDTaintedLongArrayWithObjTag ar = (MultiDTaintedLongArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			if(ar.taint != null)
+			if(ar.taint != null && ar.taint.taints != null)
 				ret.taint = ar.taint.taints[idx];
 			else
 				ret.taint = null;
@@ -739,7 +739,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedShortArrayWithObjTag) {
 			MultiDTaintedShortArrayWithObjTag ar = (MultiDTaintedShortArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			if(ar.taint != null)
+			if(ar.taint != null && ar.taint.taints != null)
 				ret.taint = ar.taint.taints[idx];
 			else
 				ret.taint = null;
@@ -752,7 +752,7 @@ public class ArrayReflectionMasker {
 		if (obj instanceof MultiDTaintedFloatArrayWithObjTag) {
 			MultiDTaintedFloatArrayWithObjTag ar = (MultiDTaintedFloatArrayWithObjTag) obj;
 			ret.val = ar.val[idx];
-			if(ar.taint != null)
+			if(ar.taint != null && ar.taint.taints != null)
 				ret.taint = ar.taint.taints[idx];
 			else
 				ret.taint = null;
