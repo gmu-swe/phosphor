@@ -35,4 +35,25 @@ public class StringConcatObjTagITCase {
 		assertTrue(MultiTainter.getTaint(str2.charAt(0)) != null);
 		assertTrue(MultiTainter.getTaint(str2.charAt(7)) == null);
 	}
+	
+	@Test
+	public void testConcateStringInt() {
+		String s = "abc";
+		int val = 98;
+		
+		MultiTainter.taintedObject(s, new Taint("string"));
+		val = MultiTainter.taintedInt(val, "int");
+		
+		String concate = s + val;
+		
+		for (int i = 0; i < concate.length(); i++) {
+			char c = concate.charAt(i);
+			Taint ct = MultiTainter.getTaint(c);
+			if (i < 3) {
+				assertEquals(ct.lbl, "string");
+			} else {
+				assertEquals(ct.lbl, "int");
+			}
+		}
+	}
 }

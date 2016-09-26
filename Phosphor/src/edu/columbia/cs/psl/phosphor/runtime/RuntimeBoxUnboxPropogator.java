@@ -23,17 +23,41 @@ public class RuntimeBoxUnboxPropogator {
 	{
 		Long.getChars(l, idx, ar);
 		if (lt != 0) {
-			ta.taints = new int[ar.length];
-			for (int i = 0; i < ar.length; i++)
-				ta.taints[i] = lt;
+			int nChars = 0;
+			if (l < 0)
+				nChars++;
+			long q;
+			for (;;) {
+				q = (l * 52429) >>> (16 + 3);
+				nChars++;
+				l = q;
+				if (l == 0)
+					break;
+			}
+			if (ta.taints == null)
+				ta.taints = new int[ar.length];
+			for (int k = idx - nChars; k <= idx; k++)
+				ta.taints[k] = lt;
 		}
 	}
 	public static void getChars$$PHOSPHORTAGGED(int it, int i, int idt, int idx, LazyArrayIntTags ta, char[] ar)
 	{
 		Integer.getChars(i, idx, ar);
 		if (it != 0) {
-			ta.taints = new int[ar.length];
-			for (int k = 0; k < ar.length; k++)
+			int nChars = 0;
+			if (i < 0)
+				nChars++;
+			int q;
+			for (;;) {
+				q = (i * 52429) >>> (16 + 3);
+				nChars++;
+				i = q;
+				if (i == 0)
+					break;
+			}
+			if (ta.taints == null)
+				ta.taints = new int[ar.length];
+			for (int k = idx - nChars; k <= idx; k++)
 				ta.taints[k] |= it;
 		}
 	}
@@ -42,37 +66,50 @@ public class RuntimeBoxUnboxPropogator {
 	{
 		Long.getChars(l, idx, ar);
 		if (lt != null) {
-			ta.taints = new Taint[ar.length];
-			for (int i = 0; i < ar.length; i++)
-				ta.taints[i] = lt;
+			int nChars = 0;
+			if (l < 0)
+				nChars++;
+			long q;
+			for (;;) {
+				q = (l * 52429) >>> (16 + 3);
+				nChars++;
+				l = q;
+				if (l == 0)
+					break;
+			}
+			if(ta.taints == null)
+				ta.taints = new Taint[ar.length];
+			for (int k = idx - nChars; k <= idx; k++)
+				ta.taints[k] = lt;
 		}
 	}
 	public static void getChars$$PHOSPHORTAGGED(Taint it, int i, Taint idt, int idx, LazyArrayObjTags ta, char[] ar)
 	{
 		Integer.getChars(i, idx, ar);
 		if (it != null) {
-			ta.taints = new Taint[ar.length];
-			for (int k = 0; k < ar.length; k++)
+			int nChars = 0;
+			if(i < 0)
+				nChars++;
+			int q;
+			for (;;) {
+	            q = (i * 52429) >>> (16+3);
+	            nChars++;
+	            i = q;
+	            if (i == 0) break;
+	        }
+			if(ta.taints == null)
+				ta.taints = new Taint[ar.length];
+			for (int k = idx - nChars; k <= idx; k++)
 				ta.taints[k] = it;
 		}
 	}
 	public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyArrayObjTags ta, char[] ar, ControlTaintTagStack ctrl)
 	{
-		Long.getChars(l, idx, ar);
-		if (ta != null) {
-			ta.taints = new Taint[ar.length];
-			for (int i = 0; i < ar.length; i++)
-				ta.taints[i] = lt;
-		}
+		getChars$$PHOSPHORTAGGED(lt, l, idt, idx, ta, ar);
 	}
 	public static void getChars$$PHOSPHORTAGGED(Taint it, int i, Taint idt, int idx, LazyArrayObjTags ta, char[] ar, ControlTaintTagStack ctrl)
 	{
-		Integer.getChars(i, idx, ar);
-		if (it != null) {
-			ta.taints = new Taint[ar.length];
-			for (int k = 0; k < ar.length; k++)
-				ta.taints[k] = it;
-		}
+		getChars$$PHOSPHORTAGGED(it, i, idt, idx, ta, ar);
 	}
 	public static String toString$$PHOSPHORTAGGED(int t, byte i) {
 		if (t == 0)
