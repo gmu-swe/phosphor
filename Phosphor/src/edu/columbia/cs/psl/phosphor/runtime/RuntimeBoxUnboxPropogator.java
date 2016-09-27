@@ -99,7 +99,7 @@ public class RuntimeBoxUnboxPropogator {
 	        }
 			if(ta.taints == null)
 				ta.taints = new Taint[ar.length];
-			for (int k = idx - nChars; k <= idx; k++)
+			for (int k = idx - nChars; k <= Math.min(idx, ar.length); k++)
 				ta.taints[k] = it;
 		}
 	}
