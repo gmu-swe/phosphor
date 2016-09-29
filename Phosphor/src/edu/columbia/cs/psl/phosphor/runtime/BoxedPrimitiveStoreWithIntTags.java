@@ -53,7 +53,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 
 	public static Byte valueOf(int tag, byte z) {
 		if (tag > 0) {
-			Byte r = new Byte(z);
+			Byte r = Byte.valueOf(z);
 			tags.put(r, tag);
 			return r;
 		}
@@ -62,7 +62,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 
 	public static Character valueOf(int tag, char z) {
 		if (tag > 0) {
-			Character r = new Character(z);
+			Character r = Character.valueOf(z);
 			tags.put(r, tag);
 			return r;
 		}
@@ -71,7 +71,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 
 	public static Short valueOf(int tag, short z) {
 		if (tag > 0) {
-			Short r = new Short(z);
+			Short r = Short.valueOf(z);
 			tags.put(r, tag);
 			return r;
 		}
