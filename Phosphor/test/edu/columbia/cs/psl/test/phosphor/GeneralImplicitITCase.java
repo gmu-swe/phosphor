@@ -2,6 +2,12 @@ package edu.columbia.cs.psl.test.phosphor;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 import org.junit.After;
 import org.junit.Test;
 
@@ -67,6 +73,22 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	public static void testA(int x, int y, boolean b) {  
        
     }
+	@Test
+	public void testObjectStream() throws Exception {
+		File f = new File("test.tmp.out");
+		if (f.exists()) {
+			f.delete();
+		}
+
+		ObjectOutputStream oot = new ObjectOutputStream(new FileOutputStream(f));
+		oot.writeInt(11);
+		oot.close();
+
+		ObjectInputStream ois = new ObjectInputStream(new FileInputStream(f));
+		int obj = ois.readInt();
+		ois.close();
+		assertEquals(11, obj);
+	}
 	@Test
 	public void testRelationalConditional() throws Exception {
 		int x = -1;
