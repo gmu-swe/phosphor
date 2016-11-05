@@ -1,6 +1,10 @@
 package edu.columbia.cs.psl.test.phosphor;
 
 import static org.junit.Assert.*;
+
+import java.util.Arrays;
+import java.util.HashSet;
+
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
@@ -79,7 +83,7 @@ public class BaseMultiTaintClass {
 		}
 		fail("Expected taint contained "+ lbl+", has " + obj);
 	}
-	public static void assertTaintHasOnlyLabels(Taint obj, Object lbl, Object lbl2)
+	public static void assertTaintHasOnlyLabels(Taint obj, Object... lbl)
 	{
 		assertNotNull(obj);
 		if(obj.lbl == lbl)
@@ -89,22 +93,20 @@ public class BaseMultiTaintClass {
 		Node<Object> dep = obj.dependencies.getFirst();
 		boolean l1 = false;
 		boolean l2 = false;
+		HashSet<Object> expected = new HashSet<Object>();
+		for(Object o : lbl)
+			expected.add(o);
 		while(dep != null)
 		{
-			if(dep.entry != null && dep.entry == lbl)
-			{
-				l1 = true;
-			}
-			else if(dep.entry != null && dep.entry == lbl2)
-			{
-				l2 = true;
-			} else if (dep.entry != null)
-				fail("Expected taint contained ONLY " + lbl + "," + lbl2 + ", found " + dep.entry);
+			if(dep.entry != null && expected.contains(dep.entry))
+				expected.remove(dep.entry);
+			else if (dep.entry != null)
+				fail("Expected taint contained ONLY " + Arrays.toString(lbl) + ", found " + dep.entry);
 
 			dep = dep.next;
 		}
-		if(l1 && l2)
+		if(expected.isEmpty())
 			return;
-		fail("Expected taint contained "+ lbl+", has " + obj);
+		fail("Expected taint contained "+ expected +", has " + obj);
 	}
 }
