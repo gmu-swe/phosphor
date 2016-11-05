@@ -15,6 +15,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -24,6 +25,7 @@ import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.IincInsnNode;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
@@ -32,6 +34,7 @@ import org.objectweb.asm.tree.analysis.Analyzer;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
+import org.objectweb.asm.util.Printer;
 
 public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	final class PrimitiveArrayAnalyzerMN extends MethodNode {
@@ -374,6 +377,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 				LinkedList<Integer> varsStoredThisInsn = new LinkedList<Integer>();
 				HashSet<String> visited = new HashSet<String>();
+				int insnIdxOrderVisited = 0;
 				@Override
 				protected void newControlFlowEdge(int insn, int successor) {
 					if(visited.contains(insn+"-"+successor))
@@ -394,6 +398,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						//insn not added yet
 						fromBlock = new BasicBlock();
 						fromBlock.idx = insn;
+						fromBlock.idxOrder = insnIdxOrderVisited;
+						insnIdxOrderVisited++;
 						fromBlock.insn = instructions.get(insn);
 						implicitAnalysisblocks.put(insn,fromBlock);
 					}
@@ -426,6 +432,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					{
 						succesorBlock = new BasicBlock();
 						succesorBlock.idx = successor;
+						succesorBlock.idxOrder = insnIdxOrderVisited;
+						insnIdxOrderVisited++;
 						succesorBlock.insn = instructions.get(successor);
 						implicitAnalysisblocks.put(successor, succesorBlock);
 						if(succesorBlock.insn.getType() == AbstractInsnNode.IINC_INSN)
@@ -603,8 +611,94 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			}
 
 			if (Configuration.IMPLICIT_TRACKING) {
-				if (implicitAnalysisblocks.size() > 1) {
+				boolean hasJumps = false;
+				for(BasicBlock b : implicitAnalysisblocks.values())
+					if(b.isJump)
+					{
+						hasJumps = true;
+						break;
+					}
+				if (implicitAnalysisblocks.size() > 1 && hasJumps) {
 					Stack<BasicBlock> stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
+
+					//Fix successors to only point to jumps or labels
+					
+					/*
+					 * 		public HashSet<BasicBlock> calculateSuccessorsCompact() {
+			if(compactSuccessorsCalculated)
+				return successorsCompact;
+			for (BasicBlock b : successors) {
+				compactSuccessorsCalculated = true;
+				if(b.isInteresting())
+					successorsCompact.add(b);
+				else
+					successorsCompact.addAll(b.calculateSuccessorsCompact());
+			}
+			return successorsCompact;
+		}
+					 */
+					boolean changed = true;
+					while (changed) {
+						changed = false;
+						for (BasicBlock b : implicitAnalysisblocks.values()) {
+								for (BasicBlock s : b.successors) {
+									if (s.isInteresting()){
+										changed |= b.successorsCompact.add(s);
+									}
+									else
+									{
+										changed |= b.successorsCompact.addAll(s.successorsCompact);
+									}
+								}
+						}
+					}
+					//Post dominator analysis
+					for(BasicBlock b : implicitAnalysisblocks.values())
+						b.postDominators.add(b);
+					changed = true;
+					while(changed)
+					{
+						changed = false;
+						for(BasicBlock b : implicitAnalysisblocks.values())
+						{
+							if(b.successorsCompact.size() > 0 && b.isInteresting())
+							{
+								HashSet<BasicBlock> intersectionOfPredecessors = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
+								Iterator<BasicBlock> iter = b.successorsCompact.iterator();
+								BasicBlock successor = iter.next();
+								intersectionOfPredecessors.addAll(successor.postDominators);
+								while(iter.hasNext())
+								{
+									successor = iter.next();
+									intersectionOfPredecessors.retainAll(successor.postDominators);
+								}
+								changed |= b.postDominators.addAll(intersectionOfPredecessors);
+							}
+						}
+					}
+					
+					//Add in markings for where jumps are resolved
+					for(BasicBlock j : implicitAnalysisblocks.values())
+					{
+						if(j.isJump)
+						{
+//							System.out.println(j + " " +j.postDominators);
+							j.postDominators.remove(j);
+							BasicBlock min = null;
+							for(BasicBlock d : j.postDominators)
+							{
+								if(min == null || min.idxOrder > d.idxOrder)
+									min = d;
+							}
+//							System.out.println(j + " resolved at " + min);
+							if (min != null) {
+								min.resolvedBlocks.add(j);
+								min.resolvedHereBlocks.add(j);
+							}
+						}
+					}
+					
+					//Propogate forward true-side/false-side to determine which vars are written
 					stack.add(implicitAnalysisblocks.get(0));
 					while (!stack.isEmpty()) {
 						BasicBlock b = stack.pop();
@@ -612,73 +706,27 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							continue;
 						b.visited = true;
 						b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
-						b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
+						b.onTrueSideOfJumpFrom.removeAll(b.resolvedBlocks);
 						//Propogate markings to successors
 						for (BasicBlock s : b.successors) {
-							s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
-							s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
-							s.resolvedBlocks.addAll(b.resolvedBlocks);
-							
+							boolean _changed = false;
+							_changed |= s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
+							_changed |= s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
+							_changed |= s.resolvedBlocks.addAll(b.resolvedBlocks);
+							if(_changed)
+								s.visited = false;
 							s.onFalseSideOfJumpFrom.remove(s);
 							s.onTrueSideOfJumpFrom.remove(s);
 							if (!s.visited)
 								stack.add(s);
 						}
 					}
-					//						calculatePostDominators(implicitAnalysisblocks.get(0));
-					for (BasicBlock b : implicitAnalysisblocks.values()) {
-						//						System.out.println(b.domBlocks);
-						for (BasicBlock d : b.onFalseSideOfJumpFrom) {
-							if (b.onTrueSideOfJumpFrom.contains(d)) {
-								b.resolvedBlocks.add(d);
-								b.resolvedHereBlocks.add(d);
-							}
-						}
-						if (!b.resolvedBlocks.isEmpty()) {
-							b.onTrueSideOfJumpFrom.removeAll(b.resolvedBlocks);
-							b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
-							//							System.out.println("!!Remove " + b.resolvedBlocks + " at " + b.idx + " - " + b.insn);
-						}
-						b.visited = false;
-						//						System.out.println(b.insn + " dom: "  + b.domBlocks +", antidom: " + b.antiDomBlocks);
-					}
-					stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
-					stack.add(implicitAnalysisblocks.get(0));
-					while (!stack.isEmpty()) {
-						BasicBlock b = stack.pop();
-						if (b.visited)
-							continue;
-						b.visited = true;
-						b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
-						b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
-						//Propogate markings to successors
-						for (BasicBlock s : b.successors) {
-							s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
-							s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
-							s.resolvedBlocks.addAll(b.resolvedBlocks);
-							if (!s.visited)
-								stack.add(s);
-						}
-					}
-					//						calculatePostDominators(implicitAnalysisblocks.get(0));
-					boolean hadChanges = true;
-					while (hadChanges) {
-						hadChanges = false;
-						for (BasicBlock b : implicitAnalysisblocks.values()) {
-							HashSet<BasicBlock> remove = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-							for (BasicBlock r : b.resolvedHereBlocks) {
-								for (BasicBlock p : b.predecessors)
-									if (p.resolvedBlocks.contains(r)) {
-										remove.add(r);
-										hadChanges = true;
-									}
-							}
-							b.visited =false;
-							b.resolvedHereBlocks.removeAll(remove);
-						}
-					}
+
+					
 					for(BasicBlock j : implicitAnalysisblocks.values())
 					{
+//						this.instructions.insertBefore(j.insn, new LdcInsnNode(j.idx + " " + j.onTrueSideOfJumpFrom + " " + j.onFalseSideOfJumpFrom));
+//						System.out.println(j.idx + " " + j.postDominators);
 						if(j.isJump)
 						{
 							stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
@@ -795,8 +843,11 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 	}
 	static class BasicBlock{
+		protected int idxOrder;
+		public HashSet<BasicBlock> postDominators= new HashSet<PrimitiveArrayAnalyzer.BasicBlock>() ;
 		int idx;
 //		LinkedList<Integer> outEdges = new LinkedList<Integer>();
+		HashSet<BasicBlock> successorsCompact = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<BasicBlock> successors = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<BasicBlock> predecessors  = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		AbstractInsnNode insn;
@@ -805,6 +856,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		boolean isJump;
 		boolean is2ArgJump;
 		HashSet<BasicBlock> resolvedHereBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
+
+		private boolean compactSuccessorsCalculated;
+		public boolean isInteresting()
+		{
+			return isJump || insn instanceof LabelNode;
+		}
 
 		HashSet<BasicBlock> resolvedBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<BasicBlock> onFalseSideOfJumpFrom = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
@@ -815,7 +872,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		HashSet<Integer> varsWrittenFalseSide = new HashSet<Integer>();
 		@Override
 		public String toString() {
-			return insn.toString();
+//			return insn.toString();
+			return ""+idx;
 		}
 	}
 	private static boolean isPrimitiveArrayType(BasicValue v) {
