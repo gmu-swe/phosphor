@@ -172,6 +172,7 @@ public class Instrumenter {
 				|| owner.startsWith("java/lang/invoke/LambdaForm")
 				|| owner.startsWith("java/lang/invoke/LambdaMetafactory")
 				|| owner.startsWith("edu/columbia/cs/psl/phosphor/struct/TaintedWith")
+				|| owner.startsWith("java/util/regex/HashDecompositions") //Huge constant array/hashmap
 				;
 	}
 
@@ -294,8 +295,9 @@ public class Instrumenter {
 	public static String sinksFile;
 	static boolean ANALYZE_ONLY;
 	
+	private static long START;
 	public static void main(String[] args) {
-		
+		START = System.currentTimeMillis();
 		Options options = new Options();
 		options.addOption(help);
 		options.addOption(opt_multiTaint);
@@ -420,7 +422,7 @@ public class Instrumenter {
 				buf.append(TaintUtils.getMethodDesc(desc)).append("\n");
 			TaintUtils.writeToFile(new File(rootOutputDir.getAbsolutePath() + "/methods"), buf.toString());
 		}
-		System.out.println("Done");
+		System.out.println("Done after " + (System.currentTimeMillis() - START) +" ms");
 	}
 
 	public static void _main(String[] args) {

@@ -6,6 +6,8 @@ import java.util.Arrays;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
+
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -97,7 +99,10 @@ public class MethodArgReindexer extends MethodVisitor {
 			oldVarCount += oldArgTypes[i].getSize();
 		}
 		if(Configuration.IMPLICIT_TRACKING && !name.equals("<clinit>"))
+		{
+			hasBeenRemapped = true;
 			newArgOffset++;
+		}
 		if (name.equals("<init>") && hasBeenRemapped) {
 			hasTaintSentinalAddedToDesc = true;
 			newArgOffset++;
@@ -161,13 +166,13 @@ public class MethodArgReindexer extends MethodVisitor {
 		Object[] remappedLocals = new Object[local.length + newArgOffset + 1]; //was +1, not sure why??
 		if (TaintUtils.DEBUG_FRAMES) {
 			System.out.println(name + desc + " orig nArgs = " + origNumArgs);
-			System.out.println("Pre-reindex Frame: " + Arrays.toString(local) + ";" + nLocal + " ; " + type);
+			System.out.println("Pre-reindex Frame: " + Arrays.toString(local) + ";" + nLocal + " ; " + Arrays.toString(stack) + nStack);
 		}
-
+		
 		int newIdx = 0;
 		int origNLocal = nLocal;
 //		System.out.println("MAR stac " + Arrays.toString(stack));
-//		System.out.println("Orig locals: " + Arrays.toString(local));
+//		System.out.println(name+desc+"Orig locals: " + Arrays.toString(local));
 		if (type == Opcodes.F_FULL || type == Opcodes.F_NEW) {
 			if (origNumArgs == 0 && Configuration.IMPLICIT_TRACKING && !name.equals("<clinit>")) {
 				remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
@@ -282,7 +287,7 @@ public class MethodArgReindexer extends MethodVisitor {
 					newIdx++;
 					nLocal++;
 				}
-
+//				System.out.println(">"+Arrays.toString(remappedLocals));
 			}
 
 		} else {
@@ -290,24 +295,29 @@ public class MethodArgReindexer extends MethodVisitor {
 		}
 
 //		System.out.println("New locals : " + name + desc + ":\t\t" + Arrays.toString(remappedLocals));
+//		System.out.println("Nlocal: " + nLocal);
 		ArrayList<Object> newStack = new ArrayList<Object>();
 		int origNStack = nStack;
 		for (int i = 0; i < origNStack; i++) {
-			if (stack[i] == Opcodes.INTEGER || stack[i] == Opcodes.FLOAT || stack[i] == Opcodes.LONG || stack[i] == Opcodes.DOUBLE) {
-				if (TaintUtils.DEBUG_FRAMES)
-					System.out.println("Adding taint storage for type " + stack[i]);
-				newStack.add(Configuration.TAINT_TAG_STACK_TYPE);
-				nStack++;
-			} else if (stack[i] instanceof String) {
-				Type t = TaintAdapter.getTypeForStackType(stack[i]);
-				if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-					if (TaintUtils.DEBUG_FRAMES)
-						System.out.println("Adding taint storage for type " + stack[i]);
-					newStack.add(TaintUtils.getShadowTaintTypeForFrame(t.getDescriptor()));
+			if(stack[i] instanceof TaggedValue)
+			{
+				Object o = ((TaggedValue) stack[i]).v;
+				if(o instanceof String || o == Opcodes.NULL)
+				{
+					if(o == Opcodes.NULL)
+						newStack.add(Opcodes.NULL);
+					else
+						newStack.add(TaintUtils.getShadowTaintTypeForFrame((String)(o)));
 					nStack++;
 				}
+				else
+				{
+					newStack.add(Configuration.TAINT_TAG_STACK_TYPE);
+					nStack++;
+				}
+				newStack.add(stack[i]);
 			}
-			if (stack[i] != Opcodes.TOP && stack[i] instanceof String && ((String) stack[i]).charAt(1) == '[' && Type.getObjectType((String) stack[i]).getElementType().getSort() != Type.OBJECT) {
+			else if (stack[i] != Opcodes.TOP && stack[i] instanceof String && ((String) stack[i]).charAt(1) == '[' && Type.getObjectType((String) stack[i]).getElementType().getSort() != Type.OBJECT) {
 				newStack.add(MultiDTaintedArray.getTypeForType(Type.getObjectType((String) stack[i])).getInternalName());
 			} else
 				newStack.add(stack[i]);

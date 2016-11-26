@@ -64,13 +64,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					throw new UnsupportedOperationException();
 				}
 			} else {
-				mv.visitInsn(SWAP);
-				mv.visitInsn(POP);//drop the tag of the array length
 				mv.visitIntInsn(opcode, arg);
-				mv.visitTypeInsn(NEW, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
-				mv.visitInsn(DUP);
-				mv.visitMethodInsn(INVOKESPECIAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "<init>", "()V", false);
-				mv.visitInsn(SWAP);
 			}
 			break;
 
@@ -109,7 +103,6 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				} else {
 					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
 							+ Configuration.TAINT_TAG_DESC, false);
-					mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
 				}
 			} else {
 				if (Configuration.DATAFLOW_TRACKING)
@@ -503,8 +496,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 						mv.visitInsn(SWAP);
 						mv.visitInsn(POP);
 						mv.visitInsn(DUP);
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)"+Configuration.TAINT_TAG_DESC, false);
 						mv.visitInsn(SWAP);
 					}
 					else
@@ -522,8 +514,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					mv.visitInsn(DUP);
 					if(Configuration.MULTI_TAINTING && Configuration.IMPLICIT_TRACKING)
 					{
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)"+Configuration.TAINT_TAG_DESC, false);
 					}
 					else
 					{
@@ -561,23 +552,24 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				break;
 			case Opcodes.IFNULL:
 			case Opcodes.IFNONNULL:
-				Type typeOnStack = ta.getTopOfStackType();
-				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT && typeOnStack.getDimensions() == 1) {
-					//O1 T1
-					mv.visitInsn(SWAP);
-					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-					mv.visitInsn(SWAP);
-					mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
-					mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
-				} else {
-					mv.visitInsn(DUP);
-					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-					mv.visitInsn(SWAP);
-					mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
-					mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
-				}
+//				Type typeOnStack = ta.getTopOfStackType();
+//				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT && typeOnStack.getDimensions() == 1) {
+//					//O1 T1
+//					mv.visitInsn(SWAP);
+//					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+//					mv.visitInsn(SWAP);
+//					mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
+//					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
+//					mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
+//				} else {
+//					mv.visitInsn(DUP);
+//					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+//					mv.visitInsn(SWAP);
+//					mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
+//					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
+//					mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
+//				}
+//				mv.visitJumpInsn(opcode, label);
 				mv.visitJumpInsn(opcode, label);
 				break;
 			case Opcodes.IF_ICMPEQ:
@@ -613,19 +605,27 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				break;
 			case Opcodes.IF_ACMPNE:
 			case Opcodes.IF_ACMPEQ:
-				typeOnStack = ta.getTopOfStackType();
-				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
-					mv.visitInsn(SWAP);
-					mv.visitInsn(POP);
-				}
-				//O1 O2 (t2?)
-				Type secondOnStack = ta.getStackTypeAtOffset(1);
-				if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT) {
-					//O1 O2 T2
-					mv.visitInsn(DUP2_X1);
-					mv.visitInsn(POP2);
-					mv.visitInsn(POP);
-				}
+//				typeOnStack = ta.getTopOfStackType();
+//				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
+//					mv.visitInsn(SWAP);
+//					mv.visitInsn(POP);
+//				}
+//				//O1 O2 (t2?)
+//				Type secondOnStack = ta.getStackTypeAtOffset(1);
+//				if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT) {
+//					//O1 O2 T2
+//					mv.visitInsn(DUP2_X1);
+//					mv.visitInsn(POP2);
+//					mv.visitInsn(POP);
+//				}
+//				if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
+//				{
+//					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+//					mv.visitInsn(SWAP);
+//					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+//					mv.visitInsn(SWAP);
+//				}
+//				mv.visitJumpInsn(opcode, label);
 				if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
 				{
 					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
@@ -634,6 +634,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					mv.visitInsn(SWAP);
 				}
 				mv.visitJumpInsn(opcode, label);
+
 				break;
 			case Opcodes.GOTO:
 				mv.visitJumpInsn(opcode, label);
@@ -649,11 +650,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			case Opcodes.IFGE:
 			case Opcodes.IFGT:
 			case Opcodes.IFLE:
-				//top is val, taint
-				mv.visitInsn(SWAP);
-				mv.visitInsn(POP);
 				mv.visitJumpInsn(opcode, label);
-
 				break;
 			case Opcodes.IF_ICMPEQ:
 			case Opcodes.IF_ICMPNE:
@@ -661,32 +658,10 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			case Opcodes.IF_ICMPGE:
 			case Opcodes.IF_ICMPGT:
 			case Opcodes.IF_ICMPLE:
-				//top is val, taint, val, taint
-				mv.visitInsn(SWAP);
-				mv.visitInsn(POP);
-				//val, val, taint
-				mv.visitInsn(DUP2_X1);
-				mv.visitInsn(POP2);
-				mv.visitInsn(POP);
 				mv.visitJumpInsn(opcode, label);
-
 				break;
 			case Opcodes.IF_ACMPEQ:
 			case Opcodes.IF_ACMPNE:
-
-				Type typeOnStack = ta.getTopOfStackType();
-				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
-					mv.visitInsn(SWAP);
-					mv.visitInsn(POP);
-				}
-				//O1 O2 (t2?)
-				Type secondOnStack = ta.getStackTypeAtOffset(1);
-				if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT) {
-					//O1 O2 T2
-					mv.visitInsn(DUP2_X1);
-					mv.visitInsn(POP2);
-					mv.visitInsn(POP);
-				}
 				if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
 				{
 					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
@@ -702,15 +677,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				break;
 			case Opcodes.IFNULL:
 			case Opcodes.IFNONNULL:
-
-				typeOnStack = ta.getTopOfStackType();
-				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
-					//O1 T1
-					mv.visitInsn(SWAP);
-					mv.visitInsn(POP);
-				}
 				mv.visitJumpInsn(opcode, label);
-
 				break;
 			default:
 				throw new IllegalArgumentException();
@@ -737,8 +704,6 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				//TL A A
 				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 			} else {
-				mv.visitInsn(SWAP);//We should just drop the taint for the size of the new array
-				mv.visitInsn(POP);
 				Type t = Type.getType(type);
 				if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
 					//e.g. [I for a 2 D array -> MultiDTaintedIntArray
@@ -758,7 +723,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
 				if (t.getDimensions() > 1) {
 					type = MultiDTaintedArray.getTypeForType(t).getDescriptor();
-				} else if (!ta.topStackElCarriesTaints()) {
+				} else if (!ta.topCarriesTaint()) {
 					doIOR = true;
 					//Maybe we have it boxed on the stack, maybe we don't - how do we know? Who cares, just check both...
 					mv.visitInsn(DUP);
@@ -766,50 +731,34 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					mv.visitInsn(SWAP);
 				}
 			}
-			if (ta.ignoreLoadingNextTaint) {
-			  if(ta.topStackElCarriesTaints())
-			  {
-			    mv.visitInsn(SWAP);
-			    mv.visitInsn(POP);
-			  }
-				mv.visitTypeInsn(opcode, type);
-				if (doIOR)
-					mv.visitInsn(IOR);
-				return;
-			}
 			{
 				boolean loaded = false;
-				if (ta.topStackElCarriesTaints()) {
-					loaded = true;
-					//TA A
-					mv.visitInsn(SWAP);
-					if (Configuration.MULTI_TAINTING) {
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-					} else
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
-					mv.visitInsn(SWAP);
-				}
-				if (!loaded) {
-					mv.visitInsn(DUP);
-				}
+//				if (ta.topStackElCarriesTaints()) {
+//					loaded = true;
+//					//TA A
+//					mv.visitInsn(SWAP);
+//					if (Configuration.MULTI_TAINTING) {
+//						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+//						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+//					} else
+//						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
+//					mv.visitInsn(SWAP);
+//				}
+//				if (!loaded) {
+//					mv.visitInsn(DUP);
+//				}
 				mv.visitTypeInsn(opcode, type);
-				if (!loaded) {
-					//O I
-					mv.visitInsn(SWAP);
-					if (Configuration.MULTI_TAINTING) {
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-					} else
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
-					mv.visitInsn(SWAP);
-				}
+//				if (!loaded) {
+//					//O I
+//					mv.visitInsn(SWAP);
+//					if (Configuration.MULTI_TAINTING) {
+//						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+//						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+//					} else
+//						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
+//					mv.visitInsn(SWAP);
+//				}
 				if (doIOR) {
-					//I T I
-					mv.visitInsn(SWAP);
-					//I I T
-					mv.visitInsn(DUP_X2);
-					mv.visitInsn(POP);
 					mv.visitInsn(IOR);
 				}
 
@@ -836,11 +785,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					}
 					//cast of Object[] or Object to char[] or int[] etc.
 					if (o == Opcodes.NULL) {
-						mv.visitInsn(ACONST_NULL);
-						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME);
+						mv.visitInsn(SWAP);
+						mv.visitTypeInsn(CHECKCAST, MultiDTaintedArray.getTypeForType(t).getInternalName());
 						mv.visitInsn(SWAP);
 					} else
+					{
+						Type wrap = MultiDTaintedArray.getTypeForType(t);
+						mv.visitTypeInsn(CHECKCAST, wrap.getInternalName());
 						ta.retrieveTaintedArray(type);
+					}
 					mv.visitTypeInsn(opcode, type);
 				}
 				//			} else if (t.getSort() == Type.ARRAY && t.getElementType().getSort() == Type.OBJECT) {
@@ -866,7 +819,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					//Casting array to non-array type
 
 					//Register the taint array for later.
-					ta.registerTaintedArray(ta.getTopOfStackType().getDescriptor());
+					ta.registerTaintedArray();
 				}
 				mv.visitTypeInsn(opcode, type);
 			}

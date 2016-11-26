@@ -18,7 +18,6 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 	}
 
 	int tmpInt = -1;;
-	boolean ignoreLoadingTaint;
 
 	@Override
 	public void visitVarInsn(int opcode, int var) {
@@ -66,8 +65,6 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 	boolean followedByFrame = false;
 	@Override
 	public void visitInsn(int opcode) {
-		if (opcode == TaintUtils.DONT_LOAD_TAINT)
-			ignoreLoadingTaint = !ignoreLoadingTaint;
 		if(opcode == TaintUtils.FOLLOWED_BY_FRAME)
 			followedByFrame = true;
 		else if(followedByFrame)
@@ -77,10 +74,6 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
-		if (ignoreLoadingTaint) {
-			super.visitMethodInsn(opcode, owner, name, desc, itfc);
-			return;
-		}
 		int nArgs = Type.getArgumentTypes(desc).length;
 		boolean argIsStr = false;
 		for (Type t : Type.getArgumentTypes(desc))

@@ -2,36 +2,37 @@ package edu.columbia.cs.psl.phosphor;
 
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodInsnNode;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
+
+import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
@@ -100,70 +101,70 @@ public abstract class SourceSinkManager {
 			{
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteWithObjTag.class)))
 					return "B";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteArrayWithObjTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyByteArrayObjTags.class)))
 					return "[B";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanWithObjTag.class)))
 					return "Z";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanArrayWithObjTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyBooleanArrayObjTags.class)))
 					return "[Z";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharWithObjTag.class)))
 					return "C";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharArrayWithObjTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyCharArrayObjTags.class)))
 					return "[C";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleWithObjTag.class)))
 					return "D";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleArrayWithObjTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyDoubleArrayObjTags.class)))
 					return "[D";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntWithObjTag.class)))
 					return "I";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntArrayWithObjTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyIntArrayObjTags.class)))
 					return "[I";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatWithObjTag.class)))
 					return "F";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatArrayWithObjTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyFloatArrayObjTags.class)))
 					return "[F";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongWithObjTag.class)))
 					return "J";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongArrayWithObjTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyLongArrayObjTags.class)))
 					return "[J";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortWithObjTag.class)))
 					return "S";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortArrayWithObjTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyShortArrayObjTags.class)))
 					return "[S";
 			}
 			else
 			{
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteWithIntTag.class)))
 					return "B";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteArrayWithIntTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyByteArrayIntTags.class)))
 					return "[B";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanWithIntTag.class)))
 					return "Z";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanArrayWithIntTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyBooleanArrayIntTags.class)))
 					return "[Z";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharWithIntTag.class)))
 					return "C";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharArrayWithIntTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyCharArrayIntTags.class)))
 					return "[C";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleWithIntTag.class)))
 					return "D";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleArrayWithIntTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyDoubleArrayIntTags.class)))
 					return "[D";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntWithIntTag.class)))
 					return "I";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntArrayWithIntTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyIntArrayIntTags.class)))
 					return "[I";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatWithIntTag.class)))
 					return "F";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatArrayWithIntTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyFloatArrayIntTags.class)))
 					return "[F";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongWithIntTag.class)))
 					return "J";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongArrayWithIntTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyLongArrayIntTags.class)))
 					return "[J";
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortWithIntTag.class)))
 					return "S";
-				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortArrayWithIntTag.class)))
+				if (returnType.getInternalName().equals(Type.getInternalName(LazyShortArrayIntTags.class)))
 					return "[S";
 			}
 		}

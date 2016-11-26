@@ -1,10 +1,16 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import java.util.HashMap;
+import java.util.HashSet;
+
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
+
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class SpecialOpcodeRemovingMV extends MethodVisitor {
@@ -19,13 +25,39 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 		this.clazz = clazz;
 		this.fixLdcClass = fixLdcClass;
 	}
-
+//
+//	HashSet<Label> usedLabels = new HashSet<Label>();
+//	HashSet<Label> definedLabels = new HashSet<Label>();
+//	HashMap<Label, IllegalStateException> users = new HashMap<Label, IllegalStateException>();
+//	@Override
+//	public void visitJumpInsn(int opcode, Label label) {
+//usedLabels.add(label);
+//IllegalStateException e  =new IllegalStateException();
+//e.fillInStackTrace();
+//users.put(label,e);
+//		super.visitJumpInsn(opcode, label);
+//	}
+//	@Override
+//	public void visitLabel(Label label) {
+//		definedLabels.add(label);
+//		super.visitLabel(label);
+//	}
+//	@Override
+//	public void visitMaxs(int maxStack, int maxLocals) {
+//		for(Label l: usedLabels)
+//		{
+//			if(!definedLabels.contains(l))
+//				throw users.get(l);
+//		}
+//		super.visitMaxs(maxStack, maxLocals);
+//	}
 	@Override
 	public void visitVarInsn(int opcode, int var) {
 		switch (opcode) {
 		case TaintUtils.BRANCH_END:
 		case TaintUtils.BRANCH_START:
 		case TaintUtils.FORCE_CTRL_STORE:
+		case TaintUtils.ALWAYS_AUTOBOX:
 			break;
 		default:
 			super.visitVarInsn(opcode, var);
@@ -46,8 +78,21 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
 		if (type == TaintUtils.RAW_INSN)
 			type = Opcodes.F_NEW;
+		//At this point, make sure that there are no TaggedValue's sitting around.
+		Object[] newLocal = new Object[local.length];
+		Object[] newStack = new Object[stack.length];
+		for(int i = 0; i< local.length;i++)
+			if(local[i] instanceof TaggedValue)
+				newLocal[i] = ((TaggedValue)local[i]).v;
+			else
+				newLocal[i] = local[i];
+		for(int i = 0; i< stack.length;i++)
+			if(stack[i] instanceof TaggedValue)
+				newStack[i] = ((TaggedValue)stack[i]).v;
+			else
+				newStack[i] = stack[i];
 		if (!ignoreFrames)
-			super.visitFrame(type, nLocal, local, nStack, stack);
+			super.visitFrame(type, nLocal, newLocal, nStack, newStack);
 	}
 
 	@Override
@@ -70,14 +115,13 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 		case TaintUtils.RAW_INSN:
 		case TaintUtils.NO_TAINT_STORE_INSN:
 		case TaintUtils.IGNORE_EVERYTHING:
-		case TaintUtils.DONT_LOAD_TAINT:
-		case TaintUtils.GENERATETAINT:
 		case TaintUtils.IS_TMP_STORE:
 		case TaintUtils.ALWAYS_BOX_JUMP:
 		case TaintUtils.CUSTOM_SIGNAL_1:
 		case TaintUtils.CUSTOM_SIGNAL_2:
 		case TaintUtils.CUSTOM_SIGNAL_3:
 		case TaintUtils.FORCE_CTRL_STORE:
+		case TaintUtils.TRACKED_LOAD:
 			break;
 		default:
 			super.visitInsn(opcode);

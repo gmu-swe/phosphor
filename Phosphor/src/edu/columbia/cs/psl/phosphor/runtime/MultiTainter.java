@@ -2,21 +2,22 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
@@ -208,68 +209,68 @@ public final class MultiTainter {
 		ret.val = in;
 		return ret;
 	}
-	public static TaintedBooleanArrayWithObjTag taintedBooleanArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, boolean[] in, Object lbl, TaintedBooleanArrayWithObjTag ret)
+	public static LazyBooleanArrayObjTags taintedBooleanArray$$PHOSPHORTAGGED(LazyBooleanArrayObjTags ret, boolean[] in, Object lbl)
 	{
-		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+		if(ret.taints == null)
+			ret.taints = new Taint[in.length];
 		for(int i =0 ; i < in.length; i++)
-			ret.taint.taints[i] = new Taint(lbl);
-		ret.val = in;
+			ret.taints[i] = new Taint(lbl);
 		return ret;
 	}
-	public static TaintedByteArrayWithObjTag taintedByteArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, byte[] in, Object lbl, TaintedByteArrayWithObjTag ret)
+	public static LazyByteArrayObjTags taintedByteArray$$PHOSPHORTAGGED(LazyByteArrayObjTags ret, byte[] in, Object lbl)
 	{
-		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+		if(ret.taints == null)
+			ret.taints = new Taint[in.length];
 		for(int i =0 ; i < in.length; i++)
-			ret.taint.taints[i] = new Taint(lbl);
-		ret.val = in;
+			ret.taints[i] = new Taint(lbl);
 		return ret;
 	}
-	public static TaintedCharArrayWithObjTag taintedCharArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, char[] in, Object lbl, TaintedCharArrayWithObjTag ret)
+	public static LazyCharArrayObjTags taintedCharArray$$PHOSPHORTAGGED(LazyCharArrayObjTags ret, char[] in, Object lbl)
 	{
-		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+		if(ret.taints == null)
+			ret.taints = new Taint[in.length];
 		for(int i =0 ; i < in.length; i++)
-			ret.taint.taints[i] = new Taint(lbl);
-		ret.val = in;
+			ret.taints[i] = new Taint(lbl);
 		return ret;
 	}
-	public static TaintedDoubleArrayWithObjTag taintedDoubleArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, double[] in, Object lbl, TaintedDoubleArrayWithObjTag ret)
+	public static LazyDoubleArrayObjTags taintedDoubleArray$$PHOSPHORTAGGED(LazyDoubleArrayObjTags ret, double[] in, Object lbl)
 	{
-		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+		if(ret.taints == null)
+			ret.taints = new Taint[in.length];
 		for(int i =0 ; i < in.length; i++)
-			ret.taint.taints[i] = new Taint(lbl);
-		ret.val = in;
+			ret.taints[i] = new Taint(lbl);
 		return ret;
 	}
-	public static TaintedFloatArrayWithObjTag taintedFloatArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, float[] in, Object lbl, TaintedFloatArrayWithObjTag ret)
+	public static LazyFloatArrayObjTags taintedFloatArray$$PHOSPHORTAGGED(LazyFloatArrayObjTags ret, float[] in, Object lbl)
 	{
-		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+		if(ret.taints == null)
+			ret.taints = new Taint[in.length];
 		for(int i =0 ; i < in.length; i++)
-			ret.taint.taints[i] = new Taint(lbl);
-		ret.val = in;
+			ret.taints[i] = new Taint(lbl);
 		return ret;
 	}
-	public static TaintedIntArrayWithObjTag taintedIntArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, int[] in, Object lbl, TaintedIntArrayWithObjTag ret)
+	public static LazyIntArrayObjTags taintedIntArray$$PHOSPHORTAGGED(LazyIntArrayObjTags ret, int[] in, Object lbl)
 	{
-		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+		if(ret.taints == null)
+			ret.taints = new Taint[in.length];
 		for(int i =0 ; i < in.length; i++)
-			ret.taint.taints[i] = new Taint(lbl);
-		ret.val = in;
+			ret.taints[i] = new Taint(lbl);
 		return ret;
 	}
-	public static TaintedShortArrayWithObjTag taintedShortArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, short[] in, Object lbl, TaintedShortArrayWithObjTag ret)
+	public static LazyShortArrayObjTags taintedShortArray$$PHOSPHORTAGGED(LazyShortArrayObjTags ret, short[] in, Object lbl)
 	{
-		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+		if(ret.taints == null)
+			ret.taints = new Taint[in.length];
 		for(int i =0 ; i < in.length; i++)
-			ret.taint.taints[i] = new Taint(lbl);
-		ret.val = in;
+			ret.taints[i] = new Taint(lbl);
 		return ret;
 	}
-	public static TaintedLongArrayWithObjTag taintedLongArray$$PHOSPHORTAGGED(LazyArrayObjTags oldTag, long[] in, Object lbl, TaintedLongArrayWithObjTag ret)
+	public static LazyLongArrayObjTags taintedLongArray$$PHOSPHORTAGGED(LazyLongArrayObjTags ret, long[] in, Object lbl)
 	{
-		ret.taint = new LazyArrayObjTags(new Taint[in.length]);
+		if(ret.taints == null)
+			ret.taints = new Taint[in.length];
 		for(int i =0 ; i < in.length; i++)
-			ret.taint.taints[i] = new Taint(lbl);
-		ret.val = in;
+			ret.taints[i] = new Taint(lbl);
 		return ret;
 	}
 	public static Taint getTaint$$PHOSPHORTAGGED(Object obj)

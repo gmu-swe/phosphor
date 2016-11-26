@@ -3,6 +3,8 @@ package edu.columbia.cs.psl.phosphor.struct;
 import java.io.IOException;
 import java.io.Serializable;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
 public final class TaintedIntWithObjTag extends TaintedPrimitiveWithObjTag implements Serializable {
 
 	/**
@@ -17,7 +19,7 @@ public final class TaintedIntWithObjTag extends TaintedPrimitiveWithObjTag imple
 
 	private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
 		val = stream.readInt();
-		taint = stream.readObject();
+		taint = (Taint) stream.readObject();
 	}
 
 	@Override
@@ -37,13 +39,13 @@ public final class TaintedIntWithObjTag extends TaintedPrimitiveWithObjTag imple
 			cache[k] = new TaintedIntWithObjTag(null, j++);
 	}
 
-	public static final TaintedIntWithObjTag valueOf(Object taint, int val) {
+	public static final TaintedIntWithObjTag valueOf(Taint taint, int val) {
 		if (taint == null && val >= cache_low && val <= cache_high)
 			return cache[val + (-cache_low)];
 		return new TaintedIntWithObjTag(taint, val);
 	}
 
-	public TaintedIntWithObjTag(Object taint, int val) {
+	public TaintedIntWithObjTag(Taint taint, int val) {
 		this.taint = taint;
 		this.val = val;
 	}

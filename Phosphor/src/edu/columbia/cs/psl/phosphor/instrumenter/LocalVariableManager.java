@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -434,8 +435,9 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         }
       
         ArrayList<Object> locals = new ArrayList<Object>();
-        for(Object o : local)
+        for(int i =0;i<nLocal; i++)
         {
+        	Object o =local[i];
         	locals.add(o);
         	if(o == Opcodes.DOUBLE || o == Opcodes.LONG)
         		locals.add(Opcodes.TOP);
@@ -463,7 +465,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         
         // copies types from 'local' to 'newLocals'
         // 'newLocals' currently empty
-
+//        System.out.println("1"+locals);
         if(!disabled)
         for(Entry<Type, Integer> t : preAllocedReturnTypes.entrySet())
         {
@@ -481,6 +483,9 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         int number = 0; // old local variable number
         for (; number < nLocal; ++number) {
             Object t = local[number];
+            boolean hasTaint = t instanceof TaggedValue;
+            if(hasTaint)
+            	t = ((TaggedValue) t).v;
             int size = t == Opcodes.LONG || t == Opcodes.DOUBLE ? 2 : 1;
             if (t != Opcodes.TOP) {
                 Type typ = OBJECT_TYPE;
@@ -497,15 +502,28 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
                 }
                 setFrameLocal(remap(index, typ), t);
                 Object shadowType = null;
-            	if(t instanceof Integer && t != Opcodes.NULL && t != Opcodes.UNINITIALIZED_THIS)
+            	if(hasTaint && t instanceof Integer && t != Opcodes.NULL && t != Opcodes.UNINITIALIZED_THIS)
             	{
             		shadowType = Configuration.TAINT_TAG_STACK_TYPE;
             	}
-            	else if(t instanceof String)
+            	else if(hasTaint && t instanceof String)
             	{
             		Type _t = Type.getObjectType((String) t);
             		if(_t.getSort() == Type.ARRAY && _t.getDimensions() == 1 && _t.getElementType().getSort() != Type.OBJECT)
-            			shadowType = Configuration.TAINT_TAG_ARRAY_STACK_TYPE;
+            			shadowType = TaintUtils.getShadowTaintTypeForFrame(_t.getDescriptor());
+            	}
+            	if(!disabled && !hasTaint)
+            	{
+            		int newVar = remap(index, typ);
+            		int shadowVar = 0;
+					if (newVar > lastArg) {
+						if (varToShadowVar.containsKey(newVar))
+						{
+							shadowVar = varToShadowVar.get(newVar);
+							setFrameLocal(shadowVar, Opcodes.TOP);
+						}
+					}
+
             	}
             	if(!disabled && shadowType != null)
             	{
@@ -544,7 +562,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 						else if(t instanceof String && oldT.getSort() != Type.ARRAY && oldT.getSort() != Type.OBJECT)
 						{
 							//Had shadow int, need shadow array
-							setFrameLocal(index-1, Configuration.TAINT_TAG_ARRAY_STACK_TYPE);
+
+							setFrameLocal(index-1, TaintUtils.getShadowTaintTypeForFrame((String)t));
 						}
 						else
 						{
@@ -589,6 +608,11 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
                 newLocals[i] = Opcodes.TOP;
             }
 
+        }
+        for(int i = 0; i < newLocals.length; i++)
+        {
+        	if(newLocals[i] instanceof TaggedValue)
+        		newLocals[i] = ((TaggedValue) newLocals[i]).v;
         }
         // visits remapped frame
         mv.visitFrame(type, number, newLocals, nStack, stack);

@@ -5,11 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 
-import edu.columbia.cs.psl.phosphor.instrumenter.ConstantValueNullTaintGenerator;
-import edu.columbia.cs.psl.phosphor.instrumenter.ImplicitUnnecessaryTaintLoadRemover;
-import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
-import edu.columbia.cs.psl.phosphor.instrumenter.UnnecessaryTaintLoadRemover;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -17,6 +12,9 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
+
+import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 
 public class DebugPrinter {
 	public static void main(String[] args) throws Exception {
@@ -64,9 +62,9 @@ public class DebugPrinter {
 				mv = an;
 				//				ConstantValueNullTaintGenerator ctvn = new ConstantValueNullTaintGenerator(className, access, name, desc, signature, exceptions, mv);
 				//				mv = ctvn;
-				if (!Configuration.IMPLICIT_TRACKING)
-					mv = new UnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, mv);
-				mv = new ImplicitUnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, mv);
+//				if (!Configuration.IMPLICIT_TRACKING)
+//					mv = new UnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, mv);
+//				mv = new ImplicitUnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, mv);
 
 				return mv;
 			}

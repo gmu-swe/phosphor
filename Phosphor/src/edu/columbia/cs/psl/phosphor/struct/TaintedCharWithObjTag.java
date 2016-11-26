@@ -3,6 +3,8 @@ package edu.columbia.cs.psl.phosphor.struct;
 import java.io.IOException;
 import java.io.Serializable;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
 public final class TaintedCharWithObjTag extends TaintedPrimitiveWithObjTag implements Serializable{
 	/**
 	 * 
@@ -15,7 +17,7 @@ public final class TaintedCharWithObjTag extends TaintedPrimitiveWithObjTag impl
 
 	private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
 		val = stream.readChar();
-		taint = stream.readObject();
+		taint = (Taint) stream.readObject();
 	}
 	@Override
 	public Object getValue() {
@@ -31,14 +33,14 @@ public final class TaintedCharWithObjTag extends TaintedPrimitiveWithObjTag impl
 			cache[i] = new TaintedCharWithObjTag(null, (char) i);
 	}
 
-	public static final TaintedCharWithObjTag valueOf(Object taint, char val) {
+	public static final TaintedCharWithObjTag valueOf(Taint taint, char val) {
 		if (taint == null && val <= 127) {
 			return cache[(int) val];
 		}
 		return new TaintedCharWithObjTag(taint, val);
 	}
 
-	public TaintedCharWithObjTag(Object taint, char val) {
+	public TaintedCharWithObjTag(Taint taint, char val) {
 		this.taint = taint;
 		this.val = val;
 	}

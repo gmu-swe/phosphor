@@ -4,6 +4,8 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.Textifier;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
+
 
 public class PhosphorTextifier extends Textifier {
 	static String[] MORE_OPCODES;
@@ -12,11 +14,11 @@ public class PhosphorTextifier extends Textifier {
 		MORE_OPCODES[1] = "RAW_INSN";
 		MORE_OPCODES[2] = "NOSTORE";
 		MORE_OPCODES[3] = "IGNORE";
-		MORE_OPCODES[4] = "NO_UNBOX";
-		MORE_OPCODES[5] = "NO_LOAD_TAINT";
-		MORE_OPCODES[6] = "GENERATETAITN";
-		MORE_OPCODES[7] = "NEXTLOADTAINTED";
-		MORE_OPCODES[8] = "NEXTLOADNOTTAINT";
+		MORE_OPCODES[4] = "NEXT_FORCE_TAINT";
+		MORE_OPCODES[5] = "DUP_TAINT_TO_0";
+		MORE_OPCODES[6] = "DUP_TAINT_TO_1";
+		MORE_OPCODES[7] = "DUP_TAINT_TO_2";
+		MORE_OPCODES[8] = "DUP_TAINT_TO_3";
 		MORE_OPCODES[9] = "NO AUTOBOX";
 		MORE_OPCODES[10] = "AUTOBOX";
 		MORE_OPCODES[11] = "BOX_JMP";
@@ -77,7 +79,119 @@ public class PhosphorTextifier extends Textifier {
 			super.visitInsn(opcode);
 	}
 
-	
+	public void visitFrame(final int type, final int nLocal, final Object[] local, final int nStack, final Object[] stack) {
+		buf.setLength(0);
+		buf.append(ltab);
+		buf.append("FRAME ");
+		switch (type) {
+		case Opcodes.F_NEW:
+		case Opcodes.F_FULL:
+			buf.append("FULL [");
+			appendFrameTypes(nLocal, local);
+			buf.append("] [");
+			appendFrameTypes(nStack, stack);
+			buf.append(']');
+			break;
+		case Opcodes.F_APPEND:
+			buf.append("APPEND [");
+			appendFrameTypes(nLocal, local);
+			buf.append(']');
+			break;
+		case Opcodes.F_CHOP:
+			buf.append("CHOP ").append(nLocal);
+			break;
+		case Opcodes.F_SAME:
+			buf.append("SAME");
+			break;
+		case Opcodes.F_SAME1:
+			buf.append("SAME1 ");
+			appendFrameTypes(1, stack);
+			break;
+		}
+		buf.append('\n');
+		text.add(buf.toString());
+	}
+
+	private void appendFrameTypes(final int n, final Object[] o) {
+		for (int i = 0; i < n; ++i) {
+			if (i > 0) {
+				buf.append(' ');
+			}
+			if (o[i] instanceof TaggedValue) {
+				buf.append("TAGGED");
+				if (((TaggedValue) o[i]).v instanceof String) {
+					String desc = (String) ((TaggedValue) o[i]).v;
+
+					if (desc.startsWith("[")) {
+						appendDescriptor(FIELD_DESCRIPTOR, desc);
+					} else {
+						appendDescriptor(INTERNAL_NAME, desc);
+					}
+				}
+				else
+				{
+					switch (((Integer) ((TaggedValue) o[i]).v ).intValue()) {
+					case 0:
+						appendDescriptor(FIELD_DESCRIPTOR, "T");
+						break;
+					case 1:
+						appendDescriptor(FIELD_DESCRIPTOR, "I");
+						break;
+					case 2:
+						appendDescriptor(FIELD_DESCRIPTOR, "F");
+						break;
+					case 3:
+						appendDescriptor(FIELD_DESCRIPTOR, "D");
+						break;
+					case 4:
+						appendDescriptor(FIELD_DESCRIPTOR, "J");
+						break;
+					case 5:
+						appendDescriptor(FIELD_DESCRIPTOR, "N");
+						break;
+					case 6:
+						appendDescriptor(FIELD_DESCRIPTOR, "U");
+						break;
+					}
+				}
+
+			} else if (o[i] instanceof String) {
+				String desc = (String) o[i];
+				if (desc.startsWith("[")) {
+					appendDescriptor(FIELD_DESCRIPTOR, desc);
+				} else {
+					appendDescriptor(INTERNAL_NAME, desc);
+				}
+			} else if (o[i] instanceof Integer) {
+				switch (((Integer) o[i]).intValue()) {
+				case 0:
+					appendDescriptor(FIELD_DESCRIPTOR, "T");
+					break;
+				case 1:
+					appendDescriptor(FIELD_DESCRIPTOR, "I");
+					break;
+				case 2:
+					appendDescriptor(FIELD_DESCRIPTOR, "F");
+					break;
+				case 3:
+					appendDescriptor(FIELD_DESCRIPTOR, "D");
+					break;
+				case 4:
+					appendDescriptor(FIELD_DESCRIPTOR, "J");
+					break;
+				case 5:
+					appendDescriptor(FIELD_DESCRIPTOR, "N");
+					break;
+				case 6:
+					appendDescriptor(FIELD_DESCRIPTOR, "U");
+					break;
+				}
+			} else {
+				appendLabel((Label) o[i]);
+			}
+		}
+	}
+
 	@Override
 	public void visitIntInsn(int opcode, int operand) {
 		if (opcode > 200) {

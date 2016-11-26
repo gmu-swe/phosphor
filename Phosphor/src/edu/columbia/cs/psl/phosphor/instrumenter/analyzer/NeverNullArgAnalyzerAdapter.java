@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -90,6 +91,8 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
      * instructions.
      */
     public List<Object> stack;
+    public List<Object> stackTagStatus;
+
     public List<Object> stackConstantVals;
 
     
@@ -174,6 +177,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         locals = new ArrayList<Object>();
         frameLocals = new ArrayList<Object>();
         stack = new ArrayList<Object>();
+        stackTagStatus = new ArrayList<Object>();
         stackConstantVals = new ArrayList<Object>();
         uninitializedTypes = new HashMap<Object, Object>();
         args = new ArrayList<Object>();
@@ -247,15 +251,23 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             this.locals.clear();
             this.stack.clear();
             this.stackConstantVals.clear();
+            this.stackTagStatus.clear();
         } else {
         	this.frameLocals = new ArrayList<Object>();
             this.locals = new ArrayList<Object>();
             this.stack = new ArrayList<Object>();
+            this.stackTagStatus = new ArrayList<Object>();
             this.stackConstantVals = new ArrayList<Object>(nStack);
         }
         visitFrameTypes(nLocal, local, this.frameLocals);
         visitFrameTypes(nLocal, local, this.locals);
         visitFrameTypes(nStack, stack, this.stack);
+        for(int i = 0; i < this.stack.size(); i++)
+        {
+        	this.stackTagStatus.add(this.stack.get(i));
+        	if(this.stack.get(i) instanceof TaggedValue)
+        		this.stack.set(i,((TaggedValue) this.stack.get(i)).v);
+        }
         while(this.stack.size() > this.stackConstantVals.size())
         	this.stackConstantVals.add(null);
         maxStack = Math.max(maxStack, this.stack.size());
@@ -268,12 +280,30 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             if(type.equals("java/lang/Object;"))
             	throw new IllegalArgumentException("Got " + type + " IN" + Arrays.toString(types));
             result.add(type);
+            if(type instanceof TaggedValue)
+            	type = ((TaggedValue) type).v;
             if (type == Opcodes.LONG || type == Opcodes.DOUBLE) {
                 result.add(Opcodes.TOP);
             }
         }
     }
 
+    public boolean isTopOfStackTagged()
+    {
+    	if(stackTagStatus.get(stackTagStatus.size() - 1) == Opcodes.TOP)
+        	return stackTagStatus.get(stackTagStatus.size() - 2) instanceof TaggedValue;
+    	else
+        	return stackTagStatus.get(stackTagStatus.size() - 1) instanceof TaggedValue;
+    }
+    
+    public void setTopOfStackTagged()
+    {
+    	if(stackTagStatus.get(stackTagStatus.size() - 1) == Opcodes.TOP)
+        	stackTagStatus.set(stackTagStatus.size() - 2, new TaggedValue(stackTagStatus.get(stackTagStatus.size() - 2)));
+    	else
+    		stackTagStatus.set(stackTagStatus.size() - 1, new TaggedValue(stackTagStatus.get(stackTagStatus.size() - 1)));
+    }
+    
     @Override
     public void visitInsn(final int opcode) {
 
@@ -376,6 +406,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
                   for (int i = 0; i < stack.size(); ++i) {
                       if (stack.get(i) == t) {
                           stack.set(i, u);
+                          stackTagStatus.set(i, u);
                           stackConstantVals.set(i, null);
                       }
                   }
@@ -437,28 +468,28 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             return;
         }
         if (cst instanceof Integer) {
-            push(Opcodes.INTEGER,cst);
+            push(Opcodes.INTEGER,cst,false);
         } else if (cst instanceof Long) {
-            push(Opcodes.LONG,cst);
+            push(Opcodes.LONG,cst,false);
             push(Opcodes.TOP);
         } else if (cst instanceof Float) {
-            push(Opcodes.FLOAT,cst);
+            push(Opcodes.FLOAT,cst,false);
         } else if (cst instanceof Double) {
-            push(Opcodes.DOUBLE,cst);
+            push(Opcodes.DOUBLE,cst,false);
             push(Opcodes.TOP);
         } else if (cst instanceof String) {
-            push("java/lang/String",cst);
+            push("java/lang/String",cst,false);
         } else if (cst instanceof Type) {
             int sort = ((Type) cst).getSort();
             if (sort == Type.OBJECT || sort == Type.ARRAY) {
-                push("java/lang/Class",cst);
+                push("java/lang/Class",cst,false);
             } else if (sort == Type.METHOD) {
-                push("java/lang/invoke/MethodType",cst);
+                push("java/lang/invoke/MethodType",cst,false);
             } else {
                 throw new IllegalArgumentException();
             }
         } else if (cst instanceof Handle) {
-            push("java/lang/invoke/MethodHandle",cst);
+            push("java/lang/invoke/MethodHandle",cst,false);
         } else {
             throw new IllegalArgumentException();
         }
@@ -543,16 +574,19 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     	if(!stackConstantVals.isEmpty())
     		stackConstantVals.set(stackConstantVals.size() - 1, null);
     }
-    private void push(final Object type, final Object val)
-    {
-    	if(type.equals("java/lang/Object;"))
-    		throw new IllegalArgumentException("Got " + type);
-    	 stack.add(type);
-    	 stackConstantVals.add(val);
-         maxStack = Math.max(maxStack, stack.size());    	
-    }
+
+	private void push(Object type, final Object val, final Object tag) {
+		if (type.equals("java/lang/Object;"))
+			throw new IllegalArgumentException("Got " + type);
+		if(type instanceof TaggedValue)
+			type = ((TaggedValue) type).v;
+		stack.add(type);
+		stackConstantVals.add(val);
+		stackTagStatus.add((tag instanceof Boolean ? type : tag));
+		maxStack = Math.max(maxStack, stack.size());
+	}
     private void push(final Object type) {
-       push(type, null);
+       push(type, null,type);
     }
 
     private void pushDesc(final String desc) {
@@ -597,6 +631,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
 
     private Object pop() {
     	stackConstantVals.remove(stackConstantVals.size() - 1);
+    	stackTagStatus.remove(stackTagStatus.size() - 1);
         return stack.remove(stack.size() - 1);
     }
 
@@ -606,6 +641,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         for (int i = size - 1; i >= end; --i) {
             stack.remove(i);
             stackConstantVals.remove(i);
+            stackTagStatus.remove(i);
         }
     }
 
@@ -651,63 +687,63 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             push(Opcodes.NULL);
             break;
         case Opcodes.ICONST_M1:
-        	push(Opcodes.INTEGER,-1);
+        	push(Opcodes.INTEGER,-1,false);
         	break;
         case Opcodes.ICONST_0:
-        	push(Opcodes.INTEGER,0);
+        	push(Opcodes.INTEGER,0,false);
         	break;
         case Opcodes.ICONST_1:
-        	push(Opcodes.INTEGER,1);
+        	push(Opcodes.INTEGER,1,false);
         	break;
         case Opcodes.ICONST_2:
-        	push(Opcodes.INTEGER,2);
+        	push(Opcodes.INTEGER,2,false);
         	break;
         case Opcodes.ICONST_3:
-        	push(Opcodes.INTEGER,3);
+        	push(Opcodes.INTEGER,3,false);
         	break;
         case Opcodes.ICONST_4:
-        	push(Opcodes.INTEGER,4);
+        	push(Opcodes.INTEGER,4,false);
         	break;
         case Opcodes.ICONST_5:
-        	push(Opcodes.INTEGER,5);
+        	push(Opcodes.INTEGER,5,false);
         	break;
         case Opcodes.BIPUSH:
         case Opcodes.SIPUSH:
-            push(Opcodes.INTEGER,iarg);
+            push(Opcodes.INTEGER,iarg,false);
             break;
         case Opcodes.LCONST_0:
-            push(Opcodes.LONG,0L);
+            push(Opcodes.LONG,0L,false);
             push(Opcodes.TOP);
             break;
         case Opcodes.LCONST_1:
-            push(Opcodes.LONG,1L);
+            push(Opcodes.LONG,1L,false);
             push(Opcodes.TOP);
             break;
         case Opcodes.FCONST_0:
-            push(Opcodes.FLOAT,0F);
+            push(Opcodes.FLOAT,0F,false);
             break;
         case Opcodes.FCONST_1:
-            push(Opcodes.FLOAT,1F);
+            push(Opcodes.FLOAT,1F,false);
             break;
         case Opcodes.FCONST_2:
-            push(Opcodes.FLOAT,2F);
+            push(Opcodes.FLOAT,2F,false);
             break;
         case Opcodes.DCONST_0:
-            push(Opcodes.DOUBLE,0D);
+            push(Opcodes.DOUBLE,0D,false);
             push(Opcodes.TOP);
             break;
         case Opcodes.DCONST_1:
-            push(Opcodes.DOUBLE,1D);
+            push(Opcodes.DOUBLE,1D,false);
             push(Opcodes.TOP);
             break;
         case Opcodes.ILOAD:
         case Opcodes.FLOAD:
         case Opcodes.ALOAD:
-            push(get(iarg));
+            push(get(iarg), null, false);
             break;
         case Opcodes.LLOAD:
         case Opcodes.DLOAD:
-            push(get(iarg));
+            push(get(iarg), null, false);
             push(Opcodes.TOP);
             break;
         case Opcodes.IALOAD:
@@ -718,9 +754,14 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             push(Opcodes.INTEGER);
             break;
         case Opcodes.LALOAD:
-        case Opcodes.D2L:
             pop(2);
             push(Opcodes.LONG);
+            push(Opcodes.TOP);
+            break;
+        case Opcodes.D2L:
+        	boolean isTagged = stackTagStatus.get(stackTagStatus.size() - 2) instanceof TaggedValue;
+            pop(2);
+            push(Opcodes.LONG, null, isTagged ? new TaggedValue(Opcodes.LONG) : false);
             push(Opcodes.TOP);
             break;
         case Opcodes.FALOAD:
@@ -728,9 +769,14 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             push(Opcodes.FLOAT);
             break;
         case Opcodes.DALOAD:
-        case Opcodes.L2D:
             pop(2);
             push(Opcodes.DOUBLE);
+            push(Opcodes.TOP);
+            break;
+        case Opcodes.L2D:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 2) instanceof TaggedValue;
+            pop(2);
+            push(Opcodes.DOUBLE, null, isTagged ? new TaggedValue(Opcodes.DOUBLE) : false);
             push(Opcodes.TOP);
             break;
         case Opcodes.AALOAD:
@@ -813,78 +859,95 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             break;
         case Opcodes.DUP:
         	Object z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	Object z2 = stackTagStatus.get(stackTagStatus.size() - 1);
             t1 = pop();
-            push(t1,z);
-            push(t1,z);
+            push(t1,z, z2);
+            push(t1,z, z2);
             break;
         case Opcodes.DUP_X1:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	Object z3 = stackTagStatus.get(stackTagStatus.size() - 1);
             t1 = pop();
-            Object z2 = stackConstantVals.get(stackConstantVals.size() - 1);
+            z2 = stackConstantVals.get(stackConstantVals.size() - 1);
+            Object z4 = stackTagStatus.get(stackTagStatus.size() - 1);
             t2 = pop();
-            push(t1,z);
-            push(t2,z2);
-            push(t1,z);
+            push(t1,z, z3);
+            push(t2,z2, z4);
+            push(t1,z, z3);
             break;
         case Opcodes.DUP_X2:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	z4 = stackTagStatus.get(stackTagStatus.size() - 1);
             t1 = pop();
             z2 = stackConstantVals.get(stackConstantVals.size() - 1);
+            Object z5 = stackTagStatus.get(stackTagStatus.size() - 1);
             t2 = pop();
-            Object z3 = stackConstantVals.get(stackConstantVals.size() - 1);
-            t3 = pop();
-            push(t1,z);
-            push(t3,z3);
-            push(t2,z2);
-            push(t1,z);
-            break;
+            z3 = stackConstantVals.get(stackConstantVals.size() - 1);
+            Object z6 = stackTagStatus.get(stackTagStatus.size() - 1);
+			t3 = pop();
+			push(t1, z, z4);
+			push(t3, z3, z6);
+			push(t2, z2, z5);
+			push(t1, z, z4);
+			break;
         case Opcodes.DUP2:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	z3 = stackTagStatus.get(stackTagStatus.size() - 1);
             t1 = pop();
         	z2 = stackConstantVals.get(stackConstantVals.size() - 1);
-            t2 = pop();
-            push(t2,z2);
-            push(t1,z);
-            push(t2,z2);
-            push(t1,z);
-            break;
+        	z4 = stackTagStatus.get(stackTagStatus.size() - 1);
+			t2 = pop();
+			push(t2, z2, z4);
+			push(t1, z, z3);
+			push(t2, z2, z4);
+			push(t1, z, z3);
+			break;
         case Opcodes.DUP2_X1:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	z4 = stackTagStatus.get(stackTagStatus.size() - 1);
             t1 = pop();
         	z2 = stackConstantVals.get(stackConstantVals.size() - 1);
+        	z5 = stackTagStatus.get(stackTagStatus.size() - 1);
             t2 = pop();
         	z3 = stackConstantVals.get(stackConstantVals.size() - 1);
-            t3 = pop();
-            push(t2,z2);
-            push(t1,z);
-            push(t3,z3);
-            push(t2,z2);
-            push(t1,z);
-            break;
+        	z6 = stackTagStatus.get(stackTagStatus.size() - 1);
+			t3 = pop();
+			push(t2, z2, z5);
+			push(t1, z, z4);
+			push(t3, z3, z6);
+			push(t2, z2, z5);
+			push(t1, z, z4);
+			break;
         case Opcodes.DUP2_X2:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	z5 = stackTagStatus.get(stackTagStatus.size() - 1);
             t1 = pop();
         	z2 = stackConstantVals.get(stackConstantVals.size() - 1);
+        	z6 = stackTagStatus.get(stackTagStatus.size() - 1);
             t2 = pop();
         	z3 = stackConstantVals.get(stackConstantVals.size() - 1);
+        	Object z7 = stackTagStatus.get(stackTagStatus.size() - 1);
             t3 = pop();
-        	Object z4 = stackConstantVals.get(stackConstantVals.size() - 1);
-            t4 = pop();
-            push(t2,z2);
-            push(t1,z);
-            push(t4,z4);
-            push(t3,z3);
-            push(t2,z2);
-            push(t1,z);
-            break;
+        	z4 = stackConstantVals.get(stackConstantVals.size() - 1);
+        	Object z8 = stackTagStatus.get(stackTagStatus.size() - 1);
+			t4 = pop();
+			push(t2, z2, z6);
+			push(t1, z, z5);
+			push(t4, z4, z8);
+			push(t3, z3, z7);
+			push(t2, z2, z6);
+			push(t1, z, z5);
+			break;
         case Opcodes.SWAP:
         	z = stackConstantVals.get(stackConstantVals.size() - 1);
+        	z3 = stackTagStatus.get(stackTagStatus.size() - 1);
             t1 = pop();
         	z2 = stackConstantVals.get(stackConstantVals.size() - 1);
-            t2 = pop();
-            push(t1,z);
-            push(t2,z2);
-            break;
+        	z4 = stackTagStatus.get(stackTagStatus.size() - 1);
+			t2 = pop();
+			push(t1, z, z3);
+			push(t2, z2, z4);
+			break;
         case Opcodes.IADD:
         case Opcodes.ISUB:
         case Opcodes.IMUL:
@@ -896,12 +959,17 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         case Opcodes.ISHL:
         case Opcodes.ISHR:
         case Opcodes.IUSHR:
-        case Opcodes.L2I:
-        case Opcodes.D2I:
         case Opcodes.FCMPL:
         case Opcodes.FCMPG:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 1) instanceof TaggedValue;
             pop(2);
-            push(Opcodes.INTEGER);
+            push(Opcodes.INTEGER, null, isTagged ? new TaggedValue(Opcodes.INTEGER) : false);
+            break;
+        case Opcodes.L2I:
+        case Opcodes.D2I:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 2) instanceof TaggedValue;
+            pop(2);
+            push(Opcodes.INTEGER, null, isTagged ? new TaggedValue(Opcodes.INTEGER) : false);
             break;
         case Opcodes.LADD:
         case Opcodes.LSUB:
@@ -911,8 +979,9 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         case Opcodes.LAND:
         case Opcodes.LOR:
         case Opcodes.LXOR:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 2) instanceof TaggedValue;
             pop(4);
-            push(Opcodes.LONG);
+            push(Opcodes.LONG, null, isTagged ? new TaggedValue(Opcodes.LONG) : false);
             push(Opcodes.TOP);
             break;
         case Opcodes.FADD:
@@ -920,25 +989,32 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         case Opcodes.FMUL:
         case Opcodes.FDIV:
         case Opcodes.FREM:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 1) instanceof TaggedValue;
+            pop(2);
+            push(Opcodes.FLOAT, null, isTagged ? new TaggedValue(Opcodes.FLOAT) : false);
+            break;
         case Opcodes.L2F:
         case Opcodes.D2F:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 2) instanceof TaggedValue;
             pop(2);
-            push(Opcodes.FLOAT);
+            push(Opcodes.FLOAT, null, isTagged ? new TaggedValue(Opcodes.FLOAT) : false);
             break;
         case Opcodes.DADD:
         case Opcodes.DSUB:
         case Opcodes.DMUL:
         case Opcodes.DDIV:
         case Opcodes.DREM:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 2) instanceof TaggedValue;
             pop(4);
-            push(Opcodes.DOUBLE);
+            push(Opcodes.DOUBLE, null, isTagged ? new TaggedValue(Opcodes.DOUBLE) : false);
             push(Opcodes.TOP);
             break;
         case Opcodes.LSHL:
         case Opcodes.LSHR:
         case Opcodes.LUSHR:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 2) instanceof TaggedValue;
             pop(3);
-            push(Opcodes.LONG);
+            push(Opcodes.LONG, null, isTagged ? new TaggedValue(Opcodes.LONG) : false);
             push(Opcodes.TOP);
             break;
         case Opcodes.IINC:
@@ -947,31 +1023,36 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             break;
         case Opcodes.I2L:
         case Opcodes.F2L:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 1) instanceof TaggedValue;
             pop(1);
-            push(Opcodes.LONG);
+            push(Opcodes.LONG, null, isTagged ? new TaggedValue(Opcodes.LONG) : false);
             push(Opcodes.TOP);
             break;
         case Opcodes.I2F:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 1) instanceof TaggedValue;
             pop(1);
-            push(Opcodes.FLOAT);
+            push(Opcodes.FLOAT, null, isTagged ? new TaggedValue(Opcodes.FLOAT) : false);
             break;
         case Opcodes.I2D:
         case Opcodes.F2D:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 1) instanceof TaggedValue;
             pop(1);
-            push(Opcodes.DOUBLE);
+            push(Opcodes.DOUBLE, null, isTagged ? new TaggedValue(Opcodes.DOUBLE) : false);
             push(Opcodes.TOP);
             break;
         case Opcodes.F2I:
         case Opcodes.ARRAYLENGTH:
         case Opcodes.INSTANCEOF:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 1) instanceof TaggedValue;
             pop(1);
-            push(Opcodes.INTEGER);
+            push(Opcodes.INTEGER, null, isTagged ? new TaggedValue(Opcodes.INTEGER) : false);
             break;
         case Opcodes.LCMP:
         case Opcodes.DCMPL:
         case Opcodes.DCMPG:
+        	isTagged = stackTagStatus.get(stackTagStatus.size() - 2) instanceof TaggedValue;
             pop(4);
-            push(Opcodes.INTEGER);
+            push(Opcodes.INTEGER, null, isTagged ? new TaggedValue(Opcodes.INTEGER) : false);
             break;
         case Opcodes.JSR:
         case Opcodes.RET:

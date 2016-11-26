@@ -3,6 +3,8 @@ package edu.columbia.cs.psl.phosphor.struct;
 import java.io.IOException;
 import java.io.Serializable;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
 public final class TaintedFloatWithObjTag extends TaintedPrimitiveWithObjTag implements Serializable {
 
 	/**
@@ -17,7 +19,7 @@ public final class TaintedFloatWithObjTag extends TaintedPrimitiveWithObjTag imp
 
 	private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
 		val = stream.readFloat();
-		taint = stream.readObject();
+		taint = (Taint) stream.readObject();
 	}
 
 	@Override
@@ -27,11 +29,11 @@ public final class TaintedFloatWithObjTag extends TaintedPrimitiveWithObjTag imp
 
 	public float val;
 
-	public static final TaintedFloatWithObjTag valueOf(Object taint, float val) {
+	public static final TaintedFloatWithObjTag valueOf(Taint taint, float val) {
 		return new TaintedFloatWithObjTag(taint, val);
 	}
 
-	public TaintedFloatWithObjTag(Object taint, float val) {
+	public TaintedFloatWithObjTag(Taint taint, float val) {
 		this.taint = taint;
 		this.val = val;
 	}

@@ -33,14 +33,14 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
-import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
-import edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.Tainted;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
@@ -107,8 +107,8 @@ public class PreMain {
 		static boolean innerException = false;
 		static boolean INITED = false;
 
-		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyArrayObjTags classtaint,
-				byte[] classfileBuffer, TaintedByteArrayWithObjTag ret) throws IllegalClassFormatException {
+		public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
+				byte[] classfileBuffer) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
@@ -117,18 +117,18 @@ public class PreMain {
 				Configuration.init();
 				INITED = true;
 			}
+			LazyByteArrayObjTags ret = null;
 			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-				ret.val = classfileBuffer;
+				ret = new LazyByteArrayObjTags(classfileBuffer);
 			else
-				ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
-			ret.taint = null;
+				ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
 			Configuration.taintTagFactory.instrumentationEnding(className);
 
 			return ret;
 		}
 
-		public TaintedByteArrayWithObjTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyArrayObjTags classtaint,
-				byte[] classfileBuffer, ControlTaintTagStack ctrl, TaintedByteArrayWithObjTag ret) throws IllegalClassFormatException {
+		public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
+				byte[] classfileBuffer, ControlTaintTagStack ctrl) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
@@ -137,17 +137,19 @@ public class PreMain {
 				Configuration.init();
 				INITED = true;
 			}
+			LazyByteArrayObjTags ret = null;
+
 			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-				ret.val = classfileBuffer;
+				ret = new LazyByteArrayObjTags(classfileBuffer);
 			else
-				ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
-			ret.taint = null;
+				ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
+
 			Configuration.taintTagFactory.instrumentationEnding(className);
 			return ret;
 		}
 
-		public TaintedByteArrayWithIntTag transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyArrayIntTags classtaint,
-				byte[] classfileBuffer, TaintedByteArrayWithIntTag ret) throws IllegalClassFormatException {
+		public LazyByteArrayIntTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayIntTags classtaint,
+				byte[] classfileBuffer) throws IllegalClassFormatException {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
@@ -156,11 +158,11 @@ public class PreMain {
 				Configuration.init();
 				INITED = true;
 			}
+			LazyByteArrayIntTags ret;
 			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-				ret.val = classfileBuffer;
+				ret = new LazyByteArrayIntTags(classfileBuffer);
 			else
-				ret.val = transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
-			ret.taint = new LazyArrayIntTags();
+				ret = new LazyByteArrayIntTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
 			Configuration.taintTagFactory.instrumentationEnding(className);
 			return ret;
 		}
@@ -183,25 +185,26 @@ public class PreMain {
 //			bigLoader = loader;
 //			Instrumenter.loader = bigLoader;
 			if (Instrumenter.isIgnoredClass(className)) {
-				//				System.out.println("Premain.java ignore: " + className);
+				if(className.equals("java/lang/Boolean"))
+				{
+					return processBoolean(classfileBuffer);
+				}
+				else if(className.equals("java/lang/Byte"))
+				{
+					return processBoolean(classfileBuffer);
+				}
+				else if(className.equals("java/lang/Character"))
+				{
+					return processBoolean(classfileBuffer);
+				}
+				else if(className.equals("java/lang/Short"))
+				{
+					return processBoolean(classfileBuffer);
+				}
+
 				return classfileBuffer;
-			}
+			}			
 			
-			if (DEBUG) {
-			    try{
-                File debugDir = new File("debug-preinst");
-                if (!debugDir.exists())
-                    debugDir.mkdir();
-                File f = new File("debug-preinst/" + className.replace("/", ".") + ".class");
-                FileOutputStream fos = new FileOutputStream(f);
-                fos.write(classfileBuffer);
-                fos.close();
-			    }
-			    catch(IOException ex)
-			    {
-			        ex.printStackTrace();
-			    }
-            }
 			
 			ClassNode cn = new ClassNode();
 			cr.accept(cn, ClassReader.SKIP_CODE);
@@ -256,6 +259,22 @@ public class PreMain {
 					}
 				}
 			}
+			if (DEBUG) {
+			    try{
+                File debugDir = new File("debug-preinst");
+                if (!debugDir.exists())
+                    debugDir.mkdir();
+                File f = new File("debug-preinst/" + className.replace("/", ".") + ".class");
+                FileOutputStream fos = new FileOutputStream(f);
+                fos.write(classfileBuffer);
+                fos.close();
+			    }
+			    catch(IOException ex)
+			    {
+			        ex.printStackTrace();
+			    }
+            }
+			
 			List<FieldNode> fields = cn.fields;
 			if (skipFrames) {
 				cn = null;
@@ -269,7 +288,7 @@ public class PreMain {
 				}, 0);
 				cr = new ClassReader(cw.toByteArray());
 			}
-			//			System.out.println("Instrumenting: " + className);
+//						System.out.println("Instrumenting: " + className);
 			//			System.out.println(classBeingRedefined);
 			//Find out if this class already has frames
 			TraceClassVisitor cv = null;
@@ -310,7 +329,7 @@ public class PreMain {
 									&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap") && !className
 										.startsWith("jersey/repackaged/com/google/common/collect/"))) {
 						ClassReader cr2 = new ClassReader(cw.toByteArray());
-						cr2.accept(new CheckClassAdapter(new ClassWriter(0)), 0);
+						cr2.accept(new CheckClassAdapter(new ClassWriter(0),true), 0);
 					}
 				}
 				//				cv= new TraceClassVisitor(null,null);
@@ -395,6 +414,27 @@ public class PreMain {
 				return new byte[0];
 
 			}
+		}
+
+		private byte[] processBoolean(byte[] classfileBuffer) {
+			ClassReader cr = new ClassReader(classfileBuffer);
+			ClassNode cn = new ClassNode(Opcodes.ASM5);
+			cr.accept(cn, 0);
+			boolean addField = true;
+			for(Object  o :cn.fields)
+			{
+				FieldNode fn = (FieldNode) o;
+				if(fn.name.equals("valueOf"))
+					addField = false;
+			}
+			if(addField)
+			{
+				cn.fields.add(new FieldNode(Opcodes.ACC_PUBLIC, "valueOf", "Z", null, false));
+				ClassWriter cw = new ClassWriter(0);
+				cn.accept(cw);
+				return cw.toByteArray();
+			}
+			return classfileBuffer;
 		}
 	}
 

@@ -16,17 +16,6 @@ else
 	else
 		echo "Not regenerating int tag instrumented JRE\n";
 	fi
-	if [ ! -d "target/jre-inst-int-untaggedwrappers" ]; then
-		echo "Creating int tag instrumented JRE with untagged wrappers\n";
-		java -Xmx6g -jar target/Phosphor-0.0.2-SNAPSHOT.jar -forceUnboxAcmpEq -withEnumsByValue -generateUninstStubs $INST_HOME target/jre-inst-int-untaggedwrappers;
-		chmod +x target/jre-inst-int-untaggedwrappers/bin/*;
-		chmod +x target/jre-inst-int-untaggedwrappers/lib/*;
-		chmod +x target/jre-inst-int-untaggedwrappers/jre/bin/*;
-		chmod +x target/jre-inst-int-untaggedwrappers/jre/lib/*;
-	else
-		echo "Not regenerating int tag instrumented JRE with untagged wrappers\n";
-	fi
-
 	if [ ! -d "target/jre-inst-obj" ]; then
 			echo "Creating obj tag instrumented JRE\n";
 		java -Xmx6g -jar target/Phosphor-0.0.2-SNAPSHOT.jar -multiTaint -forceUnboxAcmpEq -withEnumsByValue $INST_HOME target/jre-inst-obj;

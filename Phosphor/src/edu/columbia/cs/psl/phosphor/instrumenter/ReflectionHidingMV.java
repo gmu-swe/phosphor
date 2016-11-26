@@ -14,8 +14,6 @@ import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
 
@@ -235,8 +233,6 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		}
 		if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
 			owner = Type.getInternalName(ArrayReflectionMasker.class);
-			if(Configuration.MULTI_TAINTING)
-				desc = desc.replace(Configuration.TAINT_TAG_DESC, "Ljava/lang/Object;");
 		}
 		if (owner.equals("java/lang/reflect/Field")
 				&& opcode == Opcodes.INVOKEVIRTUAL
@@ -310,16 +306,16 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			fn2.type = Opcodes.F_NEW;
 			super.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveWithObjTag.class : TaintedPrimitiveWithIntTag.class)));
 			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveWithObjTag.class : TaintedPrimitiveWithIntTag.class)), "toPrimitiveType", "()Ljava/lang/Object;", false);
-			super.visitJumpInsn(Opcodes.GOTO, isOK);
+//			super.visitJumpInsn(Opcodes.GOTO, isOK);
 			super.visitLabel(notPrimitive);
 			fn2.accept(this);
-			super.visitInsn(Opcodes.DUP);
-			super.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveArrayWithObjTag.class : TaintedPrimitiveArrayWithIntTag.class)));
-			super.visitJumpInsn(Opcodes.IFEQ, isOK);
-			super.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveArrayWithObjTag.class : TaintedPrimitiveArrayWithIntTag.class)));
-			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveArrayWithObjTag.class : TaintedPrimitiveArrayWithIntTag.class)), "toStackType", "()Ljava/lang/Object;", false);
-			super.visitLabel(isOK);
-			fn.accept(this);
+//			super.visitInsn(Opcodes.DUP);
+//			super.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveArrayWithObjTag.class : TaintedPrimitiveArrayWithIntTag.class)));
+//			super.visitJumpInsn(Opcodes.IFEQ, isOK);
+//			super.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveArrayWithObjTag.class : TaintedPrimitiveArrayWithIntTag.class)));
+//			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveArrayWithObjTag.class : TaintedPrimitiveArrayWithIntTag.class)), "toStackType", "()Ljava/lang/Object;", false);
+//			super.visitLabel(isOK);
+//			fn.accept(this);
 		}
 		Instrumenter.IS_ANDROID_INST = origAndroidInst;
 	}

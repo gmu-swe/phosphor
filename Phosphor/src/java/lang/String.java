@@ -1,1281 +1,1288 @@
 /*
- * Copyright (c) 1994, 2010, Oracle and/or its affiliates. All rights reserved.
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
+
 package java.lang;
 
-import java.io.ObjectStreamField;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Formatter;
 import java.util.Locale;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.UnsupportedCharsetException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.regex.PatternSyntaxException;
 
-import edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
+
 /**
- * The <code>String</code> class represents character strings. All
- * string literals in Java programs, such as <code>"abc"</code>, are
- * implemented as instances of this class.
- * <p>
- * Strings are constant; their values cannot be changed after they
- * are created. String buffers support mutable strings.
- * Because String objects are immutable they can be shared. For example:
- * <p><blockquote><pre>
- *     String str = "abc";
- * </pre></blockquote><p>
- * is equivalent to:
- * <p><blockquote><pre>
- *     char data[] = {'a', 'b', 'c'};
- *     String str = new String(data);
- * </pre></blockquote><p>
- * Here are some more examples of how strings can be used:
- * <p><blockquote><pre>
- *     System.out.println("abc");
- *     String cde = "cde";
- *     System.out.println("abc" + cde);
- *     String c = "abc".substring(2,3);
- *     String d = cde.substring(1, 2);
- * </pre></blockquote>
- * <p>
- * The class <code>String</code> includes methods for examining
- * individual characters of the sequence, for comparing strings, for
- * searching strings, for extracting substrings, and for creating a
- * copy of a string with all characters translated to uppercase or to
- * lowercase. Case mapping is based on the Unicode Standard version
- * specified by the {@link java.lang.Character Character} class.
- * <p>
- * The Java language provides special support for the string
- * concatenation operator (&nbsp;+&nbsp;), and for conversion of
- * other objects to strings. String concatenation is implemented
- * through the <code>StringBuilder</code>(or <code>StringBuffer</code>)
- * class and its <code>append</code> method.
- * String conversions are implemented through the method
- * <code>toString</code>, defined by <code>Object</code> and
- * inherited by all classes in Java. For additional information on
- * string concatenation and conversion, see Gosling, Joy, and Steele,
- * <i>The Java Language Specification</i>.
+ * An immutable sequence of characters/code units ({@code char}s). A
+ * {@code String} is represented by array of UTF-16 values, such that
+ * Unicode supplementary characters (code points) are stored/encoded as
+ * surrogate pairs via Unicode code units ({@code char}).
  *
- * <p> Unless otherwise noted, passing a <tt>null</tt> argument to a constructor
- * or method in this class will cause a {@link NullPointerException} to be
- * thrown.
- *
- * <p>A <code>String</code> represents a string in the UTF-16 format
- * in which <em>supplementary characters</em> are represented by <em>surrogate
- * pairs</em> (see the section <a href="Character.html#unicode">Unicode
- * Character Representations</a> in the <code>Character</code> class for
- * more information).
- * Index values refer to <code>char</code> code units, so a supplementary
- * character uses two positions in a <code>String</code>.
- * <p>The <code>String</code> class provides methods for dealing with
- * Unicode code points (i.e., characters), in addition to those for
- * dealing with Unicode code units (i.e., <code>char</code> values).
- *
- * @author  Lee Boynton
- * @author  Arthur van Hoff
- * @author  Martin Buchholz
- * @author  Ulf Zibis
- * @see     java.lang.Object#toString()
- * @see     java.lang.StringBuffer
- * @see     java.lang.StringBuilder
- * @see     java.nio.charset.Charset
- * @since   JDK1.0
+ * @see StringBuffer
+ * @see StringBuilder
+ * @see Charset
+ * @since 1.0
  */
+public final class String implements Serializable, Comparable<String>,
+        CharSequence, TaintedWithObjTag {
 
-public class String
-    implements java.io.Serializable, Comparable<String>, CharSequence, TaintedWithObjTag {
-    /** The value is used for character storage. */
-    private final char value[];
-    public LazyArrayObjTags valuePHOSPHOR_TAG;
-    public Taint PHOSPHOR_TAG;
-    /** Cache the hash code for the string */
-    private int hash; // Default to 0
-
-    /** use serialVersionUID from JDK 1.0.2 for interoperability */
     private static final long serialVersionUID = -6849794470754667710L;
 
     /**
-     * Class String is special cased within the Serialization Stream Protocol.
-     *
-     * A String instance is written initially into an ObjectOutputStream in the
-     * following format:
-     * <pre>
-     *      <code>TC_STRING</code> (utf String)
-     * </pre>
-     * The String is written by method <code>DataOutput.writeUTF</code>.
-     * A new handle is generated to  refer to all future references to the
-     * string instance within the stream.
+     * An PrintStream used for System.out which performs the correct character
+     * conversion for the console, since the console may use a different
+     * conversion than the default file.encoding.
      */
-    private static final ObjectStreamField[] serialPersistentFields =
-            new ObjectStreamField[0];
+   
 
     /**
-     * Initializes a newly created {@code String} object so that it represents
-     * an empty character sequence.  Note that use of this constructor is
-     * unnecessary since Strings are immutable.
+     * CaseInsensitiveComparator compares Strings ignoring the case of the
+     * characters.
+     */
+    private static final class CaseInsensitiveComparator implements
+            Comparator<String>, Serializable {
+        private static final long serialVersionUID = 8575799808933029326L;
+
+        /**
+         * Compare the two objects to determine the relative ordering.
+         *
+         * @param o1
+         *            an Object to compare
+         * @param o2
+         *            an Object to compare
+         * @return an int < 0 if object1 is less than object2, 0 if they are
+         *         equal, and > 0 if object1 is greater
+         *
+         * @exception ClassCastException
+         *                if objects are not the correct type
+         */
+        public int compare(String o1, String o2) {
+            return o1.compareToIgnoreCase(o2);
+        }
+    }
+
+    /**
+     * A comparator ignoring the case of the characters.
+     */
+    public static final Comparator<String> CASE_INSENSITIVE_ORDER = new CaseInsensitiveComparator();
+
+    private static final char[] ascii;
+
+    public final char[] value;
+
+    private final int offset;
+
+    private final int count;
+
+    private int hashCode;
+
+	public LazyCharArrayObjTags valuePHOSPHOR_TAG;
+
+    private static Charset DefaultCharset;
+
+    private static Charset lastCharset;
+
+	public Taint PHOSPHOR_TAG;
+
+    static {
+        ascii = new char[128];
+        for (int i = 0; i < ascii.length; i++) {
+            ascii[i] = (char) i;
+        }
+    }
+
+    /**
+     * Creates an empty string.
      */
     public String() {
-        this.value = new char[0];
-    }
-
-    /**
-     * Initializes a newly created {@code String} object so that it represents
-     * the same sequence of characters as the argument; in other words, the
-     * newly created string is a copy of the argument string. Unless an
-     * explicit copy of {@code original} is needed, use of this constructor is
-     * unnecessary since Strings are immutable.
-     *
-     * @param  original
-     *         A {@code String}
-     */
-    public String(String original) {
-        this.value = original.value;
-        this.hash = original.hash;
-    }
-
-    /**
-     * Allocates a new {@code String} so that it represents the sequence of
-     * characters currently contained in the character array argument. The
-     * contents of the character array are copied; subsequent modification of
-     * the character array does not affect the newly created string.
-     *
-     * @param  value
-     *         The initial value of the string
-     */
-    public String(char value[]) {
-        this.value = Arrays.copyOf(value, value.length);
-    }
-
-    public String(int tags[], char value[], TaintSentinel sentinel)
-    {
-    	this.value = Arrays.copyOf(value, value.length);
-    }
-    /**
-     * Allocates a new {@code String} that contains characters from a subarray
-     * of the character array argument. The {@code offset} argument is the
-     * index of the first character of the subarray and the {@code count}
-     * argument specifies the length of the subarray. The contents of the
-     * subarray are copied; subsequent modification of the character array does
-     * not affect the newly created string.
-     *
-     * @param  value
-     *         Array that is the source of characters
-     *
-     * @param  offset
-     *         The initial offset
-     *
-     * @param  count
-     *         The length
-     *
-     * @throws  IndexOutOfBoundsException
-     *          If the {@code offset} and {@code count} arguments index
-     *          characters outside the bounds of the {@code value} array
-     */
-    public String(char value[], int offset, int count) {
-        if (offset < 0) {
-            throw new StringIndexOutOfBoundsException(offset);
-        }
-        if (count < 0) {
-            throw new StringIndexOutOfBoundsException(count);
-        }
-        // Note: offset or count might be near -1>>>1.
-        if (offset > value.length - count) {
-            throw new StringIndexOutOfBoundsException(offset + count);
-        }
-        this.value = Arrays.copyOfRange(value, offset, offset+count);
-    }
-
-    /**
-     * Allocates a new {@code String} that contains characters from a subarray
-     * of the <a href="Character.html#unicode">Unicode code point</a> array
-     * argument.  The {@code offset} argument is the index of the first code
-     * point of the subarray and the {@code count} argument specifies the
-     * length of the subarray.  The contents of the subarray are converted to
-     * {@code char}s; subsequent modification of the {@code int} array does not
-     * affect the newly created string.
-     *
-     * @param  codePoints
-     *         Array that is the source of Unicode code points
-     *
-     * @param  offset
-     *         The initial offset
-     *
-     * @param  count
-     *         The length
-     *
-     * @throws  IllegalArgumentException
-     *          If any invalid Unicode code point is found in {@code
-     *          codePoints}
-     *
-     * @throws  IndexOutOfBoundsException
-     *          If the {@code offset} and {@code count} arguments index
-     *          characters outside the bounds of the {@code codePoints} array
-     *
-     * @since  1.5
-     */
-    public String(int[] codePoints, int offset, int count) {
-        if (offset < 0) {
-            throw new StringIndexOutOfBoundsException(offset);
-        }
-        if (count < 0) {
-            throw new StringIndexOutOfBoundsException(count);
-        }
-        // Note: offset or count might be near -1>>>1.
-        if (offset > codePoints.length - count) {
-            throw new StringIndexOutOfBoundsException(offset + count);
-        }
-
-        final int end = offset + count;
-
-        // Pass 1: Compute precise size of char[]
-        int n = count;
-        for (int i = offset; i < end; i++) {
-            int c = codePoints[i];
-            if (Character.isBmpCodePoint(c))
-                continue;
-            else if (Character.isValidCodePoint(c))
-                n++;
-            else throw new IllegalArgumentException(Integer.toString(c));
-        }
-
-        // Pass 2: Allocate and fill in char[]
-        final char[] v = new char[n];
-
-        for (int i = offset, j = 0; i < end; i++, j++) {
-            int c = codePoints[i];
-            if (Character.isBmpCodePoint(c))
-                v[j] = (char)c;
-            else
-                Character.toSurrogates(c, v, j++);
-        }
-
-        this.value = v;
-    }
-
-    /**
-     * Allocates a new {@code String} constructed from a subarray of an array
-     * of 8-bit integer values.
-     *
-     * <p> The {@code offset} argument is the index of the first byte of the
-     * subarray, and the {@code count} argument specifies the length of the
-     * subarray.
-     *
-     * <p> Each {@code byte} in the subarray is converted to a {@code char} as
-     * specified in the method above.
-     *
-     * @deprecated This method does not properly convert bytes into characters.
-     * As of JDK&nbsp;1.1, the preferred way to do this is via the
-     * {@code String} constructors that take a {@link
-     * java.nio.charset.Charset}, charset name, or that use the platform's
-     * default charset.
-     *
-     * @param  ascii
-     *         The bytes to be converted to characters
-     *
-     * @param  hibyte
-     *         The top 8 bits of each 16-bit Unicode code unit
-     *
-     * @param  offset
-     *         The initial offset
-     * @param  count
-     *         The length
-     *
-     * @throws  IndexOutOfBoundsException
-     *          If the {@code offset} or {@code count} argument is invalid
-     *
-     * @see  #String(byte[], int)
-     * @see  #String(byte[], int, int, java.lang.String)
-     * @see  #String(byte[], int, int, java.nio.charset.Charset)
-     * @see  #String(byte[], int, int)
-     * @see  #String(byte[], java.lang.String)
-     * @see  #String(byte[], java.nio.charset.Charset)
-     * @see  #String(byte[])
-     */
-    @Deprecated
-    public String(byte ascii[], int hibyte, int offset, int count) {
-        checkBounds(ascii, offset, count);
-        char value[] = new char[count];
-
-        if (hibyte == 0) {
-            for (int i = count; i-- > 0;) {
-                value[i] = (char)(ascii[i + offset] & 0xff);
-            }
-        } else {
-            hibyte <<= 8;
-            for (int i = count; i-- > 0;) {
-                value[i] = (char)(hibyte | (ascii[i + offset] & 0xff));
-            }
-        }
-        this.value = value;
-    }
-
-    /**
-     * Allocates a new {@code String} containing characters constructed from
-     * an array of 8-bit integer values. Each character <i>c</i>in the
-     * resulting string is constructed from the corresponding component
-     * <i>b</i> in the byte array such that:
-     *
-     * <blockquote><pre>
-     *     <b><i>c</i></b> == (char)(((hibyte &amp; 0xff) &lt;&lt; 8)
-     *                         | (<b><i>b</i></b> &amp; 0xff))
-     * </pre></blockquote>
-     *
-     * @deprecated  This method does not properly convert bytes into
-     * characters.  As of JDK&nbsp;1.1, the preferred way to do this is via the
-     * {@code String} constructors that take a {@link
-     * java.nio.charset.Charset}, charset name, or that use the platform's
-     * default charset.
-     *
-     * @param  ascii
-     *         The bytes to be converted to characters
-     *
-     * @param  hibyte
-     *         The top 8 bits of each 16-bit Unicode code unit
-     *
-     * @see  #String(byte[], int, int, java.lang.String)
-     * @see  #String(byte[], int, int, java.nio.charset.Charset)
-     * @see  #String(byte[], int, int)
-     * @see  #String(byte[], java.lang.String)
-     * @see  #String(byte[], java.nio.charset.Charset)
-     * @see  #String(byte[])
-     */
-    @Deprecated
-    public String(byte ascii[], int hibyte) {
-        this(ascii, hibyte, 0, ascii.length);
-    }
-
-    /* Common private utility method used to bounds check the byte array
-     * and requested offset & length values used by the String(byte[],..)
-     * constructors.
-     */
-    private static void checkBounds(byte[] bytes, int offset, int length) {
-        if (length < 0)
-            throw new StringIndexOutOfBoundsException(length);
-        if (offset < 0)
-            throw new StringIndexOutOfBoundsException(offset);
-        if (offset > bytes.length - length)
-            throw new StringIndexOutOfBoundsException(offset + length);
-    }
-
-    /**
-     * Constructs a new {@code String} by decoding the specified subarray of
-     * bytes using the specified charset.  The length of the new {@code String}
-     * is a function of the charset, and hence may not be equal to the length
-     * of the subarray.
-     *
-     * <p> The behavior of this constructor when the given bytes are not valid
-     * in the given charset is unspecified.  The {@link
-     * java.nio.charset.CharsetDecoder} class should be used when more control
-     * over the decoding process is required.
-     *
-     * @param  bytes
-     *         The bytes to be decoded into characters
-     *
-     * @param  offset
-     *         The index of the first byte to decode
-     *
-     * @param  length
-     *         The number of bytes to decode
-
-     * @param  charsetName
-     *         The name of a supported {@linkplain java.nio.charset.Charset
-     *         charset}
-     *
-     * @throws  UnsupportedEncodingException
-     *          If the named charset is not supported
-     *
-     * @throws  IndexOutOfBoundsException
-     *          If the {@code offset} and {@code length} arguments index
-     *          characters outside the bounds of the {@code bytes} array
-     *
-     * @since  JDK1.1
-     */
-    public String(byte bytes[], int offset, int length, String charsetName)
-            throws UnsupportedEncodingException {
-        if (charsetName == null)
-            throw new NullPointerException("charsetName");
-        checkBounds(bytes, offset, length);
-        this.value = StringCoding.decode(charsetName, bytes, offset, length);
-    }
-
-    /**
-     * Constructs a new {@code String} by decoding the specified subarray of
-     * bytes using the specified {@linkplain java.nio.charset.Charset charset}.
-     * The length of the new {@code String} is a function of the charset, and
-     * hence may not be equal to the length of the subarray.
-     *
-     * <p> This method always replaces malformed-input and unmappable-character
-     * sequences with this charset's default replacement string.  The {@link
-     * java.nio.charset.CharsetDecoder} class should be used when more control
-     * over the decoding process is required.
-     *
-     * @param  bytes
-     *         The bytes to be decoded into characters
-     *
-     * @param  offset
-     *         The index of the first byte to decode
-     *
-     * @param  length
-     *         The number of bytes to decode
-     *
-     * @param  charset
-     *         The {@linkplain java.nio.charset.Charset charset} to be used to
-     *         decode the {@code bytes}
-     *
-     * @throws  IndexOutOfBoundsException
-     *          If the {@code offset} and {@code length} arguments index
-     *          characters outside the bounds of the {@code bytes} array
-     *
-     * @since  1.6
-     */
-    public String(byte bytes[], int offset, int length, Charset charset) {
-        if (charset == null)
-            throw new NullPointerException("charset");
-        checkBounds(bytes, offset, length);
-        this.value =  StringCoding.decode(charset, bytes, offset, length);
-    }
-
-    /**
-     * Constructs a new {@code String} by decoding the specified array of bytes
-     * using the specified {@linkplain java.nio.charset.Charset charset}.  The
-     * length of the new {@code String} is a function of the charset, and hence
-     * may not be equal to the length of the byte array.
-     *
-     * <p> The behavior of this constructor when the given bytes are not valid
-     * in the given charset is unspecified.  The {@link
-     * java.nio.charset.CharsetDecoder} class should be used when more control
-     * over the decoding process is required.
-     *
-     * @param  bytes
-     *         The bytes to be decoded into characters
-     *
-     * @param  charsetName
-     *         The name of a supported {@linkplain java.nio.charset.Charset
-     *         charset}
-     *
-     * @throws  UnsupportedEncodingException
-     *          If the named charset is not supported
-     *
-     * @since  JDK1.1
-     */
-    public String(byte bytes[], String charsetName)
-            throws UnsupportedEncodingException {
-        this(bytes, 0, bytes.length, charsetName);
-    }
-
-    /**
-     * Constructs a new {@code String} by decoding the specified array of
-     * bytes using the specified {@linkplain java.nio.charset.Charset charset}.
-     * The length of the new {@code String} is a function of the charset, and
-     * hence may not be equal to the length of the byte array.
-     *
-     * <p> This method always replaces malformed-input and unmappable-character
-     * sequences with this charset's default replacement string.  The {@link
-     * java.nio.charset.CharsetDecoder} class should be used when more control
-     * over the decoding process is required.
-     *
-     * @param  bytes
-     *         The bytes to be decoded into characters
-     *
-     * @param  charset
-     *         The {@linkplain java.nio.charset.Charset charset} to be used to
-     *         decode the {@code bytes}
-     *
-     * @since  1.6
-     */
-    public String(byte bytes[], Charset charset) {
-        this(bytes, 0, bytes.length, charset);
-    }
-
-    /**
-     * Constructs a new {@code String} by decoding the specified subarray of
-     * bytes using the platform's default charset.  The length of the new
-     * {@code String} is a function of the charset, and hence may not be equal
-     * to the length of the subarray.
-     *
-     * <p> The behavior of this constructor when the given bytes are not valid
-     * in the default charset is unspecified.  The {@link
-     * java.nio.charset.CharsetDecoder} class should be used when more control
-     * over the decoding process is required.
-     *
-     * @param  bytes
-     *         The bytes to be decoded into characters
-     *
-     * @param  offset
-     *         The index of the first byte to decode
-     *
-     * @param  length
-     *         The number of bytes to decode
-     *
-     * @throws  IndexOutOfBoundsException
-     *          If the {@code offset} and the {@code length} arguments index
-     *          characters outside the bounds of the {@code bytes} array
-     *
-     * @since  JDK1.1
-     */
-    public String(byte bytes[], int offset, int length) {
-        checkBounds(bytes, offset, length);
-        this.value = StringCoding.decode(bytes, offset, length);
-    }
-
-    /**
-     * Constructs a new {@code String} by decoding the specified array of bytes
-     * using the platform's default charset.  The length of the new {@code
-     * String} is a function of the charset, and hence may not be equal to the
-     * length of the byte array.
-     *
-     * <p> The behavior of this constructor when the given bytes are not valid
-     * in the default charset is unspecified.  The {@link
-     * java.nio.charset.CharsetDecoder} class should be used when more control
-     * over the decoding process is required.
-     *
-     * @param  bytes
-     *         The bytes to be decoded into characters
-     *
-     * @since  JDK1.1
-     */
-    public String(byte bytes[]) {
-        this(bytes, 0, bytes.length);
-    }
-
-    /**
-     * Allocates a new string that contains the sequence of characters
-     * currently contained in the string buffer argument. The contents of the
-     * string buffer are copied; subsequent modification of the string buffer
-     * does not affect the newly created string.
-     *
-     * @param  buffer
-     *         A {@code StringBuffer}
-     */
-    public String(StringBuffer buffer) {
-        synchronized(buffer) {
-            this.value = Arrays.copyOf(buffer.getValue(), buffer.length());
-        }
-    }
-
-    /**
-     * Allocates a new string that contains the sequence of characters
-     * currently contained in the string builder argument. The contents of the
-     * string builder are copied; subsequent modification of the string builder
-     * does not affect the newly created string.
-     *
-     * <p> This constructor is provided to ease migration to {@code
-     * StringBuilder}. Obtaining a string from a string builder via the {@code
-     * toString} method is likely to run faster and is generally preferred.
-     *
-     * @param   builder
-     *          A {@code StringBuilder}
-     *
-     * @since  1.5
-     */
-    public String(StringBuilder builder) {
-        this.value = Arrays.copyOf(builder.getValue(), builder.length());
+        value = new char[0];
+        offset = 0;
+        count = 0;
     }
 
     /*
-    * Package private constructor which shares value array for speed.
-    * this constructor is always expected to be called with share==true.
-    * a separate constructor is needed because we already have a public
-    * String(char[]) constructor that makes a copy of the given char[].
-    */
-    String(char[] value, boolean share) {
-        // assert share : "unshared not supported";
-        this.value = value;
+     * Private constructor used for JIT optimization.
+     */
+    @SuppressWarnings("unused")
+    private String(String s, char c) {
+        offset = 0;
+        value = new char[s.count + 1];
+        count = s.count + 1;
+        System.arraycopy(s.value, s.offset, value, 0, s.count);
+        value[s.count] = c;
     }
 
     /**
-     * Package private constructor
-     *
-     * @deprecated Use {@link #String(char[],int,int)} instead.
+     * Converts the byte array to a string using the default encoding as
+     * specified by the file.encoding system property. If the system property is
+     * not defined, the default encoding is ISO8859_1 (ISO-Latin-1). If 8859-1
+     * is not available, an ASCII encoding is used.
+     * 
+     * @param data
+     *            the byte array to convert to a string.
+     */
+    public String(byte[] data) {
+        this(data, 0, data.length);
+    }
+
+    /**
+     * Converts the byte array to a string, setting the high byte of every
+     * character to the specified value.
+     * 
+     * @param data
+     *            the byte array to convert to a string.
+     * @param high
+     *            the high byte to use.
+     * @throws NullPointerException
+     *             when {@code data} is {@code null}.
+     * @deprecated Use {@link #String(byte[])} or
+     *             {@link #String(byte[], String)} instead.
      */
     @Deprecated
-    String(int offset, int count, char[] value) {
-        this(value, offset, count);
+    public String(byte[] data, int high) {
+        this(data, high, 0, data.length);
     }
 
     /**
-     * Returns the length of this string.
-     * The length is equal to the number of <a href="Character.html#unicode">Unicode
-     * code units</a> in the string.
-     *
-     * @return  the length of the sequence of characters represented by this
-     *          object.
+     * Converts the byte array to a string using the default encoding as
+     * specified by the file.encoding system property. If the system property is
+     * not defined, the default encoding is ISO8859_1 (ISO-Latin-1). If 8859-1
+     * is not available, an ASCII encoding is used.
+     * 
+     * @param data
+     *            the byte array to convert to a string.
+     * @param start
+     *            the starting offset in the byte array.
+     * @param length
+     *            the number of bytes to convert.
+     * @throws NullPointerException
+     *             when {@code data} is {@code null}.
+     * @throws IndexOutOfBoundsException
+     *             if {@code length < 0, start < 0} or {@code start + length >
+     *             data.length}.
      */
-    public int length() {
-        return value.length;
+    public String(byte[] data, int start, int length) {
+        // start + length could overflow, start/length maybe MaxInt
+        if (start >= 0 && 0 <= length && length <= data.length - start) {
+            offset = 0;
+            Charset charset = defaultCharset();
+            int result;
+            CharBuffer cb = charset
+                    .decode(ByteBuffer.wrap(data, start, length));
+            if ((result = cb.length()) > 0) {
+                value = cb.array();
+                count = result;
+            } else {
+                count = 0;
+                value = new char[0];
+            }
+        } else {
+            throw new StringIndexOutOfBoundsException();
+        }
     }
 
     /**
-     * Returns <tt>true</tt> if, and only if, {@link #length()} is <tt>0</tt>.
+     * Converts the byte array to a string, setting the high byte of every
+     * character to the specified value.
      *
-     * @return <tt>true</tt> if {@link #length()} is <tt>0</tt>, otherwise
-     * <tt>false</tt>
+     * @param data
+     *            the byte array to convert to a string.
+     * @param high
+     *            the high byte to use.
+     * @param start
+     *            the starting offset in the byte array.
+     * @param length
+     *            the number of bytes to convert.
+     * @throws NullPointerException
+     *             when {@code data} is {@code null}.
+     * @throws IndexOutOfBoundsException
+     *             if {@code length < 0, start < 0} or
+     *             {@code start + length > data.length}
      *
+     * @deprecated Use {@link #String(byte[], int, int)} instead.
+     */
+    @Deprecated
+    public String(byte[] data, int high, int start, int length) {
+        // putting the data.length check first forces the NPE
+        // start + length could overflow, start/length maybe MaxInt
+        if (length <= data.length - start && start >= 0 && 0 <= length) {
+            offset = 0;
+            value = new char[length];
+            count = length;
+            high <<= 8;
+            for (int i = 0; i < count; i++) {
+                value[i] = (char) (high + (data[start++] & 0xff));
+            }
+        } else {
+            throw new StringIndexOutOfBoundsException();
+        }
+    }
+
+    /**
+     * Converts the byte array to a string using the specified encoding.
+     * 
+     * @param data
+     *            the byte array to convert to a string.
+     * @param start
+     *            the starting offset in the byte array.
+     * @param length
+     *            the number of bytes to convert.
+     * @param encoding
+     *            the encoding.
+     * @throws NullPointerException
+     *             when {@code data} is {@code null}.
+     * @throws IndexOutOfBoundsException
+     *             if {@code length < 0, start < 0} or {@code start + length >
+     *             data.length}.
+     * @throws UnsupportedEncodingException
+     *             if {@code encoding} is not supported.
+     */
+    public String(byte[] data, int start, int length, final String encoding)
+            throws UnsupportedEncodingException {
+        if (encoding == null) {
+            throw new NullPointerException();
+        }
+        // start + length could overflow, start/length maybe MaxInt
+        if (start >= 0 && 0 <= length && length <= data.length - start) {
+            offset = 0;
+            Charset charset = getCharset(encoding);
+
+            int result;
+        	CharBuffer cb;
+            try {
+            	cb = charset.decode(ByteBuffer.wrap(data, start, length));
+            } catch (Exception e) {
+            	// do nothing. according to spec: 
+            	// behavior is unspecified for invalid array
+            	cb = CharBuffer.wrap("\u003f".toCharArray()); //$NON-NLS-1$
+            }
+            if ((result = cb.length()) > 0) {
+                value = cb.array();
+                count = result;
+            } else {
+                count = 0;
+                value = new char[0];
+            }
+        } else {
+            throw new StringIndexOutOfBoundsException();
+        }
+    }
+
+    /**
+     * Converts the byte array to a string using the specified encoding.
+     * 
+     * @param data
+     *            the byte array to convert to a string.
+     * @param encoding
+     *            the encoding.
+     * @throws NullPointerException
+     *             when {@code data} is {@code null}.
+     * @throws UnsupportedEncodingException
+     *             if {@code encoding} is not supported.
+     */
+    public String(byte[] data, String encoding) throws UnsupportedEncodingException {
+        this(data, 0, data.length, encoding);
+    }
+    
+    /**
+     * Converts the byte array to a String using the specified encoding.
+     * 
+     * @param data
+     *            the byte array to convert to a String
+     * @param start
+     *            the starting offset in the byte array
+     * @param length
+     *            the number of bytes to convert
+     * @param encoding
+     *            the encoding
+     * 
+     * @throws IndexOutOfBoundsException
+     *             when <code>length < 0, start < 0</code> or
+     *             <code>start + length > data.length</code>
+     * @throws NullPointerException
+     *             when data is null
+     * 
+     * @see #getBytes()
+     * @see #getBytes(int, int, byte[], int)
+     * @see #getBytes(String)
+     * @see #valueOf(boolean)
+     * @see #valueOf(char)
+     * @see #valueOf(char[])
+     * @see #valueOf(char[], int, int)
+     * @see #valueOf(double)
+     * @see #valueOf(float)
+     * @see #valueOf(int)
+     * @see #valueOf(long)
+     * @see #valueOf(Object)
      * @since 1.6
      */
-    public boolean isEmpty() {
-        return value.length == 0;
-    }
-
-    /**
-     * Returns the <code>char</code> value at the
-     * specified index. An index ranges from <code>0</code> to
-     * <code>length() - 1</code>. The first <code>char</code> value of the sequence
-     * is at index <code>0</code>, the next at index <code>1</code>,
-     * and so on, as for array indexing.
-     *
-     * <p>If the <code>char</code> value specified by the index is a
-     * <a href="Character.html#unicode">surrogate</a>, the surrogate
-     * value is returned.
-     *
-     * @param      index   the index of the <code>char</code> value.
-     * @return     the <code>char</code> value at the specified index of this string.
-     *             The first <code>char</code> value is at index <code>0</code>.
-     * @exception  IndexOutOfBoundsException  if the <code>index</code>
-     *             argument is negative or not less than the length of this
-     *             string.
-     */
-    public char charAt(int index) {
-        if ((index < 0) || (index >= value.length)) {
-            throw new StringIndexOutOfBoundsException(index);
+    public String(byte[] data, int start, int length, final Charset encoding) {
+        if (encoding == null) {
+            throw new NullPointerException();
         }
-        return value[index];
-    }
-
-    /**
-     * Returns the character (Unicode code point) at the specified
-     * index. The index refers to <code>char</code> values
-     * (Unicode code units) and ranges from <code>0</code> to
-     * {@link #length()}<code> - 1</code>.
-     *
-     * <p> If the <code>char</code> value specified at the given index
-     * is in the high-surrogate range, the following index is less
-     * than the length of this <code>String</code>, and the
-     * <code>char</code> value at the following index is in the
-     * low-surrogate range, then the supplementary code point
-     * corresponding to this surrogate pair is returned. Otherwise,
-     * the <code>char</code> value at the given index is returned.
-     *
-     * @param      index the index to the <code>char</code> values
-     * @return     the code point value of the character at the
-     *             <code>index</code>
-     * @exception  IndexOutOfBoundsException  if the <code>index</code>
-     *             argument is negative or not less than the length of this
-     *             string.
-     * @since      1.5
-     */
-    public int codePointAt(int index) {
-        if ((index < 0) || (index >= value.length)) {
-            throw new StringIndexOutOfBoundsException(index);
+        // start + length could overflow, start/length maybe MaxInt
+        if (start >= 0 && 0 <= length && length <= data.length - start) {
+            offset = 0;
+            lastCharset = encoding;
+            
+            CharBuffer cb = encoding
+                    .decode(ByteBuffer.wrap(data, start, length));
+            value = cb.array();
+            count = cb.length();
+        } else {
+            throw new StringIndexOutOfBoundsException();
         }
-        return Character.codePointAtImpl(value, index, value.length);
     }
-
+    
     /**
-     * Returns the character (Unicode code point) before the specified
-     * index. The index refers to <code>char</code> values
-     * (Unicode code units) and ranges from <code>1</code> to {@link
-     * CharSequence#length() length}.
-     *
-     * <p> If the <code>char</code> value at <code>(index - 1)</code>
-     * is in the low-surrogate range, <code>(index - 2)</code> is not
-     * negative, and the <code>char</code> value at <code>(index -
-     * 2)</code> is in the high-surrogate range, then the
-     * supplementary code point value of the surrogate pair is
-     * returned. If the <code>char</code> value at <code>index -
-     * 1</code> is an unpaired low-surrogate or a high-surrogate, the
-     * surrogate value is returned.
-     *
-     * @param     index the index following the code point that should be returned
-     * @return    the Unicode code point value before the given index.
-     * @exception IndexOutOfBoundsException if the <code>index</code>
-     *            argument is less than 1 or greater than the length
-     *            of this string.
-     * @since     1.5
+     * Converts the byte array to a String using the specified encoding.
+     * 
+     * @param data
+     *            the byte array to convert to a String
+     * @param encoding
+     *            the encoding
+     * 
+     * @throws NullPointerException
+     *             when data is null
+     * 
+     * @see #getBytes()
+     * @see #getBytes(int, int, byte[], int)
+     * @see #getBytes(String)
+     * @see #valueOf(boolean)
+     * @see #valueOf(char)
+     * @see #valueOf(char[])
+     * @see #valueOf(char[], int, int)
+     * @see #valueOf(double)
+     * @see #valueOf(float)
+     * @see #valueOf(int)
+     * @see #valueOf(long)
+     * @see #valueOf(Object)
+     * @since 1.6
      */
-    public int codePointBefore(int index) {
-        int i = index - 1;
-        if ((i < 0) || (i >= value.length)) {
-            throw new StringIndexOutOfBoundsException(index);
-        }
-        return Character.codePointBeforeImpl(value, index, 0);
+    public String(byte[] data, Charset encoding) {
+        this(data, 0, data.length, encoding);
     }
 
     /**
-     * Returns the number of Unicode code points in the specified text
-     * range of this <code>String</code>. The text range begins at the
-     * specified <code>beginIndex</code> and extends to the
-     * <code>char</code> at index <code>endIndex - 1</code>. Thus the
-     * length (in <code>char</code>s) of the text range is
-     * <code>endIndex-beginIndex</code>. Unpaired surrogates within
-     * the text range count as one code point each.
-     *
-     * @param beginIndex the index to the first <code>char</code> of
-     * the text range.
-     * @param endIndex the index after the last <code>char</code> of
-     * the text range.
-     * @return the number of Unicode code points in the specified text
-     * range
-     * @exception IndexOutOfBoundsException if the
-     * <code>beginIndex</code> is negative, or <code>endIndex</code>
-     * is larger than the length of this <code>String</code>, or
-     * <code>beginIndex</code> is larger than <code>endIndex</code>.
-     * @since  1.5
+     * Initializes this string to contain the characters in the specified
+     * character array. Modifying the character array after creating the string
+     * has no effect on the string.
+     * 
+     * @param data
+     *            the array of characters.
+     * @throws NullPointerException
+     *             when {@code data} is {@code null}.
      */
-    public int codePointCount(int beginIndex, int endIndex) {
-        if (beginIndex < 0 || endIndex > value.length || beginIndex > endIndex) {
-            throw new IndexOutOfBoundsException();
-        }
-        return Character.codePointCountImpl(value, beginIndex, endIndex - beginIndex);
+    public String(char[] data) {
+        this(data, 0, data.length);
     }
 
     /**
-     * Returns the index within this <code>String</code> that is
-     * offset from the given <code>index</code> by
-     * <code>codePointOffset</code> code points. Unpaired surrogates
-     * within the text range given by <code>index</code> and
-     * <code>codePointOffset</code> count as one code point each.
+     * Initializes this string to contain the specified characters in the
+     * character array. Modifying the character array after creating the string
+     * has no effect on the string.
+     * 
+     * @param data
+     *            the array of characters.
+     * @param start
+     *            the starting offset in the character array.
+     * @param length
+     *            the number of characters to use.
+     * @throws NullPointerException
+     *             when {@code data} is {@code null}.
+     * @throws IndexOutOfBoundsException
+     *             if {@code length < 0, start < 0} or {@code start + length >
+     *             data.length}
+     */
+    public String(char[] data, int start, int length) {
+        // range check everything so a new char[] is not created
+        // start + length could overflow, start/length maybe MaxInt
+        if (start >= 0 && 0 <= length && length <= data.length - start) {
+            offset = 0;
+            value = new char[length];
+            count = length;
+            System.arraycopy(data, start, value, 0, count);
+        } else {
+            throw new StringIndexOutOfBoundsException();
+        }
+    }
+
+    /*
+     * Internal version of string constructor. Does not range check, null check,
+     * or copy the character array.
+     */
+    String(int start, int length, char[] data) {
+        value = data;
+        offset = start;
+        count = length;
+    }
+
+    /**
+     * Creates a {@code String} that is a copy of the specified string.
+     * 
+     * @param string
+     *            the string to copy.
+     */
+    public String(String string) {
+        value = string.value;
+        offset = string.offset;
+        count = string.count;
+    }
+
+    /*
+     * Private constructor useful for JIT optimization.
+     */
+    @SuppressWarnings( { "unused", "nls" })
+    private String(String s1, String s2) {
+        if (s1 == null) {
+            s1 = "null";
+        }
+        if (s2 == null) {
+            s2 = "null";
+        }
+        count = s1.count + s2.count;
+        value = new char[count];
+        offset = 0;
+        System.arraycopy(s1.value, s1.offset, value, 0, s1.count);
+        System.arraycopy(s2.value, s2.offset, value, s1.count, s2.count);
+    }
+
+    /*
+     * Private constructor useful for JIT optimization.
+     */
+    @SuppressWarnings( { "unused", "nls" })
+    private String(String s1, String s2, String s3) {
+        if (s1 == null) {
+            s1 = "null";
+        }
+        if (s2 == null) {
+            s2 = "null";
+        }
+        if (s3 == null) {
+            s3 = "null";
+        }
+        count = s1.count + s2.count + s3.count;
+        value = new char[count];
+        offset = 0;
+        System.arraycopy(s1.value, s1.offset, value, 0, s1.count);
+        System.arraycopy(s2.value, s2.offset, value, s1.count, s2.count);
+        System.arraycopy(s3.value, s3.offset, value, s1.count + s2.count,
+                s3.count);
+    }
+
+    /**
+     * Creates a {@code String} from the contents of the specified
+     * {@code StringBuffer}.
+     * 
+     * @param stringbuffer
+     *            the buffer to get the contents from.
+     */
+    public String(StringBuffer stringbuffer) {
+        offset = 0;
+        synchronized (stringbuffer) {
+            value = null;
+            count = stringbuffer.length();
+        }
+    }
+
+    /**
+     * Creates a {@code String} from the sub-array of Unicode code points.
      *
-     * @param index the index to be offset
-     * @param codePointOffset the offset in code points
-     * @return the index within this <code>String</code>
-     * @exception IndexOutOfBoundsException if <code>index</code>
-     *   is negative or larger then the length of this
-     *   <code>String</code>, or if <code>codePointOffset</code> is positive
-     *   and the substring starting with <code>index</code> has fewer
-     *   than <code>codePointOffset</code> code points,
-     *   or if <code>codePointOffset</code> is negative and the substring
-     *   before <code>index</code> has fewer than the absolute value
-     *   of <code>codePointOffset</code> code points.
+     * @param codePoints
+     *            the array of Unicode code points to convert.
+     * @param offset
+     *            the inclusive index into {@code codePoints} to begin
+     *            converting from.
+     * @param count
+     *            the number of elements in {@code codePoints} to copy.
+     * @throws NullPointerException
+     *             if {@code codePoints} is {@code null}.
+     * @throws IllegalArgumentException
+     *             if any of the elements of {@code codePoints} are not valid
+     *             Unicode code points.
+     * @throws IndexOutOfBoundsException
+     *             if {@code offset} or {@code count} are not within the bounds
+     *             of {@code codePoints}.
      * @since 1.5
      */
-    public int offsetByCodePoints(int index, int codePointOffset) {
-        if (index < 0 || index > value.length) {
+    public String(int[] codePoints, int offset, int count) {
+        super();
+        if (offset < 0 || count < 0 || offset > codePoints.length - count) {
             throw new IndexOutOfBoundsException();
         }
-        return Character.offsetByCodePointsImpl(value, 0, value.length,
-                index, codePointOffset);
+        this.offset = 0;
+        this.value = new char[count * 2];
+        int end = offset + count;
+        int c = 0;
+        for (int i = offset; i < end; i++) {
+            c += Character.toChars(codePoints[i], this.value, c);
+        }
+        this.count = c;
     }
 
     /**
-     * Copy characters from this string into dst starting at dstBegin.
-     * This method doesn't perform any range checking.
+     * Creates a {@code String} from the contents of the specified {@code
+     * StringBuilder}.
+     * 
+     * @param sb
+     *            the {@code StringBuilder} to copy the contents from.
+     * @throws NullPointerException
+     *             if {@code sb} is {@code null}.
+     * @since 1.5
      */
-    void getChars(char dst[], int dstBegin) {
-        System.arraycopy(value, 0, dst, dstBegin, value.length);
+    public String(StringBuilder sb) {
+        this.offset = 0;
+        this.count = sb.length();
+        this.value = new char[this.count];
+        sb.getChars(0, this.count, this.value, 0);
+    }
+
+    /*
+     * Creates a {@code String} that is s1 + v1. May be used by JIT code.
+     */
+    @SuppressWarnings("unused")
+    private String(String s1, int v1) {
+        if (s1 == null) {
+            s1 = "null"; //$NON-NLS-1$
+        }
+        String s2 = String.valueOf(v1);
+        int len = s1.count + s2.count;
+        value = new char[len];
+        offset = 0;
+        System.arraycopy(s1.value, s1.offset, value, 0, s1.count);
+        System.arraycopy(s2.value, s2.offset, value, s1.count, s2.count);
+        count = len;
     }
 
     /**
-     * Copies characters from this string into the destination character
-     * array.
-     * <p>
-     * The first character to be copied is at index <code>srcBegin</code>;
-     * the last character to be copied is at index <code>srcEnd-1</code>
-     * (thus the total number of characters to be copied is
-     * <code>srcEnd-srcBegin</code>). The characters are copied into the
-     * subarray of <code>dst</code> starting at index <code>dstBegin</code>
-     * and ending at index:
-     * <p><blockquote><pre>
-     *     dstbegin + (srcEnd-srcBegin) - 1
-     * </pre></blockquote>
-     *
-     * @param      srcBegin   index of the first character in the string
-     *                        to copy.
-     * @param      srcEnd     index after the last character in the string
-     *                        to copy.
-     * @param      dst        the destination array.
-     * @param      dstBegin   the start offset in the destination array.
-     * @exception IndexOutOfBoundsException If any of the following
-     *            is true:
-     *            <ul><li><code>srcBegin</code> is negative.
-     *            <li><code>srcBegin</code> is greater than <code>srcEnd</code>
-     *            <li><code>srcEnd</code> is greater than the length of this
-     *                string
-     *            <li><code>dstBegin</code> is negative
-     *            <li><code>dstBegin+(srcEnd-srcBegin)</code> is larger than
-     *                <code>dst.length</code></ul>
+     * Returns the character at the specified offset in this string.
+     * 
+     * @param index
+     *            the zero-based index in this string.
+     * @return the character at the index.
+     * @throws IndexOutOfBoundsException
+     *             if {@code index < 0} or {@code index >= length()}.
      */
-    public void getChars(int srcBegin, int srcEnd, char dst[], int dstBegin) {
-        if (srcBegin < 0) {
-            throw new StringIndexOutOfBoundsException(srcBegin);
+    public char charAt(int index) {
+        if (0 <= index && index < count) {
+            return value[offset + index];
         }
-        if (srcEnd > value.length) {
-            throw new StringIndexOutOfBoundsException(srcEnd);
+        throw new StringIndexOutOfBoundsException();
+    }
+
+    // Optimized for ASCII
+    private char compareValue(char ch) {
+        if (ch < 128) {
+            if ('A' <= ch && ch <= 'Z') {
+                return (char) (ch + ('a' - 'A'));
+            }
+            return ch;
         }
-        if (srcBegin > srcEnd) {
-            throw new StringIndexOutOfBoundsException(srcEnd - srcBegin);
+        return Character.toLowerCase(Character.toUpperCase(ch));
+    }
+
+    // Optimized for ASCII
+    private char toLowerCase(char ch) {
+        if (ch < 128) {
+            if ('A' <= ch && ch <= 'Z') {
+                return (char) (ch + ('a' - 'A'));
+            }
+            return ch;
         }
-        System.arraycopy(value, srcBegin, dst, dstBegin, srcEnd - srcBegin);
+        return Character.toLowerCase(ch);
+    }
+
+    // Optimized for ASCII
+    private char toUpperCase(char ch) {
+        if (ch < 128) {
+            if ('a' <= ch && ch <= 'z') {
+                return (char) (ch - ('a' - 'A'));
+            }
+            return ch;
+        }
+        return Character.toUpperCase(ch);
     }
 
     /**
-     * Copies characters from this string into the destination byte array. Each
-     * byte receives the 8 low-order bits of the corresponding character. The
-     * eight high-order bits of each character are not copied and do not
-     * participate in the transfer in any way.
-     *
-     * <p> The first character to be copied is at index {@code srcBegin}; the
-     * last character to be copied is at index {@code srcEnd-1}.  The total
-     * number of characters to be copied is {@code srcEnd-srcBegin}. The
-     * characters, converted to bytes, are copied into the subarray of {@code
-     * dst} starting at index {@code dstBegin} and ending at index:
-     *
-     * <blockquote><pre>
-     *     dstbegin + (srcEnd-srcBegin) - 1
-     * </pre></blockquote>
-     *
-     * @deprecated  This method does not properly convert characters into
-     * bytes.  As of JDK&nbsp;1.1, the preferred way to do this is via the
-     * {@link #getBytes()} method, which uses the platform's default charset.
-     *
-     * @param  srcBegin
-     *         Index of the first character in the string to copy
-     *
-     * @param  srcEnd
-     *         Index after the last character in the string to copy
-     *
-     * @param  dst
-     *         The destination array
-     *
-     * @param  dstBegin
-     *         The start offset in the destination array
-     *
-     * @throws  IndexOutOfBoundsException
-     *          If any of the following is true:
-     *          <ul>
-     *            <li> {@code srcBegin} is negative
-     *            <li> {@code srcBegin} is greater than {@code srcEnd}
-     *            <li> {@code srcEnd} is greater than the length of this String
-     *            <li> {@code dstBegin} is negative
-     *            <li> {@code dstBegin+(srcEnd-srcBegin)} is larger than {@code
-     *                 dst.length}
-     *          </ul>
+     * Compares the specified string to this string using the Unicode values of
+     * the characters. Returns 0 if the strings contain the same characters in
+     * the same order. Returns a negative integer if the first non-equal
+     * character in this string has a Unicode value which is less than the
+     * Unicode value of the character at the same position in the specified
+     * string, or if this string is a prefix of the specified string. Returns a
+     * positive integer if the first non-equal character in this string has a
+     * Unicode value which is greater than the Unicode value of the character at
+     * the same position in the specified string, or if the specified string is
+     * a prefix of this string.
+     * 
+     * @param string
+     *            the string to compare.
+     * @return 0 if the strings are equal, a negative integer if this string is
+     *         before the specified string, or a positive integer if this string
+     *         is after the specified string.
+     * @throws NullPointerException
+     *             if {@code string} is {@code null}.
      */
-    @Deprecated
-    public void getBytes(int srcBegin, int srcEnd, byte dst[], int dstBegin) {
-        if (srcBegin < 0) {
-            throw new StringIndexOutOfBoundsException(srcBegin);
+    public int compareTo(String string) {
+        // Code adapted from K&R, pg 101
+        int o1 = offset, o2 = string.offset, result;
+        int end = offset + (count < string.count ? count : string.count);
+        char[] target = string.value;
+        while (o1 < end) {
+            if ((result = value[o1++] - target[o2++]) != 0) {
+                return result;
+            }
         }
-        if (srcEnd > value.length) {
-            throw new StringIndexOutOfBoundsException(srcEnd);
-        }
-        if (srcBegin > srcEnd) {
-            throw new StringIndexOutOfBoundsException(srcEnd - srcBegin);
-        }
-        int j = dstBegin;
-        int n = srcEnd;
-        int i = srcBegin;
-        char[] val = value;   /* avoid getfield opcode */
-
-        while (i < n) {
-            dst[j++] = (byte)val[i++];
-        }
+        return count - string.count;
     }
 
     /**
-     * Encodes this {@code String} into a sequence of bytes using the named
-     * charset, storing the result into a new byte array.
-     *
-     * <p> The behavior of this method when this string cannot be encoded in
-     * the given charset is unspecified.  The {@link
-     * java.nio.charset.CharsetEncoder} class should be used when more control
-     * over the encoding process is required.
-     *
-     * @param  charsetName
-     *         The name of a supported {@linkplain java.nio.charset.Charset
-     *         charset}
-     *
-     * @return  The resultant byte array
-     *
-     * @throws  UnsupportedEncodingException
-     *          If the named charset is not supported
-     *
-     * @since  JDK1.1
+     * Compares the specified string to this string using the Unicode values of
+     * the characters, ignoring case differences. Returns 0 if the strings
+     * contain the same characters in the same order. Returns a negative integer
+     * if the first non-equal character in this string has a Unicode value which
+     * is less than the Unicode value of the character at the same position in
+     * the specified string, or if this string is a prefix of the specified
+     * string. Returns a positive integer if the first non-equal character in
+     * this string has a Unicode value which is greater than the Unicode value
+     * of the character at the same position in the specified string, or if the
+     * specified string is a prefix of this string.
+     * 
+     * @param string
+     *            the string to compare.
+     * @return 0 if the strings are equal, a negative integer if this string is
+     *         before the specified string, or a positive integer if this string
+     *         is after the specified string.
+     * @throws NullPointerException
+     *             if {@code string} is {@code null}.
      */
-    public byte[] getBytes(String charsetName)
-            throws UnsupportedEncodingException {
-        if (charsetName == null) throw new NullPointerException();
-        return StringCoding.encode(charsetName, value, 0, value.length);
+    public int compareToIgnoreCase(String string) {
+        int o1 = offset, o2 = string.offset, result;
+        int end = offset + (count < string.count ? count : string.count);
+        char c1, c2;
+        char[] target = string.value;
+        while (o1 < end) {
+            if ((c1 = value[o1++]) == (c2 = target[o2++])) {
+                continue;
+            }
+            c1 = compareValue(c1);
+            c2 = compareValue(c2);
+            if ((result = c1 - c2) != 0) {
+                return result;
+            }
+        }
+        return count - string.count;
     }
 
     /**
-     * Encodes this {@code String} into a sequence of bytes using the given
-     * {@linkplain java.nio.charset.Charset charset}, storing the result into a
-     * new byte array.
-     *
-     * <p> This method always replaces malformed-input and unmappable-character
-     * sequences with this charset's default replacement byte array.  The
-     * {@link java.nio.charset.CharsetEncoder} class should be used when more
-     * control over the encoding process is required.
-     *
-     * @param  charset
-     *         The {@linkplain java.nio.charset.Charset} to be used to encode
-     *         the {@code String}
-     *
-     * @return  The resultant byte array
-     *
-     * @since  1.6
+     * Concatenates this string and the specified string.
+     * 
+     * @param string
+     *            the string to concatenate
+     * @return a new string which is the concatenation of this string and the
+     *         specified string.
      */
-    public byte[] getBytes(Charset charset) {
-        if (charset == null) throw new NullPointerException();
-        return StringCoding.encode(charset, value, 0, value.length);
+    public String concat(String string) {
+        if (string.count == 0) {
+            return this;
+        }
+
+        char[] buffer = new char[count + string.count];
+        if (count > 0) {
+            System.arraycopy(value, offset, buffer, 0, count);
+        }
+        System.arraycopy(string.value, string.offset, buffer, count,
+                string.count);
+        return new String(0, buffer.length, buffer);
     }
 
     /**
-     * Encodes this {@code String} into a sequence of bytes using the
-     * platform's default charset, storing the result into a new byte array.
-     *
-     * <p> The behavior of this method when this string cannot be encoded in
-     * the default charset is unspecified.  The {@link
-     * java.nio.charset.CharsetEncoder} class should be used when more control
-     * over the encoding process is required.
-     *
-     * @return  The resultant byte array
-     *
-     * @since      JDK1.1
+     * Creates a new string containing the characters in the specified character
+     * array. Modifying the character array after creating the string has no
+     * effect on the string.
+     * 
+     * @param data
+     *            the array of characters.
+     * @return the new string.
+     * @throws NullPointerException
+     *             if {@code data} is {@code null}.
      */
-    public byte[] getBytes() {
-        return StringCoding.encode(value, 0, value.length);
+    public static String copyValueOf(char[] data) {
+        return new String(data, 0, data.length);
     }
 
     /**
-     * Compares this string to the specified object.  The result is {@code
-     * true} if and only if the argument is not {@code null} and is a {@code
-     * String} object that represents the same sequence of characters as this
-     * object.
-     *
-     * @param  anObject
-     *         The object to compare this {@code String} against
-     *
-     * @return  {@code true} if the given object represents a {@code String}
-     *          equivalent to this string, {@code false} otherwise
-     *
-     * @see  #compareTo(String)
-     * @see  #equalsIgnoreCase(String)
+     * Creates a new string containing the specified characters in the character
+     * array. Modifying the character array after creating the string has no
+     * effect on the string.
+     * 
+     * @param data
+     *            the array of characters.
+     * @param start
+     *            the starting offset in the character array.
+     * @param length
+     *            the number of characters to use.
+     * @return the new string.
+     * @throws NullPointerException
+     *             if {@code data} is {@code null}.
+     * @throws IndexOutOfBoundsException
+     *             if {@code length < 0, start < 0} or {@code start + length >
+     *             data.length}.
      */
-    public boolean equals(Object anObject) {
-        if (this == anObject) {
+    public static String copyValueOf(char[] data, int start, int length) {
+        return new String(data, start, length);
+    }
+
+    private Charset defaultCharset() {
+        if (DefaultCharset == null) {
+            String encoding = null;
+           }
+        return DefaultCharset;
+    }
+
+    /**
+     * Compares the specified string to this string to determine if the
+     * specified string is a suffix.
+     * 
+     * @param suffix
+     *            the suffix to look for.
+     * @return {@code true} if the specified string is a suffix of this string,
+     *         {@code false} otherwise.
+     * @throws NullPointerException
+     *             if {@code suffix} is {@code null}.
+     */
+    public boolean endsWith(String suffix) {
+        return regionMatches(count - suffix.count, suffix, 0, suffix.count);
+    }
+
+    /**
+     * Compares the specified object to this string and returns true if they are
+     * equal. The object must be an instance of string with the same characters
+     * in the same order.
+     * 
+     * @param object
+     *            the object to compare.
+     * @return {@code true} if the specified object is equal to this string,
+     *         {@code false} otherwise.
+     * @see #hashCode
+     */
+    @Override
+    public boolean equals(Object object) {
+        if (object == this) {
             return true;
         }
-        if (anObject instanceof String) {
-            String anotherString = (String) anObject;
-            int n = value.length;
-            if (n == anotherString.value.length) {
-                char v1[] = value;
-                char v2[] = anotherString.value;
-                int i = 0;
-                while (n-- != 0) {
-                    if (v1[i] != v2[i])
-                            return false;
-                    i++;
-                }
-                return true;
+        if (object instanceof String) {
+            String s = (String) object;
+            int hash = hashCode;  // Single read on hashCodes as they may change
+            int shash = s.hashCode;
+            if (count != s.count || (hash != shash && hash != 0 && shash != 0)) {
+                return false;
             }
+            for (int i = 0; i < count; ++i) {
+                if (value[offset + i] != s.value[s.offset + i]) {
+                    return false;
+                }
+            }
+            return true;
         }
         return false;
     }
 
     /**
-     * Compares this string to the specified {@code StringBuffer}.  The result
-     * is {@code true} if and only if this {@code String} represents the same
-     * sequence of characters as the specified {@code StringBuffer}.
-     *
-     * @param  sb
-     *         The {@code StringBuffer} to compare this {@code String} against
-     *
-     * @return  {@code true} if this {@code String} represents the same
-     *          sequence of characters as the specified {@code StringBuffer},
-     *          {@code false} otherwise
-     *
-     * @since  1.4
+     * Compares the specified string to this string ignoring the case of the
+     * characters and returns true if they are equal.
+     * 
+     * @param string
+     *            the string to compare.
+     * @return {@code true} if the specified string is equal to this string,
+     *         {@code false} otherwise.
      */
-    public boolean contentEquals(StringBuffer sb) {
-        synchronized (sb) {
-            return contentEquals((CharSequence) sb);
+    public boolean equalsIgnoreCase(String string) {
+        if (string == this) {
+            return true;
         }
-    }
-
-    /**
-     * Compares this string to the specified {@code CharSequence}.  The result
-     * is {@code true} if and only if this {@code String} represents the same
-     * sequence of char values as the specified sequence.
-     *
-     * @param  cs
-     *         The sequence to compare this {@code String} against
-     *
-     * @return  {@code true} if this {@code String} represents the same
-     *          sequence of char values as the specified sequence, {@code
-     *          false} otherwise
-     *
-     * @since  1.5
-     */
-    public boolean contentEquals(CharSequence cs) {
-        if (value.length != cs.length())
+        if (string == null || count != string.count) {
             return false;
-        // Argument is a StringBuffer, StringBuilder
-        if (cs instanceof AbstractStringBuilder) {
-            char v1[] = value;
-            char v2[] = ((AbstractStringBuilder) cs).getValue();
-            int i = 0;
-            int n = value.length;
-            while (n-- != 0) {
-                if (v1[i] != v2[i])
-                    return false;
-                i++;
-            }
-            return true;
         }
-        // Argument is a String
-        if (cs.equals(this))
-            return true;
-        // Argument is a generic CharSequence
-        char v1[] = value;
-        int i = 0;
-        int n = value.length;
-        while (n-- != 0) {
-            if (v1[i] != cs.charAt(i))
+
+        int o1 = offset, o2 = string.offset;
+        int end = offset + count;
+        char c1, c2;
+        char[] target = string.value;
+        while (o1 < end) {
+            if ((c1 = value[o1++]) != (c2 = target[o2++])
+                    && toUpperCase(c1) != toUpperCase(c2)
+                    // Required for unicode that we test both cases
+                    && toLowerCase(c1) != toLowerCase(c2)) {
                 return false;
-            i++;
+            }
         }
         return true;
     }
 
     /**
-     * Compares this {@code String} to another {@code String}, ignoring case
-     * considerations.  Two strings are considered equal ignoring case if they
-     * are of the same length and corresponding characters in the two strings
-     * are equal ignoring case.
-     *
-     * <p> Two characters {@code c1} and {@code c2} are considered the same
-     * ignoring case if at least one of the following is true:
-     * <ul>
-     *   <li> The two characters are the same (as compared by the
-     *        {@code ==} operator)
-     *   <li> Applying the method {@link
-     *        java.lang.Character#toUpperCase(char)} to each character
-     *        produces the same result
-     *   <li> Applying the method {@link
-     *        java.lang.Character#toLowerCase(char)} to each character
-     *        produces the same result
-     * </ul>
-     *
-     * @param  anotherString
-     *         The {@code String} to compare this {@code String} against
-     *
-     * @return  {@code true} if the argument is not {@code null} and it
-     *          represents an equivalent {@code String} ignoring case; {@code
-     *          false} otherwise
-     *
-     * @see  #equals(Object)
+     * Converts this string to a byte array using the default encoding as
+     * specified by the file.encoding system property. If the system property is
+     * not defined, the default encoding is ISO8859_1 (ISO-Latin-1). If 8859-1
+     * is not available, an ASCII encoding is used.
+     * 
+     * @return the byte array encoding of this string.
      */
-    public boolean equalsIgnoreCase(String anotherString) {
-        return (this == anotherString) ? true
-                : (anotherString != null)
-                && (anotherString.value.length == value.length)
-                && regionMatches(true, 0, anotherString, 0, value.length);
+    public byte[] getBytes() {
+        ByteBuffer buffer = defaultCharset().encode(
+                CharBuffer.wrap(this.value, this.offset, this.count));
+        byte[] bytes = new byte[buffer.limit()];
+        buffer.get(bytes);
+        return bytes;
     }
 
     /**
-     * Compares two strings lexicographically.
-     * The comparison is based on the Unicode value of each character in
-     * the strings. The character sequence represented by this
-     * <code>String</code> object is compared lexicographically to the
-     * character sequence represented by the argument string. The result is
-     * a negative integer if this <code>String</code> object
-     * lexicographically precedes the argument string. The result is a
-     * positive integer if this <code>String</code> object lexicographically
-     * follows the argument string. The result is zero if the strings
-     * are equal; <code>compareTo</code> returns <code>0</code> exactly when
-     * the {@link #equals(Object)} method would return <code>true</code>.
-     * <p>
-     * This is the definition of lexicographic ordering. If two strings are
-     * different, then either they have different characters at some index
-     * that is a valid index for both strings, or their lengths are different,
-     * or both. If they have different characters at one or more index
-     * positions, let <i>k</i> be the smallest such index; then the string
-     * whose character at position <i>k</i> has the smaller value, as
-     * determined by using the &lt; operator, lexicographically precedes the
-     * other string. In this case, <code>compareTo</code> returns the
-     * difference of the two character values at position <code>k</code> in
-     * the two string -- that is, the value:
-     * <blockquote><pre>
-     * this.charAt(k)-anotherString.charAt(k)
-     * </pre></blockquote>
-     * If there is no index position at which they differ, then the shorter
-     * string lexicographically precedes the longer string. In this case,
-     * <code>compareTo</code> returns the difference of the lengths of the
-     * strings -- that is, the value:
-     * <blockquote><pre>
-     * this.length()-anotherString.length()
-     * </pre></blockquote>
-     *
-     * @param   anotherString   the <code>String</code> to be compared.
-     * @return  the value <code>0</code> if the argument string is equal to
-     *          this string; a value less than <code>0</code> if this string
-     *          is lexicographically less than the string argument; and a
-     *          value greater than <code>0</code> if this string is
-     *          lexicographically greater than the string argument.
+     * Converts this string to a byte array, ignoring the high order bits of
+     * each character.
+     * 
+     * @param start
+     *            the starting offset of characters to copy.
+     * @param end
+     *            the ending offset of characters to copy.
+     * @param data
+     *            the destination byte array.
+     * @param index
+     *            the starting offset in the destination byte array.
+     * @throws NullPointerException
+     *             if {@code data} is {@code null}.
+     * @throws IndexOutOfBoundsException
+     *             if {@code start < 0}, {@code end > length()}, {@code index <
+     *             0} or {@code end - start > data.length - index}.
+     * @deprecated Use {@link #getBytes()} or {@link #getBytes(String)}
      */
-    public int compareTo(String anotherString) {
-        int len1 = value.length;
-        int len2 = anotherString.value.length;
-        int lim = Math.min(len1, len2);
-        char v1[] = value;
-        char v2[] = anotherString.value;
-
-        int k = 0;
-        while (k < lim) {
-            char c1 = v1[k];
-            char c2 = v2[k];
-            if (c1 != c2) {
-                return c1 - c2;
+    @Deprecated
+    public void getBytes(int start, int end, byte[] data, int index) {
+        if (0 <= start && start <= end && end <= count) {
+            end += offset;
+            try {
+                for (int i = offset + start; i < end; i++) {
+                    data[index++] = (byte) value[i];
+                }
+            } catch (ArrayIndexOutOfBoundsException e) {
+                throw new StringIndexOutOfBoundsException();
             }
-            k++;
+        } else {
+            throw new StringIndexOutOfBoundsException();
         }
-        return len1 - len2;
     }
 
     /**
-     * A Comparator that orders <code>String</code> objects as by
-     * <code>compareToIgnoreCase</code>. This comparator is serializable.
-     * <p>
-     * Note that this Comparator does <em>not</em> take locale into account,
-     * and will result in an unsatisfactory ordering for certain locales.
-     * The java.text package provides <em>Collators</em> to allow
-     * locale-sensitive ordering.
-     *
-     * @see     java.text.Collator#compare(String, String)
-     * @since   1.2
+     * Converts this string to a byte array using the specified encoding.
+     * 
+     * @param encoding
+     *            the encoding to use.
+     * @return the encoded byte array of this string.
+     * @throws UnsupportedEncodingException
+     *             if the encoding is not supported.
      */
-    public static final Comparator<String> CASE_INSENSITIVE_ORDER
-                                         = new CaseInsensitiveComparator();
-    private static class CaseInsensitiveComparator
-            implements Comparator<String>, java.io.Serializable {
-        // use serialVersionUID from JDK 1.2.2 for interoperability
-        private static final long serialVersionUID = 8575799808933029326L;
+    public byte[] getBytes(String encoding) throws UnsupportedEncodingException {
+        ByteBuffer buffer = getCharset(encoding).encode(
+                CharBuffer.wrap(this.value, this.offset, this.count));
+        byte[] bytes = new byte[buffer.limit()];
+        buffer.get(bytes);
+        return bytes;
+    }
 
-        public int compare(String s1, String s2) {
-            int n1 = s1.length();
-            int n2 = s2.length();
-            int min = Math.min(n1, n2);
-            for (int i = 0; i < min; i++) {
-                char c1 = s1.charAt(i);
-                char c2 = s2.charAt(i);
-                if (c1 != c2) {
-                    c1 = Character.toUpperCase(c1);
-                    c2 = Character.toUpperCase(c2);
-                    if (c1 != c2) {
-                        c1 = Character.toLowerCase(c1);
-                        c2 = Character.toLowerCase(c2);
-                        if (c1 != c2) {
-                            // No overflow because of numeric promotion
-                            return c1 - c2;
-                        }
+    private Charset getCharset(final String encoding)
+            throws UnsupportedEncodingException {
+        Charset charset = lastCharset;
+        if (charset == null || !encoding.equalsIgnoreCase(charset.name())) {
+            try {
+                charset = Charset.forName(encoding);
+            } catch (IllegalCharsetNameException e) {
+                throw (UnsupportedEncodingException) (new UnsupportedEncodingException(
+                        encoding).initCause(e));
+            } catch (UnsupportedCharsetException e) {
+                throw (UnsupportedEncodingException) (new UnsupportedEncodingException(
+                        encoding).initCause(e));
+            }
+            lastCharset = charset;
+        }
+        return charset;
+    }
+    
+    /**
+     * Converts this String to a byte encoding using the specified encoding.
+     * 
+     * @param encoding
+     *            the encoding
+     * @return the byte array encoding of this String
+     * 
+     * @see String
+     * @since 1.6
+     */
+    public byte[] getBytes(Charset encoding) {
+        ByteBuffer buffer = encoding.encode(CharBuffer.wrap(this.value,
+                this.offset, this.count));
+        byte[] bytes = new byte[buffer.limit()];
+        buffer.get(bytes);
+        return bytes;
+    }
+
+    /**
+     * Copies the specified characters in this string to the character array
+     * starting at the specified offset in the character array.
+     * 
+     * @param start
+     *            the starting offset of characters to copy.
+     * @param end
+     *            the ending offset of characters to copy.
+     * @param buffer
+     *            the destination character array.
+     * @param index
+     *            the starting offset in the character array.
+     * @throws NullPointerException
+     *             if {@code buffer} is {@code null}.
+     * @throws IndexOutOfBoundsException
+     *             if {@code start < 0}, {@code end > length()}, {@code start >
+     *             end}, {@code index < 0}, {@code end - start > buffer.length -
+     *             index}
+     */
+    public void getChars(int start, int end, char[] buffer, int index) {
+        // NOTE last character not copied!
+        // Fast range check.
+        if (0 <= start && start <= end && end <= count) {
+            System.arraycopy(value, start + offset, buffer, index, end - start);
+        } else {
+            throw new StringIndexOutOfBoundsException();
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        if (hashCode == 0) {
+            if (count == 0) {
+                return 0;
+            }
+            int hash = 0;
+            for (int i = offset; i < count + offset; i++) {
+                hash = value[i] + ((hash << 5) - hash);
+            }
+            hashCode = hash;
+        }
+        return hashCode;
+    }
+
+    /**
+     * Searches in this string for the first index of the specified character.
+     * The search for the character starts at the beginning and moves towards
+     * the end of this string.
+     * 
+     * @param c
+     *            the character to find.
+     * @return the index in this string of the specified character, -1 if the
+     *         character isn't found.
+     */
+    public int indexOf(int c) {
+        return indexOf(c, 0);
+    }
+
+    /**
+     * Searches in this string for the index of the specified character. The
+     * search for the character starts at the specified offset and moves towards
+     * the end of this string.
+     * 
+     * @param c
+     *            the character to find.
+     * @param start
+     *            the starting offset.
+     * @return the index in this string of the specified character, -1 if the
+     *         character isn't found.
+     */
+    public int indexOf(int c, int start) {
+        if (start < count) {
+            if (start < 0) {
+                start = 0;
+            }
+            if (c >= 0 && c <= Character.MAX_VALUE) {
+                for (int i = offset + start; i < offset + count; i++) {
+                    if (value[i] == c) {
+                        return i - offset;
+                    }
+                }
+            } else if (c > Character.MAX_VALUE && c <= Character.MAX_CODE_POINT) {
+                for (int i = start; i < count; i++) {
+                    int codePoint = codePointAt(i);
+                    if (codePoint == c) {
+                        return i;
+                    } else if (codePoint >= Character.MIN_SUPPLEMENTARY_CODE_POINT) {
+                        i++;
                     }
                 }
             }
-            return n1 - n2;
         }
+        return -1;
     }
 
     /**
-     * Compares two strings lexicographically, ignoring case
-     * differences. This method returns an integer whose sign is that of
-     * calling <code>compareTo</code> with normalized versions of the strings
-     * where case differences have been eliminated by calling
-     * <code>Character.toLowerCase(Character.toUpperCase(character))</code> on
-     * each character.
-     * <p>
-     * Note that this method does <em>not</em> take locale into account,
-     * and will result in an unsatisfactory ordering for certain locales.
-     * The java.text package provides <em>collators</em> to allow
-     * locale-sensitive ordering.
-     *
-     * @param   str   the <code>String</code> to be compared.
-     * @return  a negative integer, zero, or a positive integer as the
-     *          specified String is greater than, equal to, or less
-     *          than this String, ignoring case considerations.
-     * @see     java.text.Collator#compare(String, String)
-     * @since   1.2
+     * Searches in this string for the first index of the specified string. The
+     * search for the string starts at the beginning and moves towards the end
+     * of this string.
+     * 
+     * @param string
+     *            the string to find.
+     * @return the index of the first character of the specified string in this
+     *         string, -1 if the specified string is not a substring.
+     * @throws NullPointerException
+     *             if {@code string} is {@code null}.
      */
-    public int compareToIgnoreCase(String str) {
-        return CASE_INSENSITIVE_ORDER.compare(this, str);
+    public int indexOf(String string) {
+        return indexOf(string, 0);
     }
 
     /**
-     * Tests if two string regions are equal.
-     * <p>
-     * A substring of this <tt>String</tt> object is compared to a substring
-     * of the argument other. The result is true if these substrings
-     * represent identical character sequences. The substring of this
-     * <tt>String</tt> object to be compared begins at index <tt>toffset</tt>
-     * and has length <tt>len</tt>. The substring of other to be compared
-     * begins at index <tt>ooffset</tt> and has length <tt>len</tt>. The
-     * result is <tt>false</tt> if and only if at least one of the following
-     * is true:
-     * <ul><li><tt>toffset</tt> is negative.
-     * <li><tt>ooffset</tt> is negative.
-     * <li><tt>toffset+len</tt> is greater than the length of this
-     * <tt>String</tt> object.
-     * <li><tt>ooffset+len</tt> is greater than the length of the other
-     * argument.
-     * <li>There is some nonnegative integer <i>k</i> less than <tt>len</tt>
-     * such that:
-     * <tt>this.charAt(toffset+<i>k</i>)&nbsp;!=&nbsp;other.charAt(ooffset+<i>k</i>)</tt>
-     * </ul>
-     *
-     * @param   toffset   the starting offset of the subregion in this string.
-     * @param   other     the string argument.
-     * @param   ooffset   the starting offset of the subregion in the string
-     *                    argument.
-     * @param   len       the number of characters to compare.
-     * @return  <code>true</code> if the specified subregion of this string
-     *          exactly matches the specified subregion of the string argument;
-     *          <code>false</code> otherwise.
+     * Searches in this string for the index of the specified string. The search
+     * for the string starts at the specified offset and moves towards the end
+     * of this string.
+     * 
+     * @param subString
+     *            the string to find.
+     * @param start
+     *            the starting offset.
+     * @return the index of the first character of the specified string in this
+     *         string, -1 if the specified string is not a substring.
+     * @throws NullPointerException
+     *             if {@code subString} is {@code null}.
      */
-    public boolean regionMatches(int toffset, String other, int ooffset,
-            int len) {
-        char ta[] = value;
-        int to = toffset;
-        char pa[] = other.value;
-        int po = ooffset;
-        // Note: toffset, ooffset, or len might be near -1>>>1.
-        if ((ooffset < 0) || (toffset < 0)
-                || (toffset > (long)value.length - len)
-                || (ooffset > (long)other.value.length - len)) {
+    public int indexOf(String subString, int start) {
+        if (start < 0) {
+            start = 0;
+        }
+        int subCount = subString.count;
+        if (subCount > 0) {
+            if (subCount + start > count) {
+                return -1;
+            }
+            char[] target = subString.value;
+            int subOffset = subString.offset;
+            char firstChar = target[subOffset];
+            int end = subOffset + subCount;
+            while (true) {
+                int i = indexOf(firstChar, start);
+                if (i == -1 || subCount + i > count) {
+                    return -1; // handles subCount > count || start >= count
+                }
+                int o1 = offset + i, o2 = subOffset;
+                while (++o2 < end && value[++o1] == target[o2]) {
+                    // Intentionally empty
+                }
+                if (o2 == end) {
+                    return i;
+                }
+                start = i + 1;
+            }
+        }
+        return start < count ? start : count;
+    }
+
+    /**
+     * Searches an internal table of strings for a string equal to this string.
+     * If the string is not in the table, it is added. Returns the string
+     * contained in the table which is equal to this string. The same string
+     * object is always returned for strings which are equal.
+     * 
+     * @return the interned string equal to this string.
+     */
+    public String intern() {
+        return null;
+    }
+
+    /**
+     * Searches in this string for the last index of the specified character.
+     * The search for the character starts at the end and moves towards the
+     * beginning of this string.
+     * 
+     * @param c
+     *            the character to find.
+     * @return the index in this string of the specified character, -1 if the
+     *         character isn't found.
+     */
+    public int lastIndexOf(int c) {
+        return lastIndexOf(c, count - 1);
+    }
+
+    /**
+     * Searches in this string for the index of the specified character. The
+     * search for the character starts at the specified offset and moves towards
+     * the beginning of this string.
+     * 
+     * @param c
+     *            the character to find.
+     * @param start
+     *            the starting offset.
+     * @return the index in this string of the specified character, -1 if the
+     *         character isn't found.
+     */
+    public int lastIndexOf(int c, int start) {
+        if (start >= 0) {
+            if (start >= count) {
+                start = count - 1;
+            }
+            if (c >= 0 && c <= Character.MAX_VALUE) {
+                for (int i = offset + start; i >= offset; --i) {
+                    if (value[i] == c) {
+                        return i - offset;
+                    }
+                }
+            } else if (c > Character.MAX_VALUE && c <= Character.MAX_CODE_POINT) {
+                for (int i = start; i >= 0; --i) {
+                    int codePoint = codePointAt(i);
+                    if (codePoint == c) {
+                        return i;
+                    } else if (codePoint >= Character.MIN_SUPPLEMENTARY_CODE_POINT) {
+                        --i;
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Searches in this string for the last index of the specified string. The
+     * search for the string starts at the end and moves towards the beginning
+     * of this string.
+     * 
+     * @param string
+     *            the string to find.
+     * @return the index of the first character of the specified string in this
+     *         string, -1 if the specified string is not a substring.
+     * @throws NullPointerException
+     *             if {@code string} is {@code null}.
+     */
+    public int lastIndexOf(String string) {
+        // Use count instead of count - 1 so lastIndexOf("") answers count
+        return lastIndexOf(string, count);
+    }
+
+    /**
+     * Searches in this string for the index of the specified string. The search
+     * for the string starts at the specified offset and moves towards the
+     * beginning of this string.
+     * 
+     * @param subString
+     *            the string to find.
+     * @param start
+     *            the starting offset.
+     * @return the index of the first character of the specified string in this
+     *         string , -1 if the specified string is not a substring.
+     * @throws NullPointerException
+     *             if {@code subString} is {@code null}.
+     */
+    public int lastIndexOf(String subString, int start) {
+        int subCount = subString.count;
+        if (subCount <= count && start >= 0) {
+            if (subCount > 0) {
+                if (start > count - subCount) {
+                    start = count - subCount;
+                }
+                // count and subCount are both >= 1
+                char[] target = subString.value;
+                int subOffset = subString.offset;
+                char firstChar = target[subOffset];
+                int end = subOffset + subCount;
+                while (true) {
+                    int i = lastIndexOf(firstChar, start);
+                    if (i == -1) {
+                        return -1;
+                    }
+                    int o1 = offset + i, o2 = subOffset;
+                    while (++o2 < end && value[++o1] == target[o2]) {
+                        // Intentionally empty
+                    }
+                    if (o2 == end) {
+                        return i;
+                    }
+                    start = i - 1;
+                }
+            }
+            return start < count ? start : count;
+        }
+        return -1;
+    }
+
+    /**
+     * Returns the size of this string.
+     * 
+     * @return the number of characters in this string.
+     */
+    public int length() {
+        return count;
+    }
+    
+    /**
+     * Answers if the size of this String is zero.
+     * 
+     * @return true if the size of this String is zero, false otherwise
+     * @since 1.6
+     */
+    public boolean isEmpty() {
+        return 0 == count;
+    }
+
+    /**
+     * Compares the specified string to this string and compares the specified
+     * range of characters to determine if they are the same.
+     * 
+     * @param thisStart
+     *            the starting offset in this string.
+     * @param string
+     *            the string to compare.
+     * @param start
+     *            the starting offset in the specified string.
+     * @param length
+     *            the number of characters to compare.
+     * @return {@code true} if the ranges of characters are equal, {@code false}
+     *         otherwise
+     * @throws NullPointerException
+     *             if {@code string} is {@code null}.
+     */
+    public boolean regionMatches(int thisStart, String string, int start,
+            int length) {
+        if (string.count - start < length || start < 0) {
             return false;
         }
-        while (len-- > 0) {
-            if (ta[to++] != pa[po++]) {
+        if (thisStart < 0 || count - thisStart < length) {
+            return false;
+        }
+        if (length <= 0) {
+            return true;
+        }
+        int o1 = offset + thisStart, o2 = string.offset + start;
+        for (int i = 0; i < length; ++i) {
+            if (value[o1 + i] != string.value[o2 + i]) {
                 return false;
             }
         }
@@ -1283,1832 +1290,821 @@ public class String
     }
 
     /**
-     * Tests if two string regions are equal.
-     * <p>
-     * A substring of this <tt>String</tt> object is compared to a substring
-     * of the argument <tt>other</tt>. The result is <tt>true</tt> if these
-     * substrings represent character sequences that are the same, ignoring
-     * case if and only if <tt>ignoreCase</tt> is true. The substring of
-     * this <tt>String</tt> object to be compared begins at index
-     * <tt>toffset</tt> and has length <tt>len</tt>. The substring of
-     * <tt>other</tt> to be compared begins at index <tt>ooffset</tt> and
-     * has length <tt>len</tt>. The result is <tt>false</tt> if and only if
-     * at least one of the following is true:
-     * <ul><li><tt>toffset</tt> is negative.
-     * <li><tt>ooffset</tt> is negative.
-     * <li><tt>toffset+len</tt> is greater than the length of this
-     * <tt>String</tt> object.
-     * <li><tt>ooffset+len</tt> is greater than the length of the other
-     * argument.
-     * <li><tt>ignoreCase</tt> is <tt>false</tt> and there is some nonnegative
-     * integer <i>k</i> less than <tt>len</tt> such that:
-     * <blockquote><pre>
-     * this.charAt(toffset+k) != other.charAt(ooffset+k)
-     * </pre></blockquote>
-     * <li><tt>ignoreCase</tt> is <tt>true</tt> and there is some nonnegative
-     * integer <i>k</i> less than <tt>len</tt> such that:
-     * <blockquote><pre>
-     * Character.toLowerCase(this.charAt(toffset+k)) !=
-     Character.toLowerCase(other.charAt(ooffset+k))
-     * </pre></blockquote>
-     * and:
-     * <blockquote><pre>
-     * Character.toUpperCase(this.charAt(toffset+k)) !=
-     *         Character.toUpperCase(other.charAt(ooffset+k))
-     * </pre></blockquote>
-     * </ul>
-     *
-     * @param   ignoreCase   if <code>true</code>, ignore case when comparing
-     *                       characters.
-     * @param   toffset      the starting offset of the subregion in this
-     *                       string.
-     * @param   other        the string argument.
-     * @param   ooffset      the starting offset of the subregion in the string
-     *                       argument.
-     * @param   len          the number of characters to compare.
-     * @return  <code>true</code> if the specified subregion of this string
-     *          matches the specified subregion of the string argument;
-     *          <code>false</code> otherwise. Whether the matching is exact
-     *          or case insensitive depends on the <code>ignoreCase</code>
-     *          argument.
+     * Compares the specified string to this string and compares the specified
+     * range of characters to determine if they are the same. When ignoreCase is
+     * true, the case of the characters is ignored during the comparison.
+     * 
+     * @param ignoreCase
+     *            specifies if case should be ignored.
+     * @param thisStart
+     *            the starting offset in this string.
+     * @param string
+     *            the string to compare.
+     * @param start
+     *            the starting offset in the specified string.
+     * @param length
+     *            the number of characters to compare.
+     * @return {@code true} if the ranges of characters are equal, {@code false}
+     *         otherwise.
+     * @throws NullPointerException
+     *             if {@code string} is {@code null}.
      */
-    public boolean regionMatches(boolean ignoreCase, int toffset,
-            String other, int ooffset, int len) {
-        char ta[] = value;
-        int to = toffset;
-        char pa[] = other.value;
-        int po = ooffset;
-        // Note: toffset, ooffset, or len might be near -1>>>1.
-        if ((ooffset < 0) || (toffset < 0)
-                || (toffset > (long)value.length - len)
-                || (ooffset > (long)other.value.length - len)) {
-            return false;
+    public boolean regionMatches(boolean ignoreCase, int thisStart,
+            String string, int start, int length) {
+        if (!ignoreCase) {
+            return regionMatches(thisStart, string, start, length);
         }
-        while (len-- > 0) {
-            char c1 = ta[to++];
-            char c2 = pa[po++];
-            if (c1 == c2) {
-                continue;
-            }
-            if (ignoreCase) {
-                // If characters don't match but case may be ignored,
-                // try converting both characters to uppercase.
-                // If the results match, then the comparison scan should
-                // continue.
-                char u1 = Character.toUpperCase(c1);
-                char u2 = Character.toUpperCase(c2);
-                if (u1 == u2) {
-                    continue;
-                }
-                // Unfortunately, conversion to uppercase does not work properly
-                // for the Georgian alphabet, which has strange rules about case
-                // conversion.  So we need to make one last check before
-                // exiting.
-                if (Character.toLowerCase(u1) == Character.toLowerCase(u2)) {
-                    continue;
-                }
-            }
-            return false;
-        }
-        return true;
-    }
 
-    /**
-     * Tests if the substring of this string beginning at the
-     * specified index starts with the specified prefix.
-     *
-     * @param   prefix    the prefix.
-     * @param   toffset   where to begin looking in this string.
-     * @return  <code>true</code> if the character sequence represented by the
-     *          argument is a prefix of the substring of this object starting
-     *          at index <code>toffset</code>; <code>false</code> otherwise.
-     *          The result is <code>false</code> if <code>toffset</code> is
-     *          negative or greater than the length of this
-     *          <code>String</code> object; otherwise the result is the same
-     *          as the result of the expression
-     *          <pre>
-     *          this.substring(toffset).startsWith(prefix)
-     *          </pre>
-     */
-    public boolean startsWith(String prefix, int toffset) {
-        char ta[] = value;
-        int to = toffset;
-        char pa[] = prefix.value;
-        int po = 0;
-        int pc = prefix.value.length;
-        // Note: toffset might be near -1>>>1.
-        if ((toffset < 0) || (toffset > value.length - pc)) {
-            return false;
-        }
-        while (--pc >= 0) {
-            if (ta[to++] != pa[po++]) {
+        if (string != null) {
+            if (thisStart < 0 || length > count - thisStart) {
                 return false;
             }
+            if (start < 0 || length > string.count - start) {
+                return false;
+            }
+
+            thisStart += offset;
+            start += string.offset;
+            int end = thisStart + length;
+            char c1, c2;
+            char[] target = string.value;
+            while (thisStart < end) {
+                if ((c1 = value[thisStart++]) != (c2 = target[start++])
+                        && toUpperCase(c1) != toUpperCase(c2)
+                        // Required for unicode that we test both cases
+                        && toLowerCase(c1) != toLowerCase(c2)) {
+                    return false;
+                }
+            }
+            return true;
         }
-        return true;
+        throw new NullPointerException();
     }
 
     /**
-     * Tests if this string starts with the specified prefix.
-     *
-     * @param   prefix   the prefix.
-     * @return  <code>true</code> if the character sequence represented by the
-     *          argument is a prefix of the character sequence represented by
-     *          this string; <code>false</code> otherwise.
-     *          Note also that <code>true</code> will be returned if the
-     *          argument is an empty string or is equal to this
-     *          <code>String</code> object as determined by the
-     *          {@link #equals(Object)} method.
-     * @since   1. 0
+     * Copies this string replacing occurrences of the specified character with
+     * another character.
+     * 
+     * @param oldChar
+     *            the character to replace.
+     * @param newChar
+     *            the replacement character.
+     * @return a new string with occurrences of oldChar replaced by newChar.
+     */
+    public String replace(char oldChar, char newChar) {
+        int index = indexOf(oldChar, 0);
+        if (index == -1) {
+            return this;
+        }
+
+        char[] buffer = new char[count];
+        System.arraycopy(value, offset, buffer, 0, count);
+        do {
+            buffer[index++] = newChar;
+        } while ((index = indexOf(oldChar, index)) != -1);
+        return new String(0, count, buffer);
+    }
+    
+    /**
+     * Copies this string replacing occurrences of the specified target sequence
+     * with another sequence. The string is processed from the beginning to the
+     * end.
+     * 
+     * @param target
+     *            the sequence to replace.
+     * @param replacement
+     *            the replacement sequence.
+     * @return the resulting string.
+     * @throws NullPointerException
+     *             if {@code target} or {@code replacement} is {@code null}.
+     */
+    public String replace(CharSequence target, CharSequence replacement) {
+        if (target == null) {
+            throw new NullPointerException("target should not be null");
+        }
+        if (replacement == null) {
+            throw new NullPointerException("replacement should not be null");
+        }
+        String ts = target.toString();
+        int index = indexOf(ts, 0);
+
+        if (index == -1)
+            return this;
+
+        String rs = replacement.toString();
+
+        // special case if the string to match is empty then
+        // match at the start, inbetween each character and at the end
+        if ("".equals(ts)) {
+            StringBuilder buffer = new StringBuilder(count + (rs.length() * (count + 1)));
+            buffer.append(rs);
+            for(int i=0; i<count; i++) {
+                buffer.append(value[offset + i]);
+                buffer.append(rs);
+            }
+            return buffer.toString();
+        }
+
+        StringBuilder buffer = new StringBuilder(count + rs.length());
+        int tl = target.length();
+        int tail = 0;
+        do {
+            buffer.append(value, offset + tail, index - tail);
+            buffer.append(rs);
+            tail = index + tl;
+        } while ((index = indexOf(ts, tail)) != -1);
+        //append trailing chars 
+        buffer.append(value, offset + tail, count - tail);
+
+        return buffer.toString();
+    }
+
+    /**
+     * Compares the specified string to this string to determine if the
+     * specified string is a prefix.
+     * 
+     * @param prefix
+     *            the string to look for.
+     * @return {@code true} if the specified string is a prefix of this string,
+     *         {@code false} otherwise
+     * @throws NullPointerException
+     *             if {@code prefix} is {@code null}.
      */
     public boolean startsWith(String prefix) {
         return startsWith(prefix, 0);
     }
 
     /**
-     * Tests if this string ends with the specified suffix.
-     *
-     * @param   suffix   the suffix.
-     * @return  <code>true</code> if the character sequence represented by the
-     *          argument is a suffix of the character sequence represented by
-     *          this object; <code>false</code> otherwise. Note that the
-     *          result will be <code>true</code> if the argument is the
-     *          empty string or is equal to this <code>String</code> object
-     *          as determined by the {@link #equals(Object)} method.
+     * Compares the specified string to this string, starting at the specified
+     * offset, to determine if the specified string is a prefix.
+     * 
+     * @param prefix
+     *            the string to look for.
+     * @param start
+     *            the starting offset.
+     * @return {@code true} if the specified string occurs in this string at the
+     *         specified offset, {@code false} otherwise.
+     * @throws NullPointerException
+     *             if {@code prefix} is {@code null}.
      */
-    public boolean endsWith(String suffix) {
-        return startsWith(suffix, value.length - suffix.value.length);
+    public boolean startsWith(String prefix, int start) {
+        return regionMatches(start, prefix, 0, prefix.count);
     }
 
     /**
-     * Returns a hash code for this string. The hash code for a
-     * <code>String</code> object is computed as
-     * <blockquote><pre>
-     * s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1]
-     * </pre></blockquote>
-     * using <code>int</code> arithmetic, where <code>s[i]</code> is the
-     * <i>i</i>th character of the string, <code>n</code> is the length of
-     * the string, and <code>^</code> indicates exponentiation.
-     * (The hash value of the empty string is zero.)
-     *
-     * @return  a hash code value for this object.
+     * Copies a range of characters into a new string.
+     * 
+     * @param start
+     *            the offset of the first character.
+     * @return a new string containing the characters from start to the end of
+     *         the string.
+     * @throws IndexOutOfBoundsException
+     *             if {@code start < 0} or {@code start > length()}.
      */
-    public int hashCode() {
-        int h = hash;
-        if (h == 0 && value.length > 0) {
-            char val[] = value;
-
-            for (int i = 0; i < value.length; i++) {
-                h = 31 * h + val[i];
-            }
-            hash = h;
-        }
-        return h;
-    }
-
-    /**
-     * Returns the index within this string of the first occurrence of
-     * the specified character. If a character with value
-     * <code>ch</code> occurs in the character sequence represented by
-     * this <code>String</code> object, then the index (in Unicode
-     * code units) of the first such occurrence is returned. For
-     * values of <code>ch</code> in the range from 0 to 0xFFFF
-     * (inclusive), this is the smallest value <i>k</i> such that:
-     * <blockquote><pre>
-     * this.charAt(<i>k</i>) == ch
-     * </pre></blockquote>
-     * is true. For other values of <code>ch</code>, it is the
-     * smallest value <i>k</i> such that:
-     * <blockquote><pre>
-     * this.codePointAt(<i>k</i>) == ch
-     * </pre></blockquote>
-     * is true. In either case, if no such character occurs in this
-     * string, then <code>-1</code> is returned.
-     *
-     * @param   ch   a character (Unicode code point).
-     * @return  the index of the first occurrence of the character in the
-     *          character sequence represented by this object, or
-     *          <code>-1</code> if the character does not occur.
-     */
-    public int indexOf(int ch) {
-        return indexOf(ch, 0);
-    }
-
-    /**
-     * Returns the index within this string of the first occurrence of the
-     * specified character, starting the search at the specified index.
-     * <p>
-     * If a character with value <code>ch</code> occurs in the
-     * character sequence represented by this <code>String</code>
-     * object at an index no smaller than <code>fromIndex</code>, then
-     * the index of the first such occurrence is returned. For values
-     * of <code>ch</code> in the range from 0 to 0xFFFF (inclusive),
-     * this is the smallest value <i>k</i> such that:
-     * <blockquote><pre>
-     * (this.charAt(<i>k</i>) == ch) && (<i>k</i> &gt;= fromIndex)
-     * </pre></blockquote>
-     * is true. For other values of <code>ch</code>, it is the
-     * smallest value <i>k</i> such that:
-     * <blockquote><pre>
-     * (this.codePointAt(<i>k</i>) == ch) && (<i>k</i> &gt;= fromIndex)
-     * </pre></blockquote>
-     * is true. In either case, if no such character occurs in this
-     * string at or after position <code>fromIndex</code>, then
-     * <code>-1</code> is returned.
-     *
-     * <p>
-     * There is no restriction on the value of <code>fromIndex</code>. If it
-     * is negative, it has the same effect as if it were zero: this entire
-     * string may be searched. If it is greater than the length of this
-     * string, it has the same effect as if it were equal to the length of
-     * this string: <code>-1</code> is returned.
-     *
-     * <p>All indices are specified in <code>char</code> values
-     * (Unicode code units).
-     *
-     * @param   ch          a character (Unicode code point).
-     * @param   fromIndex   the index to start the search from.
-     * @return  the index of the first occurrence of the character in the
-     *          character sequence represented by this object that is greater
-     *          than or equal to <code>fromIndex</code>, or <code>-1</code>
-     *          if the character does not occur.
-     */
-    public int indexOf(int ch, int fromIndex) {
-        final int max = value.length;
-        if (fromIndex < 0) {
-            fromIndex = 0;
-        } else if (fromIndex >= max) {
-            // Note: fromIndex might be near -1>>>1.
-            return -1;
-        }
-
-        if (ch < Character.MIN_SUPPLEMENTARY_CODE_POINT) {
-            // handle most cases here (ch is a BMP code point or a
-            // negative value (invalid code point))
-            final char[] value = this.value;
-            for (int i = fromIndex; i < max; i++) {
-                if (value[i] == ch) {
-                    return i;
-                }
-            }
-            return -1;
-        } else {
-            return indexOfSupplementary(ch, fromIndex);
-        }
-    }
-
-    /**
-     * Handles (rare) calls of indexOf with a supplementary character.
-     */
-    private int indexOfSupplementary(int ch, int fromIndex) {
-        if (Character.isValidCodePoint(ch)) {
-            final char[] value = this.value;
-            final char hi = Character.highSurrogate(ch);
-            final char lo = Character.lowSurrogate(ch);
-            final int max = value.length - 1;
-            for (int i = fromIndex; i < max; i++) {
-                if (value[i] == hi && value[i + 1] == lo) {
-                    return i;
-                }
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * Returns the index within this string of the last occurrence of
-     * the specified character. For values of <code>ch</code> in the
-     * range from 0 to 0xFFFF (inclusive), the index (in Unicode code
-     * units) returned is the largest value <i>k</i> such that:
-     * <blockquote><pre>
-     * this.charAt(<i>k</i>) == ch
-     * </pre></blockquote>
-     * is true. For other values of <code>ch</code>, it is the
-     * largest value <i>k</i> such that:
-     * <blockquote><pre>
-     * this.codePointAt(<i>k</i>) == ch
-     * </pre></blockquote>
-     * is true.  In either case, if no such character occurs in this
-     * string, then <code>-1</code> is returned.  The
-     * <code>String</code> is searched backwards starting at the last
-     * character.
-     *
-     * @param   ch   a character (Unicode code point).
-     * @return  the index of the last occurrence of the character in the
-     *          character sequence represented by this object, or
-     *          <code>-1</code> if the character does not occur.
-     */
-    public int lastIndexOf(int ch) {
-        return lastIndexOf(ch, value.length - 1);
-    }
-
-    /**
-     * Returns the index within this string of the last occurrence of
-     * the specified character, searching backward starting at the
-     * specified index. For values of <code>ch</code> in the range
-     * from 0 to 0xFFFF (inclusive), the index returned is the largest
-     * value <i>k</i> such that:
-     * <blockquote><pre>
-     * (this.charAt(<i>k</i>) == ch) && (<i>k</i> &lt;= fromIndex)
-     * </pre></blockquote>
-     * is true. For other values of <code>ch</code>, it is the
-     * largest value <i>k</i> such that:
-     * <blockquote><pre>
-     * (this.codePointAt(<i>k</i>) == ch) && (<i>k</i> &lt;= fromIndex)
-     * </pre></blockquote>
-     * is true. In either case, if no such character occurs in this
-     * string at or before position <code>fromIndex</code>, then
-     * <code>-1</code> is returned.
-     *
-     * <p>All indices are specified in <code>char</code> values
-     * (Unicode code units).
-     *
-     * @param   ch          a character (Unicode code point).
-     * @param   fromIndex   the index to start the search from. There is no
-     *          restriction on the value of <code>fromIndex</code>. If it is
-     *          greater than or equal to the length of this string, it has
-     *          the same effect as if it were equal to one less than the
-     *          length of this string: this entire string may be searched.
-     *          If it is negative, it has the same effect as if it were -1:
-     *          -1 is returned.
-     * @return  the index of the last occurrence of the character in the
-     *          character sequence represented by this object that is less
-     *          than or equal to <code>fromIndex</code>, or <code>-1</code>
-     *          if the character does not occur before that point.
-     */
-    public int lastIndexOf(int ch, int fromIndex) {
-        if (ch < Character.MIN_SUPPLEMENTARY_CODE_POINT) {
-            // handle most cases here (ch is a BMP code point or a
-            // negative value (invalid code point))
-            final char[] value = this.value;
-            int i = Math.min(fromIndex, value.length - 1);
-            for (; i >= 0; i--) {
-                if (value[i] == ch) {
-                    return i;
-                }
-            }
-            return -1;
-        } else {
-            return lastIndexOfSupplementary(ch, fromIndex);
-        }
-    }
-
-    /**
-     * Handles (rare) calls of lastIndexOf with a supplementary character.
-     */
-    private int lastIndexOfSupplementary(int ch, int fromIndex) {
-        if (Character.isValidCodePoint(ch)) {
-            final char[] value = this.value;
-            char hi = Character.highSurrogate(ch);
-            char lo = Character.lowSurrogate(ch);
-            int i = Math.min(fromIndex, value.length - 2);
-            for (; i >= 0; i--) {
-                if (value[i] == hi && value[i + 1] == lo) {
-                    return i;
-                }
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * Returns the index within this string of the first occurrence of the
-     * specified substring.
-     *
-     * <p>The returned index is the smallest value <i>k</i> for which:
-     * <blockquote><pre>
-     * this.startsWith(str, <i>k</i>)
-     * </pre></blockquote>
-     * If no such value of <i>k</i> exists, then {@code -1} is returned.
-     *
-     * @param   str   the substring to search for.
-     * @return  the index of the first occurrence of the specified substring,
-     *          or {@code -1} if there is no such occurrence.
-     */
-    public int indexOf(String str) {
-        return indexOf(str, 0);
-    }
-
-    /**
-     * Returns the index within this string of the first occurrence of the
-     * specified substring, starting at the specified index.
-     *
-     * <p>The returned index is the smallest value <i>k</i> for which:
-     * <blockquote><pre>
-     * <i>k</i> &gt;= fromIndex && this.startsWith(str, <i>k</i>)
-     * </pre></blockquote>
-     * If no such value of <i>k</i> exists, then {@code -1} is returned.
-     *
-     * @param   str         the substring to search for.
-     * @param   fromIndex   the index from which to start the search.
-     * @return  the index of the first occurrence of the specified substring,
-     *          starting at the specified index,
-     *          or {@code -1} if there is no such occurrence.
-     */
-    public int indexOf(String str, int fromIndex) {
-        return indexOf(value, 0, value.length,
-                str.value, 0, str.value.length, fromIndex);
-    }
-
-    /**
-     * Code shared by String and StringBuffer to do searches. The
-     * source is the character array being searched, and the target
-     * is the string being searched for.
-     *
-     * @param   source       the characters being searched.
-     * @param   sourceOffset offset of the source string.
-     * @param   sourceCount  count of the source string.
-     * @param   target       the characters being searched for.
-     * @param   targetOffset offset of the target string.
-     * @param   targetCount  count of the target string.
-     * @param   fromIndex    the index to begin searching from.
-     */
-    static int indexOf(char[] source, int sourceOffset, int sourceCount,
-            char[] target, int targetOffset, int targetCount,
-            int fromIndex) {
-        if (fromIndex >= sourceCount) {
-            return (targetCount == 0 ? sourceCount : -1);
-        }
-        if (fromIndex < 0) {
-            fromIndex = 0;
-        }
-        if (targetCount == 0) {
-            return fromIndex;
-        }
-
-        char first = target[targetOffset];
-        int max = sourceOffset + (sourceCount - targetCount);
-
-        for (int i = sourceOffset + fromIndex; i <= max; i++) {
-            /* Look for first character. */
-            if (source[i] != first) {
-                while (++i <= max && source[i] != first);
-            }
-
-            /* Found first character, now look at the rest of v2 */
-            if (i <= max) {
-                int j = i + 1;
-                int end = j + targetCount - 1;
-                for (int k = targetOffset + 1; j < end && source[j]
-                        == target[k]; j++, k++);
-
-                if (j == end) {
-                    /* Found whole string. */
-                    return i - sourceOffset;
-                }
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * Returns the index within this string of the last occurrence of the
-     * specified substring.  The last occurrence of the empty string ""
-     * is considered to occur at the index value {@code this.length()}.
-     *
-     * <p>The returned index is the largest value <i>k</i> for which:
-     * <blockquote><pre>
-     * this.startsWith(str, <i>k</i>)
-     * </pre></blockquote>
-     * If no such value of <i>k</i> exists, then {@code -1} is returned.
-     *
-     * @param   str   the substring to search for.
-     * @return  the index of the last occurrence of the specified substring,
-     *          or {@code -1} if there is no such occurrence.
-     */
-    public int lastIndexOf(String str) {
-        return lastIndexOf(str, value.length);
-    }
-
-    /**
-     * Returns the index within this string of the last occurrence of the
-     * specified substring, searching backward starting at the specified index.
-     *
-     * <p>The returned index is the largest value <i>k</i> for which:
-     * <blockquote><pre>
-     * <i>k</i> &lt;= fromIndex && this.startsWith(str, <i>k</i>)
-     * </pre></blockquote>
-     * If no such value of <i>k</i> exists, then {@code -1} is returned.
-     *
-     * @param   str         the substring to search for.
-     * @param   fromIndex   the index to start the search from.
-     * @return  the index of the last occurrence of the specified substring,
-     *          searching backward from the specified index,
-     *          or {@code -1} if there is no such occurrence.
-     */
-    public int lastIndexOf(String str, int fromIndex) {
-        return lastIndexOf(value, 0, value.length,
-                str.value, 0, str.value.length, fromIndex);
-    }
-
-    /**
-     * Code shared by String and StringBuffer to do searches. The
-     * source is the character array being searched, and the target
-     * is the string being searched for.
-     *
-     * @param   source       the characters being searched.
-     * @param   sourceOffset offset of the source string.
-     * @param   sourceCount  count of the source string.
-     * @param   target       the characters being searched for.
-     * @param   targetOffset offset of the target string.
-     * @param   targetCount  count of the target string.
-     * @param   fromIndex    the index to begin searching from.
-     */
-    static int lastIndexOf(char[] source, int sourceOffset, int sourceCount,
-            char[] target, int targetOffset, int targetCount,
-            int fromIndex) {
-        /*
-         * Check arguments; return immediately where possible. For
-         * consistency, don't check for null str.
-         */
-        int rightIndex = sourceCount - targetCount;
-        if (fromIndex < 0) {
-            return -1;
-        }
-        if (fromIndex > rightIndex) {
-            fromIndex = rightIndex;
-        }
-        /* Empty string always matches. */
-        if (targetCount == 0) {
-            return fromIndex;
-        }
-
-        int strLastIndex = targetOffset + targetCount - 1;
-        char strLastChar = target[strLastIndex];
-        int min = sourceOffset + targetCount - 1;
-        int i = min + fromIndex;
-
-        startSearchForLastChar:
-        while (true) {
-            while (i >= min && source[i] != strLastChar) {
-                i--;
-            }
-            if (i < min) {
-                return -1;
-            }
-            int j = i - 1;
-            int start = j - (targetCount - 1);
-            int k = strLastIndex - 1;
-
-            while (j > start) {
-                if (source[j--] != target[k--]) {
-                    i--;
-                    continue startSearchForLastChar;
-                }
-            }
-            return start - sourceOffset + 1;
-        }
-    }
-
-    /**
-     * Returns a new string that is a substring of this string. The
-     * substring begins with the character at the specified index and
-     * extends to the end of this string. <p>
-     * Examples:
-     * <blockquote><pre>
-     * "unhappy".substring(2) returns "happy"
-     * "Harbison".substring(3) returns "bison"
-     * "emptiness".substring(9) returns "" (an empty string)
-     * </pre></blockquote>
-     *
-     * @param      beginIndex   the beginning index, inclusive.
-     * @return     the specified substring.
-     * @exception  IndexOutOfBoundsException  if
-     *             <code>beginIndex</code> is negative or larger than the
-     *             length of this <code>String</code> object.
-     */
-    public String substring(int beginIndex) {
-        if (beginIndex < 0) {
-            throw new StringIndexOutOfBoundsException(beginIndex);
-        }
-        int subLen = value.length - beginIndex;
-        if (subLen < 0) {
-            throw new StringIndexOutOfBoundsException(subLen);
-        }
-        return (beginIndex == 0) ? this : new String(value, beginIndex, subLen);
-    }
-
-    /**
-     * Returns a new string that is a substring of this string. The
-     * substring begins at the specified <code>beginIndex</code> and
-     * extends to the character at index <code>endIndex - 1</code>.
-     * Thus the length of the substring is <code>endIndex-beginIndex</code>.
-     * <p>
-     * Examples:
-     * <blockquote><pre>
-     * "hamburger".substring(4, 8) returns "urge"
-     * "smiles".substring(1, 5) returns "mile"
-     * </pre></blockquote>
-     *
-     * @param      beginIndex   the beginning index, inclusive.
-     * @param      endIndex     the ending index, exclusive.
-     * @return     the specified substring.
-     * @exception  IndexOutOfBoundsException  if the
-     *             <code>beginIndex</code> is negative, or
-     *             <code>endIndex</code> is larger than the length of
-     *             this <code>String</code> object, or
-     *             <code>beginIndex</code> is larger than
-     *             <code>endIndex</code>.
-     */
-    public String substring(int beginIndex, int endIndex) {
-        if (beginIndex < 0) {
-            throw new StringIndexOutOfBoundsException(beginIndex);
-        }
-        if (endIndex > value.length) {
-            throw new StringIndexOutOfBoundsException(endIndex);
-        }
-        int subLen = endIndex - beginIndex;
-        if (subLen < 0) {
-            throw new StringIndexOutOfBoundsException(subLen);
-        }
-        return ((beginIndex == 0) && (endIndex == value.length)) ? this
-                : new String(value, beginIndex, subLen);
-    }
-
-    /**
-     * Returns a new character sequence that is a subsequence of this sequence.
-     *
-     * <p> An invocation of this method of the form
-     *
-     * <blockquote><pre>
-     * str.subSequence(begin,&nbsp;end)</pre></blockquote>
-     *
-     * behaves in exactly the same way as the invocation
-     *
-     * <blockquote><pre>
-     * str.substring(begin,&nbsp;end)</pre></blockquote>
-     *
-     * This method is defined so that the <tt>String</tt> class can implement
-     * the {@link CharSequence} interface. </p>
-     *
-     * @param      beginIndex   the begin index, inclusive.
-     * @param      endIndex     the end index, exclusive.
-     * @return     the specified subsequence.
-     *
-     * @throws  IndexOutOfBoundsException
-     *          if <tt>beginIndex</tt> or <tt>endIndex</tt> are negative,
-     *          if <tt>endIndex</tt> is greater than <tt>length()</tt>,
-     *          or if <tt>beginIndex</tt> is greater than <tt>startIndex</tt>
-     *
-     * @since 1.4
-     * @spec JSR-51
-     */
-    public CharSequence subSequence(int beginIndex, int endIndex) {
-        return this.substring(beginIndex, endIndex);
-    }
-
-    /**
-     * Concatenates the specified string to the end of this string.
-     * <p>
-     * If the length of the argument string is <code>0</code>, then this
-     * <code>String</code> object is returned. Otherwise, a new
-     * <code>String</code> object is created, representing a character
-     * sequence that is the concatenation of the character sequence
-     * represented by this <code>String</code> object and the character
-     * sequence represented by the argument string.<p>
-     * Examples:
-     * <blockquote><pre>
-     * "cares".concat("s") returns "caress"
-     * "to".concat("get").concat("her") returns "together"
-     * </pre></blockquote>
-     *
-     * @param   str   the <code>String</code> that is concatenated to the end
-     *                of this <code>String</code>.
-     * @return  a string that represents the concatenation of this object's
-     *          characters followed by the string argument's characters.
-     */
-    public String concat(String str) {
-        int otherLen = str.length();
-        if (otherLen == 0) {
+    public String substring(int start) {
+        if (start == 0) {
             return this;
         }
-        int len = value.length;
-        char buf[] = Arrays.copyOf(value, len + otherLen);
-        str.getChars(buf, len);
-        return new String(buf, true);
-    }
-
-    /**
-     * Returns a new string resulting from replacing all occurrences of
-     * <code>oldChar</code> in this string with <code>newChar</code>.
-     * <p>
-     * If the character <code>oldChar</code> does not occur in the
-     * character sequence represented by this <code>String</code> object,
-     * then a reference to this <code>String</code> object is returned.
-     * Otherwise, a new <code>String</code> object is created that
-     * represents a character sequence identical to the character sequence
-     * represented by this <code>String</code> object, except that every
-     * occurrence of <code>oldChar</code> is replaced by an occurrence
-     * of <code>newChar</code>.
-     * <p>
-     * Examples:
-     * <blockquote><pre>
-     * "mesquite in your cellar".replace('e', 'o')
-     *         returns "mosquito in your collar"
-     * "the war of baronets".replace('r', 'y')
-     *         returns "the way of bayonets"
-     * "sparring with a purple porpoise".replace('p', 't')
-     *         returns "starring with a turtle tortoise"
-     * "JonL".replace('q', 'x') returns "JonL" (no change)
-     * </pre></blockquote>
-     *
-     * @param   oldChar   the old character.
-     * @param   newChar   the new character.
-     * @return  a string derived from this string by replacing every
-     *          occurrence of <code>oldChar</code> with <code>newChar</code>.
-     */
-    public String replace(char oldChar, char newChar) {
-        if (oldChar != newChar) {
-            int len = value.length;
-            int i = -1;
-            char[] val = value; /* avoid getfield opcode */
-
-            while (++i < len) {
-                if (val[i] == oldChar) {
-                    break;
-                }
-            }
-            if (i < len) {
-                char buf[] = new char[len];
-                for (int j = 0; j < i; j++) {
-                    buf[j] = val[j];
-                }
-                while (i < len) {
-                    char c = val[i];
-                    buf[i] = (c == oldChar) ? newChar : c;
-                    i++;
-                }
-                return new String(buf, true);
-            }
+        if (0 <= start && start <= count) {
+            return new String(offset + start, count - start, value);
         }
-        return this;
+        throw new StringIndexOutOfBoundsException(start);
     }
 
     /**
-     * Tells whether or not this string matches the given <a
-     * href="../util/regex/Pattern.html#sum">regular expression</a>.
-     *
-     * <p> An invocation of this method of the form
-     * <i>str</i><tt>.matches(</tt><i>regex</i><tt>)</tt> yields exactly the
-     * same result as the expression
-     *
-     * <blockquote><tt> {@link java.util.regex.Pattern}.{@link
-     * java.util.regex.Pattern#matches(String,CharSequence)
-     * matches}(</tt><i>regex</i><tt>,</tt> <i>str</i><tt>)</tt></blockquote>
-     *
-     * @param   regex
-     *          the regular expression to which this string is to be matched
-     *
-     * @return  <tt>true</tt> if, and only if, this string matches the
-     *          given regular expression
-     *
-     * @throws  PatternSyntaxException
-     *          if the regular expression's syntax is invalid
-     *
-     * @see java.util.regex.Pattern
-     *
-     * @since 1.4
-     * @spec JSR-51
+     * Copies a range of characters into a new string.
+     * 
+     * @param start
+     *            the offset of the first character.
+     * @param end
+     *            the offset one past the last character.
+     * @return a new string containing the characters from start to end - 1
+     * @throws IndexOutOfBoundsException
+     *             if {@code start < 0}, {@code start > end} or {@code end >
+     *             length()}.
      */
-    public boolean matches(String regex) {
-        return Pattern.matches(regex, this);
-    }
-
-    /**
-     * Returns true if and only if this string contains the specified
-     * sequence of char values.
-     *
-     * @param s the sequence to search for
-     * @return true if this string contains <code>s</code>, false otherwise
-     * @throws NullPointerException if <code>s</code> is <code>null</code>
-     * @since 1.5
-     */
-    public boolean contains(CharSequence s) {
-        return indexOf(s.toString()) > -1;
-    }
-
-    /**
-     * Replaces the first substring of this string that matches the given <a
-     * href="../util/regex/Pattern.html#sum">regular expression</a> with the
-     * given replacement.
-     *
-     * <p> An invocation of this method of the form
-     * <i>str</i><tt>.replaceFirst(</tt><i>regex</i><tt>,</tt> <i>repl</i><tt>)</tt>
-     * yields exactly the same result as the expression
-     *
-     * <blockquote><tt>
-     * {@link java.util.regex.Pattern}.{@link java.util.regex.Pattern#compile
-     * compile}(</tt><i>regex</i><tt>).{@link
-     * java.util.regex.Pattern#matcher(java.lang.CharSequence)
-     * matcher}(</tt><i>str</i><tt>).{@link java.util.regex.Matcher#replaceFirst
-     * replaceFirst}(</tt><i>repl</i><tt>)</tt></blockquote>
-     *
-     *<p>
-     * Note that backslashes (<tt>\</tt>) and dollar signs (<tt>$</tt>) in the
-     * replacement string may cause the results to be different than if it were
-     * being treated as a literal replacement string; see
-     * {@link java.util.regex.Matcher#replaceFirst}.
-     * Use {@link java.util.regex.Matcher#quoteReplacement} to suppress the special
-     * meaning of these characters, if desired.
-     *
-     * @param   regex
-     *          the regular expression to which this string is to be matched
-     * @param   replacement
-     *          the string to be substituted for the first match
-     *
-     * @return  The resulting <tt>String</tt>
-     *
-     * @throws  PatternSyntaxException
-     *          if the regular expression's syntax is invalid
-     *
-     * @see java.util.regex.Pattern
-     *
-     * @since 1.4
-     * @spec JSR-51
-     */
-    public String replaceFirst(String regex, String replacement) {
-        return Pattern.compile(regex).matcher(this).replaceFirst(replacement);
-    }
-
-    /**
-     * Replaces each substring of this string that matches the given <a
-     * href="../util/regex/Pattern.html#sum">regular expression</a> with the
-     * given replacement.
-     *
-     * <p> An invocation of this method of the form
-     * <i>str</i><tt>.replaceAll(</tt><i>regex</i><tt>,</tt> <i>repl</i><tt>)</tt>
-     * yields exactly the same result as the expression
-     *
-     * <blockquote><tt>
-     * {@link java.util.regex.Pattern}.{@link java.util.regex.Pattern#compile
-     * compile}(</tt><i>regex</i><tt>).{@link
-     * java.util.regex.Pattern#matcher(java.lang.CharSequence)
-     * matcher}(</tt><i>str</i><tt>).{@link java.util.regex.Matcher#replaceAll
-     * replaceAll}(</tt><i>repl</i><tt>)</tt></blockquote>
-     *
-     *<p>
-     * Note that backslashes (<tt>\</tt>) and dollar signs (<tt>$</tt>) in the
-     * replacement string may cause the results to be different than if it were
-     * being treated as a literal replacement string; see
-     * {@link java.util.regex.Matcher#replaceAll Matcher.replaceAll}.
-     * Use {@link java.util.regex.Matcher#quoteReplacement} to suppress the special
-     * meaning of these characters, if desired.
-     *
-     * @param   regex
-     *          the regular expression to which this string is to be matched
-     * @param   replacement
-     *          the string to be substituted for each match
-     *
-     * @return  The resulting <tt>String</tt>
-     *
-     * @throws  PatternSyntaxException
-     *          if the regular expression's syntax is invalid
-     *
-     * @see java.util.regex.Pattern
-     *
-     * @since 1.4
-     * @spec JSR-51
-     */
-    public String replaceAll(String regex, String replacement) {
-        return Pattern.compile(regex).matcher(this).replaceAll(replacement);
-    }
-
-    /**
-     * Replaces each substring of this string that matches the literal target
-     * sequence with the specified literal replacement sequence. The
-     * replacement proceeds from the beginning of the string to the end, for
-     * example, replacing "aa" with "b" in the string "aaa" will result in
-     * "ba" rather than "ab".
-     *
-     * @param  target The sequence of char values to be replaced
-     * @param  replacement The replacement sequence of char values
-     * @return  The resulting string
-     * @throws NullPointerException if <code>target</code> or
-     *         <code>replacement</code> is <code>null</code>.
-     * @since 1.5
-     */
-    public String replace(CharSequence target, CharSequence replacement) {
-        return Pattern.compile(target.toString(), Pattern.LITERAL).matcher(
-                this).replaceAll(Matcher.quoteReplacement(replacement.toString()));
-    }
-
-    /**
-     * Splits this string around matches of the given
-     * <a href="../util/regex/Pattern.html#sum">regular expression</a>.
-     *
-     * <p> The array returned by this method contains each substring of this
-     * string that is terminated by another substring that matches the given
-     * expression or is terminated by the end of the string.  The substrings in
-     * the array are in the order in which they occur in this string.  If the
-     * expression does not match any part of the input then the resulting array
-     * has just one element, namely this string.
-     *
-     * <p> The <tt>limit</tt> parameter controls the number of times the
-     * pattern is applied and therefore affects the length of the resulting
-     * array.  If the limit <i>n</i> is greater than zero then the pattern
-     * will be applied at most <i>n</i>&nbsp;-&nbsp;1 times, the array's
-     * length will be no greater than <i>n</i>, and the array's last entry
-     * will contain all input beyond the last matched delimiter.  If <i>n</i>
-     * is non-positive then the pattern will be applied as many times as
-     * possible and the array can have any length.  If <i>n</i> is zero then
-     * the pattern will be applied as many times as possible, the array can
-     * have any length, and trailing empty strings will be discarded.
-     *
-     * <p> The string <tt>"boo:and:foo"</tt>, for example, yields the
-     * following results with these parameters:
-     *
-     * <blockquote><table cellpadding=1 cellspacing=0 summary="Split example showing regex, limit, and result">
-     * <tr>
-     *     <th>Regex</th>
-     *     <th>Limit</th>
-     *     <th>Result</th>
-     * </tr>
-     * <tr><td align=center>:</td>
-     *     <td align=center>2</td>
-     *     <td><tt>{ "boo", "and:foo" }</tt></td></tr>
-     * <tr><td align=center>:</td>
-     *     <td align=center>5</td>
-     *     <td><tt>{ "boo", "and", "foo" }</tt></td></tr>
-     * <tr><td align=center>:</td>
-     *     <td align=center>-2</td>
-     *     <td><tt>{ "boo", "and", "foo" }</tt></td></tr>
-     * <tr><td align=center>o</td>
-     *     <td align=center>5</td>
-     *     <td><tt>{ "b", "", ":and:f", "", "" }</tt></td></tr>
-     * <tr><td align=center>o</td>
-     *     <td align=center>-2</td>
-     *     <td><tt>{ "b", "", ":and:f", "", "" }</tt></td></tr>
-     * <tr><td align=center>o</td>
-     *     <td align=center>0</td>
-     *     <td><tt>{ "b", "", ":and:f" }</tt></td></tr>
-     * </table></blockquote>
-     *
-     * <p> An invocation of this method of the form
-     * <i>str.</i><tt>split(</tt><i>regex</i><tt>,</tt>&nbsp;<i>n</i><tt>)</tt>
-     * yields the same result as the expression
-     *
-     * <blockquote>
-     * {@link java.util.regex.Pattern}.{@link java.util.regex.Pattern#compile
-     * compile}<tt>(</tt><i>regex</i><tt>)</tt>.{@link
-     * java.util.regex.Pattern#split(java.lang.CharSequence,int)
-     * split}<tt>(</tt><i>str</i><tt>,</tt>&nbsp;<i>n</i><tt>)</tt>
-     * </blockquote>
-     *
-     *
-     * @param  regex
-     *         the delimiting regular expression
-     *
-     * @param  limit
-     *         the result threshold, as described above
-     *
-     * @return  the array of strings computed by splitting this string
-     *          around matches of the given regular expression
-     *
-     * @throws  PatternSyntaxException
-     *          if the regular expression's syntax is invalid
-     *
-     * @see java.util.regex.Pattern
-     *
-     * @since 1.4
-     * @spec JSR-51
-     */
-    public String[] split(String regex, int limit) {
-        /* fastpath if the regex is a
-         (1)one-char String and this character is not one of the
-            RegEx's meta characters ".$|()[{^?*+\\", or
-         (2)two-char String and the first char is the backslash and
-            the second is not the ascii digit or ascii letter.
-         */
-        char ch = 0;
-        if (((regex.value.length == 1 &&
-             ".$|()[{^?*+\\".indexOf(ch = regex.charAt(0)) == -1) ||
-             (regex.length() == 2 &&
-              regex.charAt(0) == '\\' &&
-              (((ch = regex.charAt(1))-'0')|('9'-ch)) < 0 &&
-              ((ch-'a')|('z'-ch)) < 0 &&
-              ((ch-'A')|('Z'-ch)) < 0)) &&
-            (ch < Character.MIN_HIGH_SURROGATE ||
-             ch > Character.MAX_LOW_SURROGATE))
-        {
-            int off = 0;
-            int next = 0;
-            boolean limited = limit > 0;
-            ArrayList<String> list = new ArrayList<>();
-            while ((next = indexOf(ch, off)) != -1) {
-                if (!limited || list.size() < limit - 1) {
-                    list.add(substring(off, next));
-                    off = next + 1;
-                } else {    // last one
-                    //assert (list.size() == limit - 1);
-                    list.add(substring(off, value.length));
-                    off = value.length;
-                    break;
-                }
-            }
-            // If no match was found, return this
-            if (off == 0)
-                return new String[]{this};
-
-            // Add remaining segment
-            if (!limited || list.size() < limit)
-                list.add(substring(off, value.length));
-
-            // Construct result
-            int resultSize = list.size();
-            if (limit == 0)
-                while (resultSize > 0 && list.get(resultSize - 1).length() == 0)
-                    resultSize--;
-            String[] result = new String[resultSize];
-            return list.subList(0, resultSize).toArray(result);
-        }
-        return Pattern.compile(regex).split(this, limit);
-    }
-
-    /**
-     * Splits this string around matches of the given <a
-     * href="../util/regex/Pattern.html#sum">regular expression</a>.
-     *
-     * <p> This method works as if by invoking the two-argument {@link
-     * #split(String, int) split} method with the given expression and a limit
-     * argument of zero.  Trailing empty strings are therefore not included in
-     * the resulting array.
-     *
-     * <p> The string <tt>"boo:and:foo"</tt>, for example, yields the following
-     * results with these expressions:
-     *
-     * <blockquote><table cellpadding=1 cellspacing=0 summary="Split examples showing regex and result">
-     * <tr>
-     *  <th>Regex</th>
-     *  <th>Result</th>
-     * </tr>
-     * <tr><td align=center>:</td>
-     *     <td><tt>{ "boo", "and", "foo" }</tt></td></tr>
-     * <tr><td align=center>o</td>
-     *     <td><tt>{ "b", "", ":and:f" }</tt></td></tr>
-     * </table></blockquote>
-     *
-     *
-     * @param  regex
-     *         the delimiting regular expression
-     *
-     * @return  the array of strings computed by splitting this string
-     *          around matches of the given regular expression
-     *
-     * @throws  PatternSyntaxException
-     *          if the regular expression's syntax is invalid
-     *
-     * @see java.util.regex.Pattern
-     *
-     * @since 1.4
-     * @spec JSR-51
-     */
-    public String[] split(String regex) {
-        return split(regex, 0);
-    }
-
-    /**
-     * Converts all of the characters in this <code>String</code> to lower
-     * case using the rules of the given <code>Locale</code>.  Case mapping is based
-     * on the Unicode Standard version specified by the {@link java.lang.Character Character}
-     * class. Since case mappings are not always 1:1 char mappings, the resulting
-     * <code>String</code> may be a different length than the original <code>String</code>.
-     * <p>
-     * Examples of lowercase  mappings are in the following table:
-     * <table border="1" summary="Lowercase mapping examples showing language code of locale, upper case, lower case, and description">
-     * <tr>
-     *   <th>Language Code of Locale</th>
-     *   <th>Upper Case</th>
-     *   <th>Lower Case</th>
-     *   <th>Description</th>
-     * </tr>
-     * <tr>
-     *   <td>tr (Turkish)</td>
-     *   <td>&#92;u0130</td>
-     *   <td>&#92;u0069</td>
-     *   <td>capital letter I with dot above -&gt; small letter i</td>
-     * </tr>
-     * <tr>
-     *   <td>tr (Turkish)</td>
-     *   <td>&#92;u0049</td>
-     *   <td>&#92;u0131</td>
-     *   <td>capital letter I -&gt; small letter dotless i </td>
-     * </tr>
-     * <tr>
-     *   <td>(all)</td>
-     *   <td>French Fries</td>
-     *   <td>french fries</td>
-     *   <td>lowercased all chars in String</td>
-     * </tr>
-     * <tr>
-     *   <td>(all)</td>
-     *   <td><img src="doc-files/capiota.gif" alt="capiota"><img src="doc-files/capchi.gif" alt="capchi">
-     *       <img src="doc-files/captheta.gif" alt="captheta"><img src="doc-files/capupsil.gif" alt="capupsil">
-     *       <img src="doc-files/capsigma.gif" alt="capsigma"></td>
-     *   <td><img src="doc-files/iota.gif" alt="iota"><img src="doc-files/chi.gif" alt="chi">
-     *       <img src="doc-files/theta.gif" alt="theta"><img src="doc-files/upsilon.gif" alt="upsilon">
-     *       <img src="doc-files/sigma1.gif" alt="sigma"></td>
-     *   <td>lowercased all chars in String</td>
-     * </tr>
-     * </table>
-     *
-     * @param locale use the case transformation rules for this locale
-     * @return the <code>String</code>, converted to lowercase.
-     * @see     java.lang.String#toLowerCase()
-     * @see     java.lang.String#toUpperCase()
-     * @see     java.lang.String#toUpperCase(Locale)
-     * @since   1.1
-     */
-    public String toLowerCase(Locale locale) {
-        if (locale == null) {
-            throw new NullPointerException();
-        }
-
-        int firstUpper;
-        final int len = value.length;
-
-        /* Now check if there are any characters that need to be changed. */
-        scan: {
-            for (firstUpper = 0 ; firstUpper < len; ) {
-                char c = value[firstUpper];
-                if ((c >= Character.MIN_HIGH_SURROGATE)
-                        && (c <= Character.MAX_HIGH_SURROGATE)) {
-                    int supplChar = codePointAt(firstUpper);
-                    if (supplChar != Character.toLowerCase(supplChar)) {
-                        break scan;
-                    }
-                    firstUpper += Character.charCount(supplChar);
-                } else {
-                    if (c != Character.toLowerCase(c)) {
-                        break scan;
-                    }
-                    firstUpper++;
-                }
-            }
+    public String substring(int start, int end) {
+        if (start == 0 && end == count) {
             return this;
         }
-
-        char[] result = new char[len];
-        int resultOffset = 0;  /* result may grow, so i+resultOffset
-                                * is the write location in result */
-
-        /* Just copy the first few lowerCase characters. */
-        System.arraycopy(value, 0, result, 0, firstUpper);
-
-        String lang = locale.getLanguage();
-        boolean localeDependent =
-                (lang == "tr" || lang == "az" || lang == "lt");
-        char[] lowerCharArray;
-        int lowerChar;
-        int srcChar;
-        int srcCount;
-        for (int i = firstUpper; i < len; i += srcCount) {
-            srcChar = (int)value[i];
-            if ((char)srcChar >= Character.MIN_HIGH_SURROGATE
-                    && (char)srcChar <= Character.MAX_HIGH_SURROGATE) {
-                srcChar = codePointAt(i);
-                srcCount = Character.charCount(srcChar);
-            } else {
-                srcCount = 1;
-            }
-            if (localeDependent || srcChar == '\u03A3') { // GREEK CAPITAL LETTER SIGMA
-                lowerChar = ConditionalSpecialCasing.toLowerCaseEx(this, i, locale);
-            } else if (srcChar == '\u0130') { // LATIN CAPITAL LETTER I DOT
-                lowerChar = Character.ERROR;
-            } else {
-                lowerChar = Character.toLowerCase(srcChar);
-            }
-            if ((lowerChar == Character.ERROR)
-                    || (lowerChar >= Character.MIN_SUPPLEMENTARY_CODE_POINT)) {
-                if (lowerChar == Character.ERROR) {
-                    if (!localeDependent && srcChar == '\u0130') {
-                        lowerCharArray =
-                                ConditionalSpecialCasing.toLowerCaseCharArray(this, i, Locale.ENGLISH);
-                    } else {
-                        lowerCharArray =
-                                ConditionalSpecialCasing.toLowerCaseCharArray(this, i, locale);
-                    }
-                } else if (srcCount == 2) {
-                    resultOffset += Character.toChars(lowerChar, result, i + resultOffset) - srcCount;
-                    continue;
-                } else {
-                    lowerCharArray = Character.toChars(lowerChar);
-                }
-
-                /* Grow result if needed */
-                int mapLen = lowerCharArray.length;
-                if (mapLen > srcCount) {
-                    char[] result2 = new char[result.length + mapLen - srcCount];
-                    System.arraycopy(result, 0, result2, 0, i + resultOffset);
-                    result = result2;
-                }
-                for (int x = 0; x < mapLen; ++x) {
-                    result[i + resultOffset + x] = lowerCharArray[x];
-                }
-                resultOffset += (mapLen - srcCount);
-            } else {
-                result[i + resultOffset] = (char)lowerChar;
-            }
+        if (start < 0) {
+            throw new StringIndexOutOfBoundsException(start);
+        } else if (start > end) {
+            throw new StringIndexOutOfBoundsException(end - start);
+        } else if (end > count) {
+            throw new StringIndexOutOfBoundsException(end);
         }
-        return new String(result, 0, len + resultOffset);
+        // NOTE last character not copied!
+        return new String(offset + start, end - start, value);
     }
 
     /**
-     * Converts all of the characters in this <code>String</code> to lower
-     * case using the rules of the default locale. This is equivalent to calling
-     * <code>toLowerCase(Locale.getDefault())</code>.
-     * <p>
-     * <b>Note:</b> This method is locale sensitive, and may produce unexpected
-     * results if used for strings that are intended to be interpreted locale
-     * independently.
-     * Examples are programming language identifiers, protocol keys, and HTML
-     * tags.
-     * For instance, <code>"TITLE".toLowerCase()</code> in a Turkish locale
-     * returns <code>"t\u005Cu0131tle"</code>, where '\u005Cu0131' is the
-     * LATIN SMALL LETTER DOTLESS I character.
-     * To obtain correct results for locale insensitive strings, use
-     * <code>toLowerCase(Locale.ENGLISH)</code>.
-     * <p>
-     * @return  the <code>String</code>, converted to lowercase.
-     * @see     java.lang.String#toLowerCase(Locale)
+     * Copies the characters in this string to a character array.
+     * 
+     * @return a character array containing the characters of this string.
+     */
+    public char[] toCharArray() {
+        char[] buffer = new char[count];
+        System.arraycopy(value, offset, buffer, 0, count);
+        return buffer;
+    }
+
+    /**
+     * Converts the characters in this string to lowercase, using the default
+     * Locale.
+     * 
+     * @return a new string containing the lowercase characters equivalent to
+     *         the characters in this string.
      */
     public String toLowerCase() {
         return toLowerCase(Locale.getDefault());
     }
 
     /**
-     * Converts all of the characters in this <code>String</code> to upper
-     * case using the rules of the given <code>Locale</code>. Case mapping is based
-     * on the Unicode Standard version specified by the {@link java.lang.Character Character}
-     * class. Since case mappings are not always 1:1 char mappings, the resulting
-     * <code>String</code> may be a different length than the original <code>String</code>.
-     * <p>
-     * Examples of locale-sensitive and 1:M case mappings are in the following table.
-     * <p>
-     * <table border="1" summary="Examples of locale-sensitive and 1:M case mappings. Shows Language code of locale, lower case, upper case, and description.">
-     * <tr>
-     *   <th>Language Code of Locale</th>
-     *   <th>Lower Case</th>
-     *   <th>Upper Case</th>
-     *   <th>Description</th>
-     * </tr>
-     * <tr>
-     *   <td>tr (Turkish)</td>
-     *   <td>&#92;u0069</td>
-     *   <td>&#92;u0130</td>
-     *   <td>small letter i -&gt; capital letter I with dot above</td>
-     * </tr>
-     * <tr>
-     *   <td>tr (Turkish)</td>
-     *   <td>&#92;u0131</td>
-     *   <td>&#92;u0049</td>
-     *   <td>small letter dotless i -&gt; capital letter I</td>
-     * </tr>
-     * <tr>
-     *   <td>(all)</td>
-     *   <td>&#92;u00df</td>
-     *   <td>&#92;u0053 &#92;u0053</td>
-     *   <td>small letter sharp s -&gt; two letters: SS</td>
-     * </tr>
-     * <tr>
-     *   <td>(all)</td>
-     *   <td>Fahrvergn&uuml;gen</td>
-     *   <td>FAHRVERGN&Uuml;GEN</td>
-     *   <td></td>
-     * </tr>
-     * </table>
-     * @param locale use the case transformation rules for this locale
-     * @return the <code>String</code>, converted to uppercase.
-     * @see     java.lang.String#toUpperCase()
-     * @see     java.lang.String#toLowerCase()
-     * @see     java.lang.String#toLowerCase(Locale)
-     * @since   1.1
+     * Converts the characters in this string to lowercase, using the specified
+     * Locale.
+     * 
+     * @param locale
+     *            the Locale to use.
+     * @return a new string containing the lowercase characters equivalent to
+     *         the characters in this string.
      */
-    public String toUpperCase(Locale locale) {
-        if (locale == null) {
-            throw new NullPointerException();
+    public String toLowerCase(Locale locale) {
+        String result = null;        
+        // Must return self if chars unchanged
+        if (count != result.count) {
+            return result;
         }
-
-        int firstLower;
-        final int len = value.length;
-
-        /* Now check if there are any characters that need to be changed. */
-        scan: {
-           for (firstLower = 0 ; firstLower < len; ) {
-                int c = (int)value[firstLower];
-                int srcCount;
-                if ((c >= Character.MIN_HIGH_SURROGATE)
-                        && (c <= Character.MAX_HIGH_SURROGATE)) {
-                    c = codePointAt(firstLower);
-                    srcCount = Character.charCount(c);
-                } else {
-                    srcCount = 1;
-                }
-                int upperCaseChar = Character.toUpperCaseEx(c);
-                if ((upperCaseChar == Character.ERROR)
-                        || (c != upperCaseChar)) {
-                    break scan;
-                }
-                firstLower += srcCount;
-            }
-            return this;
-        }
-
-        char[] result = new char[len]; /* may grow */
-        int resultOffset = 0;  /* result may grow, so i+resultOffset
-         * is the write location in result */
-
-        /* Just copy the first few upperCase characters. */
-        System.arraycopy(value, 0, result, 0, firstLower);
-
-        String lang = locale.getLanguage();
-        boolean localeDependent =
-                (lang == "tr" || lang == "az" || lang == "lt");
-        char[] upperCharArray;
-        int upperChar;
-        int srcChar;
-        int srcCount;
-        for (int i = firstLower; i < len; i += srcCount) {
-            srcChar = (int)value[i];
-            if ((char)srcChar >= Character.MIN_HIGH_SURROGATE &&
-                (char)srcChar <= Character.MAX_HIGH_SURROGATE) {
-                srcChar = codePointAt(i);
-                srcCount = Character.charCount(srcChar);
-            } else {
-                srcCount = 1;
-            }
-            if (localeDependent) {
-                upperChar = ConditionalSpecialCasing.toUpperCaseEx(this, i, locale);
-            } else {
-                upperChar = Character.toUpperCaseEx(srcChar);
-            }
-            if ((upperChar == Character.ERROR)
-                    || (upperChar >= Character.MIN_SUPPLEMENTARY_CODE_POINT)) {
-                if (upperChar == Character.ERROR) {
-                    if (localeDependent) {
-                        upperCharArray =
-                                ConditionalSpecialCasing.toUpperCaseCharArray(this, i, locale);
-                    } else {
-                        upperCharArray = Character.toUpperCaseCharArray(srcChar);
-                    }
-                } else if (srcCount == 2) {
-                    resultOffset += Character.toChars(upperChar, result, i + resultOffset) - srcCount;
-                    continue;
-                } else {
-                    upperCharArray = Character.toChars(upperChar);
-                }
-
-                /* Grow result if needed */
-                int mapLen = upperCharArray.length;
-                if (mapLen > srcCount) {
-                    char[] result2 = new char[result.length + mapLen - srcCount];
-                    System.arraycopy(result, 0, result2, 0, i + resultOffset);
-                    result = result2;
-                }
-                for (int x = 0; x < mapLen; ++x) {
-                    result[i + resultOffset + x] = upperCharArray[x];
-                }
-                resultOffset += (mapLen - srcCount);
-            } else {
-                result[i + resultOffset] = (char)upperChar;
+        for (int i = 0; i < count; ++i) {
+            if (value[offset + i] != result.value[result.offset + i]) {
+                return result;
             }
         }
-        return new String(result, 0, len + resultOffset);
+        return this;
     }
 
     /**
-     * Converts all of the characters in this <code>String</code> to upper
-     * case using the rules of the default locale. This method is equivalent to
-     * <code>toUpperCase(Locale.getDefault())</code>.
-     * <p>
-     * <b>Note:</b> This method is locale sensitive, and may produce unexpected
-     * results if used for strings that are intended to be interpreted locale
-     * independently.
-     * Examples are programming language identifiers, protocol keys, and HTML
-     * tags.
-     * For instance, <code>"title".toUpperCase()</code> in a Turkish locale
-     * returns <code>"T\u005Cu0130TLE"</code>, where '\u005Cu0130' is the
-     * LATIN CAPITAL LETTER I WITH DOT ABOVE character.
-     * To obtain correct results for locale insensitive strings, use
-     * <code>toUpperCase(Locale.ENGLISH)</code>.
-     * <p>
-     * @return  the <code>String</code>, converted to uppercase.
-     * @see     java.lang.String#toUpperCase(Locale)
+     * Returns this string.
+     *
+     * @return this string.
+     */
+    @Override
+    public String toString() {
+        return this;
+    }
+
+    /**
+     * Converts the characters in this string to uppercase, using the default
+     * Locale.
+     * 
+     * @return a new string containing the uppercase characters equivalent to
+     *         the characters in this string.
      */
     public String toUpperCase() {
         return toUpperCase(Locale.getDefault());
     }
 
     /**
-     * Returns a copy of the string, with leading and trailing whitespace
-     * omitted.
-     * <p>
-     * If this <code>String</code> object represents an empty character
-     * sequence, or the first and last characters of character sequence
-     * represented by this <code>String</code> object both have codes
-     * greater than <code>'&#92;u0020'</code> (the space character), then a
-     * reference to this <code>String</code> object is returned.
-     * <p>
-     * Otherwise, if there is no character with a code greater than
-     * <code>'&#92;u0020'</code> in the string, then a new
-     * <code>String</code> object representing an empty string is created
-     * and returned.
-     * <p>
-     * Otherwise, let <i>k</i> be the index of the first character in the
-     * string whose code is greater than <code>'&#92;u0020'</code>, and let
-     * <i>m</i> be the index of the last character in the string whose code
-     * is greater than <code>'&#92;u0020'</code>. A new <code>String</code>
-     * object is created, representing the substring of this string that
-     * begins with the character at index <i>k</i> and ends with the
-     * character at index <i>m</i>-that is, the result of
-     * <code>this.substring(<i>k</i>,&nbsp;<i>m</i>+1)</code>.
-     * <p>
-     * This method may be used to trim whitespace (as defined above) from
-     * the beginning and end of a string.
-     *
-     * @return  A copy of this string with leading and trailing white
-     *          space removed, or this string if it has no leading or
-     *          trailing white space.
+     * Converts the characters in this string to uppercase, using the specified
+     * Locale.
+     * 
+     * @param locale
+     *            the Locale to use.
+     * @return a new string containing the uppercase characters equivalent to
+     *         the characters in this string.
      */
-    public String trim() {
-        int len = value.length;
-        int st = 0;
-        char[] val = value;    /* avoid getfield opcode */
-
-        while ((st < len) && (val[st] <= ' ')) {
-            st++;
+    public String toUpperCase(Locale locale) {
+        String result = null;
+        // Must return self if chars unchanged
+        if (count != result.count) {
+            return result;
         }
-        while ((st < len) && (val[len - 1] <= ' ')) {
-            len--;
+        for (int i = 0; i < count; i++) {
+            if (value[offset + i] != result.value[result.offset + i]) {
+                return result;
+            }
         }
-        return ((st > 0) || (len < value.length)) ? substring(st, len) : this;
-    }
-
-    /**
-     * This object (which is already a string!) is itself returned.
-     *
-     * @return  the string itself.
-     */
-    public String toString() {
         return this;
     }
 
     /**
-     * Converts this string to a new character array.
-     *
-     * @return  a newly allocated character array whose length is the length
-     *          of this string and whose contents are initialized to contain
-     *          the character sequence represented by this string.
+     * Copies this string removing white space characters from the beginning and
+     * end of the string.
+     * 
+     * @return a new string with characters <code><= \\u0020</code> removed from
+     *         the beginning and the end.
      */
-    public char[] toCharArray() {
-        // Cannot use Arrays.copyOf because of class initialization order issues
-        char result[] = new char[value.length];
-        System.arraycopy(value, 0, result, 0, value.length);
-        return result;
+    public String trim() {
+        int start = offset, last = offset + count - 1;
+        int end = last;
+        while ((start <= end) && (value[start] <= ' ')) {
+            start++;
+        }
+        while ((end >= start) && (value[end] <= ' ')) {
+            end--;
+        }
+        if (start == offset && end == last) {
+            return this;
+        }
+        return new String(start, end - start + 1, value);
     }
 
     /**
-     * Returns a formatted string using the specified format string and
-     * arguments.
+     * Creates a new string containing the characters in the specified character
+     * array. Modifying the character array after creating the string has no
+     * effect on the string.
+     * 
+     * @param data
+     *            the array of characters.
+     * @return the new string.
+     * @throws NullPointerException
+     *             if {@code data} is {@code null}.
+     */
+    public static String valueOf(char[] data) {
+        return new String(data, 0, data.length);
+    }
+
+    /**
+     * Creates a new string containing the specified characters in the character
+     * array. Modifying the character array after creating the string has no
+     * effect on the string.
+     * 
+     * @param data
+     *            the array of characters.
+     * @param start
+     *            the starting offset in the character array.
+     * @param length
+     *            the number of characters to use.
+     * @return the new string.
+     * @throws IndexOutOfBoundsException
+     *             if {@code length < 0}, {@code start < 0} or {@code start +
+     *             length > data.length}
+     * @throws NullPointerException
+     *             if {@code data} is {@code null}.
+     */
+    public static String valueOf(char[] data, int start, int length) {
+        return new String(data, start, length);
+    }
+
+    /**
+     * Converts the specified character to its string representation.
+     * 
+     * @param value
+     *            the character.
+     * @return the character converted to a string.
+     */
+    public static String valueOf(char value) {
+        String s;
+        if (value < 128) {
+            s = new String(value, 1, ascii);
+        } else {
+            s = new String(0, 1, new char[] { value });
+        }
+        s.hashCode = value;
+        return s;
+    }
+
+    /**
+     * Converts the specified double to its string representation.
+     * 
+     * @param value
+     *            the double.
+     * @return the double converted to a string.
+     */
+    public static String valueOf(double value) {
+        return Double.toString(value);
+    }
+
+    /**
+     * Converts the specified float to its string representation.
+     * 
+     * @param value
+     *            the float.
+     * @return the float converted to a string.
+     */
+    public static String valueOf(float value) {
+        return Float.toString(value);
+    }
+
+    /**
+     * Converts the specified integer to its string representation.
+     * 
+     * @param value
+     *            the integer.
+     * @return the integer converted to a string.
+     */
+    public static String valueOf(int value) {
+        return Integer.toString(value);
+    }
+
+    /**
+     * Converts the specified long to its string representation.
+     * 
+     * @param value
+     *            the long.
+     * @return the long converted to a string.
+     */
+    public static String valueOf(long value) {
+        return Long.toString(value);
+    }
+
+    /**
+     * Converts the specified object to its string representation. If the object
+     * is null return the string {@code "null"}, otherwise use {@code
+     * toString()} to get the string representation.
+     * 
+     * @param value
+     *            the object.
+     * @return the object converted to a string, or the string {@code "null"}.
+     */
+    public static String valueOf(Object value) {
+        return value != null ? value.toString() : "null"; //$NON-NLS-1$
+    }
+
+    /**
+     * Converts the specified boolean to its string representation. When the
+     * boolean is {@code true} return {@code "true"}, otherwise return {@code
+     * "false"}.
+     * 
+     * @param value
+     *            the boolean.
+     * @return the boolean converted to a string.
+     */
+    public static String valueOf(boolean value) {
+        return value ? "true" : "false"; //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    /**
+     * Returns whether the characters in the StringBuffer {@code strbuf} are the
+     * same as those in this string.
+     * 
+     * @param strbuf
+     *            the StringBuffer to compare this string to.
+     * @return {@code true} if the characters in {@code strbuf} are identical to
+     *         those in this string. If they are not, {@code false} will be
+     *         returned.
+     * @throws NullPointerException
+     *             if {@code strbuf} is {@code null}.
+     * @since 1.4
+     */
+    public boolean contentEquals(StringBuffer strbuf) {
+        synchronized (strbuf) {
+            int size = strbuf.length();
+            if (count != size) {
+                return false;
+            }
+            return regionMatches(0, new String(0, size, strbuf.getValue()), 0,
+                    size);
+        }
+    }
+
+    /**
+     * Compares a {@code CharSequence} to this {@code String} to determine if
+     * their contents are equal.
      *
-     * <p> The locale always used is the one returned by {@link
-     * java.util.Locale#getDefault() Locale.getDefault()}.
+     * @param cs
+     *            the character sequence to compare to.
+     * @return {@code true} if equal, otherwise {@code false}
+     * @since 1.5
+     */
+    public boolean contentEquals(CharSequence cs) {
+        int len = cs.length();
+
+        if (len != count) {
+            return false;
+        }
+
+        if (len == 0 && count == 0) {
+            return true; // since both are empty strings
+        }
+
+        return regionMatches(0, cs.toString(), 0, len);
+    }
+
+    /**
+     * Determines whether this string matches a given regular expression.
+     * 
+     * @param expr
+     *            the regular expression to be matched.
+     * @return {@code true} if the expression matches, otherwise {@code false}.
+     * @throws PatternSyntaxException
+     *             if the syntax of the supplied regular expression is not
+     *             valid.
+     * @throws NullPointerException
+     *             if {@code expr} is {@code null}.
+     * @since 1.4
+     */
+    public boolean matches(String expr) {
+        return Pattern.matches(expr, this);
+    }
+
+    /**
+     * Replace any substrings within this string that match the supplied regular
+     * expression {@code expr}, with the string {@code substitute}.
+     * 
+     * @param expr
+     *            the regular expression to match.
+     * @param substitute
+     *            the string to replace the matching substring with.
+     * @return the new string.
+     * @throws PatternSyntaxException
+     *             if the syntax of the supplied regular expression is not
+     *             valid.
+     * @see Pattern
+     * @since 1.4
+     */
+    public String replaceAll(String expr, String substitute) {
+        return Pattern.compile(expr).matcher(this).replaceAll(substitute);
+    }
+
+    /**
+     * Replace the first substring within this string that matches the supplied
+     * regular expression {@code expr}, with the string {@code substitute}.
+     * 
+     * @param expr
+     *            the regular expression to match.
+     * @param substitute
+     *            the string to replace the matching substring with.
+     * @return the new string.
+     * @throws PatternSyntaxException
+     *             if the syntax of the supplied regular expression is not
+     *             valid.
+     * @throws NullPointerException
+     *             if {@code strbuf} is {@code null}.
+     * @see Pattern
+     * @since 1.4
+     */
+    public String replaceFirst(String expr, String substitute) {
+        return Pattern.compile(expr).matcher(this).replaceFirst(substitute);
+    }
+
+    /**
+     * Splits this string using the supplied regular expression {@code expr}.
+     * 
+     * @param expr
+     *            the regular expression used to divide the string.
+     * @return an array of Strings created by separating the string along
+     *         matches of the regular expression.
+     * @throws NullPointerException
+     *             if {@code expr} is {@code null}.
+     * @throws PatternSyntaxException
+     *             if the syntax of the supplied regular expression is not
+     *             valid.
+     * @see Pattern
+     * @since 1.4
+     */
+    public String[] split(String expr) {
+        return Pattern.compile(expr).split(this);
+    }
+
+    /**
+     * Splits this string using the supplied regular expression {@code expr}.
+     * The parameter {@code max} controls the behavior how many times the
+     * pattern is applied to the string.
+     * 
+     * @param expr
+     *            the regular expression used to divide the string.
+     * @param max
+     *            the number of entries in the resulting array.
+     * @return an array of Strings created by separating the string along
+     *         matches of the regular expression.
+     * @throws NullPointerException
+     *             if {@code expr} is {@code null}.
+     * @throws PatternSyntaxException
+     *             if the syntax of the supplied regular expression is not
+     *             valid.
+     * @see Pattern#split(CharSequence, int)
+     * @since 1.4
+     */
+    public String[] split(String expr, int max) {
+        return Pattern.compile(expr).split(this, max);
+    }
+
+    /**
+     * Has the same result as the substring function, but is present so that
+     * string may implement the CharSequence interface.
+     * 
+     * @param start
+     *            the offset the first character.
+     * @param end
+     *            the offset of one past the last character to include.
+     * @return the subsequence requested.
+     * @throws IndexOutOfBoundsException
+     *             if {@code start < 0}, {@code end < 0}, {@code start > end} or
+     *             {@code end > length()}.
+     * @see java.lang.CharSequence#subSequence(int, int)
+     * @since 1.4
+     */
+    public CharSequence subSequence(int start, int end) {
+        return substring(start, end);
+    }
+
+    /**
+     * Retrieves the Unicode code point (character) value at the specified
+     * {@code index}.
+     * 
+     * @param index
+     *            the index to the {@code char} code unit within this string.
+     * @return the Unicode code point value.
+     * @throws IndexOutOfBoundsException
+     *             if {@code index} is negative or greater than or equal to
+     *             {@code length()}.
+     * @see Character#codePointAt(char[], int, int)
+     * @since 1.5
+     */
+    public int codePointAt(int index) {
+        if (index < 0 || index >= count) {
+            throw new IndexOutOfBoundsException();
+        }
+        int s = index + offset;
+        return Character.codePointAt(value, s, offset + count);
+    }
+
+    /**
+     * Retrieves the Unicode code point value that precedes the specified
+     * {@code index}.
+     * 
+     * @param index
+     *            the index to the {@code char} code unit within this string.
+     * @return the Unicode code point value.
+     * @throws IndexOutOfBoundsException
+     *             if {@code index} is less than 1 or greater than
+     *             {@code length()}.
+     * @see Character#codePointBefore(char[], int, int)
+     * @since 1.5
+     */
+    public int codePointBefore(int index) {
+        if (index < 1 || index > count) {
+            throw new IndexOutOfBoundsException();
+        }
+        int s = index + offset;
+        return Character.codePointBefore(value, s);
+    }
+
+    /**
+     * Calculates the number of Unicode code points between {@code beginIndex}
+     * and {@code endIndex}.
+     * 
+     * @param beginIndex
+     *            the inclusive beginning index of the subsequence.
+     * @param endIndex
+     *            the exclusive end index of the subsequence.
+     * @return the number of Unicode code points in the subsequence.
+     * @throws IndexOutOfBoundsException
+     *             if {@code beginIndex} is negative or greater than {@code
+     *             endIndex} or {@code endIndex} is greater than {@code
+     *             length()}.
+     * @see Character#codePointCount(CharSequence, int, int)
+     * @since 1.5
+     */
+    public int codePointCount(int beginIndex, int endIndex) {
+        if (beginIndex < 0 || endIndex > count || beginIndex > endIndex) {
+            throw new IndexOutOfBoundsException();
+        }
+        int s = beginIndex + offset;
+        return Character.codePointCount(value, s, endIndex - beginIndex);
+    }
+
+    /**
+     * Determines if this {@code String} contains the sequence of characters in
+     * the {@code CharSequence} passed.
      *
-     * @param  format
-     *         A <a href="../util/Formatter.html#syntax">format string</a>
+     * @param cs
+     *            the character sequence to search for.
+     * @return {@code true} if the sequence of characters are contained in this
+     *         string, otherwise {@code false}.
+     * @since 1.5
+     */
+    public boolean contains(CharSequence cs) {
+        return indexOf(cs.toString()) >= 0;
+    }
+
+    /**
+     * Returns the index within this object that is offset from {@code index} by
+     * {@code codePointOffset} code points.
      *
-     * @param  args
-     *         Arguments referenced by the format specifiers in the format
-     *         string.  If there are more arguments than format specifiers, the
-     *         extra arguments are ignored.  The number of arguments is
-     *         variable and may be zero.  The maximum number of arguments is
-     *         limited by the maximum dimension of a Java array as defined by
-     *         <cite>The Java&trade; Virtual Machine Specification</cite>.
-     *         The behaviour on a
-     *         <tt>null</tt> argument depends on the <a
-     *         href="../util/Formatter.html#syntax">conversion</a>.
-     *
-     * @throws  IllegalFormatException
-     *          If a format string contains an illegal syntax, a format
-     *          specifier that is incompatible with the given arguments,
-     *          insufficient arguments given the format string, or other
-     *          illegal conditions.  For specification of all possible
-     *          formatting errors, see the <a
-     *          href="../util/Formatter.html#detail">Details</a> section of the
-     *          formatter class specification.
-     *
-     * @throws  NullPointerException
-     *          If the <tt>format</tt> is <tt>null</tt>
-     *
-     * @return  A formatted string
-     *
-     * @see  java.util.Formatter
-     * @since  1.5
+     * @param index
+     *            the index within this object to calculate the offset from.
+     * @param codePointOffset
+     *            the number of code points to count.
+     * @return the index within this object that is the offset.
+     * @throws IndexOutOfBoundsException
+     *             if {@code index} is negative or greater than {@code length()}
+     *             or if there aren't enough code points before or after {@code
+     *             index} to match {@code codePointOffset}.
+     * @since 1.5
+     */
+    public int offsetByCodePoints(int index, int codePointOffset) {
+        int s = index + offset;
+        int r = Character.offsetByCodePoints(value, offset, count, s,
+                codePointOffset);
+        return r - offset;
+    }
+
+    /**
+     * Returns a formatted string, using the supplied format and arguments,
+     * using the default locale.
+     * 
+     * @param format
+     *            a format string.
+     * @param args
+     *            arguments to replace format specifiers (may be none).
+     * @return the formatted string.
+     * @throws NullPointerException
+     *             if {@code format} is {@code null}.
+     * @throws java.util.IllegalFormatException
+     *             if the format is invalid.
+     * @see java.util.Formatter
+     * @since 1.5
      */
     public static String format(String format, Object... args) {
-        return new Formatter().format(format, args).toString();
+        return format(Locale.getDefault(), format, args);
     }
 
     /**
-     * Returns a formatted string using the specified locale, format string,
-     * and arguments.
-     *
-     * @param  l
-     *         The {@linkplain java.util.Locale locale} to apply during
-     *         formatting.  If <tt>l</tt> is <tt>null</tt> then no localization
-     *         is applied.
-     *
-     * @param  format
-     *         A <a href="../util/Formatter.html#syntax">format string</a>
-     *
-     * @param  args
-     *         Arguments referenced by the format specifiers in the format
-     *         string.  If there are more arguments than format specifiers, the
-     *         extra arguments are ignored.  The number of arguments is
-     *         variable and may be zero.  The maximum number of arguments is
-     *         limited by the maximum dimension of a Java array as defined by
-     *         <cite>The Java&trade; Virtual Machine Specification</cite>.
-     *         The behaviour on a
-     *         <tt>null</tt> argument depends on the <a
-     *         href="../util/Formatter.html#syntax">conversion</a>.
-     *
-     * @throws  IllegalFormatException
-     *          If a format string contains an illegal syntax, a format
-     *          specifier that is incompatible with the given arguments,
-     *          insufficient arguments given the format string, or other
-     *          illegal conditions.  For specification of all possible
-     *          formatting errors, see the <a
-     *          href="../util/Formatter.html#detail">Details</a> section of the
-     *          formatter class specification
-     *
-     * @throws  NullPointerException
-     *          If the <tt>format</tt> is <tt>null</tt>
-     *
-     * @return  A formatted string
-     *
-     * @see  java.util.Formatter
-     * @since  1.5
-     */
-    public static String format(Locale l, String format, Object... args) {
-        return new Formatter(l).format(format, args).toString();
-    }
-
-    /**
-     * Returns the string representation of the <code>Object</code> argument.
-     *
-     * @param   obj   an <code>Object</code>.
-     * @return  if the argument is <code>null</code>, then a string equal to
-     *          <code>"null"</code>; otherwise, the value of
-     *          <code>obj.toString()</code> is returned.
-     * @see     java.lang.Object#toString()
-     */
-    public static String valueOf(Object obj) {
-        return (obj == null) ? "null" : obj.toString();
-    }
-
-    /**
-     * Returns the string representation of the <code>char</code> array
-     * argument. The contents of the character array are copied; subsequent
-     * modification of the character array does not affect the newly
-     * created string.
-     *
-     * @param   data   a <code>char</code> array.
-     * @return  a newly allocated string representing the same sequence of
-     *          characters contained in the character array argument.
-     */
-    public static String valueOf(char data[]) {
-        return new String(data);
-    }
-
-    /**
-     * Returns the string representation of a specific subarray of the
-     * <code>char</code> array argument.
+     * Returns a formatted string, using the supplied format and arguments,
+     * accordingly to the specified locale.
      * <p>
-     * The <code>offset</code> argument is the index of the first
-     * character of the subarray. The <code>count</code> argument
-     * specifies the length of the subarray. The contents of the subarray
-     * are copied; subsequent modification of the character array does not
-     * affect the newly created string.
+     * Note that this is a convenience method. Using it involves creating an
+     * internal {@link java.util.Formatter} instance on-the-fly, which is
+     * somewhat costly in terms of memory and time. This is probably acceptable
+     * if you use the method only rarely, but if you rely on it for formatting a
+     * large number of strings, consider creating and reusing your own
+     * {@link java.util.Formatter} instance instead.
      *
-     * @param   data     the character array.
-     * @param   offset   the initial offset into the value of the
-     *                  <code>String</code>.
-     * @param   count    the length of the value of the <code>String</code>.
-     * @return  a string representing the sequence of characters contained
-     *          in the subarray of the character array argument.
-     * @exception IndexOutOfBoundsException if <code>offset</code> is
-     *          negative, or <code>count</code> is negative, or
-     *          <code>offset+count</code> is larger than
-     *          <code>data.length</code>.
+     * @param loc
+     *            the locale to apply; {@code null} value means no localization.
+     * @param format
+     *            a format string.
+     * @param args
+     *            arguments to replace format specifiers (may be none).
+     * @return the formatted string.
+     * @throws NullPointerException
+     *             if {@code format} is {@code null}.
+     * @throws java.util.IllegalFormatException
+     *             if the format is invalid.
+     * @see java.util.Formatter
+     * @since 1.5
      */
-    public static String valueOf(char data[], int offset, int count) {
-        return new String(data, offset, count);
-    }
-
-    /**
-     * Returns a String that represents the character sequence in the
-     * array specified.
-     *
-     * @param   data     the character array.
-     * @param   offset   initial offset of the subarray.
-     * @param   count    length of the subarray.
-     * @return  a <code>String</code> that contains the characters of the
-     *          specified subarray of the character array.
-     */
-    public static String copyValueOf(char data[], int offset, int count) {
-        // All public String constructors now copy the data.
-        return new String(data, offset, count);
-    }
-
-    /**
-     * Returns a String that represents the character sequence in the
-     * array specified.
-     *
-     * @param   data   the character array.
-     * @return  a <code>String</code> that contains the characters of the
-     *          character array.
-     */
-    public static String copyValueOf(char data[]) {
-        return new String(data);
-    }
-
-    /**
-     * Returns the string representation of the <code>boolean</code> argument.
-     *
-     * @param   b   a <code>boolean</code>.
-     * @return  if the argument is <code>true</code>, a string equal to
-     *          <code>"true"</code> is returned; otherwise, a string equal to
-     *          <code>"false"</code> is returned.
-     */
-    public static String valueOf(boolean b) {
-        return b ? "true" : "false";
-    }
-
-    /**
-     * Returns the string representation of the <code>char</code>
-     * argument.
-     *
-     * @param   c   a <code>char</code>.
-     * @return  a string of length <code>1</code> containing
-     *          as its single character the argument <code>c</code>.
-     */
-    public static String valueOf(char c) {
-        char data[] = {c};
-        return new String(data, true);
-    }
-
-    /**
-     * Returns the string representation of the <code>int</code> argument.
-     * <p>
-     * The representation is exactly the one returned by the
-     * <code>Integer.toString</code> method of one argument.
-     *
-     * @param   i   an <code>int</code>.
-     * @return  a string representation of the <code>int</code> argument.
-     * @see     java.lang.Integer#toString(int, int)
-     */
-    public static String valueOf(int i) {
-        return Integer.toString(i);
-    }
-
-    /**
-     * Returns the string representation of the <code>long</code> argument.
-     * <p>
-     * The representation is exactly the one returned by the
-     * <code>Long.toString</code> method of one argument.
-     *
-     * @param   l   a <code>long</code>.
-     * @return  a string representation of the <code>long</code> argument.
-     * @see     java.lang.Long#toString(long)
-     */
-    public static String valueOf(long l) {
-        return Long.toString(l);
-    }
-
-    /**
-     * Returns the string representation of the <code>float</code> argument.
-     * <p>
-     * The representation is exactly the one returned by the
-     * <code>Float.toString</code> method of one argument.
-     *
-     * @param   f   a <code>float</code>.
-     * @return  a string representation of the <code>float</code> argument.
-     * @see     java.lang.Float#toString(float)
-     */
-    public static String valueOf(float f) {
-        return Float.toString(f);
-    }
-
-    /**
-     * Returns the string representation of the <code>double</code> argument.
-     * <p>
-     * The representation is exactly the one returned by the
-     * <code>Double.toString</code> method of one argument.
-     *
-     * @param   d   a <code>double</code>.
-     * @return  a  string representation of the <code>double</code> argument.
-     * @see     java.lang.Double#toString(double)
-     */
-    public static String valueOf(double d) {
-        return Double.toString(d);
-    }
-
-    /**
-     * Returns a canonical representation for the string object.
-     * <p>
-     * A pool of strings, initially empty, is maintained privately by the
-     * class <code>String</code>.
-     * <p>
-     * When the intern method is invoked, if the pool already contains a
-     * string equal to this <code>String</code> object as determined by
-     * the {@link #equals(Object)} method, then the string from the pool is
-     * returned. Otherwise, this <code>String</code> object is added to the
-     * pool and a reference to this <code>String</code> object is returned.
-     * <p>
-     * It follows that for any two strings <code>s</code> and <code>t</code>,
-     * <code>s.intern()&nbsp;==&nbsp;t.intern()</code> is <code>true</code>
-     * if and only if <code>s.equals(t)</code> is <code>true</code>.
-     * <p>
-     * All literal strings and string-valued constant expressions are
-     * interned. String literals are defined in section 3.10.5 of the
-     * <cite>The Java&trade; Language Specification</cite>.
-     *
-     * @return  a string that has the same contents as this string, but is
-     *          guaranteed to be from a pool of unique strings.
-     */
-    public native String intern();
-
-    /**
-     * Seed value used for each alternative hash calculated.
-     */
-    private static final int HASHING_SEED;
-
-    static {
-        long nanos = System.nanoTime();
-        long now = System.currentTimeMillis();
-        int SEED_MATERIAL[] = {
-                System.identityHashCode(String.class),
-                System.identityHashCode(System.class),
-                (int) (nanos >>> 32),
-                (int) nanos,
-                (int) (now >>> 32),
-                (int) now,
-                (int) (System.nanoTime() >>> 2)
-        };
-
-        // Use murmur3 to scramble the seeding material.
-        // Inline implementation to avoid loading classes
-        int h1 = 0;
-
-        // body
-        for (int k1 : SEED_MATERIAL) {
-            k1 *= 0xcc9e2d51;
-            k1 = (k1 << 15) | (k1 >>> 17);
-            k1 *= 0x1b873593;
-
-            h1 ^= k1;
-            h1 = (h1 << 13) | (h1 >>> 19);
-            h1 = h1 * 5 + 0xe6546b64;
+    public static String format(Locale loc, String format, Object... args) {
+        if (format == null) {
+            throw new NullPointerException("null format argument");
         }
-
-        // tail (always empty, as body is always 32-bit chunks)
-
-        // finalization
-
-        h1 ^= SEED_MATERIAL.length * 4;
-
-        // finalization mix force all bits of a hash block to avalanche
-        h1 ^= h1 >>> 16;
-        h1 *= 0x85ebca6b;
-        h1 ^= h1 >>> 13;
-        h1 *= 0xc2b2ae35;
-        h1 ^= h1 >>> 16;
-
-        HASHING_SEED = h1;
+        int bufferSize = format.length()
+                + (args == null ? 0 : args.length * 10);
+        Formatter f = new Formatter(new StringBuilder(bufferSize), loc);
+        return f.format(format, args).toString();
     }
 
-    /**
-     * Cached value of the alternative hashing algorithm result
-     */
-    private transient int hash32 = 0;
-
-    /**
-     * Calculates a 32-bit hash value for this string.
+    /*
+     * An implementation of a String.indexOf that is supposed to perform
+     * substantially better than the default algorithm if the "needle" (the
+     * subString being searched for) is a constant string.
      *
-     * @return a 32-bit hash value for this string.
+     * For example, a JIT, upon encoutering a call to String.indexOf(String),
+     * where the needle is a constant string, may compute the values cache, md2
+     * and lastChar, and change the call to the following method.
      */
-    int hash32() {
-        int h = hash32;
-        if (0 == h) {
-           // harmless data race on hash32 here.
-//           h = sun.misc.Hashing.murmur3_32(HASHING_SEED, value, 0, value.length);
+    @SuppressWarnings("unused")
+    private static int indexOf(String haystackString, String needleString,
+            int cache, int md2, char lastChar) {
+        char[] haystack = haystackString.value;
+        int haystackOffset = haystackString.offset;
+        int haystackLength = haystackString.count;
+        char[] needle = needleString.value;
+        int needleOffset = needleString.offset;
+        int needleLength = needleString.count;
+        int needleLengthMinus1 = needleLength - 1;
+        int haystackEnd = haystackOffset + haystackLength;
+        outer_loop: for (int i = haystackOffset + needleLengthMinus1; i < haystackEnd;) {
+            if (lastChar == haystack[i]) {
+                for (int j = 0; j < needleLengthMinus1; ++j) {
+                    if (needle[j + needleOffset] != haystack[i + j
+                            - needleLengthMinus1]) {
+                        int skip = 1;
+                        if ((cache & (1 << haystack[i])) == 0) {
+                            skip += j;
+                        }
+                        i += Math.max(md2, skip);
+                        continue outer_loop;
+                    }
+                }
+                return i - needleLengthMinus1 - haystackOffset;
+            }
 
-           // ensure result is not zero to avoid recalcing
-           h = (0 != h) ? h : 1;
-
-           hash32 = h;
+            if ((cache & (1 << haystack[i])) == 0) {
+                i += needleLengthMinus1;
+            }
+            i++;
         }
+        return -1;
+    }
 
-        return h;
+    /*
+     * Returns the character array for this string.
+     */
+    char[] getValue() {
+        return value;
     }
     public Taint getINVIVO_PC_TAINT(){
     	return null;

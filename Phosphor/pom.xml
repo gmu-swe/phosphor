@@ -121,7 +121,7 @@
 								<include>**/*ObjTagITCase.java</include>
 							</includes>
 							<reuseForks>false</reuseForks>
-							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+							<argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar:z/
 								-javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-obj</argLine>
 						</configuration>
 						<goals>

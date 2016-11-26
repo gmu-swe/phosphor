@@ -8,12 +8,12 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 
 public class BoxedPrimitiveStoreWithObjTags {
-	public static WeakHashMap<Object, Object> tags = new WeakHashMap<Object, Object>();
+	public static WeakHashMap<Object, Taint> tags = new WeakHashMap<Object, Taint>();
 
 	public static TaintedBooleanWithObjTag booleanValue(Boolean z) {
 		TaintedBooleanWithObjTag ret = new TaintedBooleanWithObjTag();
 		ret.val = z;
-		if (tags.containsKey(z))
+		if (z.valueOf && tags.containsKey(z))
 			ret.taint = tags.get(z);
 		return ret;
 	}
@@ -21,7 +21,7 @@ public class BoxedPrimitiveStoreWithObjTags {
 	public static TaintedByteWithObjTag byteValue(Byte z) {
 		TaintedByteWithObjTag ret = new TaintedByteWithObjTag();
 		ret.val = z;
-		if (tags.containsKey(z))
+		if (z.valueOf && tags.containsKey(z))
 			ret.taint = tags.get(z);
 		return ret;
 	}
@@ -42,36 +42,40 @@ public class BoxedPrimitiveStoreWithObjTags {
 		return ret;
 	}
 
-	public static Boolean valueOf(Object tag, boolean z) {
+	public static Boolean valueOf(Taint tag, boolean z) {
 		if (tag != null) {
 			Boolean r = new Boolean(z);
+			r.valueOf = true;
 			tags.put(r, tag);
 			return r;
 		}
 		return Boolean.valueOf(z);
 	}
 
-	public static Byte valueOf(Object tag, byte z) {
+	public static Byte valueOf(Taint tag, byte z) {
 		if (tag != null) {
 			Byte r = new Byte(z);
+			r.valueOf = true;
 			tags.put(r, tag);
 			return r;
 		}
 		return Byte.valueOf(z);
 	}
 
-	public static Character valueOf(Object tag, char z) {
+	public static Character valueOf(Taint tag, char z) {
 		if (tag != null) {
 			Character r = new Character(z);
+			r.valueOf = true;
 			tags.put(r, tag);
 			return r;
 		}
 		return Character.valueOf(z);
 	}
 
-	public static Short valueOf(Object tag, short z) {
+	public static Short valueOf(Taint tag, short z) {
 		if (tag != null) {
 			Short r = new Short(z);
+			r.valueOf = true;
 			tags.put(r, tag);
 			return r;
 		}

@@ -110,6 +110,9 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
         boolean b1 = e > 0;
         boolean b2 = f > -1;
         boolean b3 = e > -1 && bt;
+        System.out.println(MultiTainter.getTaint(e));
+
+        System.out.println(MultiTainter.getTaint(b1));
         assertTaintHasOnlyLabel(MultiTainter.getTaint(b1), labelX);
         assertTaintHasOnlyLabel(MultiTainter.getTaint(b2), labelY);
         

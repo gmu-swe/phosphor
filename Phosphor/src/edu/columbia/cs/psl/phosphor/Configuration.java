@@ -14,9 +14,9 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 
 import edu.columbia.cs.psl.phosphor.runtime.DerivedTaintListener;
-import edu.columbia.cs.psl.phosphor.runtime.LazyArrayIntTags;
-import edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 
 public class Configuration {
 	public static String ADDL_IGNORE = null;
@@ -39,9 +39,9 @@ public class Configuration {
 	 * Derived configuration values
 	 */
 	public static String TAINT_TAG_DESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "I");
-	public static String TAINT_TAG_ARRAYDESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/LazyArrayObjTags;" : "Ledu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags;");
+	public static String TAINT_TAG_ARRAYDESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/struct/LazyArrayObjTags;" : "Ledu/columbia/cs/psl/phosphor/struct/LazyArrayIntTags;");
 	public static String TAINT_TAG_INTERNAL_NAME = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/Taint" : null);
-	public static String TAINT_TAG_ARRAY_INTERNAL_NAME = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/LazyArrayObjTags" : "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags");
+	public static String TAINT_TAG_ARRAY_INTERNAL_NAME = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/LazyArrayObjTags" : "edu/columbia/cs/psl/phosphor/struct/LazyArrayIntTags");
 	public static int NULL_TAINT_LOAD_OPCODE = (MULTI_TAINTING ? Opcodes.ACONST_NULL : Opcodes.ICONST_0);
 	public static Object TAINT_TAG_STACK_TYPE = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/Taint" : Opcodes.INTEGER);
 	public static Object TAINT_TAG_ARRAY_STACK_TYPE = TAINT_TAG_ARRAY_INTERNAL_NAME;
@@ -66,9 +66,9 @@ public class Configuration {
 
 	public static void init() {
 		TAINT_TAG_DESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "I");
-		TAINT_TAG_ARRAYDESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/LazyArrayObjTags;" : "Ledu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags;");
+		TAINT_TAG_ARRAYDESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/struct/LazyArrayObjTags;" : "Ledu/columbia/cs/psl/phosphor/struct/LazyArrayIntTags;");
 		TAINT_TAG_INTERNAL_NAME = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/Taint" : null);
-		TAINT_TAG_ARRAY_INTERNAL_NAME = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/LazyArrayObjTags" : "edu/columbia/cs/psl/phosphor/runtime/LazyArrayIntTags");
+		TAINT_TAG_ARRAY_INTERNAL_NAME = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/LazyArrayObjTags" : "edu/columbia/cs/psl/phosphor/struct/LazyArrayIntTags");
 		NULL_TAINT_LOAD_OPCODE = (MULTI_TAINTING ? Opcodes.ACONST_NULL : Opcodes.ICONST_0);
 		TAINT_TAG_STACK_TYPE = (MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/runtime/Taint" : Opcodes.INTEGER);
 		TAINT_TAG_ARRAY_STACK_TYPE = TAINT_TAG_ARRAY_INTERNAL_NAME;

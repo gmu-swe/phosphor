@@ -13,7 +13,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 	public static TaintedBooleanWithIntTag booleanValue(Boolean z) {
 		TaintedBooleanWithIntTag ret = new TaintedBooleanWithIntTag();
 		ret.val = z;
-		if (tags.containsKey(z))
+		if (z.valueOf && tags.containsKey(z))
 			ret.taint = tags.get(z);
 		return ret;
 	}
@@ -21,7 +21,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 	public static TaintedByteWithIntTag byteValue(Byte z) {
 		TaintedByteWithIntTag ret = new TaintedByteWithIntTag();
 		ret.val = z;
-		if (tags.containsKey(z))
+		if (z.valueOf && tags.containsKey(z))
 			ret.taint = tags.get(z);
 		return ret;
 	}
@@ -29,7 +29,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 	public static TaintedShortWithIntTag shortValue(Short z) {
 		TaintedShortWithIntTag ret = new TaintedShortWithIntTag();
 		ret.val = z;
-		if (tags.containsKey(z))
+		if (z.valueOf && tags.containsKey(z))
 			ret.taint = tags.get(z);
 		return ret;
 	}
@@ -37,7 +37,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 	public static TaintedCharWithIntTag charValue(Character z) {
 		TaintedCharWithIntTag ret = new TaintedCharWithIntTag();
 		ret.val = z.charValue();
-		if (tags.containsKey(z))
+		if (z.valueOf && tags.containsKey(z))
 			ret.taint = tags.get(z);
 		return ret;
 	}
@@ -46,6 +46,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 		if (tag > 0) {
 			Boolean r = new Boolean(z);
 			tags.put(r, tag);
+			r.valueOf = true;
 			return r;
 		}
 		return Boolean.valueOf(z);
@@ -55,6 +56,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 		if (tag > 0) {
 			Byte r = new Byte(z);
 			tags.put(r, tag);
+			r.valueOf = true;
 			return r;
 		}
 		return Byte.valueOf(z);
@@ -64,6 +66,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 		if (tag > 0) {
 			Character r = new Character(z);
 			tags.put(r, tag);
+			r.valueOf = true;
 			return r;
 		}
 		return Character.valueOf(z);
@@ -73,6 +76,7 @@ public class BoxedPrimitiveStoreWithIntTags {
 		if (tag > 0) {
 			Short r = new Short(z);
 			tags.put(r, tag);
+			r.valueOf = true;
 			return r;
 		}
 		return Short.valueOf(z);

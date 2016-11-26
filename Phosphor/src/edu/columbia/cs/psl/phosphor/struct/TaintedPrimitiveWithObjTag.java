@@ -1,7 +1,9 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
 public abstract class TaintedPrimitiveWithObjTag {
-	public Object taint;
+	public Taint taint;
 	public abstract Object getValue();
 	public final Object toPrimitiveType()
 	{

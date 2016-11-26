@@ -4,65 +4,49 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.WeakHashMap;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-
 import org.objectweb.asm.Type;
 
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortArrayWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedBooleanArrayWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedByteArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedByteArrayWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedCharArrayWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedDoubleArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedDoubleArrayWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedFloatArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedFloatArrayWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedIntArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedIntArrayWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedLongArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedLongArrayWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedShortArrayWithObjTag;
 
 public class RuntimeReflectionPropogator {
 	public static void setUNINST(Field f, Object obj, Object val) throws IllegalArgumentException, IllegalAccessException {
@@ -89,7 +73,7 @@ public class RuntimeReflectionPropogator {
 		Class<?> component = ret;
 		while(component.isArray())
 			component = component.getComponentType();
-		if(MultiDTaintedArrayWithIntTag.class.isAssignableFrom(component))
+		if(LazyArrayIntTags.class.isAssignableFrom(component))
 		{
 			Type t = Type.getType(ret);
 			String newType = "[";
@@ -103,7 +87,7 @@ public class RuntimeReflectionPropogator {
 				e.printStackTrace();
 			}
 		}
-		else if(MultiDTaintedArrayWithObjTag.class.isAssignableFrom(component))
+		else if(LazyArrayObjTags.class.isAssignableFrom(component))
 		{
 			Type t = Type.getType(ret);
 			String newType = "[";
@@ -177,9 +161,9 @@ public class RuntimeReflectionPropogator {
 
 			try {
 				try {
-					if (ret instanceof MultiDTaintedArrayWithIntTag) {
+					if (ret instanceof LazyArrayIntTags) {
 						return ret;
-					} else if (ret instanceof MultiDTaintedArrayWithObjTag) {
+					} else if (ret instanceof LazyArrayObjTags) {
 						return ret;
 					} else {
 						Field taintField;
@@ -193,57 +177,48 @@ public class RuntimeReflectionPropogator {
 						taint = taintField.get(obj);
 					}
 				} catch (NoSuchFieldException t) {
-					if(isObjTags)
-					{
-						if(ret != null)
-							taint = new int[Array.getLength(ret)];
-					}
-					else
-					{
-						if(ret != null)
-							taint = new Taint[Array.getLength(ret)];
-					}
+				
 				}
 				if(ret == null)
 					return null;
 				if(!isObjTags)
 				{
 					if (f.getType().getComponentType() == Boolean.TYPE) {
-						return new MultiDTaintedBooleanArrayWithIntTag(new LazyArrayIntTags(), (boolean[]) ret);
+						return new LazyBooleanArrayIntTags((boolean[]) ret, (int[]) taint);
 					} else if (f.getType().getComponentType() == Byte.TYPE) {
-						return new MultiDTaintedByteArrayWithIntTag(new LazyArrayIntTags(), (byte[]) ret);
+						return new LazyByteArrayIntTags((byte[]) ret, (int[]) taint);
 		 			} else if (f.getType().getComponentType() == Character.TYPE) {
-						return new MultiDTaintedCharArrayWithIntTag(new LazyArrayIntTags(), (char[]) ret);
+						return new LazyCharArrayIntTags((char[]) ret, (int[]) taint);
 					} else if (f.getType().getComponentType() == Double.TYPE) {
-						return new MultiDTaintedDoubleArrayWithIntTag(new LazyArrayIntTags(), (double[]) ret);
+						return new LazyDoubleArrayIntTags((double[]) ret, (int[]) taint);
 					} else if (f.getType().getComponentType() == Float.TYPE) {
-						return new MultiDTaintedFloatArrayWithIntTag(new LazyArrayIntTags(), (float[]) ret);
+						return new LazyFloatArrayIntTags((float[]) ret, (int[]) taint);
 					} else if (f.getType().getComponentType() == Integer.TYPE) {
-						return new MultiDTaintedIntArrayWithIntTag(new LazyArrayIntTags(), (int[]) ret);
+						return new LazyIntArrayIntTags((int[]) ret, (int[]) taint);
 					} else if (f.getType().getComponentType() == Long.TYPE) {
-						return new MultiDTaintedLongArrayWithIntTag(new LazyArrayIntTags(), (long[]) ret);
+						return new LazyLongArrayIntTags((long[]) ret, (int[]) taint);
 					} else if (f.getType().getComponentType() == Short.TYPE) {
-						return new MultiDTaintedShortArrayWithIntTag(new LazyArrayIntTags(), (short[]) ret);
+						return new LazyShortArrayIntTags((short[]) ret, (int[]) taint);
 					}
 				}
 				else
 				{
 					if (f.getType().getComponentType() == Boolean.TYPE) {
-						return new MultiDTaintedBooleanArrayWithObjTag((LazyArrayObjTags) taint, (boolean[]) ret);
+						return new LazyBooleanArrayObjTags((boolean[]) ret, (Taint[]) taint);
 					} else if (f.getType().getComponentType() == Byte.TYPE) {
-						return new MultiDTaintedByteArrayWithObjTag((LazyArrayObjTags) taint, (byte[]) ret);
-					} else if (f.getType().getComponentType() == Character.TYPE) {
-						return new MultiDTaintedCharArrayWithObjTag((LazyArrayObjTags) taint, (char[]) ret);
+						return new LazyByteArrayObjTags((byte[]) ret, (Taint[]) taint);
+		 			} else if (f.getType().getComponentType() == Character.TYPE) {
+						return new LazyCharArrayObjTags((char[]) ret, (Taint[]) taint);
 					} else if (f.getType().getComponentType() == Double.TYPE) {
-						return new MultiDTaintedDoubleArrayWithObjTag((LazyArrayObjTags) taint, (double[]) ret);
+						return new LazyDoubleArrayObjTags((double[]) ret, (Taint[]) taint);
 					} else if (f.getType().getComponentType() == Float.TYPE) {
-						return new MultiDTaintedFloatArrayWithObjTag((LazyArrayObjTags) taint, (float[]) ret);
+						return new LazyFloatArrayObjTags((float[]) ret, (Taint[]) taint);
 					} else if (f.getType().getComponentType() == Integer.TYPE) {
-						return new MultiDTaintedIntArrayWithObjTag((LazyArrayObjTags) taint, (int[]) ret);
+						return new LazyIntArrayObjTags((int[]) ret, (Taint[]) taint);
 					} else if (f.getType().getComponentType() == Long.TYPE) {
-						return new MultiDTaintedLongArrayWithObjTag((LazyArrayObjTags) taint, (long[]) ret);
+						return new LazyLongArrayObjTags((long[]) ret, (Taint[]) taint);
 					} else if (f.getType().getComponentType() == Short.TYPE) {
-						return new MultiDTaintedShortArrayWithObjTag((LazyArrayObjTags) taint, (short[]) ret);
+						return new LazyShortArrayObjTags((short[]) ret, (Taint[]) taint);
 					}
 				}
 			} catch (Exception e) {
@@ -493,9 +468,11 @@ public class RuntimeReflectionPropogator {
 				taintField.setAccessible(true);
 				fieldToField.put(f, taintField);
 			}
-			ret.taint = taintField.get(obj);
-      if (ret.taint instanceof Integer)
-        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
+			Object t = taintField.get(obj);
+			if (t instanceof Taint)
+				ret.taint = (Taint) t;
+			if (t instanceof Integer)
+				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
@@ -516,9 +493,11 @@ public class RuntimeReflectionPropogator {
 				taintField.setAccessible(true);
 				fieldToField.put(f, taintField);
 			}
-			ret.taint = taintField.get(obj);
-      if (ret.taint instanceof Integer)
-        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
+			Object t = taintField.get(obj);
+			if (t instanceof Taint)
+				ret.taint = (Taint) t;
+			if (t instanceof Integer)
+				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
@@ -539,9 +518,11 @@ public class RuntimeReflectionPropogator {
 				taintField.setAccessible(true);
 				fieldToField.put(f, taintField);
 			}
-			ret.taint = taintField.get(obj);
-      if (ret.taint instanceof Integer)
-        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
+			Object t = taintField.get(obj);
+			if (t instanceof Taint)
+				ret.taint = (Taint) t;
+			if (t instanceof Integer)
+				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
@@ -562,9 +543,11 @@ public class RuntimeReflectionPropogator {
 				taintField.setAccessible(true);
 				fieldToField.put(f, taintField);
 			}
-			ret.taint = taintField.get(obj);
-      if (ret.taint instanceof Integer)
-        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
+			Object t = taintField.get(obj);
+			if (t instanceof Taint)
+				ret.taint = (Taint) t;
+			if (t instanceof Integer)
+				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
@@ -585,9 +568,11 @@ public class RuntimeReflectionPropogator {
 				taintField.setAccessible(true);
 				fieldToField.put(f, taintField);
 			}
-			ret.taint = taintField.get(obj);
-      if (ret.taint instanceof Integer)
-        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
+			Object t = taintField.get(obj);
+			if (t instanceof Taint)
+				ret.taint = (Taint) t;
+			if (t instanceof Integer)
+				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
@@ -608,9 +593,11 @@ public class RuntimeReflectionPropogator {
 				taintField.setAccessible(true);
 				fieldToField.put(f, taintField);
 			}
-			ret.taint = taintField.get(obj);
-      if (ret.taint instanceof Integer)
-        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
+			Object t = taintField.get(obj);
+			if (t instanceof Taint)
+				ret.taint = (Taint) t;
+			if (t instanceof Integer)
+				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
 
 		} catch (SecurityException e) {
 			e.printStackTrace();
@@ -632,9 +619,11 @@ public class RuntimeReflectionPropogator {
 				taintField.setAccessible(true);
 				fieldToField.put(f, taintField);
 			}
-      ret.taint = taintField.get(obj);
-      if (ret.taint instanceof Integer)
-        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
+			Object t = taintField.get(obj);
+			if (t instanceof Taint)
+				ret.taint = (Taint) t;
+			if (t instanceof Integer)
+				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
 		} catch (NoSuchFieldException e) {
 		} catch (SecurityException e) {
 		}
@@ -653,9 +642,11 @@ public class RuntimeReflectionPropogator {
 				taintField.setAccessible(true);
 				fieldToField.put(f, taintField);
 			}
-			ret.taint = taintField.get(obj);
-      if (ret.taint instanceof Integer)
-        ret.taint = HardcodedBypassStore.get(((Integer) ret.taint).intValue());
+			Object t = taintField.get(obj);
+			if (t instanceof Taint)
+				ret.taint = (Taint) t;
+			if (t instanceof Integer)
+				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
 		} catch (NoSuchFieldException e) {
 //			e.printStackTrace();
 		} catch (SecurityException e) {
