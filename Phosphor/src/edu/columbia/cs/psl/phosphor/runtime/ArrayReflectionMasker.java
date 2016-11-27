@@ -61,8 +61,8 @@ public class ArrayReflectionMasker {
 		} else if (obj instanceof LazyArrayIntTags) {
 			return ((LazyArrayIntTags) obj).getLength();
 		}
-		else if (obj instanceof MultiDTaintedArrayWithObjTag) {
-			return Array.getLength(((MultiDTaintedArrayWithObjTag) obj).getVal());
+		else if (obj instanceof LazyArrayObjTags) {
+			return Array.getLength(((LazyArrayObjTags) obj).getVal());
 		}
 		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
 	}
@@ -198,9 +198,9 @@ public class ArrayReflectionMasker {
 			ret.taint = null;
 			ret.val = Array.getLength(obj);
 			return ret;
-		} else if (obj instanceof MultiDTaintedArrayWithObjTag) {
+		} else if (obj instanceof LazyArrayObjTags) {
 			ret.taint = null;
-			ret.val = Array.getLength(((MultiDTaintedArrayWithObjTag) obj).getVal());
+			ret.val = Array.getLength(((LazyArrayObjTags) obj).getVal());
 			return ret;
 		}
 		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
