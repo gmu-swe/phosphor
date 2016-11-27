@@ -10,6 +10,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FrameNode;
 
+import edu.columbia.cs.psl.phosphor.runtime.RuntimeBoxUnboxPropogator;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 
 public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
@@ -124,7 +125,11 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitLabel(isOK);
 				if(!followedByFrame)
 					acceptFn(fn2);
-			} else {
+			} else if(argT.getSort() == Type.LONG) {
+				super.visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropogator", "valueOf", desc, false);
+				return;
+			}
+			else{
 				//T V V <top>
 				super.visitInsn(DUP2_X1);
 				super.visitInsn(POP2);

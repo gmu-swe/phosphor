@@ -17,6 +17,10 @@
 
 package java.lang;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+
 /**
  * The wrapper for the primitive type {@code long}.
  * <p>
@@ -76,6 +80,19 @@ public final class Long extends Number implements Comparable<Long> {
         this.value = value;
     }
 
+    public Long(int t, long value, TaintSentinel stl) {
+        this.value = value;
+    }
+    
+    public Long(Taint t, long value, TaintSentinel stl) {
+        this.value = value;
+    }
+    
+    public Long(Taint t, long value, TaintSentinel stl, ControlTaintTagStack ctrl) {
+        this.value = value;
+    }
+    
+    
     /**
      * Constructs a new {@code Long} from the specified string.
      * 
@@ -808,5 +825,15 @@ public final class Long extends Number implements Comparable<Long> {
 
 	public static long parseUnsignedLong(String s) {
 		return 0;
+	}
+
+	public static Long valueOf$$PHOSPHORTAGGED(int i, long l) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public static Long valueOf$$PHOSPHORTAGGED(Taint object, long l) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

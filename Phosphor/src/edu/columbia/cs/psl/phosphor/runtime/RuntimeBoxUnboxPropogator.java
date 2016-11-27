@@ -21,8 +21,42 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class RuntimeBoxUnboxPropogator {
+	public static Long valueOf(int t, long l)
+	{
+		if(t == 0)
+			return Long.valueOf$$PHOSPHORTAGGED(0,l);
+		else
+		{
+			Long ret = new Long(t,l,null);
+			((TaintedWithIntTag)((Object)ret)).setPHOSPHOR_TAG(t);
+			return ret;
+		}
+	}
+	public static Long valueOf(Taint t, long l)
+	{
+		if(t == null)
+			return Long.valueOf$$PHOSPHORTAGGED(null,l);
+		else
+		{
+			Long ret = new Long(t,l,null);
+			((TaintedWithObjTag)((Object)ret)).setPHOSPHOR_TAG(t);
+			return ret;
+		}
+	}
+	public static Long valueOf(Taint t, long l, ControlTaintTagStack ctrl)
+	{
+		if(t == null)
+			return Long.valueOf$$PHOSPHORTAGGED(null,l);
+		else
+		{
+			Long ret = new Long(t,l,null);
+			((TaintedWithObjTag)((Object)ret)).setPHOSPHOR_TAG(t);
+			return ret;
+		}
+	}
 	public static void getChars$$PHOSPHORTAGGED(int lt, long l, int idt, int idx, LazyCharArrayIntTags ta, char[] ar)
 	{
 		Long.getChars(l, idx, ar);
