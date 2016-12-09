@@ -209,7 +209,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						break;
 					case AbstractInsnNode.TABLESWITCH_INSN:
 					case AbstractInsnNode.LOOKUPSWITCH_INSN:
-						if(Configuration.IMPLICIT_TRACKING)
+						if(Configuration.WITH_TAGS_FOR_JUMPS)
 						{
 							BasicValue value = (BasicValue) f.getStack(f.getStackSize() - 1);
 							if (value instanceof SinkableArrayValue
@@ -230,7 +230,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						}
 						break;
 					case AbstractInsnNode.JUMP_INSN:
-						if(Configuration.IMPLICIT_TRACKING)
+						if(Configuration.WITH_TAGS_FOR_JUMPS)
 						{
 							switch(insn.getOpcode())
 							{

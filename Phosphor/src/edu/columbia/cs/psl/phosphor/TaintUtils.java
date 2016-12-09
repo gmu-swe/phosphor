@@ -51,7 +51,6 @@ public class TaintUtils {
 	public static final boolean TAINT_THROUGH_SERIALIZATION = false;
 	public static final boolean OPT_PURE_METHODS = false;
 
-	public static boolean OPT_IGNORE_EXTRA_TAINTS = true;
 
 	public static final boolean OPT_USE_STACK_ONLY = false; //avoid using LVs where possible if true
 	
@@ -465,7 +464,7 @@ public class TaintUtils {
 
 	public static void arraycopy(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		try {
-			if (!src.getClass().isArray() && !dest.getClass().isArray()) {
+			if (src instanceof LazyArrayIntTags) {
 				System.arraycopy(((LazyArrayIntTags) src).getVal(), srcPos, ((LazyArrayIntTags) dest).getVal(), destPos, length);
 				if(((LazyArrayIntTags) src).taints != null)
 				{
@@ -473,9 +472,9 @@ public class TaintUtils {
 						((LazyArrayIntTags) dest).taints = new int[((LazyArrayIntTags) dest).getLength()];
 					System.arraycopy(((LazyArrayIntTags) src).taints, srcPos, ((LazyArrayIntTags) dest).taints, destPos, length);					
 				}
-			} else if (!dest.getClass().isArray()) {
-				//src is a regular array, dest is multidtaintedarraywithinttag
-				System.arraycopy(src, srcPos, ((LazyArrayObjTags) dest).getVal(), destPos, length);
+//			} else if (!dest.getClass().isArray()) {
+//				src is a regular array, dest is multidtaintedarraywithinttag
+//				System.arraycopy(src, srcPos, ((LazyArrayObjTags) dest).getVal(), destPos, length);
 			} else {
 				System.arraycopy(src, srcPos, dest, destPos, length);
 			}
@@ -852,11 +851,11 @@ public class TaintUtils {
 
 	public static Object ensureUnboxed(Object o)
 	{
-		if(o instanceof LazyArrayIntTags)
+		if(!Configuration.MULTI_TAINTING && o instanceof LazyArrayIntTags)
 			return ((LazyArrayIntTags) o).getVal();
-		else if(o instanceof MultiDTaintedArrayWithObjTag)
-			return ((MultiDTaintedArrayWithObjTag) o).getVal();
-		else if(o instanceof Enum<?>)
+		else if(Configuration.MULTI_TAINTING && o instanceof LazyArrayObjTags)
+			return ((LazyArrayObjTags) o).getVal();
+		else if(Configuration.WITH_ENUM_BY_VAL && o instanceof Enum<?>)
 			return ((Enum) o).valueOf(((Enum) o).getDeclaringClass(), ((Enum) o).name());
 		return o;
 	}

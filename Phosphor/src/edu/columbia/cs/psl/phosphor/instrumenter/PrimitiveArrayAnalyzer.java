@@ -894,6 +894,52 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	public void visitInsn(int opcode) {
 		super.visitInsn(opcode);
 		switch (opcode) {
+		case Opcodes.FADD:
+		case Opcodes.FREM:
+		case Opcodes.FSUB:
+		case Opcodes.FMUL:
+		case Opcodes.FDIV:
+			if(Configuration.PREALLOC_STACK_OPS)
+				wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("F"));
+			break;
+		case Opcodes.DADD:
+		case Opcodes.DSUB:
+		case Opcodes.DMUL:
+		case Opcodes.DDIV:
+		case Opcodes.DREM:
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("D"));
+			break;
+		case Opcodes.LSHL:
+		case Opcodes.LUSHR:
+		case Opcodes.LSHR:
+		case Opcodes.LSUB:
+		case Opcodes.LMUL:
+		case Opcodes.LADD:
+		case Opcodes.LDIV:
+		case Opcodes.LREM:
+		case Opcodes.LAND:
+		case Opcodes.LOR:
+		case Opcodes.LXOR:
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("J"));
+			break;
+		case Opcodes.LCMP:
+		case Opcodes.DCMPL:
+		case Opcodes.DCMPG:
+		case Opcodes.FCMPG:
+		case Opcodes.FCMPL:
+		case Opcodes.IADD:
+		case Opcodes.ISUB:
+		case Opcodes.IMUL:
+		case Opcodes.IDIV:
+		case Opcodes.IREM:
+		case Opcodes.ISHL:
+		case Opcodes.ISHR:
+		case Opcodes.IUSHR:
+		case Opcodes.IOR:
+		case Opcodes.IAND:
+		case Opcodes.IXOR:
+			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("I"));
+			break;
 		case Opcodes.IALOAD:
 			wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("I"));
 			break;

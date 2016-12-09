@@ -9,25 +9,29 @@ import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
-public final class Taint {
+public class Taint<T> {
 	public static boolean IGNORE_TAINTING;
 
-	public static final Taint copyTaint(Taint in)
+	public static final <T> Taint<T> copyTaint(Taint<T> in)
 	{
 		if(in == null)
 			return null;			
-		Taint ret = new Taint();
-		if(in.dependencies == null || in.dependencies.getFirst() == null)
-			ret.lbl = in.lbl;
-		else
-			ret.addDependency(in);
+		Taint<T> ret = new Taint<T>();
+		ret.copyFrom(in);
 		return ret;
 	}
-	public Taint copy()
+
+	protected void copyFrom(Taint<T> in) {
+		if (in.dependencies == null || in.dependencies.getFirst() == null)
+			lbl = in.lbl;
+		else
+			addDependency(in);
+	}
+	public Taint<T> copy()
 	{
 		if(IGNORE_TAINTING)
 			return this;
-		Taint ret = new Taint();
+		Taint<T> ret = new Taint<T>();
 		ret.lbl = lbl;
 		ret.dependencies.addAll(dependencies);
 		return ret;
@@ -49,7 +53,7 @@ public final class Taint {
 		String depStr=" deps = [";
 		if(dependencies != null)
 		{
-			Node<Object> dep = dependencies.getFirst();
+			Node<T> dep = dependencies.getFirst();
 			while(dep != null)
 			{
 				if(dep.entry != null)
@@ -61,22 +65,22 @@ public final class Taint {
 		return "Taint [lbl=" + lbl + " "+depStr+"]";
 	}
 	public Object debug;
-	public Object lbl;
-	public LinkedList<Object> dependencies;
+	public T lbl;
+	public LinkedList<T> dependencies;
 	public LinkedList<EnqueuedTaint> enqueuedInControlFlow;
-	public Taint(Object lbl) {
+	public Taint(T lbl) {
 		this.lbl = lbl;
-		dependencies = new LinkedList<Object>();
+		dependencies = new LinkedList<T>();
 	}
-	public Object getLabel() {
+	public T getLabel() {
 		return lbl;
 	}
-	public LinkedList<Object> getDependencies() {
+	public LinkedList<T> getDependencies() {
 		return dependencies;
 	}
-	public Taint(Taint t1)
+	public Taint(Taint<T> t1)
 	{
-		dependencies = new LinkedList<Object>();
+		dependencies = new LinkedList<T>();
 		if(t1 == null)
 			return;
 		lbl = t1.lbl;
@@ -85,9 +89,9 @@ public final class Taint {
 		if(Configuration.derivedTaintListener != null)
 			Configuration.derivedTaintListener.singleDepCreated(t1, this);
 	}
-	public Taint(Taint t1, Taint t2)
+	public Taint(Taint<T> t1, Taint<T> t2)
 	{
-		dependencies = new LinkedList<Object>();
+		dependencies = new LinkedList<T>();
 		if(t1 != null)
 		{
 			if(t1.lbl != null)
@@ -104,9 +108,9 @@ public final class Taint {
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, this);
 	}
 	public Taint() {
-		dependencies = new LinkedList<Object>();
+		dependencies = new LinkedList<T>();
 	}
-	public boolean addDependency(Taint d)
+	public boolean addDependency(Taint<T> d)
 	{
 		if(d == null)
 			return false;
@@ -131,11 +135,12 @@ public final class Taint {
 	public boolean hasNoDependencies() {
 		return dependencies.getFirst() == null || dependencies.getFirst().entry == null;
 	}
-	public static void combineTagsInPlace(Object obj, Taint t1)
+	public static <T> void combineTagsInPlace(Object obj, Taint<T> t1)
 	{
 		if(obj == null || t1 == null || IGNORE_TAINTING)
 			return;
-		Taint t = (Taint) TaintUtils.getTaintObj(obj);
+		@SuppressWarnings("unchecked")
+		Taint<T> t = (Taint<T>) TaintUtils.getTaintObj(obj);
 		if(t == null)
 		{
 			MultiTainter.taintedObject(obj, t1);
@@ -143,7 +148,7 @@ public final class Taint {
 		else
 			t.addDependency(t1);
 	}
-	public static Taint combineTags(Taint t1, Taint t2)
+	public static <T> Taint<T> combineTags(Taint<T> t1, Taint<T> t2)
 	{
 		if(t1 == null && t2 == null)
 			return null;
@@ -159,12 +164,13 @@ public final class Taint {
 			return t1;
 		if(IGNORE_TAINTING)
 			return t1;
-		Taint r = new Taint(t1,t2);
+		Taint<T> r = new Taint<T>(t1,t2);
 		if(Configuration.derivedTaintListener != null)
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, r);
 		return r;
 	}
-	public static Taint combineTags(Taint t1, ControlTaintTagStack tags){
+	@SuppressWarnings("unchecked")
+	public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags){
 		if(t1 == null && tags.isEmpty())
 			return null;
 		else if(t1 == null)
@@ -183,8 +189,9 @@ public final class Taint {
 			return t1;
 		if(IGNORE_TAINTING)
 			return t1;
-		return new Taint((Taint) t1, tags.taint);
+		return new Taint<T>((Taint<T>) t1, tags.taint);
 	}
+	@SuppressWarnings("rawtypes")
 	public static void combineTagsOnObject(Object o, ControlTaintTagStack tags)
 	{
 		if(tags.isEmpty() || IGNORE_TAINTING)

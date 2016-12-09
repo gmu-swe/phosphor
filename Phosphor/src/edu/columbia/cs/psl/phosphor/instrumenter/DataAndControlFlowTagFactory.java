@@ -1,25 +1,16 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import java.util.Arrays;
-
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
-	@Override
-	public Taint dynamicallyGenerateEmptyTaint() {
-		return new Taint();
-	}
 
 	@Override
 	public void lineNumberVisited(int line) {
@@ -688,141 +679,11 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	@Override
 	public void typeOp(int opcode, String type, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
 		switch (opcode) {
-		case Opcodes.ANEWARRAY:
-			if (Configuration.ARRAY_LENGTH_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
-				Type t = Type.getType(type);
-				if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
-					//e.g. [I for a 2 D array -> MultiDTaintedIntArray
-					type = MultiDTaintedArray.getTypeForType(t).getInternalName();
-				}
-				//L TL
-				mv.visitTypeInsn(opcode, type);
-				//A TL
-				mv.visitInsn(DUP_X1);
-				//A TL A
-				mv.visitInsn(SWAP);
-				//TL A A
-				mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-			} else {
-				Type t = Type.getType(type);
-				if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
-					//e.g. [I for a 2 D array -> MultiDTaintedIntArray
-					type = MultiDTaintedArray.getTypeForType(t).getInternalName();
-				}
-				mv.visitTypeInsn(opcode, type);
-				
-			}
-			break;
-		case Opcodes.NEW:
-			mv.visitTypeInsn(opcode, type);
-			break;
 		case Opcodes.INSTANCEOF:
-			Type t = Type.getType(type);
 
-			boolean doIOR = false;
-			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
-				if (t.getDimensions() > 1) {
-					type = MultiDTaintedArray.getTypeForType(t).getDescriptor();
-				} else if (!ta.topCarriesTaint()) {
-					doIOR = true;
-					//Maybe we have it boxed on the stack, maybe we don't - how do we know? Who cares, just check both...
-					mv.visitInsn(DUP);
-					mv.visitTypeInsn(INSTANCEOF, Type.getInternalName(MultiDTaintedArray.getClassForComponentType(t.getElementType().getSort())));
-					mv.visitInsn(SWAP);
-				}
-			}
-			{
-				boolean loaded = false;
-//				if (ta.topStackElCarriesTaints()) {
-//					loaded = true;
-//					//TA A
-//					mv.visitInsn(SWAP);
-//					if (Configuration.MULTI_TAINTING) {
-//						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-//						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-//					} else
-//						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
-//					mv.visitInsn(SWAP);
-//				}
-//				if (!loaded) {
-//					mv.visitInsn(DUP);
-//				}
-				mv.visitTypeInsn(opcode, type);
-//				if (!loaded) {
-//					//O I
-//					mv.visitInsn(SWAP);
-//					if (Configuration.MULTI_TAINTING) {
-//						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-//						mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-//					} else
-//						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintInt", "(Ljava/lang/Object;)I", false);
-//					mv.visitInsn(SWAP);
-//				}
-				if (doIOR) {
-					mv.visitInsn(IOR);
-				}
-
-			}
 			break;
 		case Opcodes.CHECKCAST:
-			t = Type.getType(type);
-
-			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
-				if (t.getDimensions() > 1) {
-					//Hahaha you thought you could cast to a primitive multi dimensional array!
-
-					mv.visitTypeInsn(opcode, MultiDTaintedArray.getTypeForType(Type.getType(type)).getDescriptor());
-					return;
-				} else {
-					//what is on the top of the stack that we are checkcast'ing?
-					Object o = ta.analyzer.stack.get(ta.analyzer.stack.size() - 1);
-					if (o instanceof String) {
-						Type zz = TaintAdapter.getTypeForStackType(o);
-						if (zz.getSort() == Type.ARRAY && zz.getElementType().getSort() != Type.OBJECT) {
-							mv.visitTypeInsn(opcode, type);
-							break;
-						}
-					}
-					//cast of Object[] or Object to char[] or int[] etc.
-					if (o == Opcodes.NULL) {
-						mv.visitInsn(SWAP);
-						mv.visitTypeInsn(CHECKCAST, MultiDTaintedArray.getTypeForType(t).getInternalName());
-						mv.visitInsn(SWAP);
-					} else
-					{
-						Type wrap = MultiDTaintedArray.getTypeForType(t);
-						mv.visitTypeInsn(CHECKCAST, wrap.getInternalName());
-						ta.retrieveTaintedArray(type);
-					}
-					mv.visitTypeInsn(opcode, type);
-				}
-				//			} else if (t.getSort() == Type.ARRAY && t.getElementType().getSort() == Type.OBJECT) {
-				//				Object o = analyzer.stack.get(analyzer.stack.size() - 1);
-				//				if (o instanceof String) {
-				//					Type zz = getTypeForStackType(o);
-				//					if (zz.getSort() == Type.OBJECT) {
-				//						//casting object to Object[]
-				//						mv.visitTypeInsn(opcode, type);
-				//						break;
-				//					}
-				//				}
-				//				if (topStackElCarriesTaints()) {
-				//					//Casting array to non-array type
-				//
-				//					//Register the taint array for later.
-				//					registerTaintedArray(t.getDescriptor());
-				//				}
-			} else {
-
-				//What if we are casting an array to Object?
-				if (ta.topStackElCarriesTaints()) {
-					//Casting array to non-array type
-
-					//Register the taint array for later.
-					ta.registerTaintedArray();
-				}
-				mv.visitTypeInsn(opcode, type);
-			}
+			
 			break;
 		}
 	}
@@ -850,7 +711,6 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 			mv.visitVarInsn(ASTORE, shadowVar);
 
 		}
-		mv.visitIincInsn(var, increment);
 	}
 	@Override
 	public void fieldOp(int opcode, String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
@@ -871,6 +731,11 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	public void instrumentationEnding(String className) {
 		// TODO Auto-generated method stub
 		
+	}
+	@Override
+	public boolean isInternalTaintingClass(String classname) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

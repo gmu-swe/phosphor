@@ -47,7 +47,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 public class PreMain {
 	private static Instrumentation instrumentation;
 
-	static final boolean DEBUG = false;
+	public static final boolean DEBUG = false;
 	public static boolean RUNTIME_INST = false;
 
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
@@ -312,10 +312,8 @@ public class PreMain {
 						, ClassReader.EXPAND_FRAMES);
 
 				if (DEBUG) {
-					File debugDir = new File("debug");
-					if (!debugDir.exists())
-						debugDir.mkdir();
-					File f = new File("debug/" + className.replace("/", ".") + ".class");
+					File f = new File("debug/" + className+ ".class");
+					f.getParentFile().mkdirs();
 					FileOutputStream fos = new FileOutputStream(f);
 					fos.write(cw.toByteArray());
 					fos.close();

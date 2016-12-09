@@ -348,9 +348,10 @@ public class Instrumenter {
 		Configuration.WITH_UNBOX_ACMPEQ = line.hasOption("forceUnboxAcmpEq");
 		Configuration.WITH_SELECTIVE_INST = line.hasOption("withSelectiveInst");
 		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
+		Configuration.WITH_TAGS_FOR_JUMPS = line.hasOption("disableJumpOptimizations");
+
 		Configuration.init();
 
-		TaintUtils.OPT_IGNORE_EXTRA_TAINTS = !line.hasOption("disableJumpOptimizations");
 		
 		if (Configuration.WITH_SELECTIVE_INST)
 			System.out.println("Performing selective instrumentation");

@@ -168,6 +168,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	public void visitIincInsn(int var, int increment) {
 		Configuration.taintTagFactory.iincOp(var, increment, mv, lvs, this);
+		mv.visitIincInsn(var, increment);
+
 		nextLoadisTracked = false;
 	}
 	
@@ -932,16 +934,38 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		switch (opcode) {
 		case Opcodes.ANEWARRAY:
-			Configuration.taintTagFactory.typeOp(opcode, type, mv, lvs, this);
+			if (Configuration.ARRAY_LENGTH_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
+				Type t = Type.getType(type);
+				if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
+					//e.g. [I for a 2 D array -> MultiDTaintedIntArray
+					type = MultiDTaintedArray.getTypeForType(t).getInternalName();
+				}
+				//L TL
+				super.visitTypeInsn(opcode, type);
+				//A TL
+				super.visitInsn(DUP_X1);
+				//A TL A
+				super.visitInsn(SWAP);
+				//TL A A
+				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+			} else {
+				Type t = Type.getType(type);
+				if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
+					//e.g. [I for a 2 D array -> MultiDTaintedIntArray
+					type = MultiDTaintedArray.getTypeForType(t).getInternalName();
+				}
+				super.visitTypeInsn(opcode, type);
+				
+			}
 			nextLoadisTracked = false;
 			break;
 		case Opcodes.NEW:
-			Configuration.taintTagFactory.typeOp(opcode, type, mv, lvs, this);
+			super.visitTypeInsn(opcode, type);			
 			break;
 		case Opcodes.CHECKCAST:
 			Type t = Type.getObjectType(type);
 			if (nextLoadisTracked) {
-				Configuration.taintTagFactory.typeOp(opcode, type, mv, lvs, this);
+				checkCast(type);
 				nextLoadisTracked = false;
 				analyzer.setTopOfStackTagged();
 			} else if (TaintUtils.isPrimitiveArrayType(t)) {
@@ -956,8 +980,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 			}
 			else
-				Configuration.taintTagFactory.typeOp(opcode, type, mv, lvs, this);
-
+				checkCast(type);
 			break;
 		case Opcodes.INSTANCEOF:
 			if(nextLoadisTracked)
@@ -966,10 +989,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(DUP);
 					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)"+Configuration.TAINT_TAG_DESC, false);
 					super.visitInsn(SWAP);
-					Configuration.taintTagFactory.typeOp(opcode, type, mv, lvs, this);
+					instanceOf(type);
 
 				} else {
-					Configuration.taintTagFactory.typeOp(opcode, type, mv, lvs, this);
+					instanceOf(type);
 					super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 					super.visitInsn(SWAP);
 				}
@@ -978,14 +1001,79 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 			else
 			{
-				Configuration.taintTagFactory.typeOp(opcode, type, mv, lvs, this);
+				instanceOf(type);
 			}
 			break;
 		default:
 			throw new IllegalArgumentException();
 		}
 	}
+	
+	private void instanceOf(String type){
+		Type t = Type.getType(type);
 
+		boolean doIOR = false;
+		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
+			if (t.getDimensions() > 1) {
+				type = MultiDTaintedArray.getTypeForType(t).getDescriptor();
+			} else if (!topCarriesTaint()) {
+				doIOR = true;
+				//Maybe we have it boxed on the stack, maybe we don't - how do we know? Who cares, just check both...
+				super.visitInsn(DUP);
+				super.visitTypeInsn(INSTANCEOF, Type.getInternalName(MultiDTaintedArray.getClassForComponentType(t.getElementType().getSort())));
+				super.visitInsn(SWAP);
+			}
+		}
+		super.visitTypeInsn(INSTANCEOF, type);
+		if (doIOR) {
+			super.visitInsn(IOR);
+		}
+	}
+
+	private void checkCast(String type){
+		Type t = Type.getType(type);
+		int opcode = CHECKCAST;
+		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
+			if (t.getDimensions() > 1) {
+				//Hahaha you thought you could cast to a primitive multi dimensional array!
+
+				super.visitTypeInsn(opcode, MultiDTaintedArray.getTypeForType(Type.getType(type)).getDescriptor());
+				return;
+			} else {
+				//what is on the top of the stack that we are checkcast'ing?
+				Object o = analyzer.stack.get(analyzer.stack.size() - 1);
+				if (o instanceof String) {
+					Type zz = TaintAdapter.getTypeForStackType(o);
+					if (zz.getSort() == Type.ARRAY && zz.getElementType().getSort() != Type.OBJECT) {
+						super.visitTypeInsn(opcode, type);
+						return;
+					}
+				}
+				//cast of Object[] or Object to char[] or int[] etc.
+				if (o == Opcodes.NULL) {
+					super.visitInsn(SWAP);
+					super.visitTypeInsn(CHECKCAST, MultiDTaintedArray.getTypeForType(t).getInternalName());
+					super.visitInsn(SWAP);
+				} else
+				{
+					Type wrap = MultiDTaintedArray.getTypeForType(t);
+					super.visitTypeInsn(CHECKCAST, wrap.getInternalName());
+					retrieveTaintedArray(type);
+				}
+				super.visitTypeInsn(opcode, type);
+			}
+		} else {
+
+			//What if we are casting an array to Object?
+			if (topStackElCarriesTaints()) {
+				//Casting array to non-array type
+
+				//Register the taint array for later.
+				registerTaintedArray();
+			}
+			super.visitTypeInsn(opcode, type);
+		}
+	}
 	/**
 	 * Pre: A Post: TA A
 	 * 
@@ -1436,7 +1524,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	}
 	static final boolean isInternalTaintingMethod(String owner)
 	{
-		return owner.equals(Type.getInternalName(Tainter.class)) || owner.equals(Type.getInternalName(MultiTainter.class));
+		return owner.startsWith("edu/columbia/cs/psl/phosphor/runtime/")
+				|| Configuration.taintTagFactory.isInternalTaintingClass(owner);
 	}
 	
 	static final String BYTE_NAME = "java/lang/Byte";
@@ -1627,7 +1716,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		boolean isIgnoredForTaints = Configuration.WITH_SELECTIVE_INST && 
 				Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc);
-		if ((Instrumenter.isIgnoredClass(owner) || isIgnoredForTaints || Instrumenter.isIgnoredMethod(owner, name, desc))  && !owner.startsWith("edu/columbia/cs/psl/phosphor/runtime")){
+		if ((Instrumenter.isIgnoredClass(owner) || isIgnoredForTaints || Instrumenter.isIgnoredMethod(owner, name, desc))  && !isInternalTaintingMethod(owner)){
 			Type[] args = Type.getArgumentTypes(desc);
 			if (TaintUtils.DEBUG_CALLS) {
 				System.out.println("Calling non-inst: " + owner + "." + name + desc + " stack " + analyzer.stack);

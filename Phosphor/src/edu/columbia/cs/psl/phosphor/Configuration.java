@@ -27,6 +27,9 @@ public class Configuration {
 	public static boolean WITH_ENUM_BY_VAL = false;
 	public static boolean WITH_UNBOX_ACMPEQ = false;
 
+	public static boolean PREALLOC_STACK_OPS = false;
+	
+	public static boolean WITH_TAGS_FOR_JUMPS = false;
 	public static boolean WITH_SELECTIVE_INST = false;
 	public static String selective_inst_config;
 	
@@ -84,6 +87,8 @@ public class Configuration {
 		TAINT_TAG_OBJ_CLASS = (MULTI_TAINTING ? Taint.class : Integer.TYPE);
 		TAINT_INTERFACE_INTERNALNAME = !MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedWithObjTag";
 
+		if(IMPLICIT_TRACKING)
+			WITH_TAGS_FOR_JUMPS = true;
 		if(WITH_SELECTIVE_INST)
 			GENERATE_UNINST_STUBS = true;
 

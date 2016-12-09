@@ -5,10 +5,11 @@ import org.objectweb.asm.MethodVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public interface TaintTagFactory {
-	public Taint dynamicallyGenerateEmptyTaint();
 
 	public void instrumentationStarting(String className);
 	public void instrumentationEnding(String className);
+
+	public boolean isInternalTaintingClass(String classname);
 	
 	public boolean isIgnoredClass(String classname);
 	public void generateEmptyTaint(MethodVisitor mv);
