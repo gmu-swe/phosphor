@@ -156,57 +156,25 @@ public class SinkableArrayValue extends BasicValue {
 
 	
 	public Collection<SinkableArrayValue> tag(AbstractInsnNode sink) {
-//if(sink instanceof MethodInsnNode && src != null)
-//{
-//	System.out.println(Printer.OPCODES[src.getOpcode()]);
-//	if(src instanceof LdcInsnNode)
-//	{
-//		System.out.println(((LdcInsnNode)src).cst);
-//	}
-//	if(src instanceof VarInsnNode && ((VarInsnNode)src).var == 6){
-//		System.out.println();
-//		new Exception().printStackTrace();}
-//		
-////}
-//		if(getSrc() != null && getSrc().getOpcode() == Opcodes.ACONST_NULL)
-//		{
-//			System.out.println("ACONST NULL");
-//			System.out.println(sink);
-//			new Exception().printStackTrace();
-////		if(min.name.equals("set") && min.owner.equals("java/util/GregorianCalendar"))
-////			throw new IllegalStateException();
-//		}
+
+		LinkedList<SinkableArrayValue> queue = new LinkedList<SinkableArrayValue>();
+		queue.add(this);
 		LinkedList<SinkableArrayValue> ret = new LinkedList<SinkableArrayValue>();
-		if (!flowsToInstMethodCall) {
-			flowsToInstMethodCall = true;
-			ret.add(this);
-			this.sink = sink;
-//			if(src != null && src.getOpcode() == Opcodes.NEWARRAY && reverseDeps != null)
-//			{
-//				//Also need to follow down reverse-deps to find things that were
-//				//speculatively not tainted
-//				for (SinkableArrayValue v : reverseDeps) {
-//					if (!v.flowsToInstMethodCall)
-//					{
-//						ret.addAll(v.tag(sink));
-//					}
-//				}
-//
-//			}
-//			if(src != null)
-//			System.out.println("TAG " + this + " " + Printer.OPCODES[src.getOpcode()] + (src.getOpcode() == Opcodes.ALOAD ? ((VarInsnNode)src).var : ""));
-			if (deps != null && !dontPropogateToDeps)
-			{
-				for (SinkableArrayValue v : deps) {
-					if (!v.flowsToInstMethodCall)
-					{
-//						if(src !=null)
-//						System.out.println(">>"+Printer.OPCODES[src.getOpcode()]);
-						ret.addAll(v.tag(sink));
-					}
+		while(!queue.isEmpty())
+		{
+			SinkableArrayValue v = queue.pop();
+			if (!v.flowsToInstMethodCall) {
+				v.flowsToInstMethodCall = true;
+				ret.add(v);
+				v.sink = sink;
+//				if(src != null)
+//				System.out.println("TAG " + this + " " + Printer.OPCODES[src.getOpcode()] + (src.getOpcode() == Opcodes.ALOAD ? ((VarInsnNode)src).var : ""));
+				if (v.deps != null && !v.dontPropogateToDeps)
+				{
+					queue.addAll(v.deps);
 				}
+				
 			}
-			
 		}
 		return ret;
 	}
