@@ -34,34 +34,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
 	public void intOp(int opcode, int arg, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV adapter) {
-		switch (opcode) {
-		case Opcodes.NEWARRAY:
-			if (Configuration.ARRAY_LENGTH_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
-				if (Configuration.MULTI_TAINTING) {
-					//Length Length-tag
-					mv.visitInsn(DUP);
-					mv.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-					mv.visitInsn(SWAP);
-					mv.visitIntInsn(opcode, arg);
-					//Array ArrayTags length-tag
-					mv.visitInsn(DUP2_X1);
-					//Ar At lt Ar At
-					mv.visitInsn(DUP_X2);
-					//Ar At lt Ar ar at
-					mv.visitInsn(POP2);
-					//lt ar ar at
-					mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-				} else {
-					throw new UnsupportedOperationException();
-				}
-			} else {
-				mv.visitIntInsn(opcode, arg);
-			}
-			break;
 
-		default:
-			throw new UnsupportedOperationException();
-		}
 	}
 
 	@Override
@@ -736,6 +709,14 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	public boolean isInternalTaintingClass(String classname) {
 		// TODO Auto-generated method stub
 		return false;
+	}
+	@Override
+	public void lookupSwitch(Label dflt, int[] keys, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV) {
+		mv.visitLookupSwitchInsn(dflt, keys, labels);
+	}
+	@Override
+	public void tableSwitch(int min, int max, Label dflt, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV) {
+		mv.visitTableSwitchInsn(min, max, dflt, labels);
 	}
 
 }

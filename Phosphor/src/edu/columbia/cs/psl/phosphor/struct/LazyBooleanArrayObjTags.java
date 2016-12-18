@@ -19,6 +19,10 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 	public LazyBooleanArrayObjTags(boolean[] array) {
 		this.val = array;
 	}
+	public LazyBooleanArrayObjTags(Taint lenTaint, boolean[] array) {
+		this.val = array;
+		this.lengthTaint = lenTaint;
+	}
 
 	@Override
 	public Object clone() {

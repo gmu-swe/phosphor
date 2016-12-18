@@ -27,6 +27,7 @@ import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Value;
 import org.objectweb.asm.util.Printer;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 
@@ -183,6 +184,8 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 			default:
 				throw new AnalyzerException(insn, "Invalid array type");
 			}
+			if(Configuration.ARRAY_LENGTH_TRACKING)
+				ret.addDep((SinkableArrayValue) value);
 			ret.isNewArray = true;
 			return ret;
 		case ANEWARRAY:

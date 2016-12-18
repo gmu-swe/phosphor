@@ -17,6 +17,12 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 	public LazyDoubleArrayObjTags(double[] array) {
 		this.val = array;
 	}
+	
+	public LazyDoubleArrayObjTags(Taint lenTaint, double[] array) {
+		this.val = array;
+		this.lengthTaint = lenTaint;
+	}
+	
 	@Override
 	public Object clone() {
 		LazyDoubleArrayObjTags ret = new LazyDoubleArrayObjTags(val.clone());

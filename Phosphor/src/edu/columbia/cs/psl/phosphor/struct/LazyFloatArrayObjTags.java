@@ -17,6 +17,11 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
 	public LazyFloatArrayObjTags(float[] array) {
 		this.val = array;
 	}
+	
+	public LazyFloatArrayObjTags(Taint lenTaint, float[] array) {
+		this.val = array;
+		this.lengthTaint = lenTaint;
+	}
 
 	@Override
 	public Object clone() {

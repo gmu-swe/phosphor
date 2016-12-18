@@ -18,6 +18,11 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 	public LazyByteArrayObjTags(byte[] array) {
 		this.val = array;
 	}
+	
+	public LazyByteArrayObjTags(Taint lenTaint, byte[] array) {
+		this.val = array;
+		this.lengthTaint = lenTaint;
+	}
 
 
 	@Override

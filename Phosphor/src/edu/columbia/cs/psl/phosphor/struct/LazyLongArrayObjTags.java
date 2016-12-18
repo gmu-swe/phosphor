@@ -19,6 +19,11 @@ public final class LazyLongArrayObjTags extends LazyArrayObjTags {
 		this.val = array;
 	}
 
+	public LazyLongArrayObjTags(Taint lenTaint, long[] array) {
+		this.val = array;
+		this.lengthTaint = lenTaint;
+	}
+	
 	@Override
 	public Object clone() {
 		LazyLongArrayObjTags ret = new LazyLongArrayObjTags(val.clone());

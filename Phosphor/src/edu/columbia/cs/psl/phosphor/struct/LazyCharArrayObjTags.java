@@ -22,6 +22,11 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 	public LazyCharArrayObjTags(char[] array) {
 		this.val = array;
 	}
+	
+	public LazyCharArrayObjTags(Taint lenTaint, char[] array) {
+		this.val = array;
+		this.lengthTaint = lenTaint;
+	}
 
 	@Override
 	public Object clone() {

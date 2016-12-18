@@ -19,6 +19,12 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 	public LazyIntArrayObjTags(int[] array) {
 		this.val = array;
 	}
+
+	public LazyIntArrayObjTags(Taint lenTaint, int[] array) {
+		this.val = array;
+		this.lengthTaint = lenTaint;
+	}
+	
 	private LazyIntArrayObjTags()
 	{
 		

@@ -17,6 +17,12 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
 	public LazyShortArrayObjTags(short[] array) {
 		this.val = array;
 	}
+	
+	public LazyShortArrayObjTags(Taint lenTaint, short[] array) {
+		this.val = array;
+		this.lengthTaint = lenTaint;
+	}
+	
 	@Override
 	public Object clone() {
 		LazyShortArrayObjTags ret = new LazyShortArrayObjTags(val.clone());

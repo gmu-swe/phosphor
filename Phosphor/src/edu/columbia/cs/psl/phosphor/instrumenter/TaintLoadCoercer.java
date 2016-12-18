@@ -133,8 +133,8 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 
 							BasicValue value1 = (BasicValue) f.getStack(f.getStackSize() - 3);
 
-							if(Configuration.ARRAY_LENGTH_TRACKING)
-								relevantValues.addAll(((SinkableArrayValue)f.getStack(f.getStackSize() - 2)).tag(insn));
+//							if(Configuration.ARRAY_LENGTH_TRACKING)
+//								relevantValues.addAll(((SinkableArrayValue)f.getStack(f.getStackSize() - 2)).tag(insn));
 							if(value1 instanceof SinkableArrayValue && value3 instanceof SinkableArrayValue)
 							{
 
@@ -172,8 +172,8 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 //							value3 = (BasicValue) f.getStack(f.getStackSize() - 1);
 //							value1 = (BasicValue) f.getStack(f.getStackSize() - 2);
 //							System.out.println(Printer.OPCODES[insn.getOpcode()] + value3+value1);
-							if(Configuration.ARRAY_LENGTH_TRACKING)
-								relevantValues.addAll(((SinkableArrayValue)f.getStack(f.getStackSize() - 2)).tag(insn));
+//							if(Configuration.ARRAY_LENGTH_TRACKING)
+//								relevantValues.addAll(((SinkableArrayValue)f.getStack(f.getStackSize() - 2)).tag(insn));
 							break;
 						case Opcodes.AALOAD:
 							break;
@@ -185,14 +185,16 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 							relevantValues.addAll(((SinkableArrayValue) v).tag(insn));
 							break;
 						}
-					case AbstractInsnNode.INT_INSN:
-						switch (insn.getOpcode()) {
-						case NEWARRAY:
-							if (Configuration.ARRAY_LENGTH_TRACKING)
-								relevantValues.addAll(((SinkableArrayValue) f.getStack(f.getStackSize() - 1)).tag(insn));
-							break;
-						}
-						break;
+//					case AbstractInsnNode.INT_INSN:
+//						switch (insn.getOpcode()) {
+//						case NEWARRAY:
+//							if (Configuration.ARRAY_LENGTH_TRACKING)
+//							{
+//								relevantValues.addAll(((SinkableArrayValue) f.getStack(f.getStackSize() - 1)).tag(insn));
+//							}
+//							break;
+//						}
+//						break;
 					case AbstractInsnNode.VAR_INSN:
 						if (insn.getOpcode() == TaintUtils.ALWAYS_BOX_JUMP || insn.getOpcode() == TaintUtils.ALWAYS_AUTOBOX) {
 							VarInsnNode vinsn = ((VarInsnNode) insn);
