@@ -1583,7 +1583,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
 					Configuration.taintTagFactory.generateEmptyTaint(ga);
-					Configuration.taintTagFactory.propogateTagNative(className,m.access,m.name,newDesc,mv);
+					Configuration.taintTagFactory.propogateTagNative(className,m.access,m.name,m.desc,mv);
 					
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
@@ -1598,7 +1598,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
 					Configuration.taintTagFactory.generateEmptyTaint(ga);
-					Configuration.taintTagFactory.propogateTagNative(className,m.access,m.name,newDesc,mv);
+					Configuration.taintTagFactory.propogateTagNative(className,m.access,m.name,m.desc,mv);
 
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
