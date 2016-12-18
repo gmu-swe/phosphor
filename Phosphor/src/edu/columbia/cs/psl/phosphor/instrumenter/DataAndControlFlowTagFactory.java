@@ -718,5 +718,28 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 	public void tableSwitch(int min, int max, Label dflt, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV) {
 		mv.visitTableSwitchInsn(min, max, dflt, labels);
 	}
-
+	@Override
+	public void propogateTagNative(String className, int acc, String methodName, String newDesc, MethodVisitor mv) {
+		int idx = 0;
+		Type[] argTypes = Type.getArgumentTypes(newDesc);
+		if ((acc & Opcodes.ACC_STATIC) == 0) {
+			idx++;
+		}
+		for (Type t : argTypes) {
+			if (t.getSort() == Type.ARRAY) {
+				if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
+					idx++;
+				}
+			} else if (t.getSort() != Type.OBJECT) {
+				mv.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
+				if (Configuration.MULTI_TAINTING) {
+					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
+				} else {
+					mv.visitInsn(Opcodes.IOR);
+				}
+				idx++;
+			}
+			idx += t.getSize();
+		}
+	}
 }

@@ -1583,29 +1583,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
 					Configuration.taintTagFactory.generateEmptyTaint(ga);
-					idx = 0;
-					if ((m.access & Opcodes.ACC_STATIC) == 0) {
-						idx++;
-					}
-					for (Type t : argTypes) {
-						if (t.getSort() == Type.ARRAY) {
-							if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-								idx++;
-							}
-						} else if (t.getSort() != Type.OBJECT) {
-							ga.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
-							if(Configuration.MULTI_TAINTING)
-							{
-								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "("+Configuration.TAINT_TAG_DESC+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
-							}
-							else
-							{
-								ga.visitInsn(Opcodes.IOR);
-							}
-							idx++;
-						}
-						idx += t.getSize();
-					}
+					Configuration.taintTagFactory.propogateTagNative(className,m.access,m.name,newDesc,mv);
+					
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
 				}
@@ -1619,28 +1598,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);
 					Configuration.taintTagFactory.generateEmptyTaint(ga);
-					idx = 0;
-					if ((m.access & Opcodes.ACC_STATIC) == 0) {
-						idx++;
-					}
-
-					//IOR all of the primitive args in too
-					for (Type t : argTypes) {
-						if (t.getSort() == Type.ARRAY) {
-							if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-								idx++;
-							}
-						} else if (t.getSort() != Type.OBJECT) {
-							ga.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
-							if (Configuration.MULTI_TAINTING) {
-								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "("+Configuration.TAINT_TAG_DESC+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
-							} else {
-								ga.visitInsn(Opcodes.IOR);
-							}
-							idx++;
-						}
-						idx += t.getSize();
-					}
+					Configuration.taintTagFactory.propogateTagNative(className,m.access,m.name,newDesc,mv);
 
 					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 					an.visitVarInsn(Opcodes.ALOAD, retIdx);

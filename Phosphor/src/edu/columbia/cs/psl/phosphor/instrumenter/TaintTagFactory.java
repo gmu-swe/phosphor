@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public interface TaintTagFactory {
@@ -25,4 +26,5 @@ public interface TaintTagFactory {
 	public void lineNumberVisited(int line);
 	public void lookupSwitch(Label dflt, int[] keys, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV);
 	public void tableSwitch(int min, int max, Label dflt, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV);
+	public void propogateTagNative(String className, int acc, String methodName, String newDesc, MethodVisitor mv);
 }
