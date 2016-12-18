@@ -7,7 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
+import java.lang.instrument.ClassFileTransformer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -22,14 +22,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Random;
 import java.util.Scanner;
-import java.util.Set;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
@@ -40,25 +34,19 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
-
-import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
-
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
-import edu.columbia.cs.psl.phosphor.struct.CallGraph;
-import edu.columbia.cs.psl.phosphor.struct.MethodInformation;
-import edu.columbia.cs.psl.phosphor.struct.MiniClassNode;
 
 public class Instrumenter {
 	public static ClassLoader loader;
+	public static ClassFileTransformer addlTransformer;
 
 	//	private static Logger logger = Logger.getLogger("Instrumenter");
 
@@ -234,6 +222,11 @@ public class Instrumenter {
 			buffer.flush();
 			PreMain.PCLoggingTransformer transformer = new PreMain.PCLoggingTransformer();
 			byte[] ret = transformer.transform(Instrumenter.loader, path, null, null, buffer.toByteArray());
+			if (addlTransformer != null) {
+				byte[] ret2 = addlTransformer.transform(Instrumenter.loader, path, null, null, ret);
+				if (ret2 != null)
+					ret = ret2;
+			}
 			curPath = null;
 			return ret;
 		} catch (Exception ex) {

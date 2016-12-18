@@ -1012,15 +1012,15 @@ public class RuntimeBoxUnboxPropogator {
 		return ret;
 	}
 
-	public static Boolean valueOfZ$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl) {
+	public static Boolean valueOfZ$$PHOSPHORTAGGED(String s) {
 		return valueOfZ(s);
 	}
 
-	public static Byte valueOfB$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl) {
+	public static Byte valueOfB$$PHOSPHORTAGGED(String s) {
 		return valueOfB(s);
 	}
 
-	public static Short valueOfS$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl) {
+	public static Short valueOfS$$PHOSPHORTAGGED(String s) {
 		return valueOfS(s);
 	}
 
