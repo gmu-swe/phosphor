@@ -1,17 +1,9 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import java.nio.channels.UnsupportedAddressTypeException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
@@ -20,24 +12,21 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
-import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.util.Printer;
 import org.objectweb.asm.util.Textifier;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
-import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
-import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.TaintedMisc;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;

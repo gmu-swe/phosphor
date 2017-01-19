@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-import edu.columbia.cs.psl.phosphor.struct.DoubleLinkedList.Node;
 
 
 public class LinkedList<T> implements Cloneable {

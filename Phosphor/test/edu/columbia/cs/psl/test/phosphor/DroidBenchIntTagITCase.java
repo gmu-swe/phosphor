@@ -1,14 +1,12 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,10 +19,7 @@ import de.ecspride.Datacontainer;
 import de.ecspride.General;
 import de.ecspride.VarA;
 import de.ecspride.VarB;
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class DroidBenchIntTagITCase {
 

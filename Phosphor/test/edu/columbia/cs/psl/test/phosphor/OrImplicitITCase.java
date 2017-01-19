@@ -1,6 +1,6 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNull;
 
 import org.junit.After;
 import org.junit.Test;

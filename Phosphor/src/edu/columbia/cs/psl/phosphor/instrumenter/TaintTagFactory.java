@@ -3,8 +3,6 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
-
 public interface TaintTagFactory {
 
 	public void instrumentationStarting(String className);

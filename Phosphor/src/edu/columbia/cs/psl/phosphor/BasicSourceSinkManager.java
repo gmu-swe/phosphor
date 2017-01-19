@@ -1,20 +1,13 @@
 package edu.columbia.cs.psl.phosphor;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
 
-import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
-
-import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
-import edu.columbia.cs.psl.phosphor.struct.CallGraph;
-import edu.columbia.cs.psl.phosphor.struct.MiniClassNode;
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 
 public class BasicSourceSinkManager extends SourceSinkManager {
 	static HashSet<String> sinks = new HashSet<String>();

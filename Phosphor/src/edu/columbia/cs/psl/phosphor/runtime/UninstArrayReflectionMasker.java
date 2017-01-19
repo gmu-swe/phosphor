@@ -6,7 +6,6 @@ import org.objectweb.asm.Type;
 
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;

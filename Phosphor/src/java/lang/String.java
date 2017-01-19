@@ -19,23 +19,19 @@ package java.lang;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.util.Comparator;
-import java.util.Formatter;
-import java.util.Locale;
-import java.util.regex.Pattern;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
+import java.util.Comparator;
+import java.util.Formatter;
+import java.util.Locale;
+import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 

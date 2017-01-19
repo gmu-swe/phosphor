@@ -1,9 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 
-import java.lang.reflect.Array;
-
-import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.ArrayList;
 
 

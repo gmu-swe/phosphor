@@ -1,15 +1,9 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
-
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -17,12 +11,13 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
-import org.objectweb.asm.util.Printer;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
 
 public class LocalVariableManager extends OurLocalVariablesSorter implements Opcodes {
 	private NeverNullArgAnalyzerAdapter analyzer;

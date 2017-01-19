@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;

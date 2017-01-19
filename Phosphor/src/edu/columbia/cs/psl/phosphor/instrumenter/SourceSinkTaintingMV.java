@@ -1,14 +1,12 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.BasicSourceSinkManager;
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.SourceSinkManager;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.commons.InstructionAdapter;
+
+import edu.columbia.cs.psl.phosphor.BasicSourceSinkManager;
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.SourceSinkManager;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;

@@ -1,12 +1,8 @@
 package edu.columbia.cs.psl.phosphor.ds;
 
-import static org.junit.Assert.*;
-
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.struct.DoubleLinkedList;
-import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
-import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 
 public class LinkedListTest {
 	@Test

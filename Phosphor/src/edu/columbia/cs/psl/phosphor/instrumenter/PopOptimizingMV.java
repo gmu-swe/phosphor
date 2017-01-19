@@ -4,11 +4,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
-import org.objectweb.asm.Type;
-
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.IincInsnNode;
@@ -16,6 +14,8 @@ import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
+
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 
 public class PopOptimizingMV extends MethodVisitor implements Opcodes {
 

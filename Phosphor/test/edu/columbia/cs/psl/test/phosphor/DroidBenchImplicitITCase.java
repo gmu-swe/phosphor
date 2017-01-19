@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.test.phosphor;
 
+import static org.junit.Assert.assertTrue;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -9,8 +11,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import junit.framework.AssertionFailedError;
 
 import org.junit.After;
 import org.junit.Test;
@@ -24,9 +24,7 @@ import de.ecspride.VarA;
 import de.ecspride.VarB;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
-import static org.junit.Assert.*;
 
 public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 

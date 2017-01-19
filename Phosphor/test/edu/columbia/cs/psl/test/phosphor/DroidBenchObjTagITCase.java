@@ -1,5 +1,8 @@
 package edu.columbia.cs.psl.test.phosphor;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -21,9 +24,7 @@ import de.ecspride.VarA;
 import de.ecspride.VarB;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
-import static org.junit.Assert.*;
 
 public class DroidBenchObjTagITCase {
 

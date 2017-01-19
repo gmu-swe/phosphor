@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.test.phosphor;
 
+import static org.junit.Assert.assertEquals;
+
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 
@@ -7,7 +9,6 @@ import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import static org.junit.Assert.*;
 
 public class ReflectionObjTagITCase {
 	

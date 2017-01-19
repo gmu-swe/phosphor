@@ -1,7 +1,5 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import java.lang.reflect.Array;
-
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
@@ -9,8 +7,6 @@ import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public class TaintChecker {
 	public static void checkTaint(int tag)

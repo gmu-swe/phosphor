@@ -1,10 +1,10 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
+import org.objectweb.asm.Type;
+
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
-
-import org.objectweb.asm.Type;
 
 public abstract class MultiDTaintedArray {
 

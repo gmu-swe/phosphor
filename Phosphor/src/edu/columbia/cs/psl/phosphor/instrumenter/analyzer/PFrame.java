@@ -3,16 +3,12 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 import java.util.HashSet;
 
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.VarInsnNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.Interpreter;
 import org.objectweb.asm.tree.analysis.Value;
-
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 
 public class PFrame extends Frame {
 

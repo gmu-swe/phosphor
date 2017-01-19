@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;

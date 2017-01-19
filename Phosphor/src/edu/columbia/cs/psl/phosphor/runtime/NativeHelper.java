@@ -2,12 +2,11 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.util.Collection;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.Type;
+
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 

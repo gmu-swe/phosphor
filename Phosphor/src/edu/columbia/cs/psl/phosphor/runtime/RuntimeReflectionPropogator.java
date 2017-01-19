@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.WeakHashMap;
 

@@ -1,10 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-
 import org.objectweb.asm.Type;
 
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;

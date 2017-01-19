@@ -1,12 +1,12 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 
 public class EnumObjTagITCase {
 	@Test

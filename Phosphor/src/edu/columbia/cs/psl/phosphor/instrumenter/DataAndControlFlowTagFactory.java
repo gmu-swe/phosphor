@@ -8,7 +8,6 @@ import org.objectweb.asm.Type;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 

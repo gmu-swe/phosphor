@@ -1,8 +1,6 @@
 package de.ecspride;
 
-import static org.junit.Assert.*;
-
-
+import static org.junit.Assert.assertTrue;
 import edu.columbia.cs.psl.test.phosphor.DroidBenchIntTagITCase;
 import edu.columbia.cs.psl.test.phosphor.DroidBenchObjTagITCase;
 

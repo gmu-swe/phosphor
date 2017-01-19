@@ -1,11 +1,10 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

@@ -18,7 +18,6 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 
 public class Tainter {
 	public static void taintedObject(Object obj, int tag)

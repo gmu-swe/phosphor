@@ -1,10 +1,11 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.HardcodedBypassStore;
 
 public class TaintTagFieldCastMV extends MethodVisitor implements Opcodes {

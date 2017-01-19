@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import java.io.FileInputStream;
 import java.io.PrintWriter;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -22,7 +21,6 @@ import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.IincInsnNode;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
-import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
@@ -32,7 +30,6 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.Value;
-import org.objectweb.asm.util.Printer;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 import edu.columbia.cs.psl.phosphor.Configuration;

@@ -11,12 +11,9 @@ import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.ProtectionDomain;
 import java.util.List;
-
-import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -33,14 +30,11 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.Tainted;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
