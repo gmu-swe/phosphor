@@ -10,6 +10,7 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -21,6 +22,7 @@ import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.IincInsnNode;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
@@ -62,7 +64,15 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 			this.cmv = cmv;
 //			System.out.println(name+desc);
 		}
-
+		@Override
+		protected LabelNode getLabelNode(Label l) {
+			if(!Configuration.READ_AND_SAVE_BCI)
+				return super.getLabelNode(l);
+			if (!(l.info instanceof LabelNode)) {
+				l.info = new LabelNode(l);
+			}
+			return (LabelNode) l.info;
+		}
 		@Override
 		public void visitEnd() {
 			//				final AbstractInsnNode[] insns = new AbstractInsnNode[this.instructions.size()];

@@ -51,6 +51,16 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		}
 
 		@Override
+		protected LabelNode getLabelNode(Label l) {
+			if(!Configuration.READ_AND_SAVE_BCI)
+				return super.getLabelNode(l);
+			if (!(l.info instanceof LabelNode)) {
+				l.info = new LabelNode(l);
+			}
+			return (LabelNode) l.info;
+		}
+		
+		@Override
 		public void visitCode() {
 			if (DEBUG)
 				System.out.println("Visiting: " + className + "." + name + desc);

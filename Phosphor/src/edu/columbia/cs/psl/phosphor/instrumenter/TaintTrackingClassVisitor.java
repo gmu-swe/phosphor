@@ -469,6 +469,15 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			final MethodVisitor prev = mvNext;
 			MethodNode rawMethod = new MethodNode(Opcodes.ASM5, access, name, desc, signature, exceptions) {
 				@Override
+				protected LabelNode getLabelNode(Label l) {
+					if(!Configuration.READ_AND_SAVE_BCI)
+						return super.getLabelNode(l);
+					if (!(l.info instanceof LabelNode)) {
+						l.info = new LabelNode(l);
+					}
+					return (LabelNode) l.info;
+				}
+				@Override
 				public void visitEnd() {
 					super.visitEnd();
 					this.accept(prev);
