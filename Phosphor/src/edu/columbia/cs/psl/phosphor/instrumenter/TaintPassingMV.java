@@ -21,6 +21,8 @@ import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
+import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
+import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingLabel;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
 import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
@@ -88,6 +90,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitLabel(label);
 			return;
 		}
+		if(Configuration.READ_AND_SAVE_BCI && label instanceof OffsetPreservingLabel)
+			Configuration.taintTagFactory.insnIndexVisited(((OffsetPreservingLabel)label).getOriginalPosition());
 		//		if (curLabel >= 0 && curLabel < bbsToAddChecktypeObjectto.length && bbsToAddChecktypeObjectto[curLabel] == 1) {
 		//			visitTypeInsn(CHECKCAST, "java/lang/Object");
 		//			bbsToAddChecktypeObjectto[curLabel] = 0;

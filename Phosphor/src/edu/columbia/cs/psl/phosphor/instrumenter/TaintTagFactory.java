@@ -10,6 +10,7 @@ public interface TaintTagFactory {
 
 	public boolean isInternalTaintingClass(String classname);
 	
+	public void insnIndexVisited(int offset);
 	public boolean isIgnoredClass(String classname);
 	public void generateEmptyTaint(MethodVisitor mv);
 	public void generateEmptyTaintArray(Object[] array, int dimensions);
