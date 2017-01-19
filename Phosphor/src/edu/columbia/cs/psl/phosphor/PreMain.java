@@ -282,7 +282,7 @@ public class PreMain {
 					}
 				}, 0);
 
-				cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer) : new ClassReader(classfileBuffer));
+				cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(cw.toByteArray()) : new ClassReader(cw.toByteArray()));
 			}
 //						System.out.println("Instrumenting: " + className);
 			//			System.out.println(classBeingRedefined);
