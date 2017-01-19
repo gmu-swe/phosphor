@@ -12,6 +12,9 @@ import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
+	public void instrumentationStarting(int access, String methodName, String methodDesc) {
+	}
+	@Override
 	public void insnIndexVisited(int offset) {
 		
 	}

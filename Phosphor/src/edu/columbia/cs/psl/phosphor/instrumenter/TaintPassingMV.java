@@ -119,6 +119,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String signature, String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,MethodVisitor passthruMV) {
 		//		super(Opcodes.ASM4,mv,access,name,desc);
 		super(access, className,name,desc,  signature, exceptions, mv, analyzer);
+		Configuration.taintTagFactory.instrumentationStarting(access, name, desc); 
 //				System.out.println("TPMV "+ className+"."+name+desc);
 		this.name = name;
 		this.className = className;

@@ -6,6 +6,8 @@ import org.objectweb.asm.MethodVisitor;
 public interface TaintTagFactory {
 
 	public void instrumentationStarting(String className);
+	public void instrumentationStarting(int access, String methodName, String methodDesc);
+
 	public void instrumentationEnding(String className);
 
 	public boolean isInternalTaintingClass(String classname);
