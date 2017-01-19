@@ -211,11 +211,18 @@
 			<version>5.0.3</version>
 		</dependency>
 	</dependencies>
+	<repositories>
+		<repository>
+			<id>jb.snapshots</id>
+			<name>jons snapshots</name>
+			<url>https://maven.jonbell.net/repository/snapshots</url>
+		</repository>
+	</repositories>
 	<distributionManagement>
 		<snapshotRepository>
-			<id>psl.internal</id>
-			<name>PSL Internal Repository</name>
-			<url>http://ase.cs.columbia.edu:8282/repository/snapshots</url>
+			<id>jb.snapshots</id>
+			<name>JB Snapshots Repository</name>
+			<url>https://maven.jonbell.net/repository/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>
 </project>

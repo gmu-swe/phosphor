@@ -36,6 +36,8 @@ public class Configuration {
 	
 	public static boolean GENERATE_UNINST_STUBS = false;
 	
+	public static boolean READ_AND_SAVE_BCI = false;
+	
 	/*
 	 * Derived configuration values
 	 */

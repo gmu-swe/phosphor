@@ -280,6 +280,9 @@ public class Instrumenter {
 	static Option opt_disableJumpOptimizations = Option.builder("disableJumpOptimizations")
 		.desc("Do not optimize taint removal at jump calls")
 		.build();
+	static Option opt_readAndSaveBCI = Option.builder("readAndSaveBCIs")
+			.desc("Read in and track the byte code index of every instruction during instrumentation")
+			.build();
 	static Option help = Option.builder("help")
 		.desc("print this message")
 		.build();
@@ -306,6 +309,7 @@ public class Instrumenter {
 		options.addOption(opt_withSelectiveInst);
 		options.addOption(opt_uninstCopies);
 		options.addOption(opt_disableJumpOptimizations);
+	    options.addOption(opt_readAndSaveBCI);
 	    
 		CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
@@ -342,7 +346,7 @@ public class Instrumenter {
 		Configuration.WITH_SELECTIVE_INST = line.hasOption("withSelectiveInst");
 		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
 		Configuration.WITH_TAGS_FOR_JUMPS = line.hasOption("disableJumpOptimizations");
-
+		Configuration.READ_AND_SAVE_BCI = line.hasOption("readAndSaveBCIs");
 		Configuration.init();
 
 		

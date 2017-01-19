@@ -31,6 +31,7 @@ import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
+import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
@@ -173,7 +174,7 @@ public class PreMain {
 
 		private byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
 				throws IllegalClassFormatException {
-			ClassReader cr = new ClassReader(classfileBuffer);
+			ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer) : new ClassReader(classfileBuffer));
 			String className = cr.getClassName();
 			innerException = false;
 //			bigLoader = loader;
@@ -280,7 +281,8 @@ public class PreMain {
 						return new JSRInlinerAdapter(super.visitMethod(access, name, desc, signature, exceptions), access, name, desc, signature, exceptions);
 					}
 				}, 0);
-				cr = new ClassReader(cw.toByteArray());
+
+				cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer) : new ClassReader(classfileBuffer));
 			}
 //						System.out.println("Instrumenting: " + className);
 			//			System.out.println(classBeingRedefined);
