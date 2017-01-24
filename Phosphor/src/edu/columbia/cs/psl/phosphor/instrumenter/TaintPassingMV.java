@@ -1647,6 +1647,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			//			System.out.println("Call to primitive array clone: " + analyzer.stack + " " + owner);
 			registerTaintedArray();
 			primitiveArrayType = getTopOfStackType();
+			Configuration.taintTagFactory.methodOp(opcode, primitiveArrayType.getInternalName(), "clone", "()Ljava/lang/Object", false, mv, lvs, this);
 			super.visitMethodInsn(opcode, primitiveArrayType.getInternalName(), "clone", "()Ljava/lang/Object;",false);
 			return;
 		}
@@ -1711,6 +1712,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		if (owner.startsWith("edu/columbia/cs/psl/phosphor") && !name.equals("printConstraints") && !name.equals("hasNoDependencies") && !desc.equals("(I)V") && !owner.endsWith("Tainter")
 				&&!name.equals("getPHOSPHOR_TAG") && !name.equals("setPHOSPHOR_TAG") && !owner.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropogator")) {
+			Configuration.taintTagFactory.methodOp(opcode, owner, name, desc, itfc, mv, lvs, this);
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
 		}
@@ -1768,6 +1770,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				else
 					name += TaintUtils.METHOD_SUFFIX_UNINST;
 			}
+			Configuration.taintTagFactory.methodOp(opcode, owner, name, TaintUtils.remapMethodDescForUninst(desc), itfc, mv, lvs, this);
+
 			super.visitMethodInsn(opcode, owner, name, TaintUtils.remapMethodDescForUninst(desc), itfc);
 			if (isCallToPrimitiveArrayClone) {
 				//Now we have cloned (but not casted) array, and a clopned( but not casted) taint array
@@ -1930,6 +1934,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			if (callee.getSort() == Type.ARRAY && callee.getElementType().getSort() != Type.OBJECT)
 				isCalledOnAPrimitiveArrayType = true;
 		}
+		Configuration.taintTagFactory.methodOp(opcode, owner, name, newDesc, itfc, mv, lvs, this);
 
 		super.visitMethodInsn(opcode, owner, name, newDesc, itfc);
 //				System.out.println("asdfjas;dfdsf  post invoke " + analyzer.stack);

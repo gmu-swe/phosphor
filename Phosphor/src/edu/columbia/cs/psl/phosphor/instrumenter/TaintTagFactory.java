@@ -16,6 +16,8 @@ public interface TaintTagFactory {
 	public boolean isIgnoredClass(String classname);
 	public void generateEmptyTaint(MethodVisitor mv);
 	public void generateEmptyTaintArray(Object[] array, int dimensions);
+	
+	public void methodOp(int opcode, String owner, String name, String desc, boolean itfc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
 	public void stackOp(int opcode, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
 	public void jumpOp(int opcode, int branchStarting, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
 	public void typeOp(int opcode, String type, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
