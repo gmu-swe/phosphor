@@ -3636,6 +3636,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);
 			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 			super.visitVarInsn(ALOAD, retIdx);
+			Configuration.taintTagFactory.stackOp(opcode,mv,lvs,this);
 			super.visitInsn(ARETURN);
 			break;
 		case Opcodes.IRETURN:
@@ -3650,6 +3651,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			super.visitInsn(SWAP);
 			super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 			super.visitVarInsn(ALOAD, retIdx);
+			Configuration.taintTagFactory.stackOp(opcode,mv,lvs,this);
 			super.visitInsn(ARETURN);
 			break;
 		case Opcodes.ARETURN:
@@ -3672,18 +3674,24 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				case Type.FLOAT:
 				case Type.SHORT:
 					registerTaintedArray();
+					Configuration.taintTagFactory.stackOp(opcode,mv,lvs,this);
 					super.visitInsn(ARETURN);
 					break;
 				default:
+					Configuration.taintTagFactory.stackOp(opcode,mv,lvs,this);
 					super.visitInsn(opcode);
 				}
 			} else if (onStack.getSort() == Type.ARRAY && onStack.getDimensions() == 1 && onStack.getElementType().getSort() != Type.OBJECT) {
 				registerTaintedArray();
+				Configuration.taintTagFactory.stackOp(opcode,mv,lvs,this);
 				super.visitInsn(opcode);
-			} else
+			} else {
+				Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
 				super.visitInsn(opcode);
+			}
 			break;
 		case Opcodes.RETURN:
+			Configuration.taintTagFactory.stackOp(opcode,mv,lvs,this);
 			super.visitInsn(opcode);
 			break;
 		case Opcodes.ARRAYLENGTH:
