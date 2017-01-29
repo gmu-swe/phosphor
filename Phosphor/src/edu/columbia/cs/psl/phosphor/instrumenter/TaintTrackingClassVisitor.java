@@ -96,6 +96,16 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	
 	private boolean isEnum;
 	
+	private String classSource;
+	private String classDebug;
+	
+	@Override
+	public void visitSource(String source, String debug) {
+		super.visitSource(source, debug);
+		this.classSource = source;
+		this.classDebug = debug;
+	}
+	
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		addTaintField = true;
@@ -425,7 +435,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				{
 					try {
 						custom = Configuration.extensionMethodVisitor.getConstructor(Integer.TYPE,String.class, String.class, String.class, String.class, String[].class, MethodVisitor.class,
-								NeverNullArgAnalyzerAdapter.class).newInstance(Opcodes.ASM5, className, name, desc, signature, exceptions, nextMV, analyzer);
+								NeverNullArgAnalyzerAdapter.class, String.class, String.class).newInstance(Opcodes.ASM5, className, name, desc, signature, exceptions, nextMV, analyzer, classSource, classDebug);
 						nextMV = custom;
 					} catch (InstantiationException e) {
 						e.printStackTrace();

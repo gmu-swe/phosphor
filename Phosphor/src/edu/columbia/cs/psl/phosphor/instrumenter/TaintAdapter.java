@@ -56,7 +56,15 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 		this.analyzer = analyzer;
 		this.className = className;
 	}
-
+	protected String classSource;
+	protected String classDebug;
+	public TaintAdapter(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, String classSource, String classDebug) {
+		super(Opcodes.ASM5, mv);
+		this.analyzer = analyzer;
+		this.className = className;
+		this.classSource = classSource;
+		this.classDebug = classDebug;
+	}
 	void ensureUnBoxedAt(int n, Type t) {
 		switch (n) {
 		case 0:
