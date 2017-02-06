@@ -661,8 +661,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		switch (opcode) {
 		case Opcodes.GETSTATIC:
 			if (TaintUtils.isPrimitiveOrPrimitiveArrayType(descType)) {
-				super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, TaintUtils.getShadowTaintType(descType.getDescriptor()));				
-				super.visitFieldInsn(opcode, owner, name, desc);
+				if (isIgnoredTaint) {
+					Configuration.taintTagFactory.generateEmptyTaint(mv);
+					super.visitFieldInsn(opcode, owner, name, desc);
+				} else {
+					super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, TaintUtils.getShadowTaintType(descType.getDescriptor()));
+					super.visitFieldInsn(opcode, owner, name, desc);
+				}
 				analyzer.setTopOfStackTagged();
 			} else
 				super.visitFieldInsn(opcode, owner, name, desc);
