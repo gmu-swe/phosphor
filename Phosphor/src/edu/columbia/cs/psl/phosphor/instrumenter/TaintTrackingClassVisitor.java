@@ -431,28 +431,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv, generateExtraLVDebug);
 
 				nextMV = lvs;
-				if(Configuration.extensionMethodVisitor != null)
-				{
-					try {
-						custom = Configuration.extensionMethodVisitor.getConstructor(Integer.TYPE,String.class, String.class, String.class, String.class, String[].class, MethodVisitor.class,
-								NeverNullArgAnalyzerAdapter.class, String.class, String.class).newInstance(Opcodes.ASM5, className, name, desc, signature, exceptions, nextMV, analyzer, classSource, classDebug);
-						nextMV = custom;
-					} catch (InstantiationException e) {
-						e.printStackTrace();
-					} catch (IllegalAccessException e) {
-						e.printStackTrace();
-					} catch (IllegalArgumentException e) {
-						e.printStackTrace();
-					} catch (InvocationTargetException e) {
-						e.printStackTrace();
-					} catch (NoSuchMethodException e) {
-						e.printStackTrace();
-					} catch (SecurityException e) {
-						e.printStackTrace();
-					}
-				}
-				if(custom != null)
-					custom.setLocalVariableSorter(lvs);
 
 			}
 
@@ -496,6 +474,27 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			if (!isInterface && !originalName.contains("$$INVIVO"))
 				this.myMethods.add(rawMethod);
 			forMore.put(wrapper,rawMethod);
+			
+			if(Configuration.extensionMethodVisitor != null)
+			{
+				try {
+					TaintAdapter custom = Configuration.extensionMethodVisitor.getConstructor(Integer.TYPE,String.class, String.class, String.class, String.class, String[].class, MethodVisitor.class,
+							NeverNullArgAnalyzerAdapter.class, String.class, String.class).newInstance(access, className, name, desc, signature, exceptions, rawMethod, null, classSource, classDebug);
+					return custom;
+				} catch (InstantiationException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				} catch (InvocationTargetException e) {
+					e.printStackTrace();
+				} catch (NoSuchMethodException e) {
+					e.printStackTrace();
+				} catch (SecurityException e) {
+					e.printStackTrace();
+				}
+			}
 			return rawMethod;
 		} else {
 			//this is a native method. we want here to make a $taint method that will call the original one.

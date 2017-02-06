@@ -2725,6 +2725,28 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 							if(nextDupCopiesTaint3)
 							{
 								//!0, !1, 2, 3
+								//right here..
+								// T V T V -> V V T V T V
+								int v1 = lvs.getTmpLV();
+								super.visitVarInsn(ISTORE, v1);
+								int t1= lvs.getTmpLV();
+								super.visitVarInsn(Configuration.TAINT_STORE_OPCODE, t1);
+								int v2 = lvs.getTmpLV();
+								super.visitVarInsn(ISTORE, v2);
+								int t2= lvs.getTmpLV();
+								super.visitVarInsn(Configuration.TAINT_STORE_OPCODE, t2);
+								
+								super.visitVarInsn(ILOAD, v2);
+								super.visitVarInsn(ILOAD, v1);
+								super.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, t2);
+								super.visitVarInsn(ILOAD, v2);
+								super.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, t1);
+								super.visitVarInsn(ILOAD, v1);
+								lvs.freeTmpLV(v1);
+								lvs.freeTmpLV(v2);
+								lvs.freeTmpLV(t1);
+								lvs.freeTmpLV(t2);
+								return;
 							}
 							else
 							{

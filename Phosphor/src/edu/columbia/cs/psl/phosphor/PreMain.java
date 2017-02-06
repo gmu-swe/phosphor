@@ -42,7 +42,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 public class PreMain {
 	private static Instrumentation instrumentation;
 
-	public static final boolean DEBUG = false;
+	public static boolean DEBUG = false;
 	public static boolean RUNTIME_INST = false;
 
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
