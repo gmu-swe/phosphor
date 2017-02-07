@@ -460,6 +460,10 @@ public class PreMain {
 					Configuration.WITH_SELECTIVE_INST=true;
 					Configuration.selective_inst_config = s.substring(18);
 					SelectiveInstrumentationManager.populateMethodsToInstrument(Configuration.selective_inst_config);
+				} else if (s.startsWith("taintSources=")) {
+					Instrumenter.sourcesFile = s.substring(13);
+				} else if (s.startsWith("taintSinks=")) {
+					Instrumenter.sinksFile = s.substring(11);
 				}
 			}
 		}
