@@ -397,6 +397,7 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 					return sv;
 				}
 			}
+
 			if ((v.getType() == null || v.getType().getDescriptor().equals("Lnull;"))
 					&& (w.getType() == null || w.getType().getDescriptor().equals("Lnull;"))) {
 				if ((sw.getSrc() != null && sv.deps != null && sw != null && sv.deps.contains(sw))
@@ -413,7 +414,11 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 				return w;
 			} else if (w.getType() == null || w.getType().getDescriptor().equals("Lnull;")) {
 				if(v.getType().getSort() == Type.ARRAY)
+				{
 					sv.addDep(sw);
+					if(sv.getSrc() != null && sv.getSrc().getOpcode() == Opcodes.CHECKCAST && sw.getSrc() != null && sw.getSrc().getOpcode() == Opcodes.ACONST_NULL)
+						sv.okToPropogateToDeps = true;
+				}
 				return v;
 			} else if (TaintUtils.isPrimitiveOrPrimitiveArrayType(v.getType())
 					&& TaintUtils.isPrimitiveOrPrimitiveArrayType(w.getType())) {
@@ -437,17 +442,20 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 						if(sw.getSrc() != null && sv.getSrc() != null && sw.getSrc().getOpcode() == Opcodes.CHECKCAST && sv.getSrc().getOpcode() == Opcodes.CHECKCAST)
 						{
 //							System.out.println(sw + " " + sv);
+//							System.out.println(Printer.OPCODES[sw.getSrc().getOpcode()] + " " + Printer.OPCODES[sv.getSrc().getOpcode()]);
 //							System.out.println(sv.deps + " " +sw.deps);
 //							System.out.println(toStringSrcs(sv.deps) + " " + toStringSrcs(sw.deps));
 							if(sv.deps == null || sw.deps == null)
 							{
 								if(sv.deps != null && sv.deps.size() == 1 && sw.deps == null)
 								{
-									sv.dontPropogateToDeps = true;
+									if(!sv.okToPropogateToDeps)
+										sv.dontPropogateToDeps = true;
 								}
 								else if(sw.deps != null && sw.deps.size() == 1 && sv.deps == null)
 								{
-									sv.dontPropogateToDeps = true;
+									if(!sv.okToPropogateToDeps)
+										sv.dontPropogateToDeps = true;
 								}
 							}
 						}

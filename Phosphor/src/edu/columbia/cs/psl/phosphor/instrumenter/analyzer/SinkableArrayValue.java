@@ -8,6 +8,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.analysis.BasicValue;
+import org.objectweb.asm.util.Printer;
 
 public class SinkableArrayValue extends BasicValue {
 	public static final BasicValue NULL_VALUE = new BasicArrayValue(Type.getType("Lnull;"));
@@ -21,6 +22,7 @@ public class SinkableArrayValue extends BasicValue {
 	
 	public SinkableArrayValue copyOf;
 	public boolean dontPropogateToDeps;
+	public boolean okToPropogateToDeps;
 	
 	public boolean[] leaveDupOnAt = new boolean[4];
 	
@@ -127,7 +129,7 @@ public class SinkableArrayValue extends BasicValue {
 		if (this == NULL_VALUE)
 			return "N";
 		else
-			return (flowsToInstMethodCall ? "T" : "F") + formatDesc();
+			return (flowsToInstMethodCall ? "T" : "F") + formatDesc() + " "+ (dontPropogateToDeps ? "T" : "F")+ (src != null && src.getOpcode() > 0 ? Printer.OPCODES[src.getOpcode()] : "????");
 	}
 
 	private String formatDesc() {
