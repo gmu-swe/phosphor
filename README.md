@@ -35,14 +35,10 @@ Then, to instrument the JRE we'll run:
 
 After you do this, make sure to chmod +x the binaries in the new folder, e.g. `chmod +x jre-inst/bin/*`
 
-The next step is to instrument the code which you would like to track. We'll start off by instrumenting the demo suite provided under the PhosphorTests project. This suite includes a slightly modified version of [DroidBench](http://sseblog.ec-spride.de/tools/droidbench/), a test suite that simulates application data leaks. We'll instrument the [phosphortests.jar](https://github.com/Programming-Systems-Lab/phosphor/raw/master/phosphortests.jar) file:
-`java -jar Phosphor-0.0.3-SNAPSHOT.jar phosphortests.jar inst`
+The next step is to instrument the code which you would like to track. This time when you run the instrumenter, pass your entire (compiled) code base to Phosphor for instrumentation, and specify an output folder for that.
 
-This will create the folder inst, and place in it the instrumented version of the demo suite jar.
-
-We can now run the instrumented demo suite using our instrumented JRE, as such:
-`JAVA_HOME=jre-inst/ $JAVA_HOME/bin/java  -Xbootclasspath/a:Phosphor-0.0.3-SNAPSHOT.jar -javaagent:Phosphor-0.0.3-SNAPSHOT.jar -cp inst/phosphortests.jar -ea phosphor.test.DroidBenchTest`
-The result should be a list of test cases, with assertion errors for each "testImplicitFlow" test case.
+We can now run the instrumented code using our instrumented JRE, as such:
+`JAVA_HOME=jre-inst/ $JAVA_HOME/bin/java  -Xbootclasspath/a:Phosphor-0.0.3-SNAPSHOT.jar -javaagent:Phosphor-0.0.3-SNAPSHOT.jar -cp path-to-instrumented-code your.main.class`
 
 Note: It is not 100% necessary to instrument your application/library code in advance - the javaagent will detect any uninstrumented class files as they are being loaded into the JVM and instrument them as necessary. If you want to do this, then you may want to add the flag `-javaagent:Phosphor-0.0.3-SNAPSHOT.jar=cacheDir=someCacheFolder` and Phosphor will cache the generated files in `someCacheFolder` so they aren't regenerated every run. If you take a look at the execution of Phosphor's JUnit tests, you'll notice that this is how they are instrumented. It's always necessary to instrument the JRE in advance though for bootstrapping.
 
