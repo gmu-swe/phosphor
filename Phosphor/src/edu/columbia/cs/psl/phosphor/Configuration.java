@@ -66,6 +66,7 @@ public class Configuration {
 	public static TaintTagFactory taintTagFactory = new DataAndControlFlowTagFactory();
 	public static DerivedTaintListener derivedTaintListener;
 	public static String CACHE_DIR = null;
+	public static boolean TAINT_THROUGH_SERIALIZATION;
 
 	public static void init() {
 		TAINT_TAG_DESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "I");

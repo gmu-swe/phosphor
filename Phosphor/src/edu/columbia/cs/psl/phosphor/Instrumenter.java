@@ -103,40 +103,6 @@ public class Instrumenter {
 	public static boolean isIgnoredClass(String owner) {
 		if(Configuration.taintTagFactory.isIgnoredClass(owner))
 			return true;
-		if(IS_ANDROID_INST && ! TaintTrackingClassVisitor.IS_RUNTIME_INST)
-		{
-//			System.out.println("IN ANDROID INST:");
-			return owner.startsWith("java/lang/Object")
-					|| owner.startsWith("java/lang/Number") || owner.startsWith("java/lang/Comparable") 
-					|| owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
-					|| owner.startsWith("java/lang/ref/FinalizerReference")
-					//																|| owner.startsWith("java/awt/image/BufferedImage")
-					//																|| owner.equals("java/awt/Image")
-				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
-					||owner.startsWith("sun/awt/image/codec/");
-		}
-		else if(IS_KAFFE_INST || IS_HARMONY_INST)
-		{
-			return owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
-					|| owner.startsWith("java/lang/Byte")
-					|| owner.startsWith("java/lang/Short")
-//					|| owner.startsWith("java/lang/System")
-//					|| owner.startsWith("org/apache/harmony/drlvm/gc_gen/GCHelper")
-//					|| owner.startsWith("edu/columbia/cs/psl/microbench")
-//					|| owner.startsWith("java/lang/Number") 
-					|| owner.startsWith("java/lang/VMObject")
-					|| owner.startsWith("java/lang/VMString")
-					|| (IS_KAFFE_INST && owner.startsWith("java/lang/reflect"))
-//					|| owner.startsWith("gnu/")
-										|| owner.startsWith("java/lang/VMClass")
-
-					|| owner.startsWith("java/lang/Comparable") || owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
-					//																|| owner.startsWith("java/awt/image/BufferedImage")
-					//																|| owner.equals("java/awt/Image")
-					|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
-					||owner.startsWith("sun/awt/image/codec/") || (IS_HARMONY_INST && (owner.equals("java/io/Serializable")));
-		}
-		else
 		return (Configuration.ADDL_IGNORE != null && owner.startsWith(Configuration.ADDL_IGNORE)) || owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
 				|| owner.startsWith("java/lang/Byte")
 				|| owner.startsWith("java/lang/Short")
@@ -283,6 +249,9 @@ public class Instrumenter {
 	static Option opt_readAndSaveBCI = Option.builder("readAndSaveBCIs")
 			.desc("Read in and track the byte code index of every instruction during instrumentation")
 			.build();
+	static Option opt_serialization = Option.builder("serialization")
+			.desc("Read and write taint tags through Java Serialization")
+			.build();
 	static Option help = Option.builder("help")
 		.desc("print this message")
 		.build();
@@ -310,6 +279,8 @@ public class Instrumenter {
 		options.addOption(opt_uninstCopies);
 		options.addOption(opt_disableJumpOptimizations);
 	    options.addOption(opt_readAndSaveBCI);
+	    options.addOption(opt_serialization);
+
 	    
 		CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
@@ -347,6 +318,7 @@ public class Instrumenter {
 		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
 		Configuration.WITH_TAGS_FOR_JUMPS = line.hasOption("disableJumpOptimizations");
 		Configuration.READ_AND_SAVE_BCI = line.hasOption("readAndSaveBCIs");
+		Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption("serialization");
 		Configuration.init();
 
 		

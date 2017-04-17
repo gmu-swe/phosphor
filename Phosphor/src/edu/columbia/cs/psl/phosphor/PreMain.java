@@ -104,7 +104,6 @@ public class PreMain {
 
 		public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
 				byte[] classfileBuffer) throws IllegalClassFormatException {
-			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
 				Configuration.IMPLICIT_TRACKING = false;
@@ -117,14 +116,12 @@ public class PreMain {
 				ret = new LazyByteArrayObjTags(classfileBuffer);
 			else
 				ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-			Configuration.taintTagFactory.instrumentationEnding(className);
 
 			return ret;
 		}
 
 		public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
 				byte[] classfileBuffer, ControlTaintTagStack ctrl) throws IllegalClassFormatException {
-			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
 				Configuration.IMPLICIT_TRACKING = true;
@@ -139,13 +136,11 @@ public class PreMain {
 			else
 				ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
 
-			Configuration.taintTagFactory.instrumentationEnding(className);
 			return ret;
 		}
 
 		public LazyByteArrayIntTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayIntTags classtaint,
 				byte[] classfileBuffer) throws IllegalClassFormatException {
-			Configuration.taintTagFactory.instrumentationStarting(className);
 
 			if (!INITED) {
 				Configuration.IMPLICIT_TRACKING = false;
@@ -158,15 +153,12 @@ public class PreMain {
 				ret = new LazyByteArrayIntTags(classfileBuffer);
 			else
 				ret = new LazyByteArrayIntTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-			Configuration.taintTagFactory.instrumentationEnding(className);
 			return ret;
 		}
 
 		public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
 				throws IllegalClassFormatException {
-			Configuration.taintTagFactory.instrumentationStarting(className2);
 			byte[] ret = _transform(loader, className2, classBeingRedefined, protectionDomain, classfileBuffer);
-			Configuration.taintTagFactory.instrumentationEnding(className2);
 			return ret;
 		}
 
@@ -199,213 +191,216 @@ public class PreMain {
 
 				return classfileBuffer;
 			}			
-			
-			
-			ClassNode cn = new ClassNode();
-			cr.accept(cn, ClassReader.SKIP_CODE);
-			boolean skipFrames = false;
-			if (cn.version >= 100 || cn.version <= 50 || className.endsWith("$Access4JacksonSerializer") || className.endsWith("$Access4JacksonDeSerializer"))
-				skipFrames = true;
-			if (cn.visibleAnnotations != null)
-				for (Object o : cn.visibleAnnotations) {
-					AnnotationNode an = (AnnotationNode) o;
-					if (an.desc.equals(Type.getDescriptor(TaintInstrumented.class))) {
-						return classfileBuffer;
-					}
-				}
-			if (cn.interfaces != null)
-				for (Object s : cn.interfaces) {
-					if (s.equals(Type.getInternalName(TaintedWithObjTag.class)) || s.equals(Type.getInternalName(TaintedWithIntTag.class))) {
-						return classfileBuffer;
-					}
-				}
-			for (Object mn : cn.methods)
-				if (((MethodNode) mn).name.equals("getPHOSPHOR_TAG")) {
-					return classfileBuffer;
-				}
-			if (Configuration.CACHE_DIR != null) {
-				String cacheKey = className.replace("/", ".");
-				File f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".md5sum");
-				if (f.exists()) {
-					try {
-						FileInputStream fis = new FileInputStream(f);
-						byte[] cachedDigest = new byte[1024];
-						fis.read(cachedDigest);
-						fis.close();
-						if (md5inst == null)
-							md5inst = MessageDigest.getInstance("MD5");
-						byte[] checksum = md5inst.digest(classfileBuffer);
-						boolean matches = true;
-						if (checksum.length > cachedDigest.length)
-							matches = false;
-						if (matches)
-							for (int i = 0; i < checksum.length; i++) {
-								if (checksum[i] != cachedDigest[i]) {
-									matches = false;
-									break;
-								}
-							}
-						if (matches) {
-							byte[] ret = Files.readAllBytes(new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".class").toPath());
-							return ret;
-						}
-					} catch (Throwable t) {
-						t.printStackTrace();
-					}
-				}
-			}
-			if (DEBUG) {
-			    try{
-                File debugDir = new File("debug-preinst");
-                if (!debugDir.exists())
-                    debugDir.mkdir();
-                File f = new File("debug-preinst/" + className.replace("/", ".") + ".class");
-                FileOutputStream fos = new FileOutputStream(f);
-                fos.write(classfileBuffer);
-                fos.close();
-			    }
-			    catch(IOException ex)
-			    {
-			        ex.printStackTrace();
-			    }
-            }
-			
-			List<FieldNode> fields = cn.fields;
-			if (skipFrames) {
-				cn = null;
-				//This class is old enough to not guarantee frames. Generate new frames for analysis reasons, then make sure to not emit ANY frames.
-				ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-				cr.accept(new ClassVisitor(Opcodes.ASM5, cw) {
-					@Override
-					public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-						return new JSRInlinerAdapter(super.visitMethod(access, name, desc, signature, exceptions), access, name, desc, signature, exceptions);
-					}
-				}, 0);
 
-				cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(cw.toByteArray()) : new ClassReader(cw.toByteArray()));
-			}
-//						System.out.println("Instrumenting: " + className);
-			//			System.out.println(classBeingRedefined);
-			//Find out if this class already has frames
-			TraceClassVisitor cv = null;
+			Configuration.taintTagFactory.instrumentationStarting(className);
 			try {
-
-				ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
-				ClassVisitor _cv = cw;
-				if (Configuration.extensionClassVisitor != null) {
-					Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
-					_cv = extra.newInstance(_cv, skipFrames);
-				}
-				if(TaintUtils.VERIFY_CLASS_GENERATION)
-					_cv = new CheckClassAdapter(_cv, false);
-				_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
-				if (Configuration.WITH_SELECTIVE_INST)
-					cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
-				cr.accept(
-				//							new CheckClassAdapter(
-						_cv
-						//									)
-						, ClassReader.EXPAND_FRAMES);
-
-				if (DEBUG) {
-					File f = new File("debug/" + className+ ".class");
-					f.getParentFile().mkdirs();
-					FileOutputStream fos = new FileOutputStream(f);
-					fos.write(cw.toByteArray());
-					fos.close();
-				}
-				{
-					//					if(TaintUtils.DEBUG_FRAMES)
-					//						System.out.println("NOW IN CHECKCLASSADAPTOR");
-					if (DEBUG
-							|| (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler")
-									&& !className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache")
-									&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap") && !className
-										.startsWith("jersey/repackaged/com/google/common/collect/"))) {
-						ClassReader cr2 = new ClassReader(cw.toByteArray());
-						cr2.accept(new CheckClassAdapter(new ClassWriter(0),true), 0);
+				ClassNode cn = new ClassNode();
+				cr.accept(cn, ClassReader.SKIP_CODE);
+				boolean skipFrames = false;
+				if (cn.version >= 100 || cn.version <= 50 || className.endsWith("$Access4JacksonSerializer") || className.endsWith("$Access4JacksonDeSerializer"))
+					skipFrames = true;
+				if (cn.visibleAnnotations != null)
+					for (Object o : cn.visibleAnnotations) {
+						AnnotationNode an = (AnnotationNode) o;
+						if (an.desc.equals(Type.getDescriptor(TaintInstrumented.class))) {
+							return classfileBuffer;
+						}
 					}
-				}
-				//				cv= new TraceClassVisitor(null,null);
-				//				try{
-				//					System.err.println("WARN LOGGING CLASS TO ASCII");
-				//					cr = new ClassReader(cw.toByteArray());
-				//					cr.accept(
-				////							new CheckClassAdapter(
-				//									cv	
-				////									)
-				//							, 0);
-				//					PrintWriter pw = null;
-				//					try {
-				//						pw = new PrintWriter(new FileWriter("lastClass.txt"));
-				//					} catch (IOException e) {
-				//						// TODO Auto-generated catch block
-				//						e.printStackTrace();
-				//					}
-				//					cv.p.print(pw);
-				//					pw.flush();
-				//				}
-				//				catch(Throwable t)
-				//				{
-				//					t.printStackTrace();
-				//				}
-				//				System.out.println("Succeeded w " + className);
+				if (cn.interfaces != null)
+					for (Object s : cn.interfaces) {
+						if (s.equals(Type.getInternalName(TaintedWithObjTag.class)) || s.equals(Type.getInternalName(TaintedWithIntTag.class))) {
+							return classfileBuffer;
+						}
+					}
+				for (Object mn : cn.methods)
+					if (((MethodNode) mn).name.equals("getPHOSPHOR_TAG")) {
+						return classfileBuffer;
+					}
 				if (Configuration.CACHE_DIR != null) {
 					String cacheKey = className.replace("/", ".");
-					File f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".class");
-					FileOutputStream fos = new FileOutputStream(f);
-					byte[] ret = cw.toByteArray();
-					fos.write(ret);
-					fos.close();
-					if (md5inst == null)
-						md5inst = MessageDigest.getInstance("MD5");
-					byte[] checksum = md5inst.digest(classfileBuffer);
-					f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".md5sum");
-					fos = new FileOutputStream(f);
-
-					fos.write(checksum);
-					fos.close();
-					return ret;
+					File f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".md5sum");
+					if (f.exists()) {
+						try {
+							FileInputStream fis = new FileInputStream(f);
+							byte[] cachedDigest = new byte[1024];
+							fis.read(cachedDigest);
+							fis.close();
+							if (md5inst == null)
+								md5inst = MessageDigest.getInstance("MD5");
+							byte[] checksum = md5inst.digest(classfileBuffer);
+							boolean matches = true;
+							if (checksum.length > cachedDigest.length)
+								matches = false;
+							if (matches)
+								for (int i = 0; i < checksum.length; i++) {
+									if (checksum[i] != cachedDigest[i]) {
+										matches = false;
+										break;
+									}
+								}
+							if (matches) {
+								byte[] ret = Files.readAllBytes(new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".class").toPath());
+								return ret;
+							}
+						} catch (Throwable t) {
+							t.printStackTrace();
+						}
+					}
 				}
-				return cw.toByteArray();
-			} catch (Throwable ex) {
-				ex.printStackTrace();
-				cv = new TraceClassVisitor(null, null);
+				if (DEBUG) {
+					try {
+						File debugDir = new File("debug-preinst");
+						if (!debugDir.exists())
+							debugDir.mkdir();
+						File f = new File("debug-preinst/" + className.replace("/", ".") + ".class");
+						FileOutputStream fos = new FileOutputStream(f);
+						fos.write(classfileBuffer);
+						fos.close();
+					} catch (IOException ex) {
+						ex.printStackTrace();
+					}
+				}
+
+				List<FieldNode> fields = cn.fields;
+				if (skipFrames) {
+					cn = null;
+					// This class is old enough to not guarantee frames.
+					// Generate new frames for analysis reasons, then make sure
+					// to not emit ANY frames.
+					ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+					cr.accept(new ClassVisitor(Opcodes.ASM5, cw) {
+						@Override
+						public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+							return new JSRInlinerAdapter(super.visitMethod(access, name, desc, signature, exceptions), access, name, desc, signature, exceptions);
+						}
+					}, 0);
+
+					cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(cw.toByteArray()) : new ClassReader(cw.toByteArray()));
+				}
+				// System.out.println("Instrumenting: " + className);
+				// System.out.println(classBeingRedefined);
+				// Find out if this class already has frames
+				TraceClassVisitor cv = null;
 				try {
-					ClassVisitor _cv = cv;
+
+					ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
+					ClassVisitor _cv = cw;
 					if (Configuration.extensionClassVisitor != null) {
 						Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
 						_cv = extra.newInstance(_cv, skipFrames);
 					}
+					if (TaintUtils.VERIFY_CLASS_GENERATION)
+						_cv = new CheckClassAdapter(_cv, false);
 					_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+					if (Configuration.WITH_SELECTIVE_INST)
+						cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
+					cr.accept(
+					// new CheckClassAdapter(
+							_cv
+							// )
+							, ClassReader.EXPAND_FRAMES);
 
-					cr.accept(_cv, ClassReader.EXPAND_FRAMES);
-				} catch (Throwable ex2) {
-				}
-				ex.printStackTrace();
-				System.err.println("method so far:");
-				if (!innerException) {
-					PrintWriter pw = null;
-					try {
-						pw = new PrintWriter(new FileWriter("lastClass.txt"));
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+					if (DEBUG) {
+						File f = new File("debug/" + className + ".class");
+						f.getParentFile().mkdirs();
+						FileOutputStream fos = new FileOutputStream(f);
+						fos.write(cw.toByteArray());
+						fos.close();
 					}
-					cv.p.print(pw);
-					pw.flush();
-				}
-				System.out.println("Saving " + className);
-				File f = new File("debug/" + className.replace("/", ".") + ".class");
-				try {
-					FileOutputStream fos = new FileOutputStream(f);
-					fos.write(classfileBuffer);
-					fos.close();
-				} catch (Exception ex2) {
+					{
+						// if(TaintUtils.DEBUG_FRAMES)
+						// System.out.println("NOW IN CHECKCLASSADAPTOR");
+						if (DEBUG
+								|| (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler") && !className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache")
+										&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap") && !className.startsWith("jersey/repackaged/com/google/common/collect/"))) {
+							ClassReader cr2 = new ClassReader(cw.toByteArray());
+							cr2.accept(new CheckClassAdapter(new ClassWriter(0), true), 0);
+						}
+					}
+					// cv= new TraceClassVisitor(null,null);
+					// try{
+					// System.err.println("WARN LOGGING CLASS TO ASCII");
+					// cr = new ClassReader(cw.toByteArray());
+					// cr.accept(
+					// // new CheckClassAdapter(
+					// cv
+					// // )
+					// , 0);
+					// PrintWriter pw = null;
+					// try {
+					// pw = new PrintWriter(new FileWriter("lastClass.txt"));
+					// } catch (IOException e) {
+					// // TODO Auto-generated catch block
+					// e.printStackTrace();
+					// }
+					// cv.p.print(pw);
+					// pw.flush();
+					// }
+					// catch(Throwable t)
+					// {
+					// t.printStackTrace();
+					// }
+					// System.out.println("Succeeded w " + className);
+					if (Configuration.CACHE_DIR != null) {
+						String cacheKey = className.replace("/", ".");
+						File f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".class");
+						FileOutputStream fos = new FileOutputStream(f);
+						byte[] ret = cw.toByteArray();
+						fos.write(ret);
+						fos.close();
+						if (md5inst == null)
+							md5inst = MessageDigest.getInstance("MD5");
+						byte[] checksum = md5inst.digest(classfileBuffer);
+						f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".md5sum");
+						fos = new FileOutputStream(f);
+
+						fos.write(checksum);
+						fos.close();
+						return ret;
+					}
+					return cw.toByteArray();
+				} catch (Throwable ex) {
 					ex.printStackTrace();
+					cv = new TraceClassVisitor(null, null);
+					try {
+						ClassVisitor _cv = cv;
+						if (Configuration.extensionClassVisitor != null) {
+							Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
+							_cv = extra.newInstance(_cv, skipFrames);
+						}
+						_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+
+						cr.accept(_cv, ClassReader.EXPAND_FRAMES);
+					} catch (Throwable ex2) {
+					}
+					ex.printStackTrace();
+					System.err.println("method so far:");
+					if (!innerException) {
+						PrintWriter pw = null;
+						try {
+							pw = new PrintWriter(new FileWriter("lastClass.txt"));
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						cv.p.print(pw);
+						pw.flush();
+					}
+					System.out.println("Saving " + className);
+					File f = new File("debug/" + className.replace("/", ".") + ".class");
+					try {
+						FileOutputStream fos = new FileOutputStream(f);
+						fos.write(classfileBuffer);
+						fos.close();
+					} catch (Exception ex2) {
+						ex.printStackTrace();
+					}
+					System.exit(-1);
+					return new byte[0];
+
 				}
-				System.exit(-1);
-				return new byte[0];
+			} finally {
+				Configuration.taintTagFactory.instrumentationEnding(className);
 
 			}
 		}
@@ -464,6 +459,9 @@ public class PreMain {
 					Instrumenter.sourcesFile = s.substring(13);
 				} else if (s.startsWith("taintSinks=")) {
 					Instrumenter.sinksFile = s.substring(11);
+				} else if(s.startsWith("serialization"))
+				{
+					Configuration.TAINT_THROUGH_SERIALIZATION = true;
 				}
 			}
 		}

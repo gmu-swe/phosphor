@@ -38,6 +38,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	{
 	    if(className.equals("org/codehaus/groovy/vmplugin/v5/Java5") && methodName.equals("makeInterfaceTypes"))
 	        return true;
+	    else if(Configuration.TAINT_THROUGH_SERIALIZATION && (className.startsWith("java/io/ObjectStreamClass") || className.equals("java/io/ObjectStreamField")))
+	    	return true;
 	    return false;
 	}
 	public void setLvs(LocalVariableManager lvs) {
@@ -47,9 +49,22 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
 		Type[] args = Type.getArgumentTypes(desc);
-		//TESTING
+		
 		if(disable)
 		{
+			if(owner.equals("java/lang/Class") && !owner.equals(className) && name.equals("isInstance$$PHOSPHORTAGGED"))
+			{
+				//Even if we are ignoring other hiding here, we definitely need to do this.
+				String retDesc= "Ledu/columbia/cs/psl/phosphor/struct/TaintedBooleanWith"+(Configuration.MULTI_TAINTING ? "Obj":"Int")+"Tag;";
+				super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", "(Ljava/lang/Class;Ljava/lang/Object;"+retDesc+")"+retDesc, false);
+				return;
+			}
+			if(this.methodName.equals("setObjFieldValues") && owner.equals("sun/misc/Unsafe") && name.startsWith("putObject"))
+			{
+				owner = Type.getInternalName(ReflectionMasker.class);
+			    super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;"+desc.substring(1), itfc);
+			    return;
+			}
 		    super.visitMethodInsn(opcode, owner, name, desc, itfc);
 		    return;
 		}

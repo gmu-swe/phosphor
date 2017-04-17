@@ -2,10 +2,14 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.LinkedList;
 
 import org.objectweb.asm.Type;
 
+import sun.misc.Unsafe;
 import sun.reflect.ReflectionFactory;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
@@ -14,6 +18,7 @@ import edu.columbia.cs.psl.phosphor.struct.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
@@ -48,6 +53,86 @@ public class ReflectionMasker {
 
 	public static final boolean IS_KAFFE = false;
 
+	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long fieldOffset, Object val)
+	{
+		//Need to put the actual obj if its a lazyarray and the offset points to the tag field
+		if(val instanceof LazyArrayIntTags)
+		{
+			for (Field f : obj.getClass().getDeclaredFields())
+				if (!Modifier.isStatic(f.getModifiers()) && u.objectFieldOffset(f) == fieldOffset)
+				{
+					if(f.getType().isArray())
+						u.putObject(obj, fieldOffset, ((LazyArrayIntTags) val).getVal());
+					else
+						u.putObject(obj, fieldOffset, val);
+					return;
+				}
+			for (Field f : obj.getClass().getFields())
+				if (!Modifier.isStatic(f.getModifiers()) && u.objectFieldOffset(f) == fieldOffset)
+				{
+					if(f.getType().isArray())
+						u.putObject(obj, fieldOffset, ((LazyArrayIntTags) val).getVal());
+					else
+						u.putObject(obj, fieldOffset, val);
+					return;
+				}
+			u.putObject(obj, fieldOffset, ((LazyArrayIntTags) val).getVal());
+		}
+		u.putObject(obj, fieldOffset, val);
+	}
+	
+	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val)
+	{
+		//Need to put the actual obj if its a lazyarray and the offset points to the tag field
+		if(val instanceof LazyArrayObjTags)
+		{
+			for (Field f : obj.getClass().getDeclaredFields())
+				if (!Modifier.isStatic(f.getModifiers()) && u.objectFieldOffset(f) == fieldOffset)
+				{
+					if(f.getType().isArray())
+						u.putObject(obj, fieldOffset, ((LazyArrayObjTags) val).getVal());
+					else
+						u.putObject(obj, fieldOffset, val);
+					return;
+				}
+			for (Field f : obj.getClass().getFields())
+				if (!Modifier.isStatic(f.getModifiers()) && u.objectFieldOffset(f) == fieldOffset)
+				{
+					if(f.getType().isArray())
+						u.putObject(obj, fieldOffset, ((LazyArrayObjTags) val).getVal());
+					else
+						u.putObject(obj, fieldOffset, val);
+					return;
+				}
+			u.putObject(obj, fieldOffset, ((LazyArrayObjTags) val).getVal());
+		}
+		u.putObject(obj, fieldOffset, val);
+	}
+	
+	public static TaintedBooleanWithIntTag isInstance(Class<?> c1, Object o, TaintedBooleanWithIntTag ret) {
+		ret.taint = 0;
+		if (o instanceof LazyArrayIntTags || o instanceof LazyArrayIntTags[]) {
+			if (LazyArrayIntTags.class.isAssignableFrom(c1))
+				ret.val = c1.isInstance(o);
+			else
+				ret.val = c1.isInstance(MultiDTaintedArrayWithIntTag.unboxRaw(o));
+		} else
+			ret.val = c1.isInstance(o);
+		return ret;
+	}
+	
+	public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, TaintedBooleanWithObjTag ret) {
+		ret.taint = null;
+		if (o instanceof LazyArrayObjTags || o instanceof LazyArrayObjTags[]) {
+			if (LazyArrayObjTags.class.isAssignableFrom(c1))
+				ret.val = c1.isInstance(o);
+			else
+				ret.val = c1.isInstance(MultiDTaintedArrayWithObjTag.unboxRaw(o));
+		} else
+			ret.val = c1.isInstance(o);
+		return ret;
+	}
+	
 	public static String getPropertyHideBootClasspath(String prop)
 	{
 		if(prop.equals("sun.boot.class.path"))

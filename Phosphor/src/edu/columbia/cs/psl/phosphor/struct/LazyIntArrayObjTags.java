@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 	
+	private static final long serialVersionUID = 6001767066132212417L;
 	public int[] val;
 	
 	public LazyIntArrayObjTags(int len)

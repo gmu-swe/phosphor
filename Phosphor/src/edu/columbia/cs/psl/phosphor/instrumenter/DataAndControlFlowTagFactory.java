@@ -599,7 +599,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 //					mv.visitInsn(SWAP);
 //				}
 //				mv.visitJumpInsn(opcode, label);
-				if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
+				if(!isIgnoreAcmp && Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
 				{
 					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 					mv.visitInsn(SWAP);
@@ -635,7 +635,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				break;
 			case Opcodes.IF_ACMPEQ:
 			case Opcodes.IF_ACMPNE:
-				if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
+				if(!isIgnoreAcmp && Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
 				{
 					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 					mv.visitInsn(SWAP);
@@ -703,10 +703,10 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 		return false;
 	}
 
+	boolean isIgnoreAcmp;
 	@Override
 	public void instrumentationStarting(String className) {
-		// TODO Auto-generated method stub
-		
+		isIgnoreAcmp = className.equals("java/io/ObjectOutputStream$HandleTable");
 	}
 
 	@Override

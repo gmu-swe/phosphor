@@ -1,7 +1,11 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import java.io.Serializable;
 
-public abstract class LazyArrayIntTags  {
+
+public abstract class LazyArrayIntTags implements Serializable {
+
+	private static final long serialVersionUID = 7377241443004037122L;
 	public int[] taints;
 
 	public LazyArrayIntTags(int[] taints) {
