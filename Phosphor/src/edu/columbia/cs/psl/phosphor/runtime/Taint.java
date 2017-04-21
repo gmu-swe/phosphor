@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import java.io.Serializable;
+
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -9,7 +11,7 @@ import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
-public class Taint<T> {
+public class Taint<T> implements Serializable {
 	public static boolean IGNORE_TAINTING;
 
 	public static final <T> Taint<T> copyTaint(Taint<T> in)
@@ -64,10 +66,11 @@ public class Taint<T> {
 		depStr += "]";
 		return "Taint [lbl=" + lbl + " "+depStr+"]";
 	}
-	public Object debug;
+	public transient Object debug;
 	public T lbl;
 	public LinkedList<T> dependencies;
-	public LinkedList<EnqueuedTaint> enqueuedInControlFlow;
+	
+	public transient LinkedList<EnqueuedTaint> enqueuedInControlFlow;
 	public Taint(T lbl) {
 		this.lbl = lbl;
 		dependencies = new LinkedList<T>();

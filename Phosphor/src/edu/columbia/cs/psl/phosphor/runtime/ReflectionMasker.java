@@ -53,6 +53,23 @@ public class ReflectionMasker {
 
 	public static final boolean IS_KAFFE = false;
 
+	public static Class<?> getClassOOS(Object o)
+	{
+		if(o instanceof LazyArrayObjTags && ((LazyArrayObjTags) o).taints != null)
+			return o.getClass();
+		else if(o instanceof LazyArrayIntTags && ((LazyArrayIntTags) o).taints != null)
+			return o.getClass();
+		return removeTaintClass(o.getClass(), Configuration.MULTI_TAINTING);
+	}
+	public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset)
+	{
+		return MultiDTaintedArrayWithObjTag.boxIfNecessary(u.getObject(obj, offset));
+	}
+	public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long offset)
+	{
+		return MultiDTaintedArrayWithIntTag.boxIfNecessary(u.getObject(obj, offset));
+	}
+
 	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long fieldOffset, Object val)
 	{
 		//Need to put the actual obj if its a lazyarray and the offset points to the tag field
@@ -80,7 +97,7 @@ public class ReflectionMasker {
 		}
 		u.putObject(obj, fieldOffset, val);
 	}
-	
+
 	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val)
 	{
 		//Need to put the actual obj if its a lazyarray and the offset points to the tag field
@@ -132,6 +149,29 @@ public class ReflectionMasker {
 			ret.val = c1.isInstance(o);
 		return ret;
 	}
+	public static TaintedBooleanWithObjTag isInstanceOOS(Class<?> c1, Object o, TaintedBooleanWithObjTag ret) {
+		ret.taint = null;
+		if (o instanceof LazyArrayObjTags || o instanceof LazyArrayObjTags[]) {
+			if (LazyArrayObjTags.class.isAssignableFrom(c1))
+				ret.val = c1.isInstance(o);
+			else
+				ret.val = c1.isInstance(MultiDTaintedArrayWithObjTag.unboxRaw(o));
+		} else
+			ret.val = c1.isInstance(o);
+		return ret;
+	}
+	public static TaintedBooleanWithIntTag isInstanceOOS(Class<?> c1, Object o, TaintedBooleanWithIntTag ret) {
+		ret.taint = 0;
+		if (o instanceof LazyArrayIntTags || o instanceof LazyArrayIntTags[]) {
+			if (LazyArrayIntTags.class.isAssignableFrom(c1))
+				ret.val = c1.isInstance(o);
+			else
+				ret.val = c1.isInstance(MultiDTaintedArrayWithIntTag.unboxRaw(o));
+		} else
+			ret.val = c1.isInstance(o);
+		return ret;
+	}
+
 	
 	public static String getPropertyHideBootClasspath(String prop)
 	{

@@ -1,9 +1,19 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import java.io.Serializable;
 
 
-public class LinkedList<T> implements Cloneable {
-	public static class Node<Z> implements Cloneable{
+
+public class LinkedList<T> implements Cloneable, Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -5225392158190086269L;
+	public static class Node<Z> implements Cloneable, Serializable {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -7510843924447531965L;
 		public Z entry;
 		public Node<Z> next;
 	}

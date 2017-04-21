@@ -21,31 +21,31 @@ public class SerializationIntTagITCase {
 		int[] ar;
 	}
 
-	@Test
-	public void testSerializedArrayThenTaint() throws Exception {
-		ArrayHolder ah = new ArrayHolder();
-		ah.ar = new int[10];
-		for(int i = 0; i < 10; i++)
-			ah.ar[i] = 40;
-		ObjectOutputStream s = null;
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		try {
-			s = new ObjectOutputStream(bos);
-			s.writeObject(ah);
-			s.close();
-		} catch (IOException e) {
-
-		}
-
-		try {
-			ArrayHolder k = (ArrayHolder) new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray())).readObject();
-			k.ar = Tainter.taintedIntArray(k.ar, 3);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		}
-	}
+//	@Test
+//	public void testSerializedArrayThenTaint() throws Exception {
+//		ArrayHolder ah = new ArrayHolder();
+//		ah.ar = new int[10];
+//		for(int i = 0; i < 10; i++)
+//			ah.ar[i] = 40;
+//		ObjectOutputStream s = null;
+//		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+//		try {
+//			s = new ObjectOutputStream(bos);
+//			s.writeObject(ah);
+//			s.close();
+//		} catch (IOException e) {
+//
+//		}
+//
+//		try {
+//			ArrayHolder k = (ArrayHolder) new ObjectInputStream(new ByteArrayInputStream(bos.toByteArray())).readObject();
+//			k.ar = Tainter.taintedIntArray(k.ar, 3);
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		} catch (ClassNotFoundException e) {
+//			e.printStackTrace();
+//		}
+//	}
 	
 	@Test
 	public void testTaintedArraySerialized() throws Exception {
