@@ -127,6 +127,11 @@ public class Instrumenter {
 				|| owner.startsWith("java/lang/invoke/LambdaMetafactory")
 				|| owner.startsWith("edu/columbia/cs/psl/phosphor/struct/TaintedWith")
 				|| owner.startsWith("java/util/regex/HashDecompositions") //Huge constant array/hashmap
+				
+				|| owner.startsWith("java/lang/invoke/MethodHandle")
+				|| owner.startsWith("java/lang/invoke/BoundMethodHandle")
+				|| owner.startsWith("java/lang/invoke/DelegatingMethodHandle")
+				|| owner.startsWith("java/lang/invoke/DirectMethodHandle")
 				;
 	}
 
