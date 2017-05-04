@@ -585,6 +585,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if((!nextLoadisTracked && (opcode == GETSTATIC || opcode == GETFIELD)) ||
 				(opcode == PUTSTATIC && !analyzer.isTopOfStackTagged() && getTopOfStackType().getSort() == Type.ARRAY))
 		{
+			Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this);
 			if (opcode == PUTSTATIC && owner.equals(className) && descType.getSort() == Type.ARRAY
 					&& descType.getDimensions() == 1 && descType.getElementType().getSort() != Type.OBJECT) {
 				String wrap = (String)TaintUtils.getShadowTaintTypeForFrame(desc);
