@@ -43,6 +43,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	private boolean isStatic = true;
 	public Type[] paramTypes;
 
+
 	public void setArrayAnalyzer(PrimitiveArrayAnalyzer primitiveArrayFixer) {
 		this.arrayAnalyzer = primitiveArrayFixer;
 	}
@@ -585,7 +586,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if((!nextLoadisTracked && (opcode == GETSTATIC || opcode == GETFIELD)) ||
 				(opcode == PUTSTATIC && !analyzer.isTopOfStackTagged() && getTopOfStackType().getSort() == Type.ARRAY))
 		{
-			Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this);
+			Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this, nextLoadisTracked);
 			if (opcode == PUTSTATIC && owner.equals(className) && descType.getSort() == Type.ARRAY
 					&& descType.getDimensions() == 1 && descType.getElementType().getSort() != Type.OBJECT) {
 				String wrap = (String)TaintUtils.getShadowTaintTypeForFrame(desc);
@@ -602,6 +603,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 			return;
 		}
+		boolean thisIsTracked = nextLoadisTracked;
 //		System.out.println(this.name);
 //		System.out.println(nextLoadisTracked);
 //		System.out.println(Printer.OPCODES[opcode] + name+owner+desc + "TRACKED");
@@ -615,7 +617,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			case PUTFIELD:
 			case PUTSTATIC:
 				dispatched = true;
-				Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this);
+				Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this, thisIsTracked);
 				if (descType.getSize() == 1) {
 					if (descType.getSort() == Type.OBJECT) {
 						super.visitInsn(DUP);
@@ -657,7 +659,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if(!dispatched)
 		{
 			dispatched = true;
-			Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this);
+			Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this, thisIsTracked);
 		}
 		switch (opcode) {
 		case Opcodes.GETSTATIC:
@@ -2117,6 +2119,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	private boolean nextDupCopiesTaint2 = false;
 	private boolean nextDupCopiesTaint3 = false;
 
+	public boolean isNextLoadTracked()
+	{
+		return nextLoadisTracked;
+	}
 	@Override
 	public void visitInsn(int opcode) {
 //		if(opcode<200)
