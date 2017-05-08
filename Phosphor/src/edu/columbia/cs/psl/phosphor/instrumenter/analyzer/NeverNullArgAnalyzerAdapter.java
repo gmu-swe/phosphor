@@ -304,6 +304,14 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     		stackTagStatus.set(stackTagStatus.size() - 1, new TaggedValue(stackTagStatus.get(stackTagStatus.size() - 1)));
     }
     
+    public void clearTopOfStackTagged()
+    {
+    	if(stackTagStatus.get(stackTagStatus.size() - 1) == Opcodes.TOP)
+        	stackTagStatus.set(stackTagStatus.size() - 2, stack.get(stack.size() - 2));
+    	else
+    		stackTagStatus.set(stackTagStatus.size() - 1, stack.get(stack.size() - 1));
+    }
+    
     @Override
     public void visitInsn(final int opcode) {
 

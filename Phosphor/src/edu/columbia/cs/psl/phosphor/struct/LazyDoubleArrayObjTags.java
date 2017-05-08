@@ -30,6 +30,10 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 			ret.taints = taints.clone();
 		return ret;
 	}
+	
+	public void set(double[] l, Taint idxTag, int idx, Taint tag, double ival) {
+		set(l, idx, new Taint(tag, idxTag), ival);
+	}
 
 	public void set(double[] d, int idx, Taint tag, double newval) {
 		val[idx] = newval;

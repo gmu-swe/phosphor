@@ -229,6 +229,10 @@ public class Instrumenter {
 	static Option opt_trackArrayLengthTaints = Option.builder("withArrayLengthTags")
 		.desc("Tracks taint tags on array lengths - requires use of JVMTI runtime library when running")
 		.build();
+	static Option opt_trackArrayIndexTaints = Option.builder("withArrayIndexTags")
+			.desc("Tracks taint tags from array indices to values get/set")
+			.build();
+
 	static Option opt_withoutFieldHiding = Option.builder("withoutFieldHiding")
 		.desc("Disable hiding of taint fields via reflection")
 		.build();
@@ -276,6 +280,7 @@ public class Instrumenter {
 		options.addOption(opt_taintSinks);
 		options.addOption(opt_taintSources);
 		options.addOption(opt_trackArrayLengthTaints);
+		options.addOption(opt_trackArrayIndexTaints);
 		options.addOption(opt_withoutFieldHiding);
 		options.addOption(opt_withoutPropogation);
 		options.addOption(opt_enumPropogation);
@@ -324,6 +329,8 @@ public class Instrumenter {
 		Configuration.WITH_TAGS_FOR_JUMPS = line.hasOption("disableJumpOptimizations");
 		Configuration.READ_AND_SAVE_BCI = line.hasOption("readAndSaveBCIs");
 		Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption("serialization");
+		
+		Configuration.ARRAY_INDEX_TRACKING = line.hasOption("withArrayIndexTags");
 		Configuration.init();
 
 		

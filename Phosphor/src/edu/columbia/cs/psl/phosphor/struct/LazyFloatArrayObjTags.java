@@ -31,6 +31,10 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 
+	public void set(float[] l, Taint idxTag, int idx, Taint tag, float ival) {
+		set(l, idx, new Taint(tag, idxTag), ival);
+	}
+	
 	public void set(float[] f, int idx, Taint tag, float fval) {
 		val[idx] = fval;
 		if (tag != null) {

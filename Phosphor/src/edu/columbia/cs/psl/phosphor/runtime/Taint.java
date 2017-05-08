@@ -95,17 +95,30 @@ public class Taint<T> implements Serializable {
 	public Taint(Taint<T> t1, Taint<T> t2)
 	{
 		dependencies = new LinkedList<T>();
-		if(t1 != null)
+		if(t2 == null && t1 != null)
 		{
-			if(t1.lbl != null)
-			dependencies.addUnique(t1.lbl);
-			dependencies.addAll(t1.dependencies);
+			lbl = t1.lbl;
+			if(t1.dependencies != null)
+				dependencies.addAll(t1.dependencies);
 		}
-		if(t2 != null)
+		else if(t1 == null && t2 != null)
 		{
-			if(t2.lbl != null)
-			dependencies.addUnique(t2.lbl);
-			dependencies.addAll(t2.dependencies);
+			lbl = t2.lbl;
+			if(t2.dependencies != null)
+				dependencies.addAll(t2.dependencies);
+		} else {
+			if (t1 != null)
+
+			{
+				if (t1.lbl != null)
+					dependencies.addUnique(t1.lbl);
+				dependencies.addAll(t1.dependencies);
+			}
+			if (t2 != null) {
+				if (t2.lbl != null)
+					dependencies.addUnique(t2.lbl);
+				dependencies.addAll(t2.dependencies);
+			}
 		}
 		if(Configuration.derivedTaintListener != null)
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, this);
@@ -138,6 +151,22 @@ public class Taint<T> implements Serializable {
 	public boolean hasNoDependencies() {
 		return dependencies.getFirst() == null || dependencies.getFirst().entry == null;
 	}
+	public static <T> void combineTagsOnArrayInPlace(Object[] ar, Taint<T>[] t1, int dims)
+	{
+		combineTagsInPlace(ar, t1[dims-1]);
+		if(dims == 1)
+		{
+			for(Object  o : ar)
+			{
+				combineTagsInPlace(o, t1[dims-1]);
+			}
+		}
+		else
+		{
+			for(Object o : ar)
+				combineTagsOnArrayInPlace((Object[]) o, t1, dims-1);
+		}
+	}
 	public static <T> void combineTagsInPlace(Object obj, Taint<T> t1)
 	{
 		if(obj == null || t1 == null || IGNORE_TAINTING)
@@ -146,7 +175,7 @@ public class Taint<T> implements Serializable {
 		Taint<T> t = (Taint<T>) TaintUtils.getTaintObj(obj);
 		if(t == null)
 		{
-			MultiTainter.taintedObject(obj, t1);
+			MultiTainter.taintedObject(obj, new Taint(t1));
 		}
 		else
 			t.addDependency(t1);

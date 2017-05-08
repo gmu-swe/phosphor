@@ -22,6 +22,8 @@ public class Configuration {
 	public static boolean IMPLICIT_TRACKING = true; //must be set to TRUE for MULTI_TAINTING to work!
 	public static boolean DATAFLOW_TRACKING = true; //default
 	public static boolean ARRAY_LENGTH_TRACKING = false;
+	public static boolean ARRAY_INDEX_TRACKING = false;
+
 	public static boolean WITH_ENUM_BY_VAL = false;
 	public static boolean WITH_UNBOX_ACMPEQ = false;
 

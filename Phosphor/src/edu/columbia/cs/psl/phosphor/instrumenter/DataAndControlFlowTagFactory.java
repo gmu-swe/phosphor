@@ -475,17 +475,22 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 					else
 					{
 						mv.visitInsn(SWAP);
-						mv.visitInsn(POP);
-						mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
-						if (Configuration.MULTI_TAINTING)
-							mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						if(Configuration.ARRAY_LENGTH_TRACKING)
+						{
+							mv.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "getLengthTaint", "()"+Configuration.TAINT_TAG_DESC, false);
+						} else {
+							mv.visitInsn(POP);
+							mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							if (Configuration.MULTI_TAINTING)
+								mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						}
 						mv.visitInsn(SWAP);
 					}
 					//A
 				}
 				if (!loaded) {
 					mv.visitInsn(DUP);
-					if(Configuration.MULTI_TAINTING && Configuration.IMPLICIT_TRACKING)
+					if(Configuration.MULTI_TAINTING && (Configuration.IMPLICIT_TRACKING || Configuration.ARRAY_LENGTH_TRACKING))
 					{
 						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)"+Configuration.TAINT_TAG_DESC, false);
 					}

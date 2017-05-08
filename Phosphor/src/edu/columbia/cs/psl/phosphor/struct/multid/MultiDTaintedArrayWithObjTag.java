@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import org.objectweb.asm.Type;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
@@ -727,6 +728,43 @@ public abstract class MultiDTaintedArrayWithObjTag {
 		}
 	}
 
+	public static final void initLastDim(final Object[] ar, final Taint<?> dimTaint, final int lastDimSize, final int componentType) {
+		for (int i = 0; i < ar.length; i++) {
+			if (ar[i] == null) {
+				switch (componentType) {
+				case Type.BOOLEAN:
+					ar[i] = new LazyBooleanArrayObjTags(dimTaint, new boolean[lastDimSize]);
+					break;
+				case Type.BYTE:
+					ar[i] = new LazyByteArrayObjTags(dimTaint, new byte[lastDimSize]);
+					break;
+				case Type.CHAR:
+					ar[i] = new LazyCharArrayObjTags(dimTaint, new char[lastDimSize]);
+					break;
+				case Type.DOUBLE:
+					ar[i] = new LazyDoubleArrayObjTags(dimTaint, new double[lastDimSize]);
+					break;
+				case Type.FLOAT:
+					ar[i] = new LazyFloatArrayObjTags(dimTaint, new float[lastDimSize]);
+					break;
+				case Type.INT:
+					ar[i] = new LazyIntArrayObjTags(dimTaint, new int[lastDimSize]);
+					break;
+				case Type.LONG:
+					ar[i] = new LazyLongArrayObjTags(dimTaint, new long[lastDimSize]);
+					break;
+				case Type.SHORT:
+					ar[i] = new LazyShortArrayObjTags(dimTaint, new short[lastDimSize]);
+					break;
+				default:
+					throw new IllegalArgumentException();
+				}
+			} else {
+				initLastDim((Object[]) ar[i], lastDimSize, componentType);
+			}
+		}
+	}
+	
 	public static Type getPrimitiveTypeForWrapper(String internalName) {
 		try {
 			return Type.getType(getPrimitiveTypeForWrapper(Class.forName(internalName.replace("/", "."))));

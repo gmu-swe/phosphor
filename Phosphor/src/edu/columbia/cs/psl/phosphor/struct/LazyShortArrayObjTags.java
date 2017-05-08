@@ -30,6 +30,10 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
 			ret.taints = taints.clone();
 		return ret;
 	}
+	
+	public void set(short[] l, Taint idxTag, int idx, Taint tag, short ival) {
+		set(l, idx, new Taint(tag, idxTag), ival);
+	}
 
 	public void set(short[] g, int idx, Taint tag, short sval) {
 		val[idx] = sval;

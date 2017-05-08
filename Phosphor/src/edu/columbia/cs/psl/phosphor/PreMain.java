@@ -450,6 +450,13 @@ public class PreMain {
 					if (!f.exists())
 						f.mkdir();
 				}
+				else if(s.equals("arraylength"))
+					Configuration.ARRAY_LENGTH_TRACKING = true;
+				else if(s.equals("arrayindex"))
+				{
+					Configuration.ARRAY_LENGTH_TRACKING = true;
+					Configuration.ARRAY_INDEX_TRACKING = true;
+				}
 				else if(s.startsWith("withSelectiveInst="))
 				{
 					Configuration.WITH_SELECTIVE_INST=true;
