@@ -188,6 +188,16 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <executions>
                     <execution>
+                        <id>exe</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>make</executable>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>instrument-jre</id>
                         <phase>pre-integration-test</phase>
                         <goals>

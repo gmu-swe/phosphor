@@ -85,7 +85,7 @@ public class ArrayLengthObjTagITCase {
 		String[] s = new String[10];
 		for (j = 0; j < s.length; j++)
 			s[j] = "b";
-		r = (Taint) s[i].getPHOSPHOR_TAG();
+		r = (Taint) MultiTainter.getTaint(s[i]);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t.lbl, r.lbl);
 		else
@@ -108,7 +108,7 @@ public class ArrayLengthObjTagITCase {
 
 		String[] s = new String[10];
 		s[i] = "bar";
-		r = (Taint) s[5].getPHOSPHOR_TAG();
+		r = (Taint) MultiTainter.getTaint(s[5]);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t.lbl, r.lbl);
 		else
