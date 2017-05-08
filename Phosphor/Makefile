@@ -1,5 +1,5 @@
 UNAME := $(shell uname)
-CCFLAGS = -o phosphor.o -I${JAVA_HOME}/include -c -fPIC -fpermissive  -std=c++11 -g -O0
+CCFLAGS = -o phosphor.o -I${JAVA_HOME}/include -c -fPIC -fpermissive  -g -O0
 ifeq ($(UNAME), Linux)
 	CCFLAGS += -I${JAVA_HOME}/include/linux 
 	LINKFLAGS = -z defs -static-libgcc -shared -o libphosphor.so -lc 
