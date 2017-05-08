@@ -275,7 +275,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						}
 						break;
 					case AbstractInsnNode.IINC_INSN:
-						if(Configuration.IMPLICIT_TRACKING)
+						if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
 						{
 							IincInsnNode iinc = (IincInsnNode) insn;
 							BasicValue value = (BasicValue) f.getLocal(iinc.var);
@@ -554,7 +554,8 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 		}
 	}
 	public static void main(String[] args) throws Throwable {
-		Configuration.IMPLICIT_TRACKING =false;
+//		Configuration.IMPLICIT_TRACKING =false;
+		Configuration.IMPLICIT_LIGHT_TRACKING = true;
 		Configuration.ARRAY_LENGTH_TRACKING = true;
 		Configuration.ARRAY_INDEX_TRACKING = true;
 //		Instrumenter.instrumentClass("asdf", new FileInputStream("z.class"), false);

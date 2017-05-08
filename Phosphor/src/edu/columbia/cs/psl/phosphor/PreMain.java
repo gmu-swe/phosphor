@@ -452,6 +452,8 @@ public class PreMain {
 				}
 				else if(s.equals("arraylength"))
 					Configuration.ARRAY_LENGTH_TRACKING = true;
+				else if(s.equals("lightImplicit"))
+					Configuration.IMPLICIT_LIGHT_TRACKING = true;
 				else if(s.equals("arrayindex"))
 				{
 					Configuration.ARRAY_LENGTH_TRACKING = true;

@@ -54,14 +54,17 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		super.visitCode();
 		firstLabel = new Label();
 		super.visitLabel(firstLabel);
-		if(Configuration.IMPLICIT_TRACKING)
+		if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
 		{
 			if (lvs.idxOfMasterControlLV < 0) {
 				int tmpLV = lvs.createMasterControlTaintLV();
 				super.visitTypeInsn(NEW, Type.getInternalName(ControlTaintTagStack.class));
 				super.visitInsn(DUP);
-				super.visitIntInsn(BIPUSH, arrayAnalyzer.nJumps);
-				if (name.equals("<clinit>"))
+				if(arrayAnalyzer.nJumps > Byte.MAX_VALUE)
+					super.visitIntInsn(SIPUSH, arrayAnalyzer.nJumps);
+				else
+					super.visitIntInsn(BIPUSH, arrayAnalyzer.nJumps);
+				if (name.equals("<clinit>") || Configuration.IMPLICIT_LIGHT_TRACKING)
 					super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "(I)V", false);
 				super.visitVarInsn(ASTORE, tmpLV);
 			}
@@ -259,7 +262,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		boolean boxIt = false;
 
-		if(Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION)
+		if((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !Configuration.WITHOUT_PROPOGATION)
 		{
 			switch(opcode)
 			{
@@ -609,7 +612,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //		System.out.println(analyzer.stackTagStatus);
 		nextLoadisTracked = false;
 
-		if(Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION)
+		if((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !Configuration.WITHOUT_PROPOGATION)
 		{
 			switch(opcode)
 			{
@@ -797,7 +800,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		case Opcodes.SIPUSH:
 			if(nextLoadisTracked)
 			{
-				if(Configuration.IMPLICIT_TRACKING)
+				if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
 				{
 					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 					super.visitMethodInsn(INVOKEVIRTUAL, "edu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack", "copyTag", "()"+Configuration.TAINT_TAG_DESC, false);
@@ -973,7 +976,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public void visitLdcInsn(Object cst) {
 		if(nextLoadisTracked)
 		{
-			if(Configuration.IMPLICIT_TRACKING)
+			if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
 			{
 				super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 				super.visitMethodInsn(INVOKEVIRTUAL, "edu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack", "copyTag", "()"+Configuration.TAINT_TAG_DESC, false);
@@ -1046,7 +1049,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		case Opcodes.INSTANCEOF:
 			if(nextLoadisTracked)
 			{
-				if (Configuration.IMPLICIT_TRACKING) {
+				if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
 					super.visitInsn(DUP);
 					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)"+Configuration.TAINT_TAG_DESC, false);
 					super.visitInsn(SWAP);
@@ -2358,7 +2361,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		case Opcodes.DCONST_1:
 			if(nextLoadisTracked)
 			{
-				if(Configuration.IMPLICIT_TRACKING)
+				if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
 				{
 					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 					super.visitMethodInsn(INVOKEVIRTUAL, "edu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack", "copyTag", "()"+Configuration.TAINT_TAG_DESC, false);
@@ -2442,13 +2445,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				int prealloc = lvs.getPreAllocedReturnTypeVar(retType);
 				super.visitVarInsn(ALOAD, prealloc);
 				String methodName = "get";
-				if (Configuration.IMPLICIT_TRACKING)
+				if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
 				{
 					methodName = "getImplicit";
 					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 				}
 				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "edu/columbia/cs/psl/phosphor/struct/Lazy"+elName+"Array"+(Configuration.MULTI_TAINTING ? "Obj":"Int")+"Tags", methodName,
-						"(" + "[" + elType + "I" + retType.getDescriptor() + (Configuration.IMPLICIT_TRACKING ? "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;":"")+")" + retType.getDescriptor(), false);
+						"(" + "[" + elType + "I" + retType.getDescriptor() + (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING ? "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;":"")+")" + retType.getDescriptor(), false);
 				if (nextLoadisTracked) {
 					super.visitInsn(DUP);
 					super.visitFieldInsn(GETFIELD, retType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
@@ -2541,7 +2544,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 				else
 					registerTaintedArray();
-				if(Configuration.IMPLICIT_TRACKING)
+				if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
 				{
 					super.visitInsn(DUP);
 					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
@@ -2561,7 +2564,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 				super.visitInsn(opcode);
 			} else {
-				if(Configuration.IMPLICIT_TRACKING)
+				if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
 				{
 					super.visitInsn(DUP);
 					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
@@ -2669,14 +2672,17 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(opcode);
 			} else if (analyzer.stackTagStatus.get(analyzer.stack.size() - offsetToArray) instanceof TaggedValue) {
 				String typ = (String) analyzer.stack.get(analyzer.stack.size() - offsetToArray - 1);
-				if (Configuration.IMPLICIT_TRACKING) {
+				if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
 					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-					super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "setImplicit", "([" + elType + "I" + Configuration.TAINT_TAG_DESC + elType + "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+					if (tagIsTracked)
+						super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "setImplicit", "([" + elType + Configuration.TAINT_TAG_DESC + "I" + Configuration.TAINT_TAG_DESC + elType + "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+					else
+						super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "setImplicit", "([" + elType + "I" + Configuration.TAINT_TAG_DESC + elType + "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
 				} 
 				else if (tagIsTracked)
 					super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "set", "([" + elType + Configuration.TAINT_TAG_DESC + "I" + Configuration.TAINT_TAG_DESC  + elType+")V", false);
-					else
-						super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "set", "(["+elType+"I" + Configuration.TAINT_TAG_DESC  + elType+")V", false);
+				else
+					super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "set", "([" + elType + "I" + Configuration.TAINT_TAG_DESC + elType + ")V", false);
 			}
 			else
 			{
@@ -4069,7 +4075,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		
 		
-		if (Configuration.IMPLICIT_TRACKING && !isIgnoreAllInstrumenting && !Configuration.WITHOUT_PROPOGATION) {
+		if ((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !isIgnoreAllInstrumenting && !Configuration.WITHOUT_PROPOGATION) {
 			if(opcode != Opcodes.GOTO)
 			{
 				for (int var : forceCtrlAdd) {
@@ -4170,7 +4176,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		//Need to remove taint
 		if (TaintUtils.DEBUG_FRAMES)
 			System.out.println("Table switch shows: " + analyzer.stack + ", " + analyzer.locals);
-		if (Configuration.IMPLICIT_TRACKING) {
+		if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 			super.visitInsn(SWAP);
@@ -4188,7 +4194,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 		//Need to remove taint
-		if (Configuration.IMPLICIT_TRACKING) {
+		if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 			super.visitInsn(SWAP);

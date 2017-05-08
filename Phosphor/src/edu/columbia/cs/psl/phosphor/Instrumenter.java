@@ -223,6 +223,9 @@ public class Instrumenter {
 	static Option opt_controlTrack = Option.builder("controlTrack")
 		.desc("Enable taint tracking through control flow")
 		.build();
+	static Option opt_controlLightTrack = Option.builder("lightControlTrack")
+			.desc("Enable taint tracking through control flow, but does NOT propogate control dependencies between methods")
+			.build();
 	static Option opt_multiTaint = Option.builder("multiTaint")
 		.desc("Support for 2^32 tags instead of just 32")
 		.build();
@@ -276,6 +279,7 @@ public class Instrumenter {
 		options.addOption(help);
 		options.addOption(opt_multiTaint);
 		options.addOption(opt_controlTrack);
+		options.addOption(opt_controlLightTrack);
 		options.addOption(opt_dataTrack);
 		options.addOption(opt_taintSinks);
 		options.addOption(opt_taintSources);
@@ -315,6 +319,7 @@ public class Instrumenter {
 		
 		Configuration.MULTI_TAINTING = line.hasOption("multiTaint");
 		Configuration.IMPLICIT_TRACKING = line.hasOption("controlTrack");
+		Configuration.IMPLICIT_LIGHT_TRACKING = line.hasOption("lightControlTrack");
 		Configuration.DATAFLOW_TRACKING = !line.hasOption("withoutDataTrack");
 		if (Configuration.IMPLICIT_TRACKING)
 			Configuration.MULTI_TAINTING = true;

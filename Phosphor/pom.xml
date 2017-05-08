@@ -7,6 +7,7 @@
     <properties>
         <dacapo.skip>true</dacapo.skip>
         <skipIntTagNoInstTests>true</skipIntTagNoInstTests>
+        <skipLightImplicitTests>true</skipLightImplicitTests>
         <skipObjTagTestsArrayLength>true</skipObjTagTestsArrayLength>
         <maven.compiler.testSource>1.8</maven.compiler.testSource>
         <maven.compiler.testTarget>1.8</maven.compiler.testTarget>
@@ -160,6 +161,23 @@
                             <reuseForks>false</reuseForks>
                             <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
                                 -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-implicit</argLine>
+                        </configuration>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>integration-test-light-implicit-tracking</id>
+                        <configuration>
+                            <skipTests>${skipLightImplicitTests}</skipTests>
+                            <jvm>${project.build.directory}/jre-inst-obj/bin/java</jvm>
+                            <includes>
+                                <include>**/*ImplicitLightITCase.java</include>
+                            </includes>
+                            <reuseForks>false</reuseForks>
+                            <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+                                -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-light-implicit,lightImplicit</argLine>
                         </configuration>
                         <goals>
                             <goal>integration-test</goal>

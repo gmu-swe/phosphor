@@ -622,7 +622,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				e.printStackTrace();
 			}
 
-			if (Configuration.IMPLICIT_TRACKING) {
+			if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
 				boolean hasJumps = false;
 				for(BasicBlock b : implicitAnalysisblocks.values())
 					if(b.isJump)

@@ -464,15 +464,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				if (arrType.getElementType().getSort() != Type.OBJECT) {
 					//TA A
 					loaded = true;
-					if(Configuration.MULTI_TAINTING && Configuration.IMPLICIT_TRACKING)
-					{
-						mv.visitInsn(SWAP);
-						mv.visitInsn(POP);
-						mv.visitInsn(DUP);
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)"+Configuration.TAINT_TAG_DESC, false);
-						mv.visitInsn(SWAP);
-					}
-					else
+//					if(Configuration.MULTI_TAINTING && (Configuration.IMPLICIT_TRACKING))
+//					{
+//						mv.visitInsn(SWAP);
+//						mv.visitInsn(POP);
+//						mv.visitInsn(DUP);
+//						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)"+Configuration.TAINT_TAG_DESC, false);
+//						mv.visitInsn(SWAP);
+//					}
+//					else
 					{
 						mv.visitInsn(SWAP);
 						if(Configuration.ARRAY_LENGTH_TRACKING)
@@ -512,7 +512,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
 	public void jumpOp(int opcode, int branchStarting, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-		if (Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
+		if ((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !Configuration.WITHOUT_PROPOGATION) {
 			switch (opcode) {
 			case Opcodes.IFEQ:
 			case Opcodes.IFNE:
@@ -677,7 +677,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
 	public void iincOp(int var, int increment, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-		if (Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
+		if ((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !Configuration.WITHOUT_PROPOGATION) {
 			if (ta.isIgnoreAllInstrumenting || ta.isRawInsns) {
 				mv.visitIincInsn(var, increment);
 				return;
