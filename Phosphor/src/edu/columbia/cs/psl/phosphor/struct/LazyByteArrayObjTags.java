@@ -55,6 +55,10 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 	
+	public void setImplicit(byte[] b, Taint idxTag, int idx, Taint tag, byte val, ControlTaintTagStack ctrl) {
+		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
+	}
+	
 	public void setImplicit(byte[] b, int idx, Taint tag, byte val, ControlTaintTagStack ctrl) {
 		this.val[idx] = val;
 		tag = Taint.combineTags(tag, ctrl);

@@ -44,6 +44,10 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 			taints[idx] = tag;
 		}
 	}
+
+	public void setImplicit(boolean[] b, Taint idxTag, int idx, Taint tag, boolean val, ControlTaintTagStack ctrl) {
+		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
+	}
 	
 	public void setImplicit(boolean[] b, int idx, Taint tag, boolean val, ControlTaintTagStack ctrl) {
 		this.val[idx] = val;

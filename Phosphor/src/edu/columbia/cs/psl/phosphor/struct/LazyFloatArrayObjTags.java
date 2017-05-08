@@ -53,6 +53,10 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 
+	public void setImplicit(float[] b, Taint idxTag, int idx, Taint tag, float val, ControlTaintTagStack ctrl) {
+		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
+	}
+	
 	public void setImplicit(float[] f, int idx, Taint tag, float fval, ControlTaintTagStack tags) {
 		val[idx] = fval;
 		tag = Taint.combineTags(tag, tags);

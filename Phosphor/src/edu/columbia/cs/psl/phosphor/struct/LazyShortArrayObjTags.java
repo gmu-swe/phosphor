@@ -63,6 +63,10 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
 		}
 	}
 
+	public void setImplicit(short[] b, Taint idxTag, int idx, Taint tag, short val, ControlTaintTagStack ctrl) {
+		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
+	}
+	
 	public TaintedShortWithObjTag getImplicit(short[] g, int idx, TaintedShortWithObjTag ret, ControlTaintTagStack tags) {
 		ret.val = val[idx];
 		if (taints == null)

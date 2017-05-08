@@ -54,6 +54,10 @@ public final class LazyLongArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 	
+	public void setImplicit(long[] b, Taint idxTag, int idx, Taint tag, long val, ControlTaintTagStack ctrl) {
+		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
+	}
+	
 	public void setImplicit(long[] b, int idx, Taint tag, long lval, ControlTaintTagStack tags) {
 		val[idx] = lval;
 		tag = Taint.combineTags(tag, tags);
