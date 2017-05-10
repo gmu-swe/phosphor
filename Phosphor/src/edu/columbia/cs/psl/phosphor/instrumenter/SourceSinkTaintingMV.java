@@ -46,7 +46,7 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 		if (Configuration.MULTI_TAINTING) {
 			super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "taintTagFactory", Type.getDescriptor(TaintTagFactory.class));
 			super.visitLdcInsn(lbl);
-			super.visitMethodInsn(INVOKEINTERFACE, Type.getInternalName(TaintTagFactory.class), "getAutoTaint", "(Ljava/lang/String;)"+Configuration.TAINT_TAG_DESC, false);
+			super.visitMethodInsn(INVOKEINTERFACE, Type.getInternalName(TaintTagFactory.class), "getAutoTaint", "(Ljava/lang/String;)"+Configuration.TAINT_TAG_DESC, true);
 		} else {
 			super.visitLdcInsn(lbl);
 		}
