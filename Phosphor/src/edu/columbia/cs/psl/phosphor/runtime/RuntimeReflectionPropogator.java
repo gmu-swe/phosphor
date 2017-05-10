@@ -68,15 +68,20 @@ public class RuntimeReflectionPropogator {
 	}
 	public static Class<?> getType(Field f)
 	{
+		String name = f.getName();
+		if(f.getName().endsWith("PHOSPHOR_TAG"))
+			return f.getType();
 		Class<?> ret = f.getType();
 		Class<?> component = ret;
 		while(component.isArray())
 			component = component.getComponentType();
 		if(LazyArrayIntTags.class.isAssignableFrom(component))
 		{
-			Type t = Type.getType(ret);
+			String d = Type.getDescriptor(ret);
 			String newType = "[";
-			for(int i = 0; i < t.getDimensions(); i++)
+
+			char[] c = d.toCharArray();
+			for(int i = 0; i < c.length && c[i]=='['; i++)
 				newType += "[";
 			newType += MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(component);
 			try {
@@ -88,9 +93,11 @@ public class RuntimeReflectionPropogator {
 		}
 		else if(LazyArrayObjTags.class.isAssignableFrom(component))
 		{
-			Type t = Type.getType(ret);
+			String d = Type.getDescriptor(ret);
+
 			String newType = "[";
-			for(int i = 0; i < t.getDimensions(); i++)
+			char[] c = d.toCharArray();
+			for(int i = 0; i < c.length && c[i]=='['; i++)
 				newType += "[";
 			newType += MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(component);
 			try {

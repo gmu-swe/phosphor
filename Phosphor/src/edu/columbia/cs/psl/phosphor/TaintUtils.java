@@ -48,7 +48,6 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 public class TaintUtils {
 	static Object lock = new Object();
 
-	public static final boolean TAINT_THROUGH_SERIALIZATION = false;
 	public static final boolean OPT_PURE_METHODS = false;
 
 

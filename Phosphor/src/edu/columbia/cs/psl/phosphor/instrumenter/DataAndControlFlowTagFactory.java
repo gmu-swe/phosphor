@@ -469,28 +469,33 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				if (arrType.getElementType().getSort() != Type.OBJECT) {
 					//TA A
 					loaded = true;
-					if(Configuration.MULTI_TAINTING && Configuration.IMPLICIT_TRACKING)
+//					if(Configuration.MULTI_TAINTING && (Configuration.IMPLICIT_TRACKING))
+//					{
+//						mv.visitInsn(SWAP);
+//						mv.visitInsn(POP);
+//						mv.visitInsn(DUP);
+//						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)"+Configuration.TAINT_TAG_DESC, false);
+//						mv.visitInsn(SWAP);
+//					}
+//					else
 					{
 						mv.visitInsn(SWAP);
-						mv.visitInsn(POP);
-						mv.visitInsn(DUP);
-						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)"+Configuration.TAINT_TAG_DESC, false);
-						mv.visitInsn(SWAP);
-					}
-					else
-					{
-						mv.visitInsn(SWAP);
-						mv.visitInsn(POP);
-						mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
-						if (Configuration.MULTI_TAINTING)
-							mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						if(Configuration.ARRAY_LENGTH_TRACKING)
+						{
+							mv.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "getLengthTaint", "()"+Configuration.TAINT_TAG_DESC, false);
+						} else {
+							mv.visitInsn(POP);
+							mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+							if (Configuration.MULTI_TAINTING)
+								mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+						}
 						mv.visitInsn(SWAP);
 					}
 					//A
 				}
 				if (!loaded) {
 					mv.visitInsn(DUP);
-					if(Configuration.MULTI_TAINTING && Configuration.IMPLICIT_TRACKING)
+					if(Configuration.MULTI_TAINTING && (Configuration.IMPLICIT_TRACKING || Configuration.ARRAY_LENGTH_TRACKING))
 					{
 						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)"+Configuration.TAINT_TAG_DESC, false);
 					}
@@ -512,7 +517,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
 	public void jumpOp(int opcode, int branchStarting, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-		if (Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
+		if ((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !Configuration.WITHOUT_PROPOGATION) {
 			switch (opcode) {
 			case Opcodes.IFEQ:
 			case Opcodes.IFNE:
@@ -604,7 +609,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 //					mv.visitInsn(SWAP);
 //				}
 //				mv.visitJumpInsn(opcode, label);
-				if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
+				if(!isIgnoreAcmp && Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
 				{
 					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 					mv.visitInsn(SWAP);
@@ -640,7 +645,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				break;
 			case Opcodes.IF_ACMPEQ:
 			case Opcodes.IF_ACMPNE:
-				if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
+				if(!isIgnoreAcmp && Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
 				{
 					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 					mv.visitInsn(SWAP);
@@ -677,7 +682,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
 	public void iincOp(int var, int increment, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-		if (Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
+		if ((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !Configuration.WITHOUT_PROPOGATION) {
 			if (ta.isIgnoreAllInstrumenting || ta.isRawInsns) {
 				mv.visitIincInsn(var, increment);
 				return;
@@ -700,7 +705,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 		}
 	}
 	@Override
-	public void fieldOp(int opcode, String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
+	public void fieldOp(int opcode, String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta, boolean loadIsTracked) {
 	}
 
 	@Override
@@ -708,10 +713,10 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 		return false;
 	}
 
+	boolean isIgnoreAcmp;
 	@Override
 	public void instrumentationStarting(String className) {
-		// TODO Auto-generated method stub
-		
+		isIgnoreAcmp = className.equals("java/io/ObjectOutputStream$HandleTable");
 	}
 
 	@Override

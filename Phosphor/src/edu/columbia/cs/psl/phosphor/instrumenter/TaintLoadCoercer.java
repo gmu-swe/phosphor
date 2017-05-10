@@ -23,8 +23,10 @@ import org.objectweb.asm.tree.IincInsnNode;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.MultiANewArrayInsnNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import org.objectweb.asm.tree.analysis.Analyzer;
@@ -140,12 +142,22 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 
 							BasicValue value1 = (BasicValue) f.getStack(f.getStackSize() - 3);
 
+							BasicValue value2 = (BasicValue) f.getStack(f.getStackSize() - 2);
+
+							if (Configuration.ARRAY_INDEX_TRACKING) {
+								if (!(value2 instanceof SinkableArrayValue && ((SinkableArrayValue) value2).isConstant)) {
+									if(value1 instanceof SinkableArrayValue)
+										relevantValues.addAll(((SinkableArrayValue) value1).tag(insn));
+									relevantValues.addAll(((SinkableArrayValue) value2).tag(insn));
+								}
+//								System.out.println(value1 + ", " + value2+", "+value3);
+							}
 //							if(Configuration.ARRAY_LENGTH_TRACKING)
 //								relevantValues.addAll(((SinkableArrayValue)f.getStack(f.getStackSize() - 2)).tag(insn));
 							if(value1 instanceof SinkableArrayValue && value3 instanceof SinkableArrayValue)
 							{
 
-								if(((SinkableArrayValue)value1).isNewArray && ((SinkableArrayValue)value3).isConstant)
+								if (((SinkableArrayValue) value1).isNewArray && ((SinkableArrayValue) value3).isConstant)// && (Configuration.ARRAY_INDEX_TRACKING || ((SinkableArrayValue) value2).isConstant))
 								{
 									//Storing constant to new array - no need to tag, ever.
 									break;
@@ -158,6 +170,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 
 								relevantValues.addAll(((SinkableArrayValue) value1).tag(insn));
 							}
+							
 							break;
 						case Opcodes.ARETURN:
 //															System.out.println("ARETURN " + name+desc + " - " + f.getStack(f.getStackSize()-1));
@@ -179,10 +192,32 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 //							value3 = (BasicValue) f.getStack(f.getStackSize() - 1);
 //							value1 = (BasicValue) f.getStack(f.getStackSize() - 2);
 //							System.out.println(Printer.OPCODES[insn.getOpcode()] + value3+value1);
-//							if(Configuration.ARRAY_LENGTH_TRACKING)
-//								relevantValues.addAll(((SinkableArrayValue)f.getStack(f.getStackSize() - 2)).tag(insn));
+							if(Configuration.ARRAY_INDEX_TRACKING)
+							{
+								value1 = (BasicValue) f.getStack(f.getStackSize()-1);
+								if(value1 instanceof SinkableArrayValue && !(
+										((SinkableArrayValue)value1).isConstant
+										|| (
+												((SinkableArrayValue)value1).copyOf != null) && ((SinkableArrayValue)value1).copyOf.isConstant)
+											)
+									relevantValues.addAll(((SinkableArrayValue) value1).tag(insn));
+							}
 							break;
 						case Opcodes.AALOAD:
+							if(Configuration.ARRAY_INDEX_TRACKING)
+							{
+								value1 = (BasicValue) f.getStack(f.getStackSize()-1);
+								if(value1 instanceof SinkableArrayValue && !(
+										((SinkableArrayValue)value1).isConstant
+										|| (
+												((SinkableArrayValue)value1).copyOf != null) && ((SinkableArrayValue)value1).copyOf.isConstant)
+											)
+								{
+									SinkableArrayValue sv = (SinkableArrayValue) value1;
+									
+									relevantValues.addAll(((SinkableArrayValue) value1).tag(insn));
+								}
+							}
 							break;
 						case IRETURN:
 						case FRETURN:
@@ -240,7 +275,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						}
 						break;
 					case AbstractInsnNode.IINC_INSN:
-						if(Configuration.IMPLICIT_TRACKING)
+						if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
 						{
 							IincInsnNode iinc = (IincInsnNode) insn;
 							BasicValue value = (BasicValue) f.getLocal(iinc.var);
@@ -378,6 +413,14 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 							break;
 						}
 						break;
+					case AbstractInsnNode.MULTIANEWARRAY_INSN:
+						if(Configuration.ARRAY_LENGTH_TRACKING)
+						{
+							MultiANewArrayInsnNode ins = (MultiANewArrayInsnNode) insn;
+							for (int j = 1; j <= ins.dims; j++)
+								relevantValues.addAll(((SinkableArrayValue)f.getStack(f.getStackSize() - j)).tag(insn));
+						}
+						break;
 					}
 					insn = insn.getNext();
 				}
@@ -475,6 +518,9 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 							if(relevantValues.contains(masterDup)) //bottom one is relevant
 								this.instructions.insertBefore(v.getSrc(), new InsnNode(TaintUtils.DUP_TAINT_AT_0+i));
 							i++;
+							if(v.getSrc().getOpcode() == Opcodes.DUP2_X1)
+								i+=2;
+//							this.instructions.insertBefore(v.getSrc(), new LdcInsnNode(masterDup.toString() +  " " +masterDup.otherDups.toString()));
 							for(SinkableArrayValue d : masterDup.otherDups)
 							{
 								if(relevantValues.contains(d))
@@ -508,8 +554,10 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 		}
 	}
 	public static void main(String[] args) throws Throwable {
-		Configuration.IMPLICIT_TRACKING =false;
-//		Configuration.ARRAY_LENGTH_TRACKING = true;
+//		Configuration.IMPLICIT_TRACKING =false;
+		Configuration.IMPLICIT_LIGHT_TRACKING = true;
+		Configuration.ARRAY_LENGTH_TRACKING = true;
+		Configuration.ARRAY_INDEX_TRACKING = true;
 //		Instrumenter.instrumentClass("asdf", new FileInputStream("z.class"), false);
 		ClassReader cr = new ClassReader(new FileInputStream("z.class"));
 //		ClassReader cr = new ClassReader(new FileInputStream("target/test-classes/Foo.class"));

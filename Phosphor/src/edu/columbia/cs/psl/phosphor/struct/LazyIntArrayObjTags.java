@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 	
+	private static final long serialVersionUID = 6001767066132212417L;
 	public int[] val;
 	
 	public LazyIntArrayObjTags(int len)
@@ -39,6 +40,10 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 
+	public void set(int[] l, Taint idxTag, int idx, Taint tag, int ival) {
+		set(l, idx, new Taint(tag, idxTag), ival);
+	}
+
 	public void set(int[] l, int idx, Taint tag, int ival) {
 		val[idx] = ival;
 		if (tag != null) {
@@ -55,6 +60,10 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 		else
 			ret.taint = taints[idx];
 		return ret;
+	}
+	
+	public void setImplicit(int[] b, Taint idxTag, int idx, Taint tag, int val, ControlTaintTagStack ctrl) {
+		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
 	}
 	
 	public void setImplicit(int[] l, int idx, Taint tag, int ival, ControlTaintTagStack tags) {

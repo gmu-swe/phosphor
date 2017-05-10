@@ -32,6 +32,10 @@ public final class LazyLongArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 
+	public void set(long[] l, Taint idxTag, int idx, Taint tag, long ival) {
+		set(l, idx, new Taint(tag, idxTag), ival);
+	}
+	
 	public void set(long[] b, int idx, Taint tag, long lval) {
 		val[idx] = lval;
 		if (tag != null) {
@@ -48,6 +52,10 @@ public final class LazyLongArrayObjTags extends LazyArrayObjTags {
 		else
 			ret.taint = taints[idx];
 		return ret;
+	}
+	
+	public void setImplicit(long[] b, Taint idxTag, int idx, Taint tag, long val, ControlTaintTagStack ctrl) {
+		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
 	}
 	
 	public void setImplicit(long[] b, int idx, Taint tag, long lval, ControlTaintTagStack tags) {

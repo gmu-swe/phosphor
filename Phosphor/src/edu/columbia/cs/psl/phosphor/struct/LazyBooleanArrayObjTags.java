@@ -31,6 +31,10 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 			ret.taints = taints.clone();
 		return ret;
 	}
+	
+	public void set(boolean[] l, Taint idxTag, int idx, Taint tag, boolean ival) {
+		set(l, idx, new Taint(tag, idxTag), ival);
+	}
 
 	public void set(boolean[] b, int idx, Taint tag, boolean val) {
 		this.val[idx] = val;
@@ -39,6 +43,10 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 				taints = new Taint[this.val.length];
 			taints[idx] = tag;
 		}
+	}
+
+	public void setImplicit(boolean[] b, Taint idxTag, int idx, Taint tag, boolean val, ControlTaintTagStack ctrl) {
+		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
 	}
 	
 	public void setImplicit(boolean[] b, int idx, Taint tag, boolean val, ControlTaintTagStack ctrl) {

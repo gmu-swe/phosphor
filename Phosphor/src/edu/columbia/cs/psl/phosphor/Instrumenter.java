@@ -103,40 +103,6 @@ public class Instrumenter {
 	public static boolean isIgnoredClass(String owner) {
 		if(Configuration.taintTagFactory.isIgnoredClass(owner))
 			return true;
-		if(IS_ANDROID_INST && ! TaintTrackingClassVisitor.IS_RUNTIME_INST)
-		{
-//			System.out.println("IN ANDROID INST:");
-			return owner.startsWith("java/lang/Object")
-					|| owner.startsWith("java/lang/Number") || owner.startsWith("java/lang/Comparable") 
-					|| owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
-					|| owner.startsWith("java/lang/ref/FinalizerReference")
-					//																|| owner.startsWith("java/awt/image/BufferedImage")
-					//																|| owner.equals("java/awt/Image")
-				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
-					||owner.startsWith("sun/awt/image/codec/");
-		}
-		else if(IS_KAFFE_INST || IS_HARMONY_INST)
-		{
-			return owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
-					|| owner.startsWith("java/lang/Byte")
-					|| owner.startsWith("java/lang/Short")
-//					|| owner.startsWith("java/lang/System")
-//					|| owner.startsWith("org/apache/harmony/drlvm/gc_gen/GCHelper")
-//					|| owner.startsWith("edu/columbia/cs/psl/microbench")
-//					|| owner.startsWith("java/lang/Number") 
-					|| owner.startsWith("java/lang/VMObject")
-					|| owner.startsWith("java/lang/VMString")
-					|| (IS_KAFFE_INST && owner.startsWith("java/lang/reflect"))
-//					|| owner.startsWith("gnu/")
-										|| owner.startsWith("java/lang/VMClass")
-
-					|| owner.startsWith("java/lang/Comparable") || owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
-					//																|| owner.startsWith("java/awt/image/BufferedImage")
-					//																|| owner.equals("java/awt/Image")
-					|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
-					||owner.startsWith("sun/awt/image/codec/") || (IS_HARMONY_INST && (owner.equals("java/io/Serializable")));
-		}
-		else
 		return (Configuration.ADDL_IGNORE != null && owner.startsWith(Configuration.ADDL_IGNORE)) || owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
 				|| owner.startsWith("java/lang/Byte")
 				|| owner.startsWith("java/lang/Short")
@@ -161,6 +127,11 @@ public class Instrumenter {
 				|| owner.startsWith("java/lang/invoke/LambdaMetafactory")
 				|| owner.startsWith("edu/columbia/cs/psl/phosphor/struct/TaintedWith")
 				|| owner.startsWith("java/util/regex/HashDecompositions") //Huge constant array/hashmap
+				
+				|| owner.startsWith("java/lang/invoke/MethodHandle")
+				|| owner.startsWith("java/lang/invoke/BoundMethodHandle")
+				|| owner.startsWith("java/lang/invoke/DelegatingMethodHandle")
+				|| owner.startsWith("java/lang/invoke/DirectMethodHandle")
 				;
 	}
 
@@ -252,12 +223,19 @@ public class Instrumenter {
 	static Option opt_controlTrack = Option.builder("controlTrack")
 		.desc("Enable taint tracking through control flow")
 		.build();
+	static Option opt_controlLightTrack = Option.builder("lightControlTrack")
+			.desc("Enable taint tracking through control flow, but does NOT propogate control dependencies between methods")
+			.build();
 	static Option opt_multiTaint = Option.builder("multiTaint")
 		.desc("Support for 2^32 tags instead of just 32")
 		.build();
 	static Option opt_trackArrayLengthTaints = Option.builder("withArrayLengthTags")
 		.desc("Tracks taint tags on array lengths - requires use of JVMTI runtime library when running")
 		.build();
+	static Option opt_trackArrayIndexTaints = Option.builder("withArrayIndexTags")
+			.desc("Tracks taint tags from array indices to values get/set")
+			.build();
+
 	static Option opt_withoutFieldHiding = Option.builder("withoutFieldHiding")
 		.desc("Disable hiding of taint fields via reflection")
 		.build();
@@ -283,6 +261,9 @@ public class Instrumenter {
 	static Option opt_readAndSaveBCI = Option.builder("readAndSaveBCIs")
 			.desc("Read in and track the byte code index of every instruction during instrumentation")
 			.build();
+	static Option opt_serialization = Option.builder("serialization")
+			.desc("Read and write taint tags through Java Serialization")
+			.build();
 	static Option help = Option.builder("help")
 		.desc("print this message")
 		.build();
@@ -298,10 +279,12 @@ public class Instrumenter {
 		options.addOption(help);
 		options.addOption(opt_multiTaint);
 		options.addOption(opt_controlTrack);
+		options.addOption(opt_controlLightTrack);
 		options.addOption(opt_dataTrack);
 		options.addOption(opt_taintSinks);
 		options.addOption(opt_taintSources);
 		options.addOption(opt_trackArrayLengthTaints);
+		options.addOption(opt_trackArrayIndexTaints);
 		options.addOption(opt_withoutFieldHiding);
 		options.addOption(opt_withoutPropogation);
 		options.addOption(opt_enumPropogation);
@@ -310,6 +293,8 @@ public class Instrumenter {
 		options.addOption(opt_uninstCopies);
 		options.addOption(opt_disableJumpOptimizations);
 	    options.addOption(opt_readAndSaveBCI);
+	    options.addOption(opt_serialization);
+
 	    
 		CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
@@ -334,6 +319,7 @@ public class Instrumenter {
 		
 		Configuration.MULTI_TAINTING = line.hasOption("multiTaint");
 		Configuration.IMPLICIT_TRACKING = line.hasOption("controlTrack");
+		Configuration.IMPLICIT_LIGHT_TRACKING = line.hasOption("lightControlTrack");
 		Configuration.DATAFLOW_TRACKING = !line.hasOption("withoutDataTrack");
 		if (Configuration.IMPLICIT_TRACKING)
 			Configuration.MULTI_TAINTING = true;
@@ -347,6 +333,9 @@ public class Instrumenter {
 		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
 		Configuration.WITH_TAGS_FOR_JUMPS = line.hasOption("disableJumpOptimizations");
 		Configuration.READ_AND_SAVE_BCI = line.hasOption("readAndSaveBCIs");
+		Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption("serialization");
+		
+		Configuration.ARRAY_INDEX_TRACKING = line.hasOption("withArrayIndexTags");
 		Configuration.init();
 
 		

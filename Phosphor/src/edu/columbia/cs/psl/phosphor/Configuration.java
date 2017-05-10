@@ -20,8 +20,12 @@ public class Configuration {
 	public static String ADDL_IGNORE = null;
 	public static boolean MULTI_TAINTING = true;
 	public static boolean IMPLICIT_TRACKING = true; //must be set to TRUE for MULTI_TAINTING to work!
+	public static boolean IMPLICIT_LIGHT_TRACKING;
+
 	public static boolean DATAFLOW_TRACKING = true; //default
 	public static boolean ARRAY_LENGTH_TRACKING = false;
+	public static boolean ARRAY_INDEX_TRACKING = false;
+
 	public static boolean WITH_ENUM_BY_VAL = false;
 	public static boolean WITH_UNBOX_ACMPEQ = false;
 
@@ -37,6 +41,8 @@ public class Configuration {
 	public static boolean GENERATE_UNINST_STUBS = false;
 	
 	public static boolean READ_AND_SAVE_BCI = false;
+	
+	public static String STRING_SET_TAG_TAINT_CLASS = "edu/columbia/cs/psl/phosphor/runtime/TaintChecker";
 	
 	/*
 	 * Derived configuration values
@@ -55,7 +61,7 @@ public class Configuration {
 	public static int TAINT_ARRAY_STORE_OPCODE = (!MULTI_TAINTING ? Opcodes.IASTORE : Opcodes.AASTORE);
 	public static int TAINT_LOAD_OPCODE = (!MULTI_TAINTING ? Opcodes.ILOAD : Opcodes.ALOAD);
 	public static int TAINT_STORE_OPCODE = (!MULTI_TAINTING ? Opcodes.ISTORE : Opcodes.ASTORE);
-	public static boolean OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING;
+	public static boolean OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING && !IMPLICIT_LIGHT_TRACKING;
 	public static Class TAINT_TAG_OBJ_CLASS = (Taint.class);
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (LazyArrayObjTags.class);
 	public static String TAINT_INTERFACE_INTERNALNAME = !MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedWithObjTag";
@@ -66,6 +72,7 @@ public class Configuration {
 	public static TaintTagFactory taintTagFactory = new DataAndControlFlowTagFactory();
 	public static DerivedTaintListener derivedTaintListener;
 	public static String CACHE_DIR = null;
+	public static boolean TAINT_THROUGH_SERIALIZATION;
 
 	public static void init() {
 		TAINT_TAG_DESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "I");
@@ -82,12 +89,12 @@ public class Configuration {
 		TAINT_ARRAY_STORE_OPCODE = (!MULTI_TAINTING ? Opcodes.IASTORE : Opcodes.AASTORE);
 		TAINT_LOAD_OPCODE = (!MULTI_TAINTING ? Opcodes.ILOAD : Opcodes.ALOAD);
 		TAINT_STORE_OPCODE = (!MULTI_TAINTING ? Opcodes.ISTORE : Opcodes.ASTORE);
-		OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING;
+		OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING && !IMPLICIT_LIGHT_TRACKING;
 		TAINT_TAG_OBJ_ARRAY_CLASS = (MULTI_TAINTING ? LazyArrayObjTags.class : LazyArrayIntTags.class);
 		TAINT_TAG_OBJ_CLASS = (MULTI_TAINTING ? Taint.class : Integer.TYPE);
 		TAINT_INTERFACE_INTERNALNAME = !MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedWithObjTag";
 
-		if(IMPLICIT_TRACKING)
+		if(IMPLICIT_TRACKING || IMPLICIT_LIGHT_TRACKING)
 			WITH_TAGS_FOR_JUMPS = true;
 		if(WITH_SELECTIVE_INST)
 			GENERATE_UNINST_STUBS = true;

@@ -1,9 +1,13 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import java.io.Serializable;
+
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 
-public abstract class LazyArrayObjTags implements Cloneable {
+public abstract class LazyArrayObjTags implements Cloneable, Serializable {
+
+	private static final long serialVersionUID = -2635717960621951243L;
 	public Taint[] taints;
 
 	public LazyArrayObjTags(Taint[] taints) {

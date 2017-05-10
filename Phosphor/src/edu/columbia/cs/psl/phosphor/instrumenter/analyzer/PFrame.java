@@ -210,7 +210,7 @@ public class PFrame extends Frame {
 					value2 = pop();
 					if(value2 instanceof SinkableArrayValue)
 					{
-						
+						throw new IllegalStateException();
 					} else {
 						Value v = interpreter.copyOperation(insn, value1);
 						value3 = pop();

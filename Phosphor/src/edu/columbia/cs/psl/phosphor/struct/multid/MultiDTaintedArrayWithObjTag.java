@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import org.objectweb.asm.Type;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
@@ -446,6 +447,74 @@ public abstract class MultiDTaintedArrayWithObjTag {
 					throw new IllegalArgumentException();
 				}
 			}
+			else if(in.getClass().getComponentType().isArray() && in.getClass().getComponentType().getComponentType().isPrimitive())
+			{
+				//THIS array is an prim[][] array
+				Object[] _in = (Object[]) in;
+				
+				Class tmp = in.getClass();
+				while(tmp.isArray())
+				{
+					tmp = tmp.getComponentType();
+				}
+				if(tmp == Boolean.TYPE)
+				{
+					LazyBooleanArrayObjTags[] ret = new LazyBooleanArrayObjTags[_in.length];
+					for (int i = 0; i < _in.length; i++)
+						ret[i] = new LazyBooleanArrayObjTags((boolean[]) _in[i]);
+					return ret;
+				}
+				if(tmp == Byte.TYPE)
+				{
+					LazyByteArrayObjTags[] ret = new LazyByteArrayObjTags[_in.length];
+					for (int i = 0; i < _in.length; i++)
+						ret[i] = new LazyByteArrayObjTags((byte[]) _in[i]);
+					return ret;
+				}
+				if(tmp == Character.TYPE)
+				{
+					LazyCharArrayObjTags[] ret = new LazyCharArrayObjTags[_in.length];
+					for (int i = 0; i < _in.length; i++)
+						ret[i] = new LazyCharArrayObjTags((char[]) _in[i]);
+					return ret;
+				}
+				if(tmp == Double.TYPE)
+				{
+					LazyDoubleArrayObjTags[] ret = new LazyDoubleArrayObjTags[_in.length];
+					for (int i = 0; i < _in.length; i++)
+						ret[i] = new LazyDoubleArrayObjTags((double[]) _in[i]);
+					return ret;
+				}
+				if(tmp == Float.TYPE)
+				{
+					LazyFloatArrayObjTags[] ret = new LazyFloatArrayObjTags[_in.length];
+					for (int i = 0; i < _in.length; i++)
+						ret[i] = new LazyFloatArrayObjTags((float[]) _in[i]);
+					return ret;
+				}
+				if(tmp == Integer.TYPE)
+				{
+					LazyIntArrayObjTags[] ret = new LazyIntArrayObjTags[_in.length];
+					for (int i = 0; i < _in.length; i++)
+						ret[i] = new LazyIntArrayObjTags((int[]) _in[i]);
+					return ret;
+				}
+				if(tmp == Short.TYPE)
+				{
+					LazyShortArrayObjTags[] ret = new LazyShortArrayObjTags[_in.length];
+					for (int i = 0; i < _in.length; i++)
+						ret[i] = new LazyShortArrayObjTags((short[]) _in[i]);
+					return ret;
+				}
+				if(tmp == Long.TYPE)
+				{
+					LazyLongArrayObjTags[] ret = new LazyLongArrayObjTags[_in.length];
+					for (int i = 0; i < _in.length; i++)
+						ret[i] = new LazyLongArrayObjTags((long[]) _in[i]);
+					return ret;
+				}
+				throw new UnsupportedOperationException();
+			}
 			else if(in.getClass().getComponentType().getName().equals("java.lang.Object"))
 			{
 				Object[] _in = (Object[]) in;
@@ -659,6 +728,43 @@ public abstract class MultiDTaintedArrayWithObjTag {
 		}
 	}
 
+	public static final void initLastDim(final Object[] ar, final Taint<?> dimTaint, final int lastDimSize, final int componentType) {
+		for (int i = 0; i < ar.length; i++) {
+			if (ar[i] == null) {
+				switch (componentType) {
+				case Type.BOOLEAN:
+					ar[i] = new LazyBooleanArrayObjTags(dimTaint, new boolean[lastDimSize]);
+					break;
+				case Type.BYTE:
+					ar[i] = new LazyByteArrayObjTags(dimTaint, new byte[lastDimSize]);
+					break;
+				case Type.CHAR:
+					ar[i] = new LazyCharArrayObjTags(dimTaint, new char[lastDimSize]);
+					break;
+				case Type.DOUBLE:
+					ar[i] = new LazyDoubleArrayObjTags(dimTaint, new double[lastDimSize]);
+					break;
+				case Type.FLOAT:
+					ar[i] = new LazyFloatArrayObjTags(dimTaint, new float[lastDimSize]);
+					break;
+				case Type.INT:
+					ar[i] = new LazyIntArrayObjTags(dimTaint, new int[lastDimSize]);
+					break;
+				case Type.LONG:
+					ar[i] = new LazyLongArrayObjTags(dimTaint, new long[lastDimSize]);
+					break;
+				case Type.SHORT:
+					ar[i] = new LazyShortArrayObjTags(dimTaint, new short[lastDimSize]);
+					break;
+				default:
+					throw new IllegalArgumentException();
+				}
+			} else {
+				initLastDim((Object[]) ar[i], lastDimSize, componentType);
+			}
+		}
+	}
+	
 	public static Type getPrimitiveTypeForWrapper(String internalName) {
 		try {
 			return Type.getType(getPrimitiveTypeForWrapper(Class.forName(internalName.replace("/", "."))));
