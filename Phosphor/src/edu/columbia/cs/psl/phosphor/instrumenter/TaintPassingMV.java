@@ -3367,6 +3367,26 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						else
 						{
 							//!0,!1,!2,!3
+							//We don't want to keep the tags anywhere.
+							//DUP2_X1
+							if(topCarriesTaint())
+							{
+								if(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 3) instanceof TaggedValue)
+								{
+									
+								}
+								else
+								{
+//									System.out.println(analyzer.stackTagStatus);
+									super.visitInsn(SWAP);
+									super.visitInsn(POP);
+									analyzer.clearTopOfStackTagged();
+									super.visitInsn(opcode);
+//									throw new UnsupportedOperationException();
+									return;
+								}
+							}
+							System.out.println(analyzer.stackTagStatus);
 							throw new UnsupportedOperationException();
 						}
 					}

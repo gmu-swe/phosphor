@@ -146,8 +146,10 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 
 							if (Configuration.ARRAY_INDEX_TRACKING) {
 								if (!(value2 instanceof SinkableArrayValue && ((SinkableArrayValue) value2).isConstant)) {
-									if(value1 instanceof SinkableArrayValue)
+									if(value1 instanceof SinkableArrayValue && insn.getOpcode() != Opcodes.AASTORE)
+									{
 										relevantValues.addAll(((SinkableArrayValue) value1).tag(insn));
+									}
 									relevantValues.addAll(((SinkableArrayValue) value2).tag(insn));
 								}
 //								System.out.println(value1 + ", " + value2+", "+value3);
