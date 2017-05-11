@@ -1151,7 +1151,7 @@ public class ReflectionMasker {
 					continue;
 				} else if(LazyArrayObjTags.class.isAssignableFrom(m.getParameterTypes()[j]))
 				{
-					MultiDTaintedArrayWithObjTag arr = ((MultiDTaintedArrayWithObjTag) in[i]);
+					LazyArrayObjTags arr = ((LazyArrayObjTags) in[i]);
 					ret.a[j] = arr;
 					j++;
 					ret.a[j] = arr.getVal();
