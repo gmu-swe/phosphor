@@ -820,12 +820,19 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				}
 
 			}
+//			System.out.println(name);
 			if (Configuration.ANNOTATE_LOOPS) {
 				SCCAnalyzer scc = new SCCAnalyzer();
-				List<List<BasicBlock>> sccs = scc.scc(new LinkedList<PrimitiveArrayAnalyzer.BasicBlock>(implicitAnalysisblocks.values()));
+				ArrayList<BasicBlock> flatGraph = new ArrayList<PrimitiveArrayAnalyzer.BasicBlock>(implicitAnalysisblocks.size());
+				for(int i = 0; i < implicitAnalysisblocks.size(); i++)
+				{
+					flatGraph.add(i, implicitAnalysisblocks.get(i));
+				}
+				List<List<BasicBlock>> sccs = scc.scc(flatGraph);
 				for (List<BasicBlock> c : sccs) {
 					if (c.size() == 1)
 						continue;
+//					System.out.println(c);
 					for (BasicBlock b : c) {
 						if (b.successors.size() > 1)
 							if (!c.containsAll(b.successors)) {

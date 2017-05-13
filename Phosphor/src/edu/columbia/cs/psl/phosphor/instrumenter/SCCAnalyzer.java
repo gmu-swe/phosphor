@@ -38,6 +38,8 @@ public class SCCAnalyzer {
 	void dfs(int u) {
 		lowlink[u] = time++;
 		visited[u] = true;
+		if(graph.get(u) == null)
+			return;
 		stack.add(u);
 		boolean isComponentRoot = true;
 
