@@ -42,6 +42,8 @@ public class Configuration {
 	
 	public static boolean READ_AND_SAVE_BCI = false;
 	
+	public static boolean ANNOTATE_LOOPS = false;
+	
 	public static String STRING_SET_TAG_TAINT_CLASS = "edu/columbia/cs/psl/phosphor/runtime/TaintChecker";
 	
 	/*

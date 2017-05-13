@@ -28,7 +28,8 @@ public class PhosphorTextifier extends Textifier {
 		MORE_OPCODES[15] = "BRANCH_END";
 		MORE_OPCODES[16] = "FORCE_CTRL_STORE";
 		MORE_OPCODES[17] = "FOLLOWED_BY_FRAME";
-		MORE_OPCODES[21] = "NEXT_INSN_TAINT_AWARE";
+		MORE_OPCODES[21] = "LOOP_HEADER";
+//		MORE_OPCODES[22] = "LOOP_HEADER";
 		/*
 		 * 
 		 * public static final int RAW_INSN = 201; public static final int

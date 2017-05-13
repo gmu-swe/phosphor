@@ -786,9 +786,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								jumpID++;
 						}
 					}
+
 					for (BasicBlock b : implicitAnalysisblocks.values()) {
+//						System.out.println(b.idx + " -> " + b.successorsCompact);
+//						System.out.println(b.successors);
+//						System.out.println(b.resolvedBlocks);
 						for (BasicBlock r : b.resolvedHereBlocks) {
-							//								System.out.println("Resolved: " + jumpIDs.get(r) + " at " + b.idx);
+//							System.out.println("Resolved: " + jumpIDs.get(r) + " at " + b.idx);
 							//								System.out.println("GOt" + jumpIDs);
 							AbstractInsnNode insn = b.insn;
 							while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
@@ -816,6 +820,23 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				}
 
 			}
+			if (Configuration.ANNOTATE_LOOPS) {
+				SCCAnalyzer scc = new SCCAnalyzer();
+				List<List<BasicBlock>> sccs = scc.scc(new LinkedList<PrimitiveArrayAnalyzer.BasicBlock>(implicitAnalysisblocks.values()));
+				for (List<BasicBlock> c : sccs) {
+					if (c.size() == 1)
+						continue;
+					for (BasicBlock b : c) {
+						if (b.successors.size() > 1)
+							if (!c.containsAll(b.successors)) {
+								// loop header
+								this.instructions.insertBefore(b.insn, new InsnNode(TaintUtils.LOOP_HEADER));
+							}
+					}
+				}
+
+			}
+			
 			AbstractInsnNode insn = instructions.getFirst();
 			while(insn != null)
 			{

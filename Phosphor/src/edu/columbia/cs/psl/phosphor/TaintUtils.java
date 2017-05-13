@@ -78,6 +78,8 @@ public class TaintUtils {
 	public static final int CUSTOM_SIGNAL_1 = 218;
 	public static final int CUSTOM_SIGNAL_2 = 219;
 	public static final int CUSTOM_SIGNAL_3 = 220;
+	public static final int LOOP_HEADER = 221;
+
 	
 	public static final String TAINT_FIELD = "PHOSPHOR_TAG";
 //	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";

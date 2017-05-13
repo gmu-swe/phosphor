@@ -2181,7 +2181,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //			System.out.println(name+ " "+ Printer.OPCODES[opcode]);
 //		else
 //			System.out.println(name+" "+PhosphorTextifier.MORE_OPCODES[opcode-200]);
-		if(opcode == TaintUtils.CUSTOM_SIGNAL_1 || opcode == TaintUtils.CUSTOM_SIGNAL_2 || opcode == TaintUtils.CUSTOM_SIGNAL_3)
+		if(opcode == TaintUtils.CUSTOM_SIGNAL_1 || opcode == TaintUtils.CUSTOM_SIGNAL_2 || opcode == TaintUtils.CUSTOM_SIGNAL_3 || opcode == TaintUtils.LOOP_HEADER)
 		{
 			Configuration.taintTagFactory.signalOp(opcode, null);
 			super.visitInsn(opcode);
