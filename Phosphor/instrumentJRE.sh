@@ -26,16 +26,16 @@ else
 	else
 		echo "Not regenerating obj tag instrumented JRE\n";
 	fi
-	if [ ! -d "target/jre-inst-obj-alen" ]; then
-			echo "Creating obj-alen tag instrumented JRE\n";
-		java -Xmx6g -jar target/Phosphor-0.0.3-SNAPSHOT.jar -serialization -multiTaint -forceUnboxAcmpEq -withEnumsByValue -withArrayLengthTags -withArrayIndexTags $INST_HOME target/jre-inst-obj-alen;
-		chmod +x target/jre-inst-obj-alen/bin/*;
-		chmod +x target/jre-inst-obj-alen/lib/*;
-		chmod +x target/jre-inst-obj-alen/jre/bin/*;
-		chmod +x target/jre-inst-obj-alen/jre/lib/*;
-	else
-		echo "Not regenerating obj-alen tag instrumented JRE\n";
-	fi
+	#if [ ! -d "target/jre-inst-obj-alen" ]; then
+	#		echo "Creating obj-alen tag instrumented JRE\n";
+	#	java -Xmx6g -jar target/Phosphor-0.0.3-SNAPSHOT.jar -serialization -multiTaint -forceUnboxAcmpEq -withEnumsByValue -withArrayLengthTags -withArrayIndexTags $INST_HOME target/jre-inst-obj-alen;
+	#	chmod +x target/jre-inst-obj-alen/bin/*;
+	#	chmod +x target/jre-inst-obj-alen/lib/*;
+	#	chmod +x target/jre-inst-obj-alen/jre/bin/*;
+	#	chmod +x target/jre-inst-obj-alen/jre/lib/*;
+	#else
+	#	echo "Not regenerating obj-alen tag instrumented JRE\n";
+	#fi
 	if [ ! -d "target/jre-inst-implicit" ]; then
 		echo "Creating obj tag + implicit flow instrumented JRE\n";
 		java -Xmx6g -jar target/Phosphor-0.0.3-SNAPSHOT.jar -controlTrack -multiTaint -forceUnboxAcmpEq -withEnumsByValue $INST_HOME target/jre-inst-implicit;
