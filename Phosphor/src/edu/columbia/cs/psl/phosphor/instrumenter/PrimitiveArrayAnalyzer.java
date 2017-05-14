@@ -20,6 +20,7 @@ import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.IincInsnNode;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
@@ -28,6 +29,7 @@ import org.objectweb.asm.tree.analysis.Analyzer;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
+import org.objectweb.asm.util.Printer;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
@@ -823,11 +825,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //			System.out.println(name);
 			if (Configuration.ANNOTATE_LOOPS) {
 				SCCAnalyzer scc = new SCCAnalyzer();
-				ArrayList<BasicBlock> flatGraph = new ArrayList<PrimitiveArrayAnalyzer.BasicBlock>(implicitAnalysisblocks.size());
-				for(int i = 0; i < implicitAnalysisblocks.size(); i++)
-				{
-					flatGraph.add(i, implicitAnalysisblocks.get(i));
-				}
+				BasicBlock[] flatGraph = new BasicBlock[Collections.max(implicitAnalysisblocks.keySet()) + 1];
+				for(int i = 0; i < flatGraph.length; i++)
+					flatGraph[i] = implicitAnalysisblocks.get(i);
 				List<List<BasicBlock>> sccs = scc.scc(flatGraph);
 				for (List<BasicBlock> c : sccs) {
 					if (c.size() == 1)
@@ -843,6 +843,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				}
 
 			}
+			this.maxStack += 100;
 			
 			AbstractInsnNode insn = instructions.getFirst();
 			while(insn != null)
