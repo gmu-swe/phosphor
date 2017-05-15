@@ -825,7 +825,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //			System.out.println(name);
 			if (Configuration.ANNOTATE_LOOPS) {
 				SCCAnalyzer scc = new SCCAnalyzer();
-				BasicBlock[] flatGraph = new BasicBlock[Collections.max(implicitAnalysisblocks.keySet()) + 1];
+				int max = 0;
+				for(Integer i : implicitAnalysisblocks.keySet())
+				{
+					if(i > max)
+						max = i;
+				}
+				BasicBlock[] flatGraph = new BasicBlock[max + 1];
 				for(int i = 0; i < flatGraph.length; i++)
 					flatGraph[i] = implicitAnalysisblocks.get(i);
 				List<List<BasicBlock>> sccs = scc.scc(flatGraph);
