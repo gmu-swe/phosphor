@@ -129,10 +129,13 @@ public class Instrumenter {
 				|| owner.startsWith("java/util/regex/HashDecompositions") //Huge constant array/hashmap
 				
 				|| owner.startsWith("java/lang/invoke/MethodHandle")
-				|| owner.startsWith("java/lang/invoke/BoundMethodHandle")
+				|| (owner.startsWith("java/lang/invoke/BoundMethodHandle")
+						&& !owner.startsWith("java/lang/invoke/BoundMethodHandle$Factory"))
 				|| owner.startsWith("java/lang/invoke/DelegatingMethodHandle")
 				|| owner.startsWith("java/lang/invoke/DirectMethodHandle")
-				;
+				|| owner.startsWith("java/util/function/Function")
+
+		;
 	}
 
 	static HashMap<String, ClassNode> allClasses = new HashMap<String, ClassNode>();

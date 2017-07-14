@@ -137,7 +137,9 @@ public class ReflectionMasker {
 			ret.val = c1.isInstance(o);
 		return ret;
 	}
-	
+	public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctr) {
+		return isInstance(c1, o, ret);
+	}
 	public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, TaintedBooleanWithObjTag ret) {
 		ret.taint = null;
 		if (o instanceof LazyArrayObjTags || o instanceof LazyArrayObjTags[]) {

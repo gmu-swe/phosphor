@@ -61,7 +61,10 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			// Even if we are ignoring other hiding here, we definitely need to
 			// do this.
 			String retDesc = "Ledu/columbia/cs/psl/phosphor/struct/TaintedBooleanWith" + (Configuration.MULTI_TAINTING ? "Obj" : "Int") + "Tag;";
-			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", "(Ljava/lang/Class;Ljava/lang/Object;" + retDesc + ")" + retDesc, false);
+			if(Configuration.IMPLICIT_TRACKING)
+				super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", "(Ljava/lang/Class;Ljava/lang/Object;" + retDesc + Type.getDescriptor(ControlTaintTagStack.class)+")" + retDesc, false);
+			else
+				super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", "(Ljava/lang/Class;Ljava/lang/Object;" + retDesc + ")" + retDesc, false);
 			return;
 		}
 		if (disable) {
