@@ -34,6 +34,8 @@ public class Configuration {
 	public static boolean WITH_TAGS_FOR_JUMPS = false;
 	public static boolean WITH_SELECTIVE_INST = false;
 	public static String selective_inst_config;
+	public static String skip_inst_config;
+
 	
 	public static boolean WITHOUT_PROPOGATION = false;
 	public static boolean WITHOUT_FIELD_HIDING = false;
@@ -67,6 +69,7 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_CLASS = (Taint.class);
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (LazyArrayObjTags.class);
 	public static String TAINT_INTERFACE_INTERNALNAME = !MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedWithObjTag";
+	public static boolean WITH_SKIP_INST;
 
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
 	public static Class extensionClassVisitor;
@@ -75,7 +78,7 @@ public class Configuration {
 	public static DerivedTaintListener derivedTaintListener;
 	public static String CACHE_DIR = null;
 	public static boolean TAINT_THROUGH_SERIALIZATION;
-
+	
 	public static void init() {
 		TAINT_TAG_DESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/runtime/Taint;" : "I");
 		TAINT_TAG_ARRAYDESC = (MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/struct/LazyArrayObjTags;" : "Ledu/columbia/cs/psl/phosphor/struct/LazyArrayIntTags;");

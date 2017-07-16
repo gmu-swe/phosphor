@@ -24,6 +24,8 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
@@ -178,6 +180,7 @@ public class Instrumenter {
 	static int nTotal = 0;
 	static int n = 0;
 	public static byte[] instrumentClass(String path, InputStream is, boolean renameInterfaces) {
+		
 		try {
 			n++;
 			if(n % 1000 ==0)
@@ -255,6 +258,10 @@ public class Instrumenter {
 		.hasArg()
 		.desc("Enable selective instrumentation")
 		.build();
+	static Option opt_skipInstFor = Option.builder("skipInstFor")
+			.hasArg()
+			.desc("Don't instrument classes matches the supplied regex")
+			.build();
 	static Option opt_uninstCopies = Option.builder("generateUninstStubs")
 		.desc("Add extra copies of each method, so there's always one instrumented and one not.")
 		.build();
@@ -293,6 +300,7 @@ public class Instrumenter {
 		options.addOption(opt_enumPropogation);
 		options.addOption(opt_unboxAcmpEq);
 		options.addOption(opt_withSelectiveInst);
+		options.addOption(opt_skipInstFor);		
 		options.addOption(opt_uninstCopies);
 		options.addOption(opt_disableJumpOptimizations);
 	    options.addOption(opt_readAndSaveBCI);
@@ -334,6 +342,10 @@ public class Instrumenter {
 		Configuration.WITH_UNBOX_ACMPEQ = line.hasOption("forceUnboxAcmpEq");
 		Configuration.WITH_SELECTIVE_INST = line.hasOption("withSelectiveInst");
 		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
+		
+		Configuration.WITH_SKIP_INST = line.hasOption("skipInstFor");
+		Configuration.skip_inst_config = line.getOptionValue("skipInstFor");
+		
 		Configuration.WITH_TAGS_FOR_JUMPS = line.hasOption("disableJumpOptimizations");
 		Configuration.READ_AND_SAVE_BCI = line.hasOption("readAndSaveBCIs");
 		Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption("serialization");
@@ -344,6 +356,9 @@ public class Instrumenter {
 		
 		if (Configuration.WITH_SELECTIVE_INST)
 			System.out.println("Performing selective instrumentation");
+		
+		if (Configuration.WITH_SKIP_INST)
+			System.out.println(String.format("Skipping instrumentation for classes with regex %s", Configuration.skip_inst_config));
 		
 		if (Configuration.DATAFLOW_TRACKING)
 			System.out.println("Data flow tracking: enabled");
@@ -537,10 +552,17 @@ public class Instrumenter {
 			if (ANALYZE_ONLY)
 				analyzeClass(is);
 			else {
-				byte[] c = instrumentClass(outputDir.getAbsolutePath(), is, true);
-				bos.write(c);
-				bos.writeTo(fos);
-				fos.close();
+				byte[] c = null;
+				
+				if(shouldSkip(name)==false){
+					c = instrumentClass(outputDir.getAbsolutePath(), is, true);
+				}				
+
+				if(c!=null){
+					bos.write(c);
+					bos.writeTo(fos);
+					fos.close();
+				}
 			}
 			is.close();
 
@@ -600,6 +622,24 @@ public class Instrumenter {
 		}
 	}
 
+	private static boolean shouldSkip(String path)
+	{
+		if(Configuration.WITH_SKIP_INST){
+			
+		    Pattern p = Pattern.compile(Configuration.skip_inst_config);
+		    Matcher m = p.matcher(path);
+		    
+		    if(m.matches()){
+		    	System.out.println("Skipping instrumenting of: " + path);
+				return true;
+		    }else{
+		    	System.out.println("NOT Skipping: [" + path + "]");		    	
+		    }
+		}
+		
+		return false;
+	}
+	
 	/**
 	 * Handle Jar file, Zip file and War file
 	 */
@@ -620,7 +660,15 @@ public class Instrumenter {
 							ZipEntry outEntry = new ZipEntry(e.getName());
 							zos.putNextEntry(outEntry);
 
-							byte[] clazz = instrumentClass(f.getAbsolutePath(), zip.getInputStream(e), true);
+							byte[] clazz = null;
+							
+							if(shouldSkip(e.getName())==false){
+								clazz = instrumentClass(f.getAbsolutePath(), zip.getInputStream(e), true);
+							}
+							
+							
+							
+							
 							if (clazz == null) {
 								System.out.println("Failed to instrument " + e.getName() + " in " + f.getName());
 								InputStream is = zip.getInputStream(e);
