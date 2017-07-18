@@ -22,9 +22,11 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LocalVariableAnnotationNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.ParameterNode;
+import org.objectweb.asm.tree.TypeAnnotationNode;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
@@ -1361,23 +1363,37 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			}
 		if (fullMethod.visibleLocalVariableAnnotations != null)
 			for (Object o : fullMethod.visibleLocalVariableAnnotations) {
-				AnnotationNode an = (AnnotationNode) o;
-				an.accept(mv.visitAnnotation(an.desc, true));
+				LocalVariableAnnotationNode an = (LocalVariableAnnotationNode) o;
+				Label[] start = (an.start == null ? null : (Label[]) an.start.toArray(new Label[an.start.size()]));
+				Label[] end = (an.end == null ? null : (Label[]) an.end.toArray(new Label[an.start.size()]));
+				int[] index = (an.index == null ? null : new int[an.index.size()]);
+				if(an.index != null)
+					for(int i = 0; i < an.index.size(); i++)
+						index[i] = (Integer) an.index.get(i);
+				
+				an.accept(mv.visitLocalVariableAnnotation(an.typeRef, an.typePath, start, end, index, an.desc, true));
 			}
 		if (fullMethod.invisibleLocalVariableAnnotations != null)
 			for (Object o : fullMethod.invisibleLocalVariableAnnotations) {
-				AnnotationNode an = (AnnotationNode) o;
-				an.accept(mv.visitAnnotation(an.desc, false));
+				LocalVariableAnnotationNode an = (LocalVariableAnnotationNode) o;
+				Label[] start = (an.start == null ? null : (Label[]) an.start.toArray(new Label[an.start.size()]));
+				Label[] end = (an.end == null ? null : (Label[]) an.end.toArray(new Label[an.start.size()]));
+				int[] index = (an.index == null ? null : new int[an.index.size()]);
+				if(an.index != null)
+					for(int i = 0; i < an.index.size(); i++)
+						index[i] = (Integer) an.index.get(i);
+				
+				an.accept(mv.visitLocalVariableAnnotation(an.typeRef, an.typePath, start, end, index, an.desc, false));
 			}
 		if (fullMethod.visibleTypeAnnotations != null)
 			for (Object o : fullMethod.visibleTypeAnnotations) {
-				AnnotationNode an = (AnnotationNode) o;
-				an.accept(mv.visitAnnotation(an.desc, true));
+				TypeAnnotationNode an = (TypeAnnotationNode) o;
+				an.accept(mv.visitTypeAnnotation(an.typeRef, an.typePath, an.desc, true));
 			}
 		if (fullMethod.invisibleTypeAnnotations != null)
 			for (Object o : fullMethod.invisibleTypeAnnotations) {
-				AnnotationNode an = (AnnotationNode) o;
-				an.accept(mv.visitAnnotation(an.desc, false));
+				TypeAnnotationNode an = (TypeAnnotationNode) o;
+				an.accept(mv.visitTypeAnnotation(an.typeRef, an.typePath, an.desc, false));
 			}
 		if (fullMethod.parameters != null)
 			for (Object o : fullMethod.parameters) {
