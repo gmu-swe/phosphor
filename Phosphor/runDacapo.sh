@@ -12,7 +12,7 @@ if [ ! -d "$DACAPO_DIR" ]; then
 echo "Downloading dacapo jar";
 mkdir dacapo;
 cd dacapo;
-wget --quiet http://ase.cs.columbia.edu:8282/repository/internal/org/dacapo/dacapo/9.12bach/dacapo-9.12bach.jar;
+wget --quiet https://maven.jonbell.net/repository/internal/org/dacapo/dacapo/9.12-bach/dacapo-9.12-bach.jar
 unzip dacapo-9.12bach.jar;
 cd ..;
 fi
