@@ -13,7 +13,7 @@ echo "Downloading dacapo jar";
 mkdir dacapo;
 cd dacapo;
 wget --quiet https://maven.jonbell.net/repository/internal/org/dacapo/dacapo/9.12-bach/dacapo-9.12-bach.jar
-unzip dacapo-9.12bach.jar;
+unzip dacapo-9.12-bach.jar;
 cd ..;
 fi
     echo "Ensuring instrumented dacapo exist for tests... to refresh, do mvn clean\n";
