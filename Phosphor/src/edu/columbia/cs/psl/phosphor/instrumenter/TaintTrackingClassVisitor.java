@@ -30,6 +30,7 @@ import org.objectweb.asm.tree.TypeAnnotationNode;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.PreMain;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
@@ -1344,7 +1345,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 		super.visitEnd();
 	}
-
+	
 	private void visitAnnotations(MethodVisitor mv, MethodNode fullMethod) {
 		if (fullMethod.annotationDefault != null) {
 			AnnotationVisitor av = mv.visitAnnotationDefault();
@@ -1360,30 +1361,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			for (Object o : fullMethod.invisibleAnnotations) {
 				AnnotationNode an = (AnnotationNode) o;
 				an.accept(mv.visitAnnotation(an.desc, false));
-			}
-		if (fullMethod.visibleLocalVariableAnnotations != null)
-			for (Object o : fullMethod.visibleLocalVariableAnnotations) {
-				LocalVariableAnnotationNode an = (LocalVariableAnnotationNode) o;
-				Label[] start = (an.start == null ? null : (Label[]) an.start.toArray(new Label[an.start.size()]));
-				Label[] end = (an.end == null ? null : (Label[]) an.end.toArray(new Label[an.start.size()]));
-				int[] index = (an.index == null ? null : new int[an.index.size()]);
-				if(an.index != null)
-					for(int i = 0; i < an.index.size(); i++)
-						index[i] = (Integer) an.index.get(i);
-				
-				an.accept(mv.visitLocalVariableAnnotation(an.typeRef, an.typePath, start, end, index, an.desc, true));
-			}
-		if (fullMethod.invisibleLocalVariableAnnotations != null)
-			for (Object o : fullMethod.invisibleLocalVariableAnnotations) {
-				LocalVariableAnnotationNode an = (LocalVariableAnnotationNode) o;
-				Label[] start = (an.start == null ? null : (Label[]) an.start.toArray(new Label[an.start.size()]));
-				Label[] end = (an.end == null ? null : (Label[]) an.end.toArray(new Label[an.start.size()]));
-				int[] index = (an.index == null ? null : new int[an.index.size()]);
-				if(an.index != null)
-					for(int i = 0; i < an.index.size(); i++)
-						index[i] = (Integer) an.index.get(i);
-				
-				an.accept(mv.visitLocalVariableAnnotation(an.typeRef, an.typePath, start, end, index, an.desc, false));
 			}
 		if (fullMethod.visibleTypeAnnotations != null)
 			for (Object o : fullMethod.visibleTypeAnnotations) {
