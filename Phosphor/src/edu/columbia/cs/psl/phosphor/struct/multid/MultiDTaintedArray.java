@@ -1,13 +1,31 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
+import java.lang.reflect.Field;
+
 import org.objectweb.asm.Type;
 
+import sun.security.pkcs11.wrapper.CK_ATTRIBUTE;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 
 public abstract class MultiDTaintedArray {
 
+	public static final CK_ATTRIBUTE[] unboxCK_ATTRIBUTE(CK_ATTRIBUTE[] in) throws NoSuchFieldException, SecurityException, ClassNotFoundException, IllegalArgumentException, IllegalAccessException {
+		if (in == null || in[0] == null)
+			return null;
+		boolean needsFix = false;
+		Field f = in[0].getClass().getDeclaredField("pValue");
+		for(Object a : in)
+		{
+			Object v = f.get(a);
+			if(v instanceof LazyArrayIntTags)
+				f.set(a, MultiDTaintedArrayWithIntTag.unboxRaw(v));
+			else if(v instanceof LazyArrayIntTags)
+				f.set(a, MultiDTaintedArrayWithObjTag.unboxRaw(v));
+		}
+		return in;
+	}
 	public static final Object unbox1D(final Object in)
 	{
 		if(in instanceof LazyArrayObjTags)

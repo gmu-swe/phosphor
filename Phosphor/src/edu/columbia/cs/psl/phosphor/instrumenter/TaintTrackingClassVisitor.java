@@ -1494,7 +1494,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 			lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg"+idx, t.getDescriptor(), null, start, end, idx));
 			if (!skipUnboxing) {
-				if (t.getDescriptor().equals("Ljava/lang/Object;") || (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().equals("Ljava/lang/Object;"))) {
+				if(t.getDescriptor().equals("[Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;"))
+				{
+					ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxCK_ATTRIBUTE", "([Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;)[Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;", false);
+				}
+				else if (t.getDescriptor().equals("Ljava/lang/Object;") || (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().equals("Ljava/lang/Object;"))) {
 					// Need to make sure that it's not a boxed primitive array
 					ga.visitInsn(Opcodes.DUP);
 					ga.visitInsn(Opcodes.DUP);
