@@ -21,7 +21,7 @@ public abstract class MultiDTaintedArray {
 			Object v = f.get(a);
 			if(v instanceof LazyArrayIntTags)
 				f.set(a, MultiDTaintedArrayWithIntTag.unboxRaw(v));
-			else if(v instanceof LazyArrayIntTags)
+			else if(v instanceof LazyArrayObjTags)
 				f.set(a, MultiDTaintedArrayWithObjTag.unboxRaw(v));
 		}
 		return in;
