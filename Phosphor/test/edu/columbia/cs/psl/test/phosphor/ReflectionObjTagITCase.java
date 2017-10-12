@@ -1,8 +1,10 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 
 import org.junit.Test;
@@ -12,6 +14,50 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public class ReflectionObjTagITCase {
 	
+	static class FieldHolder{
+		int i;
+		long j;
+		boolean z;
+		short s;
+		double d;
+		byte b;
+		char c;
+	}
+	
+	@Test
+	public void testReflectionSetField() throws Exception {
+		FieldHolder fh = new FieldHolder();
+		for(Field f : fh.getClass().getDeclaredFields())
+		{
+			if(f.getType().isPrimitive() && !Modifier.isFinal(f.getModifiers()))
+			{
+				if(f.getType() == int.class)
+				{
+					f.setInt(fh, MultiTainter.taintedInt(f.getInt(fh), "tainted_"+f.getName()));
+				} else if (f.getType() == long.class) {
+					f.setLong(fh, MultiTainter.taintedLong(f.getLong(fh), "tainted_" + f.getName()));
+				} else if (f.getType() == boolean.class) {
+					f.setBoolean(fh, MultiTainter.taintedBoolean(f.getBoolean(fh), "tainted_" + f.getName()));
+				} else if (f.getType() == short.class) {
+					f.setShort(fh, MultiTainter.taintedShort(f.getShort(fh), "tainted_" + f.getName()));
+				} else if (f.getType() == double.class) {
+					f.setDouble(fh, MultiTainter.taintedDouble(f.getDouble(fh), "tainted_" + f.getName()));
+				} else if (f.getType() == byte.class) {
+					f.setByte(fh, MultiTainter.taintedByte(f.getByte(fh), "tainted_" + f.getName()));
+				} else if (f.getType() == char.class) {
+					f.setChar(fh, MultiTainter.taintedChar(f.getChar(fh), "tainted_" + f.getName()));
+				}
+			}
+		}
+		assertNotNull(MultiTainter.getTaint(fh.i));
+		assertNotNull(MultiTainter.getTaint(fh.b));
+		assertNotNull(MultiTainter.getTaint(fh.c));
+		assertNotNull(MultiTainter.getTaint(fh.d));
+		assertNotNull(MultiTainter.getTaint(fh.j));
+		assertNotNull(MultiTainter.getTaint(fh.s));
+		assertNotNull(MultiTainter.getTaint(fh.z));
+
+	}
 	@Test
 	public void testRefArraySet() {
 		int[] arr = { 18 };
