@@ -114,12 +114,52 @@ public class ArrayLengthObjTagITCase {
 		else
 			assertNull(r);
 	}
-	
+
 	@Test
 	public void testArrayListGet() throws Exception {
 		ArrayList<String> al = new ArrayList<String>();
 		al.add("foo");
 		int i = MultiTainter.taintedInt(0, "foo");
 		System.out.println(MultiTainter.getTaint(al.get(i)));
+	}
+
+	// is it possible to taint an n dimensional array in the following ways
+	@Test
+	public void testArrayTaint() throws Exception{
+		int[][][] i  = {{{1,2,3}, {3,4,5}}, {{6,7,8}, {9,10,11}}};
+		//1
+		MultiTainter.taintedObject(i, new Taint("tainted"));
+
+		//2
+		for (int[][] idx : i)
+		{
+			MultiTainter.taintedObject(idx, new Taint("tainted"));
+		}
+
+		// 3
+		for (int[][] idx : i)
+		{
+			for (int[] idx1 : idx)
+			{
+				MultiTainter.taintedObject(idx1, new Taint("tainted"));
+				idx1 = MultiTainter.taintedIntArray(idx1, "tainted");
+			}
+		}
+
+		System.out.println(MultiTainter.getTaint(i));
+
+		System.out.println(MultiTainter.getTaint(i[0]));
+		System.out.println(MultiTainter.getTaint(i[1]));
+
+
+		System.out.println(MultiTainter.getTaint(i[0][0]));
+		System.out.println(MultiTainter.getTaint(i[0][1]));
+
+
+		System.out.println(MultiTainter.getTaint(i[0][0][0]));
+		System.out.println(MultiTainter.getTaint(i[0][0][1]));
+
+
+
 	}
 }

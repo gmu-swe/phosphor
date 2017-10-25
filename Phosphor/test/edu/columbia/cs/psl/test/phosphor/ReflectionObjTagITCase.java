@@ -13,7 +13,7 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public class ReflectionObjTagITCase {
-	
+
 	static class FieldHolder{
 		int i;
 		long j;
@@ -23,7 +23,27 @@ public class ReflectionObjTagITCase {
 		byte b;
 		char c;
 	}
-	
+
+	static class ArrayFieldHolder{
+		int[] arr_i = {1,2,3,4,5};
+	}
+
+	@Test
+	public void testReflectSetFieldArray() throws Exception{
+		ArrayFieldHolder fh = new ArrayFieldHolder();
+		for (Field f : fh.getClass().getDeclaredFields())
+		{
+			int[] temp = (int[])f.get(fh);
+			temp = MultiTainter.taintedIntArray(temp, "tainted");
+		}
+		assertNotNull(MultiTainter.getTaint(fh.arr_i[0]));
+		assertNotNull(MultiTainter.getTaint(fh.arr_i[1]));
+		assertNotNull(MultiTainter.getTaint(fh.arr_i[2]));
+		assertNotNull(MultiTainter.getTaint(fh.arr_i[3]));
+		assertNotNull(MultiTainter.getTaint(fh.arr_i[4]));
+	}
+
+
 	@Test
 	public void testReflectionSetField() throws Exception {
 		FieldHolder fh = new FieldHolder();
@@ -92,7 +112,7 @@ public class ReflectionObjTagITCase {
 			Integer obj = list.get(i);
 			int objVal = list.get(i);
 
-			Taint objTaint = MultiTainter.getTaint(obj); 
+			Taint objTaint = MultiTainter.getTaint(obj);
 			Taint valTaint = MultiTainter.getTaint(objVal);
 			assertEquals(objTaint.lbl, valTaint.lbl);
 		}
