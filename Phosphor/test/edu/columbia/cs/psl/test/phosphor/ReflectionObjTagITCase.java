@@ -22,6 +22,8 @@ public class ReflectionObjTagITCase {
 		double d;
 		byte b;
 		char c;
+		
+		int[] ia = new int[4];
 	}
 	
 	@Test
@@ -47,8 +49,14 @@ public class ReflectionObjTagITCase {
 				} else if (f.getType() == char.class) {
 					f.setChar(fh, MultiTainter.taintedChar(f.getChar(fh), "tainted_" + f.getName()));
 				}
+			} else if (f.getType().isArray()) {
+				if (f.getType().getComponentType() == Integer.TYPE) {
+					f.set(fh, MultiTainter.taintedIntArray((int[]) f.get(fh), "tainted_" + f.getName()));
+				}
 			}
 		}
+		assertNotNull(MultiTainter.getTaint(fh.ia[0]));
+
 		assertNotNull(MultiTainter.getTaint(fh.i));
 		assertNotNull(MultiTainter.getTaint(fh.b));
 		assertNotNull(MultiTainter.getTaint(fh.c));

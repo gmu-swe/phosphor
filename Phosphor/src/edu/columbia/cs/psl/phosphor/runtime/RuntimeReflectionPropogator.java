@@ -5,6 +5,7 @@ import java.util.WeakHashMap;
 
 import org.objectweb.asm.Type;
 
+import sun.misc.Unsafe;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
@@ -48,6 +49,15 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public class RuntimeReflectionPropogator {
+	
+	private static Unsafe unsafe;
+	private static Unsafe getUnsafe(){
+		if(unsafe == null)
+		{
+			unsafe = Unsafe.getUnsafe();
+		}
+		return unsafe;
+	}
 	public static void setUNINST(Field f, Object obj, Object val) throws IllegalArgumentException, IllegalAccessException {
 		if (MultiDTaintedArray.class.isAssignableFrom(f.getType())) {
 			throw new UnsupportedOperationException();
@@ -185,8 +195,6 @@ public class RuntimeReflectionPropogator {
 				} catch (NoSuchFieldException t) {
 				
 				}
-				if(ret == null)
-					return null;
 				if(!isObjTags)
 				{
 					if (f.getType().getComponentType() == Boolean.TYPE) {
@@ -1205,15 +1213,15 @@ public class RuntimeReflectionPropogator {
 		}
 		f.setAccessible(true);
 		f.set(obj, val);
-		//		if (isPrimitiveOrPrimitiveArrayType(f.getType())) {
-		//			try {
-		//				f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, ArrayObjectStore.arrayStore.get(val));
-		//			} catch (NoSuchFieldException e) {
-		//				e.printStackTrace();
-		//			} catch (SecurityException e) {
-		//				e.printStackTrace();
-		//			}
-		//		}
+		if (f.getType().isArray() && (val instanceof LazyArrayObjTags || val instanceof LazyArrayIntTags)) {
+			try {
+				Field taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+				Unsafe u = getUnsafe();
+				u.putObject(obj, u.objectFieldOffset(taintField), val);
+			} catch (NoSuchFieldException e) {
+			} catch (SecurityException e) {
+			}
+		}
 	}
 
 	static int getNumberOfDimensions(Class<?> clazz) {
