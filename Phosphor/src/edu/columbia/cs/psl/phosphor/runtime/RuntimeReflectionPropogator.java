@@ -1086,6 +1086,15 @@ public class RuntimeReflectionPropogator {
 		Taint.combineTagsOnObject(obj, ctrl);
 		f.setAccessible(true);
 		f.set(obj, val);
+		if (f.getType().isArray() && (val instanceof LazyArrayObjTags || val instanceof LazyArrayIntTags)) {
+			try {
+				Field taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+				Unsafe u = getUnsafe();
+				u.putObject(obj, u.objectFieldOffset(taintField), val);
+			} catch (NoSuchFieldException e) {
+			} catch (SecurityException e) {
+			}
+		}
 	}
 	public static void set(Field f, Object obj, Object val, boolean isObjTags) throws IllegalArgumentException, IllegalAccessException {
 		if (f.getType().isPrimitive()) {
