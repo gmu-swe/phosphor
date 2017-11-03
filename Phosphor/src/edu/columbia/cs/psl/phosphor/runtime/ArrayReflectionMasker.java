@@ -627,7 +627,7 @@ public class ArrayReflectionMasker {
 	}
 
 	public static TaintedBooleanWithObjTag getBoolean$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, TaintedBooleanWithObjTag ret) {
-		if (obj instanceof LazyByteArrayObjTags) {
+		if (obj instanceof LazyBooleanArrayObjTags) {
 			return ((LazyBooleanArrayObjTags)obj).get(((LazyBooleanArrayObjTags) obj).val, idx, ret);
 		}
 		throw new ArrayStoreException("Called getX, but don't have tainted X array!");

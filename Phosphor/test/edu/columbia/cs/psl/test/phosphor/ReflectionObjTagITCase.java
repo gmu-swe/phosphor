@@ -24,8 +24,24 @@ public class ReflectionObjTagITCase {
 		char c;
 		
 		int[] ia = new int[4];
+		long[] ja = new long[4];
+		boolean[] za = new boolean[4];
+		short[] sa = new short[4];
+		double[] da = new double[4];
+		byte[] ba = new byte[4];
+		char[] ca = new char[4];
+
 	}
 	
+	@Test
+	public void testArraysSet() throws Exception {
+		boolean[] b = { false };
+		if (b.getClass().isArray()) {
+			for (int i = 0; i < Array.getLength(b); i++) {
+				Array.get(b, i);
+			}
+		}
+	}
 	@Test
 	public void testReflectionSetField() throws Exception {
 		FieldHolder fh = new FieldHolder();
