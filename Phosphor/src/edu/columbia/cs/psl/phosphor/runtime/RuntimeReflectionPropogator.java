@@ -177,9 +177,9 @@ public class RuntimeReflectionPropogator {
 
 			try {
 				try {
-					if (ret instanceof LazyArrayIntTags) {
+					if (ret instanceof LazyArrayIntTags && ((LazyArrayIntTags)ret).taints != null) {
 						return ret;
-					} else if (ret instanceof LazyArrayObjTags) {
+					} else if (ret instanceof LazyArrayObjTags && ((LazyArrayObjTags)ret).taints != null) {
 						return ret;
 					} else {
 						Field taintField;
@@ -191,49 +191,10 @@ public class RuntimeReflectionPropogator {
 							fieldToField.put(f, taintField);
 						}
 						taint = taintField.get(obj);
+						return taint;
 					}
 				} catch (NoSuchFieldException t) {
 				
-				}
-				if(!isObjTags)
-				{
-					if (f.getType().getComponentType() == Boolean.TYPE) {
-						return new LazyBooleanArrayIntTags((boolean[]) ret, (int[]) taint);
-					} else if (f.getType().getComponentType() == Byte.TYPE) {
-						return new LazyByteArrayIntTags((byte[]) ret, (int[]) taint);
-		 			} else if (f.getType().getComponentType() == Character.TYPE) {
-						return new LazyCharArrayIntTags((char[]) ret, (int[]) taint);
-					} else if (f.getType().getComponentType() == Double.TYPE) {
-						return new LazyDoubleArrayIntTags((double[]) ret, (int[]) taint);
-					} else if (f.getType().getComponentType() == Float.TYPE) {
-						return new LazyFloatArrayIntTags((float[]) ret, (int[]) taint);
-					} else if (f.getType().getComponentType() == Integer.TYPE) {
-						return new LazyIntArrayIntTags((int[]) ret, (int[]) taint);
-					} else if (f.getType().getComponentType() == Long.TYPE) {
-						return new LazyLongArrayIntTags((long[]) ret, (int[]) taint);
-					} else if (f.getType().getComponentType() == Short.TYPE) {
-						return new LazyShortArrayIntTags((short[]) ret, (int[]) taint);
-					}
-				}
-				else
-				{
-					if (f.getType().getComponentType() == Boolean.TYPE) {
-						return new LazyBooleanArrayObjTags((boolean[]) ret, (Taint[]) taint);
-					} else if (f.getType().getComponentType() == Byte.TYPE) {
-						return new LazyByteArrayObjTags((byte[]) ret, (Taint[]) taint);
-		 			} else if (f.getType().getComponentType() == Character.TYPE) {
-						return new LazyCharArrayObjTags((char[]) ret, (Taint[]) taint);
-					} else if (f.getType().getComponentType() == Double.TYPE) {
-						return new LazyDoubleArrayObjTags((double[]) ret, (Taint[]) taint);
-					} else if (f.getType().getComponentType() == Float.TYPE) {
-						return new LazyFloatArrayObjTags((float[]) ret, (Taint[]) taint);
-					} else if (f.getType().getComponentType() == Integer.TYPE) {
-						return new LazyIntArrayObjTags((int[]) ret, (Taint[]) taint);
-					} else if (f.getType().getComponentType() == Long.TYPE) {
-						return new LazyLongArrayObjTags((long[]) ret, (Taint[]) taint);
-					} else if (f.getType().getComponentType() == Short.TYPE) {
-						return new LazyShortArrayObjTags((short[]) ret, (Taint[]) taint);
-					}
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
