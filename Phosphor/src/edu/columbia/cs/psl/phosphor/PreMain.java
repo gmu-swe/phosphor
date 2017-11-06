@@ -32,6 +32,8 @@ import org.objectweb.asm.util.TraceClassVisitor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
+import edu.columbia.cs.psl.phosphor.runtime.AbstractTaintCheckerSetter;
+import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
@@ -313,8 +315,13 @@ public class PreMain {
 						if (DEBUG
 								|| (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler") && !className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache")
 										&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap") && !className.startsWith("jersey/repackaged/com/google/common/collect/"))) {
+							try{
 							ClassReader cr2 = new ClassReader(cw.toByteArray());
 							cr2.accept(new CheckClassAdapter(new ClassWriter(0), true), 0);
+							}catch(RuntimeException ex)
+							{
+								ex.printStackTrace();
+							}
 						}
 					}
 					// cv= new TraceClassVisitor(null,null);
@@ -395,7 +402,8 @@ public class PreMain {
 					} catch (Exception ex2) {
 						ex.printStackTrace();
 					}
-					System.exit(-1);
+					if(RUNTIME_INST)
+						System.exit(-1);
 					return new byte[0];
 
 				}
@@ -437,6 +445,7 @@ public class PreMain {
 	public static void premain(String args, Instrumentation inst) {
 		instrumentation = inst;
 		RUNTIME_INST = true;
+		String taintCheckerClazz = null;
 		if (args != null) {
 			String[] aaa = args.split(",");
 			for (String s : aaa) {
@@ -468,9 +477,14 @@ public class PreMain {
 					Instrumenter.sourcesFile = s.substring(13);
 				} else if (s.startsWith("taintSinks=")) {
 					Instrumenter.sinksFile = s.substring(11);
+				} else if (s.startsWith("taintThrough=")) {
+					Instrumenter.taintThroughFile = s.substring(13);
 				} else if(s.startsWith("serialization"))
 				{
 					Configuration.TAINT_THROUGH_SERIALIZATION = true;
+				} else if(s.startsWith("taintCheckerSetter="))
+				{
+					taintCheckerClazz = s.substring(19);
 				}
 			}
 		}
@@ -478,6 +492,18 @@ public class PreMain {
 			Instrumenter.loader = bigLoader;
 		ClassFileTransformer transformer = new PCLoggingTransformer();
 		inst.addTransformer(transformer);
+		if(taintCheckerClazz != null)
+		{
+			try {
+				TaintChecker.taintCheckerSetter = (AbstractTaintCheckerSetter) Class.forName(taintCheckerClazz).newInstance();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
 
 	}
 

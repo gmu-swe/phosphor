@@ -13,6 +13,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	static HashSet<String> sinks = new HashSet<String>();
 	static HashSet<String> sources = new HashSet<String>();
 	static HashMap<String, Object> sourceLabels = new HashMap<String, Object>();
+	static HashSet<String> taintThrough = new HashSet<String>();
 	
 	@Override
 	public Object getLabel(String str) {
@@ -86,9 +87,33 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 				throw new RuntimeException(e);
 			} 
 		}
+		{
+			Scanner s;
+			String lastLine = null;
+			try {
+				if(Instrumenter.taintThroughFile != null)
+				{
+					System.out.println("Using taint through file: " + Instrumenter.taintThroughFile);
+					s = new Scanner(new File(Instrumenter.taintThroughFile));
+
+					while (s.hasNextLine()) {
+						String line = s.nextLine();
+						lastLine = line;
+						if (!line.startsWith("#") && !line.isEmpty())
+							taintThrough.add(line);
+					}
+					s.close();
+				}
+			} catch (Throwable e) {
+				System.err.println("Unable to parse taintThrough file: " + Instrumenter.taintThroughFile);
+				if (lastLine != null)
+					System.err.println("Last line read: '" + lastLine + "'");
+				throw new RuntimeException(e);
+			} 
+		}
 		if (!TaintTrackingClassVisitor.IS_RUNTIME_INST)
 		{
-			System.out.println("Loaded " + sinks.size() + " sinks and " + sources.size() + " sources");
+			System.out.println("Loaded " + sinks.size() + " sinks, " + sources.size() + " sources and " + taintThrough.size()+ " taint through methods");
 		}
 	}
 	
@@ -124,6 +149,26 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		return c1IsSuperforC2(c1, cn.superName);
 	}
 
+	@Override
+	public boolean isTaintThrough(String str) {
+		if (str.startsWith("["))
+			return false;
+		try {
+			String[] inD = str.split("\\.");
+			for (String s : taintThrough) {
+				String d[] = s.split("\\.");
+
+				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
+				{
+				    return true;
+				}
+			}
+			return false;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			return false;
+		}
+	}
 	@Override
 	public boolean isSource(String str) {
 		if (str.startsWith("["))

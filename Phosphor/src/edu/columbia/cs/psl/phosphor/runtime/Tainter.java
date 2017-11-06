@@ -49,10 +49,10 @@ public class Tainter {
 	}
 	public static short taintedShort(short s, int tag)
 	{
-		return s;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static double taintedDouble(double d, int tag){
-		return d;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static TaintedDoubleWithIntTag taintedDouble$$PHOSPHORTAGGED(int i, double s, int z, int tag, TaintedDoubleWithIntTag ret)
 	{
@@ -63,7 +63,7 @@ public class Tainter {
 
 	public static float taintedFloat(float f, int tag)
 	{
-		return f;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static TaintedFloatWithIntTag taintedFloat$$PHOSPHORTAGGED(int i, float s, int z, int tag, TaintedFloatWithIntTag ret)
 	{
@@ -74,7 +74,7 @@ public class Tainter {
 
 	public static boolean taintedBoolean(boolean i, int tag)
 	{
-		return i;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static TaintedBooleanWithIntTag taintedBoolean$$PHOSPHORTAGGED(int i, boolean s, int z, int tag, TaintedBooleanWithIntTag ret)
 	{
@@ -85,24 +85,24 @@ public class Tainter {
 
 	public static byte taintedByte(byte i, int tag)
 	{
-		return i;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 
 	public static int taintedInt(int i, int tag)
 	{
-		return i;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static char taintedChar(char c, int tag)
 	{
-		return c;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static long taintedLong(long i, int tag) {
-		return i;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	
 	public static char[] taintedCharArray(char[] ca, int tag)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static LazyCharArrayIntTags taintedCharArray$$PHOSPHORTAGGED(LazyCharArrayIntTags oldCA, char[] c, int b, int tag)
 	{
@@ -111,7 +111,7 @@ public class Tainter {
 	}
 	public static boolean[] taintedBooleanArray(boolean[] ca, int tag)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static LazyBooleanArrayIntTags taintedBooleanArray$$PHOSPHORTAGGED(LazyBooleanArrayIntTags oldCA, byte[] a, int b, int tag)
 	{
@@ -120,7 +120,7 @@ public class Tainter {
 	}
 	public static byte[] taintedByteArray(byte[] ca, int tag)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static LazyByteArrayIntTags taintedByteArray$$PHOSPHORTAGGED(LazyByteArrayIntTags oldCA, byte[] ca, int b, int tag)
 	{
@@ -129,7 +129,7 @@ public class Tainter {
 	}
 	public static double[] taintedDoubleArray(double[] ca, int tag)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static LazyDoubleArrayIntTags taintedDoubleArray$$PHOSPHORTAGGED(LazyDoubleArrayIntTags oldCA, double[] ca, int b, int tag)
 	{
@@ -138,7 +138,7 @@ public class Tainter {
 	}
 	public static float[] taintedFloatArray(float[] ca, int tag)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static LazyFloatArrayIntTags taintedFloatArray$$PHOSPHORTAGGED(LazyFloatArrayIntTags oldCA, float[] ca, int b, int tag)
 	{
@@ -147,7 +147,7 @@ public class Tainter {
 	}
 	public static int[] taintedIntArray(int[] ca, int tag)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static LazyIntArrayIntTags taintedIntArray$$PHOSPHORTAGGED(LazyIntArrayIntTags oldCA, int[] ca, int b, int tag)
 	{
@@ -156,7 +156,7 @@ public class Tainter {
 	}
 	public static long[] taintedLongArray(long[] ca, int tag)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static LazyLongArrayIntTags taintedLongArray$$PHOSPHORTAGGED(LazyLongArrayIntTags oldCA, long[] ca, int b, int tag)
 	{
@@ -165,7 +165,7 @@ public class Tainter {
 	}
 	public static short[] taintedShortArray(short[] ca, int tag)
 	{
-		return ca;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static LazyShortArrayIntTags taintedShortArray$$PHOSPHORTAGGED(LazyShortArrayIntTags oldCA, short[] ca, int b, int tag)
 	{
@@ -205,7 +205,7 @@ public class Tainter {
 	}
 	public static int getTaint(char c)
 	{
-		return 0;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, char c, TaintedIntWithIntTag ret)
 	{
@@ -214,7 +214,7 @@ public class Tainter {
 		return ret;	}
 	public static int getTaint(byte c)
 	{
-		return 0;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, byte c, TaintedIntWithIntTag ret)
 	{
@@ -223,7 +223,7 @@ public class Tainter {
 		return ret;	}
 	public static int getTaint(boolean c)
 	{
-		return 0;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, boolean c, TaintedIntWithIntTag ret)
 	{
@@ -233,7 +233,7 @@ public class Tainter {
 	}
 	public static int getTaint(int c)
 	{
-		return 0;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, int c, TaintedIntWithIntTag ret)
 	{
@@ -243,7 +243,7 @@ public class Tainter {
 	}
 	public static int getTaint(short c)
 	{
-		return 0;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, short c, TaintedIntWithIntTag ret)
 	{
@@ -253,7 +253,7 @@ public class Tainter {
 	}
 	public static int getTaint(long c)
 	{
-		return 0;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, long c, TaintedIntWithIntTag ret)
 	{
@@ -263,7 +263,7 @@ public class Tainter {
 	}
 	public static int getTaint(float c)
 	{
-		return 0;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, float c, TaintedIntWithIntTag ret)
 	{
@@ -273,7 +273,7 @@ public class Tainter {
 	}
 	public static int getTaint(double c)
 	{
-		return 0;
+		throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
 	}
 	public static TaintedIntWithIntTag getTaint$$PHOSPHORTAGGED(int t, double c, TaintedIntWithIntTag ret)
 	{

@@ -215,6 +215,11 @@ public class Instrumenter {
 		.hasArg()
 		.desc("File with listing of taint sources to auto-taint")
 		.build();
+	static Option opt_taintThrough= Option.builder("taintThrough")
+			.argName("taintThrough")
+			.hasArg()
+			.desc("File with listing of methods that should directly propogate the taint from 'this' to their return value")
+			.build();
 	static Option opt_taintSinks = Option.builder("taintSinks")
 		.argName("taintSinks")
 		.hasArg()
@@ -273,6 +278,8 @@ public class Instrumenter {
 
 	public static String sourcesFile;
 	public static String sinksFile;
+	public static String taintThroughFile;
+
 	static boolean ANALYZE_ONLY;
 	
 	private static long START;
@@ -286,6 +293,7 @@ public class Instrumenter {
 		options.addOption(opt_dataTrack);
 		options.addOption(opt_taintSinks);
 		options.addOption(opt_taintSources);
+		options.addOption(opt_taintThrough);
 		options.addOption(opt_trackArrayLengthTaints);
 		options.addOption(opt_trackArrayIndexTaints);
 		options.addOption(opt_withoutFieldHiding);
@@ -318,6 +326,7 @@ public class Instrumenter {
 		}
 		
 		sourcesFile = line.getOptionValue("taintSources");
+		taintThroughFile = line.getOptionValue("taintThrough");
 		sinksFile = line.getOptionValue("taintSinks");
 		
 		Configuration.MULTI_TAINTING = line.hasOption("multiTaint");

@@ -9,14 +9,19 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class TaintChecker {
+	public static AbstractTaintCheckerSetter taintCheckerSetter;
 	public static void checkTaint(int tag)
 	{
-		if(tag != 0)
+		if(taintCheckerSetter != null)
+			taintCheckerSetter.checkTaint(tag);
+		else if(tag != 0)
 			throw new IllegalAccessError("Argument carries taint " + tag);
 	}
 	public static void checkTaint(Taint tag)
 	{
-		if(tag != null)
+		if(taintCheckerSetter != null)
+			taintCheckerSetter.checkTaint(tag);
+		else if(tag != null)
 			throw new IllegalAccessError("Argument carries taint " + tag);
 	}
 	public static void checkTaint(Object obj) {
@@ -30,7 +35,6 @@ public class TaintChecker {
 			if (((TaintedWithObjTag) obj).getPHOSPHOR_TAG() != null)
 				throw new IllegalAccessError("Argument carries taint " + ((TaintedWithObjTag) obj).getPHOSPHOR_TAG());
 		}
-
 		else if(obj instanceof int[])
 		{
 			for(int i : ((int[])obj))
@@ -74,6 +78,9 @@ public class TaintChecker {
 		{
 			throw new IllegalAccessError("Argument carries taints:  " + obj);
 		}
+		if(taintCheckerSetter != null)
+			taintCheckerSetter.checkTaint(obj);
+
 	}
 
 	public static boolean hasTaints(int[] tags) {
@@ -89,7 +96,10 @@ public class TaintChecker {
 		if(obj == null)
 			return;
 		if (obj instanceof TaintedWithIntTag) {
-			((TaintedWithIntTag) obj).setPHOSPHOR_TAG(tag);
+			if(taintCheckerSetter != null)
+				taintCheckerSetter.setTaint(obj, tag);
+			else
+				((TaintedWithIntTag) obj).setPHOSPHOR_TAG(tag);
 		} else if (obj instanceof LazyArrayIntTags){
 			((LazyArrayIntTags)obj).setTaints(tag);
 		} else if (obj.getClass().isArray()) {
@@ -116,7 +126,10 @@ public class TaintChecker {
 		if(obj == null)
 			return;
 		if (obj instanceof TaintedWithObjTag) {
-			((TaintedWithObjTag) obj).setPHOSPHOR_TAG(tag);
+			if(taintCheckerSetter != null)
+				taintCheckerSetter.setTaint(obj, tag);
+			else
+				((TaintedWithObjTag) obj).setPHOSPHOR_TAG(tag);
 		} else if (obj instanceof LazyArrayObjTags){
 			((LazyArrayObjTags)obj).setTaints(tag);
 		} else if (obj.getClass().isArray()) {

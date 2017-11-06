@@ -41,6 +41,8 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 public abstract class SourceSinkManager {
 	public abstract boolean isSource(String str);
 
+	public abstract boolean isTaintThrough(String str);
+	
 	public Object getLabel(String owner, String name, String taintedDesc)
 	{
 		if (name.endsWith("$$PHOSPHORTAGGED"))
@@ -64,12 +66,7 @@ public abstract class SourceSinkManager {
 		boolean isSkipping = false;
 		for (Type t : Type.getArgumentTypes(desc)) {
 			if (t.getSort() == Type.ARRAY) {
-				if (!isSkipping)
-					isSkipping = true;
-				else {
-					r += t.getDescriptor();
-					isSkipping = !isSkipping;
-				}
+				r += t.getDescriptor();
 			} else if (t.getSort() != Type.OBJECT) {
 				if (!isSkipping)
 					isSkipping = true;
@@ -171,6 +168,14 @@ public abstract class SourceSinkManager {
 		return returnType.getDescriptor();
 	}
 
+	public boolean isTaintThrough(String owner, String name, String taintedDesc) {
+		if (name.endsWith("$$PHOSPHORTAGGED"))
+			return isTaintThrough(owner + "." + name.replace("$$PHOSPHORTAGGED", "") + remapMethodDescToRemoveTaints(taintedDesc));
+		else
+			return isTaintThrough(owner + "." + name + taintedDesc);
+	}
+
+	
 	public boolean isSink(String owner, String name, String taintedDesc) {
 		if (name.endsWith("$$PHOSPHORTAGGED"))
 			return isSink(owner + "." + name.replace("$$PHOSPHORTAGGED", "") + remapMethodDescToRemoveTaints(taintedDesc));

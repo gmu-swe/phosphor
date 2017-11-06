@@ -1,9 +1,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>edu.columbia.cs.psl.phosphor</groupId>
+    <groupId>edu.gmu.swe.phosphor</groupId>
     <artifactId>Phosphor</artifactId>
-    <version>0.0.3-SNAPSHOT</version>
+    <version>0.0.3</version>
     <properties>
         <dacapo.skip>true</dacapo.skip>
         <skipIntTagNoInstTests>true</skipIntTagNoInstTests>
@@ -11,8 +11,25 @@
         <skipObjTagTestsArrayLength>true</skipObjTagTestsArrayLength>
         <maven.compiler.testSource>1.8</maven.compiler.testSource>
         <maven.compiler.testTarget>1.8</maven.compiler.testTarget>
-
     </properties>
+     <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <url>https://github.com/gmu-swe/phosphor/</url>
+    <developers>
+        <developer>
+            <id>jbell</id>
+            <name>Jonathan Bell</name>
+            <email>bellj@gmu.edu</email>
+        </developer>
+    </developers>
+    <scm><url>git@github.com:gmu-swe/phosphor.git</url></scm>
+    <description>Dynamic Taint Tracker</description>
+    
     <build>
         <sourceDirectory>src</sourceDirectory>
         <testSourceDirectory>test</testSourceDirectory>

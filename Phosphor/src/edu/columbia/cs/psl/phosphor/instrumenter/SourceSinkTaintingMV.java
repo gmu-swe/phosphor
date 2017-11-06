@@ -6,7 +6,9 @@ import org.objectweb.asm.Type;
 
 import edu.columbia.cs.psl.phosphor.BasicSourceSinkManager;
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.PreMain;
 import edu.columbia.cs.psl.phosphor.SourceSinkManager;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
@@ -19,6 +21,7 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 	String desc;
 	boolean thisIsASource;
 	boolean thisIsASink;
+	boolean thisIsTaintThrough;
 	String origDesc;
 	int access;
 	boolean isStatic;
@@ -33,13 +36,19 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 		this.origDesc = origDesc;
 		this.thisIsASource = sourceSinkManager.isSource(owner, name, desc);
 		this.thisIsASink = sourceSinkManager.isSink(owner, name, desc);
+		this.thisIsTaintThrough = sourceSinkManager.isTaintThrough(owner, name, desc);
 		this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
 		if (this.thisIsASource) {
 			lbl = sourceSinkManager.getLabel(owner, name, desc);
-			System.out.println("Source: " + owner + "." + name + desc + " Label: " + lbl);
+			if(PreMain.DEBUG)
+				System.out.println("Source: " + owner + "." + name + desc + " Label: " + lbl);
 		}
-		if (this.thisIsASink)
-			System.out.println("Sink: " + owner + "." + name + desc);
+//		if (PreMain.DEBUG) {
+			if (this.thisIsASink)
+				System.out.println("Sink: " + owner + "." + name + desc);
+			if (this.thisIsTaintThrough)
+				System.out.println("Taint through: " + owner + "." + name + desc);
+//		}
 	}
 
 	private void loadSourceLblAndMakeTaint() {
@@ -55,25 +64,38 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 	@Override
 	public void visitCode() {
 		super.visitCode();
-		if (this.thisIsASource) {
+		if (this.thisIsASource || thisIsTaintThrough) {
 			Type[] args = Type.getArgumentTypes(desc);
 			int idx = 0;
 			if (!isStatic)
 				idx++;
-			boolean skipNextArray = false;
 			for (int i = 0; i < args.length; i++) {
 				if (args[i].getSort() == Type.OBJECT) {
 					super.visitVarInsn(ALOAD, idx);
-					loadSourceLblAndMakeTaint();
+					if(thisIsASource)
+						loadSourceLblAndMakeTaint();
+					else
+					{
+						super.visitVarInsn(ALOAD, 0);
+						super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+						if(Configuration.MULTI_TAINTING)
+							super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
+					}
 					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-				} else if (!skipNextArray && args[i].getSort() == Type.ARRAY
-						&& (args[i].getElementType().getSort() != Type.OBJECT || args[i].getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC)) && args[i].getDimensions() == 1) {
-					skipNextArray = true;
+				} else if (args[i].getSort() == Type.ARRAY
+						&& args[i].getElementType().getSort() == Type.OBJECT) {
 					super.visitVarInsn(ALOAD, idx);
-					loadSourceLblAndMakeTaint();
+					if(thisIsASource)
+						loadSourceLblAndMakeTaint();
+					else
+					{
+						super.visitVarInsn(ALOAD, 0);
+						super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+						if(Configuration.MULTI_TAINTING)
+							super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
+					}
 					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(" + Configuration.TAINT_TAG_ARRAYDESC + Configuration.TAINT_TAG_DESC + ")V", false);
-				} else if (skipNextArray)
-					skipNextArray = false;
+				}
 				idx += args[i].getSize();
 			}
 		}
@@ -110,24 +132,41 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 
 	@Override
 	public void visitInsn(int opcode) {
-		if (opcode == ARETURN && this.thisIsASource) {
+		if (opcode == ARETURN && (this.thisIsASource || this.thisIsTaintThrough)) {
 			Type returnType = Type.getReturnType(this.origDesc);
 			if (returnType.getSort() == Type.OBJECT || returnType.getSort() == Type.ARRAY) {
 				super.visitInsn(DUP);
-				loadSourceLblAndMakeTaint();
+				if(thisIsASource)
+					loadSourceLblAndMakeTaint();
+				else
+				{
+					super.visitVarInsn(ALOAD, 0);
+					super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+					if(Configuration.MULTI_TAINTING)
+						super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
+				}
 				super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 			} else if (returnType.getSort() == Type.VOID) {
 
 			} else {
-				//primitive
+				// primitive
 				super.visitInsn(DUP);
-				loadSourceLblAndMakeTaint();
+				if(thisIsASource)
+					loadSourceLblAndMakeTaint();
+				else
+				{
+					super.visitVarInsn(ALOAD, 0);
+					super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+					if(Configuration.MULTI_TAINTING)
+						super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
+				}
 				if (Configuration.MULTI_TAINTING)
 					super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithObjTag.class), "taint", Configuration.TAINT_TAG_DESC);
 				else
 					super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithIntTag.class), "taint", "I");
 			}
 		}
+	
 		super.visitInsn(opcode);
 	}
 }
