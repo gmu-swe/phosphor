@@ -17,4 +17,9 @@ public class NullSourceSinkManager extends SourceSinkManager{
 		return null;
 	}
 
+	@Override
+	public boolean isTaintThrough(String str) {
+		return false;
+	}
+
 }
