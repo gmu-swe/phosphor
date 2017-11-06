@@ -3,7 +3,8 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>edu.gmu.swe.phosphor</groupId>
     <artifactId>Phosphor</artifactId>
-    <version>0.0.3</version>
+    <name>Phosphor</name>
+    <version>0.0.4-SNAPSHOT</version>
     <properties>
         <dacapo.skip>true</dacapo.skip>
         <skipIntTagNoInstTests>true</skipIntTagNoInstTests>
