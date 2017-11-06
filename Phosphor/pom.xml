@@ -238,6 +238,47 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.7</version>
+                <extensions>true</extensions>
+                <configuration>
+                 <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+             <plugin>
+			     <groupId>org.apache.maven.plugins</groupId>
+			     <artifactId>maven-javadoc-plugin</artifactId>
+			     <version>2.9.1</version>
+                 <configuration>
+                            <additionalparam>-Xdoclint:none</additionalparam>
+                 </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadoc</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -259,18 +300,10 @@
             <version>5.0.3</version>
         </dependency>
     </dependencies>
-    <repositories>
-        <repository>
-            <id>jb.snapshots</id>
-            <name>jons snapshots</name>
-            <url>https://maven.jonbell.net/repository/snapshots</url>
-        </repository>
-    </repositories>
-    <distributionManagement>
-        <snapshotRepository>
-            <id>jb.snapshots</id>
-            <name>JB Snapshots Repository</name>
-            <url>https://maven.jonbell.net/repository/snapshots</url>
-        </snapshotRepository>
+	<distributionManagement>
+      <snapshotRepository>
+          <id>ossrh</id>
+          <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      </snapshotRepository>
     </distributionManagement>
 </project>
