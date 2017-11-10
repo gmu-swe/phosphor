@@ -276,11 +276,11 @@ public class Instrumenter {
 		.desc("print this message")
 		.build();
 
-	public static String sourcesFile;
-	public static String sinksFile;
-	public static String taintThroughFile;
+	public static InputStream sourcesFile;
+	public static InputStream sinksFile;
+	public static InputStream taintThroughFile;
 
-	static boolean ANALYZE_ONLY;
+	public static boolean ANALYZE_ONLY;
 	
 	private static long START;
 	public static void main(String[] args) {
@@ -325,10 +325,16 @@ public class Instrumenter {
 			return;
 		}
 		
-		sourcesFile = line.getOptionValue("taintSources");
-		taintThroughFile = line.getOptionValue("taintThrough");
-		sinksFile = line.getOptionValue("taintSinks");
-		
+		try {
+			if (line.getOptionValue("taintSources") != null)
+				sourcesFile = new FileInputStream(line.getOptionValue("taintSources"));
+			if (line.getOptionValue("taintThrough") != null)
+				taintThroughFile = new FileInputStream(line.getOptionValue("taintThrough"));
+			if (line.getOptionValue("taintSinks") != null)
+				sinksFile = new FileInputStream(line.getOptionValue("taintSinks"));
+		} catch (FileNotFoundException ex) {
+			ex.printStackTrace();
+		}
 		Configuration.MULTI_TAINTING = line.hasOption("multiTaint");
 		Configuration.IMPLICIT_TRACKING = line.hasOption("controlTrack");
 		Configuration.IMPLICIT_LIGHT_TRACKING = line.hasOption("lightControlTrack");

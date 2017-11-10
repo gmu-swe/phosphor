@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -474,11 +475,23 @@ public class PreMain {
 					Configuration.selective_inst_config = s.substring(18);
 					SelectiveInstrumentationManager.populateMethodsToInstrument(Configuration.selective_inst_config);
 				} else if (s.startsWith("taintSources=")) {
-					Instrumenter.sourcesFile = s.substring(13);
+					try {
+						Instrumenter.sourcesFile = new FileInputStream(s.substring(13));
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					}
 				} else if (s.startsWith("taintSinks=")) {
-					Instrumenter.sinksFile = s.substring(11);
+					try {
+						Instrumenter.sinksFile = new FileInputStream(s.substring(11));
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					}
 				} else if (s.startsWith("taintThrough=")) {
-					Instrumenter.taintThroughFile = s.substring(13);
+					try {
+						Instrumenter.taintThroughFile = new FileInputStream(s.substring(13));
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					}
 				} else if(s.startsWith("serialization"))
 				{
 					Configuration.TAINT_THROUGH_SERIALIZATION = true;

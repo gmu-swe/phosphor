@@ -10,10 +10,10 @@ import org.objectweb.asm.tree.ClassNode;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 
 public class BasicSourceSinkManager extends SourceSinkManager {
-	static HashSet<String> sinks = new HashSet<String>();
-	static HashSet<String> sources = new HashSet<String>();
-	static HashMap<String, Object> sourceLabels = new HashMap<String, Object>();
-	static HashSet<String> taintThrough = new HashSet<String>();
+	public static HashSet<String> sinks = new HashSet<String>();
+	public static HashSet<String> sources = new HashSet<String>();
+	public static HashMap<String, Object> sourceLabels = new HashMap<String, Object>();
+	public static HashSet<String> taintThrough = new HashSet<String>();
 	
 	@Override
 	public Object getLabel(String str) {
@@ -31,8 +31,8 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			try {
 				if(Instrumenter.sourcesFile != null)
 				{
-					System.out.println("Using taint sources file: " + Instrumenter.sourcesFile);
-					s = new Scanner(new File(Instrumenter.sourcesFile));
+					System.out.println("Using taint sources file");
+					s = new Scanner(Instrumenter.sourcesFile);
 
 					int i = 0;
 					while (s.hasNextLine())
@@ -57,7 +57,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 				}
 				
 			} catch (Throwable e) {
-				System.err.println("Unable to parse sources file: " + Instrumenter.sourcesFile);
+				System.err.println("Unable to parse sources file");
 				if (lastLine != null)
 					System.err.println("Last line read: '" + lastLine + "'");
 				throw new RuntimeException(e);
@@ -69,8 +69,8 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			try {
 				if(Instrumenter.sinksFile != null)
 				{
-					System.out.println("Using taint sinks file: " + Instrumenter.sinksFile);
-					s = new Scanner(new File(Instrumenter.sinksFile));
+					System.out.println("Using taint sinks file");
+					s = new Scanner(Instrumenter.sinksFile);
 
 					while (s.hasNextLine()) {
 						String line = s.nextLine();
@@ -94,7 +94,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 				if(Instrumenter.taintThroughFile != null)
 				{
 					System.out.println("Using taint through file: " + Instrumenter.taintThroughFile);
-					s = new Scanner(new File(Instrumenter.taintThroughFile));
+					s = new Scanner(Instrumenter.taintThroughFile);
 
 					while (s.hasNextLine()) {
 						String line = s.nextLine();
