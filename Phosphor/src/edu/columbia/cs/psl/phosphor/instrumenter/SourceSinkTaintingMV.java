@@ -43,12 +43,12 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 			if(PreMain.DEBUG)
 				System.out.println("Source: " + owner + "." + name + desc + " Label: " + lbl);
 		}
-//		if (PreMain.DEBUG) {
+		if (PreMain.DEBUG) {
 			if (this.thisIsASink)
 				System.out.println("Sink: " + owner + "." + name + desc);
 			if (this.thisIsTaintThrough)
 				System.out.println("Taint through: " + owner + "." + name + desc);
-//		}
+		}
 	}
 
 	private void loadSourceLblAndMakeTaint() {

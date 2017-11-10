@@ -93,7 +93,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			try {
 				if(Instrumenter.taintThroughFile != null)
 				{
-					System.out.println("Using taint through file: " + Instrumenter.taintThroughFile);
+					System.out.println("Using taint through file");
 					s = new Scanner(Instrumenter.taintThroughFile);
 
 					while (s.hasNextLine()) {
