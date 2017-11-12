@@ -3,11 +3,14 @@ package edu.columbia.cs.psl.test.phosphor;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.math.BigInteger;
 
 import org.junit.After;
 import org.junit.Test;
@@ -17,6 +20,21 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	String labelA = "a";
 	String labelFoo = "Foo";
+	
+	@Test
+	public void testSerializeBigInt() throws Exception {
+		int five = MultiTainter.taintedInt(5, "abc");
+		BigInteger b = BigInteger.valueOf(five);
+		ByteArrayOutputStream bos =new ByteArrayOutputStream();
+        ObjectOutputStream so = new ObjectOutputStream(bos);
+        so.writeObject(b);
+
+        // deserialize the Object
+        ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+        ObjectInputStream si = new ObjectInputStream(bis);
+        b = (BigInteger) si.readObject();
+        System.out.println(b.toByteArray());
+	}
 	@Test
 	public void testSimpleIf() throws Exception {
 		resetState();

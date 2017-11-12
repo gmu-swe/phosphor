@@ -43,6 +43,9 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	        return true;
 	    else if(Configuration.TAINT_THROUGH_SERIALIZATION && (className.startsWith("java/io/ObjectStreamClass") || className.equals("java/io/ObjectStreamField")))
 	    	return true;
+	    else if(className.startsWith("java/math/BigInteger$Unsafe"))
+    		return true;
+
 	    return false;
 	}
 	public void setLvs(LocalVariableManager lvs) {
@@ -68,7 +71,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			return;
 		}
 		if (disable) {
-			if (this.methodName.equals("setObjFieldValues") && owner.equals("sun/misc/Unsafe") && name.startsWith("putObject")) {
+			if ((this.methodName.equals("setObjFieldValues") || this.methodName.startsWith("putMag")) && owner.equals("sun/misc/Unsafe") && name.startsWith("putObject")) {
 				owner = Type.getInternalName(ReflectionMasker.class);
 				super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), itfc);
 				return;
