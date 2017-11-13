@@ -43,6 +43,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAd
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.PFrame;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.SinkableArrayValue;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 	PrimitiveArrayAnalyzer primitiveArrayFixer;
@@ -113,7 +114,9 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 			};
 			try {
 				String graph ="";
-				//					System.out.println("UTLC " + name + desc);
+//				System.out.println("UTLC " + name + desc + " " + this.instructions.size());
+				
+				boolean canIgnoreTaintsTillEnd = true;
 				Frame[] frames = a.analyze(className, this);
 				AbstractInsnNode insn = this.instructions.getFirst();
 
@@ -249,8 +252,13 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						break;
 					case AbstractInsnNode.FIELD_INSN:
 						switch (insn.getOpcode()) {
-						case Opcodes.PUTSTATIC:
+						case Opcodes.GETFIELD:
+						case Opcodes.GETSTATIC:
+							canIgnoreTaintsTillEnd = false;
+							break;
 						case Opcodes.PUTFIELD:
+							canIgnoreTaintsTillEnd = false;
+						case Opcodes.PUTSTATIC:
 							BasicValue value = (BasicValue) f.getStack(f.getStackSize() - 1);
 			
 							Type vt = Type.getType(((FieldInsnNode) insn).desc);
@@ -325,6 +333,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						}
 						break;
 					case AbstractInsnNode.INVOKE_DYNAMIC_INSN:
+						canIgnoreTaintsTillEnd = false;
 						InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) insn;
 						Type[] margs = Type.getArgumentTypes(idin.desc);
 //						System.out.println(desc);
@@ -350,6 +359,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						}
 						break;
 					case AbstractInsnNode.METHOD_INSN:
+						canIgnoreTaintsTillEnd = false;
 						MethodInsnNode min = (MethodInsnNode) insn;
 						margs = Type.getArgumentTypes(((MethodInsnNode) insn).desc);
 
@@ -425,6 +435,48 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						break;
 					}
 					insn = insn.getNext();
+				}
+				if(this.instructions.size() > 20000 && canIgnoreTaintsTillEnd)
+				{
+//					System.out.println("Can opt " + className + name + " "+canIgnoreTaintsTillEnd);
+					insn = this.instructions.getFirst();
+					this.instructions.insert(new InsnNode(TaintUtils.IGNORE_EVERYTHING));
+					while(insn != null)
+					{
+						if(insn.getOpcode() == PUTSTATIC)
+						{
+							Type origType = Type.getType(((FieldInsnNode)insn).desc);
+							if(origType.getSort() == Type.ARRAY && (origType.getElementType().getSort() != Type.OBJECT || origType.getElementType().getInternalName().equals("java/lang/Object")))
+							{
+								if(origType.getElementType().getSort() != Type.OBJECT)
+								{
+									Type wrappedType = MultiDTaintedArray.getTypeForType(origType);
+									if(origType.getDimensions() == 1)
+									{
+										this.instructions.insertBefore(insn, new InsnNode(DUP));
+										this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
+										this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, wrappedType.getInternalName()));
+										this.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, ((FieldInsnNode)insn).owner, ((FieldInsnNode)insn).name+TaintUtils.TAINT_FIELD, wrappedType.getDescriptor()));
+									}
+									else
+									{
+										((FieldInsnNode)insn).desc= wrappedType.getDescriptor();
+										this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
+										this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, wrappedType.getInternalName()));
+									}
+								}
+								else
+								{
+									this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
+									this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, origType.getInternalName()));
+								}
+							}
+						}
+						insn = insn.getNext();
+					}
+					super.visitEnd();
+					this.accept(cmv);
+					return;
 				}
 
 				HashSet<SinkableArrayValue> swapPop = new HashSet<>();
@@ -558,9 +610,9 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 	public static void main(String[] args) throws Throwable {
 //		Configuration.IMPLICIT_TRACKING =false;
 		Configuration.IMPLICIT_LIGHT_TRACKING = true;
-		Configuration.ARRAY_LENGTH_TRACKING = true;
-		Configuration.ARRAY_INDEX_TRACKING = true;
-		Configuration.ANNOTATE_LOOPS = true;
+//		Configuration.ARRAY_LENGTH_TRACKING = true;
+//		Configuration.ARRAY_INDEX_TRACKING = true;
+//		Configuration.ANNOTATE_LOOPS = true;
 //		Instrumenter.instrumentClass("asdf", new FileInputStream("z.class"), false);
 		ClassReader cr = new ClassReader(new FileInputStream("z.class"));
 //		ClassReader cr = new ClassReader(new FileInputStream("target/test-classes/Foo.class"));

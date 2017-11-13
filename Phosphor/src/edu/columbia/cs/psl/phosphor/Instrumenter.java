@@ -351,7 +351,7 @@ public class Instrumenter {
 		Configuration.selective_inst_config = line.getOptionValue("withSelectiveInst");
 		Configuration.WITH_TAGS_FOR_JUMPS = line.hasOption("disableJumpOptimizations");
 		Configuration.READ_AND_SAVE_BCI = line.hasOption("readAndSaveBCIs");
-		Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption("serialization");
+//		Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption("serialization"); //Really needs to always be active
 		
 		Configuration.ARRAY_INDEX_TRACKING = line.hasOption("withArrayIndexTags");
 		Configuration.init();

@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
+import java.util.HashSet;
+
 import org.objectweb.asm.Type;
 
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
@@ -11,6 +13,7 @@ import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayIntTags;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 
 public abstract class MultiDTaintedArrayWithIntTag {
@@ -217,6 +220,12 @@ public abstract class MultiDTaintedArrayWithIntTag {
 		return unboxVal((Object[]) in, getSortForBoxClass(tmp), dims);
 	}
 
+	public static final Object unboxRawOnly1D(final Object in) {
+		if(in instanceof LazyArrayIntTags)
+			return ((LazyArrayIntTags) in).getVal();
+		return in;
+	}
+	
 	public static final Object unboxVal(final Object _in, final int componentType, final int dims) {
 
 		if (dims == 0) {
@@ -413,6 +422,54 @@ public abstract class MultiDTaintedArrayWithIntTag {
 			return Type.SHORT;
 		throw new IllegalArgumentException();
 	}
+	public static final Object boxIfNecessary(final Object in, final HashSet<Object> includedObjs) {
+		if (in != null && in.getClass().isArray()) {
+			Class tmp = in.getClass();
+			int dims = 0;
+			while(tmp.isArray())
+			{
+				tmp = tmp.getComponentType();
+				dims++;
+			}
+			if (tmp.isPrimitive()) {
+				//Is prim arraytype
+				if (dims > 1) { //this should never be possible.
+					Type t = Type.getType(in.getClass());
+					return initWithEmptyTaints((Object[]) in, t.getElementType().getSort(), t.getDimensions());
+				} else {
+					if(tmp == Boolean.TYPE)
+						return new LazyBooleanArrayIntTags((boolean[]) in);
+					if(tmp == Byte.TYPE)
+						return new LazyByteArrayIntTags(((byte[]) in));
+					if(tmp == Character.TYPE)
+						return new LazyCharArrayIntTags(((char[]) in));
+					if(tmp == Double.TYPE)
+						return new LazyDoubleArrayIntTags(((double[]) in));
+					if(tmp == Float.TYPE)
+						return new LazyFloatArrayIntTags(((float[]) in));
+					if(tmp == Integer.TYPE)
+						return new LazyIntArrayIntTags(((int[]) in));
+					if(tmp == Long.TYPE)
+						return new LazyLongArrayIntTags(((long[]) in));
+					if(tmp == Short.TYPE)
+						return new LazyShortArrayIntTags(((short[]) in));
+						throw new IllegalArgumentException();
+				}
+			}
+			else if(in.getClass().getComponentType().getName().equals("java.lang.Object"))
+			{
+				TaintedBooleanWithIntTag tmpRet = new TaintedBooleanWithIntTag();
+				Object[] _in = (Object[]) in;
+				for(int i = 0; i < _in.length;i++)
+				{
+					if(includedObjs.add$$PHOSPHORTAGGED(_in[i],tmpRet).val)
+						_in[i] = boxIfNecessary(_in[i], includedObjs);
+				}
+			}
+		}
+		return in;
+	}
+	
 	public static final Object boxIfNecessary(final Object in) {
 		if (in != null && in.getClass().isArray()) {
 			Class tmp = in.getClass();
@@ -452,7 +509,7 @@ public abstract class MultiDTaintedArrayWithIntTag {
 				Object[] _in = (Object[]) in;
 				for(int i = 0; i < _in.length;i++)
 				{
-					_in[i] = boxIfNecessary(_in[i]);
+					_in[i] = boxIfNecessary(_in[i], new HashSet<Object>());
 				}
 			}
 		}

@@ -71,7 +71,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			return;
 		}
 		if (disable) {
-			if ((this.methodName.equals("setObjFieldValues") || this.methodName.startsWith("putMag")) && owner.equals("sun/misc/Unsafe") && name.startsWith("putObject")) {
+			if ((this.methodName.equals("setObjFieldValues") || this.methodName.startsWith("putMag")) && owner.equals("sun/misc/Unsafe") && (name.startsWith("putObject") || name.startsWith("compareAndSwapObject"))) {
 				owner = Type.getInternalName(ReflectionMasker.class);
 				super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), itfc);
 				return;

@@ -1511,7 +1511,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					if (isUntaggedCall)
 						ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 					else
-						ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+					{
+						if(className.equals("sun/misc/Unsafe"))
+							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRawOnly1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						else
+							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+					}
 					if (t.getSort() == Type.ARRAY)
 						ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
 					FrameNode fn = TaintAdapter.getCurrentFrameNode(an);

@@ -1064,10 +1064,15 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setInt(obj, i.intValue());
 				try {
-					if (!isObjTags)
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-					else
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
+					if (!isObjTags) {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.setInt(obj, getTag(val));
+					} else {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.set(obj, getTagObj(val));
+					}
 				} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
@@ -1079,12 +1084,12 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setBoolean(obj, i.booleanValue());
 				try {
-					if (!isObjTags)
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-					else
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
-					} catch (NoSuchFieldException e) {
-					e.printStackTrace();
+//					if (!isObjTags)
+//						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
+//					else
+//						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
+//					} catch (NoSuchFieldException e) {
+//					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
 				}
@@ -1094,11 +1099,16 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setByte(obj, i.byteValue());
 				try {
-					if (!isObjTags)
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-					else
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
-					} catch (NoSuchFieldException e) {
+					if (!isObjTags) {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.setInt(obj, getTag(val));
+					} else {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.set(obj, getTagObj(val));
+					}
+				} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -1109,11 +1119,16 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setChar(obj, i.charValue());
 				try {
-					if (!isObjTags)
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-					else
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
-					} catch (NoSuchFieldException e) {
+					if (!isObjTags) {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.setInt(obj, getTag(val));
+					} else {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.set(obj, getTagObj(val));
+					}
+				} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -1124,11 +1139,16 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setDouble(obj, i.doubleValue());
 				try {
-					if (!isObjTags)
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-					else
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
-					} catch (NoSuchFieldException e) {
+					if (!isObjTags) {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.setInt(obj, getTag(val));
+					} else {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.set(obj, getTagObj(val));
+					}
+				} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -1139,11 +1159,16 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setFloat(obj, i.floatValue());
 				try {
-					if (!isObjTags)
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-					else
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
-					} catch (NoSuchFieldException e) {
+					if (!isObjTags) {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.setInt(obj, getTag(val));
+					} else {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.set(obj, getTagObj(val));
+					}
+				} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -1154,11 +1179,16 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setLong(obj, i.longValue());
 				try {
-					if (!isObjTags)
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-					else
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
-					} catch (NoSuchFieldException e) {
+					if (!isObjTags) {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.setInt(obj, getTag(val));
+					} else {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.set(obj, getTagObj(val));
+					}
+				} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();
@@ -1169,11 +1199,16 @@ public class RuntimeReflectionPropogator {
 				f.setAccessible(true);
 				f.setShort(obj, i.shortValue());
 				try {
-					if (!isObjTags)
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-					else
-						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
-					} catch (NoSuchFieldException e) {
+					if (!isObjTags) {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.setInt(obj, getTag(val));
+					} else {
+						Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+						tf.setAccessible(true);
+						tf.set(obj, getTagObj(val));
+					}
+				} catch (NoSuchFieldException e) {
 					e.printStackTrace();
 				} catch (SecurityException e) {
 					e.printStackTrace();

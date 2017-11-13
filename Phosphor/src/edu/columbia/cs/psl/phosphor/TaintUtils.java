@@ -7,6 +7,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -361,7 +362,44 @@ public class TaintUtils {
 		{
 			int ret = 0;
 			for(Object o : ((Object[]) obj))
-				ret |= getTaintInt(o);
+				ret |= getTaintInt(o, new HashSet<Object>());
+			return ret;
+		}
+		else if(obj instanceof LazyArrayIntTags)
+		{
+//			int ret = 0;
+//			for(int i : ((MultiDTaintedArrayWithIntTag) obj).taint)
+//				ret |= i;
+//			return ret;
+			throw new UnsupportedOperationException();
+		}
+//		if(BoxedPrimitiveStoreWithIntTags.tags.containsKey(obj))
+//			return BoxedPrimitiveStoreWithIntTags.tags.get(obj);
+		return 0;
+	}
+	private static int getTaintInt(Object obj, HashSet<Object> includedObj) {
+		if(obj == null)
+			return 0;
+		if (obj instanceof TaintedWithIntTag) {
+			return ((TaintedWithIntTag) obj).getPHOSPHOR_TAG();
+		}
+		else if(obj instanceof int[])
+		{
+			int ret = 0;
+			for(int i : ((int[])obj))
+			{
+				ret |=i;
+			}
+			return ret;
+		}
+		else if(obj instanceof Object[])
+		{
+			int ret = 0;
+			TaintedBooleanWithIntTag tmpRet = new TaintedBooleanWithIntTag();
+
+			for(Object o : ((Object[]) obj))
+				if(includedObj.add$$PHOSPHORTAGGED(o, tmpRet).val)
+					ret |= getTaintInt(o,includedObj);
 			return ret;
 		}
 		else if(obj instanceof LazyArrayIntTags)
@@ -377,6 +415,53 @@ public class TaintUtils {
 		return 0;
 	}
 
+	private static Taint getTaintObj(Object obj, HashSet<Object> includedObj)
+	{
+		if(obj == null || Taint.IGNORE_TAINTING)
+			return null;
+		includedObj.add(obj);
+		if (obj instanceof TaintedWithObjTag) {
+			return (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
+		}
+		else if(ArrayHelper.engaged == 1)
+		{
+			return ArrayHelper.getTag(obj);
+		}
+		else if(obj instanceof Taint[])
+		{
+			Taint ret = new Taint();
+			for(Taint t: ((Taint[]) obj))
+			{
+				if(t != null)
+					ret.addDependency(t);
+			}
+			if(ret.hasNoDependencies())
+				return null;
+			return ret;
+		}
+		else if(obj instanceof LazyArrayObjTags)
+		{
+			return ((LazyArrayObjTags) obj).lengthTaint;
+		}
+		else if(obj instanceof Object[])
+		{
+			Taint ret = new Taint();
+			TaintedBooleanWithObjTag tmpRet = new TaintedBooleanWithObjTag();
+			for (Object o : (Object[]) obj) {
+				if (includedObj.add$$PHOSPHORTAGGED(o, tmpRet).val) {
+					Taint t = (Taint) getTaintObj(o, includedObj);
+					if (t != null)
+						ret.addDependency(t);
+				}
+			}
+			if(ret.hasNoDependencies())
+				return null;
+			return ret;
+		}
+//		if(BoxedPrimitiveStoreWithObjTags.tags.containsKey(obj))
+//			return BoxedPrimitiveStoreWithObjTags.tags.get(obj);
+		return null;
+	}
 	public static Taint getTaintObj(Object obj) {
 		if(obj == null || Taint.IGNORE_TAINTING)
 			return null;
@@ -405,16 +490,7 @@ public class TaintUtils {
 		}
 		else if(obj instanceof Object[])
 		{
-			Taint ret = new Taint();
-			for(Object o : (Object[]) obj)
-			{
-				Taint t = (Taint) getTaintObj(o);
-				if(t != null)
-					ret.addDependency(t);
-			}
-			if(ret.hasNoDependencies())
-				return null;
-			return ret;
+			return getTaintObj(obj, new HashSet<Object>());
 		}
 //		if(BoxedPrimitiveStoreWithObjTags.tags.containsKey(obj))
 //			return BoxedPrimitiveStoreWithObjTags.tags.get(obj);
@@ -492,7 +568,14 @@ public class TaintUtils {
 		if(!src.getClass().isArray() && !dest.getClass().isArray())
 		{
 			System.arraycopy(((LazyArrayIntTags)src).getVal(), srcPos, ((LazyArrayIntTags)dest).getVal(), destPos, length);
-			System.arraycopy(((LazyArrayIntTags)src).taints, srcPos, ((LazyArrayIntTags)dest).taints, destPos, length);
+			if(((LazyArrayIntTags)src).taints != null)
+			{
+				if(((LazyArrayIntTags)dest).taints == null)
+				{
+					((LazyArrayIntTags)dest).taints = new int[((LazyArrayIntTags)src).taints.length];
+				}
+				System.arraycopy(((LazyArrayIntTags)src).taints, srcPos, ((LazyArrayIntTags)dest).taints, destPos, length);				
+			}		
 		}
 		else if(!dest.getClass().isArray())
 		{
@@ -516,7 +599,14 @@ public class TaintUtils {
 		if(!src.getClass().isArray() && !dest.getClass().isArray())
 		{
 			System.arraycopy(((LazyArrayObjTags)src).getVal(), srcPos, ((LazyArrayObjTags)dest).getVal(), destPos, length);
-			System.arraycopy(((LazyArrayObjTags)src).taints, srcPos, ((LazyArrayObjTags)dest).taints, destPos, length);
+			if(((LazyArrayObjTags)src).taints != null)
+			{
+				if(((LazyArrayObjTags)dest).taints == null)
+				{
+					((LazyArrayObjTags)dest).taints = new Taint[((LazyArrayObjTags)src).taints.length];
+				}
+				System.arraycopy(((LazyArrayObjTags)src).taints, srcPos, ((LazyArrayObjTags)dest).taints, destPos, length);				
+			}
 		}
 		else if(!dest.getClass().isArray())
 		{

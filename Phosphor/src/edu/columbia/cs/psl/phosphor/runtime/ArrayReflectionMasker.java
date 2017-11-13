@@ -203,7 +203,7 @@ public class ArrayReflectionMasker {
 			ret.val = Array.getLength(((LazyArrayObjTags) obj).getVal());
 			return ret;
 		}
-		throw new ArrayStoreException("Uknown array type: " + obj.getClass());
+		throw new IllegalArgumentException("Not an array type: " + obj.getClass());
 	}
 
 	public static TaintedIntWithObjTag getLength$$PHOSPHORTAGGED(Object obj, ControlTaintTagStack ctlr, TaintedIntWithObjTag ret) {

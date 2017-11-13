@@ -145,7 +145,7 @@ public class ReflectionMasker {
 				Field taintField = origField.getDeclaringClass().getDeclaredField(origField.getName()+TaintUtils.TAINT_FIELD);
 				u.putObject(obj, u.objectFieldOffset(taintField), val);
 			} catch (NoSuchFieldException | SecurityException | IllegalArgumentException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			}
 		
 	}
