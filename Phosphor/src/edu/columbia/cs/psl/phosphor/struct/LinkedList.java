@@ -70,9 +70,9 @@ public class LinkedList<T> implements Cloneable, Serializable {
 		}
 		
 	}
-	public synchronized void add(T o)
+	public synchronized boolean add(T o)
 	{
-		addUnique(o);
+		return addUnique(o);
 	}
 	public Node<T> getFirst()
 	{

@@ -1,6 +1,6 @@
 language: java
 sudo: false
 jdk: oraclejdk8
-script: "mvn -Ddacapo.skip=false verify"
+script: "cd phosphor; mvn -Ddacapo.skip=false verify"
 after_success:
   - cd phosphor; mvn install --settings ~/settings.xml
