@@ -60,22 +60,22 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getClassOOS", "(Ljava/lang/Object;)Ljava/lang/Class;", false);
 			return;
 		}
-		if ((disable || className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream")) && owner.equals("java/lang/Class") && !owner.equals(className) && name.equals("isInstance$$PHOSPHORTAGGED")) {
+		if ((disable || className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream")) && owner.equals("java/lang/Class") && !owner.equals(className) && name.startsWith("isInstance$$PHOSPHORTAGGED")) {
 			// Even if we are ignoring other hiding here, we definitely need to
 			// do this.
 			String retDesc = "Ledu/columbia/cs/psl/phosphor/struct/TaintedBooleanWith" + (Configuration.MULTI_TAINTING ? "Obj" : "Int") + "Tag;";
 			if(Configuration.IMPLICIT_TRACKING)
-				super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", "(Ljava/lang/Class;Ljava/lang/Object;" + retDesc + Type.getDescriptor(ControlTaintTagStack.class)+")" + retDesc, false);
+				super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", "(Ljava/lang/Class;Ljava/lang/Object;" + Type.getDescriptor(ControlTaintTagStack.class) + retDesc +")" + retDesc, false);
 			else
 				super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", "(Ljava/lang/Class;Ljava/lang/Object;" + retDesc + ")" + retDesc, false);
 			return;
 		}
 		if (disable) {
-			if ((this.methodName.equals("setObjFieldValues") || this.className.startsWith("java/math/BigInteger")) && owner.equals("sun/misc/Unsafe") && (name.startsWith("putObject") || name.startsWith("compareAndSwapObject"))) {
+			if ((this.methodName.startsWith("setObjFieldValues") || this.className.startsWith("java/math/BigInteger")) && owner.equals("sun/misc/Unsafe") && (name.startsWith("putObject") || name.startsWith("compareAndSwapObject"))) {
 				owner = Type.getInternalName(ReflectionMasker.class);
 				super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), itfc);
 				return;
-			} else if (this.methodName.equals("getObjFieldValues") && owner.equals("sun/misc/Unsafe") && name.startsWith("getObject")) {
+			} else if (this.methodName.startsWith("getObjFieldValues") && owner.equals("sun/misc/Unsafe") && name.startsWith("getObject")) {
 				owner = Type.getInternalName(ReflectionMasker.class);
 				super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), itfc);
 				return;

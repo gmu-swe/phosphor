@@ -2,10 +2,8 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.LinkedList;
 
 import org.objectweb.asm.Type;
 
@@ -18,7 +16,6 @@ import edu.columbia.cs.psl.phosphor.struct.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
@@ -69,7 +66,10 @@ public class ReflectionMasker {
 	{
 		return MultiDTaintedArrayWithIntTag.boxIfNecessary(u.getObject(obj, offset));
 	}
-
+	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long fieldOffset, Object val, ControlTaintTagStack ctrl)
+	{
+		putObject$$PHOSPHORTAGGED(u, obj, tag, fieldOffset, val);
+	}
 	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long fieldOffset, Object val)
 	{
 		//Need to put the actual obj if its a lazyarray and the offset points to the tag field
@@ -149,7 +149,9 @@ public class ReflectionMasker {
 			}
 		
 	}
-	
+	public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val, ControlTaintTagStack ctrl){
+		putObjectVolatile$$PHOSPHORTAGGED(u, obj, tag, fieldOffset, val);
+	}
 	public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val)
 	{
 		//Need to put the actual obj if its a lazyarray and the offset points to the tag field
@@ -196,7 +198,7 @@ public class ReflectionMasker {
 			ret.val = c1.isInstance(o);
 		return ret;
 	}
-	public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctr) {
+	public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, ControlTaintTagStack ctr, TaintedBooleanWithObjTag ret) {
 		return isInstance(c1, o, ret);
 	}
 	public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, TaintedBooleanWithObjTag ret) {
@@ -1301,7 +1303,7 @@ public class ReflectionMasker {
 				j++;
 			}
 		}
-		if(ret.a != null)
+		if(ret.a != null && ret.a.length > j)
 		{
 			ret.a[j] = ctrl;
 			j++;
