@@ -58,6 +58,10 @@ public class ReflectionMasker {
 			return o.getClass();
 		return removeTaintClass(o.getClass(), Configuration.MULTI_TAINTING);
 	}
+	public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset, ControlTaintTagStack ctrl)
+	{
+		return MultiDTaintedArrayWithObjTag.boxIfNecessary(u.getObject(obj, offset));
+	}
 	public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset)
 	{
 		return MultiDTaintedArrayWithObjTag.boxIfNecessary(u.getObject(obj, offset));
@@ -66,7 +70,7 @@ public class ReflectionMasker {
 	{
 		return MultiDTaintedArrayWithIntTag.boxIfNecessary(u.getObject(obj, offset));
 	}
-	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long fieldOffset, Object val, ControlTaintTagStack ctrl)
+	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long fieldOffset, Object val, ControlTaintTagStack ctrl)
 	{
 		putObject$$PHOSPHORTAGGED(u, obj, tag, fieldOffset, val);
 	}
