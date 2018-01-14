@@ -10,6 +10,7 @@ import edu.columbia.cs.psl.phosphor.PreMain;
 import edu.columbia.cs.psl.phosphor.SourceSinkManager;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
+import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
 
@@ -73,20 +74,45 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 				if (args[i].getSort() == Type.OBJECT) {
 					super.visitVarInsn(ALOAD, idx);
 					if(thisIsASource)
-						loadSourceLblAndMakeTaint();
+					{
+						if(Configuration.MULTI_TAINTING)
+						{
+							super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+							super.visitInsn(SWAP);
+							super.visitLdcInsn(lbl);
+							super.visitIntInsn(BIPUSH, i);
+							if(args[i].getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy"))
+							{
+								super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "autoTaint", "("+args[i].getDescriptor()+"Ljava/lang/String;I)"+args[i].getDescriptor(), false);
+							}
+							else
+							{
+								super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "autoTaint", "(Ljava/lang/Object;Ljava/lang/String;I)Ljava/lang/Object;", false);
+								super.visitTypeInsn(CHECKCAST, args[i].getInternalName());
+							}
+							super.visitVarInsn(ASTORE, idx);
+						}
+						else
+						{
+							loadSourceLblAndMakeTaint();
+							super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+						}
+					}
 					else
 					{
 						super.visitVarInsn(ALOAD, 0);
 						super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 						if(Configuration.MULTI_TAINTING)
 							super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 					}
-					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 				} else if (args[i].getSort() == Type.ARRAY
 						&& args[i].getElementType().getSort() == Type.OBJECT) {
 					super.visitVarInsn(ALOAD, idx);
 					if(thisIsASource)
+					{
 						loadSourceLblAndMakeTaint();
+					}
 					else
 					{
 						super.visitVarInsn(ALOAD, 0);
@@ -134,36 +160,77 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 	public void visitInsn(int opcode) {
 		if (opcode == ARETURN && (this.thisIsASource || this.thisIsTaintThrough)) {
 			Type returnType = Type.getReturnType(this.origDesc);
-			if (returnType.getSort() == Type.OBJECT || returnType.getSort() == Type.ARRAY) {
-				super.visitInsn(DUP);
+			Type boxedReturnType = Type.getReturnType(this.desc);
+
+			if (returnType.getSort() == Type.VOID) {
+				
+			}
+			else if (returnType.getSort() == Type.OBJECT || returnType.getSort() == Type.ARRAY) {
 				if(thisIsASource)
-					loadSourceLblAndMakeTaint();
-				else
 				{
+					if(Configuration.MULTI_TAINTING)
+					{
+						if(returnType.getSort() == Type.ARRAY && returnType.getDimensions() == 1 && returnType.getElementType().getSort() != Type.OBJECT)
+						{
+							//Primitive 1D array
+							super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+							super.visitInsn(SWAP);
+							super.visitLdcInsn(lbl);
+							super.visitInsn(ICONST_M1);
+							super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "autoTaint", "("+boxedReturnType.getDescriptor()+"Ljava/lang/String;I)"+boxedReturnType.getDescriptor(), false);
+						}
+						else
+						{
+							super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+							super.visitInsn(SWAP);
+							super.visitLdcInsn(lbl);
+							super.visitInsn(ICONST_M1);
+							super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "autoTaint", "(Ljava/lang/Object;Ljava/lang/String;I)Ljava/lang/Object;", false);
+							super.visitTypeInsn(CHECKCAST, returnType.getInternalName());
+						}
+					}
+					else
+					{
+						super.visitInsn(DUP);
+						loadSourceLblAndMakeTaint();
+						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+					}
+				}
+				else if(thisIsTaintThrough)
+				{
+					super.visitInsn(DUP);
 					super.visitVarInsn(ALOAD, 0);
 					super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 					if(Configuration.MULTI_TAINTING)
 						super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
+					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 				}
-				super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-			} else if (returnType.getSort() == Type.VOID) {
-
 			} else {
 				// primitive
-				super.visitInsn(DUP);
-				if(thisIsASource)
-					loadSourceLblAndMakeTaint();
-				else
-				{
+				if (thisIsASource) {
+					if (Configuration.MULTI_TAINTING) {
+						super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+						super.visitInsn(SWAP);
+						super.visitLdcInsn(lbl);
+						super.visitInsn(ICONST_M1);
+						super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "autoTaint", "(" + boxedReturnType.getDescriptor() + "Ljava/lang/String;I)" + boxedReturnType.getDescriptor(), false);
+					} else {
+						super.visitInsn(DUP);
+						loadSourceLblAndMakeTaint();
+						super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithIntTag.class), "taint", "I");
+					}
+				} else if (thisIsTaintThrough) {
+					super.visitInsn(DUP);
 					super.visitVarInsn(ALOAD, 0);
 					super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-					if(Configuration.MULTI_TAINTING)
-						super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
+					if (Configuration.MULTI_TAINTING)
+						super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
+					if (Configuration.MULTI_TAINTING)
+						super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithObjTag.class), "taint", Configuration.TAINT_TAG_DESC);
+					else
+						super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithIntTag.class), "taint", "I");
+
 				}
-				if (Configuration.MULTI_TAINTING)
-					super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithObjTag.class), "taint", Configuration.TAINT_TAG_DESC);
-				else
-					super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithIntTag.class), "taint", "I");
 			}
 		}
 	

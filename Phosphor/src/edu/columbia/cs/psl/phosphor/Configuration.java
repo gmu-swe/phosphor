@@ -13,6 +13,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.TaintTagFactory;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.DerivedTaintListener;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 
@@ -67,11 +68,14 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_CLASS = (Taint.class);
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (LazyArrayObjTags.class);
 	public static String TAINT_INTERFACE_INTERNALNAME = !MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedWithObjTag";
-
+	
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
 	public static Class extensionClassVisitor;
 
 	public static TaintTagFactory taintTagFactory = new DataAndControlFlowTagFactory();
+	
+	public static TaintSourceWrapper autoTainter = new TaintSourceWrapper();
+	
 	public static DerivedTaintListener derivedTaintListener;
 	public static String CACHE_DIR = null;
 	public static boolean TAINT_THROUGH_SERIALIZATION = true;

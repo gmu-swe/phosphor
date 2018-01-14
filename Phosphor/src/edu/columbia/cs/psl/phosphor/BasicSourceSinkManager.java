@@ -31,7 +31,8 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			try {
 				if(Instrumenter.sourcesFile != null)
 				{
-					System.out.println("Using taint sources file");
+					if(PreMain.DEBUG)
+						System.out.println("Using taint sources file");
 					s = new Scanner(Instrumenter.sourcesFile);
 
 					int i = 0;
@@ -69,7 +70,8 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			try {
 				if(Instrumenter.sinksFile != null)
 				{
-					System.out.println("Using taint sinks file");
+					if(PreMain.DEBUG)
+						System.out.println("Using taint sinks file");
 					s = new Scanner(Instrumenter.sinksFile);
 
 					while (s.hasNextLine()) {
@@ -93,7 +95,8 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			try {
 				if(Instrumenter.taintThroughFile != null)
 				{
-					System.out.println("Using taint through file");
+					if(PreMain.DEBUG)
+						System.out.println("Using taint through file");
 					s = new Scanner(Instrumenter.taintThroughFile);
 
 					while (s.hasNextLine()) {

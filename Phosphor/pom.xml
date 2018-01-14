@@ -143,7 +143,7 @@
                             </includes>
                             <reuseForks>false</reuseForks>
                             <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-obj</argLine>
+                                -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-obj,taintSources=src/taint-sources,taintSinks=src/taint-sinks</argLine>
                         </configuration>
                         <goals>
                             <goal>integration-test</goal>

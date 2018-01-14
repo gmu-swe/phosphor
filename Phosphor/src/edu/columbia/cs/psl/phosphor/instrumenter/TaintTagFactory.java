@@ -4,6 +4,14 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 
 public interface TaintTagFactory {
 

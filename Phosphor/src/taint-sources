@@ -32,3 +32,6 @@
 #phosphor/test/SourceSinkTest.sourceRet2()[I
 #phosphor/test/SourceSinkTest.sourceRet3()Ljava/lang/Object;
 #phosphor/test/SourceSinkTest.sourceRet4()[I
+edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.source()Ljava/lang/String;
+edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.iSource()I
+edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.source([I)V

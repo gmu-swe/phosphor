@@ -22,7 +22,7 @@ public class TaintChecker {
 		if(taintCheckerSetter != null)
 			taintCheckerSetter.checkTaint(tag);
 		else if(tag != null)
-			throw new IllegalAccessError("Argument carries taint " + tag);
+			throw new TaintSinkError(tag, null);
 	}
 	public static void checkTaint(Object obj) {
 		if(obj == null)
@@ -33,7 +33,7 @@ public class TaintChecker {
 		}
 		else if (obj instanceof TaintedWithObjTag) {
 			if (((TaintedWithObjTag) obj).getPHOSPHOR_TAG() != null)
-				throw new IllegalAccessError("Argument carries taint " + ((TaintedWithObjTag) obj).getPHOSPHOR_TAG());
+				throw new TaintSinkError((Taint<?>) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG(),obj);
 		}
 		else if(obj instanceof int[])
 		{
@@ -58,7 +58,7 @@ public class TaintChecker {
 			if (tags.taints != null)
 				for (Object i : tags.taints) {
 					if (i != null)
-						throw new IllegalAccessError("Argument carries taints - example: " + i);
+						throw new TaintSinkError((Taint<?>) i,obj);
 				}
 		}
 		else if(obj instanceof Object[])
@@ -71,12 +71,12 @@ public class TaintChecker {
 			ControlTaintTagStack ctrl = (ControlTaintTagStack) obj;
 			if(ctrl.taint != null && !ctrl.isEmpty())
 			{
-				throw new IllegalAccessError("Current control flow carries taints:  " + ctrl.taint);
+				throw new TaintSinkError((Taint<?>) ctrl.taint,obj);
 			}
 		}
 		else if(obj instanceof Taint)
 		{
-			throw new IllegalAccessError("Argument carries taints:  " + obj);
+			throw new TaintSinkError((Taint<?>) obj, null);
 		}
 		if(taintCheckerSetter != null)
 			taintCheckerSetter.checkTaint(obj);
