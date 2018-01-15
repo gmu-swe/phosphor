@@ -8,6 +8,12 @@ import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
+@Deprecated
+/**
+ * 
+ * @author jon
+ * Now we want to use TaintSourceWrapper
+ */
 public class TaintChecker {
 	public static AbstractTaintCheckerSetter taintCheckerSetter;
 	public static void checkTaint(int tag)

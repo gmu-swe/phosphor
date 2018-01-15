@@ -36,6 +36,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader
 import edu.columbia.cs.psl.phosphor.runtime.AbstractTaintCheckerSetter;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
+import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
@@ -492,12 +493,17 @@ public class PreMain {
 					} catch (FileNotFoundException e) {
 						e.printStackTrace();
 					}
+				} else if(s.startsWith("taintSourceWrapper=")) {
+					Class c;
+					try {
+						c = Class.forName(s.substring(19));
+						Configuration.autoTainter = (TaintSourceWrapper) c.newInstance();
+					} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+						e.printStackTrace();
+					}
 				} else if(s.startsWith("serialization"))
 				{
 					Configuration.TAINT_THROUGH_SERIALIZATION = true;
-				} else if(s.startsWith("taintCheckerSetter="))
-				{
-					taintCheckerClazz = s.substring(19);
 				}
 			}
 		}
@@ -505,18 +511,7 @@ public class PreMain {
 			Instrumenter.loader = bigLoader;
 		ClassFileTransformer transformer = new PCLoggingTransformer();
 		inst.addTransformer(transformer);
-		if(taintCheckerClazz != null)
-		{
-			try {
-				TaintChecker.taintCheckerSetter = (AbstractTaintCheckerSetter) Class.forName(taintCheckerClazz).newInstance();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			} catch (InstantiationException e) {
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
-		}
+	
 
 	}
 

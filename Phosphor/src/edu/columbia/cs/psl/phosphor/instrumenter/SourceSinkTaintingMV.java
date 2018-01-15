@@ -137,17 +137,23 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 					if (args[i].getSort() == Type.ARRAY && (args[i].getElementType().getSort() != Type.OBJECT || args[i].getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC))
 							&& args[i].getDimensions() == 1) {
 						if (!skipNextPrimitive) {
+							super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
 							super.visitVarInsn(ALOAD, idx);
-							super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "checkTaint", "(Ljava/lang/Object;)V", false);
+							super.visitLdcInsn(owner+"."+name+desc);
+							super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;)V", false);
 						}
 						skipNextPrimitive = !skipNextPrimitive;
 					} else {
+						super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
 						super.visitVarInsn(ALOAD, idx);
-						super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "checkTaint", "(Ljava/lang/Object;)V", false);
+						super.visitLdcInsn(owner+"."+name+desc);
+						super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;)V", false);
 					}
 				} else if (!skipNextPrimitive) {
+					super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
 					super.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
-					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "checkTaint", "(" + Configuration.TAINT_TAG_DESC + ")V", false);
+					super.visitLdcInsn(owner+"."+name+desc);
+					super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(" + Configuration.TAINT_TAG_DESC + "Ljava/lang/String;)V", false);
 					skipNextPrimitive = true;
 				} else if (skipNextPrimitive)
 					skipNextPrimitive = false;
