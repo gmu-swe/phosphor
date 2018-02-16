@@ -95,6 +95,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
 
     public List<Object> stackConstantVals;
 
+    public boolean isFollowedByFrame;
     
     /**
      * The labels that designate the next instruction to be visited. May be
@@ -242,6 +243,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         {
         	return;
         }
+        isFollowedByFrame = false;
         noInsnsSinceListFrame = true;
         if (mv != null) {
             mv.visitFrame(type, nLocal, local, nStack, stack);
@@ -318,7 +320,11 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if (mv != null) {
             mv.visitInsn(opcode);
         }
-    	noInsnsSinceListFrame = false;
+        noInsnsSinceListFrame = false;
+        if(opcode == TaintUtils.FOLLOWED_BY_FRAME)
+        		isFollowedByFrame = true;
+        else
+        		isFollowedByFrame = false;
         if(opcode > 200)
         	return;
         execute(opcode, 0, null);
@@ -387,6 +393,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
               mv.visitMethodInsn(opcode, owner, name, desc,itf);
           }
     	  noInsnsSinceListFrame = false;
+    	  isFollowedByFrame = false;
           if (this.locals == null) {
               labels = null;
               return;
@@ -431,6 +438,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if (mv != null) {
             mv.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
         }
+        isFollowedByFrame = false;
         if (this.locals == null) {
             labels = null;
             return;
@@ -442,10 +450,11 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
 
     @Override
     public void visitJumpInsn(final int opcode, final Label label) {
-    	noInsnsSinceListFrame = false;
+    		noInsnsSinceListFrame = false;
         if (mv != null) {
             mv.visitJumpInsn(opcode, label);
         }
+		isFollowedByFrame = false;
         execute(opcode, 0, null);
         if (opcode == Opcodes.GOTO) {
             this.locals = null;
@@ -471,6 +480,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             mv.visitLdcInsn(cst);
         }
         noInsnsSinceListFrame=false;
+        isFollowedByFrame = false;
         if (this.locals == null) {
             labels = null;
             return;
@@ -671,6 +681,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
 
     private void execute(final int opcode, final int iarg, final String sarg) {
         noInsnsSinceListFrame = false;
+		isFollowedByFrame = false;
 
         if (this.locals == null) {
             labels = null;
