@@ -21,6 +21,7 @@ import org.objectweb.asm.tree.IincInsnNode;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
@@ -284,8 +285,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				public Frame[] analyze(String owner, MethodNode m) throws AnalyzerException {
 					Iterator<AbstractInsnNode> insns = m.instructions.iterator();
 					insnToLabel = new int[m.instructions.size()];
-					endsWithGOTO = new boolean[insnToLabel.length];
-
 //											System.out.println("PAAA"+ name);
 					int label = -1;
 					boolean isFirst = true;
@@ -297,14 +296,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							label++;
 						}
 
-						if (insn.getOpcode() == Opcodes.GOTO) {
-							endsWithGOTO[idx] = true;
-						}
 						insnToLabel[idx] = (isFirst ? 1 : label);
 						isFirst = false;
 						//														System.out.println(idx + "->"+label);
 					}
 					Frame[] ret = super.analyze(owner, m);
+					
 //					if (DEBUG)
 //						for (int i = 0; i < inFrames.size(); i++) {
 //							System.out.println("IN: " + i + " " + inFrames.get(i).stack);
@@ -482,6 +479,29 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			try {
 
 				Frame[] frames = a.analyze(className, this);
+				for(int i = 0 ; i < instructions.size(); i++)
+				{
+					if(frames[i] == null)
+					{
+						//TODO dead code elimination.
+						//This should be done more generically
+						//But, this worked for JDT's stupid bytecode, so...
+						AbstractInsnNode insn = instructions.get(i);
+						if (insn != null && !(insn instanceof LabelNode)) {
+							if(insn.getOpcode() == Opcodes.GOTO)
+							{
+								instructions.insertBefore(insn, new InsnNode(Opcodes.ATHROW));
+								instructions.remove(insn);
+							}
+							else if (insn instanceof FrameNode)
+							{
+								FrameNode fn = (FrameNode) insn;
+								fn.local = Collections.EMPTY_LIST;
+								fn.stack = Collections.singletonList("java/lang/Throwable");
+							}
+						}
+					}
+				}
 //				HashMap<Integer,BasicBlock> cfg = new HashMap<Integer, BasicBlock>();
 //				for(Integer i : outEdges.keySet())
 //				{
