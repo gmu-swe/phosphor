@@ -228,6 +228,8 @@ public class Taint<T> implements Serializable {
 	{
 		if(tags.isEmpty() || IGNORE_TAINTING)
 			return;
+		if(Configuration.derivedTaintListener != null)
+			Configuration.derivedTaintListener.controlApplied(o, tags);
 		if(o instanceof TaintedWithObjTag)
 		{
 			if(o instanceof String)
