@@ -3514,7 +3514,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 							else if(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 2) instanceof TaggedValue)
 								throw new UnsupportedOperationException();
 							else if(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 3) instanceof TaggedValue)
-								throw new UnsupportedOperationException();
+							{
+								super.visitInsn(DUP2_X2);
+								return;
+							}
 							super.visitInsn(opcode);
 						}
 					}
