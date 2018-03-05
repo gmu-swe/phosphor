@@ -590,6 +590,12 @@ public class Instrumenter {
 					source = new FileInputStream(fi).getChannel();
 					destination = new FileOutputStream(dest).getChannel();
 					destination.transferFrom(source, 0, source.size());
+					if(fi.canExecute())
+						dest.setExecutable(true);
+					if(fi.canRead())
+						dest.setReadable(true);
+					if(fi.canWrite())
+						dest.setWritable(true);
 				} catch (Exception ex) {
 					System.err.println("error copying file " + fi);
 					ex.printStackTrace();

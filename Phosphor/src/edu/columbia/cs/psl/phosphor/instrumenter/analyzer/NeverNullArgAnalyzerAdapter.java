@@ -1140,4 +1140,8 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         labels = null;
 
     }
+
+    public void clearLabels() {
+    	labels = null;
+    }
 }

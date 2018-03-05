@@ -232,6 +232,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //				passthruMV.visitIntInsn(BIPUSH, var);
 			passthruMV.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[var]);
 			passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "("+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")V", false);
+			analyzer.clearLabels();
 			return;
 		}
 		if (opcode == TaintUtils.ALWAYS_AUTOBOX && analyzer.locals.size() > var && analyzer.locals.get(var) instanceof String) {

@@ -397,6 +397,7 @@ public class PreMain {
 					}
 					System.out.println("Saving " + className);
 					File f = new File("debug/" + className.replace("/", ".") + ".class");
+					f.getParentFile().mkdirs();
 					try {
 						FileOutputStream fos = new FileOutputStream(f);
 						fos.write(classfileBuffer);

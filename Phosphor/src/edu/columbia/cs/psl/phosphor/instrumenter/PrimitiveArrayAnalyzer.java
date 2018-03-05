@@ -487,11 +487,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						//This should be done more generically
 						//But, this worked for JDT's stupid bytecode, so...
 						AbstractInsnNode insn = instructions.get(i);
-						if (insn != null && !(insn instanceof LabelNode)) {
-							if(insn.getOpcode() == Opcodes.GOTO)
+						//while (insn != null && insn.getType() != AbstractInsnNode.LABEL) {
+							if(insn.getOpcode() == Opcodes.ATHROW || insn.getOpcode() == Opcodes.GOTO || (insn.getOpcode() >= Opcodes.IRETURN && insn.getOpcode() <= Opcodes.RETURN))
 							{
 								instructions.insertBefore(insn, new InsnNode(Opcodes.ATHROW));
 								instructions.remove(insn);
+								break;
 							}
 							else if (insn instanceof FrameNode)
 							{
@@ -499,7 +500,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								fn.local = Collections.EMPTY_LIST;
 								fn.stack = Collections.singletonList("java/lang/Throwable");
 							}
-						}
+							else if (!(insn instanceof LineNumberNode) && !(insn instanceof LabelNode)){
+								instructions.insertBefore(insn, new InsnNode(Opcodes.NOP));
+								instructions.remove(insn);
+							}
+							//insn = insn.getNext();
+					//	}
 					}
 				}
 //				HashMap<Integer,BasicBlock> cfg = new HashMap<Integer, BasicBlock>();
@@ -823,7 +829,36 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							if(r.is2ArgJump)
 								instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)+1));
 						}
-						if(b.successors.isEmpty())
+						if (b.resolvedHereBlocks.size() > 0) {
+							AbstractInsnNode insn = b.insn;
+							while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL || insn.getOpcode() == TaintUtils.BRANCH_END)
+								insn = insn.getNext();
+							if (insn.getOpcode() == Opcodes.NEW) //maybe its a NEW
+							{
+								//Need to patch all frames to have the correct label in them :'(
+								AbstractInsnNode i = insn;
+								while (i != null && i.getType() != AbstractInsnNode.LABEL)
+									i = i.getPrevious();
+								AbstractInsnNode oldLabel = i;
+
+								LabelNode newLabel = new LabelNode(new Label());
+								instructions.insertBefore(insn, newLabel);
+								i = instructions.getFirst();
+								while (i != null) {
+									if (i instanceof FrameNode) {
+										FrameNode fr = (FrameNode) i;
+										for (int j = 0; j < fr.stack.size(); j++) {
+											if (fr.stack.get(j) == oldLabel) {
+
+												fr.stack.set(j, newLabel);
+											}
+										}
+									}
+									i = i.getNext();
+								}
+							}
+						}
+						if(b.successors.isEmpty() && !Configuration.IMPLICIT_LIGHT_TRACKING) //in light tracking mode no need to POP off of control at RETURN/THROW, becasue we don't reuse the obj
 						{
 							instructions.insertBefore(b.insn, new InsnNode(TaintUtils.FORCE_CTRL_STORE));
 //							if (b.insn.getOpcode() != Opcodes.ATHROW) {
