@@ -31,6 +31,7 @@ import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import sun.security.krb5.Config;
 
 public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
@@ -185,6 +186,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //		if(opcode < 200 && var < analyzer.locals.size())
 //			System.out.println(nextLoadisTracked +" " +Printer.OPCODES[opcode] + var +" - " + analyzer.locals.get(var) + "\t"+analyzer.locals);
 		if (!nextLoadisTracked && opcode < 200) {
+			if((Configuration.IMPLICIT_LIGHT_TRACKING || Configuration.IMPLICIT_TRACKING) && opcode == Opcodes.ASTORE)
+			{
+				super.visitInsn(DUP);
+				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject",
+						"(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+			}
 			if(opcode == Opcodes.ASTORE){
 //			System.out.println(this.name + " " + Printer.OPCODES[opcode] + " on " + var + " last arg" + lastArg +", stack: " + analyzer.stack + ";"+analyzer.locals);
 //			System.out.println(analyzer.stackTagStatus);
@@ -294,12 +302,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(POP);
 				break;
 			case ASTORE:
-				if (!topOfStackIsNull()) {
+				//if (!topOfStackIsNull()) {
 					super.visitInsn(DUP);
 					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject",
 							"(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
-				}
+				//}
 				break;
 			case TaintUtils.FORCE_CTRL_STORE:
 				forceCtrlAdd.add(var);
