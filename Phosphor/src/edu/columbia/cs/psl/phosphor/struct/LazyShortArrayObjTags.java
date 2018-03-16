@@ -32,7 +32,12 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
 	}
 	
 	public void set(short[] l, Taint idxTag, int idx, Taint tag, short ival) {
-		set(l, idx, new Taint(tag, idxTag), ival);
+		if(idxTag == null)
+			set(l, idx, tag, ival);
+		else if(tag == null)
+			set(l, idx, idxTag, ival);
+		else
+			set(l, idx, new Taint(tag, idxTag), ival);
 	}
 
 	public void set(short[] g, int idx, Taint tag, short sval) {

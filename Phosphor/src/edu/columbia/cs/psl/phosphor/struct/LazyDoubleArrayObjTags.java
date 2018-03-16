@@ -36,7 +36,12 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 	}
 	
 	public void set(double[] l, Taint idxTag, int idx, Taint tag, double ival) {
-		set(l, idx, new Taint(tag, idxTag), ival);
+		if(idxTag == null)
+			set(l, idx, tag, ival);
+		else if(tag == null)
+			set(l, idx, idxTag, ival);
+		else
+			set(l, idx, new Taint(tag, idxTag), ival);
 	}
 
 	public void set(double[] d, int idx, Taint tag, double newval) {

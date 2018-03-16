@@ -33,7 +33,12 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 	}
 	
 	public void set(boolean[] l, Taint idxTag, int idx, Taint tag, boolean ival) {
-		set(l, idx, new Taint(tag, idxTag), ival);
+		if(idxTag == null)
+			set(l, idx, tag, ival);
+		else if(tag == null)
+			set(l, idx, idxTag, ival);
+		else
+			set(l, idx, new Taint(tag, idxTag), ival);
 	}
 
 	public void set(boolean[] b, int idx, Taint tag, boolean val) {
