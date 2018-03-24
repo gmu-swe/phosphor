@@ -118,18 +118,17 @@ public final class ControlTaintTagStack {
 		}
 		return recalc;
 	}
-	public final void pop(EnqueuedTaint enq) {
 
+	public final void pop(EnqueuedTaint enq) {
+		if (enq == null)
+			return;
 		boolean recalc = _pop(enq);
-		if (enq != null) {
-			EnqueuedTaint prev = enq.prev;
-			while (prev != null) {
-				_pop(prev);
-				prev = prev.prev;
-			}
+		EnqueuedTaint prev = enq.prev;
+		while (prev != null) {
+			_pop(prev);
+			prev = prev.prev;
 		}
-		if (recalc)
-		{
+		if (recalc) {
 			recalculate();
 		}
 	}

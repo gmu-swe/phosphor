@@ -47,12 +47,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	}
 
 	public int[] taintTagsLoggedAtJumps;
+
+	Label endLabel = new Label();
+
+	Label popAllLabel = new Label();
 	@Override
 	public void visitCode() {
 //		System.out.println("TPMVStart" + name);
 		super.visitCode();
 		firstLabel = new Label();
-		super.visitLabel(firstLabel);
 		if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
 		{
 			if (lvs.idxOfMasterControlLV < 0) {
@@ -75,6 +78,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitVarInsn(ASTORE, taintTagsLoggedAtJumps[i+1]);
 			}
 		}
+		if(Configuration.IMPLICIT_TRACKING && !arrayAnalyzer.hasFinally && arrayAnalyzer.nTryCatch == 0){
+			super.visitTryCatchBlock(firstLabel,endLabel,popAllLabel,null);
+			super.visitLabel(firstLabel);
+		}
 		Configuration.taintTagFactory.methodEntered(className, name, desc, passthruMV, lvs, this);
 		//		if (arrayAnalyzer != null) {
 		//			this.bbsToAddACONST_NULLto = arrayAnalyzer.getbbsToAddACONST_NULLto();
@@ -82,6 +89,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		//		}
 		//		if (TaintUtils.DEBUG_FRAMES)
 		//			System.out.println("Need to dup " + Arrays.toString(bbsToAddACONST_NULLto) + " nulls based onthe analyzer result");
+	}
+
+	@Override
+	public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
+		super.visitTryCatchBlock(start, end, handler, type);
+		arrayAnalyzer.nTryCatch--;
+		if(Configuration.IMPLICIT_TRACKING && !arrayAnalyzer.hasFinally && arrayAnalyzer.nTryCatch == 0){
+			super.visitTryCatchBlock(firstLabel,endLabel,popAllLabel,null);
+			super.visitLabel(firstLabel);
+		}
 	}
 
 	int curLabel = -1;
@@ -2124,6 +2141,31 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //			}
 //			lvsFromLastFrame.clear();
 		}
+		if(Configuration.IMPLICIT_TRACKING && !arrayAnalyzer.hasFinally){
+			super.visitLabel(endLabel);
+			super.visitLabel(popAllLabel);
+			int maxLV = lvs.idxOfMasterControlLV;
+			for(int i : taintTagsLoggedAtJumps)
+				if(i > maxLV)
+					maxLV=i;
+
+			Object[] baseLvs = new Object[maxLV+1];
+			for(int i = 0; i < baseLvs.length;i++)
+				baseLvs[i] = TOP;
+			String ctrl = "edu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack";
+			baseLvs[lvs.idxOfMasterControlLV] = ctrl;
+			for (int i = 1; i < taintTagsLoggedAtJumps.length; i++) {
+				baseLvs[taintTagsLoggedAtJumps[i]] = "edu/columbia/cs/psl/phosphor/struct/EnqueuedTaint";
+			}
+			super.visitFrame(F_NEW, baseLvs.length, baseLvs,1,new Object[]{"java/lang/Throwable"});
+			for(int i = 1; i < taintTagsLoggedAtJumps.length;i++)
+			{
+				passthruMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+				passthruMV.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[i]);
+				passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "("+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")V", false);
+			}
+			super.visitInsn(ATHROW);
+		}
 		super.visitMaxs(maxStack, maxLocals);
 	}
 	@Override
@@ -2304,14 +2346,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //			case ARETURN:
 //			case DRETURN:
 //			case LRETURN:
-//			case ATHROW:
-//				for(int i = 1; i < taintTagsLoggedAtJumps.length;i++)
-//				{
-//					passthruMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-//					passthruMV.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[i]);
-//					passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "("+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")V", false);
-//				}
-//				break;
+			case ATHROW:
+				for(int i = 1; i < taintTagsLoggedAtJumps.length;i++)
+				{
+					passthruMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+					passthruMV.visitVarInsn(ALOAD, taintTagsLoggedAtJumps[i]);
+					passthruMV.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "("+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")V", false);
+				}
+				break;
 //			case FASTORE:
 //			case BASTORE:
 //			case CASTORE:

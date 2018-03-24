@@ -854,15 +854,17 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
 	public void generateSetTag(MethodVisitor mv, String className) {
-		if(Configuration.MULTI_TAINTING){
-mv.visitVarInsn(Opcodes.ALOAD, 0);
-						mv.visitVarInsn(Opcodes.ALOAD, 1);
-						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+		if(Configuration.MULTI_TAINTING) {
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitVarInsn(Opcodes.ALOAD, 1);
+			mv.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+			mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 		}
-		else {
+		else
+		{
 			mv.visitVarInsn(Opcodes.ALOAD, 0);
 			mv.visitVarInsn(Opcodes.ILOAD, 1);
-			mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+			mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 		}
 	}
 }

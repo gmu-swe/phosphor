@@ -682,11 +682,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 					mv = super.visitMethod(Opcodes.ACC_PUBLIC, "set" + TaintUtils.TAINT_FIELD, "(" + (Configuration.MULTI_TAINTING ? "Ljava/lang/Object;" : "I") + ")V", null, null);
 					mv.visitCode();
-					mv.visitVarInsn(Opcodes.ALOAD, 0);
-					mv.visitVarInsn(Opcodes.ILOAD, 1);
-					if(Configuration.MULTI_TAINTING)
-						mv.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-					mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+					Configuration.taintTagFactory.generateSetTag(mv,className);
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
 						Type taintType = MultiDTaintedArray.getTypeForType(Type.getType(char[].class));
@@ -710,7 +706,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 //						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
 					} else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
 							.equals(TaintPassingMV.DOUBLE_NAME))) {
-						Configuration.taintTagFactory.generateSetTag(mv, className);
+							mv.visitVarInsn(Opcodes.ALOAD, 0);
+							mv.visitVarInsn(Opcodes.ILOAD, 1);
+							mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 						//For primitive types, also set the "value" field
 //>>>>>>> master
 					}
@@ -733,10 +731,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv = new TaintTagFieldCastMV(mv);
 
 					mv.visitCode();
-					mv.visitVarInsn(Opcodes.ALOAD, 0);
-					mv.visitVarInsn(Opcodes.ALOAD, 1);
-					mv.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-					mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+					Configuration.taintTagFactory.generateSetTag(mv,className);
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
 
@@ -761,7 +756,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					}  else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
 							.equals(TaintPassingMV.DOUBLE_NAME))) {
 						//For primitive types, also set the "value" field
-						Configuration.taintTagFactory.generateSetTag(mv,className);
+						mv.visitVarInsn(Opcodes.ALOAD, 0);
+						mv.visitVarInsn(Opcodes.ALOAD, 1);
+						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+
 
 					}
 					mv.visitInsn(Opcodes.RETURN);

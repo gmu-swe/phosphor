@@ -1149,4 +1149,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	public void setAnalyzer(NeverNullArgAnalyzerAdapter preAnalyzer) {
 		analyzer = preAnalyzer;
 	}
+
+	public boolean hasFinally;
+	public int nTryCatch;
+	@Override
+	public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
+		super.visitTryCatchBlock(start, end, handler, type);
+		if(type == null)
+			hasFinally = true;
+		nTryCatch++;
+	}
 }

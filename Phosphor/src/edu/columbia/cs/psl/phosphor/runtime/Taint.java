@@ -217,6 +217,8 @@ public class Taint<T> implements Serializable {
 //				return null;
 			return t1;
 		}
+		else if(tags != null && tags.taint != null && !tags.taint.hasNoDependencies() && tags.taint.dependencies.getFirst().next == null && t1.lbl == tags.taint.dependencies.getFirst().entry)
+			return t1;
 		else if(t1 == tags.taint)
 			return t1;
 		if(IGNORE_TAINTING)
