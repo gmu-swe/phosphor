@@ -71,8 +71,16 @@ public final class ControlTaintTagStack {
 		entry.place = children.add(entry);
 		tag.enqueuedInControlFlow.addFast(entry);
 		if(taint == null)
-			taint = new Taint();
-		taint.addDependency(tag);
+			taint = new Taint(tag);
+		else if (taint.lbl == null && taint.hasNoDependencies())
+		{
+			taint.lbl = tag.lbl;
+			if(tag.dependencies != null)
+				taint.dependencies.addAll(tag.dependencies);
+		}
+		else {
+			taint.addDependency(tag);
+		}
 		invalidated = true;
 		return entry;
 	}

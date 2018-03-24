@@ -608,9 +608,9 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 		}
 	}
 	public static void main(String[] args) throws Throwable {
-//		Configuration.IMPLICIT_TRACKING =false;
+		Configuration.IMPLICIT_TRACKING =true;
 		Configuration.MULTI_TAINTING =true;
-		Configuration.IMPLICIT_LIGHT_TRACKING = true;
+//		Configuration.IMPLICIT_LIGHT_TRACKING = true;
 //		Configuration.ARRAY_LENGTH_TRACKING = true;
 //		Configuration.ARRAY_INDEX_TRACKING = true;
 //		Configuration.ANNOTATE_LOOPS = true;

@@ -1,10 +1,8 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
+import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -582,15 +580,26 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 	}
 
+	public List<Field> forceCtrlStoreFields = new LinkedList<>();
+
 	@Override
 	public void visitFieldInsn(int opcode, String owner, String name, String desc) {
+		Type descType = Type.getType(desc);
+		if (opcode == TaintUtils.FORCE_CTRL_STORE) {
+			forceCtrlStoreFields.add(new Field(false,owner,name,desc));
+			return;
+		}
+		else if(opcode == TaintUtils.FORCE_CTRL_STORE_SFIELD)
+		{
+			forceCtrlStoreFields.add(new Field(true,owner,name,desc));
+			return;
+		}
 		if (isIgnoreAllInstrumenting) {
 			super.visitFieldInsn(opcode, owner, name, desc);
 			return;
 		}
 		
 		boolean dispatched = false;
-		Type descType = Type.getType(desc);
 		if (descType.getSort() == Type.ARRAY && descType.getElementType().getSort() != Type.OBJECT && descType.getDimensions() > 1) {
 			desc = MultiDTaintedArray.getTypeForType(descType).getInternalName();
 		}
@@ -4125,44 +4134,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		
 		
 		if ((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !isIgnoreAllInstrumenting && !Configuration.WITHOUT_PROPOGATION) {
-			if(opcode != Opcodes.GOTO)
-			{
-				for (int var : forceCtrlAdd) {
-					int shadowVar = -1;
-					if (analyzer.locals.size() <= var || analyzer.locals.get(var) == Opcodes.TOP)
-						continue;
-					if (var < lastArg && TaintUtils.getShadowTaintType(paramTypes[var].getDescriptor()) != null) {
-						//accessing an arg; remap it
-						Type localType = paramTypes[var];
-						if (localType.getSort() != Type.OBJECT && localType.getSort() != Type.ARRAY) {
-							shadowVar = var - 1;
-						} else if (localType.getSort() == Type.ARRAY)
-							continue;
-					} else {
-						if (lvs.varToShadowVar.containsKey(var)) {
-							shadowVar = lvs.varToShadowVar.get(var);
-							if (analyzer.locals.get(var) instanceof String && ((String) analyzer.locals.get(var)).startsWith("["))
-								continue;
-							if (shadowVar >= analyzer.locals.size() || analyzer.locals.get(shadowVar) instanceof Integer || ((String) analyzer.locals.get(shadowVar)).startsWith("["))
-								continue;
-						}
-					}
-					if(shadowVar >= 0)
-					{
-						super.visitVarInsn(ALOAD, shadowVar);
-						super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "("+Configuration.TAINT_TAG_DESC+"Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)"+Configuration.TAINT_TAG_DESC, false);
-						super.visitVarInsn(ASTORE, shadowVar);
-					}
-					else
-					{
-						super.visitVarInsn(ALOAD, var);
-						super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
-					}
-				}
-				forceCtrlAdd.clear();
-			}
 			if (!boxAtNextJump.isEmpty()) {
 				Label origDest = label;
 				Label newDest = new Label();

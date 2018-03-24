@@ -205,7 +205,7 @@ public class Taint<T> implements Serializable {
 	public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags){
 		if(t1 == null && tags.isEmpty())
 			return null;
-		else if(t1 == null)
+		else if(t1 == null || (t1.lbl == null && t1.dependencies.getFirst() == null))
 		{
 //			if(tags.isEmpty())
 //				return null;

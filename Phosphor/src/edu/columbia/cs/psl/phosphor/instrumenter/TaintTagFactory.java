@@ -42,4 +42,6 @@ public interface TaintTagFactory {
 	public void lookupSwitch(Label dflt, int[] keys, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV);
 	public void tableSwitch(int min, int max, Label dflt, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV);
 	public void propogateTagNative(String className, int acc, String methodName, String newDesc, MethodVisitor mv);
+
+	public void generateSetTag(MethodVisitor mv, String className);
 }

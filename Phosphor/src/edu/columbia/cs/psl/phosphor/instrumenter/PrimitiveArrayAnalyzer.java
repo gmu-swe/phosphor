@@ -11,21 +11,13 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Stack;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayValue;
+import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.FrameNode;
-import org.objectweb.asm.tree.IincInsnNode;
-import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.LdcInsnNode;
-import org.objectweb.asm.tree.LineNumberNode;
-import org.objectweb.asm.tree.LocalVariableNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.TypeInsnNode;
-import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.Analyzer;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicValue;
@@ -237,7 +229,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			final HashMap<Integer, LinkedList<Integer>> outEdges = new HashMap<Integer, LinkedList<Integer>>();
 			final HashSet<Integer> insertACHECKCASTBEFORE = new HashSet<Integer>();
 			final HashSet<Integer> insertACONSTNULLBEFORE = new HashSet<Integer>();
-			Analyzer a = new Analyzer(new BasicArrayInterpreter()) {
+			Analyzer a = new Analyzer(new BasicArrayInterpreter((this.access & Opcodes.ACC_STATIC) != 0)) {
 			    protected int[] insnToLabel;
 
 				int getLabel(int insn) {
@@ -459,6 +451,34 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								break;
 							}
 						}
+						else if(succesorBlock.insn.getType() == AbstractInsnNode.FIELD_INSN)
+						{
+							FieldInsnNode fin = (FieldInsnNode) succesorBlock.insn;
+							if(fin.getOpcode() == Opcodes.PUTFIELD)
+							{
+								Frame fr = this.getFrames()[successor];
+								if(fr != null && fr.getStack(fr.getStackSize()-2) == BasicArrayInterpreter.THIS_VALUE) {
+									succesorBlock.fieldsWritten.add(new Field(false,fin.owner,fin.name,fin.desc));
+								}
+							}
+							else if(fin.getOpcode() == Opcodes.PUTSTATIC){
+								succesorBlock.fieldsWritten.add(new Field(true,fin.owner,fin.name,fin.desc));
+							}
+						}
+						else if(succesorBlock.insn.getType() == AbstractInsnNode.METHOD_INSN){
+							MethodInsnNode min = (MethodInsnNode) succesorBlock.insn;
+							if(min.getOpcode() == INVOKEVIRTUAL || min.getOpcode() == INVOKESPECIAL){
+								Type[] desc = Type.getArgumentTypes(min.desc);
+								if(desc.length == 1 && Type.getReturnType(min.desc).getSort()==Type.VOID){
+									Frame fr = this.getFrames()[successor];
+									if(fr != null && fr.getStack(fr.getStackSize()-2) instanceof BasicArrayInterpreter.BasicThisFieldValue) {
+										BasicArrayInterpreter.BasicThisFieldValue vv = (BasicArrayInterpreter.BasicThisFieldValue) fr.getStack(fr.getStackSize()-2);
+										succesorBlock.fieldsWritten.add(vv.getField());
+									}
+								}
+							}
+
+						}
 					}
 					fromBlock.successors.add(succesorBlock);
 					succesorBlock.predecessors.add(fromBlock);
@@ -592,7 +612,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //								System.out.println("insertbefore  : " + ((JumpInsnNode) insertAfter.getNext()).toString());
 								if(insertAfter.getNext().getOpcode() != Opcodes.GOTO)
 								{
-
 									this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_BOX_JUMP, j));
 								}
 								else
@@ -647,6 +666,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				}
 				
 			} catch (AnalyzerException e) {
+				System.err.println("While analyzing " + className);
 				e.printStackTrace();
 			}
 
@@ -762,6 +782,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						}
 					}
 
+					for(BasicBlock j : implicitAnalysisblocks.values())
+						j.visited = false;
+
 					
 					for(BasicBlock j : implicitAnalysisblocks.values())
 					{
@@ -777,14 +800,18 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								if(b.visited)
 									continue;
 								b.visited = true;
+//								System.out.println(b.fieldsWritten);
+//								System.out.println(b.varsWritten);
 								if(b.onFalseSideOfJumpFrom.contains(j))
 								{
 									j.varsWrittenTrueSide.addAll(b.varsWritten);
+									j.fieldsWrittenTrueSide.addAll(b.fieldsWritten);
 									stack.addAll(b.successors);
 								}
 								else if(b.onTrueSideOfJumpFrom.contains(j))
 								{
 									j.varsWrittenFalseSide.addAll(b.varsWritten);
+									j.fieldsWrittenFalseSide.addAll(b.fieldsWritten);
 									stack.addAll(b.successors);
 								}
 							}
@@ -803,12 +830,20 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							diff.addAll(b.varsWrittenFalseSide);
 							diff.removeAll(common);
 
-							for(int i : diff)
-							{
-								instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.FORCE_CTRL_STORE, i));
-								
-							}
+							HashSet<Field> commonFields = new HashSet<>();
+							commonFields.addAll(b.fieldsWrittenTrueSide);
+							commonFields.retainAll(b.fieldsWrittenFalseSide);
+							HashSet<Field> diffFields = new HashSet<>();
+							diffFields.addAll(b.fieldsWrittenFalseSide);
+							diffFields.addAll(b.fieldsWrittenTrueSide);
+							diffFields.removeAll(common);
+//							System.out.println(b.fieldsWrittenFalseSide +" "+b.fieldsWrittenTrueSide);
+
 							instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
+							for(int i : diff)
+								instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.FORCE_CTRL_STORE, i));
+							for(Field f : diffFields)
+								instructions.insertBefore(b.insn,new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE),f.owner,f.name,f.description));
 							jumpIDs.put(b, jumpID);
 							if(b.is2ArgJump)
 								jumpID++;
@@ -969,9 +1004,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		HashSet<BasicBlock> onFalseSideOfJumpFrom = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<BasicBlock> onTrueSideOfJumpFrom = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<Integer> varsWritten = new HashSet<Integer>();
-		
+		HashSet<Field> fieldsWritten = new HashSet<>();
+
 		HashSet<Integer> varsWrittenTrueSide = new HashSet<Integer>();
 		HashSet<Integer> varsWrittenFalseSide = new HashSet<Integer>();
+		HashSet<Field> fieldsWrittenTrueSide = new HashSet<>();
+		HashSet<Field> fieldsWrittenFalseSide = new HashSet<>();
+
 		@Override
 		public String toString() {
 //			return insn.toString();

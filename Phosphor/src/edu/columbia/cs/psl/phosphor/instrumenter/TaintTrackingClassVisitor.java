@@ -46,6 +46,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import sun.security.krb5.Config;
 
 /**
  * CV responsibilities: Add a field to classes to track each instance's taint
@@ -709,10 +710,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 //						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
 					} else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
 							.equals(TaintPassingMV.DOUBLE_NAME))) {
+						Configuration.taintTagFactory.generateSetTag(mv, className);
 						//For primitive types, also set the "value" field
-						mv.visitVarInsn(Opcodes.ALOAD, 0);
-						mv.visitVarInsn(Opcodes.ILOAD, 1);
-						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 //>>>>>>> master
 					}
 					mv.visitInsn(Opcodes.RETURN);
@@ -762,9 +761,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					}  else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
 							.equals(TaintPassingMV.DOUBLE_NAME))) {
 						//For primitive types, also set the "value" field
-						mv.visitVarInsn(Opcodes.ALOAD, 0);
-						mv.visitVarInsn(Opcodes.ALOAD, 1);
-						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+						Configuration.taintTagFactory.generateSetTag(mv,className);
+
 					}
 					mv.visitInsn(Opcodes.RETURN);
 					mv.visitMaxs(0, 0);

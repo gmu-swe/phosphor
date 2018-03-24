@@ -87,10 +87,8 @@ public class BaseMultiTaintClass {
 	public static void assertTaintHasOnlyLabels(Taint obj, Object... lbl)
 	{
 		assertNotNull(obj);
-		if(obj.lbl == lbl)
-			return;
-		if(obj.hasNoDependencies())
-			fail("Expected taint contained "+ lbl+", has nothing");
+		if(obj.hasNoDependencies() && obj.lbl == null)
+			fail("Expected taint contained "+ Arrays.toString(lbl)+", has nothing");
 		Node<Object> dep = obj.dependencies.getFirst();
 		boolean l1 = false;
 		boolean l2 = false;
@@ -106,6 +104,7 @@ public class BaseMultiTaintClass {
 
 			dep = dep.next;
 		}
+		expected.remove(obj.lbl);
 		if(expected.isEmpty())
 			return;
 		fail("Expected taint contained "+ expected +", has " + obj);
