@@ -22,7 +22,6 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.LocalVariableAnnotationNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.ParameterNode;
@@ -30,11 +29,9 @@ import org.objectweb.asm.tree.TypeAnnotationNode;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.PreMain;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
-import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
@@ -46,7 +43,6 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
-import sun.security.krb5.Config;
 
 /**
  * CV responsibilities: Add a field to classes to track each instance's taint
@@ -109,7 +105,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		this.classSource = source;
 		this.classDebug = debug;
 	}
-	
+
+	private String superName;
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		addTaintField = true;
@@ -204,6 +201,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		
 		}
 		this.className = name;
+		this.superName = superName;
 	}
 
 	boolean generateHashCode = false;
@@ -434,6 +432,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				TaintAdapter custom = null;
 				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv, generateExtraLVDebug);
 
+
 				nextMV = lvs;
 
 			}
@@ -484,6 +483,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				try {
 					TaintAdapter custom = Configuration.extensionMethodVisitor.getConstructor(Integer.TYPE,String.class, String.class, String.class, String.class, String[].class, MethodVisitor.class,
 							NeverNullArgAnalyzerAdapter.class, String.class, String.class).newInstance(access, className, name, desc, signature, exceptions, rawMethod, null, classSource, classDebug);
+					custom.setFields(fields);
+					custom.setSuperName(superName);
 					return custom;
 				} catch (InstantiationException e) {
 					e.printStackTrace();

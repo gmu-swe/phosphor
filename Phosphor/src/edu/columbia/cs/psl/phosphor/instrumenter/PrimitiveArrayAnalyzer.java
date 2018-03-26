@@ -1133,9 +1133,11 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			wrapperTypesToPreAlloc.add(newReturnType);
 	}
 
+	public MethodNode mn;
 	public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv) {
 		super(Opcodes.ASM5);
-		this.mv = new PrimitiveArrayAnalyzerMN(access, name, desc, signature, exceptions, className, cmv);
+		this.mn = new PrimitiveArrayAnalyzerMN(access, name, desc, signature, exceptions, className, cmv);
+		this.mv = mn;
 	}
 	public PrimitiveArrayAnalyzer(Type singleWrapperTypeToAdd) {
 		super(Opcodes.ASM5);

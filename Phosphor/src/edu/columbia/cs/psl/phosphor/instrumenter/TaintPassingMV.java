@@ -4274,10 +4274,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		this.argOffset = newArgOffset;
 	}
 
-	public List<FieldNode> fields;
-	public void setFields(List<FieldNode> fields) {
-		this.fields = fields;
-	}
+
 	@Override
 	public void visitLineNumber(int line, Label start) {
 		super.visitLineNumber(line, start);

@@ -7,6 +7,7 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
@@ -56,8 +57,18 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 		this.analyzer = analyzer;
 		this.className = className;
 	}
+	public List<FieldNode> fields;
+	public void setFields(List<FieldNode> fields) {
+		this.fields = fields;
+	}
 	protected String classSource;
 	protected String classDebug;
+	protected String superName;
+
+	public void setSuperName(String parentName) {
+		this.superName = parentName;
+	}
+
 	public TaintAdapter(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, String classSource, String classDebug) {
 		super(Opcodes.ASM5, mv);
 		this.analyzer = analyzer;

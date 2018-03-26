@@ -50,6 +50,10 @@ public class PreMain {
 	public static boolean RUNTIME_INST = false;
 
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
+	/**
+	 * As I write this I realize what a multithreaded classloader mess this can create... let's see how bad it is.
+	 */
+	public static ClassLoader curLoader;
 
 	public static final class PCLoggingTransformer implements ClassFileTransformer {
 		private final class HackyClassWriter extends ClassWriter {
@@ -173,6 +177,7 @@ public class PreMain {
 			ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer) : new ClassReader(classfileBuffer));
 			String className = cr.getClassName();
 			innerException = false;
+			curLoader = loader;
 //			bigLoader = loader;
 //			Instrumenter.loader = bigLoader;
 			if (Instrumenter.isIgnoredClass(className)) {

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
+import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -54,6 +55,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	private boolean generateExtraDebug;
 	private Type[] args;
 	private boolean isStatic;
+
+	private int extraLVsInArg;
 	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean generateExtraDebug) {
 		super(ASM5, access, desc, mv);
 		this.analyzer = analyzer;
@@ -75,9 +78,16 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 			}
 			if(args[i].getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class)))
 			{
+				extraLVsInArg++;
 				idxOfMasterControlLV = lastArg-1;
 			}
+			if(args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC))
+				extraLVsInArg++;
+			if(args[i].getDescriptor().equals(Type.getType(TaintSentinel.class)))
+				extraLVsInArg++;
 		}
+		if(returnType.getSort() != Type.VOID && (returnType.getSort() != Type.OBJECT || (returnType.getSort() == Type.ARRAY && returnType.getDimensions()==1 && returnType.getElementType().getSort() != Type.OBJECT)))
+			extraLVsInArg++;
 		lastArg--;
 		end = new Label();
 //		System.out.println("New LVS");
@@ -121,12 +131,24 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	HashMap<Integer, Integer> shadowLVMap = new HashMap<Integer, Integer>();
 
 	HashMap<Integer, Object> shadowLVMapType = new HashMap<Integer, Object>();
+//	HashSet<String> usedShadowNames = new HashSet<>();
 	public int newShadowLV(Type type, int shadows) {
 		int idx = super.newLocal(type);
 		Label lbl = new Label();
 		super.visitLabel(lbl);
 
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorShadowLVFor" + shadows+"XX"+createdLVIdx, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), idx);
+		String shadowName = null;
+		if (primitiveArrayFixer != null)
+			for (Object o : primitiveArrayFixer.mn.localVariables) {
+				LocalVariableNode lv = (LocalVariableNode) o;
+				int id = remap(lv.index + (lv.index < lastArg - extraLVsInArg ? 0: extraLVsInArg), Type.getType(lv.desc));
+				if (id == shadows) {
+					shadowName = lv.name + "$$PHOSPHORTAG";
+				}
+			}
+		if (shadowName == null)
+			shadowName = "phosphorShadowLVFor" + shadows + "XX" + createdLVIdx;
+		LocalVariableNode newLVN = new LocalVariableNode(shadowName, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), idx);
 
 		createdLVs.add(newLVN);
 		curLocalIdxToLVNode.put(idx, newLVN);
