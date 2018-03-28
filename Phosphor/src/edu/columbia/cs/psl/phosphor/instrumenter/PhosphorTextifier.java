@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.Textifier;
@@ -49,6 +50,20 @@ public class PhosphorTextifier extends Textifier {
 		 * int CUSTOM_SIGNAL_1 = 218; public static final int CUSTOM_SIGNAL_2 =
 		 * 219; public static final int CUSTOM_SIGNAL_3 = 220;
 		 */
+	}
+
+	@Override
+	public void visitFieldInsn(int opcode, String owner, String name, String desc) {
+		if (opcode > 200) {
+			buf.setLength(0);
+			buf.append(tab2).append(MORE_OPCODES[opcode - 200]).append(' ');
+			appendDescriptor(INTERNAL_NAME, owner);
+			buf.append('.').append(name).append(" : ");
+			appendDescriptor(FIELD_DESCRIPTOR, desc);
+			buf.append('\n');
+			text.add(buf.toString());
+		} else
+			super.visitFieldInsn(opcode, owner, name, desc);
 	}
 
 	public PhosphorTextifier() {

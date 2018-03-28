@@ -397,8 +397,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						//insn not added yet
 						fromBlock = new BasicBlock();
 						fromBlock.idx = insn;
-						fromBlock.idxOrder = insnIdxOrderVisited;
-						insnIdxOrderVisited++;
 						fromBlock.insn = instructions.get(insn);
 						implicitAnalysisblocks.put(insn,fromBlock);
 					}
@@ -431,8 +429,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					{
 						succesorBlock = new BasicBlock();
 						succesorBlock.idx = successor;
-						succesorBlock.idxOrder = insnIdxOrderVisited;
-						insnIdxOrderVisited++;
 						succesorBlock.insn = instructions.get(successor);
 						implicitAnalysisblocks.put(successor, succesorBlock);
 						if(succesorBlock.insn.getType() == AbstractInsnNode.IINC_INSN)
@@ -736,7 +732,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							}
 						}
 					}
-					
+
 					//Add in markings for where jumps are resolved
 					for(BasicBlock j : implicitAnalysisblocks.values())
 					{
@@ -745,19 +741,53 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //							System.out.println(j + " " +j.postDominators);
 							j.postDominators.remove(j);
 							BasicBlock min = null;
+							//Do a traversal of ALL of our successors in order to find the closest postDominator
+							stack.add(j);
+							HashMap<BasicBlock,Integer> distances = new HashMap<>();
+							distances.put(j,0);
+							HashSet<BasicBlock> visited = new HashSet<>();
+							while (!stack.isEmpty()) {
+								BasicBlock b = stack.pop();
+								if (!visited.add(b))
+									continue;
+								int myDist = distances.get(b);
+								for (BasicBlock s : b.successors) {
+									Integer cur = distances.get(s);
+									if (cur == null)
+										distances.put(s, myDist + 1);
+									else {
+										if (myDist + 1 < cur) {
+											distances.put(s, myDist + 1);
+											visited.remove(s);
+										}
+									}
+									stack.add(s);
+								}
+							}
 							for(BasicBlock d : j.postDominators)
 							{
-								if(min == null || min.idxOrder > d.idxOrder)
+								if(min == null || distances.get(min) > distances.get(d))//Might be a back edge outside of a loop though!
 									min = d;
 							}
-//							System.out.println(j + " resolved at " + min);
+//							System.out.println(j + " resolved at " + min +", of " + j.postDominators);
 							if (min != null) {
 								min.resolvedBlocks.add(j);
 								min.resolvedHereBlocks.add(j);
 							}
+							else
+							{
+								//There are no post-dominators of this branch. That means that one leg of the
+								//branch goes to a return. So, we'll say that this gets resolved at each return that is a successor
+								for(BasicBlock b : visited)
+								{
+									if(b.insn.getOpcode() >= Opcodes.IRETURN && b.insn.getOpcode() < Opcodes.RETURN){
+										b.resolvedHereBlocks.add(j);
+									}
+								}
+							}
 						}
 					}
-					
+
 					//Propogate forward true-side/false-side to determine which vars are written
 					stack.add(implicitAnalysisblocks.get(0));
 					while (!stack.isEmpty()) {
@@ -765,41 +795,50 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						if (b.visited)
 							continue;
 						b.visited = true;
+//						System.out.println(b.idx);
+//						System.out.println("\t"+b.onFalseSideOfJumpFrom+b.onTrueSideOfJumpFrom+ b.resolvedHereBlocks);
 						b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
 						b.onTrueSideOfJumpFrom.removeAll(b.resolvedBlocks);
 						//Propogate markings to successors
 						for (BasicBlock s : b.successors) {
 							boolean _changed = false;
+
 							_changed |= s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
 							_changed |= s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
-							_changed |= s.resolvedBlocks.addAll(b.resolvedBlocks);
-							if(_changed)
-								s.visited = false;
+//							if(!s.visited)
+								_changed |= s.resolvedBlocks.addAll(b.resolvedBlocks);
+//							if(_changed)
+//								s.visited = false;
 							s.onFalseSideOfJumpFrom.remove(s);
 							s.onTrueSideOfJumpFrom.remove(s);
-							if (!s.visited)
+//							if (!s.visited)
 								stack.add(s);
 						}
 					}
 
+//					for(BasicBlock j : implicitAnalysisblocks.values())
+//					{
+//						this.instructions.insertBefore(j.insn, new LdcInsnNode(j.idx + " " + j.onTrueSideOfJumpFrom + " " + j.onFalseSideOfJumpFrom +" RH:" + j.resolvedHereBlocks));
+//						this.instructions.insertBefore(j.insn,new InsnNode(Opcodes.POP));
+//					}
 					for(BasicBlock j : implicitAnalysisblocks.values())
 						j.visited = false;
 
 					
 					for(BasicBlock j : implicitAnalysisblocks.values())
 					{
-//						this.instructions.insertBefore(j.insn, new LdcInsnNode(j.idx + " " + j.onTrueSideOfJumpFrom + " " + j.onFalseSideOfJumpFrom));
 //						System.out.println(j.idx + " " + j.postDominators);
 						if(j.isJump)
 						{
 							stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
 							stack.addAll(j.successors);
+							HashSet<BasicBlock> visited = new HashSet<>();
+//							System.out.println("START JUMP " + j.idx);
 							while(!stack.isEmpty())
 							{
 								BasicBlock b = stack.pop();
-								if(b.visited)
+								if(!visited.add(b))
 									continue;
-								b.visited = true;
 //								System.out.println(b.fieldsWritten);
 //								System.out.println(b.varsWritten);
 								if(b.onFalseSideOfJumpFrom.contains(j))
@@ -815,6 +854,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 									stack.addAll(b.successors);
 								}
 							}
+//							System.out.println("Visited: " + visited);
 						}
 					}
 					HashMap<BasicBlock, Integer> jumpIDs = new HashMap<PrimitiveArrayAnalyzer.BasicBlock, Integer>();
@@ -837,7 +877,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							diffFields.addAll(b.fieldsWrittenFalseSide);
 							diffFields.addAll(b.fieldsWrittenTrueSide);
 							diffFields.removeAll(common);
-//							System.out.println(b.fieldsWrittenFalseSide +" "+b.fieldsWrittenTrueSide);
+//							System.out.println(b.idx + " " + b.varsWrittenFalseSide +" "+b.varsWrittenTrueSide);
 
 							instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
 							for(int i : diff)
@@ -899,7 +939,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //							if (b.insn.getOpcode() != Opcodes.ATHROW) {
 								HashSet<BasicBlock> live = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>(b.onFalseSideOfJumpFrom);
 								live.addAll(b.onTrueSideOfJumpFrom);
+//							System.out.println("RETURN @" +b.idx+"still in jumps " + live);
 								for (BasicBlock r : live) {
+									if(b.resolvedHereBlocks.contains(r))
+										continue;
 									instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
 									if (r.is2ArgJump)
 										instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r) + 1));
@@ -960,23 +1003,23 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		}
 		HashMap<Integer,BasicBlock> implicitAnalysisblocks = new HashMap<Integer,PrimitiveArrayAnalyzer.BasicBlock>();
 
-		void calculatePostDominators(BasicBlock b)
-		{
-			if(b.visited)
-				return;
-			b.visited = true;
-			b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
-			b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
-			//Propogate markings to successors
-			for(BasicBlock s : b.successors)
-			{
-				s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
-				s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
-				s.resolvedBlocks.addAll(b.resolvedBlocks);
-				if(!s.visited)
-					calculatePostDominators(s);
-			}
-		}
+//		void calculatePostDominators(BasicBlock b)
+//		{
+//			if(b.visited)
+//				return;
+//			b.visited = true;
+//			b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
+//			b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
+//			//Propogate markings to successors
+//			for(BasicBlock s : b.successors)
+//			{
+//				s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
+//				s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
+//				s.resolvedBlocks.addAll(b.resolvedBlocks);
+//				if(!s.visited)
+//					calculatePostDominators(s);
+//			}
+//		}
 
 	}
 	static class BasicBlock{

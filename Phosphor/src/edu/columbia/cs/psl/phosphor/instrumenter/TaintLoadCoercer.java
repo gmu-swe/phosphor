@@ -612,11 +612,11 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 		Configuration.MULTI_TAINTING =true;
 //		Configuration.IMPLICIT_LIGHT_TRACKING = true;
 //		Configuration.ARRAY_LENGTH_TRACKING = true;
-//		Configuration.ARRAY_INDEX_TRACKING = true;
+		Configuration.ARRAY_INDEX_TRACKING = true;
 //		Configuration.ANNOTATE_LOOPS = true;
 //		Instrumenter.instrumentClass("asdf", new FileInputStream("z.class"), false);
 		ClassReader cr = new ClassReader(new FileInputStream("z.class"));
-//		ClassReader cr = new ClassReader(new FileInputStream("target/test-classes/Foo.class"));
+//		ClassReader cr = new ClassReader(new FileInputStream("target/classes/VarInLoop.class"));
 		final String className = cr.getClassName();
 		PrintWriter pw = new PrintWriter("z.txt");
 		TraceClassVisitor tcv = new TraceClassVisitor(null, new PhosphorTextifier(), pw);
@@ -667,6 +667,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						super.visitInsn(opcode);
 					}
 				};
+//				mv = new SpecialOpcodeRemovingMV(mv,false,className,false);
 //				NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, className, desc, mv);
 				mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true);
 //				LocalVariableManager lvs = new LocalVariableManager(access, desc, mv, analyzer, mv, false);

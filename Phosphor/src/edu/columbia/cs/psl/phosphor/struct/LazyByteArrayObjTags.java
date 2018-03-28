@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class LazyByteArrayObjTags extends LazyArrayObjTags {
@@ -34,7 +35,9 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public void set(byte[] l, Taint idxTag, int idx, Taint tag, byte ival) {
-		if(idxTag == null)
+		if(Configuration.derivedTaintListener != null)
+			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival), ival);
+		else if(idxTag == null)
 			set(l, idx, tag, ival);
 		else if(tag == null)
 			set(l, idx, idxTag, ival);
@@ -49,6 +52,13 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 				taints = new Taint[this.val.length];
 			taints[idx] = tag;
 		}
+	}
+
+	public TaintedByteWithObjTag get(byte[] b, Taint idxTaint, int idx, TaintedByteWithObjTag ret){
+		ret = get(b,idx,ret);
+		if(Configuration.derivedTaintListener != null)
+			ret.taint = Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret);
+		return ret;
 	}
 
 	public TaintedByteWithObjTag get(byte[] b, int idx, TaintedByteWithObjTag ret) {

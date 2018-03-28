@@ -451,6 +451,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 	@Test
 	public void testImplicitFlow2() {
 		String userInputPassword = taintedString("superSecure");
+		resetState();
 		assertNullOrEmpty(MultiTainter.getControlFlow().getTag());
 //		if (userInputPassword.equals("superSecure"))
 		if(equals(userInputPassword,"superSecure"))

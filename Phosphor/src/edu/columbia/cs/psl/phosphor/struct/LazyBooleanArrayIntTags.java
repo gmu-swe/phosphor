@@ -1,5 +1,8 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
 public final class LazyBooleanArrayIntTags extends LazyArrayIntTags {
 	
 	/**

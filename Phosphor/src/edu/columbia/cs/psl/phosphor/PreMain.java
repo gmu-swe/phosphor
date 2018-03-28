@@ -473,7 +473,7 @@ public class PreMain {
 					Configuration.IMPLICIT_LIGHT_TRACKING = true;
 				else if(s.equals("arrayindex"))
 				{
-					Configuration.ARRAY_LENGTH_TRACKING = true;
+//					Configuration.ARRAY_LENGTH_TRACKING = true;
 					Configuration.ARRAY_INDEX_TRACKING = true;
 				}
 				else if(s.startsWith("withSelectiveInst="))

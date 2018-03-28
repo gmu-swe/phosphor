@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class LazyCharArrayObjTags extends LazyArrayObjTags {
@@ -37,7 +38,9 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public void set(char[] l, Taint idxTag, int idx, Taint tag, char ival) {
-		if(idxTag == null)
+		if(Configuration.derivedTaintListener != null)
+			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival), ival);
+		else if(idxTag == null)
 			set(l, idx, tag, ival);
 		else if(tag == null)
 			set(l, idx, idxTag, ival);
@@ -52,6 +55,13 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 				taints = new Taint[this.val.length];
 			taints[idx] = tag;
 		}
+	}
+
+	public TaintedCharWithObjTag get(char[] b, Taint idxTaint, int idx, TaintedCharWithObjTag ret){
+		ret = get(b,idx,ret);
+		if(Configuration.derivedTaintListener != null)
+			ret.taint = Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret);
+		return ret;
 	}
 
 	public TaintedCharWithObjTag get(char[] c, int idx, TaintedCharWithObjTag ret) {

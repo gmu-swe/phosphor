@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class LazyShortArrayObjTags extends LazyArrayObjTags {
@@ -22,6 +23,13 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
 		this.val = array;
 		this.lengthTaint = lenTaint;
 	}
+
+	public TaintedShortWithObjTag get(short[] b, Taint idxTaint, int idx, TaintedShortWithObjTag ret){
+		ret = get(b,idx,ret);
+		if(Configuration.derivedTaintListener != null)
+			ret.taint = Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret);
+		return ret;
+	}
 	
 	@Override
 	public Object clone() {
@@ -32,7 +40,9 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
 	}
 	
 	public void set(short[] l, Taint idxTag, int idx, Taint tag, short ival) {
-		if(idxTag == null)
+		if(Configuration.derivedTaintListener != null)
+			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival), ival);
+		else if(idxTag == null)
 			set(l, idx, tag, ival);
 		else if(tag == null)
 			set(l, idx, idxTag, ival);

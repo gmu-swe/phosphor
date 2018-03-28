@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
@@ -34,9 +35,17 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 	public void setImplicit(double[] b, Taint idxTag, int idx, Taint tag, double val, ControlTaintTagStack ctrl) {
 		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
 	}
+	public TaintedDoubleWithObjTag get(double[] b, Taint idxTaint, int idx, TaintedDoubleWithObjTag ret){
+		ret = get(b,idx,ret);
+		if(Configuration.derivedTaintListener != null)
+			ret.taint = Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret);
+		return ret;
+	}
 	
 	public void set(double[] l, Taint idxTag, int idx, Taint tag, double ival) {
-		if(idxTag == null)
+		if(Configuration.derivedTaintListener != null)
+			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival), ival);
+		else if(idxTag == null)
 			set(l, idx, tag, ival);
 		else if(tag == null)
 			set(l, idx, idxTag, ival);
