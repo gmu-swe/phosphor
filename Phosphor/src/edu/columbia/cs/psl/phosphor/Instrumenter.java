@@ -93,10 +93,7 @@ public class Instrumenter {
     public static boolean IS_KAFFE_INST = Boolean.valueOf(System.getProperty("KAFFE", "false"));
     public static boolean IS_HARMONY_INST = Boolean.valueOf(System.getProperty("HARMONY", "false"));
 
-	public static boolean IS_ANDROID_INST = Boolean.valueOf(System.getProperty("ANDROID", "false"));
 	public static boolean isClassWithHashmapTag(String clazz) {
-		if(IS_ANDROID_INST)
-			return false;
 		return clazz.startsWith("java/lang/Boolean") || clazz.startsWith("java/lang/Character") || clazz.startsWith("java/lang/Byte") || clazz.startsWith("java/lang/Short");
 	}
 

@@ -30,9 +30,6 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
 		Type[] args = Type.getArgumentTypes(desc);
 //TESTING
-		boolean origAndroidInst = Instrumenter.IS_ANDROID_INST;
-		Instrumenter.IS_ANDROID_INST = true;
-
 		if (owner.equals("java/lang/reflect/Field")
 				&& opcode == Opcodes.INVOKEVIRTUAL
 				&& (name.equals("get") || name.equals("set"))){
@@ -90,8 +87,6 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 				}
 			}
 		}
-		else if (!Instrumenter.IS_ANDROID_INST && owner.equals("java/lang/Class") && (name.equals("copyMethods") || name.equals("copyFields") || name.equals("copyConstructors")))
-			owner = Type.getInternalName(ReflectionMasker.class);
 		else if ((owner.equals("java/lang/reflect/Method")) && name.startsWith("get") && !className.equals(owner) && !className.startsWith("sun/reflect") && !className.startsWith("java/lang/Class")) {
 			if (args.length == 0)
 			{
@@ -151,13 +146,10 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 		}
 		super.visitMethodInsn(opcode, owner, name, desc,itfc);
 		if (owner.equals("java/lang/Class") && desc.equals("()[Ljava/lang/reflect/Field;")) {
-			if (Instrumenter.IS_ANDROID_INST)
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeTaintFields", "([Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;",false);
 		} else if (owner.equals("java/lang/Class") && desc.equals("()[Ljava/lang/reflect/Method;")) {
-			if (Instrumenter.IS_ANDROID_INST)
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeTaintMethods", "([Ljava/lang/reflect/Method;)[Ljava/lang/reflect/Method;",false);
 		} else if (owner.equals("java/lang/Class") && desc.equals("()[Ljava/lang/reflect/Constructor;")) {
-			if (Instrumenter.IS_ANDROID_INST)
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "removeTaintConstructors",
 						"([Ljava/lang/reflect/Constructor;)[Ljava/lang/reflect/Constructor;",false);
 		} else if (owner.equals("java/lang/Class") && name.equals("getInterfaces")) {
@@ -177,7 +169,6 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 
 		}
 
-		Instrumenter.IS_ANDROID_INST = origAndroidInst;
 	}
 
 }

@@ -293,6 +293,14 @@ public final class MultiTainter {
 			Taint ret = ArrayHelper.getTag(obj);
 			return ret;
 		}
+		else if(obj instanceof Boolean)
+			return BoxedPrimitiveStoreWithObjTags.booleanValue((Boolean) obj).taint;
+		else if(obj instanceof Byte)
+			return BoxedPrimitiveStoreWithObjTags.byteValue((Byte)obj).taint;
+		else if(obj instanceof Short)
+			return BoxedPrimitiveStoreWithObjTags.shortValue((Short) obj).taint;
+		else if(obj instanceof Character)
+			return BoxedPrimitiveStoreWithObjTags.charValue((Character) obj).taint;
 		else
 			return null;
 	}

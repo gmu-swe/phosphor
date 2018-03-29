@@ -561,7 +561,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv.visitEnd();
 			mv.visitMaxs(0, 0);			
 		}
-		boolean goLightOnGeneratedStuff = !Instrumenter.IS_ANDROID_INST && className.equals("java/lang/Byte");
+		boolean goLightOnGeneratedStuff = className.equals("java/lang/Byte");
 //		if (isAnnotation) {
 //			super.visitEnd();
 //			return;
