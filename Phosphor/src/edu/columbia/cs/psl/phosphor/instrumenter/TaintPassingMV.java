@@ -2798,8 +2798,24 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					if(topCarriesTaint())
 						offset++;
 					Object secondOnStack = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - offset); //3, or 2?
-					if (!(secondOnStack instanceof TaggedValue))
+					if (!(secondOnStack instanceof TaggedValue)) {
+						if(nextDupCopiesTaint1 && !nextDupCopiesTaint2 && !nextDupCopiesTaint3)
+						{
+							//Dup the top 2 items, leaving a taint behind for the top item, the second item is not tainted
+							//A TB B -> A TB B A TB B
+							LocalVariableNode[] lvs = storeToLocals(3);
+							loadLV(2,lvs);
+							loadLV(1,lvs);
+							loadLV(0,lvs);
+							loadLV(2,lvs);
+							loadLV(1,lvs);
+							loadLV(0,lvs);
+							freeLVs(lvs);
+							return;
+						}
+
 						throw new IllegalStateException("Told to copy taint of second thing on stack but got " + secondOnStack);
+					}
 					if(getStackElementSize(secondOnStack) == 2)
 						throw new UnsupportedOperationException();//Should be true always or was invalid already
 					if (nextDupCopiesTaint1) {

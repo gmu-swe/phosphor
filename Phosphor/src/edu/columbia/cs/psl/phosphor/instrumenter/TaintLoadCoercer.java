@@ -575,6 +575,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 							if(v.getSrc().getOpcode() == Opcodes.DUP2_X1)
 								i+=2;
 //							this.instructions.insertBefore(v.getSrc(), new LdcInsnNode(masterDup.toString() +  " " +masterDup.otherDups.toString()));
+//							this.instructions.insertBefore(v.getSrc(),new InsnNode(Opcodes.POP));
 							for(SinkableArrayValue d : masterDup.otherDups)
 							{
 								if(relevantValues.contains(d))
