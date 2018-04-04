@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
@@ -663,12 +664,21 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static TaintedByteWithObjTag parseByte$$PHOSPHORTAGGED(String s, Taint t, int radix, TaintedByteWithObjTag ret) {
-		ret.val = Byte.parseByte(s, radix);
-		if(s != null)
-			ret.taint = (Taint) s.getPHOSPHOR_TAG();
-		else
-			ret.taint = null;
-		return ret;
+		try {
+			ret.val = Byte.parseByte(s, radix);
+			if (s != null) {
+				ret.taint = (Taint) s.getPHOSPHOR_TAG();
+				if (t != null)
+					ret.taint.addDependency(t);
+			} else if (t != null)
+				ret.taint = t.copy();
+			else
+				ret.taint = null;
+			return ret;
+		} catch (NumberFormatException ex) {
+			Taint.combineTagsInPlace(ex, t);
+			throw ex;
+		}
 	}
 
 	public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, TaintedIntWithObjTag ret) {
@@ -681,12 +691,22 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, Taint t, int radix, TaintedIntWithObjTag ret) {
-		ret.val = Integer.parseInt(s, radix);
-		if(s != null)
-			ret.taint = (Taint) s.getPHOSPHOR_TAG();
-		else
-			ret.taint = null;
-		return ret;
+		try {
+			ret.val = Integer.parseInt(s, radix);
+			if (s != null) {
+				ret.taint = (Taint) s.getPHOSPHOR_TAG();
+				if(t != null)
+					ret.taint.addDependency(t);
+			}
+			else if(t != null)
+				ret.taint = t.copy();
+			else
+				ret.taint = null;
+			return ret;
+		}catch(NumberFormatException ex){
+			Taint.combineTagsInPlace(ex,t);
+			throw ex;
+		}
 	}
 
 	public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, TaintedIntWithObjTag ret) {
@@ -699,12 +719,21 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, Taint t, int radix, TaintedIntWithObjTag ret) {
-		ret.val = Integer.parseUnsignedInt(s, radix);
-		if(s != null)
-			ret.taint = (Taint) s.getPHOSPHOR_TAG();
-		else
-			ret.taint = null;
-		return ret;
+		try {
+			ret.val = Integer.parseUnsignedInt(s, radix);
+			if (s != null) {
+				ret.taint = (Taint) s.getPHOSPHOR_TAG();
+				if (t != null)
+					ret.taint.addDependency(t);
+			} else if (t != null)
+				ret.taint = t.copy();
+			else
+				ret.taint = null;
+			return ret;
+		} catch (NumberFormatException ex) {
+			Taint.combineTagsInPlace(ex, t);
+			throw ex;
+		}
 	}
 
 	public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, TaintedShortWithObjTag ret) {
@@ -717,12 +746,21 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, Taint t, int radix, TaintedShortWithObjTag ret) {
-		ret.val = Short.parseShort(s, radix);
-		if(s != null)
-			ret.taint = (Taint) s.getPHOSPHOR_TAG();
-		else
-			ret.taint = null;
-		return ret;
+		try {
+			ret.val = Short.parseShort(s, radix);
+			if (s != null) {
+				ret.taint = (Taint) s.getPHOSPHOR_TAG();
+				if (t != null)
+					ret.taint.addDependency(t);
+			} else if (t != null)
+				ret.taint = t.copy();
+			else
+				ret.taint = null;
+			return ret;
+		} catch (NumberFormatException ex) {
+			Taint.combineTagsInPlace(ex, t);
+			throw ex;
+		}
 	}
 
 	public static TaintedLongWithObjTag parseLong$$PHOSPHORTAGGED(String s, TaintedLongWithObjTag ret) {
@@ -753,12 +791,21 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, Taint t, int radix, TaintedLongWithObjTag ret) {
-		ret.val = Long.parseUnsignedLong(s, radix);
-		if(s != null)
-			ret.taint = (Taint) s.getPHOSPHOR_TAG();
-		else
-			ret.taint = null;
-		return ret;
+		try {
+			ret.val = Long.parseUnsignedLong(s, radix);
+			if (s != null) {
+				ret.taint = (Taint) s.getPHOSPHOR_TAG();
+				if (t != null)
+					ret.taint.addDependency(t);
+			} else if (t != null)
+				ret.taint = t.copy();
+			else
+				ret.taint = null;
+			return ret;
+		} catch (NumberFormatException ex) {
+			Taint.combineTagsInPlace(ex, t);
+			throw ex;
+		}
 	}
 
 	public static TaintedFloatWithObjTag parseFloat$$PHOSPHORTAGGED(String s, TaintedFloatWithObjTag ret) {
@@ -798,12 +845,22 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static TaintedByteWithObjTag parseByte$$PHOSPHORTAGGED(String s, Taint t, int radix, ControlTaintTagStack ctrl, TaintedByteWithObjTag ret) {
+		try{
 		ret.val = Byte.parseByte(s, radix);
-		if(s != null)
-			ret.taint = (Taint) s.getPHOSPHOR_TAG();
-		else
-			ret.taint = null;
-		return ret;
+			if (s != null) {
+				ret.taint = (Taint) s.getPHOSPHOR_TAG();
+				if(t != null)
+					ret.taint.addDependency(t);
+			}
+			else if(t != null)
+				ret.taint = t.copy();
+			else
+				ret.taint = null;
+			return ret;
+		}catch(NumberFormatException ex){
+			Taint.combineTagsInPlace(ex,t);
+			throw ex;
+		}
 	}
 
 	public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
@@ -816,12 +873,22 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, Taint t, int radix, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+		try{
 		ret.val = Integer.parseInt(s, radix);
-		if(s != null)
-			ret.taint = (Taint) s.getPHOSPHOR_TAG();
-		else
-			ret.taint = null;
-		return ret;
+			if (s != null) {
+				ret.taint = (Taint) s.getPHOSPHOR_TAG();
+				if(t != null)
+					ret.taint.addDependency(t);
+			}
+			else if(t != null)
+				ret.taint = t.copy();
+			else
+				ret.taint = null;
+			return ret;
+		}catch(NumberFormatException ex){
+			Taint.combineTagsInPlace(ex,t);
+			throw ex;
+		}
 	}
 
 	public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
@@ -834,12 +901,22 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, Taint t, int radix, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+		try{
 		ret.val = Integer.parseUnsignedInt(s, radix);
-		if(s != null)
-			ret.taint = (Taint) s.getPHOSPHOR_TAG();
-		else
-			ret.taint = null;
-		return ret;
+			if (s != null) {
+				ret.taint = (Taint) s.getPHOSPHOR_TAG();
+				if(t != null)
+					ret.taint.addDependency(t);
+			}
+			else if(t != null)
+				ret.taint = t.copy();
+			else
+				ret.taint = null;
+			return ret;
+		}catch(NumberFormatException ex){
+			Taint.combineTagsInPlace(ex,t);
+			throw ex;
+		}
 	}
 
 	public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedShortWithObjTag ret) {
@@ -852,12 +929,22 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, Taint t, int radix, ControlTaintTagStack ctrl, TaintedShortWithObjTag ret) {
+		try{
 		ret.val = Short.parseShort(s, radix);
-		if(s != null)
-			ret.taint = (Taint) s.getPHOSPHOR_TAG();
-		else
-			ret.taint = null;
-		return ret;
+			if (s != null) {
+				ret.taint = (Taint) s.getPHOSPHOR_TAG();
+				if(t != null)
+					ret.taint.addDependency(t);
+			}
+			else if(t != null)
+				ret.taint = t.copy();
+			else
+				ret.taint = null;
+			return ret;
+		}catch(NumberFormatException ex){
+			Taint.combineTagsInPlace(ex,t);
+			throw ex;
+		}
 	}
 
 	public static TaintedLongWithObjTag parseLong$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
@@ -870,12 +957,22 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static TaintedLongWithObjTag parseLong$$PHOSPHORTAGGED(String s, Taint t, int radix, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
+		try{
 		ret.val = Long.parseLong(s, radix);
-		if(s != null)
-			ret.taint = (Taint) s.getPHOSPHOR_TAG();
-		else
-			ret.taint = null;
-		return ret;
+			if (s != null) {
+				ret.taint = (Taint) s.getPHOSPHOR_TAG();
+				if(t != null)
+					ret.taint.addDependency(t);
+			}
+			else if(t != null)
+				ret.taint = t.copy();
+			else
+				ret.taint = null;
+			return ret;
+		}catch(NumberFormatException ex){
+			Taint.combineTagsInPlace(ex,t);
+			throw ex;
+		}
 	}
 
 	public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
@@ -888,12 +985,21 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, Taint t, int radix, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
-		ret.val = Long.parseUnsignedLong(s, radix);
-		if(s != null)
-			ret.taint = (Taint) s.getPHOSPHOR_TAG();
-		else
-			ret.taint = null;
-		return ret;
+		try {
+			ret.val = Long.parseUnsignedLong(s, radix);
+			if (s != null) {
+				ret.taint = (Taint) s.getPHOSPHOR_TAG();
+				if (t != null)
+					ret.taint.addDependency(t);
+			} else if (t != null)
+				ret.taint = t.copy();
+			else
+				ret.taint = null;
+			return ret;
+		} catch (NumberFormatException ex) {
+			Taint.combineTagsInPlace(ex, t);
+			throw ex;
+		}
 	}
 
 	public static TaintedFloatWithObjTag parseFloat$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedFloatWithObjTag ret) {

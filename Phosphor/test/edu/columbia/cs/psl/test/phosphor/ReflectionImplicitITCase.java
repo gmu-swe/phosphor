@@ -159,6 +159,7 @@ public class ReflectionImplicitITCase {
 
 		val = MultiTainter.taintedInt(val, "int");
 		int newVal = list.get(0) + val;
+		Integer z = Integer.valueOf(newVal);
 		list.add(newVal);
 
 		for (int i = 0; i < list.size(); i++) {

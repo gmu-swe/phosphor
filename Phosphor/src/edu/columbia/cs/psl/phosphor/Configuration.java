@@ -76,7 +76,7 @@ public class Configuration {
 	
 	public static TaintSourceWrapper autoTainter = new TaintSourceWrapper();
 	
-	public static DerivedTaintListener derivedTaintListener;
+	public static DerivedTaintListener derivedTaintListener = new DerivedTaintListener();
 	public static String CACHE_DIR = null;
 	public static boolean TAINT_THROUGH_SERIALIZATION = true;
 
@@ -104,6 +104,8 @@ public class Configuration {
 			WITH_TAGS_FOR_JUMPS = true;
 		if(WITH_SELECTIVE_INST)
 			GENERATE_UNINST_STUBS = true;
+		if(IMPLICIT_TRACKING)
+			ARRAY_INDEX_TRACKING = true;
 
 		if (TaintTrackingClassVisitor.class != null && TaintTrackingClassVisitor.class.getClassLoader() != null) {
 			URL r = TaintTrackingClassVisitor.class.getClassLoader().getResource("phosphor-mv");

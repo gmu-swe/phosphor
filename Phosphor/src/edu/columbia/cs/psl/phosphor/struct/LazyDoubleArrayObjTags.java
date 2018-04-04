@@ -32,19 +32,19 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 	
-	public void setImplicit(double[] b, Taint idxTag, int idx, Taint tag, double val, ControlTaintTagStack ctrl) {
-		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
+	public void set(double[] b, Taint idxTag, int idx, Taint tag, double val, ControlTaintTagStack ctrl) {
+		set(b, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
 	}
 	public TaintedDoubleWithObjTag get(double[] b, Taint idxTaint, int idx, TaintedDoubleWithObjTag ret){
-		ret = get(b,idx,ret);
-		if(Configuration.derivedTaintListener != null)
-			ret.taint = Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret);
-		return ret;
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+	}
+	public TaintedDoubleWithObjTag get(double[] b, Taint idxTaint, int idx, TaintedDoubleWithObjTag ret, ControlTaintTagStack ctrl){
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
 	}
 	
 	public void set(double[] l, Taint idxTag, int idx, Taint tag, double ival) {
 		if(Configuration.derivedTaintListener != null)
-			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival), ival);
+			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival,null), ival);
 		else if(idxTag == null)
 			set(l, idx, tag, ival);
 		else if(tag == null)
@@ -71,7 +71,7 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 	
-	public void setImplicit(double[] d, int idx, Taint tag, double newval, ControlTaintTagStack tags) {
+	public void set(double[] d, int idx, Taint tag, double newval, ControlTaintTagStack tags) {
 		val[idx] = newval;
 		tag = Taint.combineTags(tag, tags);
 		if (tag != null) {
@@ -81,7 +81,7 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 		}
 	}
 
-	public TaintedDoubleWithObjTag getImplicit(double[] d, int idx, TaintedDoubleWithObjTag ret, ControlTaintTagStack tags) {
+	public TaintedDoubleWithObjTag get(double[] d, int idx, TaintedDoubleWithObjTag ret, ControlTaintTagStack tags) {
 		ret.val = val[idx];
 		if (taints == null)
 			ret.taint = null;

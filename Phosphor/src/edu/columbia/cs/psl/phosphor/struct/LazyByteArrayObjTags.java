@@ -36,7 +36,7 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 
 	public void set(byte[] l, Taint idxTag, int idx, Taint tag, byte ival) {
 		if(Configuration.derivedTaintListener != null)
-			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival), ival);
+			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival, null), ival);
 		else if(idxTag == null)
 			set(l, idx, tag, ival);
 		else if(tag == null)
@@ -55,10 +55,11 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public TaintedByteWithObjTag get(byte[] b, Taint idxTaint, int idx, TaintedByteWithObjTag ret){
-		ret = get(b,idx,ret);
-		if(Configuration.derivedTaintListener != null)
-			ret.taint = Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret);
-		return ret;
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+	}
+
+	public TaintedByteWithObjTag get(byte[] b, Taint idxTaint, int idx, TaintedByteWithObjTag ret, ControlTaintTagStack ctrl){
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
 	}
 
 	public TaintedByteWithObjTag get(byte[] b, int idx, TaintedByteWithObjTag ret) {
@@ -70,11 +71,11 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 	
-	public void setImplicit(byte[] b, Taint idxTag, int idx, Taint tag, byte val, ControlTaintTagStack ctrl) {
-		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
+	public void set(byte[] b, Taint idxTag, int idx, Taint tag, byte val, ControlTaintTagStack ctrl) {
+		set(b, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
 	}
 	
-	public void setImplicit(byte[] b, int idx, Taint tag, byte val, ControlTaintTagStack ctrl) {
+	public void set(byte[] b, int idx, Taint tag, byte val, ControlTaintTagStack ctrl) {
 		this.val[idx] = val;
 		tag = Taint.combineTags(tag, ctrl);
 		if (tag != null) {
@@ -84,7 +85,7 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 		}
 	}
 
-	public TaintedByteWithObjTag getImplicit(byte[] b, int idx, TaintedByteWithObjTag ret, ControlTaintTagStack ctrl) {
+	public TaintedByteWithObjTag get(byte[] b, int idx, TaintedByteWithObjTag ret, ControlTaintTagStack ctrl) {
 		ret.val = val[idx];
 		if (taints == null)
 			ret.taint = null;

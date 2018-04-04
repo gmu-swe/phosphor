@@ -35,7 +35,7 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 	
 	public void set(boolean[] l, Taint idxTag, int idx, Taint tag, boolean ival) {
 		if(Configuration.derivedTaintListener != null)
-			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival), ival);
+			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival, null), ival);
 		else if(idxTag == null)
 			set(l, idx, tag, ival);
 		else if(tag == null)
@@ -53,13 +53,12 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 		}
 	}
 
-	public void setImplicit(boolean[] b, Taint idxTag, int idx, Taint tag, boolean val, ControlTaintTagStack ctrl) {
-		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
+	public void set(boolean[] b, Taint idxTag, int idx, Taint tag, boolean val, ControlTaintTagStack ctrl) {
+		set(b, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
 	}
-	
-	public void setImplicit(boolean[] b, int idx, Taint tag, boolean val, ControlTaintTagStack ctrl) {
+
+	public void set(boolean[] b, int idx, Taint tag, boolean val, ControlTaintTagStack ctrl) {
 		this.val[idx] = val;
-		tag = Taint.combineTags(tag, ctrl);
 		if (tag != null) {
 			if (taints == null)
 				taints = new Taint[this.val.length];
@@ -68,11 +67,12 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 	}
 
 
-	public TaintedBooleanWithObjTag get(boolean[] b, Taint idxTaint, int idx, TaintedBooleanWithObjTag ret){
-		ret = get(b,idx,ret);
-		if(Configuration.derivedTaintListener != null)
-			ret.taint = Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret);
-		return ret;
+	public TaintedBooleanWithObjTag get(boolean[] b, Taint idxTaint, int idx, TaintedBooleanWithObjTag ret) {
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+	}
+
+	public TaintedBooleanWithObjTag get(boolean[] b, Taint idxTaint, int idx, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
 	}
 
 	public TaintedBooleanWithObjTag get(boolean[] b, int idx, TaintedBooleanWithObjTag ret) {
@@ -83,7 +83,7 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 			ret.taint = taints[idx];
 		return ret;
 	}
-	public TaintedBooleanWithObjTag getImplicit(boolean[] b, int idx, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
+	public TaintedBooleanWithObjTag get(boolean[] b, int idx, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
 		ret.val = val[idx];
 		if (taints == null)
 			ret.taint = null;

@@ -39,7 +39,7 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 
 	public void set(char[] l, Taint idxTag, int idx, Taint tag, char ival) {
 		if(Configuration.derivedTaintListener != null)
-			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival), ival);
+			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival,null), ival);
 		else if(idxTag == null)
 			set(l, idx, tag, ival);
 		else if(tag == null)
@@ -58,10 +58,10 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public TaintedCharWithObjTag get(char[] b, Taint idxTaint, int idx, TaintedCharWithObjTag ret){
-		ret = get(b,idx,ret);
-		if(Configuration.derivedTaintListener != null)
-			ret.taint = Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret);
-		return ret;
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+	}
+	public TaintedCharWithObjTag get(char[] b, Taint idxTaint, int idx, TaintedCharWithObjTag ret, ControlTaintTagStack ctrl){
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
 	}
 
 	public TaintedCharWithObjTag get(char[] c, int idx, TaintedCharWithObjTag ret) {
@@ -73,11 +73,11 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 	
-	public void setImplicit(char[] b, Taint idxTag, int idx, Taint tag, char val, ControlTaintTagStack ctrl) {
-		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
+	public void set(char[] b, Taint idxTag, int idx, Taint tag, char val, ControlTaintTagStack ctrl) {
+		set(b, idx, new Taint(tag, idxTag), val, ctrl);
 	}
 	
-	public void setImplicit(char[] c, int idx, Taint tag, char val, ControlTaintTagStack tags) {
+	public void set(char[] c, int idx, Taint tag, char val, ControlTaintTagStack tags) {
 		this.val[idx] = val;
 		tag = Taint.combineTags(tag, tags);
 		if (tag != null) {
@@ -87,7 +87,7 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 		}
 	}
 
-	public TaintedCharWithObjTag getImplicit(char[] c, int idx, TaintedCharWithObjTag ret, ControlTaintTagStack tags) {
+	public TaintedCharWithObjTag get(char[] c, int idx, TaintedCharWithObjTag ret, ControlTaintTagStack tags) {
 		ret.val = val[idx];
 		if (taints == null)
 			ret.taint = null;

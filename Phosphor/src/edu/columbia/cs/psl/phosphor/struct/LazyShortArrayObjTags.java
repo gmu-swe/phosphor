@@ -25,10 +25,10 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public TaintedShortWithObjTag get(short[] b, Taint idxTaint, int idx, TaintedShortWithObjTag ret){
-		ret = get(b,idx,ret);
-		if(Configuration.derivedTaintListener != null)
-			ret.taint = Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret);
-		return ret;
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+	}
+	public TaintedShortWithObjTag get(short[] b, Taint idxTaint, int idx, TaintedShortWithObjTag ret, ControlTaintTagStack ctrl){
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
 	}
 	
 	@Override
@@ -41,7 +41,7 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
 	
 	public void set(short[] l, Taint idxTag, int idx, Taint tag, short ival) {
 		if(Configuration.derivedTaintListener != null)
-			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival), ival);
+			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival, null), ival);
 		else if(idxTag == null)
 			set(l, idx, tag, ival);
 		else if(tag == null)
@@ -68,7 +68,7 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 	
-	public void setImplicit(short[] g, int idx, Taint tag, short sval, ControlTaintTagStack tags) {
+	public void set(short[] g, int idx, Taint tag, short sval, ControlTaintTagStack tags) {
 		val[idx] = sval;
 		tag = Taint.combineTags(tag, tags);
 		if (tag != null) {
@@ -78,11 +78,11 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
 		}
 	}
 
-	public void setImplicit(short[] b, Taint idxTag, int idx, Taint tag, short val, ControlTaintTagStack ctrl) {
-		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
+	public void set(short[] b, Taint idxTag, int idx, Taint tag, short val, ControlTaintTagStack ctrl) {
+		set(b, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
 	}
 	
-	public TaintedShortWithObjTag getImplicit(short[] g, int idx, TaintedShortWithObjTag ret, ControlTaintTagStack tags) {
+	public TaintedShortWithObjTag get(short[] g, int idx, TaintedShortWithObjTag ret, ControlTaintTagStack tags) {
 		ret.val = val[idx];
 		if (taints == null)
 			ret.taint = null;

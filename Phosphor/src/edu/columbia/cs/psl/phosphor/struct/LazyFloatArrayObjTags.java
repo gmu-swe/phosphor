@@ -34,7 +34,7 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
 
 	public void set(float[] l, Taint idxTag, int idx, Taint tag, float ival) {
 		if(Configuration.derivedTaintListener != null)
-			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival), ival);
+			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival,null), ival);
 		else if(idxTag == null)
 			set(l, idx, tag, ival);
 		else if(tag == null)
@@ -53,10 +53,10 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public TaintedFloatWithObjTag get(float[] b, Taint idxTaint, int idx, TaintedFloatWithObjTag ret){
-		ret = get(b,idx,ret);
-		if(Configuration.derivedTaintListener != null)
-			ret.taint = Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret);
-		return ret;
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+	}
+	public TaintedFloatWithObjTag get(float[] b, Taint idxTaint, int idx, TaintedFloatWithObjTag ret, ControlTaintTagStack ctrl){
+		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
 	}
 	public TaintedFloatWithObjTag get(float[] f, int idx, TaintedFloatWithObjTag ret) {
 		ret.val = val[idx];
@@ -67,11 +67,11 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 
-	public void setImplicit(float[] b, Taint idxTag, int idx, Taint tag, float val, ControlTaintTagStack ctrl) {
-		setImplicit(b, idx, new Taint(tag, idxTag), val, ctrl);
+	public void set(float[] b, Taint idxTag, int idx, Taint tag, float val, ControlTaintTagStack ctrl) {
+		set(b, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
 	}
 	
-	public void setImplicit(float[] f, int idx, Taint tag, float fval, ControlTaintTagStack tags) {
+	public void set(float[] f, int idx, Taint tag, float fval, ControlTaintTagStack tags) {
 		val[idx] = fval;
 		tag = Taint.combineTags(tag, tags);
 		if (tag != null) {
@@ -81,7 +81,7 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
 		}
 	}
 
-	public TaintedFloatWithObjTag getImplicit(float[] f, int idx, TaintedFloatWithObjTag ret, ControlTaintTagStack tags) {
+	public TaintedFloatWithObjTag get(float[] f, int idx, TaintedFloatWithObjTag ret, ControlTaintTagStack tags) {
 		ret.val = val[idx];
 		if (taints == null)
 			ret.taint = null;

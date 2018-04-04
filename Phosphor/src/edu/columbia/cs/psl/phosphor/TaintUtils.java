@@ -120,8 +120,10 @@ public class TaintUtils {
 
 	/*
 	 * Start: Conversion of method signature from doop format to bytecode format
+	 * This can't be here.
 	 */
-	
+	private static Map<String, String> typeToSymbol = null;
+	/*
 	private static Map<String, String> typeToSymbol = new HashMap<String, String>();
 	
 	static {
@@ -134,7 +136,7 @@ public class TaintUtils {
 		typeToSymbol.put("short", "S");
 		typeToSymbol.put("void", "V");
 		typeToSymbol.put("boolean", "Z");
-	}	
+	}	*/
 	private static final String processSingleType(String in)
 	{
 		if(in.equals("byte"))

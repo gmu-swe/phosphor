@@ -2495,7 +2495,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				String methodName = "get";
 				if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
 				{
-					methodName = "getImplicit";
 					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 				}
 				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "edu/columbia/cs/psl/phosphor/struct/Lazy"+elName+"Array"+(Configuration.MULTI_TAINTING ? "Obj":"Int")+"Tags", methodName,
@@ -2717,9 +2716,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
 					super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 					if (tagIsTracked)
-						super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "setImplicit", "([" + elType + Configuration.TAINT_TAG_DESC + "I" + Configuration.TAINT_TAG_DESC + elType + "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+						super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "set", "([" + elType + Configuration.TAINT_TAG_DESC + "I" + Configuration.TAINT_TAG_DESC + elType + "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
 					else
-						super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "setImplicit", "([" + elType + "I" + Configuration.TAINT_TAG_DESC + elType + "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+						super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "set", "([" + elType + "I" + Configuration.TAINT_TAG_DESC + elType + "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
 				} 
 				else if (tagIsTracked)
 					super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "set", "([" + elType + Configuration.TAINT_TAG_DESC + "I" + Configuration.TAINT_TAG_DESC  + elType+")V", false);
