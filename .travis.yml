@@ -1,6 +1,5 @@
 language: java
 #sudo: false
-jdk:  openjdk8
-script: "cd Phosphor; mvn -Ddacapo.skip=false verify"
+script: "jdk_switcher use oraclejdk8; cd Phosphor; mvn -Ddacapo.skip=false verify"
 after_success:
   - cd phosphor; mvn install --settings ~/settings.xml
