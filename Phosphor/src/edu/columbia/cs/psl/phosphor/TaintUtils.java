@@ -565,7 +565,7 @@ public class TaintUtils {
 		if (VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null && ((LazyArrayObjTags) srcTaint).taints != null) {
 			if(((LazyArrayObjTags)destTaint).taints == null)
 				((LazyArrayObjTags)destTaint).taints = new Taint[Array.getLength(dest)];
-			if (srcPos == 0 && length <= ((LazyArrayObjTags)destTaint).taints.length && length <= (((LazyArrayObjTags)srcTaint).taints).length)
+			if (length <= ((LazyArrayObjTags)destTaint).taints.length && length <= (((LazyArrayObjTags)srcTaint).taints).length)
 			{
 				System.arraycopy(((LazyArrayObjTags) srcTaint).taints, srcPos, ((LazyArrayObjTags) destTaint).taints, destPos, length);
 			}
