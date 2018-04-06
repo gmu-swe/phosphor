@@ -467,6 +467,8 @@ public class PreMain {
 					if (!f.exists())
 						f.mkdir();
 				}
+				else if(s.equals("objmethods"))
+					Configuration.WITH_HEAVY_OBJ_EQUALS_HASHCODE = true;
 				else if(s.equals("arraylength"))
 					Configuration.ARRAY_LENGTH_TRACKING = true;
 				else if(s.equals("lightImplicit"))

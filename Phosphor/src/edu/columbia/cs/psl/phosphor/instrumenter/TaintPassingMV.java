@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import java.util.*;
 
+import edu.columbia.cs.psl.phosphor.runtime.*;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
@@ -20,11 +21,6 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingLabel;
-import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithIntTags;
-import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
-import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
-import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
@@ -1665,6 +1661,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			System.out.println("Fixing getproperty");
 			name = "getPropertyHideBootClasspath";
 		}
+
 		if (opcode == INVOKESTATIC && isBoxUnboxMethodToWrap(owner, name, desc)) {
 				if(name.equals("valueOf") && desc.startsWith("(Ljava/lang/String;"))
 				switch(owner)
@@ -1809,6 +1806,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			Configuration.taintTagFactory.methodOp(opcode, owner, name, desc, itfc, mv, lvs, this);
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
+		}
+		if(opcode == INVOKEVIRTUAL && Configuration.WITH_HEAVY_OBJ_EQUALS_HASHCODE && (name.equals("equals") || name.equals("hashCode")) && owner.equals("java/lang/Object"))
+		{
+			opcode = INVOKESTATIC;
+			owner = Type.getInternalName(NativeHelper.class);
+			if(name.equals("equals"))
+				desc= "(Ljava/lang/Object;Ljava/lang/Object;)Z";
+			else
+				desc = "(Ljava/lang/Object;)I";
 		}
 		//to reduce how much we need to wrap, we will only rename methods that actually have a different descriptor
 		boolean hasNewName = !TaintUtils.remapMethodDesc(desc).equals(desc);

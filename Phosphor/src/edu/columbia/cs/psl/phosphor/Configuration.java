@@ -77,6 +77,7 @@ public class Configuration {
 	public static TaintSourceWrapper autoTainter = new TaintSourceWrapper();
 	
 	public static DerivedTaintListener derivedTaintListener = new DerivedTaintListener();
+	public static boolean WITH_HEAVY_OBJ_EQUALS_HASHCODE = false;
 	public static String CACHE_DIR = null;
 	public static boolean TAINT_THROUGH_SERIALIZATION = true;
 

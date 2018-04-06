@@ -2,15 +2,36 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.util.Collection;
 
+import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Type;
 
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public final class NativeHelper {
+
+	public static final TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o1, Object o2, TaintedBooleanWithObjTag ret) {
+		if (o1 instanceof TaintedObjectWithObjTag)
+			return ((TaintedObjectWithObjTag) o1).equals$$PHOSPHORTAGGED(o2, ret);
+		else {
+			if(o2 instanceof MultiDTaintedArrayWithObjTag)
+				o2 = MultiDTaintedArray.unboxRaw(o2);
+			ret.val = o1.equals(o2);
+			ret.taint = null;
+			return ret;
+		}
+	}
+
+	public static final TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object o, TaintedIntWithObjTag ret) {
+		if (o instanceof TaintedObjectWithObjTag)
+			return ((TaintedObjectWithObjTag) o).hashCode$$PHOSPHORTAGGED(ret);
+		else {
+			ret.val = o.hashCode();
+			ret.taint = null;
+			return ret;
+		}
+	}
 
 	@SuppressWarnings("rawtypes")
 	public static final Collection ensureIsBoxedImplicitTracking(Collection in) {
