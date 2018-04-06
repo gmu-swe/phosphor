@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>edu.gmu.swe.phosphor</groupId>
     <artifactId>Phosphor</artifactId>
@@ -13,7 +13,7 @@
         <maven.compiler.testSource>1.8</maven.compiler.testSource>
         <maven.compiler.testTarget>1.8</maven.compiler.testTarget>
     </properties>
-     <licenses>
+    <licenses>
         <license>
             <name>MIT License</name>
             <url>http://www.opensource.org/licenses/mit-license.php</url>
@@ -28,9 +28,11 @@
             <email>bellj@gmu.edu</email>
         </developer>
     </developers>
-    <scm><url>git@github.com:gmu-swe/phosphor.git</url></scm>
+    <scm>
+        <url>git@github.com:gmu-swe/phosphor.git</url>
+    </scm>
     <description>Dynamic Taint Tracker</description>
-    
+
     <build>
         <sourceDirectory>src</sourceDirectory>
         <testSourceDirectory>test</testSourceDirectory>
@@ -84,8 +86,11 @@
                                     <excludes>
                                         <!-- These classes will be overridden 
                                             by the ones inside the JAR -->
-                                        <exclude>edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/analysis/Frame.class</exclude>
-                                        <exclude>edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/FrameNode.class</exclude>
+                                        <exclude>
+                                            edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/analysis/Frame.class
+                                        </exclude>
+                                        <exclude>edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/FrameNode.class
+                                        </exclude>
                                     </excludes>
                                 </filter>
                             </filters>
@@ -93,119 +98,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.18.1</version>
-                <executions>
-                    <execution>
-                        <id>integration-test-int-tags-notagtest</id>
-                        <configuration>
-                            <skipTests>${skipIntTagNoInstTests}</skipTests>
-                            <jvm>${project.build.directory}/jre-inst-int-untaggedwrappers/bin/java</jvm>
-                            <includes>
-                                <include>**/*IntTagPartialInstITCase.java</include>
-                            </includes>
-                            <reuseForks>false</reuseForks>
-                            <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-int-untaged,withSelectiveInst=${basedir}/resources/test-methods</argLine>
-                        </configuration>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>integration-test-int-tags</id>
-                        <configuration>
-                            <skipTests>${skipIntTagTests}</skipTests>
-                            <jvm>${project.build.directory}/jre-inst-int/bin/java</jvm>
-                            <includes>
-                                <include>**/*IntTagITCase.java</include>
-                            </includes>
-                            <reuseForks>false</reuseForks>
-                            <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-int</argLine>
-                        </configuration>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>integration-test-obj-tags</id>
-                        <configuration>
-                            <skipTests>${skipObjTagTests}</skipTests>
-                            <jvm>${project.build.directory}/jre-inst-obj/bin/java</jvm>
-                            <includes>
-                                <include>**/*ObjTagITCase.java</include>
-                            </includes>
-                            <reuseForks>false</reuseForks>
-                            <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,objmethods,acmpeq,cacheDir=${project.build.directory}/cached-obj,taintSources=src/taint-sources,taintSinks=src/taint-sinks</argLine>
-                        </configuration>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>integration-test-obj-tags-array-length</id>
-                        <configuration>
-                            <skipTests>${skipObjTagTestsArrayLength}</skipTests>
-                            <jvm>${project.build.directory}/jre-inst-obj-alen/bin/java</jvm>
-                            <includes>
-                                <include>**/*ObjTagITCase.java</include>
-                            </includes>
-                            <reuseForks>false</reuseForks>
-                            <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                -agentpath:target/libphosphor.so
-                                -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-obj-alen,arraylength,arrayindex</argLine>
-                        </configuration>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>integration-test-implicit-tracking</id>
-                        <configuration>
-                            <skipTests>${skipImplicitTests}</skipTests>
-                            <jvm>${project.build.directory}/jre-inst-implicit/bin/java</jvm>
-                            <includes>
-                                <include>**/*ImplicitITCase.java</include>
-                            </includes>
-                            <reuseForks>false</reuseForks>
-                            <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-implicit</argLine>
-                        </configuration>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>integration-test-light-implicit-tracking</id>
-                        <configuration>
-                            <skipTests>${skipLightImplicitTests}</skipTests>
-                            <jvm>${project.build.directory}/jre-inst-obj/bin/java</jvm>
-                            <includes>
-                                <include>**/*ImplicitLightITCase.java</include>
-                            </includes>
-                            <reuseForks>false</reuseForks>
-                            <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-light-implicit,lightImplicit</argLine>
-                        </configuration>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -219,64 +111,14 @@
                     </execution>
                 </executions>
             </plugin>
+
             <plugin>
-                <artifactId>exec-maven-plugin</artifactId>
-                <groupId>org.codehaus.mojo</groupId>
-                <executions>
-                    <execution>
-                        <id>exe</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>make</executable>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>instrument-jre</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>${basedir}/instrumentJRE.sh</executable>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>run-dacapo</id>
-                        <phase>integration-test</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${dacapo.skip}</skip>
-                            <executable>${basedir}/runDacapo.sh</executable>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.5</version>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>sign</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-             <plugin>
-			     <groupId>org.apache.maven.plugins</groupId>
-			     <artifactId>maven-javadoc-plugin</artifactId>
-			     <version>2.9.1</version>
-                 <configuration>
-                            <additionalparam>-Xdoclint:none</additionalparam>
-                 </configuration>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.9.1</version>
+                <configuration>
+                    <additionalparam>-Xdoclint:none</additionalparam>
+                </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadoc</id>
@@ -288,6 +130,202 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>release-sign-artifacts</id>
+            <activation>
+                <property>
+                    <name>gpg.passphrase</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.4</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>runTests</id>
+            <activation>
+                <property>
+                    <name>!skipTests</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <executions>
+                            <execution>
+                                <id>exe</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>make</executable>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>instrument-jre</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>${basedir}/instrumentJRE.sh</executable>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>run-dacapo</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>${dacapo.skip}</skip>
+                                    <executable>${basedir}/runDacapo.sh</executable>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>2.18.1</version>
+                        <executions>
+                            <execution>
+                                <id>integration-test-int-tags-notagtest</id>
+                                <configuration>
+                                    <skipTests>${skipIntTagNoInstTests}</skipTests>
+                                    <jvm>${project.build.directory}/jre-inst-int-untaggedwrappers/bin/java</jvm>
+                                    <includes>
+                                        <include>**/*IntTagPartialInstITCase.java</include>
+                                    </includes>
+                                    <reuseForks>false</reuseForks>
+                                    <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-int-untaged,withSelectiveInst=${basedir}/resources/test-methods
+                                    </argLine>
+                                </configuration>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>integration-test-int-tags</id>
+                                <configuration>
+                                    <skipTests>${skipIntTagTests}</skipTests>
+                                    <jvm>${project.build.directory}/jre-inst-int/bin/java</jvm>
+                                    <includes>
+                                        <include>**/*IntTagITCase.java</include>
+                                    </includes>
+                                    <reuseForks>false</reuseForks>
+                                    <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-int
+                                    </argLine>
+                                </configuration>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>integration-test-obj-tags</id>
+                                <configuration>
+                                    <skipTests>${skipObjTagTests}</skipTests>
+                                    <jvm>${project.build.directory}/jre-inst-obj/bin/java</jvm>
+                                    <includes>
+                                        <include>**/*ObjTagITCase.java</include>
+                                    </includes>
+                                    <reuseForks>false</reuseForks>
+                                    <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,objmethods,acmpeq,cacheDir=${project.build.directory}/cached-obj,taintSources=src/taint-sources,taintSinks=src/taint-sinks
+                                    </argLine>
+                                </configuration>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>integration-test-obj-tags-array-length</id>
+                                <configuration>
+                                    <skipTests>${skipObjTagTestsArrayLength}</skipTests>
+                                    <jvm>${project.build.directory}/jre-inst-obj-alen/bin/java</jvm>
+                                    <includes>
+                                        <include>**/*ObjTagITCase.java</include>
+                                    </includes>
+                                    <reuseForks>false</reuseForks>
+                                    <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+                                        -agentpath:target/libphosphor.so
+                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-obj-alen,arraylength,arrayindex
+                                    </argLine>
+                                </configuration>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>integration-test-implicit-tracking</id>
+                                <configuration>
+                                    <skipTests>${skipImplicitTests}</skipTests>
+                                    <jvm>${project.build.directory}/jre-inst-implicit/bin/java</jvm>
+                                    <includes>
+                                        <include>**/*ImplicitITCase.java</include>
+                                    </includes>
+                                    <reuseForks>false</reuseForks>
+                                    <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-implicit
+                                    </argLine>
+                                </configuration>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>integration-test-light-implicit-tracking</id>
+                                <configuration>
+                                    <skipTests>${skipLightImplicitTests}</skipTests>
+                                    <jvm>${project.build.directory}/jre-inst-obj/bin/java</jvm>
+                                    <includes>
+                                        <include>**/*ImplicitLightITCase.java</include>
+                                    </includes>
+                                    <reuseForks>false</reuseForks>
+                                    <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
+                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-light-implicit,lightImplicit
+                                    </argLine>
+                                </configuration>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
     <dependencies>
         <dependency>
@@ -307,10 +345,10 @@
             <version>5.0.3</version>
         </dependency>
     </dependencies>
-	<distributionManagement>
-      <snapshotRepository>
-          <id>ossrh</id>
-          <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-      </snapshotRepository>
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
     </distributionManagement>
 </project>
