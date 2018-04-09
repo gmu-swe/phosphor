@@ -2040,7 +2040,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 		super.visitMethodInsn(opcode, owner, name, newDesc, itfc);
 
-		if(this.isSuperUninit && opcode == INVOKESPECIAL && name.equals("<init>"))
+		if(Configuration.IMPLICIT_TRACKING && !arrayAnalyzer.hasFinally && arrayAnalyzer.nTryCatch == 0 && !isSuperUninit && this.isSuperUninit && opcode == INVOKESPECIAL && name.equals("<init>"))
 		{
 			super.visitTryCatchBlock(firstLabel,endLabel,popAllLabel,null);
 			super.visitLabel(firstLabel);
