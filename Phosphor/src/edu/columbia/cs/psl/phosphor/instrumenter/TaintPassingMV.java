@@ -39,6 +39,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public Type[] paramTypes;
 
 
+	private boolean isSuperUninit;
 	public void setArrayAnalyzer(PrimitiveArrayAnalyzer primitiveArrayFixer) {
 		this.arrayAnalyzer = primitiveArrayFixer;
 	}
@@ -75,7 +76,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitVarInsn(ASTORE, taintTagsLoggedAtJumps[i+1]);
 			}
 		}
-		if(Configuration.IMPLICIT_TRACKING && !arrayAnalyzer.hasFinally && arrayAnalyzer.nTryCatch == 0){
+		if(Configuration.IMPLICIT_TRACKING && !arrayAnalyzer.hasFinally && arrayAnalyzer.nTryCatch == 0 && !isSuperUninit){
 			super.visitTryCatchBlock(firstLabel,endLabel,popAllLabel,null);
 			super.visitLabel(firstLabel);
 		}
@@ -92,7 +93,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
 		super.visitTryCatchBlock(start, end, handler, type);
 		arrayAnalyzer.nTryCatch--;
-		if(Configuration.IMPLICIT_TRACKING && !arrayAnalyzer.hasFinally && arrayAnalyzer.nTryCatch == 0){
+		if(Configuration.IMPLICIT_TRACKING && !arrayAnalyzer.hasFinally && arrayAnalyzer.nTryCatch == 0 && !isSuperUninit){
 			super.visitTryCatchBlock(firstLabel,endLabel,popAllLabel,null);
 			super.visitLabel(firstLabel);
 		}
@@ -165,6 +166,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		this.passthruMV = passthruMV;
 		this.desc = desc;
 		this.rewriteLVDebug = this.className.equals("java/lang/invoke/MethodType");
+		this.isSuperUninit = this.name.equals("<init>");
 	}
 
 	protected Type getLocalType(int n) {
@@ -2037,6 +2039,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		Configuration.taintTagFactory.methodOp(opcode, owner, name, newDesc, itfc, mv, lvs, this);
 
 		super.visitMethodInsn(opcode, owner, name, newDesc, itfc);
+
+		if(this.isSuperUninit && opcode == INVOKESPECIAL && name.equals("<init>"))
+		{
+			super.visitTryCatchBlock(firstLabel,endLabel,popAllLabel,null);
+			super.visitLabel(firstLabel);
+			this.isSuperUninit = false;
+		}
 //				System.out.println("asdfjas;dfdsf  post invoke " + analyzer.stack);
 //		System.out.println("Now: " + analyzer.stack);
 		if (isCallToPrimitiveArrayClone) {
