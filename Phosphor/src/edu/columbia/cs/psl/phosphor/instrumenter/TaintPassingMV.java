@@ -2164,6 +2164,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			for (int i = 1; i < taintTagsLoggedAtJumps.length; i++) {
 				baseLvs[taintTagsLoggedAtJumps[i]] = "edu/columbia/cs/psl/phosphor/struct/EnqueuedTaint";
 			}
+//			if(this.name.equals("<init>"))
+//				baseLvs[0] = UNINITIALIZED_THIS;
 			super.visitFrame(F_NEW, baseLvs.length, baseLvs,1,new Object[]{"java/lang/Throwable"});
 			for(int i = 1; i < taintTagsLoggedAtJumps.length;i++)
 			{

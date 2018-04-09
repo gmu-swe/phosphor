@@ -270,6 +270,7 @@ public class PreMain {
 					}
 				}
 
+				boolean isiFace = (cn.access & Opcodes.ACC_INTERFACE) != 0;
 				List<FieldNode> fields = cn.fields;
 				if (skipFrames) {
 					cn = null;
@@ -300,7 +301,11 @@ public class PreMain {
 					}
 					if (TaintUtils.VERIFY_CLASS_GENERATION)
 						_cv = new CheckClassAdapter(_cv, false);
-					_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+					if(isiFace)
+						_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields);
+					else
+						_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+
 					if (Configuration.WITH_SELECTIVE_INST)
 						cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
 					cr.accept(
