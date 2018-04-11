@@ -10,6 +10,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 
 public class PhosphorTextifier extends Textifier {
 	static String[] MORE_OPCODES;
+	static String[] TYPE_OR_INT_OPCODES;
 	static {
 		MORE_OPCODES = new String[25];
 		MORE_OPCODES[1] = "RAW_INSN";
@@ -30,6 +31,12 @@ public class PhosphorTextifier extends Textifier {
 		MORE_OPCODES[16] = "FORCE_CTRL_STORE";
 		MORE_OPCODES[17] = "FOLLOWED_BY_FRAME";
 		MORE_OPCODES[21] = "LOOP_HEADER";
+		TYPE_OR_INT_OPCODES = new String[25];
+		System.arraycopy(MORE_OPCODES,0,TYPE_OR_INT_OPCODES,0,25);
+		TYPE_OR_INT_OPCODES[TaintUtils.EXCEPTION_HANDLER_START-200] = "EXCEPTION_HANDLER_START";
+		TYPE_OR_INT_OPCODES[TaintUtils.EXCEPTION_HANDLER_END-200] = "EXCEPTION_HANDLER_END";
+		TYPE_OR_INT_OPCODES[TaintUtils.EXCEPTION_HANDLER_RESOLVED-200] = "EXCEPTION_HANDLER_RESOLVED";
+
 //		MORE_OPCODES[22] = "LOOP_HEADER";
 		/*
 		 * 
@@ -212,9 +219,23 @@ public class PhosphorTextifier extends Textifier {
 	public void visitIntInsn(int opcode, int operand) {
 		if (opcode > 200) {
 			buf.setLength(0);
-			buf.append(tab2).append(MORE_OPCODES[opcode - 200]).append(' ').append(opcode == Opcodes.NEWARRAY ? TYPES[operand] : Integer.toString(operand)).append('\n');
+			buf.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ').append(opcode == Opcodes.NEWARRAY ? TYPES[operand] : Integer.toString(operand)).append('\n');
 			text.add(buf.toString());
 		} else
 			super.visitIntInsn(opcode, operand);
 	}
+
+
+	@Override
+	public void visitTypeInsn(final int opcode, final String type) {
+		if (opcode > 200) {
+			buf.setLength(0);
+			buf.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ');
+			appendDescriptor(INTERNAL_NAME, type);
+			buf.append('\n');
+			text.add(buf.toString());
+		} else
+			super.visitTypeInsn(opcode, type);
+	}
+
 }

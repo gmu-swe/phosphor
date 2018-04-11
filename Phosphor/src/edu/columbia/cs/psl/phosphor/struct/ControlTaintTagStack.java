@@ -6,6 +6,7 @@ public final class ControlTaintTagStack {
 	public Taint taint;
 	boolean invalidated;
 	DoubleLinkedList<EnqueuedTaint> children = new  DoubleLinkedList<EnqueuedTaint>();
+	DoubleLinkedList<MaybeThrownException> exceptionChildren = new DoubleLinkedList<>();
 
 	public final boolean isEmpty() {
 		return taint == null || (taint.lbl == null && taint.hasNoDependencies());
@@ -22,31 +23,70 @@ public final class ControlTaintTagStack {
 		return taint.copy();
 	}
 
+	public final void addPossibleException(EnqueuedTaint tag, Class<? extends Throwable> t){
+		if(tag != null && tag.taint != null){
+			MaybeThrownException ex = new MaybeThrownException(t,tag.taint);
+			exceptionChildren.add(ex);
+			invalidated = true;
+			recalculate();
+		}
+	}
+	public final void exceptionResolved(Class<? extends Throwable> t){
+		DoubleLinkedList.Node<MaybeThrownException> n = exceptionChildren.getFirst();
+		while(n != null && n.entry != null){
+			if(n.entry.clazz == null || (t == null && n.entry.clazz == null) || (t != null && t.isAssignableFrom(n.entry.clazz))){
+				//Found
+				DoubleLinkedList.Node<MaybeThrownException> prev = n.prev;
+//				if(n.next != null) {
+					prev.next = n.next;
+					if(n.next != null)
+						n.next.prev = prev;
+//				}
+//				else{
+//					this was the last
+//					exceptionChildren.popLast();
+//				}
+				invalidated = true;
+				recalculate();
+				break;
+			}
+			n = n.next;
+		}
+	}
 	public final void recalculate() {
-		if(!invalidated)
+		if (!invalidated)
 			return;
 		invalidated = false;
 
-		if (children != null) {
-			taint = new Taint();
+		taint = new Taint();
 
-			DoubleLinkedList.Node<EnqueuedTaint> n = children.getFirst();
-			while(n != null) {
-				Taint t = n.entry.taint;
-				if (t != null) {
-					if (t.lbl != null)
-						taint.addDependency(t);
-					else if (!(t.hasNoDependencies())) {
-						taint.dependencies.addAll(t.dependencies);
-					}
+		DoubleLinkedList.Node<EnqueuedTaint> n = children.getFirst();
+		while (n != null) {
+			Taint t = n.entry.taint;
+			if (t != null) {
+				if (t.lbl != null)
+					taint.addDependency(t);
+				else if (!(t.hasNoDependencies())) {
+					taint.dependencies.addAll(t.dependencies);
 				}
-				n = n.next;
 			}
+			n = n.next;
 		}
-		else
-			taint = null;
+
+		DoubleLinkedList.Node<MaybeThrownException> n2 = exceptionChildren.getFirst();
+		while (n2 != null) {
+			Taint t = n2.entry.tag;
+			if (t != null) {
+				if (t.lbl != null)
+					taint.addDependency(t);
+				else if (!(t.hasNoDependencies())) {
+					taint.dependencies.addAll(t.dependencies);
+				}
+			}
+			n2 = n2.next;
+		}
 	}
-	
+
 	public final EnqueuedTaint push(Object ob,EnqueuedTaint prev) {
 		if (ob instanceof Tainted && ob instanceof TaintedWithObjTag) {
 		    return push((Taint) (((TaintedWithObjTag) ob).getPHOSPHOR_TAG()), prev);
@@ -140,6 +180,7 @@ public final class ControlTaintTagStack {
 	}
 	public void reset() {
 		children = new DoubleLinkedList<EnqueuedTaint>();
+		exceptionChildren = new DoubleLinkedList<>();
 		taint = null;
 	}
 }

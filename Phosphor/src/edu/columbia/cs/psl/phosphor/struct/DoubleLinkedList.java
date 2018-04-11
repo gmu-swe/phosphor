@@ -2,6 +2,17 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 
 public class DoubleLinkedList<T> implements Cloneable {
+	public void popLast() {
+		Node<T> pp = last.prev;
+		if(pp.prev == null){
+			clear();
+		}
+		else {
+			last = pp;
+			last.next = null;
+		}
+	}
+
 	public static class Node<Z> implements Cloneable{
 		public Z entry;
 		public Node<Z> next;
@@ -48,12 +59,19 @@ public class DoubleLinkedList<T> implements Cloneable {
 		n.next = f;
 		if(f != null)
 			f.prev = n;
+		if(last == first)
+			last = n;
 		return n;
 	}
 	public Node<T> getFirst()
 	{
 		return first.next;
 	}
+
+	public Node<T> getLast() {
+		return last;
+	}
+
 	public DoubleLinkedList()
 	{
 		clear();

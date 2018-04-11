@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import de.ecspride.BaseClass;
@@ -60,6 +61,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testFieldSensitivity1() {
+		resetState();
 		TestFieldSensitivity1 t = new TestFieldSensitivity1();
 		t.d1 = new Datacontainer();
 		t.setTaint(t.d1);
@@ -68,6 +70,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testFieldSensitivity2() {
+		resetState();
 		Datacontainer d1 = new Datacontainer();
 		d1.setDescription("abcdfs2");
 		d1.setSecret(taintedString("abcdefg"));
@@ -76,6 +79,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testFieldSensitivity3() {
+		resetState();
 		Datacontainer d1 = new Datacontainer();
 		d1.setDescription("abcdts3");
 		d1.setSecret(taintedString("abcdefg"));
@@ -84,6 +88,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testFieldSensitivity4() {
+		resetState();
 		Datacontainer d1 = new Datacontainer();
 		d1.setDescription("abcdts4");
 		d1.setDescription(taintedString("abcdefg"));
@@ -92,6 +97,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testInheritedObjects1() {
+		resetState();
 		int a = 46 + 1;
 		General g;
 		if (a == 47)
@@ -102,7 +108,8 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 	}
 
 	@Test
-	public void testObjectSensitivity1() {
+	public void testObjAfterectSensitivity1() {
+		resetState();
 		LinkedList<String> list1 = new LinkedList<String>();
 		LinkedList<String> list2 = new LinkedList<String>();
 		list1.add(taintedString("abcdts1")); //source
@@ -112,6 +119,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testObjectSensitivity2() {
+		resetState();
 		String var;
 		DataStore ds = new DataStore();
 
@@ -129,6 +137,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testExceptions1() {
+		resetState();
 		String imei = "";
 		try {
 			imei = taintedString("abcde1");
@@ -140,6 +149,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testExceptions2() {
+		resetState();
 		String imei = "";
 		try {
 			imei = taintedString("abcde2");
@@ -153,6 +163,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testExceptions3() {
+		resetState();
 		String imei = "";
 		try {
 			imei = taintedString("abcde3");
@@ -166,6 +177,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testExceptions4() {
+		resetState();
 		String imei = "";
 		try {
 			imei = taintedString("abcde4");
@@ -177,6 +189,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testLoopExample1() {
+		resetState();
 		String imei = taintedString("abcdex1");
 
 		String obfuscated = "";
@@ -187,6 +200,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testLoopExample2() {
+		resetState();
 		String imei = taintedString("abcdex2");
 
 		String obfuscated = "";
@@ -224,6 +238,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testSourceCodeSpecific1() {
+		resetState();
 		new SourceCodeSpecific1().doTest();
 	}
 
@@ -231,6 +246,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testStaticInitialization1() {
+		resetState();
 		im = taintedString();
 		new StaticInitClass1();
 	}
@@ -245,6 +261,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testStaticInitialization2() {
+		resetState();
 		new StaticInitClass2();
 		assertTrue(getTaint(im2) != 0);
 	}
@@ -257,6 +274,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testUnreachableCode() {
+		resetState();
 		int i = 46 + 1;
 		if (i < 47) {
 			String s = taintedString();
@@ -268,15 +286,16 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 		public void doTest() {
 			String password = taintedString();
 			String username = taintedString("hanns");
+			boolean passwordCorrect = false;
 			try {
-				boolean passwordCorrect = lookup(username, password);
-				assertTrue(MultiTainter.getTaint(passwordCorrect) != null && (MultiTainter.getTaint(passwordCorrect).lbl != null || !MultiTainter.getTaint(passwordCorrect).hasNoDependencies()));
+				passwordCorrect = lookup(username, password);
 			} catch (Exception ex) {
 				//should be a sink here
 				ex.printStackTrace();
 			}
 			//should be a sink here
-			assertTrue(false); //We have no concept of exceptional control flow tainting yet
+			assertTrue(MultiTainter.getTaint(passwordCorrect) != null && (MultiTainter.getTaint(passwordCorrect).lbl != null || !MultiTainter.getTaint(passwordCorrect).hasNoDependencies()));
+//			assertTrue(false); //We have no concept of exceptional control flow tainting yet
 		}
 
 		private boolean lookup(String username, String password) throws Exception {
@@ -393,12 +412,14 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testImplicitFlow1() {
+		resetState();
 		new ImplicitFlow1().doTest();
 	}
 
 	@Test(expected = AssertionError.class)
 	//we dont track control flow via array indices
 	public void testImplicitFlow1pt2() {
+		resetState();
 		new ImplicitFlow1().doTest2();
 	}
 
@@ -406,6 +427,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testALoop() throws Exception {
+		resetState();
 		foo();
 		System.out.println("post foo: ");
 		System.out.println(MultiTainter.getControlFlow().taint);
@@ -450,6 +472,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 	
 	@Test
 	public void testImplicitFlow2() {
+		resetState();
 		String userInputPassword = taintedString("superSecure");
 		resetState();
 		assertNullOrEmpty(MultiTainter.getControlFlow().getTag());
@@ -462,6 +485,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 	}
 
 	public void testImplicitFlow2p2() {
+		resetState();
 		boolean passwordCorrect = false;
 		String userInputPassword = taintedString("superSecure");
 		if (userInputPassword.equals("superSecure"))
@@ -472,16 +496,19 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testImplicitFlow3() {
+		resetState();
 		new ImplicitFlow3().doTest();
 	}
 
-	@Test(expected = AssertionError.class)
+	@Test
 	public void testImplicitFlow4() {
+		resetState();
 		new ImplicitFlow4().doTest();
 	}
 
 	@Test
 	public void testArrayAccess1() {
+		resetState();
 		String[] arrayData = new String[3];
 		arrayData[0] = "abcdaa1";
 		arrayData[1] = taintedString();
@@ -491,6 +518,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testArrayAccess2() {
+		resetState();
 		String[] arrayData = new String[10];
 		arrayData[0] = "abcdaa2";
 		arrayData[4] = "abcde";
@@ -510,6 +538,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testHashMapAccess1() {
+		resetState();
 		Map<String, String> map = new HashMap<String, String>();
 		map.put("tainted", taintedString());
 		map.put("untainted", "abcdzzzzzzzzhma1");
@@ -519,6 +548,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testListAccess1() {
+		resetState();
 		LinkedList<String> list = new LinkedList<String>();
 		list.add("b");
 		list.add(taintedString());
@@ -531,6 +561,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testReflectionTest1() {
+		resetState();
 		try {
 			BaseClass bc = (BaseClass) Class.forName("de.ecspride.ConcreteClass").newInstance();
 			bc.imei = taintedString();
@@ -549,6 +580,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testReflectionTest2() {
+		resetState();
 		try {
 			BaseClass bc = (BaseClass) Class.forName("de.ecspride.ConcreteClass").newInstance();
 			bc.imei = taintedString();
@@ -567,6 +599,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testReflectionTest3() {
+		resetState();
 		try {
 			String imei = taintedString();
 
@@ -602,6 +635,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testReflectionTest4() {
+		resetState();
 
 		try {
 			BaseClass2 bc = (BaseClass2) Class.forName("de.ecspride.ConcreteClass2").newInstance();
@@ -619,7 +653,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 		}
 	}
 
-	@After
+	@Before
 	public void resetState() {
 		MultiTainter.getControlFlow().reset();
 	}

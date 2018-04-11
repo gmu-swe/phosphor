@@ -76,6 +76,10 @@ public class TaintUtils {
 	public static final int BRANCH_END = 215;
 	public static final int FORCE_CTRL_STORE = 216;
 
+	public static final int EXCEPTION_HANDLER_START = 205;
+	public static final int EXCEPTION_HANDLER_END = 206;
+	public static final int EXCEPTION_HANDLER_RESOLVED = 207;
+
 	public static final int FORCE_CTRL_STORE_SFIELD = 217;
 	public static final int FOLLOWED_BY_FRAME = 217;
 	public static final int CUSTOM_SIGNAL_1 = 218;

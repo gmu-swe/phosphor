@@ -1,15 +1,15 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.FieldInsnNode;
-import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicInterpreter;
 import org.objectweb.asm.tree.analysis.BasicValue;
 
+import java.util.List;
 import java.util.Objects;
 
 public class BasicArrayInterpreter extends BasicInterpreter{
@@ -61,6 +61,15 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 		{
 			return BasicArrayValue.NULL_VALUE;
 		}
+		if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING){
+			String t = null;
+			if(insn.getOpcode() == Opcodes.NEW){
+				t = ((TypeInsnNode)insn).desc;
+			}
+			if(t != null && (t.contains("Exception") || t.contains("Error"))){
+				return new BasicValue(Type.getObjectType(t));
+			}
+		}
 		if(insn.getOpcode() == Opcodes.GETSTATIC){
 			FieldInsnNode fin = (FieldInsnNode) insn;
 			return new BasicThisFieldValue(Type.getType((fin.desc)),new Field(true, fin.owner,fin.name,fin.desc));
@@ -108,6 +117,20 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 			return BasicValue.UNINITIALIZED_VALUE;
 		}
 		return super.merge(v, w);
+	}
+
+	@Override
+	public BasicValue naryOperation(AbstractInsnNode insn, List values) throws AnalyzerException {
+		String t = null;
+		if(insn.getType() == AbstractInsnNode.METHOD_INSN){
+			Type typ = Type.getReturnType(((MethodInsnNode)insn).desc);
+			if(typ.getSort() == Type.OBJECT)
+				t = typ.getInternalName();
+		}
+		if(t != null && (t.contains("Exception") || t.contains("Error"))){
+			return new BasicValue(Type.getObjectType(t));
+		}
+		return super.naryOperation(insn, values);
 	}
 
 	@Override
