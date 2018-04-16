@@ -29,6 +29,7 @@
  */
 package edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons;
 
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -127,7 +128,7 @@ public class OurLocalVariablesSorter extends MethodVisitor {
     }
 
     @Override
-    public void visitVarInsn(final int opcode, final int var) {
+    public void visitVarInsn(int opcode, final int var) {
         Type type;
         switch (opcode) {
         case Opcodes.LLOAD:
@@ -156,6 +157,11 @@ public class OurLocalVariablesSorter extends MethodVisitor {
             // case RET:
             type = OBJECT_TYPE;
             break;
+        }
+        if(opcode == TaintUtils.FORCE_CTRL_STORE_WIDE)
+        {
+            type = Type.LONG_TYPE;
+            opcode = TaintUtils.FORCE_CTRL_STORE;
         }
         mv.visitVarInsn(opcode, remap(var, type));
     }

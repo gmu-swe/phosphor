@@ -422,17 +422,23 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						implicitAnalysisblocks.put(successor, succesorBlock);
 						if(succesorBlock.insn.getType() == AbstractInsnNode.IINC_INSN)
 						{
-							succesorBlock.varsWritten.add(((IincInsnNode)succesorBlock.insn).var);
+							succesorBlock.varsWritten.add(new LVAccess(((IincInsnNode)succesorBlock.insn).var, "I"));
 						}
 						else if(succesorBlock.insn.getType() == AbstractInsnNode.VAR_INSN)
 						{
 							switch(succesorBlock.insn.getOpcode())
 							{
 							case ISTORE:
+								succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "I"));
+								break;
 							case ASTORE:
+								succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "Ljava/lang/Object;"));
+								break;
 							case DSTORE:
+								succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "D"));
+								break;
 							case LSTORE:
-								succesorBlock.varsWritten.add(((VarInsnNode)succesorBlock.insn).var);
+								succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "J"));
 								break;
 							}
 						}
@@ -908,10 +914,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
 									insn = insn.getNext();
 //								System.out.println(b +"," + insn);
-								HashSet<Integer> common = new HashSet<Integer>();
+								HashSet<LVAccess> common = new HashSet<LVAccess>();
 								common.addAll(r.varsWrittenFalseSide);
 								common.retainAll(r.varsWrittenTrueSide);
-								HashSet<Integer> diff = new HashSet<Integer>();
+								HashSet<LVAccess> diff = new HashSet<LVAccess>();
 								diff.addAll(r.varsWrittenTrueSide);
 								diff.addAll(r.varsWrittenFalseSide);
 								diff.removeAll(common);
@@ -938,8 +944,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 									instructions.insertBefore(insn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_RESOLVED, ex));
 								}
 
-								for (int i : diff)
-									instructions.insertBefore(insn, new VarInsnNode(TaintUtils.FORCE_CTRL_STORE, i));
+								for (LVAccess i : diff)
+									instructions.insertBefore(insn, i.getNewForceCtrlStoreNode()); 
 								for (Field f : diffFields)
 									instructions.insertBefore(insn, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
 								for (String ex : r.exceptionsHandled) {
@@ -951,10 +957,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						else if (r.isJump) {
 							jumpID++;
 
-							HashSet<Integer> common = new HashSet<Integer>();
+							HashSet<LVAccess> common = new HashSet<LVAccess>();
 							common.addAll(r.varsWrittenFalseSide);
 							common.retainAll(r.varsWrittenTrueSide);
-							HashSet<Integer> diff =new HashSet<Integer>();
+							HashSet<LVAccess> diff =new HashSet<LVAccess>();
 							diff.addAll(r.varsWrittenTrueSide);
 							diff.addAll(r.varsWrittenFalseSide);
 							diff.removeAll(common);
@@ -984,8 +990,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							if (r.is2ArgJump)
 								jumpID++;
 
-							for (int i : diff)
-								instructions.insertBefore(r.insn, new VarInsnNode(TaintUtils.FORCE_CTRL_STORE, i));
+							for (LVAccess i : diff)
+								instructions.insertBefore(r.insn, i.getNewForceCtrlStoreNode());
 							for (Field f : diffFields)
 								instructions.insertBefore(r.insn, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
 							for (String s : diffExceptions)
@@ -1218,14 +1224,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		HashSet<BasicBlock> resolvedBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<BasicBlock> onFalseSideOfJumpFrom = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 		HashSet<BasicBlock> onTrueSideOfJumpFrom = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-		HashSet<Integer> varsWritten = new HashSet<Integer>();
+		HashSet<LVAccess> varsWritten = new HashSet<LVAccess>();
 		HashSet<Field> fieldsWritten = new HashSet<>();
 		HashSet<String> exceptionsThrown = new HashSet<>();
 		HashSet<String> exceptionsThrownTrueSide = new HashSet<>();
 		HashSet<String> exceptionsThrownFalseSide = new HashSet<>();
 
-		HashSet<Integer> varsWrittenTrueSide = new HashSet<Integer>();
-		HashSet<Integer> varsWrittenFalseSide = new HashSet<Integer>();
+		HashSet<LVAccess> varsWrittenTrueSide = new HashSet<LVAccess>();
+		HashSet<LVAccess> varsWrittenFalseSide = new HashSet<LVAccess>();
 		HashSet<Field> fieldsWrittenTrueSide = new HashSet<>();
 		HashSet<Field> fieldsWrittenFalseSide = new HashSet<>();
 
@@ -1408,5 +1414,36 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		if(type == null)
 			hasFinally = true;
 		nTryCatch++;
+	}
+	static class LVAccess{
+		int idx;
+		String desc;
+
+		public LVAccess(int idx, String desc) {
+			this.idx = idx;
+			this.desc = desc;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+
+			if (this == o) return true;
+			if (o == null || getClass() != o.getClass()) return false;
+			LVAccess lvAccess = (LVAccess) o;
+			return idx == lvAccess.idx &&
+					Objects.equals(desc, lvAccess.desc);
+		}
+
+		@Override
+		public int hashCode() {
+
+			return Objects.hash(idx, desc);
+		}
+
+		public VarInsnNode getNewForceCtrlStoreNode() {
+			if(this.desc.equals("J") || this.desc.equals("D"))
+				return new VarInsnNode(TaintUtils.FORCE_CTRL_STORE_WIDE,idx);
+			return new VarInsnNode(TaintUtils.FORCE_CTRL_STORE,idx);
+		}
 	}
 }

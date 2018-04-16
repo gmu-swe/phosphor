@@ -35,6 +35,7 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
         b = (BigInteger) si.readObject();
         System.out.println(b.toByteArray());
 	}
+
 	@Test
 	public void testSimpleIf() throws Exception {
 		resetState();
@@ -138,6 +139,27 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
         assertTaintHasOnlyLabels(MultiTainter.getTaint(b3), labelX, labelB);
         
         testA(xt, yt, bt);
+	}
+
+
+	@Test
+	public void testBranchNotTaken() throws Exception{
+		resetState();
+		boolean A = MultiTainter.taintedBoolean(false, "A");
+		int i = 2;
+
+		if(A) {
+			i = 1;
+		}
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(i),"A");
+
+		double d = 2;
+
+		if(A) {
+			d = 1;
+		}
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(d),"A");
+
 	}
 
 	@After
