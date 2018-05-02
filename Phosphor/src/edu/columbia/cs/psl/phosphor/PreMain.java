@@ -517,6 +517,8 @@ public class PreMain {
 				} else if(s.startsWith("serialization"))
 				{
 					Configuration.TAINT_THROUGH_SERIALIZATION = true;
+				} else if(s.startsWith("implicitExceptions")){
+					Configuration.IMPLICIT_EXCEPTION_FLOW = true;
 				}
 			}
 		}
