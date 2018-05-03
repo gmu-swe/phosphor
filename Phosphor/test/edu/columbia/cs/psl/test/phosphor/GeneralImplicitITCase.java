@@ -12,6 +12,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import org.junit.After;
 import org.junit.Test;
 
@@ -141,6 +142,20 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
         testA(xt, yt, bt);
 	}
 
+
+	@Test
+	public void testStringContains()
+	{
+		String x = "afoo";
+		MultiTainter.taintedObject(x, new Taint("taintedStr"));
+		boolean a = x.contains("a");
+		assertTaintHasLabel(MultiTainter.getTaint(a), "taintedStr");
+
+		String x2 = "foo";
+		MultiTainter.taintedObject(x, new Taint("taintedStr"));
+		boolean b = x.contains("a");
+		assertTaintHasLabel(MultiTainter.getTaint(b), "taintedStr");
+	}
 
 	@Test
 	public void testBranchNotTaken() throws Exception{
