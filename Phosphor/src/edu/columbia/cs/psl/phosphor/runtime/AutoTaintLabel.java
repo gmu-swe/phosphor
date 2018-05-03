@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class AutoTaintLabel {
 	private String source;
@@ -23,5 +24,5 @@ public class AutoTaintLabel {
 	public String toString() {
 		return "AutoTaintLabel [source=" + source + ", trace=" + Arrays.toString(trace) + "]";
 	}
-	
+
 }

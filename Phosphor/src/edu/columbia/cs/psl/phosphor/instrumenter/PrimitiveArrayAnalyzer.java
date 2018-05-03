@@ -471,7 +471,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						}
 						else if(succesorBlock.insn.getOpcode() == Opcodes.ATHROW){
 							BasicValue ex = (BasicValue) this.getFrames()[successor].getStack(0);
-							if(ex!= null && ex.getType() != null && (ex.getType().getDescriptor().contains("Exception") || ex.getType().getDescriptor().contains("Error")))
+							if(Configuration.IMPLICIT_EXCEPTION_FLOW && ex!= null && ex.getType() != null && (ex.getType().getDescriptor().contains("Exception") || ex.getType().getDescriptor().contains("Error")))
 							{
 								succesorBlock.exceptionsThrown.add(ex.getType().getInternalName());
 							}

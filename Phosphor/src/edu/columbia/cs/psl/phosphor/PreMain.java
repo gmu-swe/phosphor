@@ -519,6 +519,8 @@ public class PreMain {
 					Configuration.TAINT_THROUGH_SERIALIZATION = true;
 				} else if(s.startsWith("implicitExceptions")){
 					Configuration.IMPLICIT_EXCEPTION_FLOW = true;
+				} else if (s.startsWith("ignore=")) {
+					Configuration.ADDL_IGNORE = s.substring(7);
 				}
 			}
 		}
