@@ -56,14 +56,11 @@ public class BaseMultiTaintClass {
 			return;
 		if(obj.hasNoDependencies())
 			fail("Expected taint contained "+ lbl+", has nothing");
-		Node<Object> dep = obj.dependencies.getFirst();
-		while(dep != null)
-		{
-			if(dep.entry != null && dep.entry == lbl)
+		for(Object o : obj.dependencies){
+			if(o == lbl)
 				return;
-			dep = dep.next;
 		}
-		fail("Expected taint contained "+ lbl+", has " + lbl);
+		fail("Expected taint contained "+ lbl+", has " + obj);
 	}
 	public static void assertTaintHasOnlyLabel(Taint obj, Object lbl)
 	{
@@ -72,16 +69,15 @@ public class BaseMultiTaintClass {
 			return;
 		if(obj.hasNoDependencies())
 			fail("Expected taint contained "+ lbl+", has nothing");
-		Node<Object> dep = obj.dependencies.getFirst();
-		while(dep != null)
+		boolean found = false;
+		for(Object o : obj.dependencies)
 		{
-			if(dep.entry != null && dep.entry == lbl && dep.next == null)
-				return;
-			else if(dep.entry != null)
-				fail("Expected taint contained ONLY "+ lbl+", found " + dep.entry);
-
-			dep = dep.next;
+			if(o == lbl)
+				found = true;
+			else
+				fail("Expected taint contained ONLY "+ lbl+", found " + o);
 		}
+		if(!found)
 		fail("Expected taint contained "+ lbl+", has " + obj);
 	}
 	public static void assertTaintHasOnlyLabels(Taint obj, Object... lbl)
@@ -89,20 +85,17 @@ public class BaseMultiTaintClass {
 		assertNotNull(obj);
 		if(obj.hasNoDependencies() && obj.lbl == null)
 			fail("Expected taint contained "+ Arrays.toString(lbl)+", has nothing");
-		Node<Object> dep = obj.dependencies.getFirst();
 		boolean l1 = false;
 		boolean l2 = false;
 		HashSet<Object> expected = new HashSet<Object>();
 		for(Object o : lbl)
 			expected.add(o);
-		while(dep != null)
+		for(Object o : obj.getDependencies())
 		{
-			if(dep.entry != null && expected.contains(dep.entry))
-				expected.remove(dep.entry);
-			else if (dep.entry != null)
-				fail("Expected taint contained ONLY " + Arrays.toString(lbl) + ", found " + dep.entry);
-
-			dep = dep.next;
+			if(expected.contains(o))
+				expected.remove(o);
+			else
+				fail("Expected taint contained ONLY " + Arrays.toString(lbl) + ", found " + o);
 		}
 		expected.remove(obj.lbl);
 		if(expected.isEmpty())

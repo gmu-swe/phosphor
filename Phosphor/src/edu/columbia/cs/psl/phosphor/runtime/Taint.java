@@ -4,12 +4,8 @@ import java.io.Serializable;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
-import edu.columbia.cs.psl.phosphor.struct.LinkedList;
+import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class Taint<T> implements Serializable {
 	public static boolean IGNORE_TAINTING;
@@ -24,7 +20,7 @@ public class Taint<T> implements Serializable {
 	}
 
 	protected void copyFrom(Taint<T> in) {
-		if (in.dependencies == null || in.dependencies.getFirst() == null)
+		if (in.dependencies == null || in.dependencies.isEmpty())
 			lbl = in.lbl;
 		else
 			addDependency(in);
@@ -55,35 +51,29 @@ public class Taint<T> implements Serializable {
 		String depStr=" deps = [";
 		if(dependencies != null)
 		{
-			Node<T> dep = dependencies.getFirst();
-			while(dep != null)
-			{
-				if(dep.entry != null)
-				depStr += dep.entry + " ";
-				dep = dep.next;
-			}
+			depStr += dependencies.toString();
 		}
 		depStr += "]";
 		return "Taint [lbl=" + lbl + " "+depStr+"]";
 	}
 	public transient Object debug;
 	public T lbl;
-	public LinkedList<T> dependencies;
+	public SimpleHashSet<T> dependencies;
 	
 	public transient LinkedList<EnqueuedTaint> enqueuedInControlFlow;
 	public Taint(T lbl) {
 		this.lbl = lbl;
-		dependencies = new LinkedList<T>();
+		dependencies = new SimpleHashSet<T>();
 	}
 	public T getLabel() {
 		return lbl;
 	}
-	public LinkedList<T> getDependencies() {
+	public SimpleHashSet<T> getDependencies() {
 		return dependencies;
 	}
 	public Taint(Taint<T> t1)
 	{
-		dependencies = new LinkedList<T>();
+		dependencies = new SimpleHashSet<>();
 		if(t1 == null)
 			return;
 		lbl = t1.lbl;
@@ -94,7 +84,7 @@ public class Taint<T> implements Serializable {
 	}
 	public Taint(Taint<T> t1, Taint<T> t2)
 	{
-		dependencies = new LinkedList<T>();
+		dependencies = new SimpleHashSet<>();
 		if(t2 == null && t1 != null)
 		{
 			lbl = t1.lbl;
@@ -111,12 +101,12 @@ public class Taint<T> implements Serializable {
 
 			{
 				if (t1.lbl != null)
-					dependencies.addUnique(t1.lbl);
+					dependencies.add(t1.lbl);
 				dependencies.addAll(t1.dependencies);
 			}
 			if (t2 != null) {
 				if (t2.lbl != null)
-					dependencies.addUnique(t2.lbl);
+					dependencies.add(t2.lbl);
 				dependencies.addAll(t2.dependencies);
 			}
 		}
@@ -124,7 +114,7 @@ public class Taint<T> implements Serializable {
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, this);
 	}
 	public Taint() {
-		dependencies = new LinkedList<T>();
+		dependencies = new SimpleHashSet<>();
 	}
 	public boolean addDependency(Taint<T> d)
 	{
@@ -132,7 +122,7 @@ public class Taint<T> implements Serializable {
 			return false;
 		boolean added = false;
 		if(d.lbl != null)
-			added = dependencies.addUnique(d.lbl);
+			added = dependencies.add(d.lbl);
 		added |= dependencies.addAll(d.dependencies);
 		return added;
 	}
@@ -149,7 +139,7 @@ public class Taint<T> implements Serializable {
 		return ret;
 	}
 	public boolean hasNoDependencies() {
-		return dependencies.getFirst() == null || dependencies.getFirst().entry == null;
+		return dependencies.isEmpty();
 	}
 	public static <T> void combineTagsOnArrayInPlace(Object[] ar, Taint<T>[] t1, int dims)
 	{
@@ -205,7 +195,7 @@ public class Taint<T> implements Serializable {
 	public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags){
 		if(t1 == null && tags.isEmpty())
 			return null;
-		else if(t1 == null || (t1.lbl == null && t1.dependencies.getFirst() == null))
+		else if(t1 == null || (t1.lbl == null && t1.dependencies.isEmpty()))
 		{
 //			if(tags.isEmpty())
 //				return null;
@@ -217,8 +207,8 @@ public class Taint<T> implements Serializable {
 //				return null;
 			return t1;
 		}
-		else if(tags != null && tags.taint != null && !tags.taint.hasNoDependencies() && tags.taint.dependencies.getFirst().next == null && t1.lbl == tags.taint.dependencies.getFirst().entry)
-			return t1;
+		else if(tags != null && tags.taint != null && !tags.taint.dependencies.contains(t1.lbl))
+			return tags.taint;
 		else if(t1 == tags.taint)
 			return t1;
 		if(IGNORE_TAINTING)

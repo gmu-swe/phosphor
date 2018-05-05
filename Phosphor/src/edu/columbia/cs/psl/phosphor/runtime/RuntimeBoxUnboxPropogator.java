@@ -669,7 +669,10 @@ public class RuntimeBoxUnboxPropogator {
 			if (s != null) {
 				ret.taint = (Taint) s.getPHOSPHOR_TAG();
 				if (t != null)
-					ret.taint.addDependency(t);
+					if(ret.taint == null)
+						ret.taint = t.copy();
+					else
+						ret.taint.addDependency(t);
 			} else if (t != null)
 				ret.taint = t.copy();
 			else
@@ -696,7 +699,10 @@ public class RuntimeBoxUnboxPropogator {
 			if (s != null) {
 				ret.taint = (Taint) s.getPHOSPHOR_TAG();
 				if(t != null)
-					ret.taint.addDependency(t);
+					if(ret.taint == null)
+						ret.taint = t.copy();
+					else
+						ret.taint.addDependency(t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -724,7 +730,10 @@ public class RuntimeBoxUnboxPropogator {
 			if (s != null) {
 				ret.taint = (Taint) s.getPHOSPHOR_TAG();
 				if (t != null)
-					ret.taint.addDependency(t);
+					if(ret.taint == null)
+						ret.taint = t.copy();
+					else
+						ret.taint.addDependency(t);
 			} else if (t != null)
 				ret.taint = t.copy();
 			else
@@ -751,7 +760,10 @@ public class RuntimeBoxUnboxPropogator {
 			if (s != null) {
 				ret.taint = (Taint) s.getPHOSPHOR_TAG();
 				if (t != null)
-					ret.taint.addDependency(t);
+					if(ret.taint == null)
+						ret.taint = t.copy();
+					else
+						ret.taint.addDependency(t);
 			} else if (t != null)
 				ret.taint = t.copy();
 			else
@@ -796,7 +808,10 @@ public class RuntimeBoxUnboxPropogator {
 			if (s != null) {
 				ret.taint = (Taint) s.getPHOSPHOR_TAG();
 				if (t != null)
-					ret.taint.addDependency(t);
+					if(ret.taint == null)
+						ret.taint = t.copy();
+					else
+						ret.taint.addDependency(t);
 			} else if (t != null)
 				ret.taint = t.copy();
 			else
@@ -850,7 +865,10 @@ public class RuntimeBoxUnboxPropogator {
 			if (s != null) {
 				ret.taint = (Taint) s.getPHOSPHOR_TAG();
 				if(t != null)
-					ret.taint.addDependency(t);
+					if(ret.taint == null)
+						ret.taint = t.copy();
+					else
+						ret.taint.addDependency(t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -878,7 +896,10 @@ public class RuntimeBoxUnboxPropogator {
 			if (s != null) {
 				ret.taint = (Taint) s.getPHOSPHOR_TAG();
 				if(t != null)
-					ret.taint.addDependency(t);
+					if(ret.taint == null)
+						ret.taint = t.copy();
+					else
+						ret.taint.addDependency(t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -906,7 +927,10 @@ public class RuntimeBoxUnboxPropogator {
 			if (s != null) {
 				ret.taint = (Taint) s.getPHOSPHOR_TAG();
 				if(t != null)
-					ret.taint.addDependency(t);
+					if(ret.taint == null)
+						ret.taint = t.copy();
+					else
+						ret.taint.addDependency(t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -934,7 +958,10 @@ public class RuntimeBoxUnboxPropogator {
 			if (s != null) {
 				ret.taint = (Taint) s.getPHOSPHOR_TAG();
 				if(t != null)
-					ret.taint.addDependency(t);
+					if(ret.taint == null)
+						ret.taint = t.copy();
+					else
+						ret.taint.addDependency(t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -962,7 +989,10 @@ public class RuntimeBoxUnboxPropogator {
 			if (s != null) {
 				ret.taint = (Taint) s.getPHOSPHOR_TAG();
 				if(t != null)
-					ret.taint.addDependency(t);
+					if(ret.taint == null)
+						ret.taint = t.copy();
+					else
+						ret.taint.addDependency(t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -990,7 +1020,10 @@ public class RuntimeBoxUnboxPropogator {
 			if (s != null) {
 				ret.taint = (Taint) s.getPHOSPHOR_TAG();
 				if (t != null)
-					ret.taint.addDependency(t);
+					if(ret.taint == null)
+						ret.taint = t.copy();
+					else
+						ret.taint.addDependency(t);
 			} else if (t != null)
 				ret.taint = t.copy();
 			else

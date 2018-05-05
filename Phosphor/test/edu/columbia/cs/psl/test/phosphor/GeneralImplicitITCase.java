@@ -146,15 +146,17 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	@Test
 	public void testStringContains()
 	{
+		resetState();
 		String x = "afoo";
-		MultiTainter.taintedObject(x, new Taint("taintedStr"));
+		String lbl = "taintedStr";
+		MultiTainter.taintedObject(x, new Taint(lbl));
 		boolean a = x.contains("a");
-		assertTaintHasLabel(MultiTainter.getTaint(a), "taintedStr");
+		assertTaintHasLabel(MultiTainter.getTaint(a), lbl);
 
 		String x2 = "foo";
-		MultiTainter.taintedObject(x, new Taint("taintedStr"));
+		MultiTainter.taintedObject(x, new Taint(lbl));
 		boolean b = x.contains("a");
-		assertTaintHasLabel(MultiTainter.getTaint(b), "taintedStr");
+		assertTaintHasLabel(MultiTainter.getTaint(b), lbl);
 	}
 
 	@Test

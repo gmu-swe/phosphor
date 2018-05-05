@@ -182,6 +182,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 				String d[] = s.split("\\.");
 				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
 				{
+					System.out.println(d[0]+d[1]+ "  vs " + inD[0]+inD[1]);
 					if(!sourceLabels.containsKey(str))
 						sourceLabels.put(str, sourceLabels.get(s));
 				    return true;

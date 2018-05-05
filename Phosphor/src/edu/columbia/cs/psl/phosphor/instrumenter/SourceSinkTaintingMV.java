@@ -134,8 +134,8 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 			boolean skipNextPrimitive = false;
 			for (int i = 0; i < args.length; i++) {
 				if ((args[i].getSort() == Type.OBJECT && !args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC)) || args[i].getSort() == Type.ARRAY) {
-					if (args[i].getSort() == Type.ARRAY && (args[i].getElementType().getSort() != Type.OBJECT || args[i].getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC))
-							&& args[i].getDimensions() == 1) {
+					if ((args[i].getSort() == Type.ARRAY && (args[i].getElementType().getSort() != Type.OBJECT || args[i].getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC))
+							&& args[i].getDimensions() == 1) || args[i].getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy") ){
 						if (!skipNextPrimitive) {
 							super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
 							super.visitVarInsn(ALOAD, idx);
