@@ -1361,20 +1361,32 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("B"));
 			break;
 		case Opcodes.I2D:
+		case Opcodes.F2D:
+		case Opcodes.L2D:
 			if (Configuration.PREALLOC_STACK_OPS)
 				wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("D"));
 			break;
 		case Opcodes.I2F:
+		case Opcodes.L2F:
+		case Opcodes.D2F:
 			if (Configuration.PREALLOC_STACK_OPS)
 				wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("F"));
 			break;
 		case Opcodes.I2L:
+		case Opcodes.F2L:
+		case Opcodes.D2L:
 			if (Configuration.PREALLOC_STACK_OPS)
 				wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("J"));
 			break;
 		case Opcodes.I2S:
 			if (Configuration.PREALLOC_STACK_OPS)
 				wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("S"));
+			break;
+		case Opcodes.F2I:
+		case Opcodes.L2I:
+		case Opcodes.D2I:
+			if (Configuration.PREALLOC_STACK_OPS)
+				wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("I"));
 			break;
 		}
 	}
