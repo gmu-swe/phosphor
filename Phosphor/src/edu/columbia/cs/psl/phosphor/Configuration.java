@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.Properties;
 
 import org.objectweb.asm.ClassVisitor;
@@ -48,6 +49,49 @@ public class Configuration {
 	
 	public static String STRING_SET_TAG_TAINT_CLASS = "edu/columbia/cs/psl/phosphor/runtime/TaintChecker";
 	
+	public static class Method {
+		final String name;
+		final String owner;
+
+		public Method(String name, String owner) {
+			this.name = name;
+			this.owner = owner;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((name == null) ? 0 : name.hashCode());
+			result = prime * result + ((owner == null) ? 0 : owner.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			Method other = (Method) obj;
+			if (name == null) {
+				if (other.name != null)
+					return false;
+			} else if (!name.equals(other.name))
+				return false;
+			if (owner == null) {
+				if (other.owner != null)
+					return false;
+			} else if (!owner.equals(other.owner))
+				return false;
+			return true;
+		}
+	}
+	
+	public static HashSet<Method> ignoredMethods = new HashSet<>();
+
 	/*
 	 * Derived configuration values
 	 */
