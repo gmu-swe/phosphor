@@ -62,13 +62,13 @@ public class PhosphorTextifier extends Textifier {
 	@Override
 	public void visitFieldInsn(int opcode, String owner, String name, String desc) {
 		if (opcode > 200) {
-			buf.setLength(0);
-			buf.append(tab2).append(MORE_OPCODES[opcode - 200]).append(' ');
+			stringBuilder.setLength(0);
+			stringBuilder.append(tab2).append(MORE_OPCODES[opcode - 200]).append(' ');
 			appendDescriptor(INTERNAL_NAME, owner);
-			buf.append('.').append(name).append(" : ");
+			stringBuilder.append('.').append(name).append(" : ");
 			appendDescriptor(FIELD_DESCRIPTOR, desc);
-			buf.append('\n');
-			text.add(buf.toString());
+			stringBuilder.append('\n');
+			text.add(stringBuilder.toString());
 		} else
 			super.visitFieldInsn(opcode, owner, name, desc);
 	}
@@ -85,9 +85,9 @@ public class PhosphorTextifier extends Textifier {
 	@Override
 	public void visitVarInsn(int opcode, int var) {
 		if (opcode > 200) {
-			buf.setLength(0);
-			buf.append(tab2).append(MORE_OPCODES[opcode - 200]).append(' ').append(var).append('\n');
-			text.add(buf.toString());
+			stringBuilder.setLength(0);
+			stringBuilder.append(tab2).append(MORE_OPCODES[opcode - 200]).append(' ').append(var).append('\n');
+			text.add(stringBuilder.toString());
 		} else
 			super.visitVarInsn(opcode, var);
 	}
@@ -95,53 +95,53 @@ public class PhosphorTextifier extends Textifier {
 	@Override
 	public void visitInsn(int opcode) {
 		if (opcode > 200) {
-			buf.setLength(0);
-			buf.append(tab2).append(MORE_OPCODES[opcode - 200]).append('\n');
-			text.add(buf.toString());
+			stringBuilder.setLength(0);
+			stringBuilder.append(tab2).append(MORE_OPCODES[opcode - 200]).append('\n');
+			text.add(stringBuilder.toString());
 		} else
 			super.visitInsn(opcode);
 	}
 
 	public void visitFrame(final int type, final int nLocal, final Object[] local, final int nStack, final Object[] stack) {
-		buf.setLength(0);
-		buf.append(ltab);
-		buf.append("FRAME ");
+		stringBuilder.setLength(0);
+		stringBuilder.append(ltab);
+		stringBuilder.append("FRAME ");
 		switch (type) {
 		case Opcodes.F_NEW:
 		case Opcodes.F_FULL:
-			buf.append("FULL [");
+			stringBuilder.append("FULL [");
 			appendFrameTypes(nLocal, local);
-			buf.append("] [");
+			stringBuilder.append("] [");
 			appendFrameTypes(nStack, stack);
-			buf.append(']');
+			stringBuilder.append(']');
 			break;
 		case Opcodes.F_APPEND:
-			buf.append("APPEND [");
+			stringBuilder.append("APPEND [");
 			appendFrameTypes(nLocal, local);
-			buf.append(']');
+			stringBuilder.append(']');
 			break;
 		case Opcodes.F_CHOP:
-			buf.append("CHOP ").append(nLocal);
+			stringBuilder.append("CHOP ").append(nLocal);
 			break;
 		case Opcodes.F_SAME:
-			buf.append("SAME");
+			stringBuilder.append("SAME");
 			break;
 		case Opcodes.F_SAME1:
-			buf.append("SAME1 ");
+			stringBuilder.append("SAME1 ");
 			appendFrameTypes(1, stack);
 			break;
 		}
-		buf.append('\n');
-		text.add(buf.toString());
+		stringBuilder.append('\n');
+		text.add(stringBuilder.toString());
 	}
 
 	private void appendFrameTypes(final int n, final Object[] o) {
 		for (int i = 0; i < n; ++i) {
 			if (i > 0) {
-				buf.append(' ');
+				stringBuilder.append(' ');
 			}
 			if (o[i] instanceof TaggedValue) {
-				buf.append("TAGGED");
+				stringBuilder.append("TAGGED");
 				if (((TaggedValue) o[i]).v instanceof String) {
 					String desc = (String) ((TaggedValue) o[i]).v;
 
@@ -218,9 +218,9 @@ public class PhosphorTextifier extends Textifier {
 	@Override
 	public void visitIntInsn(int opcode, int operand) {
 		if (opcode > 200) {
-			buf.setLength(0);
-			buf.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ').append(opcode == Opcodes.NEWARRAY ? TYPES[operand] : Integer.toString(operand)).append('\n');
-			text.add(buf.toString());
+			stringBuilder.setLength(0);
+			stringBuilder.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ').append(opcode == Opcodes.NEWARRAY ? TYPES[operand] : Integer.toString(operand)).append('\n');
+			text.add(stringBuilder.toString());
 		} else
 			super.visitIntInsn(opcode, operand);
 	}
@@ -229,11 +229,11 @@ public class PhosphorTextifier extends Textifier {
 	@Override
 	public void visitTypeInsn(final int opcode, final String type) {
 		if (opcode > 200) {
-			buf.setLength(0);
-			buf.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ');
+			stringBuilder.setLength(0);
+			stringBuilder.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ');
 			appendDescriptor(INTERNAL_NAME, type);
-			buf.append('\n');
-			text.add(buf.toString());
+			stringBuilder.append('\n');
+			text.add(stringBuilder.toString());
 		} else
 			super.visitTypeInsn(opcode, type);
 	}
