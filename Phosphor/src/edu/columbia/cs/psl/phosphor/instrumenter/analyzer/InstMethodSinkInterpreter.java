@@ -30,6 +30,7 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 
 	HashMap<AbstractInsnNode, SinkableArrayValue> executed = new HashMap<AbstractInsnNode, SinkableArrayValue>();
 	public InstMethodSinkInterpreter(LinkedList<SinkableArrayValue> relevantValues, HashMap<AbstractInsnNode, Value> liveValues) {
+		super(ASM5);
 		this.relevant = relevantValues;
 	}
 	
@@ -318,9 +319,11 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 				ret.setSrc(insn);
 				return ret;
 			}
-//			System.out.println(value1);
+
+			if(value1 == BasicValue.REFERENCE_VALUE)
+				return super.binaryOperation(insn, value1, value2);
+
 			Type t = Type.getType(value1.getType().getDescriptor().substring(1));
-//			System.out.println("AALOAD " + t);
 			if (TaintUtils.isPrimitiveArrayType(t)) {
 				ret = new SinkableArrayValue(t);
 				ret.setSrc(insn);

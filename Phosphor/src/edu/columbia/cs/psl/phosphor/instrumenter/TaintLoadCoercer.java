@@ -34,7 +34,6 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.Value;
-import org.objectweb.asm.util.TraceClassVisitor;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
@@ -44,6 +43,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.PFrame;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.SinkableArrayValue;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import org.objectweb.asm.util.TraceClassVisitor;
 
 public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 	PrimitiveArrayAnalyzer primitiveArrayFixer;

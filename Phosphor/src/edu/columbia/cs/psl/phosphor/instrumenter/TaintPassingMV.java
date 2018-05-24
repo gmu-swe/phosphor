@@ -12,8 +12,6 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LocalVariableNode;
-import org.objectweb.asm.util.Printer;
-import org.objectweb.asm.util.Textifier;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
@@ -25,7 +23,8 @@ import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
-import sun.security.krb5.Config;
+import org.objectweb.asm.util.Printer;
+import org.objectweb.asm.util.Textifier;
 
 @SuppressWarnings("ALL")
 public class TaintPassingMV extends TaintAdapter implements Opcodes {
@@ -258,7 +257,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 		if (opcode == TaintUtils.ALWAYS_AUTOBOX && analyzer.locals.size() > var && analyzer.locals.get(var) instanceof String) {
-			Type t = Type.getType((String) analyzer.locals.get(var));
+			Type t = Type.getObjectType((String) analyzer.locals.get(var));
 			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && lvs.varToShadowVar.containsKey(var)) {
 				//				System.out.println("Restoring " + var + " to be boxed");
 				super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
@@ -1170,7 +1169,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				break;
 		case Opcodes.ANEWARRAY:
 			if (Configuration.ARRAY_LENGTH_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
-				Type t = Type.getType(type);
+				Type t = Type.getObjectType(type);
 				if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
 					//e.g. [I for a 2 D array -> MultiDTaintedIntArray
 					type = MultiDTaintedArray.getTypeForType(t).getInternalName();
@@ -1184,7 +1183,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				//TL A A
 				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 			} else {
-				Type t = Type.getType(type);
+				Type t = Type.getObjectType(type);
 				if (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
 					//e.g. [I for a 2 D array -> MultiDTaintedIntArray
 					type = MultiDTaintedArray.getTypeForType(t).getInternalName();
@@ -1245,7 +1244,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	}
 	
 	private void instanceOf(String type){
-		Type t = Type.getType(type);
+		Type t = Type.getObjectType(type);
 
 		boolean doIOR = false;
 		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
@@ -1266,7 +1265,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	}
 
 	private void checkCast(String type){
-		Type t = Type.getType(type);
+		Type t = Type.getObjectType(type);
 		int opcode = CHECKCAST;
 		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
 			if (t.getDimensions() > 1) {
@@ -2690,7 +2689,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //			System.out.println("AALOAD " + analyzer.stackTagStatus);
 			Object arrayType = analyzer.stack.get(analyzer.stack.size() - 2);
 			Type t = getTypeForStackType(arrayType);
-			if (t.getDimensions() == 1 && t.getElementType().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy")) {
+			if (t.getSort() == Type.ARRAY && t.getDimensions() == 1 && t.getElementType().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy")) {
 				super.visitInsn(opcode);
 				try {
 					retrieveTaintedArray("[" + (MultiDTaintedArray.getPrimitiveTypeForWrapper(Class.forName(t.getElementType().getInternalName().replace("/", ".")))));

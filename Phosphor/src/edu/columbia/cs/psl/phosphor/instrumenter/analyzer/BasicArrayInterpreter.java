@@ -51,7 +51,7 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 	}
 	private boolean isStaticMethod;
 	public BasicArrayInterpreter(boolean isStaticMethod){
-		super();
+		super(Opcodes.ASM5);
 		this.isStaticMethod = isStaticMethod;
 	}
 

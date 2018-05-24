@@ -634,13 +634,13 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 			return Type.DOUBLE_TYPE;
 		if (obj == Opcodes.LONG)
 			return Type.LONG_TYPE;
+		if (obj == Opcodes.NULL)
+			return Type.getType("Ljava/lang/Object;");
 		if (obj instanceof String)
 			if (!(((String) obj).charAt(0) == '[') && ((String) obj).length() > 1)
 				return Type.getType("L" + obj + ";");
 			else
 				return Type.getType((String) obj);
-		if (obj == Opcodes.NULL)
-			return Type.getType("Ljava/lang/Object;");
 		if (obj instanceof Label || obj == Opcodes.UNINITIALIZED_THIS)
 			return Type.getType("Luninitialized;");
 		throw new IllegalArgumentException("got " + obj + " zzz" + obj.getClass());

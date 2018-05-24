@@ -1,5 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
     <groupId>edu.gmu.swe.phosphor</groupId>
     <artifactId>Phosphor</artifactId>
@@ -62,7 +63,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.3</version>
+                <version>3.1.1</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -82,13 +83,14 @@
                             </relocations>
                             <filters>
                                 <filter>
-                                    <artifact>org.ow2.asm:asm-all</artifact>
+                                    <artifact>org.ow2.asm:asm</artifact>
+                                    <artifact>org.ow2.asm:asm-commons</artifact>
+                                    <artifact>org.ow2.asm:asm-util</artifact>
+                                    <artifact>org.ow2.asm:asm-tree</artifact>
+                                    <artifact>org.ow2.asm:asm-analysis</artifact>
                                     <excludes>
                                         <!-- These classes will be overridden 
                                             by the ones inside the JAR -->
-                                        <exclude>
-                                            edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/analysis/Frame.class
-                                        </exclude>
                                         <exclude>edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/FrameNode.class
                                         </exclude>
                                     </excludes>
@@ -341,8 +343,28 @@
         </dependency>
         <dependency>
             <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-all</artifactId>
-            <version>5.2</version>
+            <artifactId>asm</artifactId>
+            <version>6.1.1</version>
+        </dependency>
+         <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-util</artifactId>
+            <version>6.1.1</version>
+        </dependency>
+         <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-tree</artifactId>
+            <version>6.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-analysis</artifactId>
+            <version>6.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm-commons</artifactId>
+            <version>6.1.1</version>
         </dependency>
     </dependencies>
     <distributionManagement>

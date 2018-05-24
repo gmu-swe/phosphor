@@ -11,7 +11,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.*;
-import org.objectweb.asm.util.Printer;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
@@ -515,7 +514,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							{
 								FrameNode fn = (FrameNode) insn;
 								fn.local = Collections.EMPTY_LIST;
-								fn.stack = Collections.singletonList("java/lang/Throwable");
+								fn.stack = Collections.singletonList((Object) "java/lang/Throwable");
 							}
 							else if (!(insn instanceof LineNumberNode) && !(insn instanceof LabelNode)){
 								instructions.insertBefore(insn, new InsnNode(Opcodes.NOP));
