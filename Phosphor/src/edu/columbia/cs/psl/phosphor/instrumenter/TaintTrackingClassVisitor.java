@@ -887,11 +887,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						{
 							visitAnnotations(mv,fullMethod);
 						}
-						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, mv);
-						MethodVisitor soc = new SpecialOpcodeRemovingMV(an, ignoreFrames, className, fixLdcClass);
-						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, soc, an, mv, generateExtraLVDebug);
+						MethodVisitor soc = new SpecialOpcodeRemovingMV(mv, ignoreFrames, className, fixLdcClass);
+						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, soc);
+						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, an, an, mv, generateExtraLVDebug);
 						lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 						GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name, m.desc);
+
 						Label startLabel = new Label();
 						ga.visitCode();
 						ga.visitLabel(startLabel);
