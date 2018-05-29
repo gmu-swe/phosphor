@@ -50,11 +50,10 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 	
 	public void set(char[] c, int idx, Taint tag, char val) {
 		this.val[idx] = val;
-		if (tag != null) {
-			if (taints == null)
-				taints = new Taint[this.val.length];
+		if (taints == null && tag != null)
+			taints = new Taint[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedCharWithObjTag get(char[] b, Taint idxTaint, int idx, TaintedCharWithObjTag ret){

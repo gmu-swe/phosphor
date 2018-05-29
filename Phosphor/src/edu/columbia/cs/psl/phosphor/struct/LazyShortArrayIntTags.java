@@ -29,11 +29,10 @@ public final class LazyShortArrayIntTags extends LazyArrayIntTags {
 
 	public void set(short[] g, int idx, int tag, short sval) {
 		val[idx] = sval;
-		if (tag != 0) {
-			if (taints == null)
-				taints = new int[val.length];
+		if (taints == null && tag != 0)
+			taints = new int[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedShortWithIntTag get(short[] g, int idx, TaintedShortWithIntTag ret) {

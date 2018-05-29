@@ -33,11 +33,10 @@ public final class LazyByteArrayIntTags extends LazyArrayIntTags {
 
 	public void set(byte[] b, int idx, int tag, byte val) {
 		this.val[idx] = val;
-		if (tag != 0) {
-			if (taints == null)
-				taints = new int[this.val.length];
+		if (taints == null && tag != 0)
+			taints = new int[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedByteWithIntTag get(byte[] b, int idx, TaintedByteWithIntTag ret) {

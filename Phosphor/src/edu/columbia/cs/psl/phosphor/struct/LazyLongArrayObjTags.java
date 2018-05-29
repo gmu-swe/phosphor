@@ -54,12 +54,11 @@ public final class LazyLongArrayObjTags extends LazyArrayObjTags {
 	}
 	
 	public void set(long[] b, int idx, Taint tag, long lval) {
-		val[idx] = lval;
-		if (tag != null) {
-			if (taints == null)
-				taints = new Taint[val.length];
+		this.val[idx] = lval;
+		if (taints == null && tag != null)
+			taints = new Taint[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedLongWithObjTag get(long[] b, int idx, TaintedLongWithObjTag ret) {

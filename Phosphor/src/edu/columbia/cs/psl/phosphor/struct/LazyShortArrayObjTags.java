@@ -51,12 +51,11 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public void set(short[] g, int idx, Taint tag, short sval) {
-		val[idx] = sval;
-		if (tag != null) {
-			if (taints == null)
-				taints = new Taint[val.length];
+		this.val[idx] = sval;
+		if (taints == null && tag != null)
+			taints = new Taint[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedShortWithObjTag get(short[] g, int idx, TaintedShortWithObjTag ret) {

@@ -31,11 +31,10 @@ public final class LazyCharArrayIntTags extends LazyArrayIntTags {
 
 	public void set(char[] c, int idx, int tag, char val) {
 		this.val[idx] = val;
-		if (tag != 0) {
-			if (taints == null)
-				taints = new int[this.val.length];
+		if (taints == null && tag != 0)
+			taints = new int[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedCharWithIntTag get(char[] c, int idx, TaintedCharWithIntTag ret) {

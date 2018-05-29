@@ -31,11 +31,10 @@ public final class LazyLongArrayIntTags extends LazyArrayIntTags {
 
 	public void set(long[] b, int idx, int tag, long lval) {
 		val[idx] = lval;
-		if (tag != 0) {
-			if (taints == null)
-				taints = new int[val.length];
+		if (taints == null && tag != 0)
+			taints = new int[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedLongWithIntTag get(long[] b, int idx, TaintedLongWithIntTag ret) {

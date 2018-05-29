@@ -46,11 +46,10 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 
 	public void set(boolean[] b, int idx, Taint tag, boolean val) {
 		this.val[idx] = val;
-		if (tag != null) {
-			if (taints == null)
-				taints = new Taint[this.val.length];
+		if (taints == null && tag != null)
+			taints = new Taint[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public void set(boolean[] b, Taint idxTag, int idx, Taint tag, boolean val, ControlTaintTagStack ctrl) {

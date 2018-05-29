@@ -30,11 +30,10 @@ public final class LazyFloatArrayIntTags extends LazyArrayIntTags {
 
 	public void set(float[] f, int idx, int tag, float fval) {
 		val[idx] = fval;
-		if (tag != 0) {
-			if (taints == null)
-				taints = new int[val.length];
+		if (taints == null && tag != 0)
+			taints = new int[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedFloatWithIntTag get(float[] f, int idx, TaintedFloatWithIntTag ret) {

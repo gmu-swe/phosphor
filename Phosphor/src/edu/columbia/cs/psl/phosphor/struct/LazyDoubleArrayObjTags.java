@@ -54,12 +54,11 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public void set(double[] d, int idx, Taint tag, double newval) {
-		val[idx] = newval;
-		if (tag != null) {
-			if (taints == null)
-				taints = new Taint[val.length];
+		this.val[idx] = newval;
+		if (taints == null && tag != null)
+			taints = new Taint[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedDoubleWithObjTag get(double[] d, int idx, TaintedDoubleWithObjTag ret) {

@@ -59,12 +59,11 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public void set(int[] l, int idx, Taint tag, int ival) {
-		val[idx] = ival;
-		if (tag != null) {
-			if (taints == null)
-				taints = new Taint[val.length];
+		this.val[idx] = ival;
+		if (taints == null && tag != null)
+			taints = new Taint[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedIntWithObjTag get(int[] l, int idx, TaintedIntWithObjTag ret) {

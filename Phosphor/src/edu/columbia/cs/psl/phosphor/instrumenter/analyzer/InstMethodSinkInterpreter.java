@@ -39,6 +39,26 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 		if (value1 instanceof SinkableArrayValue && value3 instanceof SinkableArrayValue) {
 			SinkableArrayValue arr = (SinkableArrayValue) value1;
 			((SinkableArrayValue) arr).addDep(((SinkableArrayValue) value3));
+			if(((SinkableArrayValue) value1).isNewArray && !((SinkableArrayValue) value3).isConstant) {
+				//Need to clear this value1 to no longer be a new array, and anything that was derived from it
+				SinkableArrayValue v = (SinkableArrayValue) value1;
+				while (v != null && v.isNewArray) {
+					v.isNewArray = false;
+					if (v.reverseDeps != null)
+						for (SinkableArrayValue x : v.reverseDeps
+								) {
+							if (x.isNewArray) {
+								x.isNewArray = false;
+								if (x.reverseDeps != null)
+									for (SinkableArrayValue y : x.reverseDeps) {
+										y.isNewArray = false;
+									}
+							}
+
+						}
+					v = v.copyOf;
+				}
+			}
 		}
 		return super.ternaryOperation(insn, value1, value2, value3);
 	}

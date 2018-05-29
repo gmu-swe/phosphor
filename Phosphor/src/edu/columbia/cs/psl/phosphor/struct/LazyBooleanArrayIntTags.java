@@ -35,11 +35,10 @@ public final class LazyBooleanArrayIntTags extends LazyArrayIntTags {
 
 	public void set(boolean[] b, int idx, int tag, boolean val) {
 		this.val[idx] = val;
-		if (tag != 0) {
-			if (taints == null)
-				taints = new int[this.val.length];
+		if (taints == null && tag != 0)
+			taints = new int[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedBooleanWithIntTag get(boolean[] b, int idx, TaintedBooleanWithIntTag ret) {

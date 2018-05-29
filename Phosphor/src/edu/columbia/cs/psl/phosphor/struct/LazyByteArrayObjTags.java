@@ -44,14 +44,13 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 		else
 			set(l, idx, new Taint(tag, idxTag), ival);
 	}
-	
+
 	public void set(byte[] b, int idx, Taint tag, byte val) {
 		this.val[idx] = val;
-		if (tag != null) {
-			if (taints == null)
-				taints = new Taint[this.val.length];
+		if (taints == null && tag != null)
+			taints = new Taint[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedByteWithObjTag get(byte[] b, Taint idxTaint, int idx, TaintedByteWithObjTag ret){

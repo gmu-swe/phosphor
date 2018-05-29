@@ -30,11 +30,10 @@ public final class LazyDoubleArrayIntTags extends LazyArrayIntTags {
 
 	public void set(double[] d, int idx, int tag, double newval) {
 		val[idx] = newval;
-		if (tag != 0) {
-			if (taints == null)
-				taints = new int[val.length];
+		if (taints == null && tag != 0)
+			taints = new int[this.val.length];
+		if (taints != null)
 			taints[idx] = tag;
-		}
 	}
 
 	public TaintedDoubleWithIntTag get(double[] d, int idx, TaintedDoubleWithIntTag ret) {
