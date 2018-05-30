@@ -43,7 +43,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		assertNonNullTaint(s);
 		assertNonNullTaint(MultiTainter.getTaint(i));
 		assertTrue(MultiTainter.getTaint(i).lbl instanceof AutoTaintLabel);
-		assertTrue(MultiTainter.getTaint(ar[0]).lbl instanceof AutoTaintLabel);
+		assertTrue(MultiTainter.getTaint(ar[1]).lbl instanceof AutoTaintLabel);
 
 	}
 	
