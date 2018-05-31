@@ -576,7 +576,7 @@ public class TaintUtils {
 			
 			if (!srcTainted && dstTainted) // Source not tainted, reset dest
 			{
-				for (int i = destPos ; i < length ; i++)
+				for (int i = destPos ; i < destPos + length ; i++)
 					((LazyArrayObjTags)destTaint).taints[i] = null;
 			}
 			else // Source tainted, copy taint over
