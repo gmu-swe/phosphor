@@ -567,11 +567,22 @@ public class TaintUtils {
 	
 	public static void arraycopy(Object srcTaint, Object src, Object srcPosTaint, int srcPos, Object destTaint, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length) {
 		System.arraycopy(src, srcPos, dest, destPos, length);
-		if (VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null && ((LazyArrayObjTags) srcTaint).taints != null) {
-			if(((LazyArrayObjTags)destTaint).taints == null)
-				((LazyArrayObjTags)destTaint).taints = new Taint[Array.getLength(dest)];
-			if (length <= ((LazyArrayObjTags)destTaint).taints.length && length <= (((LazyArrayObjTags)srcTaint).taints).length)
+		if (VM.isBooted$$PHOSPHORTAGGED(new TaintedBooleanWithObjTag()).val) {
+			boolean srcTainted = (srcTaint  != null && ((LazyArrayObjTags) srcTaint).taints != null);
+			boolean dstTainted = (destTaint != null && ((LazyArrayObjTags) destTaint).taints != null);
+
+			if (!srcTainted && !dstTainted) // Fast path: No taints to copy to/from
+				return;
+			
+			if (!srcTainted && dstTainted) // Source not tainted, reset dest
 			{
+				for (int i = destPos ; i < length ; i++)
+					((LazyArrayObjTags)destTaint).taints[i] = null;
+			}
+			else // Source tainted, copy taint over
+			{
+				if(((LazyArrayObjTags)destTaint).taints == null)
+					((LazyArrayObjTags)destTaint).taints = new Taint[Array.getLength(dest)];
 				System.arraycopy(((LazyArrayObjTags) srcTaint).taints, srcPos, ((LazyArrayObjTags) destTaint).taints, destPos, length);
 			}
 		}
