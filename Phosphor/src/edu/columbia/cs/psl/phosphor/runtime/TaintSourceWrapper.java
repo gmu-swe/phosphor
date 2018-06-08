@@ -164,6 +164,11 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 		return ret;
 	}
 
+	public void checkTaint(int tag, String sink) {
+		if (tag != 0)
+			throw new IllegalAccessError("Argument carries taint " + tag + " at " + sink);
+	}
+
 	public static void checkTaint(int tag) {
 		if (tag != 0)
 			throw new IllegalAccessError("Argument carries taint " + tag);
