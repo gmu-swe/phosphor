@@ -78,6 +78,14 @@ public class LinkedList<T> implements Cloneable, Serializable {
 	{
 		return first.next;
 	}
+
+	public T pop(){
+		Node<T> f = first.next;
+		if(f == null)
+			return null;
+		first.next = f.next;
+		return f.entry;
+	}
 	public LinkedList()
 	{
 		clear();

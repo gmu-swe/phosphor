@@ -14,7 +14,7 @@ public class ExceptionalFlowImplicitITCase extends BaseMultiTaintClass{
 		if(in < 0)
 			throw new IllegalStateException();
 	}
-	@Test
+//	@Test
 	public void testUnthrownExceptions(){
 		resetState();
 		int x = MultiTainter.taintedInt(10,"testUnthrownExceptions.X");
@@ -31,7 +31,7 @@ public class ExceptionalFlowImplicitITCase extends BaseMultiTaintClass{
 		assertNullOrEmpty(MultiTainter.getTaint(z));
 
 	}
-	@Test
+//	@Test
 	public void testUnthrownExceptionsReturn(){
 		resetState();
 		int x = MultiTainter.taintedInt(10,"testUnthrownExceptionsReturn.X");
@@ -48,7 +48,7 @@ public class ExceptionalFlowImplicitITCase extends BaseMultiTaintClass{
 		assertTaintHasOnlyLabel(MultiTainter.getTaint(y),"testUnthrownExceptionsReturn.X");
 		assertNullOrEmpty(MultiTainter.getTaint(z));
 	}
-	@Test
+//	@Test
 	public void testUnthrownExceptionsNested(){
 		resetState();
 		int x = MultiTainter.taintedInt(10,"testUnthrownExceptionsNested.X");

@@ -60,7 +60,6 @@ public class Taint<T> implements Serializable {
 	public T lbl;
 	public SimpleHashSet<T> dependencies;
 	
-	public transient LinkedList<EnqueuedTaint> enqueuedInControlFlow;
 	public Taint(T lbl) {
 		this.lbl = lbl;
 		dependencies = new SimpleHashSet<T>();
@@ -207,13 +206,13 @@ public class Taint<T> implements Serializable {
 //				return null;
 			return t1;
 		}
-		else if(tags != null && tags.taint != null && !tags.taint.dependencies.contains(t1.lbl))
-			return tags.taint;
 		else if(t1 == tags.taint)
 			return t1;
 		if(IGNORE_TAINTING)
 			return t1;
-		return new Taint<T>((Taint<T>) t1, tags.taint);
+		Taint ret = t1.copy();
+		ret.addDependency(tags.taint);
+		return ret;
 	}
 	@SuppressWarnings("rawtypes")
 	public static void combineTagsOnObject(Object o, ControlTaintTagStack tags)

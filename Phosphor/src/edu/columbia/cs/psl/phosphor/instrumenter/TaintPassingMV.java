@@ -11,6 +11,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
@@ -66,6 +67,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				if (name.equals("<clinit>") || Configuration.IMPLICIT_LIGHT_TRACKING)
 					super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "(I)V", false);
 				super.visitVarInsn(ASTORE, tmpLV);
+			}
+			else{
+				LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag", Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(lvs.start), new LabelNode(lvs.end), lvs.idxOfMasterControlLV);
+				lvs.createdLVs.add(newLVN);
 			}
 			taintTagsLoggedAtJumps = new int[arrayAnalyzer.nJumps+arrayAnalyzer.nTryCatch+1];
 			for(int i = 0; i < arrayAnalyzer.nJumps + arrayAnalyzer.nTryCatch; i++)
