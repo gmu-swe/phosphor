@@ -285,7 +285,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						}
 						break;
 					case AbstractInsnNode.IINC_INSN:
-						if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
+						if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING || Configuration.WITH_TAGS_FOR_JUMPS)
 						{
 							IincInsnNode iinc = (IincInsnNode) insn;
 							BasicValue value = (BasicValue) f.getLocal(iinc.var);
