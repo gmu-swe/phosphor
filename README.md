@@ -51,6 +51,8 @@ To get or set the taint tag of an object, developers first cast that object to t
 In the case of integer tags, developers can determine if a variable is derived from a particular tainted source by checking the bit mask of that variable's tag (since tags are combined by bitwise OR'ing them).
 In the case of multi-tainting, developers can determine if a variable is derived from a particular tainted source by examining the dependencies of that variable's tag.
 
+You *can* detaint variables with Phosphor - to do so, simply use the `Tainter` or `MultiTainter` interface (as appropriate) to set the taint on a value to `0` (or `null`).
+
 Building
 ------
 Phosphor is a maven project. You can generate the jar with a simple `mvn package`. You can run the tests with `mvn verify` (which also generates the jar). Phosphor requires Java >= 8 to build and run its tests - but can still be used with Java 7 (there are now tests included for Phosphor's functionality with lambdas). If you are making changes to Phosphor and running the tests, you will want to make sure that Phosphor regenerates the instrumented JRE between test runs (because you are changing the instrumentation process). To do so, simply do `mvn clean verify` instead. If you would like to develop Phosphor in eclipse, use `mvn eclipse:eclipse` to generate eclipse project files, then import the project into Eclipse.
