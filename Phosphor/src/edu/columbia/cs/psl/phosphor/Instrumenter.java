@@ -551,7 +551,7 @@ public class Instrumenter {
 
 		while (!toWait.isEmpty()) {
 			try {
-				toWait.addAll((Collection<? extends Future>) toWait.getFirst().get());
+				toWait.addAll((Collection<? extends Future>) toWait.removeFirst().get());
 			} catch (InterruptedException e) {
 				continue;
 			} catch (ExecutionException e) {
