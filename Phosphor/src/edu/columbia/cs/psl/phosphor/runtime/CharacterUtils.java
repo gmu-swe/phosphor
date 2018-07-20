@@ -300,8 +300,8 @@ public class CharacterUtils {
 
 	public static TaintedIntWithIntTag codePointAt$$PHOSPHORTAGGED(CharSequence seq, int t, int i, TaintedIntWithIntTag ret) {
 		ret.val = Character.codePointAt(seq, i);
-		if (seq instanceof String && ((String) seq).valuePHOSPHOR_TAG != null && ((String) seq).valuePHOSPHOR_TAG.taints != null)
-			ret.taint = Tainter.getTaint(seq);
+		if (seq instanceof TaintedWithIntTag)
+			ret.taint = ((TaintedWithIntTag) seq).getPHOSPHOR_TAG();
 		return ret;
 	}
 
@@ -324,8 +324,8 @@ public class CharacterUtils {
 
 	public static TaintedIntWithIntTag codePointBefore$$PHOSPHORTAGGED(CharSequence seq, int t, int i, TaintedIntWithIntTag ret) {
 		ret.val = Character.codePointBefore(seq, i);
-		if (seq instanceof String && ((String) seq).valuePHOSPHOR_TAG != null && ((String) seq).valuePHOSPHOR_TAG.taints != null)
-			ret.taint = Tainter.getTaint(seq);
+		if (seq instanceof TaintedWithIntTag)
+			ret.taint = ((TaintedWithIntTag) seq).getPHOSPHOR_TAG();
 		return ret;
 	}
 
@@ -348,16 +348,15 @@ public class CharacterUtils {
 				ret.taints[i] = idxTaint;
 			}
 		}
+		else
+			ret.taints = null;
 		return ret;
 	}
 
 	public static TaintedIntWithIntTag toChars$$PHOSPHORTAGGED(int idxTaint, int idx, LazyCharArrayIntTags[] artags, char[] ar, int t, int dstIdx, TaintedIntWithIntTag ret) {
 
 		ret.val = Character.toChars(idx, ar, dstIdx);
-
-		if (idxTaint != 0) {
-			ret.taint = idxTaint;
-		}
+		ret.taint = idxTaint;
 		return ret;
 	}
 
@@ -421,6 +420,31 @@ public class CharacterUtils {
 		}
 		else
 			ret.taints = null;
+		return ret;
+	}
+
+	public static TaintedIntWithObjTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags t, char[] a, Taint ti, int index, Taint tl, int limit, TaintedIntWithObjTag ret){
+		ret.val = Character.codePointAtImpl(a,index,limit);
+		ret.taint = null;
+		if(t.taints != null){
+			ret.taint = t.taints[index].copy();
+		}
+		return ret;
+	}
+	public static TaintedIntWithObjTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags t, char[] a, Taint ti, int index, Taint tl, int limit, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret){
+		ret.val = Character.codePointAtImpl(a,index,limit);
+		ret.taint = null;
+		if(t.taints != null){
+			ret.taint = t.taints[index].copy();
+		}
+		return ret;
+	}
+	public static TaintedIntWithIntTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayIntTags t, char[] a, int ti, int index, int tl, int limit, TaintedIntWithIntTag ret){
+		ret.val = Character.codePointAtImpl(a,index,limit);
+		ret.taint = 0;
+		if(t.taints != null){
+			ret.taint = t.taints[index];
+		}
 		return ret;
 	}
 }

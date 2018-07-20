@@ -439,7 +439,7 @@ public class PreMain {
 			}
 			for(Object o : cn.methods){
 				MethodNode mn = (MethodNode) o;
-				if(mn.name.startsWith("toUpperCase"))
+				if(mn.name.startsWith("toUpperCase") || mn.name.startsWith("codePointAtImpl"))
 					mn.access = mn.access | Opcodes.ACC_PUBLIC;
 			}
 			if(addField)
