@@ -3547,4 +3547,7 @@ public final class Character implements Serializable, Comparable<Character> {
         return 0;
     }
 
+    public static int toUpperCaseEx(int codePoint) { return 0;}
+	public static char[] toUpperCaseCharArray(int codePoint) { return null;}
+
 }

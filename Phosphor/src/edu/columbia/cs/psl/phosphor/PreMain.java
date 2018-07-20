@@ -437,6 +437,11 @@ public class PreMain {
 				if(fn.name.equals("valueOf"))
 					addField = false;
 			}
+			for(Object o : cn.methods){
+				MethodNode mn = (MethodNode) o;
+				if(mn.name.startsWith("toUpperCase"))
+					mn.access = mn.access | Opcodes.ACC_PUBLIC;
+			}
 			if(addField)
 			{
 				cn.fields.add(new FieldNode(Opcodes.ACC_PUBLIC, "valueOf", "Z", null, false));

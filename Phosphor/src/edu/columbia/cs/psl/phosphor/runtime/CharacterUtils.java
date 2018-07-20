@@ -2,6 +2,8 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.struct.*;
 
+import javax.naming.ldap.Control;
+
 public class CharacterUtils {
 
 	public static TaintedCharWithObjTag reverseBytes$$PHOSPHORTAGGED(Taint t, char c, TaintedCharWithObjTag ret) {
@@ -356,6 +358,69 @@ public class CharacterUtils {
 		if (idxTaint != 0) {
 			ret.taint = idxTaint;
 		}
+		return ret;
+	}
+
+	public static TaintedIntWithObjTag toUpperCaseEx$$PHOSPHORTAGGED(Taint t, int cp, TaintedIntWithObjTag ret){
+		ret.val = Character.toUpperCaseEx(cp);
+		if(t != null)
+		ret.taint = t.copy();
+		else
+			ret.taint = null;
+		return ret;
+	}
+	public static LazyCharArrayObjTags toUpperCaseCharArray$$PHOSPHORTAGGED(Taint t, int cp){
+		LazyCharArrayObjTags ret = new LazyCharArrayObjTags(Character.toUpperCaseCharArray(cp));
+		if(t != null) {
+			ret.taints = new Taint[ret.val.length];
+			for(int i = 0; i < ret.taints.length; i++){
+				ret.taints[i] = t.copy();
+			}
+		}
+		else
+			ret.taints = null;
+		return ret;
+	}
+
+	public static TaintedIntWithObjTag toUpperCaseEx$$PHOSPHORTAGGED(Taint t, int cp, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret){
+		ret.val = Character.toUpperCaseEx(cp);
+		if(t != null)
+			ret.taint = t.copy();
+		else
+			ret.taint = null;
+		return ret;
+	}
+	public static LazyCharArrayObjTags toUpperCaseCharArray$$PHOSPHORTAGGED(Taint t, ControlTaintTagStack ctrl, int cp){
+		LazyCharArrayObjTags ret = new LazyCharArrayObjTags(Character.toUpperCaseCharArray(cp));
+		if(t != null) {
+			ret.taints = new Taint[ret.val.length];
+			for(int i = 0; i < ret.taints.length; i++){
+				ret.taints[i] = t.copy();
+			}
+		}
+		else
+			ret.taints = null;
+		return ret;
+	}
+
+	public static TaintedIntWithIntTag toUpperCaseEx$$PHOSPHORTAGGED(int t, int cp, TaintedIntWithIntTag ret){
+		ret.val = Character.toUpperCaseEx(cp);
+		if(t != 0)
+			ret.taint = t;
+		else
+			ret.taint = 0;
+		return ret;
+	}
+	public static LazyCharArrayIntTags toUpperCaseCharArray$$PHOSPHORTAGGED(int t, int cp){
+		LazyCharArrayIntTags ret = new LazyCharArrayIntTags(Character.toUpperCaseCharArray(cp));
+		if(t != 0) {
+			ret.taints = new int[ret.val.length];
+			for(int i = 0; i < ret.taints.length; i++){
+				ret.taints[i] = t;
+			}
+		}
+		else
+			ret.taints = null;
 		return ret;
 	}
 }
