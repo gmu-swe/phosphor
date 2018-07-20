@@ -22,8 +22,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
@@ -176,6 +183,8 @@ public class Instrumenter {
 	static int n = 0;
 	public static byte[] instrumentClass(String path, InputStream is, boolean renameInterfaces) {
 		try {
+			// n is shared among threads, but is used only to provide progress feedback
+			// Therefore, it's ok to increment it in a non-thread-safe way
 			n++;
 			if(n % 1000 ==0)
 				System.out.println("Processed: " + n + "/"+nTotal);
@@ -520,64 +529,96 @@ public class Instrumenter {
 		loader = new URLClassLoader(urlArray, Instrumenter.class.getClassLoader());
 		PreMain.bigLoader = loader;
 
-		File f = new File(inputFolder);
+		final File f = new File(inputFolder);
 		if (!f.exists()) {
 			System.err.println("Unable to read path " + inputFolder);
 			System.exit(-1);
 		}
-		if (f.isDirectory())
-			processDirectory(f, rootOutputDir, true);
-		else if (inputFolder.endsWith(".jar") || inputFolder.endsWith(".zip") || inputFolder.endsWith(".war"))
-			processZip(f, rootOutputDir);
-		else if (inputFolder.endsWith(".class"))
-			processClass(f, rootOutputDir);
-		else {
+
+		final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+		LinkedList<Future> toWait = new LinkedList<>();
+
+		if (f.isDirectory()) {
+			toWait.addAll(processDirectory(f, rootOutputDir, true, executor));
+		} else if (inputFolder.endsWith(".jar") || inputFolder.endsWith(".zip") || inputFolder.endsWith(".war")) {
+			toWait.addAll(processZip(f, rootOutputDir, executor));
+		} else if (inputFolder.endsWith(".class")) {
+			toWait.addAll(processClass(f, rootOutputDir, executor));
+		} else {
 			System.err.println("Unknown type for path " + inputFolder);
 			System.exit(-1);
 		}
+
+		while (!toWait.isEmpty()) {
+			try {
+				toWait.addAll((Collection<? extends Future>) toWait.removeFirst().get());
+			} catch (InterruptedException e) {
+				continue;
+			} catch (ExecutionException e) {
+				throw new Error(e);
+			}
+		}
+
+		executor.shutdown();
+		while (!executor.isTerminated()) {
+			try {
+				executor.awaitTermination(1, TimeUnit.SECONDS);
+			} catch (InterruptedException e) {
+				continue;
+			}
+		}
 	}
 
-	private static void processClass(File f, File outputDir) {
+	private static LinkedList<Future> processClass(File f, final File outputDir, ExecutorService executor) {
+		LinkedList<Future> ret = new LinkedList<>();
 		try {
-			String name = f.getName();
-			InputStream is = new FileInputStream(f);
+			final String name = f.getName();
+			final InputStream is = new FileInputStream(f);
 
-			FileOutputStream fos = new FileOutputStream(outputDir.getPath() + File.separator + name);
-			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			lastInstrumentedClass = outputDir.getPath() + File.separator + name;
-
-			if (ANALYZE_ONLY)
+			if (ANALYZE_ONLY) {
 				analyzeClass(is);
-			else {
-				byte[] c = instrumentClass(outputDir.getAbsolutePath(), is, true);
-				bos.write(c);
-				bos.writeTo(fos);
-				fos.close();
+				is.close();
+			} else {
+				ret.add(executor.submit(new Callable<LinkedList>() {
+					@Override
+					public LinkedList call() throws Exception {
+						lastInstrumentedClass = outputDir.getPath() + File.separator + name;
+						ByteArrayOutputStream bos = new ByteArrayOutputStream();
+						FileOutputStream fos = new FileOutputStream(outputDir.getPath() + File.separator + name);
+						byte[] c = instrumentClass(outputDir.getAbsolutePath(), is, true);
+						is.close();
+						bos.write(c);
+						bos.writeTo(fos);
+						fos.close();
+						return new LinkedList();
+					}
+				}));
 			}
-			is.close();
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
+		return ret;
 	}
 
-	private static void processDirectory(File f, File parentOutputDir, boolean isFirstLevel) {
+	private static LinkedList<Future> processDirectory(File f, File parentOutputDir, boolean isFirstLevel, ExecutorService executor) {
+		LinkedList<Future> ret = new LinkedList<>();
 		if (f.getName().equals(".AppleDouble"))
-			return;
-		File thisOutputDir;
+			return ret;
+		final File thisOutputDir;
 		if (isFirstLevel) {
 			thisOutputDir = parentOutputDir;
 		} else {
 			thisOutputDir = new File(parentOutputDir.getAbsolutePath() + File.separator + f.getName());
 			thisOutputDir.mkdir();
 		}
-		for (File fi : f.listFiles()) {
+		for (final File fi : f.listFiles()) {
 			if (fi.isDirectory())
-				processDirectory(fi, thisOutputDir, false);
+				ret.addAll(processDirectory(fi, thisOutputDir, false, executor));
 			else if (fi.getName().endsWith(".class"))
-				processClass(fi, thisOutputDir);
+				ret.addAll(processClass(fi, thisOutputDir, executor));
 			else if (fi.getName().endsWith(".jar") || fi.getName().endsWith(".zip") || fi.getName().endsWith(".war"))
-				processZip(fi, thisOutputDir);
+				ret.addAll(processZip(fi, thisOutputDir, executor));
 			else {
 				File dest = new File(thisOutputDir.getPath() + File.separator + fi.getName());
 				FileChannel source = null;
@@ -616,47 +657,43 @@ public class Instrumenter {
 				}
 			}
 		}
+
+		return ret;
+	}
+
+	private static class Result {
+		ZipEntry e;
+		byte[] buf;
 	}
 
 	/**
 	 * Handle Jar file, Zip file and War file
 	 */
-	public static void processZip(File f, File outputDir) {
+	public static LinkedList<Future> processZip(final File f, File outputDir, ExecutorService executor) {
 		try {
-			ZipFile zip = new ZipFile(f);
+			LinkedList<Future<Result>> ret = new LinkedList<>();
+			final ZipFile zip = new ZipFile(f);
 			ZipOutputStream zos = null;
 			zos = new ZipOutputStream(new FileOutputStream(outputDir.getPath() + File.separator + f.getName()));
 			Enumeration<? extends ZipEntry> entries = zip.entries();
 			while (entries.hasMoreElements()) {
-				ZipEntry e = entries.nextElement();
+				final ZipEntry e = entries.nextElement();
 
 				if (e.getName().endsWith(".class")) {
 					if (ANALYZE_ONLY)
 						analyzeClass(zip.getInputStream(e));
 					else {
-						try {
-							ZipEntry outEntry = new ZipEntry(e.getName());
-							zos.putNextEntry(outEntry);
+						ret.add(executor.submit(new Callable<Result>() {
+							@Override
+							public Result call() throws Exception {
+								Result ret = new Result();
+								ret.e = e;
+								byte[] clazz = instrumentClass(f.getAbsolutePath(), zip.getInputStream(e), true);
+								ret.buf = clazz;
 
-							byte[] clazz = instrumentClass(f.getAbsolutePath(), zip.getInputStream(e), true);
-							if (clazz == null) {
-								System.out.println("Failed to instrument " + e.getName() + " in " + f.getName());
-								InputStream is = zip.getInputStream(e);
-								byte[] buffer = new byte[1024];
-								while (true) {
-									int count = is.read(buffer);
-									if (count == -1)
-										break;
-									zos.write(buffer, 0, count);
-								}
-								is.close();
-							} else
-								zos.write(clazz);
-							zos.closeEntry();
-						} catch (ZipException ex) {
-							ex.printStackTrace();
-							continue;
-						}
+								return ret;
+							}
+						}));
 					}
 				} else if (e.getName().endsWith(".jar")) {
 					ZipEntry outEntry = new ZipEntry(e.getName());
@@ -681,7 +718,7 @@ public class Instrumenter {
 					File tmp2 = new File("/tmp/tmp2");
 					if(!tmp2.exists())
 						tmp2.mkdir();
-					processZip(tmp, tmp2);
+					processZip(tmp, tmp2, executor);
 					tmp.delete();
 
 					zos.putNextEntry(outEntry);
@@ -706,7 +743,7 @@ public class Instrumenter {
 						}
 					} else if (e.getName().startsWith("META-INF")
 							&& (e.getName().endsWith(".SF")
-								|| e.getName().endsWith(".RSA"))) {
+									|| e.getName().endsWith(".RSA"))) {
 						// don't copy this
 					} else if (e.getName().equals("META-INF/MANIFEST.MF")) {
 						Scanner s = new Scanner(zip.getInputStream(e));
@@ -732,17 +769,17 @@ public class Instrumenter {
 					} else {
 						try {
 
-						zos.putNextEntry(outEntry);
-						InputStream is = zip.getInputStream(e);
-						byte[] buffer = new byte[1024];
-						while (true) {
-							int count = is.read(buffer);
-							if (count == -1)
-								break;
-							zos.write(buffer, 0, count);
-						}
-						is.close();
-						zos.closeEntry();
+							zos.putNextEntry(outEntry);
+							InputStream is = zip.getInputStream(e);
+							byte[] buffer = new byte[1024];
+							while (true) {
+								int count = is.read(buffer);
+								if (count == -1)
+									break;
+								zos.write(buffer, 0, count);
+							}
+							is.close();
+							zos.closeEntry();
 						} catch (ZipException ex) {
 							if (!ex.getMessage().contains("duplicate entry")) {
 								ex.printStackTrace();
@@ -751,6 +788,43 @@ public class Instrumenter {
 						}
 					}
 				}
+			}
+
+			for (Future<Result> fr : ret) {
+				Result r;
+				while (true) {
+					try {
+						r = fr.get();
+						break;
+					} catch (InterruptedException _) {
+						continue;
+					}
+				}
+
+				try {
+					ZipEntry outEntry = new ZipEntry(r.e.getName());
+					zos.putNextEntry(outEntry);
+
+					byte[] clazz = r.buf;
+					if (clazz == null) {
+						System.out.println("Failed to instrument " + r.e.getName() + " in " + f.getName());
+						InputStream is = zip.getInputStream(r.e);
+						byte[] buffer = new byte[1024];
+						while (true) {
+							int count = is.read(buffer);
+							if (count == -1)
+								break;
+							zos.write(buffer, 0, count);
+						}
+						is.close();
+					} else
+						zos.write(clazz);
+					zos.closeEntry();
+				} catch (ZipException ex) {
+					ex.printStackTrace();
+					continue;
+				}
+
 			}
 
 			if (zos != null)
@@ -787,6 +861,8 @@ public class Instrumenter {
 				}
 			}
 		}
+
+		return new LinkedList<>();
 	}
 
 	public static boolean shouldCallUninstAlways(String owner, String name, String desc) {
