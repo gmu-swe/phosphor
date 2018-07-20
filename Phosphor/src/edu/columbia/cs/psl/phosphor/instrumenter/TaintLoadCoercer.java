@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 
+import edu.columbia.cs.psl.phosphor.runtime.CharacterUtils;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -56,6 +57,19 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 		super(Opcodes.ASM5);
 		this.mv = new UninstTaintLoadCoercerMN(className, access, name, desc, signature, exceptions, cmv);
 		this.ignoreExistingFrames = ignoreExistingFrames;
+	}
+
+	@Override
+	public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+		if (owner.equals(Type.getInternalName(Character.class)) && (name.startsWith("codePointAt") || name.startsWith("toChars") || name.startsWith("codePointBefore")
+		|| name.startsWith("reverseBytes")
+		|| name.startsWith("toLowerCase")
+		|| name.startsWith("toTitleCase")
+		|| name.startsWith("toUpperCase")
+		)) {
+			super.visitMethodInsn(opcode, Type.getInternalName(CharacterUtils.class), name, descriptor, isInterface);
+		} else
+			super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
 	}
 
 	class UninstTaintLoadCoercerMN extends MethodNode {
