@@ -84,6 +84,10 @@ public final class LazyLongArrayObjTags extends LazyArrayObjTags {
 		}
 	}
 
+	public void set(long[] b, Taint idxTag, int idx, long val){
+		set(b,idxTag,idx,null,val);
+	}
+
 	public TaintedLongWithObjTag get(long[] b, int idx, TaintedLongWithObjTag ret, ControlTaintTagStack tags) {
 		ret.val = val[idx];
 		if (taints == null)

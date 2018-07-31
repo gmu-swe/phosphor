@@ -186,11 +186,13 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 		if (obj instanceof String) {
 			if (obj instanceof TaintedWithObjTag) {
 				if (obj != null && ((String) obj).valuePHOSPHOR_TAG != null && ((String) obj).valuePHOSPHOR_TAG.taints != null) {
-					SimpleHashSet<Taint> reported = new SimpleHashSet<>();
+					SimpleHashSet<String> reported = new SimpleHashSet<>();
 					for (Taint t : ((String) obj).valuePHOSPHOR_TAG.taints) {
-						if (t != null)
-							if(reported.add(t))
+						if (t != null) {
+							String _t = new String(t.toString().getBytes());
+							if (reported.add(_t))
 								taintViolation(t, obj, sink);
+						}
 					}
 				}
 			}

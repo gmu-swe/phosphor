@@ -11,12 +11,20 @@ public class AutoTaintLabel {
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
-		return false;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		AutoTaintLabel that = (AutoTaintLabel) o;
+
+		if (source != null ? !source.equals(that.source) : that.source != null) return false;
+		// Probably incorrect - comparing Object[] arrays with Arrays.equals
+		return Arrays.equals(trace, that.trace);
 	}
 
 	@Override
 	public int hashCode() {
-		return source.hashCode();
+		int result = source != null ? source.hashCode() : 0;
+		result = 31 * result + Arrays.hashCode(trace);
+		return result;
 	}
 
 	public AutoTaintLabel(String source, StackTraceElement[] stackTrace) {

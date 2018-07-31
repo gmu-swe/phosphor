@@ -88,6 +88,9 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 			taints[idx] = tag;
 		}
 	}
+	public void set(int[] b, Taint idxTag, int idx, int val){
+		set(b,idxTag,idx,null,val);
+	}
 
 	public TaintedIntWithObjTag get(int[] l, int idx, TaintedIntWithObjTag ret, ControlTaintTagStack tags) {
 		ret.val = val[idx];

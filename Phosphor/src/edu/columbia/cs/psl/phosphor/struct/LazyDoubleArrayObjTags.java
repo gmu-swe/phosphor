@@ -23,7 +23,11 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 		this.val = array;
 		this.lengthTaint = lenTaint;
 	}
-	
+
+	public void set(double[] b, Taint idxTag, int idx, double val){
+		set(b,idxTag,idx,null,val);
+	}
+
 	@Override
 	public Object clone() {
 		LazyDoubleArrayObjTags ret = new LazyDoubleArrayObjTags(val.clone());

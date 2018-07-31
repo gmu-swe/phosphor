@@ -34,6 +34,10 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 
+	public void set(byte[] b, Taint idxTag, int idx, byte val){
+		set(b,idxTag,idx,null,val);
+	}
+
 	public void set(byte[] l, Taint idxTag, int idx, Taint tag, byte ival) {
 		if(Configuration.derivedTaintListener != null)
 			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival, null), ival);

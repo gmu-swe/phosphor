@@ -32,6 +32,10 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 			ret.taints = taints.clone();
 		return ret;
 	}
+
+	public void set(boolean[] b, Taint idxTag, int idx, boolean val){
+		set(b,idxTag,idx,null,val);
+	}
 	
 	public void set(boolean[] l, Taint idxTag, int idx, Taint tag, boolean ival) {
 		if(Configuration.derivedTaintListener != null)

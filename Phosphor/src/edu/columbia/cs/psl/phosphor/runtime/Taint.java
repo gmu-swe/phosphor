@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
@@ -20,7 +21,9 @@ public class Taint<T> implements Serializable {
 	}
 
 	protected void copyFrom(Taint<T> in) {
-		if (in.dependencies == null || in.dependencies.isEmpty())
+		if(in == null)
+			return;
+		else if (in.dependencies == null || in.dependencies.isEmpty())
 			lbl = in.lbl;
 		else
 			addDependency(in);
@@ -190,6 +193,27 @@ public class Taint<T> implements Serializable {
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, r);
 		return r;
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		Taint<?> taint = (Taint<?>) o;
+
+		if (debug != null ? !debug.equals(taint.debug) : taint.debug != null) return false;
+		if (lbl != null ? !lbl.equals(taint.lbl) : taint.lbl != null) return false;
+		return dependencies != null ? dependencies.equals(taint.dependencies) : taint.dependencies == null;
+	}
+
+	@Override
+	public int hashCode() {
+		int result = debug != null ? debug.hashCode() : 0;
+		result = 31 * result + (lbl != null ? lbl.hashCode() : 0);
+		result = 31 * result + (dependencies != null ? dependencies.hashCode() : 0);
+		return result;
+	}
+
 	@SuppressWarnings("unchecked")
 	public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags){
 		if(t1 == null && tags.isEmpty())

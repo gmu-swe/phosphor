@@ -37,6 +37,10 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 
+	public void set(char[] b, Taint idxTag, int idx, char val){
+		set(b,idxTag,idx,null,val);
+	}
+
 	public void set(char[] l, Taint idxTag, int idx, Taint tag, char ival) {
 		if(Configuration.derivedTaintListener != null)
 			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival,null), ival);
