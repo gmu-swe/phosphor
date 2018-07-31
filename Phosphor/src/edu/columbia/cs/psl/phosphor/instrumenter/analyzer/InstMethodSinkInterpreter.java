@@ -322,17 +322,23 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 		case DMUL:
 		case DDIV:
 		case DREM:
-		case LCMP:
-		case FCMPL:
-		case FCMPG:
-		case DCMPL:
-		case DCMPG:
 			SinkableArrayValue v1 = (SinkableArrayValue) value1;
 			SinkableArrayValue v2 = (SinkableArrayValue) value2;
 			SinkableArrayValue v3 = new SinkableArrayValue(v1.getType());
 			v3.addDep(v1);
 			v3.addDep(v2);
 			return v3;
+                case LCMP:
+                case FCMPL:
+                case FCMPG:
+                case DCMPL:
+                case DCMPG:
+                        v1 = (SinkableArrayValue) value1;
+                        v2 = (SinkableArrayValue) value2;
+                        v3 = new SinkableArrayValue(Type.INT_TYPE);
+                        v3.addDep(v1);
+                        v3.addDep(v2);
+                        return v3;
 		case AALOAD:
 			if (value1.getType() == null) {
 				ret = new SinkableArrayValue(null);
