@@ -459,7 +459,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							MethodInsnNode min = (MethodInsnNode) succesorBlock.insn;
 							if(min.getOpcode() == INVOKEVIRTUAL || min.getOpcode() == INVOKESPECIAL){
 								Type[] desc = Type.getArgumentTypes(min.desc);
-								if(desc.length == 1 && Type.getReturnType(min.desc).getSort()==Type.VOID){
+								if(desc.length == 1 && (Type.getReturnType(min.desc).getSort()==Type.VOID || min.desc.equals("Ljava/lang/StringBuilder;"))){
 									Frame fr = this.getFrames()[successor];
 									if(fr != null && fr.getStack(fr.getStackSize()-2) instanceof BasicArrayInterpreter.BasicThisFieldValue) {
 										BasicArrayInterpreter.BasicThisFieldValue vv = (BasicArrayInterpreter.BasicThisFieldValue) fr.getStack(fr.getStackSize()-2);

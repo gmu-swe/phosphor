@@ -70,50 +70,88 @@ public class CharacterUtils {
 	}
 
 	public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, TaintedIntWithObjTag ret) {
-		ret.val = Character.codePointAt(ar, i);
-		ret.taint = null;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
+		try {
+			ret.val = Character.codePointAt(ar, i);
+			ret.taint = null;
+			if (tags.taints != null)
+				ret.taint = tags.taints[i];
+			return ret;
+		} catch (StringIndexOutOfBoundsException ex) {
+			Taint _t = new Taint(t);
+			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
+			throw ex;
+		}
 	}
 
 	public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(CharSequence seq, Taint t, int i, TaintedIntWithObjTag ret) {
-		ret.val = Character.codePointAt(seq, i);
-		if (seq instanceof String && ((String) seq).valuePHOSPHOR_TAG != null && ((String) seq).valuePHOSPHOR_TAG.taints != null)
-			ret.taint = ((String) seq).valuePHOSPHOR_TAG.taints[i];
-		return ret;
+		try {
+			ret.val = Character.codePointAt(seq, i);
+			if (seq instanceof String && ((String) seq).valuePHOSPHOR_TAG != null && ((String) seq).valuePHOSPHOR_TAG.taints != null)
+				ret.taint = ((String) seq).valuePHOSPHOR_TAG.taints[i];
+			return ret;
+		} catch (StringIndexOutOfBoundsException ex) {
+			Taint _t = new Taint(t);
+			_t.addDependency((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
+			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
+			throw ex;
+		}
 	}
 
 	public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
-		ret.val = Character.codePointAt(ar, i, i2);
-		ret.taint = null;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
+		try {
+			ret.val = Character.codePointAt(ar, i, i2);
+			ret.taint = null;
+			if (tags.taints != null)
+				ret.taint = tags.taints[i];
+			return ret;
+		} catch (StringIndexOutOfBoundsException ex) {
+			Taint _t = new Taint(t);
+			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
+			throw ex;
+		}
 	}
 
 
 	public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, TaintedIntWithObjTag ret) {
-		ret.val = Character.codePointBefore(ar, i);
-		ret.taint = null;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
+		try {
+			ret.val = Character.codePointBefore(ar, i);
+			ret.taint = null;
+			if (tags.taints != null)
+				ret.taint = tags.taints[i];
+			return ret;
+		} catch (StringIndexOutOfBoundsException ex) {
+			Taint _t = new Taint(t);
+			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
+			throw ex;
+		}
 	}
 
 	public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(CharSequence seq, Taint t, int i, TaintedIntWithObjTag ret) {
-		ret.val = Character.codePointBefore(seq, i);
-		if (seq instanceof String && ((String) seq).valuePHOSPHOR_TAG != null && ((String) seq).valuePHOSPHOR_TAG.taints != null)
-			ret.taint = ((String) seq).valuePHOSPHOR_TAG.taints[i];
-		return ret;
+		try {
+			ret.val = Character.codePointBefore(seq, i);
+			if (seq instanceof String && ((String) seq).valuePHOSPHOR_TAG != null && ((String) seq).valuePHOSPHOR_TAG.taints != null)
+				ret.taint = ((String) seq).valuePHOSPHOR_TAG.taints[i];
+			return ret;
+		} catch (StringIndexOutOfBoundsException ex) {
+			Taint _t = new Taint(t);
+			_t.addDependency((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
+			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
+			throw ex;
+		}
 	}
 
 	public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
-		ret.val = Character.codePointBefore(ar, i, i2);
-		ret.taint = null;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
+		try {
+			ret.val = Character.codePointBefore(ar, i, i2);
+			ret.taint = null;
+			if (tags.taints != null)
+				ret.taint = tags.taints[i];
+			return ret;
+		} catch (StringIndexOutOfBoundsException ex) {
+			Taint _t = new Taint(t);
+			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
+			throw ex;
+		}
 	}
 
 	public static LazyCharArrayObjTags toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx) {
@@ -142,26 +180,48 @@ public class CharacterUtils {
 
 
 	public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
-		ret.val = Character.codePointAt(ar, i);
-		ret.taint = null;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
+		try {
+			ret.val = Character.codePointAt(ar, i);
+			ret.taint = null;
+			if (tags.taints != null)
+				ret.taint = tags.taints[i];
+			return ret;
+		} catch (StringIndexOutOfBoundsException ex) {
+			Taint _t = new Taint(t);
+			_t.addDependency(ctrl.taint);
+			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
+			throw ex;
+		}
 	}
 
 	public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(CharSequence seq, Taint t, int i, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
-		ret.val = Character.codePointAt(seq, i);
-		if (seq instanceof String && ((String) seq).valuePHOSPHOR_TAG != null)
-			ret.taint = seq.toString().valuePHOSPHOR_TAG.taints[i];
-		return ret;
+		try {
+			ret.val = Character.codePointAt(seq, i);
+			if (seq instanceof String && ((String) seq).valuePHOSPHOR_TAG != null)
+				ret.taint = seq.toString().valuePHOSPHOR_TAG.taints[i];
+			return ret;
+		} catch (StringIndexOutOfBoundsException ex) {
+			Taint _t = new Taint(t);
+			_t.addDependency((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
+			_t.addDependency(ctrl.taint);
+			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
+			throw ex;
+		}
 	}
 
 	public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, Taint t2, int i2, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
-		ret.val = Character.codePointAt(ar, i, i2);
-		ret.taint = null;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
+		try {
+			ret.val = Character.codePointAt(ar, i, i2);
+			ret.taint = null;
+			if (tags.taints != null)
+				ret.taint = tags.taints[i];
+			return ret;
+		} catch (StringIndexOutOfBoundsException ex) {
+			Taint _t = new Taint(t);
+			_t.addDependency(ctrl.taint);
+			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
+			throw ex;
+		}
 	}
 
 	public static LazyCharArrayObjTags toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, ControlTaintTagStack ctrl) {
