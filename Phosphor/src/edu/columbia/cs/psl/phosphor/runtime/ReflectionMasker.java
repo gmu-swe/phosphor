@@ -4,6 +4,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 
 import org.objectweb.asm.Type;
 
@@ -294,7 +295,11 @@ public class ReflectionMasker {
 				if (c.getComponentType().isPrimitive()) {
 					//1d primitive array
 					madeChange = true;
-					newArgs.add(Configuration.TAINT_TAG_OBJ_ARRAY_CLASS);
+					try {
+						newArgs.add(Class.forName(MultiDTaintedArrayWithObjTag.getTypeForType(Type.getType(c)).getInternalName().replace('/','.')));
+					}catch(ClassNotFoundException e){
+						e.printStackTrace();
+					}
 					newArgs.add(c);
 					continue;
 				} else {
@@ -305,7 +310,7 @@ public class ReflectionMasker {
 						//2d primtiive array
 						madeChange = true;
 						try {
-							newArgs.add(Class.forName(MultiDTaintedArrayWithObjTag.getTypeForType(Type.getType(c)).getInternalName()));
+							newArgs.add(Class.forName(MultiDTaintedArrayWithObjTag.getTypeForType(Type.getType(c)).getInternalName().replace('/','.')));
 						} catch (ClassNotFoundException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -1281,7 +1286,7 @@ public class ReflectionMasker {
 		if (in != null && m.getParameterTypes().length != in.length) {
 			ret.a = new Object[m.getParameterTypes().length];
 			for (int i = 0; i < in.length; i++) {
-				if (m.getParameterTypes()[j].isPrimitive()) {
+				if (m.getParameterTypes()[j] == Taint.class && m.getParameterTypes()[j+1].isPrimitive()) {
 					if (in[i] instanceof TaintedWithIntTag)
 						ret.a[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
 					else if(in[i] instanceof TaintedWithObjTag)
@@ -1295,9 +1300,9 @@ public class ReflectionMasker {
 					else
 						ret.a[j] = null;
 					j++;
-				} else if (m.getParameterTypes()[j].isArray() && (m.getParameterTypes()[j].getComponentType().isPrimitive() || m.getParameterTypes()[j].getComponentType().equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
+				} else if (LazyArrayObjTags.class.isAssignableFrom(m.getParameterTypes()[j])){
 					LazyArrayObjTags arr = ((LazyArrayObjTags) in[i]);
-					ret.a[j] = arr.taints;
+					ret.a[j] = arr;
 					j++;
 					ret.a[j] = arr.getVal();
 					j++;
@@ -1343,8 +1348,8 @@ public class ReflectionMasker {
 				}
 			}
 		}
-		//		if(VM.isBooted())
-		//			System.out.println(Arrays.toString(m.getParameterTypes()) + " and OUT " + Arrays.toString(ret.a));
+//				if(VM.isBooted())
+//					System.out.println(Arrays.toString(m.getParameterTypes()) + " and OUT " + Arrays.toString(ret.a));
 //						System.out.println("Fix all args slow: " + Arrays.toString(ret.a) + " for " + m);
 		return ret;
 	}
