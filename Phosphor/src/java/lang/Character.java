@@ -3550,5 +3550,6 @@ public final class Character implements Serializable, Comparable<Character> {
     public static int toUpperCaseEx(int codePoint) { return 0;}
 	public static char[] toUpperCaseCharArray(int codePoint) { return null;}
 	public static int codePointAtImpl(char[] a, int index, int limit){return 0;}
+	public static int codePointBeforeImpl(char[] a, int index, int start){return 0;} ;
 
 }

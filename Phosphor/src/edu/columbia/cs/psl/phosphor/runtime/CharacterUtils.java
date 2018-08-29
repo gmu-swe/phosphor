@@ -397,6 +397,42 @@ public class CharacterUtils {
 		return ret;
 	}
 
+	//...
+
+
+
+	public static TaintedIntWithIntTag codePointAtImpl$$$PHOSPHORTAGGED(LazyCharArrayIntTags tags, char[] ar, int t, int i, int t2, int i2, TaintedIntWithIntTag ret) {
+		ret.val = Character.codePointAtImpl(ar, i, i2);
+		ret.taint = 0;
+		if (tags.taints != null)
+			ret.taint = tags.taints[i];
+		return ret;
+	}
+
+	public static TaintedIntWithIntTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayIntTags tags, char[] ar, int t, int i, int t2, int i2, TaintedIntWithIntTag ret) {
+		ret.val = Character.codePointBeforeImpl(ar, i, i2);
+		ret.taint = 0;
+		if (tags.taints != null)
+			ret.taint = tags.taints[i];
+		return ret;
+	}
+
+	public static TaintedIntWithObjTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
+		ret.val = Character.codePointBeforeImpl(ar, i, i2);
+		ret.taint = null;
+		if (tags.taints != null)
+			ret.taint = tags.taints[i];
+		return ret;
+	}
+
+	public static TaintedIntWithObjTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, Taint t2, int i2, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+		ret.val = Character.codePointBeforeImpl(ar, i, i2);
+		ret.taint = null;
+		if (tags.taints != null)
+			ret.taint = tags.taints[i];
+		return ret;
+	}
+
 	public static LazyCharArrayIntTags toChars$$PHOSPHORTAGGED(int idxTaint, int idx) {
 
 		char[] v = Character.toChars(idx);
