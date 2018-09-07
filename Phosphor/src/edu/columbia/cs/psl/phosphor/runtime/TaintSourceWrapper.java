@@ -118,8 +118,12 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 	private void setTaints(LazyArrayObjTags ret, String source) {
 		Taint retTaint = generateTaint(source);
 		if (ret.taints != null) {
-			for (Taint t : ret.taints)
-				t.addDependency(retTaint);
+			for (Taint t : ret.taints) {
+				if(t == null)
+					t = retTaint.copy();
+				else
+					t.addDependency(retTaint);
+			}
 		} else
 			ret.setTaints(retTaint);
 	}
