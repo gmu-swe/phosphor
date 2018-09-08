@@ -117,15 +117,17 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void setTaints(LazyArrayObjTags ret, String source) {
 		Taint retTaint = generateTaint(source);
-		if (ret.taints != null) {
-			for (Taint t : ret.taints) {
-				if(t == null)
-					t = retTaint.copy();
+		Taint[] taintArray = ret.taints;
+		if (taintArray != null) {
+			for (int i = 0; i < taintArray.length; i++) {
+				if(taintArray[i] == null)
+					taintArray[i] = retTaint.copy();
 				else
-					t.addDependency(retTaint);
+					taintArray[i].addDependency(retTaint);
 			}
-		} else
+		} else {
 			ret.setTaints(retTaint);
+		}
 	}
 
 	public LazyByteArrayObjTags autoTaint(LazyByteArrayObjTags ret, String source, int argIdx) {
