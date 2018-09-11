@@ -64,7 +64,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			// Even if we are ignoring other hiding here, we definitely need to
 			// do this.
 			String retDesc = "Ledu/columbia/cs/psl/phosphor/struct/TaintedBooleanWith" + (Configuration.MULTI_TAINTING ? "Obj" : "Int") + "Tag;";
-			if(Configuration.IMPLICIT_TRACKING)
+			if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING)
 				super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", "(Ljava/lang/Class;Ljava/lang/Object;" + Type.getDescriptor(ControlTaintTagStack.class) + retDesc +")" + retDesc, false);
 			else
 				super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", "(Ljava/lang/Class;Ljava/lang/Object;" + retDesc + ")" + retDesc, false);
@@ -94,7 +94,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					//Try the fastpath where we know we don't change the method
 					 {
 						//orig version
-						if (Configuration.IMPLICIT_TRACKING) {
+						if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
 							super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "fixAllArgs", "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;"
 									+ Type.getDescriptor(ControlTaintTagStack.class) + ")" + Type.getDescriptor(MethodInvoke.class), false);
 						} else
@@ -114,12 +114,12 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 						super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "o", "Ljava/lang/Object;");
 						super.visitInsn(Opcodes.SWAP);
 						super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(MethodInvoke.class), "a", "[Ljava/lang/Object;");
-						if (Configuration.IMPLICIT_TRACKING)
+						if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING)
 							super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 	
 					}
 				} else {
-					if (Configuration.IMPLICIT_TRACKING) {
+					if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
 						super.visitInsn(POP);
 						super.visitInsn(Opcodes.SWAP);
 						//[A C
@@ -207,7 +207,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					opcode = Opcodes.INVOKESTATIC;
 					owner = Type.getInternalName(ReflectionMasker.class);
 					desc = "(Ljava/lang/Class;" + desc.substring(1);
-					if(!Configuration.IMPLICIT_TRACKING)
+					if(!Configuration.IMPLICIT_TRACKING && !Configuration.IMPLICIT_HEADERS_NO_TRACKING)
 					{
 						desc = "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/Class;Z)Ljava/lang/reflect/Method;";
 						super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));

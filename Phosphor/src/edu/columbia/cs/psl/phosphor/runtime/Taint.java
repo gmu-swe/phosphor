@@ -214,8 +214,7 @@ public class Taint<T> implements Serializable {
 		return result;
 	}
 
-	@SuppressWarnings("unchecked")
-	public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags){
+	public static <T> Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags){
 		if(t1 == null && tags.isEmpty())
 			return null;
 		else if(t1 == null || (t1.lbl == null && t1.dependencies.isEmpty()))
@@ -237,6 +236,12 @@ public class Taint<T> implements Serializable {
 		Taint ret = t1.copy();
 		ret.addDependency(tags.taint);
 		return ret;
+	}
+	@SuppressWarnings("unchecked")
+	public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags){
+		if(t1 == null && tags.taint == null)
+			return null;
+		return _combineTagsInternal(t1,tags);
 	}
 	@SuppressWarnings("rawtypes")
 	public static void combineTagsOnObject(Object o, ControlTaintTagStack tags)

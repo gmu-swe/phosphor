@@ -33,6 +33,29 @@ public final class NativeHelper {
 		}
 	}
 
+	public static final TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object o, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+		if (o instanceof String)
+			return ((String) o).hashCode$$PHOSPHORTAGGED(ctrl, ret);
+		else {
+			ret.val = o.hashCode();
+			ret.taint = null;
+			return ret;
+		}
+	}
+
+
+	public static final TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o1, Object o2, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
+		if (o1 instanceof TaintedObjectWithObjCtrlTag)
+			return ((TaintedObjectWithObjCtrlTag) o1).equals$$PHOSPHORTAGGED(o2, ctrl, ret);
+		else {
+			if (o2 instanceof MultiDTaintedArrayWithObjTag)
+				o2 = MultiDTaintedArray.unboxRaw(o2);
+			ret.val = o1.equals(o2);
+			ret.taint = null;
+			return ret;
+		}
+	}
+
 	@SuppressWarnings("rawtypes")
 	public static final Collection ensureIsBoxedImplicitTracking(Collection in) {
 		if (in != null) {

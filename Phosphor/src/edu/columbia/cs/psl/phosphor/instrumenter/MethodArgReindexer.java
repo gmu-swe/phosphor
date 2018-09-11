@@ -96,7 +96,7 @@ public class MethodArgReindexer extends MethodVisitor {
 				System.out.println(">>>>" + oldVarCount + "->" + oldArgMappings[oldVarCount]);
 			oldVarCount += oldArgTypes[i].getSize();
 		}
-		if(Configuration.IMPLICIT_TRACKING && !name.equals("<clinit>"))
+		if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>"))
 		{
 			hasBeenRemapped = true;
 			newArgOffset++;
@@ -144,15 +144,15 @@ public class MethodArgReindexer extends MethodVisitor {
 			if (shadow != null)
 				super.visitLocalVariable(name + "_TAINT", shadow, null, start, end, oldArgMappings[index] - 1);
 			super.visitLocalVariable(name, desc, signature, start, end, oldArgMappings[index]);
-			if(index == originalLastArgIdx - 1 && Configuration.IMPLICIT_TRACKING)
+			if(index == originalLastArgIdx - 1 && (Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING))
 			{
 				super.visitLocalVariable("PhopshorImplicitTaintTrackingFromParent", Type.getDescriptor(ControlTaintTagStack.class), null, start, end, oldArgMappings[index]+1);
 			}
 			if (index == originalLastArgIdx - 1 && this.name.equals("<init>") && hasTaintSentinalAddedToDesc) {
-				super.visitLocalVariable("TAINT_STUFF_TO_IGNORE_HAHA", "Ljava/lang/Object;", null, start, end, oldArgMappings[index] + (Configuration.IMPLICIT_TRACKING ? 2 : 1));
+				super.visitLocalVariable("TAINT_STUFF_TO_IGNORE_HAHA", "Ljava/lang/Object;", null, start, end, oldArgMappings[index] + ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)? 2 : 1));
 			}
 			if ((index == originalLastArgIdx - Type.getType(desc).getSize()) && hasPreAllocedReturnAddr) {
-				super.visitLocalVariable("PHOSPHORPREALLOCRETURNHAHA", newReturnType.getDescriptor(), null, start, end, oldArgMappings[index] + (Configuration.IMPLICIT_TRACKING ? 2 : 1));
+				super.visitLocalVariable("PHOSPHORPREALLOCRETURNHAHA", newReturnType.getDescriptor(), null, start, end, oldArgMappings[index] + ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)? 2 : 1));
 			}
 		} else {
 			super.visitLocalVariable(name, desc, signature, start, end, index + newArgOffset);
@@ -172,7 +172,7 @@ public class MethodArgReindexer extends MethodVisitor {
 //		System.out.println("MAR stac " + Arrays.toString(stack));
 //		System.out.println(name+desc+"Orig locals: " + Arrays.toString(local));
 		if (type == Opcodes.F_FULL || type == Opcodes.F_NEW) {
-			if (origNumArgs == 0 && Configuration.IMPLICIT_TRACKING && !name.equals("<clinit>")) {
+			if (origNumArgs == 0 && (Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")) {
 				remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
 				newIdx++;
 				nLocal++;
@@ -212,7 +212,7 @@ public class MethodArgReindexer extends MethodVisitor {
 							remappedLocals[newIdx] = t.getInternalName();
 							newIdx++;
 							idxToUseForArgs++;
-							if(i == origNumArgs-1 && origNumArgs !=0 && Configuration.IMPLICIT_TRACKING)
+							if(i == origNumArgs-1 && origNumArgs !=0 && (Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING))
 							{
 								remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
 								newIdx++;
@@ -271,8 +271,7 @@ public class MethodArgReindexer extends MethodVisitor {
 				}
 				newIdx++;
 
-				if(i == origNumArgs-1 && origNumArgs !=0 && Configuration.IMPLICIT_TRACKING)
-				{
+				if (i == origNumArgs - 1 && origNumArgs != 0 && (Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
 					remappedLocals[newIdx] = Type.getInternalName(ControlTaintTagStack.class);
 					newIdx++;
 					nLocal++;

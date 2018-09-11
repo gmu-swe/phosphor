@@ -173,7 +173,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				newIntfcs = new String[interfaces.length + 1];
 				System.arraycopy(interfaces, 0, newIntfcs, 0, interfaces.length);
 				Class<?> iface = null;
-				if (Configuration.IMPLICIT_TRACKING)
+				if ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING))
 					iface = TaintedObjectWithObjCtrlTag.class;
 				else if (Configuration.MULTI_TAINTING)
 					iface = TaintedObjectWithObjTag.class;
@@ -380,7 +380,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			}
 			newArgTypes.add(t);
 		}
-		if(Configuration.IMPLICIT_TRACKING && !name.equals("<clinit>"))
+		if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>"))
 		{
 			isRewrittenDesc = true;
 			newArgTypes.add(Type.getType(ControlTaintTagStack.class));
@@ -625,7 +625,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			return;
 		if ((isAbstractClass || isInterface) && implementsComparable && !goLightOnGeneratedStuff) {
 			//Need to add this to interfaces so that we can call it on the interface
-			if(Configuration.IMPLICIT_TRACKING)
+			if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING))
 				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;"+Type.getDescriptor(ControlTaintTagStack.class)+Configuration.TAINTED_INT_DESC+")" + Configuration.TAINTED_INT_DESC, null, null);
 			else
 				super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;"+Configuration.TAINTED_INT_DESC+")" + Configuration.TAINTED_INT_DESC, null, null);
@@ -957,7 +957,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 							}
 							idx += t.getSize();
 						}
-						if(Configuration.IMPLICIT_TRACKING)
+						if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING))
 						{
 							newDesc += Type.getDescriptor(ControlTaintTagStack.class);
 							ga.visitTypeInsn(Opcodes.NEW, Type.getInternalName(ControlTaintTagStack.class));
@@ -1448,7 +1448,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		}
 		Type origReturn = Type.getReturnType(m.desc);
 		Type newReturn = TaintUtils.getContainerReturnType(origReturn);
-		if(Configuration.IMPLICIT_TRACKING)
+		if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING))
 			newDesc += Type.getDescriptor(ControlTaintTagStack.class);
 		if(m.name.equals("<init>"))
 			newDesc += Type.getDescriptor(TaintSentinel.class);

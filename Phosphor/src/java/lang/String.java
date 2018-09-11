@@ -31,7 +31,9 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 
@@ -977,7 +979,7 @@ public final class String implements Serializable, Comparable<String>,
     }
 
     @Override
-    public int hashCode() {
+      public int hashCode() {
         if (hashCode == 0) {
             if (count == 0) {
                 return 0;
@@ -989,6 +991,10 @@ public final class String implements Serializable, Comparable<String>,
             hashCode = hash;
         }
         return hashCode;
+    }
+
+    public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(ControlTaintTagStack ctrl, TaintedIntWithObjTag ret){
+        return null;
     }
 
     /**

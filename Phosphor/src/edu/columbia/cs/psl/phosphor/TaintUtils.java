@@ -776,7 +776,7 @@ public class TaintUtils {
 			else
 				r += t;
 		}
-		if(Configuration.IMPLICIT_TRACKING)
+		if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING)
 			r += Type.getDescriptor(ControlTaintTagStack.class);
 		r += ")" + getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
 		return r;

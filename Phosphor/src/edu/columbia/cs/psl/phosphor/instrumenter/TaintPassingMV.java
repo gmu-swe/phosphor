@@ -54,7 +54,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //		System.out.println("TPMVStart" + name);
 		super.visitCode();
 		firstLabel = new Label();
-		if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
+		if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING)
 		{
 			if (lvs.idxOfMasterControlLV < 0) {
 				int tmpLV = lvs.createMasterControlTaintLV();
@@ -1608,7 +1608,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         if (bsm.getTag() == Opcodes.H_INVOKESTATIC)
             opcode = INVOKESTATIC;
         boolean isMetaLambda = bsm != null && bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory");
-        if (Configuration.IMPLICIT_TRACKING) {
+        if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
           hasNewName = true;
             if( Instrumenter.isIgnoredClass(owner) || ((isInternalTaintingMethod(owner) || owner.startsWith("[")) && !name.equals("getControlFlow"))){
             	hasNewName = false;
@@ -1917,7 +1917,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				if (srcIsPrimitive) {
 					if (destIsPrimitve) {
 						desc = "(Ljava/lang/Object;Ljava/lang/Object;IILjava/lang/Object;Ljava/lang/Object;IIII)V";
-						if(Configuration.IMPLICIT_TRACKING)
+						if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING)
 							name = "arraycopyControlTrack";
 					} else {
 						desc = "(Ljava/lang/Object;Ljava/lang/Object;IILjava/lang/Object;IIII)V";
@@ -1936,7 +1936,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				if (srcIsPrimitive) {
 					if (destIsPrimitve) {
 						desc = "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;I)V";
-						if(Configuration.IMPLICIT_TRACKING)
+						if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING)
 							name = "arraycopyControlTrack";
 					} else {
 						desc = "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;I)V";
@@ -2089,9 +2089,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 		String newDesc = TaintUtils.remapMethodDesc(desc);
-		if(Configuration.IMPLICIT_TRACKING)
+		if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING))
 		{
-			if((isInternalTaintingMethod(owner) || owner.startsWith("[")) && !name.equals("getControlFlow")){
+			if((isInternalTaintingMethod(owner) || owner.startsWith("[")) && !name.equals("getControlFlow") && !name.startsWith("hashCode") && !name.startsWith("equals")){
 				newDesc = newDesc.replace(Type.getDescriptor(ControlTaintTagStack.class), "");
 			}
 			else
