@@ -957,12 +957,17 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 							}
 							idx += t.getSize();
 						}
-						if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING))
+						if(Configuration.IMPLICIT_TRACKING)
 						{
 							newDesc += Type.getDescriptor(ControlTaintTagStack.class);
 							ga.visitTypeInsn(Opcodes.NEW, Type.getInternalName(ControlTaintTagStack.class));
 							ga.visitInsn(Opcodes.DUP);
 							ga.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "()V", false);
+						}
+						else if(Configuration.IMPLICIT_HEADERS_NO_TRACKING)
+						{
+							newDesc += Type.getDescriptor(ControlTaintTagStack.class);
+							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ControlTaintTagStack.class), "factory", "()"+ Type.getDescriptor(ControlTaintTagStack.class), false);
 						}
 						if (m.name.equals("<init>")) {
 							newDesc += Type.getDescriptor(TaintSentinel.class);

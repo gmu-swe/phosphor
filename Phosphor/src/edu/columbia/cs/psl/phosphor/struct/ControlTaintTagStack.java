@@ -22,6 +22,11 @@ public final class ControlTaintTagStack {
 		return taint.copy();
 	}
 
+	static ControlTaintTagStack instance = new ControlTaintTagStack();
+	public static ControlTaintTagStack factory(){
+		return instance;
+	}
+
 	public final void addPossibleException(EnqueuedTaint tag, Class<? extends Throwable> t){
 //		if(tag != null && tag.taint != null){
 //			MaybeThrownException ex = new MaybeThrownException(t,tag.taint);
