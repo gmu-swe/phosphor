@@ -6,6 +6,7 @@ import java.lang.annotation.Annotation;
 
 public final class Method extends AccessibleObject implements GenericDeclaration, Member {
 	public Method PHOSPHOR_TAGmethod;
+	public boolean PHOSPHOR_TAGmarked;
 
 	public Class<?> getDeclaringClass() {
 		return null;

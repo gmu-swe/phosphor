@@ -29,11 +29,11 @@ public abstract class AbstractCollection<E> implements Collection<E> {
 		return null;
 	}
 
-	public Object[] toArray(Object[] a) {
+	public <T> T[] toArray(T[] a) {
 		return null;
 	}
 
-	public boolean add(Object o) {
+	public boolean add(E o) {
 		return false;
 	}
 
@@ -45,7 +45,7 @@ public abstract class AbstractCollection<E> implements Collection<E> {
 		return false;
 	}
 
-	public boolean addAll(Collection c) {
+	public boolean addAll(Collection<? extends E> c) {
 		return false;
 	}
 
