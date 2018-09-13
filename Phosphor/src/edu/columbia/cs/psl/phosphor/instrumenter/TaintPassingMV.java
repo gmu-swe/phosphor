@@ -828,6 +828,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 
 	public void doForceCtrlStores(){
+		if(Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
+			forceCtrlStoreFields.clear();
+			forceCtrlAdd.clear();
+			return;
+		}
+
 		MethodVisitor ta = mv;
 
 		for(String t : exceptionsToMaybeThrow){
