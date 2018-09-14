@@ -484,6 +484,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					super.visitEnd();
 					this.accept(prev);
 				}
+
+				@Override
+				public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
+					if(className.equals("com/sleepycat/je/log/FileManager$LogEndFileDescriptor") && name.startsWith("enqueueWrite1") && local.length> 6 && "java/lang/Object".equals(local[6]))
+						local[6] = "[B";
+					super.visitFrame(type, nLocal, local, nStack, stack);
+				}
 			};
 			if (!isInterface && !originalName.contains("$$INVIVO"))
 				this.myMethods.add(rawMethod);
