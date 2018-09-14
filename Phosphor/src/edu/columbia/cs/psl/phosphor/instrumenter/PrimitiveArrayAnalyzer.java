@@ -1061,12 +1061,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								HashSet<BasicBlock> live = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>(b.onFalseSideOfJumpFrom);
 								live.addAll(b.onTrueSideOfJumpFrom);
 //							System.out.println("RETURN @" +b.idx+"still in jumps " + live);
-								for (BasicBlock r : live) {
+								for (Entry<BasicBlock,Integer> e : jumpIDs.entrySet()) {
+									BasicBlock r = e.getKey();
 									if(b.resolvedHereBlocks.contains(r) || ! r.isJump)
 										continue;
-									instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
+									instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, e.getValue()));
 									if (r.is2ArgJump)
-										instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r) + 1));
+										instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, e.getValue()+ 1));
 								}
 //							}
 						}

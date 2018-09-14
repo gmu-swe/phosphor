@@ -194,9 +194,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	HashSet<Integer> boxAtNextJump = new HashSet<Integer>();
 
-	private int branchDepth = 0;
 	public int branchStarting;
 	HashSet<Integer> forceCtrlAdd = new HashSet<Integer>();
+
 	@SuppressWarnings("unused")
 	@Override
 	public void visitVarInsn(int opcode, int var) {
@@ -245,12 +245,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if(opcode == TaintUtils.BRANCH_START)
 		{
 			branchStarting = var;
-			branchDepth++;
 			return;
 		}
 		if(opcode == TaintUtils.BRANCH_END)
 		{
-			branchDepth--;
 			passthruMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 //			if(var > Byte.MAX_VALUE)
 //				passthruMV.visitLdcInsn(var);
