@@ -526,6 +526,8 @@ public class PreMain {
 					Configuration.IMPLICIT_EXCEPTION_FLOW = true;
 				} else if (s.startsWith("ignore=")) {
 					Configuration.ADDL_IGNORE = s.substring(7);
+				} else if (s.equals("withoutBranchNotTaken")) {
+					Configuration.WITHOUT_BRANCH_NOT_TAKEN = true;
 				}
 			}
 		}

@@ -243,6 +243,9 @@ public class Instrumenter {
 	static Option opt_multiTaint = Option.builder("multiTaint")
 		.desc("Support for 2^32 tags instead of just 32")
 		.build();
+	static Option opt_withoutBranchNotTaken = Option.builder("withoutBranchNotTaken")
+			.desc("Disable branch not taken analysis in control tracking")
+			.build();
 	static Option opt_trackArrayLengthTaints = Option.builder("withArrayLengthTags")
 		.desc("Tracks taint tags on array lengths - requires use of JVMTI runtime library when running")
 		.build();
@@ -309,10 +312,10 @@ public class Instrumenter {
 		options.addOption(opt_withSelectiveInst);
 		options.addOption(opt_uninstCopies);
 		options.addOption(opt_disableJumpOptimizations);
-	    options.addOption(opt_readAndSaveBCI);
-	    options.addOption(opt_serialization);
+		options.addOption(opt_readAndSaveBCI);
+		options.addOption(opt_serialization);
+		options.addOption(opt_withoutBranchNotTaken);
 
-	    
 		CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
 	    try {
@@ -360,6 +363,7 @@ public class Instrumenter {
 //		Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption("serialization"); //Really needs to always be active
 		
 		Configuration.ARRAY_INDEX_TRACKING = line.hasOption("withArrayIndexTags");
+		Configuration.WITHOUT_BRANCH_NOT_TAKEN = line.hasOption("withoutBranchNotTaken");
 		Configuration.init();
 
 		
@@ -384,6 +388,13 @@ public class Instrumenter {
 		if (Configuration.WITH_SELECTIVE_INST) {
 			System.out.println("Loading selective instrumentation configuration");
 			SelectiveInstrumentationManager.populateMethodsToInstrument(Configuration.selective_inst_config);
+		}
+
+		if(Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
+			System.out.println("Branch not taken: disabled");
+		}
+		else {
+			System.out.println("Branch not taken: enabled");
 		}
 
 		TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
