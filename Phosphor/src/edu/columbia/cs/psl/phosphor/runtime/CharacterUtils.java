@@ -448,12 +448,6 @@ public class CharacterUtils {
 		return ret;
 	}
 
-	public static TaintedIntWithIntTag toChars$$PHOSPHORTAGGED(int idxTaint, int idx, LazyCharArrayIntTags[] artags, char[] ar, int t, int dstIdx, TaintedIntWithIntTag ret) {
-		ret.val = Character.toChars(idx, ar, dstIdx);
-		ret.taint = idxTaint;
-		return ret;
-	}
-
 	public static TaintedIntWithIntTag toChars$$PHOSPHORTAGGED(int idxTaint, int idx, LazyCharArrayIntTags artags, char[] ar, int t, int dstIdx, TaintedIntWithIntTag ret) {
 		ret.val = Character.toChars(idx, ar, dstIdx);
 		ret.taint = idxTaint;
