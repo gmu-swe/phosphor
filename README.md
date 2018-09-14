@@ -57,23 +57,13 @@ Building
 ------
 Phosphor is a maven project. You can generate the jar with a simple `mvn package`. You can run the tests with `mvn verify` (which also generates the jar). Phosphor requires Java >= 8 to build and run its tests - but can still be used with Java 7 (there are now tests included for Phosphor's functionality with lambdas). If you are making changes to Phosphor and running the tests, you will want to make sure that Phosphor regenerates the instrumented JRE between test runs (because you are changing the instrumentation process). To do so, simply do `mvn clean verify` instead. If you would like to develop Phosphor in eclipse, use `mvn eclipse:eclipse` to generate eclipse project files, then import the project into Eclipse.
 
-Support for Android
-----
-We have preliminary results that show that we can apply Phosphor to Android devices running the Dalvik VM, by instrumenting all Android libraries prior to dex'ing them, then dex'ing them, and deploying to the device. Note that we have only evaluated this process with several small benchmarks, and the process for using Phosphor on the Dalvik VM is far from streamlined. It is not suggested that the faint of heart try this.
-
-In principle, we could pull .dex files off of a device, de-dex, instrument, and re-dex, but at time of writing, no de-dex'ing tool is sufficiently complete (for example, [dex2jar does not currently support the int-to char opcode](https://code.google.com/p/dex2jar/issues/detail?id=214&can=1&q=i2c)). Therefore, to use Phosphor on an Android device, you will need to [compile the Android OS](https://source.android.com) yourself, so that you get the intermediate .class files to instrument.
-
-Once you have compiled Android, the next step will be to instrument all of the core framework libraries. For each library *X*, the classses are found within the file `out/target/common/obj/JAVA_LIBRARIES/X_intermediates/classes.jar`. Copy each of these jar's to a temporary directory, renaming them to *X.jar*. Then instrument each of these jar's following the instructions from the section above, *Running*. Then, use the `dx` tool provided with the Android SDK to convert each jar to dex:
-`dx -JXmx3g --dex --core-library --output=dex/X.jar instrumented-jars/X.jar`. For the file, *framework.jar*, you will find that the jar now contains too many classes. Use the flag `--multi-dex` here, and assemble all of the output classes.dex files into a single jar.  
-
-Next, use `dx` to also convert phosphor.jar to a dex file, and then copy all of the completed .dex files to the Android device. Use the same procedure to instrument each application. Then, using an `adb shell`, change the boot classpath to point to the instrumented core libraries, and invoke your application using the `dalvikvm` command.
-
-
-For more information on applying Phosphor to Dalvik, please contact us.
+Notes on control tracking
+-----
+Please note that the control tracking functionality can impose SIGNIFICANT overhead (we've observed > 10x slowdown) depending on the structure of the code you are instrumenting and the amount of tainted data flowing around. This is incredibly un-optimized at this point. This also can make it difficult to apply Phosphor with control tracking to very large methods (since it causes them to grow beyond the maximum size permitted). Nonetheless, we have had great success applying it in various projects --- it works fine on the JDK (perhaps a few internal classes will be too large, but they were not needed in our workloads) and on projects like Tomcat. There are quite a few paths to improving this functionality. If you are interested in helping, please contact us.
 
 Questions, concerns, comments
 ----
-Please email [Jonathan Bell](mailto:jbell@cs.columbia.edu) with any feedback. This project is still under heavy development, and we are working on many extensions (for example, tagging data with arbitrary types of tags, rather than just integer tags), and would very much welcome any feedback.
+Please email [Jonathan Bell](mailto:bellj@gmu.edu) with any feedback. This project is still under heavy development, and we are working on many extensions, and would very much welcome any feedback.
 
 License
 -------
