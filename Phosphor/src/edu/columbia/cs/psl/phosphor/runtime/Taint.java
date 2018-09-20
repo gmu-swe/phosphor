@@ -255,7 +255,7 @@ public class Taint<T> implements Serializable {
 			if(o instanceof String)
 			{
 				Taint onObj  = (Taint) ((TaintedWithObjTag)o).getPHOSPHOR_TAG();
-				((String) o).PHOSPHOR_TAG = Taint.combineTags(onObj, tags);
+				((String) o).setPHOSPHOR_TAG(Taint.combineTags(onObj, tags));
 //				for(int i = 0; i < ((String) o).length(); i++)
 //				{
 //					((String)o).valuePHOSPHOR_TAG[i] = Taint.combineTags(((String)o).valuePHOSPHOR_TAG[i], tags);
