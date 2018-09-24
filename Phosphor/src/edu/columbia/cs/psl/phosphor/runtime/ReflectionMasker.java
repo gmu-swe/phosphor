@@ -4,7 +4,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
 
 import org.objectweb.asm.Type;
 
@@ -942,7 +941,16 @@ public class ReflectionMasker {
 			return ret;
 		} else if (in == null && c.getParameterTypes().length == 2) {
 			Object[] ret = new Object[2];
-			ret[0] = new ControlTaintTagStack();
+
+			ControlTaintTagStack controlTaintTagStack;
+			if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
+				controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+			}
+			else {
+				controlTaintTagStack = ControlTaintTagStack.getInstance();
+			}
+
+			ret[0] = controlTaintTagStack;
 			ret[1] = null;
 			return ret;
 		}

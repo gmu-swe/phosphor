@@ -31,8 +31,6 @@ import org.objectweb.asm.tree.MethodNode;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
-import edu.columbia.cs.psl.phosphor.runtime.AbstractTaintCheckerSetter;
-import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -528,6 +526,9 @@ public class PreMain {
 					Configuration.ADDL_IGNORE = s.substring(7);
 				} else if (s.equals("withoutBranchNotTaken")) {
 					Configuration.WITHOUT_BRANCH_NOT_TAKEN = true;
+				}
+				else if (s.equals("withoutControlStackSingleton")) {
+					Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON = true;
 				}
 			}
 		}

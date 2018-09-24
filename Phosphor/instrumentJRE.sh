@@ -30,7 +30,7 @@ else
 	#fi
 	if [ ! -d "target/jre-inst-implicit" ]; then
 		echo "Creating obj tag + implicit flow instrumented JRE\n";
-		java -Xmx6g -jar target/Phosphor-0.0.4-SNAPSHOT.jar -controlTrack -multiTaint -forceUnboxAcmpEq -withEnumsByValue $INST_HOME target/jre-inst-implicit;
+		java -Xmx6g -jar target/Phosphor-0.0.4-SNAPSHOT.jar -controlTrack -withoutControlStackSingleton -multiTaint -forceUnboxAcmpEq -withEnumsByValue $INST_HOME target/jre-inst-implicit;
 	else
 		echo "Not regenerating implicit flow instrumented JRE\n";
 	fi

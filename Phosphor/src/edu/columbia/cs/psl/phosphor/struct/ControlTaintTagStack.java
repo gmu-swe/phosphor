@@ -3,28 +3,31 @@ package edu.columbia.cs.psl.phosphor.struct;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class ControlTaintTagStack {
+	private static final ControlTaintTagStack INSTANCE = new ControlTaintTagStack();
+
 	public Taint taint;
 	boolean invalidated;
+	public LinkedList<Taint> prevTaints = new LinkedList<>();
 	DoubleLinkedList<MaybeThrownException> exceptionChildren = new DoubleLinkedList<>();
 
 	public final boolean isEmpty() {
 		return taint == null || (taint.lbl == null && taint.hasNoDependencies());
 	}
-	public ControlTaintTagStack(int zz) {
+
+	private ControlTaintTagStack(int zz) {
 		this();
 	}
-	public ControlTaintTagStack() {
-	}
+	private ControlTaintTagStack() { }
+
+	public static ControlTaintTagStack getInstance() { return INSTANCE; }
+
+	public static ControlTaintTagStack getNewInstance() { return new ControlTaintTagStack(); }
+
 	public Taint copyTag()
 	{
 		if(taint ==null || getTag() == null)
 			return null;
 		return taint.copy();
-	}
-
-	static ControlTaintTagStack instance = new ControlTaintTagStack();
-	public static ControlTaintTagStack factory(){
-		return instance;
 	}
 
 	public final void addPossibleException(EnqueuedTaint tag, Class<? extends Throwable> t){
@@ -57,8 +60,6 @@ public final class ControlTaintTagStack {
 			n = n.next;
 		}
 	}
-
-	public LinkedList<Taint> prevTaints = new LinkedList<>();
 
 	public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
 		if (tag == null || tag == taint)

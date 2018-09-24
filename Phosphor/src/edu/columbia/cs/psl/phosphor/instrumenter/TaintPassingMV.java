@@ -9,7 +9,6 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
@@ -58,14 +57,21 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		{
 			if (lvs.idxOfMasterControlLV < 0) {
 				int tmpLV = lvs.createMasterControlTaintLV();
-				super.visitTypeInsn(NEW, Type.getInternalName(ControlTaintTagStack.class));
-				super.visitInsn(DUP);
-				if(arrayAnalyzer.nJumps > Byte.MAX_VALUE)
-					super.visitIntInsn(SIPUSH, arrayAnalyzer.nJumps);
-				else
-					super.visitIntInsn(BIPUSH, arrayAnalyzer.nJumps);
-				if (name.equals("<clinit>") || Configuration.IMPLICIT_LIGHT_TRACKING)
-					super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "(I)V", false);
+
+				if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
+					super.visitTypeInsn(NEW, Type.getInternalName(ControlTaintTagStack.class));
+					super.visitInsn(DUP);
+					if(arrayAnalyzer.nJumps > Byte.MAX_VALUE)
+						super.visitIntInsn(SIPUSH, arrayAnalyzer.nJumps);
+					else
+						super.visitIntInsn(BIPUSH, arrayAnalyzer.nJumps);
+					if (name.equals("<clinit>") || Configuration.IMPLICIT_LIGHT_TRACKING)
+						super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "(I)V", false);
+				}
+				else {
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ControlTaintTagStack.class), "getInstance", "()"+ Type.getDescriptor(ControlTaintTagStack.class), false);
+				}
+
 				super.visitVarInsn(ASTORE, tmpLV);
 			}
 			else{

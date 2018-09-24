@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import java.util.Collection;
 
 import edu.columbia.cs.psl.phosphor.struct.*;
@@ -72,13 +73,35 @@ public final class NativeHelper {
 							ex.printStackTrace();
 						}
 					}
-					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.boxIfNecessary(o), new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+
+					ControlTaintTagStack controlTaintTagStack;
+
+					if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
+						controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+					}
+					else {
+						controlTaintTagStack = ControlTaintTagStack.getInstance();
+					}
+
+					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.boxIfNecessary(o), controlTaintTagStack, new TaintedBooleanWithObjTag());
+
 				} else
 					break;
 			}
 			if (tmp != null) {
 				in.clear();
-				tmp.add$$PHOSPHORTAGGED(tmp, new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+
+				ControlTaintTagStack controlTaintTagStack;
+
+				if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
+					controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+				}
+				else {
+					controlTaintTagStack = ControlTaintTagStack.getInstance();
+				}
+
+				tmp.add$$PHOSPHORTAGGED(tmp, controlTaintTagStack, new TaintedBooleanWithObjTag());
+
 			}
 		}
 		return in;
@@ -200,14 +223,32 @@ public final class NativeHelper {
 							ex.printStackTrace();
 						}
 					}
-					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.unboxRaw(o), new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+
+					ControlTaintTagStack controlTaintTagStack;
+
+					if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
+						controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+					}
+					else {
+						controlTaintTagStack = ControlTaintTagStack.getInstance();
+					}
+					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.unboxRaw(o), controlTaintTagStack, new TaintedBooleanWithObjTag());
 
 				} else
 					break;
 			}
 			if (tmp != null) {
 				in.clear();
-				tmp.add$$PHOSPHORTAGGED(tmp, new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+
+				ControlTaintTagStack controlTaintTagStack;
+				if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
+					controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+				}
+				else {
+					controlTaintTagStack = ControlTaintTagStack.getInstance();
+				}
+				tmp.add$$PHOSPHORTAGGED(tmp, controlTaintTagStack, new TaintedBooleanWithObjTag());
+
 			}
 		}
 		return in;

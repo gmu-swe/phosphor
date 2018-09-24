@@ -966,10 +966,18 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						}
 						if(Configuration.IMPLICIT_TRACKING)
 						{
-							newDesc += Type.getDescriptor(ControlTaintTagStack.class);
-							ga.visitTypeInsn(Opcodes.NEW, Type.getInternalName(ControlTaintTagStack.class));
-							ga.visitInsn(Opcodes.DUP);
-							ga.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "()V", false);
+							if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON)
+							{
+								newDesc += Type.getDescriptor(ControlTaintTagStack.class);
+								ga.visitTypeInsn(Opcodes.NEW, Type.getInternalName(ControlTaintTagStack.class));
+								ga.visitInsn(Opcodes.DUP);
+								ga.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "()V", false);
+
+							}	else
+							{
+								newDesc += Type.getDescriptor(ControlTaintTagStack.class);
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ControlTaintTagStack.class), "getInstance", "()"+ Type.getDescriptor(ControlTaintTagStack.class), false);
+							}
 						}
 						else if(Configuration.IMPLICIT_HEADERS_NO_TRACKING)
 						{

@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -23,7 +21,6 @@ import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
@@ -590,7 +587,17 @@ public class TaintUtils {
 	public static void arraycopyControlTrack(Object srcTaint, Object src, Object srcPosTaint, int srcPos, Object destTaint, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length) {
 		try {
 			System.arraycopy(src, srcPos, dest, destPos, length);
-			if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null && ((LazyArrayObjTags) srcTaint).taints != null) {
+
+			ControlTaintTagStack controlTaintTagStack;
+
+			if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
+				controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+			}
+			else {
+				controlTaintTagStack = ControlTaintTagStack.getInstance();
+			}
+
+			if (VM.isBooted$$PHOSPHORTAGGED(controlTaintTagStack, new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null && ((LazyArrayObjTags) srcTaint).taints != null) {
 				if (((LazyArrayObjTags) destTaint).taints == null)
 					((LazyArrayObjTags) destTaint).taints = new Taint[Array.getLength(dest)];
 				if (srcPos == 0 && length <= ((LazyArrayObjTags) destTaint).taints.length && length <= (((LazyArrayObjTags) srcTaint).taints).length)
