@@ -56,7 +56,7 @@ public class PreMain {
 	public static ClassLoader curLoader;
 
 	public static final class PCLoggingTransformer implements ClassFileTransformer {
-		private final class HackyClassWriter extends ClassWriter {
+		private static final class HackyClassWriter extends ClassWriter {
 
 			private HackyClassWriter(ClassReader classReader, int flags) {
 				super(classReader, flags);
@@ -120,7 +120,7 @@ public class PreMain {
 				INITED = true;
 			}
 			LazyByteArrayObjTags ret = null;
-			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+			if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
 				ret = new LazyByteArrayObjTags(classfileBuffer);
 			else
 				ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
@@ -139,10 +139,11 @@ public class PreMain {
 			}
 			LazyByteArrayObjTags ret = null;
 
-			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+			if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
 				ret = new LazyByteArrayObjTags(classfileBuffer);
 			else
 				ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
+
 
 			return ret;
 		}
@@ -157,7 +158,7 @@ public class PreMain {
 				INITED = true;
 			}
 			LazyByteArrayIntTags ret;
-			if (className == null || className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
+			if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
 				ret = new LazyByteArrayIntTags(classfileBuffer);
 			else
 				ret = new LazyByteArrayIntTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
@@ -167,12 +168,13 @@ public class PreMain {
 		public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
 				throws IllegalClassFormatException {
 			byte[] ret = _transform(loader, className2, classBeingRedefined, protectionDomain, classfileBuffer);
+
 			return ret;
 		}
 
-		MessageDigest md5inst;
+		static MessageDigest md5inst;
 
-		private byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
+		public static byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
 				throws IllegalClassFormatException {
 			ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer) : new ClassReader(classfileBuffer));
 			String className = cr.getClassName();
@@ -426,7 +428,7 @@ public class PreMain {
 			}
 		}
 
-		private byte[] processBoolean(byte[] classfileBuffer) {
+		private static byte[] processBoolean(byte[] classfileBuffer) {
 			ClassReader cr = new ClassReader(classfileBuffer);
 			ClassNode cn = new ClassNode(Opcodes.ASM5);
 			cr.accept(cn, 0);

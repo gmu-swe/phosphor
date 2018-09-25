@@ -36,9 +36,11 @@ public class MethodArgReindexer extends MethodVisitor {
 	Type newReturnType;
 
 	ArrayList<Type> oldTypesDoublesAreOne;
-	public MethodArgReindexer(MethodVisitor mv, int access, String name, String desc, String originalDesc, MethodNode lvStore) {
+	boolean isLambda;
+	public MethodArgReindexer(MethodVisitor mv, int access, String name, String desc, String originalDesc, MethodNode lvStore, boolean isLambda) {
 		super(Opcodes.ASM5,mv);
 		this.lvStore = lvStore;
+		this.isLambda = isLambda;
 		lvStore.localVariables = new ArrayList<LocalVariableNode>();
 		this.name = name;
 		this.desc = desc;
@@ -81,15 +83,17 @@ public class MethodArgReindexer extends MethodVisitor {
 		oldArgMappings = new int[originalLastArgIdx + 1];
 		int oldVarCount = (isStatic ? 0 : 1);
 		for (int i = 0; i < oldArgTypes.length; i++) {
-			if (oldArgTypes[i].getSort() == Type.ARRAY) {
-				if (oldArgTypes[i].getElementType().getSort() != Type.OBJECT) {
-					if (oldArgTypes[i].getDimensions() == 1)
-						newArgOffset++;
+			if(!isLambda) {
+				if (oldArgTypes[i].getSort() == Type.ARRAY) {
+					if (oldArgTypes[i].getElementType().getSort() != Type.OBJECT) {
+						if (oldArgTypes[i].getDimensions() == 1)
+							newArgOffset++;
+						hasBeenRemapped = true;
+					}
+				} else if (oldArgTypes[i].getSort() != Type.OBJECT) {
 					hasBeenRemapped = true;
+					newArgOffset += 1;
 				}
-			} else if (oldArgTypes[i].getSort() != Type.OBJECT) {
-				hasBeenRemapped = true;
-				newArgOffset += 1;
 			}
 			oldArgMappings[oldVarCount] = oldVarCount + newArgOffset;
 			if (TaintUtils.DEBUG_LOCAL)

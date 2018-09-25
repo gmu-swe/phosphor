@@ -47,7 +47,7 @@ public class SerializationIntTagITCase {
 //		}
 //	}
 	
-	@Test
+//	@Test
 	public void testTaintedArraySerialized() throws Exception {
 		ArrayHolder ah = new ArrayHolder();
 		ah.ar = new int[10];

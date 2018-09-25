@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 import org.junit.Test;
 
@@ -21,6 +22,12 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.test.phosphor.ReflectionObjTagITCase.FieldHolder;
 
 public class ReflectionImplicitITCase {
+
+	@Test
+	public void testIntStreamsDontCrash() throws Exception {
+		int sum = IntStream.of(1,2,3,4,5).sum(); //creates a bunch of lambdas
+	}
+
 	int[][] multiDArray;
 	@Test
 	public void testMultiDArrayAssignableFrom() throws Exception {
@@ -78,7 +85,7 @@ public class ReflectionImplicitITCase {
 			}
 		}
 	}
-	
+
 	static class FieldHolder{
 		int i;
 		long j;
@@ -87,10 +94,10 @@ public class ReflectionImplicitITCase {
 		double d;
 		byte b;
 		char c;
-		
+
 		int[] ia = new int[4];
 	}
-	
+
 	@Test
 	public void testReflectionSetField() throws Exception {
 		FieldHolder fh = new FieldHolder();
@@ -166,7 +173,7 @@ public class ReflectionImplicitITCase {
 			Integer obj = list.get(i);
 			int objVal = list.get(i);
 
-			Taint objTaint = MultiTainter.getTaint(obj); 
+			Taint objTaint = MultiTainter.getTaint(obj);
 			Taint valTaint = MultiTainter.getTaint(objVal);
 			assertEquals(objTaint.lbl, valTaint.lbl);
 		}

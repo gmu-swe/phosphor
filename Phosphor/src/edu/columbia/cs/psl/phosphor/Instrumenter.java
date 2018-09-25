@@ -136,7 +136,7 @@ public class Instrumenter {
 				|| (owner.startsWith("java/lang/invoke/BoundMethodHandle")
 						&& !owner.startsWith("java/lang/invoke/BoundMethodHandle$Factory"))
 				|| owner.startsWith("java/lang/invoke/DelegatingMethodHandle")
-				|| owner.startsWith("java/lang/invoke/DirectMethodHandle")
+				|| owner.equals("java/lang/invoke/DirectMethodHandle")
 				|| owner.startsWith("java/util/function/Function")
 
 		;
@@ -898,7 +898,9 @@ public class Instrumenter {
 			return true;
 		if (name.equals("wait") && desc.equals("(JI)V"))
 			return true;
-		if(Configuration.IMPLICIT_TRACKING && owner.equals("java/lang/invoke/MethodHandle") && (name.equals("invoke") || name.equals("invokeBasic")))
+		if(Configuration.IMPLICIT_TRACKING && owner.equals("java/lang/invoke/MethodHandle") && (
+				(name.equals("invoke") || name.equals("invokeBasic")
+				|| name.startsWith("linkTo"))))
 			return true;
 		return false;
 	}

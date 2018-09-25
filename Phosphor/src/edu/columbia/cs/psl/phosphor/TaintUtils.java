@@ -781,6 +781,71 @@ public class TaintUtils {
 		r += ")" + getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
 		return r;
 	}
+	public static String remapMethodDescWithoutAddingNewArgs(String desc) {
+		String r = "(";
+		for (Type t : Type.getArgumentTypes(desc)) {
+			if (t.getSort() == Type.ARRAY) {
+				if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1)
+					r += getShadowTaintType(t.getDescriptor());
+			} else if (t.getSort() != Type.OBJECT) {
+				r += getShadowTaintType(t.getDescriptor());
+			}
+			if(t.getSort() == Type.ARRAY && t.getElementType().getSort()!= Type.OBJECT && t.getDimensions() > 1)
+			{
+				r += MultiDTaintedArray.getTypeForType(t);
+			}
+			else
+				r += t;
+		}
+		r += ")" + getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
+		return r;
+	}
+
+	public static String remapMethodDescAndIncludeReturnHolder(String desc) {
+		String r = "(";
+		for (Type t : Type.getArgumentTypes(desc)) {
+			if (t.getSort() == Type.ARRAY) {
+				if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1)
+					r += getShadowTaintType(t.getDescriptor());
+			} else if (t.getSort() != Type.OBJECT) {
+				r += getShadowTaintType(t.getDescriptor());
+			}
+			if(t.getSort() == Type.ARRAY && t.getElementType().getSort()!= Type.OBJECT && t.getDimensions() > 1)
+			{
+				r += MultiDTaintedArray.getTypeForType(t);
+			}
+			else
+				r += t;
+		}
+		if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING)
+			r += Type.getDescriptor(ControlTaintTagStack.class);
+		if(isPrimitiveOrPrimitiveArrayType(Type.getReturnType(desc)))
+			r += getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
+		r += ")" + getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
+		return r;
+	}
+
+	public static String remapMethodDescAndIncludeReturnHolderNoControlStack(String desc) {
+		String r = "(";
+		for (Type t : Type.getArgumentTypes(desc)) {
+			if (t.getSort() == Type.ARRAY) {
+				if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1)
+					r += getShadowTaintType(t.getDescriptor());
+			} else if (t.getSort() != Type.OBJECT) {
+				r += getShadowTaintType(t.getDescriptor());
+			}
+			if(t.getSort() == Type.ARRAY && t.getElementType().getSort()!= Type.OBJECT && t.getDimensions() > 1)
+			{
+				r += MultiDTaintedArray.getTypeForType(t);
+			}
+			else
+				r += t;
+		}
+		if(isPrimitiveOrPrimitiveArrayType(Type.getReturnType(desc)))
+			r += getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
+		r += ")" + getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
+		return r;
+	}
 
 	public static String remapMethodDescForUninst(String desc) {
 		String r = "(";

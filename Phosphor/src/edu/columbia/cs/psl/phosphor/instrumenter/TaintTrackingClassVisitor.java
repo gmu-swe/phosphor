@@ -71,11 +71,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		this.ignoreFrames = skipFrames;
 		this.fields = fields;
 	}
-	
+
 
 	private LinkedList<MethodNode> methodsToMakeUninstWrappersAround = new LinkedList<MethodNode>();
 
 	private LinkedList<MethodNode> methodsToAddWrappersFor = new LinkedList<MethodNode>();
+	private LinkedList<MethodNode> methodsToAddNameOnlyWrappersFor = new LinkedList<MethodNode>();
+	private LinkedList<MethodNode> methodsToAddUnWrappersFor = new LinkedList<>();
 	private String className;
 	private boolean isNormalClass;
 	private boolean isInterface;
@@ -103,6 +105,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	}
 
 	private String superName;
+	private boolean isLambda;
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		addTaintField = true;
@@ -144,9 +147,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			generateEquals = true;
 			generateHashCode = true;
 		}
-		
+		isLambda = name.contains("$$Lambda$");
+
 		isNormalClass = (access & Opcodes.ACC_ENUM) == 0 && (access & Opcodes.ACC_INTERFACE) == 0;
-		
+
 		if((isEnum || name.equals("java/lang/Enum")) && Configuration.WITH_ENUM_BY_VAL)
 		{
 			boolean alreadyHas = false;
@@ -261,9 +265,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	HashMap<MethodNode, MethodNode> forMore = new HashMap<MethodNode, MethodNode>();
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-		if(name.equals("hashCode") && desc.equals("()I"))
+		if (name.equals("hashCode") && desc.equals("()I"))
 			generateHashCode = false;
-		if(name.equals("equals") && desc.equals("(Ljava/lang/Object;)Z"))
+		if (name.equals("equals") && desc.equals("(Ljava/lang/Object;)Z"))
 			generateEquals = false;
 		superMethodsToOverride.remove(name + desc);
 		if (name.equals("compareTo"))
@@ -271,27 +275,31 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 		if (name.equals("hasAnyTaints"))
 			isProxyClass = true;
-		
+
 		// Hack needed for java 7 + integer->tostring fixes
 		if ((className.equals("java/lang/Integer") || className.equals("java/lang/Long")) && name.equals("toUnsignedString"))
 			access = (access & ~Opcodes.ACC_PRIVATE) | Opcodes.ACC_PUBLIC;
-		
-		if(name.contains(TaintUtils.METHOD_SUFFIX))
-		{
-		    //Some dynamic stuff might result in there being weird stuff here
-		    return new MethodVisitor(Opcodes.ASM5) {
-            };
+
+		if (name.contains(TaintUtils.METHOD_SUFFIX)) {
+			if(isLambda)
+			{
+				//lambda wrapper method
+				methodsToAddUnWrappersFor.add(new MethodNode(access, name, desc, signature, exceptions));
+				return super.visitMethod(access, name, desc, signature, exceptions);
+			}
+			//Some dynamic stuff might result in there being weird stuff here
+			return new MethodVisitor(Opcodes.ASM5) {
+			};
 		}
-		if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(className, name, desc)){
+		if (Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(className, name, desc)) {
 //			if (TaintUtils.DEBUG_CALLS)
 //				System.out.println("Skipping instrumentation for  class: " + className + " method: " + name + " desc: " + desc);
 			String newName = name;
 			String newDesc = desc;
 			if (!name.contains("<") && 0 == (access & Opcodes.ACC_NATIVE))
-				newName = name+TaintUtils.METHOD_SUFFIX_UNINST;
-			else if(name.equals("<init>"))
-			{
-				newDesc = desc.substring(0,desc.indexOf(')'))+Type.getDescriptor(UninstrumentedTaintSentinel.class)+")"+desc.substring(desc.indexOf(')')+1);
+				newName = name + TaintUtils.METHOD_SUFFIX_UNINST;
+			else if (name.equals("<init>")) {
+				newDesc = desc.substring(0, desc.indexOf(')')) + Type.getDescriptor(UninstrumentedTaintSentinel.class) + ")" + desc.substring(desc.indexOf(')') + 1);
 			}
 			newDesc = TaintUtils.remapMethodDescForUninst(newDesc);
 			MethodVisitor mv = super.visitMethod(access, newName, newDesc, signature, exceptions);
@@ -300,9 +308,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			MethodVisitor _mv = mv;
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
-			mv = new UninstrumentedCompatMV(access,className,name,newDesc,signature,(String[])exceptions,mv,analyzer,ignoreFrames);
+			mv = new UninstrumentedCompatMV(access, className, name, newDesc, signature, (String[]) exceptions, mv, analyzer, ignoreFrames);
 			LocalVariableManager lvs = new LocalVariableManager(access, newDesc, mv, analyzer, _mv, generateExtraLVDebug);
-			((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
+			((UninstrumentedCompatMV) mv).setLocalVariableSorter(lvs);
 			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, null);
 			lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
 			lvs.disable();
@@ -312,23 +320,26 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				public void visitEnd() {
 					super.visitEnd();
 					this.accept(cmv);
-				};
+				}
+
+				;
+
 				public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
 					//determine if this is going to be uninst, and then if we need to pre-alloc for its return :/
-					if(Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethod(owner, name, desc)){
+					if (Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethod(owner, name, desc)) {
 						//uninst
-					}
-					else
-					{
+					} else {
 						Type returnType = Type.getReturnType(desc);
 						Type newReturnType = TaintUtils.getContainerReturnType(returnType);
-						if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY))
+						if (newReturnType != returnType && !(returnType.getSort() == Type.ARRAY))
 							primArrayAnalyzer.wrapperTypesToPreAlloc.add(newReturnType);
 					}
 					super.visitMethodInsn(opcode, owner, name, desc, itf);
-				};
+				}
+
+				;
 			};
-			if(!name.equals("<clinit>"))
+			if (!name.equals("<clinit>"))
 				methodsToMakeUninstWrappersAround.add(wrapper);
 			return wrapper;
 		}
@@ -337,15 +348,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		if (TaintUtils.DEBUG_CALLS || TaintUtils.DEBUG_FIELDS || TaintUtils.DEBUG_FRAMES || TaintUtils.DEBUG_LOCAL)
 			System.out.println("Instrumenting " + name + "\n\n\n\n\n\n");
 
-		if(Instrumenter.IS_KAFFE_INST && className.equals("java/lang/VMSystem"))
+		if (Instrumenter.IS_KAFFE_INST && className.equals("java/lang/VMSystem"))
 			access = access | Opcodes.ACC_PUBLIC;
-		else if(Instrumenter.IS_HARMONY_INST && className.endsWith("java/lang/VMMemoryManager"))
-		{
+		else if (Instrumenter.IS_HARMONY_INST && className.endsWith("java/lang/VMMemoryManager")) {
 			access = access & ~Opcodes.ACC_PRIVATE;
 			access = access | Opcodes.ACC_PUBLIC;
-		}
-		else if((className.equals("java/lang/Integer") || className.equals("java/lang/Long")) && name.equals("getChars"))
-		{
+		} else if ((className.equals("java/lang/Integer") || className.equals("java/lang/Long")) && name.equals("getChars")) {
 			access = access | Opcodes.ACC_PUBLIC;
 		}
 		String originalName = name;
@@ -356,36 +364,56 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		if (originalName.contains("$$INVIVO")) {
 			name = name + "_orig";
 		}
-		
+
 
 		//We will need to add shadow args for each parameter that is a primitive. Because that worked so well last time.
 		Type[] argTypes = Type.getArgumentTypes(desc);
 		LinkedList<Type> newArgTypes = new LinkedList<Type>();
 		boolean isRewrittenDesc = false;
-		for (Type t : argTypes) {
-			if (t.getSort() == Type.ARRAY) {
-				if (t.getElementType().getSort() != Type.OBJECT) {
-					if (t.getDimensions() > 1) {
-						newArgTypes.add(MultiDTaintedArray.getTypeForType(t));
-						isRewrittenDesc = true;
-						continue;
-					} else {
-						newArgTypes.add(MultiDTaintedArray.getTypeForType(t));
-						isRewrittenDesc = true;
+		boolean addSentinel = false;
+		boolean addControlTaintTagStack = true;
+		if (isLambda) {
+			for (Type t : argTypes) {
+				if (t.getSort() == Type.ARRAY) {
+					if (t.getElementType().getSort() != Type.OBJECT) {
+						addSentinel = true;
 					}
+				} else if (t.getSort() != Type.OBJECT) {
+					addSentinel = true;
 				}
-			} else if (t.getSort() != Type.OBJECT) {
-				isRewrittenDesc = true;
-				newArgTypes.add(Type.getType(Configuration.TAINT_TAG_DESC));
+				newArgTypes.add(t);
+				if (t.getDescriptor().contains("ControlTaintTagStack") || t.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct")) {
+					methodsToAddNameOnlyWrappersFor.add(new MethodNode(access, name, desc, signature, exceptions));
+					return super.visitMethod(access, name, desc, signature, exceptions);
+				}
 			}
-			newArgTypes.add(t);
 		}
-		if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>"))
+		else {
+			for (Type t : argTypes) {
+				if (t.getSort() == Type.ARRAY) {
+					if (t.getElementType().getSort() != Type.OBJECT) {
+						if (t.getDimensions() > 1) {
+							newArgTypes.add(MultiDTaintedArray.getTypeForType(t));
+							isRewrittenDesc = true;
+							continue;
+						} else {
+							newArgTypes.add(MultiDTaintedArray.getTypeForType(t));
+							isRewrittenDesc = true;
+						}
+					}
+				} else if (t.getSort() != Type.OBJECT) {
+					isRewrittenDesc = true;
+					newArgTypes.add(Type.getType(Configuration.TAINT_TAG_DESC));
+				}
+				newArgTypes.add(t);
+			}
+		}
+		if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>") && addControlTaintTagStack)
 		{
 			isRewrittenDesc = true;
 			newArgTypes.add(Type.getType(ControlTaintTagStack.class));
 		}
-		if (isRewrittenDesc && name.equals("<init>"))
+		if ((isRewrittenDesc) && name.equals("<init>"))
 			newArgTypes.add(Type.getType(TaintSentinel.class));
 		//If we are rewriting the return type, also add a param to pass for pre-alloc
 		Type oldReturnType = Type.getReturnType(desc);
@@ -406,6 +434,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		//		System.out.println("olddesc " + desc + " newdesc " + newDesc);
 		if ((access & Opcodes.ACC_NATIVE) == 0 && !methodIsTooBigAlready(name, desc)) {
 			//not a native method
+			signature = null;
 			if (!name.contains("<") && !requiresNoChange)
 				name = name + TaintUtils.METHOD_SUFFIX;
 //			if(className.equals("sun/misc/URLClassPath$JarLoader"))
@@ -448,7 +477,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 			}
 
-			MethodArgReindexer mar = new MethodArgReindexer(nextMV, access, name, newDesc, desc, wrapper);
+			MethodArgReindexer mar = new MethodArgReindexer(nextMV, access, name, newDesc, desc, wrapper, isLambda);
 			TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames);
 
 			PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, tlc);
@@ -579,7 +608,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv.visitEnd();
 			mv.visitMaxs(0, 0);			
 		}
-		boolean goLightOnGeneratedStuff = className.equals("java/lang/Byte");
+		boolean goLightOnGeneratedStuff = className.equals("java/lang/Byte");// || isLambda;
 //		if (isAnnotation) {
 //			super.visitEnd();
 //			return;
@@ -651,9 +680,15 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			Label start = new Label();
 			Label end = new Label();
 			mv.visitLabel(start);
-			mv.visitVarInsn(Opcodes.ALOAD, 0);
-			mv.visitVarInsn(Opcodes.ALOAD, 1);
-			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "equals", "(Ljava/lang/Object;)Z",false);
+			if(isLambda) {
+				mv.visitInsn(Opcodes.ICONST_0);
+			}
+			else
+			{
+				mv.visitVarInsn(Opcodes.ALOAD, 0);
+				mv.visitVarInsn(Opcodes.ALOAD, 1);
+				mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "equals", "(Ljava/lang/Object;)Z", false);
+			}
 			mv.visitLabel(end);
 			mv.visitInsn(Opcodes.IRETURN);
 			mv.visitLocalVariable("this", "L"+className+";", null, start, end, 0);
@@ -671,8 +706,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			Label start = new Label();
 			Label end = new Label();
 			mv.visitLabel(start);
-			mv.visitVarInsn(Opcodes.ALOAD, 0);
-			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "hashCode", "()I",false);
+			if(isLambda) {
+				mv.visitInsn(Opcodes.ICONST_0);
+			}
+			else {
+				mv.visitVarInsn(Opcodes.ALOAD, 0);
+				mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "hashCode", "()I", false);
+			}
 			mv.visitLabel(end);
 			mv.visitInsn(Opcodes.IRETURN);
 			mv.visitLocalVariable("this", "L"+className+";", null, start, end, 0);
@@ -875,6 +915,276 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 //		if(Configuration.MULTI_TAINTING)
 //			generateStrLdcWrapper();
+
+		//For weird lambdas
+		for(MethodNode m : methodsToAddNameOnlyWrappersFor)
+		{
+			if((m.access & Opcodes.ACC_ABSTRACT) == 0 && !m.name.contains("<"))
+			{
+				String[] exceptions = new String[m.exceptions.size()];
+				exceptions = (String[]) m.exceptions.toArray(exceptions);
+
+				MethodVisitor mv = super.visitMethod(m.access, m.name + "$$PHOSPHORTAGGED", m.desc, m.signature, exceptions);
+				GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name + "$$PHOSPHORTAGGED", m.desc);
+
+				Label startLabel = new Label();
+				ga.visitCode();
+				ga.visitLabel(startLabel);
+				ga.visitLineNumber(0, startLabel);
+
+				Type[] argTypes = Type.getArgumentTypes(m.desc);
+				int idx = 0;
+				int opcode = Opcodes.INVOKESTATIC;
+				if ((m.access & Opcodes.ACC_STATIC) == 0) {
+					ga.visitVarInsn(Opcodes.ALOAD, 0);
+					idx++;
+					opcode = Opcodes.INVOKESPECIAL;
+				}
+
+				for(Type t : argTypes)
+				{
+					ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
+					idx += t.getSize();
+				}
+				ga.visitMethodInsn(opcode,className,m.name, m.desc, false);
+				Label endLabel = new Label();
+				ga.visitLabel(endLabel);
+				ga.returnValue();
+
+				for (Object o : m.localVariables) {
+					LocalVariableNode n = (LocalVariableNode) o;
+					ga.visitLocalVariable(n.name, n.desc, n.signature, startLabel, endLabel, n.index);
+				}
+
+				ga.visitMaxs(0,0);
+				ga.visitEnd();
+			}
+
+		}
+		for(MethodNode m : methodsToAddUnWrappersFor)
+		{
+			if((m.access & Opcodes.ACC_ABSTRACT) == 0 && !m.name.contains("<"))
+			{
+				String[] exceptions = new String[m.exceptions.size()];
+				exceptions = (String[]) m.exceptions.toArray(exceptions);
+
+				LinkedList<Type> newArgs = new LinkedList<>();
+				for(Type t: Type.getArgumentTypes(m.desc))
+				{
+					if(TaintUtils.isPrimitiveOrPrimitiveArrayType(t))
+						newArgs.pop();
+					if(t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy"))
+						newArgs.push(MultiDTaintedArray.getPrimitiveTypeForWrapper(t.getInternalName()));
+					else
+						newArgs.push(t);
+				}
+				Type returnType = Type.getReturnType(m.desc);
+				String t = returnType.getDescriptor();
+				Type origReturnType = returnType;
+				if(returnType.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy") || returnType.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted"))
+				{
+					newArgs.pop();
+					//Need to change reuturn type...
+					if(returnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct/Tainted"))
+					{
+						t = returnType.getDescriptor().replace("Ledu/columbia/cs/psl/phosphor/struct/Tainted","");
+						t = t.replace("WithIntTag","");
+						t = t.replace("WithObjTag","");
+					}
+					else if(returnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct/Lazy"))
+					{
+						t = returnType.getDescriptor().replace("Ledu/columbia/cs/psl/phosphor/struct/Lazy","");
+						t = t.replace("IntTags","");
+						t = t.replace("ObjTags","");
+						t = "["+t;
+					}
+					t = t.replace(";","").replace("Int","I")
+							.replace("Byte","B")
+							.replace("Short","S")
+							.replace("Long","J")
+							.replace("Boolean","Z")
+							.replace("Float","F")
+							.replace("Double","D");
+					origReturnType = Type.getType(t);
+
+				}
+				if(Configuration.IMPLICIT_TRACKING && newArgs.size() > 0)
+					newArgs.pop();//remove controltaint tag
+				String newDesc = "(";
+				for(Type _t : newArgs)
+					newDesc+=_t.getDescriptor();
+				newDesc+=")";
+				newDesc+=t;
+
+				MethodVisitor mv = super.visitMethod(m.access, m.name.replace("$$PHOSPHORTAGGED",""), newDesc, m.signature, exceptions);
+				GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name.replace("$$PHOSPHORTAGGED",""), newDesc);
+
+				Label startLabel = new Label();
+				ga.visitCode();
+				ga.visitLabel(startLabel);
+				ga.visitLineNumber(0, startLabel);
+
+//				Type[] argTypes = Type.getArgumentTypes(m.desc);
+//				int idx = 0;
+//				int opcode = Opcodes.INVOKESTATIC;
+//				if ((m.access & Opcodes.ACC_STATIC) == 0) {
+//					ga.visitVarInsn(Opcodes.ALOAD, 0);
+//					idx++;
+//					opcode = Opcodes.INVOKESPECIAL;
+//				}
+//
+//				for(Type _t : argTypes)
+//				{
+//					ga.visitVarInsn(_t.getOpcode(Opcodes.ILOAD), idx);
+//					idx += _t.getSize();
+//				}
+//				ga.visitMethodInsn(opcode, className, m.name, m.desc, false);
+				switch(origReturnType.getSort()){
+					case Type.INT:
+					case Type.SHORT:
+					case Type.BOOLEAN:
+					case Type.BYTE:
+					case Type.CHAR:
+						ga.visitInsn(Opcodes.ICONST_0);
+						break;
+					case Type.ARRAY:
+					case Type.OBJECT:
+						ga.visitInsn(Opcodes.ACONST_NULL);
+						break;
+					case Type.LONG:
+						ga.visitInsn(Opcodes.LCONST_0);
+						break;
+					case Type.DOUBLE:
+						ga.visitInsn(Opcodes.DCONST_0);
+						break;
+					case Type.FLOAT:
+						ga.visitInsn(Opcodes.FCONST_0);
+						break;
+				}
+				Label endLabel = new Label();
+				ga.visitLabel(endLabel);
+				ga.returnValue();
+
+				for (Object o : m.localVariables) {
+					LocalVariableNode n = (LocalVariableNode) o;
+					ga.visitLocalVariable(n.name, n.desc, n.signature, startLabel, endLabel, n.index);
+				}
+
+				ga.visitMaxs(0,0);
+				ga.visitEnd();
+			}
+			if((m.access & Opcodes.ACC_ABSTRACT) == 0 && !m.name.contains("<")) {
+				String[] exceptions = new String[m.exceptions.size()];
+				exceptions = (String[]) m.exceptions.toArray(exceptions);
+
+				LinkedList<Type> newArgs = new LinkedList<>();
+				for (Type t : Type.getArgumentTypes(m.desc)) {
+					if (TaintUtils.isPrimitiveOrPrimitiveArrayType(t))
+						newArgs.pop();
+					if (t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy"))
+						newArgs.push(MultiDTaintedArray.getPrimitiveTypeForWrapper(t.getInternalName()));
+					else
+						newArgs.push(t);
+				}
+				Type returnType = Type.getReturnType(m.desc);
+				Type origReturnType = returnType;
+				String t = returnType.getDescriptor();
+				if (returnType.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy") || returnType.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
+					newArgs.pop();
+					//Need to change reuturn type...
+					if (returnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct/Tainted")) {
+						t = returnType.getDescriptor().replace("Ledu/columbia/cs/psl/phosphor/struct/Tainted", "");
+						t = t.replace("WithIntTag", "");
+						t = t.replace("WithObjTag", "");
+					} else if (returnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct/Lazy")) {
+						t = returnType.getDescriptor().replace("Ledu/columbia/cs/psl/phosphor/struct/Lazy", "");
+						t = t.replace("IntTags", "");
+						t = t.replace("ObjTags", "");
+						t = "[" + t;
+					}
+					t = t.replace(";", "").replace("Int", "I")
+							.replace("Byte", "B")
+							.replace("Short", "S")
+							.replace("Long", "J")
+							.replace("Boolean", "Z")
+							.replace("Float", "F")
+							.replace("Double", "D");
+					origReturnType = Type.getType(t);
+				}
+				String newDesc = "(";
+				for (Type _t : newArgs)
+					newDesc += _t.getDescriptor();
+				newDesc += ")";
+				newDesc += t;
+
+				if (Configuration.IMPLICIT_TRACKING && newArgs.size() > 0)
+					newArgs.pop();//remove controltaint tag
+
+				newDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(newDesc);
+				if (newDesc.equals(m.desc))
+					continue;
+				MethodVisitor mv = super.visitMethod(m.access, m.name, newDesc, m.signature, exceptions);
+				GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name, newDesc);
+
+				Label startLabel = new Label();
+				ga.visitCode();
+				ga.visitLabel(startLabel);
+				ga.visitLineNumber(0, startLabel);
+
+//				Type[] argTypes = Type.getArgumentTypes(m.desc);
+//				int idx = 0;
+//				int opcode = Opcodes.INVOKESTATIC;
+//				if ((m.access & Opcodes.ACC_STATIC) == 0) {
+//					ga.visitVarInsn(Opcodes.ALOAD, 0);
+//					idx++;
+//					opcode = Opcodes.INVOKESPECIAL;
+//				}
+//
+//				for (Type _t : argTypes) {
+//					ga.visitVarInsn(_t.getOpcode(Opcodes.ILOAD), idx);
+//					idx += _t.getSize();
+//				}
+//				ga.visitMethodInsn(opcode, className, m.name, m.desc, false);
+				switch(returnType.getSort()){
+					case Type.INT:
+					case Type.SHORT:
+					case Type.BOOLEAN:
+					case Type.BYTE:
+					case Type.CHAR:
+						ga.visitInsn(Opcodes.ICONST_0);
+						break;
+					case Type.ARRAY:
+					case Type.OBJECT:
+						ga.visitLdcInsn(className+"."+m.name+newDesc);
+						ga.visitMethodInsn(Opcodes.INVOKESTATIC,"edu/columbia/cs/psl/phosphor/runtime/Log","logCall","(Ljava/lang/String;)V",false);
+						ga.visitInsn(Opcodes.ACONST_NULL);
+
+						break;
+					case Type.LONG:
+						ga.visitInsn(Opcodes.LCONST_0);
+						break;
+					case Type.DOUBLE:
+						ga.visitInsn(Opcodes.DCONST_0);
+						break;
+					case Type.FLOAT:
+						ga.visitInsn(Opcodes.FCONST_0);
+						break;
+				}
+				Label endLabel = new Label();
+				ga.visitLabel(endLabel);
+				ga.returnValue();
+
+				for (Object o : m.localVariables) {
+					LocalVariableNode n = (LocalVariableNode) o;
+					ga.visitLocalVariable(n.name, n.desc, n.signature, startLabel, endLabel, n.index);
+				}
+
+				ga.visitMaxs(0, 0);
+				ga.visitEnd();
+			}
+
+			}
+
 		if (!goLightOnGeneratedStuff)
 			for (MethodNode m : methodsToAddWrappersFor) {
 				if ((m.access & Opcodes.ACC_NATIVE) == 0) {
@@ -894,6 +1204,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						{
 							visitAnnotations(mv,fullMethod);
 						}
+
 						MethodVisitor soc = new SpecialOpcodeRemovingMV(mv, ignoreFrames, className, fixLdcClass);
 						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, soc);
 						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, an, an, mv, generateExtraLVDebug);
@@ -904,7 +1215,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						ga.visitCode();
 						ga.visitLabel(startLabel);
 						ga.visitLineNumber(0, startLabel);
-						
+
 						Type[] argTypes = Type.getArgumentTypes(m.desc);
 						int idx = 0;
 						if ((m.access & Opcodes.ACC_STATIC) == 0) {
@@ -1104,6 +1415,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		superMethodsToOverride.remove("wait()V");
 		superMethodsToOverride.remove("notify()V");
 		superMethodsToOverride.remove("notifyAll()V");
+//		if(!isLambda)
 		for (Method m : superMethodsToOverride.values()) {
 			int acc = Opcodes.ACC_PUBLIC;
 			if (Modifier.isProtected(m.getModifiers()) && isInterface)
@@ -1488,105 +1800,123 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 		ga.visitCode();
 		ga.visitLabel(start.getLabel());
-		String descToCall = m.desc;
-		boolean isUntaggedCall = false;
-		if(methodNameToCall.contains("$$PHOSPHORUNTAGGED"))
-		{
-			descToCall = TaintUtils.remapMethodDescForUninst(descToCall);
-			isUntaggedCall = true;
-		}
-		int idx = 0;
-		if ((m.access & Opcodes.ACC_STATIC) == 0) {
-			ga.visitVarInsn(Opcodes.ALOAD, 0);
-			lvsToVisit.add(new LocalVariableNode("this", "L"+className+";", null, start, end, idx));
-			idx++;
-		}
-		for (Type t : argTypes) {
-			if (t.getSort() == Type.ARRAY) {
-				if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-					lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg"+idx, TaintUtils.getShadowTaintType(t.getDescriptor()), null, start, end, idx));
-					idx++;
-				}
-			} else if (t.getSort() != Type.OBJECT) {
-				lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg"+idx,Configuration.TAINT_TAG_DESC, null, start, end, idx));
+		if(isLambda){
+			switch(Type.getReturnType(newDesc).getSort()){
+				case Type.INT:
+				case Type.SHORT:
+				case Type.BOOLEAN:
+				case Type.BYTE:
+				case Type.CHAR:
+					ga.visitInsn(Opcodes.ICONST_0);
+					break;
+				case Type.ARRAY:
+				case Type.OBJECT:
+					ga.visitInsn(Opcodes.ACONST_NULL);
+					break;
+				case Type.LONG:
+					ga.visitInsn(Opcodes.LCONST_0);
+					break;
+				case Type.DOUBLE:
+					ga.visitInsn(Opcodes.DCONST_0);
+					break;
+				case Type.FLOAT:
+					ga.visitInsn(Opcodes.FCONST_0);
+					break;
+			}
+		}else {
+			String descToCall = m.desc;
+			boolean isUntaggedCall = false;
+			if (methodNameToCall.contains("$$PHOSPHORUNTAGGED")) {
+				descToCall = TaintUtils.remapMethodDescForUninst(descToCall);
+				isUntaggedCall = true;
+			}
+			int idx = 0;
+			if ((m.access & Opcodes.ACC_STATIC) == 0) {
+				ga.visitVarInsn(Opcodes.ALOAD, 0);
+				lvsToVisit.add(new LocalVariableNode("this", "L" + className + ";", null, start, end, idx));
 				idx++;
 			}
-			ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
-
-			lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg"+idx, t.getDescriptor(), null, start, end, idx));
-			if (!skipUnboxing) {
-				if(t.getDescriptor().equals("[Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;"))
-				{
-					ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxCK_ATTRIBUTE", "([Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;)[Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;", false);
-				}
-				else if (t.getDescriptor().equals("Ljava/lang/Object;") || (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().equals("Ljava/lang/Object;"))) {
-					// Need to make sure that it's not a boxed primitive array
-					ga.visitInsn(Opcodes.DUP);
-					ga.visitInsn(Opcodes.DUP);
-					Label isOK = new Label();
-					ga.visitTypeInsn(Opcodes.INSTANCEOF, "[" + Type.getDescriptor((!Configuration.MULTI_TAINTING ? LazyArrayIntTags.class : LazyArrayObjTags.class)));
-					ga.visitInsn(Opcodes.SWAP);
-					ga.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((!Configuration.MULTI_TAINTING ? LazyArrayIntTags.class : LazyArrayObjTags.class)));
-					ga.visitInsn(Opcodes.IOR);
-					ga.visitJumpInsn(Opcodes.IFEQ, isOK);
-					if (isUntaggedCall)
-						ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-					else
-					{
-						if(className.equals("sun/misc/Unsafe"))
-							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRawOnly1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-						else
-							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+			for (Type t : argTypes) {
+				if (t.getSort() == Type.ARRAY) {
+					if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
+						lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg" + idx, TaintUtils.getShadowTaintType(t.getDescriptor()), null, start, end, idx));
+						idx++;
 					}
-					if (t.getSort() == Type.ARRAY)
-						ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
-					FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
-					ga.visitLabel(isOK);
-					TaintAdapter.acceptFn(fn, lvs);
-				} else if (!isUntaggedCall && t.getSort() == Type.ARRAY && t.getDimensions() > 1 && t.getElementType().getSort() != Type.OBJECT) {
-					// Need to unbox it!!
-					ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-					ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
+				} else if (t.getSort() != Type.OBJECT) {
+					lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg" + idx, Configuration.TAINT_TAG_DESC, null, start, end, idx));
+					idx++;
 				}
+				ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
+
+				lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg" + idx, t.getDescriptor(), null, start, end, idx));
+				if (!skipUnboxing) {
+					if (t.getDescriptor().equals("[Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;")) {
+						ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxCK_ATTRIBUTE", "([Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;)[Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;", false);
+					} else if (t.getDescriptor().equals("Ljava/lang/Object;") || (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().equals("Ljava/lang/Object;"))) {
+						// Need to make sure that it's not a boxed primitive array
+						ga.visitInsn(Opcodes.DUP);
+						ga.visitInsn(Opcodes.DUP);
+						Label isOK = new Label();
+						ga.visitTypeInsn(Opcodes.INSTANCEOF, "[" + Type.getDescriptor((!Configuration.MULTI_TAINTING ? LazyArrayIntTags.class : LazyArrayObjTags.class)));
+						ga.visitInsn(Opcodes.SWAP);
+						ga.visitTypeInsn(Opcodes.INSTANCEOF, Type.getInternalName((!Configuration.MULTI_TAINTING ? LazyArrayIntTags.class : LazyArrayObjTags.class)));
+						ga.visitInsn(Opcodes.IOR);
+						ga.visitJumpInsn(Opcodes.IFEQ, isOK);
+						if (isUntaggedCall)
+							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						else {
+							if (className.equals("sun/misc/Unsafe"))
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRawOnly1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+							else
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						}
+						if (t.getSort() == Type.ARRAY)
+							ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
+						FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
+						ga.visitLabel(isOK);
+						TaintAdapter.acceptFn(fn, lvs);
+					} else if (!isUntaggedCall && t.getSort() == Type.ARRAY && t.getDimensions() > 1 && t.getElementType().getSort() != Type.OBJECT) {
+						// Need to unbox it!!
+						ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+						ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
+					}
+				}
+				idx += t.getSize();
 			}
-			idx += t.getSize();
-		}
 
-		int opcode;
-		if ((m.access & Opcodes.ACC_STATIC) == 0) {
-			opcode = Opcodes.INVOKESPECIAL;
-		} else
-			opcode = Opcodes.INVOKESTATIC;
-		if(m.name.equals("<init>") && methodNameToCall.contains("$$PHOSPHORUNTAGGED"))
-		{
-			//call with uninst sentinel
-			descToCall = descToCall.substring(0,descToCall.indexOf(')'))+Type.getDescriptor(UninstrumentedTaintSentinel.class)+")"+descToCall.substring(descToCall.indexOf(')')+1);
-			ga.visitInsn(Opcodes.ACONST_NULL);
-			ga.visitMethodInsn(opcode, className, m.name, descToCall,false);
-		}
-		else
-			ga.visitMethodInsn(opcode, className, methodNameToCall, descToCall,false);
-		if (origReturn != newReturn) {
+			int opcode;
+			if ((m.access & Opcodes.ACC_STATIC) == 0) {
+				opcode = Opcodes.INVOKESPECIAL;
+			} else
+				opcode = Opcodes.INVOKESTATIC;
+			if (m.name.equals("<init>") && methodNameToCall.contains("$$PHOSPHORUNTAGGED")) {
+				//call with uninst sentinel
+				descToCall = descToCall.substring(0, descToCall.indexOf(')')) + Type.getDescriptor(UninstrumentedTaintSentinel.class) + ")" + descToCall.substring(descToCall.indexOf(')') + 1);
+				ga.visitInsn(Opcodes.ACONST_NULL);
+				ga.visitMethodInsn(opcode, className, m.name, descToCall, false);
+			} else
+				ga.visitMethodInsn(opcode, className, methodNameToCall, descToCall, false);
+			if (origReturn != newReturn) {
 
-			if (origReturn.getSort() == Type.ARRAY) {
-				if (origReturn.getDimensions() > 1) {
-					//							System.out.println(an.stack + " > " + newReturn);
-					Label isOK = new Label();
-					ga.visitInsn(Opcodes.DUP);
-					ga.visitJumpInsn(Opcodes.IFNULL, isOK);
-					ga.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/lang/Object;");
-					//							//	public static Object[] initWithEmptyTaints(Object[] ar, int componentType, int dims) {
-					ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getElementType().getSort());
-					ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getDimensions());
-					ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;",false);
-					FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
-					fn.stack.set(fn.stack.size() -1,"java/lang/Object");
-					ga.visitLabel(isOK);
-					TaintAdapter.acceptFn(fn, lvs);
-					ga.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getDescriptor());
-				} else {
-					TaintAdapter.createNewTaintArray(origReturn.getDescriptor(), an, lvs, lvs);
-					ga.visitInsn(Opcodes.SWAP);
+				if (origReturn.getSort() == Type.ARRAY) {
+					if (origReturn.getDimensions() > 1) {
+						//							System.out.println(an.stack + " > " + newReturn);
+						Label isOK = new Label();
+						ga.visitInsn(Opcodes.DUP);
+						ga.visitJumpInsn(Opcodes.IFNULL, isOK);
+						ga.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/lang/Object;");
+						//							//	public static Object[] initWithEmptyTaints(Object[] ar, int componentType, int dims) {
+						ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getElementType().getSort());
+						ga.visitIntInsn(Opcodes.BIPUSH, origReturn.getDimensions());
+						ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "initWithEmptyTaints", "([Ljava/lang/Object;II)Ljava/lang/Object;", false);
+						FrameNode fn = TaintAdapter.getCurrentFrameNode(an);
+						fn.stack.set(fn.stack.size() - 1, "java/lang/Object");
+						ga.visitLabel(isOK);
+						TaintAdapter.acceptFn(fn, lvs);
+						ga.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getDescriptor());
+					} else {
+						TaintAdapter.createNewTaintArray(origReturn.getDescriptor(), an, lvs, lvs);
+						ga.visitInsn(Opcodes.SWAP);
 //					//						ga.visitInsn(Opcodes.SWAP);
 //					ga.visitTypeInsn(Opcodes.NEW, newReturn.getInternalName()); //T V N
 //					ga.visitInsn(Opcodes.DUP_X2); //N T V N
@@ -1601,53 +1931,51 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 //					ga.visitInsn(Opcodes.SWAP);
 //					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_ARRAYDESC);
 //					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-				}
-			} else {
-				//TODO here's where we store to the pre-alloc'ed container
-				if(origReturn.getSize() == 1)
-				{
-					int retIdx = lvs.getPreAllocedReturnTypeVar(newReturn);
-					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					ga.visitInsn(Opcodes.SWAP);
-					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
-					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					Configuration.taintTagFactory.generateEmptyTaint(ga);
-					Configuration.taintTagFactory.propogateTagNative(className,m.access,m.name,m.desc,mv);
-					
-					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
-					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-				}
-				else
-				{
+					}
+				} else {
+					//TODO here's where we store to the pre-alloc'ed container
+					if (origReturn.getSize() == 1) {
+						int retIdx = lvs.getPreAllocedReturnTypeVar(newReturn);
+						an.visitVarInsn(Opcodes.ALOAD, retIdx);
+						ga.visitInsn(Opcodes.SWAP);
+						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
+						an.visitVarInsn(Opcodes.ALOAD, retIdx);
+						Configuration.taintTagFactory.generateEmptyTaint(ga);
+						Configuration.taintTagFactory.propogateTagNative(className, m.access, m.name, m.desc, mv);
 
-					int retIdx = lvs.getPreAllocedReturnTypeVar(newReturn);
-					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					ga.visitInsn(Opcodes.DUP_X2);
-					ga.visitInsn(Opcodes.POP);
-					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
-					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					Configuration.taintTagFactory.generateEmptyTaint(ga);
-					Configuration.taintTagFactory.propogateTagNative(className,m.access,m.name,m.desc,mv);
+						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
+						an.visitVarInsn(Opcodes.ALOAD, retIdx);
+					} else {
 
-					ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
-					an.visitVarInsn(Opcodes.ALOAD, retIdx);
-					//					ga.visitInsn(Opcodes.ARETURN);
-				}
-				//				if (origReturn.getSize() == 1)
-				//					ga.visitInsn(Opcodes.SWAP);
-				//				else {
-				//					ga.visitInsn(Opcodes.DUP_X2);
-				//					ga.visitInsn(Opcodes.POP);
-				//				}
+						int retIdx = lvs.getPreAllocedReturnTypeVar(newReturn);
+						an.visitVarInsn(Opcodes.ALOAD, retIdx);
+						ga.visitInsn(Opcodes.DUP_X2);
+						ga.visitInsn(Opcodes.POP);
+						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
+						an.visitVarInsn(Opcodes.ALOAD, retIdx);
+						Configuration.taintTagFactory.generateEmptyTaint(ga);
+						Configuration.taintTagFactory.propogateTagNative(className, m.access, m.name, m.desc, mv);
+
+						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
+						an.visitVarInsn(Opcodes.ALOAD, retIdx);
+						//					ga.visitInsn(Opcodes.ARETURN);
+					}
+					//				if (origReturn.getSize() == 1)
+					//					ga.visitInsn(Opcodes.SWAP);
+					//				else {
+					//					ga.visitInsn(Opcodes.DUP_X2);
+					//					ga.visitInsn(Opcodes.POP);
+					//				}
 //				ga.visitMethodInsn(Opcodes.INVOKESTATIC, newReturn.getInternalName(), "valueOf", "(I" + origReturn.getDescriptor() + ")" + newReturn.getDescriptor());
-			}
-		} else if (origReturn.getSort() != Type.VOID && (origReturn.getDescriptor().equals("Ljava/lang/Object;") || origReturn.getDescriptor().equals("[Ljava/lang/Object;"))) {
-			//Check to see if the top of the stack is a primitive array, adn if so, box it.
-			if (!isUntaggedCall) {
-				ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)),
-						"boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-				if (origReturn.getSort() == Type.ARRAY)
-					ga.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/lang/Object;");
+				}
+			} else if (origReturn.getSort() != Type.VOID && (origReturn.getDescriptor().equals("Ljava/lang/Object;") || origReturn.getDescriptor().equals("[Ljava/lang/Object;"))) {
+				//Check to see if the top of the stack is a primitive array, adn if so, box it.
+				if (!isUntaggedCall) {
+					ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)),
+							"boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+					if (origReturn.getSort() == Type.ARRAY)
+						ga.visitTypeInsn(Opcodes.CHECKCAST, "[Ljava/lang/Object;");
+				}
 			}
 		}
 		ga.visitLabel(end.getLabel());
