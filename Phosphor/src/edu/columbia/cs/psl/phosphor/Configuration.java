@@ -27,7 +27,7 @@ public class Configuration {
 	public static boolean WITHOUT_BRANCH_NOT_TAKEN = false;
 
 	public static boolean IMPLICIT_EXCEPTION_FLOW = false;
-	public static boolean WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON = false;
+	public static boolean CONTROL_TAINT_TAG_STACK_SINGLETON = false;
 
 	public static boolean DATAFLOW_TRACKING = true; //default
 	public static boolean ARRAY_LENGTH_TRACKING = false;

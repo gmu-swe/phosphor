@@ -943,11 +943,11 @@ public class ReflectionMasker {
 			Object[] ret = new Object[2];
 
 			ControlTaintTagStack controlTaintTagStack;
-			if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
-				controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+			if(Configuration.CONTROL_TAINT_TAG_STACK_SINGLETON) {
+				controlTaintTagStack = ControlTaintTagStack.getInstance();
 			}
 			else {
-				controlTaintTagStack = ControlTaintTagStack.getInstance();
+				controlTaintTagStack = ControlTaintTagStack.getNewInstance();
 			}
 
 			ret[0] = controlTaintTagStack;

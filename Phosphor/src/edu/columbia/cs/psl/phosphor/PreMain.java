@@ -527,8 +527,8 @@ public class PreMain {
 				} else if (s.equals("withoutBranchNotTaken")) {
 					Configuration.WITHOUT_BRANCH_NOT_TAKEN = true;
 				}
-				else if (s.equals("withoutControlStackSingleton")) {
-					Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON = true;
+				else if (s.equals("controlStackSingleton")) {
+					Configuration.CONTROL_TAINT_TAG_STACK_SINGLETON = true;
 				}
 			}
 		}

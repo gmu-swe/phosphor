@@ -76,11 +76,11 @@ public final class NativeHelper {
 
 					ControlTaintTagStack controlTaintTagStack;
 
-					if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
-						controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+					if(Configuration.CONTROL_TAINT_TAG_STACK_SINGLETON) {
+						controlTaintTagStack = ControlTaintTagStack.getInstance();
 					}
 					else {
-						controlTaintTagStack = ControlTaintTagStack.getInstance();
+						controlTaintTagStack = ControlTaintTagStack.getNewInstance();
 					}
 
 					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.boxIfNecessary(o), controlTaintTagStack, new TaintedBooleanWithObjTag());
@@ -93,11 +93,11 @@ public final class NativeHelper {
 
 				ControlTaintTagStack controlTaintTagStack;
 
-				if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
-					controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+				if(Configuration.CONTROL_TAINT_TAG_STACK_SINGLETON) {
+					controlTaintTagStack = ControlTaintTagStack.getInstance();
 				}
 				else {
-					controlTaintTagStack = ControlTaintTagStack.getInstance();
+					controlTaintTagStack = ControlTaintTagStack.getNewInstance();
 				}
 
 				tmp.add$$PHOSPHORTAGGED(tmp, controlTaintTagStack, new TaintedBooleanWithObjTag());
@@ -226,11 +226,11 @@ public final class NativeHelper {
 
 					ControlTaintTagStack controlTaintTagStack;
 
-					if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
-						controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+					if(Configuration.CONTROL_TAINT_TAG_STACK_SINGLETON) {
+						controlTaintTagStack = ControlTaintTagStack.getInstance();
 					}
 					else {
-						controlTaintTagStack = ControlTaintTagStack.getInstance();
+						controlTaintTagStack = ControlTaintTagStack.getNewInstance();
 					}
 					tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.unboxRaw(o), controlTaintTagStack, new TaintedBooleanWithObjTag());
 
@@ -241,11 +241,11 @@ public final class NativeHelper {
 				in.clear();
 
 				ControlTaintTagStack controlTaintTagStack;
-				if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
-					controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+				if(Configuration.CONTROL_TAINT_TAG_STACK_SINGLETON) {
+					controlTaintTagStack = ControlTaintTagStack.getInstance();
 				}
 				else {
-					controlTaintTagStack = ControlTaintTagStack.getInstance();
+					controlTaintTagStack = ControlTaintTagStack.getNewInstance();
 				}
 				tmp.add$$PHOSPHORTAGGED(tmp, controlTaintTagStack, new TaintedBooleanWithObjTag());
 

@@ -590,11 +590,11 @@ public class TaintUtils {
 
 			ControlTaintTagStack controlTaintTagStack;
 
-			if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
-				controlTaintTagStack = ControlTaintTagStack.getNewInstance();
+			if(Configuration.CONTROL_TAINT_TAG_STACK_SINGLETON) {
+				controlTaintTagStack = ControlTaintTagStack.getInstance();
 			}
 			else {
-				controlTaintTagStack = ControlTaintTagStack.getInstance();
+				controlTaintTagStack = ControlTaintTagStack.getNewInstance();
 			}
 
 			if (VM.isBooted$$PHOSPHORTAGGED(controlTaintTagStack, new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null && ((LazyArrayObjTags) srcTaint).taints != null) {

@@ -243,9 +243,9 @@ public class Instrumenter {
 	static Option opt_multiTaint = Option.builder("multiTaint")
 		.desc("Support for 2^32 tags instead of just 32")
 		.build();
-	static Option opt_withoutControlStackSingleton = Option.builder("withoutControlStackSingleton")
-			.desc("Create new control stack in each method call instead of using a singleton. Might"
-					+ " reduce performance when using control tracking")
+	static Option opt_controlStackSingleton = Option.builder("controlStackSingleton")
+			.desc("Use a single control taint tag stack at certain method calls instead of creating a new "
+					+ "one. Might improve performance when using control tracking")
 			.build();
 	static Option opt_withoutBranchNotTaken = Option.builder("withoutBranchNotTaken")
 			.desc("Disable branch not taken analysis in control tracking")
@@ -317,7 +317,7 @@ public class Instrumenter {
 		options.addOption(opt_disableJumpOptimizations);
 		options.addOption(opt_readAndSaveBCI);
 		options.addOption(opt_serialization);
-		options.addOption(opt_withoutControlStackSingleton);
+		options.addOption(opt_controlStackSingleton);
 		options.addOption(opt_withoutBranchNotTaken);
 
 		CommandLineParser parser = new BasicParser();
@@ -367,7 +367,7 @@ public class Instrumenter {
 //		Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption("serialization"); //Really needs to always be active
 		
 		Configuration.ARRAY_INDEX_TRACKING = line.hasOption("withArrayIndexTags");
-		Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON = line.hasOption("withoutControlStackSingleton");
+		Configuration.CONTROL_TAINT_TAG_STACK_SINGLETON = line.hasOption("controlStackSingleton");
 		Configuration.WITHOUT_BRANCH_NOT_TAKEN = line.hasOption("withoutBranchNotTaken");
 		Configuration.init();
 
@@ -395,11 +395,11 @@ public class Instrumenter {
 			SelectiveInstrumentationManager.populateMethodsToInstrument(Configuration.selective_inst_config);
 		}
 
-		if(Configuration.WITHOUT_CONTROL_TAINT_TAG_STACK_SINGLETON) {
-			System.out.println("Using multiple control taint tag stacks");
+		if(Configuration.CONTROL_TAINT_TAG_STACK_SINGLETON) {
+			System.out.println("Using a single control taint tag stack");
 		}
 		else {
-			System.out.println("Using a single control taint tag stack");
+			System.out.println("Using multiple control taint tag stacks");
 		}
 
 		if(Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
