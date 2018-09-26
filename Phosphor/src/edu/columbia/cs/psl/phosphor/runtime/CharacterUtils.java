@@ -168,7 +168,7 @@ public class CharacterUtils {
 		return ret;
 	}
 
-	public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, LazyCharArrayObjTags[] artags, char[] ar, Taint t, int dstIdx, TaintedIntWithObjTag ret) {
+	public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, LazyCharArrayObjTags artags, char[] ar, Taint t, int dstIdx, TaintedIntWithObjTag ret) {
 
 		ret.val = Character.toChars(idx, ar, dstIdx);
 
@@ -236,7 +236,7 @@ public class CharacterUtils {
 		return ret;
 	}
 
-	public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, LazyCharArrayObjTags[] artags, char[] ar, Taint t, int dstIdx, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+	public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, LazyCharArrayObjTags artags, char[] ar, Taint t, int dstIdx, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
 		ret.val = Character.toChars(idx, ar, dstIdx);
 		if (idxTaint != null) {
 			ret.taint = idxTaint.copy();

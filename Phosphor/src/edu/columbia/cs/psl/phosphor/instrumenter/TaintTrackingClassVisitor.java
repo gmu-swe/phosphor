@@ -383,8 +383,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				}
 				newArgTypes.add(t);
 				if (t.getDescriptor().contains("ControlTaintTagStack") || t.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct")) {
-					methodsToAddNameOnlyWrappersFor.add(new MethodNode(access, name, desc, signature, exceptions));
-					return super.visitMethod(access, name, desc, signature, exceptions);
+					MethodNode fullMethod = new MethodNode(access,name,desc,signature,exceptions);
+					methodsToAddNameOnlyWrappersFor.add(fullMethod);
+					return fullMethod;
 				}
 			}
 		}
@@ -927,37 +928,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				MethodVisitor mv = super.visitMethod(m.access, m.name + "$$PHOSPHORTAGGED", m.desc, m.signature, exceptions);
 				GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name + "$$PHOSPHORTAGGED", m.desc);
 
-				Label startLabel = new Label();
-				ga.visitCode();
-				ga.visitLabel(startLabel);
-				ga.visitLineNumber(0, startLabel);
+				m.accept(ga);
 
-				Type[] argTypes = Type.getArgumentTypes(m.desc);
-				int idx = 0;
-				int opcode = Opcodes.INVOKESTATIC;
-				if ((m.access & Opcodes.ACC_STATIC) == 0) {
-					ga.visitVarInsn(Opcodes.ALOAD, 0);
-					idx++;
-					opcode = Opcodes.INVOKESPECIAL;
-				}
-
-				for(Type t : argTypes)
-				{
-					ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
-					idx += t.getSize();
-				}
-				ga.visitMethodInsn(opcode,className,m.name, m.desc, false);
-				Label endLabel = new Label();
-				ga.visitLabel(endLabel);
-				ga.returnValue();
-
-				for (Object o : m.localVariables) {
-					LocalVariableNode n = (LocalVariableNode) o;
-					ga.visitLocalVariable(n.name, n.desc, n.signature, startLabel, endLabel, n.index);
-				}
-
-				ga.visitMaxs(0,0);
-				ga.visitEnd();
 			}
 
 		}
@@ -1016,62 +988,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				newDesc+=")";
 				newDesc+=t;
 
-				MethodVisitor mv = super.visitMethod(m.access, m.name.replace("$$PHOSPHORTAGGED",""), newDesc, m.signature, exceptions);
-				GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name.replace("$$PHOSPHORTAGGED",""), newDesc);
-
-				Label startLabel = new Label();
-				ga.visitCode();
-				ga.visitLabel(startLabel);
-				ga.visitLineNumber(0, startLabel);
-
-//				Type[] argTypes = Type.getArgumentTypes(m.desc);
-//				int idx = 0;
-//				int opcode = Opcodes.INVOKESTATIC;
-//				if ((m.access & Opcodes.ACC_STATIC) == 0) {
-//					ga.visitVarInsn(Opcodes.ALOAD, 0);
-//					idx++;
-//					opcode = Opcodes.INVOKESPECIAL;
-//				}
-//
-//				for(Type _t : argTypes)
-//				{
-//					ga.visitVarInsn(_t.getOpcode(Opcodes.ILOAD), idx);
-//					idx += _t.getSize();
-//				}
-//				ga.visitMethodInsn(opcode, className, m.name, m.desc, false);
-				switch(origReturnType.getSort()){
-					case Type.INT:
-					case Type.SHORT:
-					case Type.BOOLEAN:
-					case Type.BYTE:
-					case Type.CHAR:
-						ga.visitInsn(Opcodes.ICONST_0);
-						break;
-					case Type.ARRAY:
-					case Type.OBJECT:
-						ga.visitInsn(Opcodes.ACONST_NULL);
-						break;
-					case Type.LONG:
-						ga.visitInsn(Opcodes.LCONST_0);
-						break;
-					case Type.DOUBLE:
-						ga.visitInsn(Opcodes.DCONST_0);
-						break;
-					case Type.FLOAT:
-						ga.visitInsn(Opcodes.FCONST_0);
-						break;
-				}
-				Label endLabel = new Label();
-				ga.visitLabel(endLabel);
-				ga.returnValue();
-
-				for (Object o : m.localVariables) {
-					LocalVariableNode n = (LocalVariableNode) o;
-					ga.visitLocalVariable(n.name, n.desc, n.signature, startLabel, endLabel, n.index);
-				}
-
-				ga.visitMaxs(0,0);
-				ga.visitEnd();
+				MethodNode z= new MethodNode(m.access | Opcodes.ACC_MODULE ,m.name.replace("$$PHOSPHORTAGGED",""), newDesc, m.signature, exceptions);
+				methodsToAddWrappersFor.add(z);
 			}
 			if((m.access & Opcodes.ACC_ABSTRACT) == 0 && !m.name.contains("<")) {
 				String[] exceptions = new String[m.exceptions.size()];
@@ -1131,20 +1049,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				ga.visitLabel(startLabel);
 				ga.visitLineNumber(0, startLabel);
 
-//				Type[] argTypes = Type.getArgumentTypes(m.desc);
-//				int idx = 0;
-//				int opcode = Opcodes.INVOKESTATIC;
-//				if ((m.access & Opcodes.ACC_STATIC) == 0) {
-//					ga.visitVarInsn(Opcodes.ALOAD, 0);
-//					idx++;
-//					opcode = Opcodes.INVOKESPECIAL;
-//				}
-//
-//				for (Type _t : argTypes) {
-//					ga.visitVarInsn(_t.getOpcode(Opcodes.ILOAD), idx);
-//					idx += _t.getSize();
-//				}
-//				ga.visitMethodInsn(opcode, className, m.name, m.desc, false);
 				switch(returnType.getSort()){
 					case Type.INT:
 					case Type.SHORT:
@@ -1155,10 +1059,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						break;
 					case Type.ARRAY:
 					case Type.OBJECT:
-						ga.visitLdcInsn(className+"."+m.name+newDesc);
-						ga.visitMethodInsn(Opcodes.INVOKESTATIC,"edu/columbia/cs/psl/phosphor/runtime/Log","logCall","(Ljava/lang/String;)V",false);
 						ga.visitInsn(Opcodes.ACONST_NULL);
-
 						break;
 					case Type.LONG:
 						ga.visitInsn(Opcodes.LCONST_0);
@@ -1197,6 +1098,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						boolean needToPrealloc = TaintUtils.isPreAllocReturnType(m.desc);
 						String[] exceptions = new String[m.exceptions.size()];
 						exceptions = (String[]) m.exceptions.toArray(exceptions);
+
+						boolean useInvokeVirtual = (m.access & Opcodes.ACC_MODULE) != 0;
+						m.access = m.access & ~Opcodes.ACC_MODULE;
 						MethodVisitor mv = super.visitMethod(m.access, m.name, m.desc, m.signature, exceptions);
 						mv = new TaintTagFieldCastMV(mv);
 
@@ -1299,9 +1203,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						newDesc += ")" + newReturn.getDescriptor();
 
 						int opcode;
-						if ((m.access & Opcodes.ACC_STATIC) == 0) {
-								opcode = Opcodes.INVOKESPECIAL;
-						} else
+						if (useInvokeVirtual)
+							opcode = Opcodes.INVOKEVIRTUAL;
+						else if ((m.access & Opcodes.ACC_STATIC) == 0)
+							opcode = Opcodes.INVOKESPECIAL;
+						else
 							opcode = Opcodes.INVOKESTATIC;
 						if (m.name.equals("<init>")) {
 							ga.visitMethodInsn(Opcodes.INVOKESPECIAL, className, m.name, newDesc,false);
