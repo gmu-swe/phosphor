@@ -383,7 +383,14 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				}
 				newArgTypes.add(t);
 				if (t.getDescriptor().contains("ControlTaintTagStack") || t.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct")) {
-					MethodNode fullMethod = new MethodNode(access,name,desc,signature,exceptions);
+					final MethodVisitor cmv = super.visitMethod(access, name, desc, signature, exceptions);
+					MethodNode fullMethod = new MethodNode(Opcodes.ASM6, access,name,desc,signature,exceptions){
+						@Override
+						public void visitEnd() {
+							super.visitEnd();
+							this.accept(cmv);
+						}
+					};
 					methodsToAddNameOnlyWrappersFor.add(fullMethod);
 					return fullMethod;
 				}
