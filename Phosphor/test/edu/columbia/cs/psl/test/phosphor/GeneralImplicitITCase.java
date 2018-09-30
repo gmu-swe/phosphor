@@ -94,6 +94,35 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	public static void testA(int x, int y, boolean b) {  
        
     }
+
+    @Test
+    public void testLoops() throws Exception{
+	    boolean A = MultiTainter.taintedBoolean(true, "A");
+
+	    boolean x = false;
+	    int i = MultiTainter.taintedInt(5, "I");
+
+	    boolean z = false;
+	    boolean y = false;
+	    int j = MultiTainter.taintedInt(10, "J");
+	    while (i != 0) {
+		    i--;
+		    y = true;
+		    while(j != 0)
+		    {
+		    	x = true;
+			    j--;
+		    }
+		    j++;
+	    }
+
+	    x = true;
+
+	    assertTaintHasOnlyLabel(MultiTainter.getTaint(j), "J");
+	    assertTaintHasOnlyLabel(MultiTainter.getTaint(i), "I");
+	    assertTaintHasOnlyLabel(MultiTainter.getTaint(y), "I");
+	    assertNull(MultiTainter.getTaint(x));
+    }
 	@Test
 	public void testObjectStream() throws Exception {
 		File f = new File("test.tmp.out");

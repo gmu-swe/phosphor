@@ -753,15 +753,24 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						{
 							if(b.successorsCompact.size() > 0 && b.isInteresting())
 							{
+//								System.out.println(b.idx +  " " + b.postDominators + " ... " + b.successorsCompact);
 								HashSet<BasicBlock> intersectionOfPredecessors = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 								Iterator<BasicBlock> iter = b.successorsCompact.iterator();
 								BasicBlock successor = iter.next();
 								intersectionOfPredecessors.addAll(successor.postDominators);
-								while(iter.hasNext())
-								{
-									successor = iter.next();
-									intersectionOfPredecessors.retainAll(successor.postDominators);
-								}
+									while (iter.hasNext()) {
+										BasicBlock lastSuc = successor;
+										successor = iter.next();
+										if (lastSuc.postDominators.contains(b)) {
+											intersectionOfPredecessors.clear();
+											intersectionOfPredecessors.addAll(successor.postDominators);
+										}
+										else if (successor.postDominators.contains(b)) {
+											// = successor.postDominators
+
+										} else
+											intersectionOfPredecessors.retainAll(successor.postDominators);
+									}
 								changed |= b.postDominators.addAll(intersectionOfPredecessors);
 							}
 						}
