@@ -48,10 +48,10 @@ public class RuntimeBoxUnboxPropogator {
 	public static Long valueOf(Taint t, long l, ControlTaintTagStack ctrl)
 	{
 		if(t == null)
-			return Long.valueOf$$PHOSPHORTAGGED(null,l);
+			return Long.valueOf$$PHOSPHORTAGGED(null,l, ctrl);
 		else
 		{
-			Long ret = new Long(t,l,null);
+			Long ret = new Long(t,l,ctrl, null);
 			((TaintedWithObjTag)((Object)ret)).setPHOSPHOR_TAG(t);
 			return ret;
 		}

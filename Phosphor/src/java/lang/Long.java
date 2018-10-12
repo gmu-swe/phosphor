@@ -90,7 +90,7 @@ public final class Long extends Number implements Comparable<Long> {
         this.value = value;
     }
     
-    public Long(Taint t, long value, TaintSentinel stl, ControlTaintTagStack ctrl) {
+    public Long(Taint t, long value, ControlTaintTagStack ctrl, TaintSentinel stl ) {
         this.value = value;
     }
     
@@ -108,7 +108,11 @@ public final class Long extends Number implements Comparable<Long> {
         this(parseLong(string));
     }
 
-    @Override
+	public static Long valueOf$$PHOSPHORTAGGED(Taint o, long l, ControlTaintTagStack ctrl) {
+        return null;
+	}
+
+	@Override
     public byte byteValue() {
         return (byte) value;
     }

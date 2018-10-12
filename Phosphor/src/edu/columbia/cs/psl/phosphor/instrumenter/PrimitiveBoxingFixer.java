@@ -1,16 +1,15 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.runtime.CharacterUtils;
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FrameNode;
-
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 
 public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 	public PrimitiveBoxingFixer(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
@@ -89,10 +88,12 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 		//				|| owner.equals(Type.getInternalName(Byte.class))
 		//				|| owner.equals(Type.getInternalName(Character.class))
 		//				|| owner.equals(Type.getInternalName(Short.class)) ||  owner.equals(Type.getInternalName(Float.class)) 
-				|| owner.equals(Type.getInternalName(Long.class)) || owner.equals(Type.getInternalName(Double.class))) && name.equals("valueOf$$PHOSPHORTAGGED") && nArgs == 2 && !argIsStr) {
+				|| owner.equals(Type.getInternalName(Long.class)) || owner.equals(Type.getInternalName(Double.class))) && name.equals("valueOf$$PHOSPHORTAGGED") && nArgs == (Configuration.IMPLICIT_TRACKING ? 3 : 2) && !argIsStr) {
 			Type argT = Type.getArgumentTypes(desc)[1];
 			int argSize = argT.getSize();
 			if (argSize == 1) {
+				if(Configuration.IMPLICIT_TRACKING)
+					super.visitInsn(POP);
 //				System.out.println(analyzer.stack);
 				//stack is currently T I <top>
 				//we'll support (Integer) 1 == (Integer) 1 as long as there is no taint on it.
@@ -103,6 +104,8 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				Label isOK = new Label();
 				super.visitJumpInsn((Configuration.MULTI_TAINTING ? IFNONNULL:IFNE), makeNew);
 				super.visitInsn(SWAP);
+				if(Configuration.IMPLICIT_TRACKING)
+					super.visitVarInsn(ALOAD,lvs.idxOfMasterControlLV);
 				super.visitMethodInsn(opcode, owner, name, desc, itfc);
 				super.visitJumpInsn(GOTO, isOK);
 				super.visitLabel(makeNew);
@@ -115,10 +118,18 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitInsn(Opcodes.POP2);
 				//N N T I
 				super.visitInsn(Opcodes.ACONST_NULL);
-				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V",false);
+				if(Configuration.IMPLICIT_TRACKING)
+				{
+					super.visitVarInsn(ALOAD,lvs.idxOfMasterControlLV);
+					super.visitInsn(SWAP);
+					super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(ControlTaintTagStack.class)+Type.getDescriptor(TaintSentinel.class) + ")V",false);
+				}
+				else
+					super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V",false);
 				super.visitInsn(DUP);
 				super.visitInsn(DUP);
 				super.visitFieldInsn(GETFIELD, owner, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+//				super.visitMethodInsn(INVOKESTATIC,Type.getInternalName(Taint.class), "copyTaint","("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC,false);
 				super.visitMethodInsn(INVOKEVIRTUAL, owner, "set"+TaintUtils.TAINT_FIELD, "("+(Configuration.MULTI_TAINTING ? "Ljava/lang/Object;" : "I")+")V", false);
 				FrameNode fn2 = getCurrentFrameNode();
 				super.visitLabel(isOK);
@@ -129,6 +140,8 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				return;
 			}
 			else{
+				if(Configuration.IMPLICIT_TRACKING)
+					super.visitInsn(POP);
 				//T V V <top>
 				super.visitInsn(DUP2_X1);
 				super.visitInsn(POP2);
@@ -141,6 +154,9 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				//T VV 
 				super.visitInsn(DUP_X2);
 				super.visitInsn(POP);
+				if(Configuration.IMPLICIT_TRACKING)
+					super.visitVarInsn(ALOAD,lvs.idxOfMasterControlLV);
+
 				super.visitMethodInsn(opcode, owner, name, desc, false);
 				super.visitJumpInsn(GOTO, isOK);
 				super.visitLabel(makeNew);
@@ -161,7 +177,14 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitVarInsn(argT.getOpcode(ILOAD), tmp);
 
 				super.visitInsn(Opcodes.ACONST_NULL);
-				super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V", false);
+				if(Configuration.IMPLICIT_TRACKING)
+				{
+					super.visitVarInsn(ALOAD,lvs.idxOfMasterControlLV);
+					super.visitInsn(SWAP);
+					super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(ControlTaintTagStack.class)+Type.getDescriptor(TaintSentinel.class) + ")V",false);
+				}
+				else
+					super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "("+Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(TaintSentinel.class) + ")V", false);
 				super.visitInsn(DUP);
 				super.visitInsn(DUP);
 				super.visitFieldInsn(GETFIELD, owner, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
