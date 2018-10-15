@@ -329,13 +329,8 @@ public class PreMain {
 						if (DEBUG
 								|| (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler") && !className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache")
 										&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap") && !className.startsWith("jersey/repackaged/com/google/common/collect/"))) {
-							try{
 							ClassReader cr2 = new ClassReader(cw.toByteArray());
 							cr2.accept(new CheckClassAdapter(new ClassWriter(0), true), 0);
-							}catch(RuntimeException ex)
-							{
-								ex.printStackTrace();
-							}
 						}
 					}
 					// cv= new TraceClassVisitor(null,null);
