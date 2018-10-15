@@ -3928,18 +3928,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 										Object third = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 6);
 										if(third instanceof TaggedValue)
 										{
-											LocalVariableNode d[] = storeToLocals(6);
-
-											loadLV(1, d);
-											loadLV(0, d);
-											loadLV(5, d);
-											loadLV(4, d);
-											loadLV(3, d);
-											loadLV(2, d);
-											loadLV(0, d);
-											analyzer.clearTopOfStackTagged();
-
-											freeLVs(d);
+											DUPN_XU(2, 4);
 										}
 										else
 										{
