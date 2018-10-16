@@ -627,6 +627,39 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if (descType.getSort() == Type.ARRAY && descType.getElementType().getSort() != Type.OBJECT && descType.getDimensions() > 1) {
 			desc = MultiDTaintedArray.getTypeForType(descType).getInternalName();
 		}
+		if(Instrumenter.isUninstrumentedField(owner,name))
+		{
+			String helperClass = "edu/columbia/cs/psl/phosphor/struct/multid/MultiDTaintedArrayWithObjTag";
+			if(!Configuration.MULTI_TAINTING)
+				helperClass = "edu/columbia/cs/psl/phosphor/struct/multid/MultiDTaintedArrayWithIntTag";
+			switch(opcode)
+			{
+				case GETFIELD:
+				case GETSTATIC:
+					//need to turn into a wrapped type
+					super.visitFieldInsn(opcode, owner, name, desc);
+					super.visitMethodInsn(INVOKESTATIC,Type.getInternalName(MultiDTaintedArray.class),"boxIfNecessary","(Ljava/lang/Object;)Ljava/lang/Object;");
+					break;
+				case PUTFIELD:
+				case PUTSTATIC:
+					//Need to drop the taint array, if it's there
+					if(topCarriesTaint())
+					{
+						super.visitInsn(SWAP);
+						super.visitInsn(POP);
+						super.visitFieldInsn(opcode,owner,name,desc);
+						return;
+					}
+					else
+					{
+						//need to unbox this thing
+						super.visitTypeInsn(CHECKCAST,helperClass);
+						super.visitMethodInsn(INVOKEVIRTUAL,helperClass,"getVal","()Ljava/lang/Object;");
+						super.visitFieldInsn(opcode, owner, name, desc);
+						return;
+					}
+			}
+		}
 		if((!nextLoadisTracked && (opcode == GETSTATIC || opcode == GETFIELD)) ||
 				(opcode == PUTSTATIC && !analyzer.isTopOfStackTagged() && getTopOfStackType().getSort() == Type.ARRAY))
 		{

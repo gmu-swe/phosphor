@@ -905,4 +905,8 @@ public class Instrumenter {
 		return false;
 	}
 
+	public static boolean isUninstrumentedField(String owner, String name){
+		return owner.equals("sun/java2d/cmm/lcms/LCMSImageLayout") && name.equals("dataArray");
+	}
+
 }
