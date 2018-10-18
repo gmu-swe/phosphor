@@ -79,7 +79,8 @@ public class TaintUtils {
 
 	public static final int EXCEPTION_HANDLER_START = 205;
 	public static final int EXCEPTION_HANDLER_END = 206;
-	public static final int EXCEPTION_HANDLER_RESOLVED = 207;
+	public static final int UNTHROWN_EXCEPTION = 215; //When we are returning but might have otherwise thrown some exception
+	public static final int UNTHROWN_EXCEPTION_CHECK = 214; //When we are returning from a method and are covered directly by a "try"
 
 	public static final int FORCE_CTRL_STORE_SFIELD = 217;
 	public static final int FOLLOWED_BY_FRAME = 217;

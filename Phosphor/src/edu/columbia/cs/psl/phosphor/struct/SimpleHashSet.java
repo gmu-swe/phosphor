@@ -147,18 +147,23 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 		Entry currentEntry = null;
 		StringBuffer sb = new StringBuffer();
 
+		boolean first = true;
 		// loop through the array
 		for (int index=0; index < buckets.length; index++) {
 			// we have an entry
 			if (buckets[index] != null) {
 				currentEntry = buckets[index];
-				sb.append("[" + index + "]");
-				sb.append(" " + currentEntry.key.toString());
+//				sb.append("[" + index + "]");
+				if(!first)
+					sb.append(", ");
+				else
+					first = false;
+				sb.append(currentEntry.key.toString());
 				while (currentEntry.next != null) {
 					currentEntry = currentEntry.next;
-					sb.append(" -> " + currentEntry.key.toString());
+					sb.append(", " + currentEntry.key.toString());
 				}
-				sb.append('\n');
+//				sb.append('\n');
 			}
 		}
 

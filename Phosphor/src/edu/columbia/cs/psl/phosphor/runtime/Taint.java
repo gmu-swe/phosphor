@@ -215,31 +215,33 @@ public class Taint<T> implements Serializable {
 	}
 
 	public static <T> Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags){
-		if(t1 == null && tags.isEmpty())
+		if(t1 == null && tags.taint == null && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.influenceExceptions.isEmpty()))
 			return null;
-		else if(t1 == null || (t1.lbl == null && t1.dependencies.isEmpty()))
+		Taint tagsTaint = tags.copyTag();
+		if(Configuration.IMPLICIT_EXCEPTION_FLOW)
+			tagsTaint = tags.copyTagExceptions();
+		if(t1 == null || (t1.lbl == null && t1.dependencies.isEmpty()))
 		{
 //			if(tags.isEmpty())
 //				return null;
-			return tags.taint;
+			return tagsTaint;
 		}
-		else if(tags.isEmpty())
+		else if(tagsTaint == null || (tagsTaint.lbl == null && tagsTaint.dependencies.isEmpty()))
 		{
 //			if(t1.lbl == null && t1.hasNoDependencies())
 //				return null;
 			return t1;
 		}
-		else if(t1 == tags.taint)
+		else if(t1 == tagsTaint)
 			return t1;
 		if(IGNORE_TAINTING)
 			return t1;
-		Taint ret = t1.copy();
-		ret.addDependency(tags.taint);
-		return ret;
+		tagsTaint.addDependency(t1);
+		return tagsTaint;
 	}
 	@SuppressWarnings("unchecked")
 	public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags){
-		if(t1 == null && tags.taint == null)
+		if(t1 == null && tags.taint == null && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.influenceExceptions.isEmpty()))
 			return null;
 		return _combineTagsInternal(t1,tags);
 	}

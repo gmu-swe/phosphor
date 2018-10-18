@@ -370,6 +370,8 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if (mv != null) {
             mv.visitTypeInsn(opcode, type);
         }
+        if(opcode > 200)
+            return;
         execute(opcode, 0, type);
     }
 

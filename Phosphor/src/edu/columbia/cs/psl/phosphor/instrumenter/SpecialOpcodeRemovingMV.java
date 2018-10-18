@@ -89,6 +89,13 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	}
 
 	@Override
+	public void visitTypeInsn(int opcode, String type) {
+		if(opcode > 200)
+			return;
+		super.visitTypeInsn(opcode, type);
+	}
+
+	@Override
 	public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
 		if (type == TaintUtils.RAW_INSN)
 			type = Opcodes.F_NEW;

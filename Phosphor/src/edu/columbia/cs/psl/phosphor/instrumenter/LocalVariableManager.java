@@ -6,6 +6,9 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
+import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
+import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
+import edu.columbia.cs.psl.phosphor.struct.MaybeThrownException;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -161,6 +164,25 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
 	int jumpIdx;
 	int idxOfMasterControlLV = -1;
+	int idxOfMasterExceptionLV = -1;
+
+	public int getIdxOfMasterExceptionLV() {
+		return idxOfMasterExceptionLV;
+	}
+	public int createExceptionTaintLV()
+	{
+		int idx = super.newLocal(Type.getType(ExceptionalTaintData.class));
+		if (ctrlTagStartLbl == null) {
+			ctrlTagStartLbl = new Label();
+			super.visitLabel(ctrlTagStartLbl);
+		}
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorExceptionTaintData", Type.getDescriptor(ExceptionalTaintData.class), null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
+		createdLVs.add(newLVN);
+
+		analyzer.locals.add(idx, Type.getInternalName(ExceptionalTaintData.class));
+		this.idxOfMasterExceptionLV = idx;
+		return idx;
+	}
 
 	public int getIdxOfMasterControlLV() {
 		return idxOfMasterControlLV;
@@ -192,6 +214,21 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 //		System.out.println("Create taint tag at " + idx);
 		analyzer.locals.add(idx, "edu/columbia/cs/psl/phosphor/struct/EnqueuedTaint");
 		jumpIdx++;
+		return idx;
+	}
+	public int newControlExceptionTaintLV()
+	{
+		Type t = Type.getType(EnqueuedTaint.class);
+		int idx = super.newLocal(t);
+		if (ctrlTagStartLbl == null) {
+			ctrlTagStartLbl = new Label();
+			super.visitLabel(ctrlTagStartLbl);
+		}
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorExceptionData", t.getDescriptor(), null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
+		createdLVs.add(newLVN);
+//		System.out.println("Create taint tag at " + idx);
+		analyzer.locals.add(idx, t.getInternalName());
+//		jumpIdx++;
 		return idx;
 	}
 

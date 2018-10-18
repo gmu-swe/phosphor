@@ -33,10 +33,11 @@ public class PhosphorTextifier extends Textifier {
 		MORE_OPCODES[21] = "LOOP_HEADER";
 		TYPE_OR_INT_OPCODES = new String[25];
 		System.arraycopy(MORE_OPCODES,0,TYPE_OR_INT_OPCODES,0,25);
-		TYPE_OR_INT_OPCODES[TaintUtils.EXCEPTION_HANDLER_START-200] = "EXCEPTION_HANDLER_START";
 		TYPE_OR_INT_OPCODES[TaintUtils.EXCEPTION_HANDLER_END-200] = "EXCEPTION_HANDLER_END";
-		TYPE_OR_INT_OPCODES[TaintUtils.EXCEPTION_HANDLER_RESOLVED-200] = "EXCEPTION_HANDLER_RESOLVED";
-
+		TYPE_OR_INT_OPCODES[TaintUtils.EXCEPTION_HANDLER_START-200] = "EXCEPTION_HANDLER_START";
+		TYPE_OR_INT_OPCODES[TaintUtils.UNTHROWN_EXCEPTION-200] = "UNTHROWN_EXCEPTION";
+		TYPE_OR_INT_OPCODES[TaintUtils.UNTHROWN_EXCEPTION_CHECK-200] = "UNTHROWN_EXCEPTION_CHECK";
+		TYPE_OR_INT_OPCODES[TaintUtils.FORCE_CTRL_STORE_SFIELD-200] = "FORCE_CTRL_STORE_SFIELD";
 //		MORE_OPCODES[22] = "LOOP_HEADER";
 		/*
 		 * 
@@ -63,7 +64,7 @@ public class PhosphorTextifier extends Textifier {
 	public void visitFieldInsn(int opcode, String owner, String name, String desc) {
 		if (opcode > 200) {
 			stringBuilder.setLength(0);
-			stringBuilder.append(tab2).append(MORE_OPCODES[opcode - 200]).append(' ');
+			stringBuilder.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ');
 			appendDescriptor(INTERNAL_NAME, owner);
 			stringBuilder.append('.').append(name).append(" : ");
 			appendDescriptor(FIELD_DESCRIPTOR, desc);

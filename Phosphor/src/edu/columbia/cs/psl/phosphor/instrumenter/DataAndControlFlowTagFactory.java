@@ -533,7 +533,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 				mv.visitInsn(SWAP);
 				mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
+				ta.callPushControlTaint();
 				mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
 				ta.doForceCtrlStores();
 				mv.visitJumpInsn(opcode, label);
@@ -585,10 +585,10 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				lvs.freeTmpLV(tmp);
 				//V V C T CT
 				mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
+				ta.callPushControlTaint();
 				mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
 				mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting+1]);
-				mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
+				ta.callPushControlTaint();
 				mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting+1]);
 				ta.doForceCtrlStores();
 				mv.visitJumpInsn(opcode, label);

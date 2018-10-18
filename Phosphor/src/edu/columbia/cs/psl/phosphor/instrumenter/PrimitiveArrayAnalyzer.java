@@ -1,21 +1,22 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import java.util.*;
-import java.util.Map.Entry;
-
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayValue;
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
-import org.objectweb.asm.tree.analysis.*;
+import org.objectweb.asm.tree.analysis.Analyzer;
+import org.objectweb.asm.tree.analysis.AnalyzerException;
+import org.objectweb.asm.tree.analysis.BasicValue;
+import org.objectweb.asm.tree.analysis.Frame;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import java.util.*;
+import java.util.Map.Entry;
 
 public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	final class PrimitiveArrayAnalyzerMN extends MethodNode {
@@ -42,7 +43,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			}
 			return (LabelNode) l.info;
 		}
-		
+
 		@Override
 		public void visitCode() {
 			if (DEBUG)
@@ -281,7 +282,44 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						//														System.out.println(idx + "->"+label);
 					}
 					Frame[] ret = super.analyze(owner, m);
-					
+					if (Configuration.IMPLICIT_EXCEPTION_FLOW) {
+						insns = m.instructions.iterator();
+						while (insns.hasNext()) {
+							AbstractInsnNode insn = insns.next();
+							int idx = m.instructions.indexOf(insn);
+							if (insn.getOpcode() == Opcodes.ATHROW) {
+								//Are we in a try/catch block that can catch this?
+
+
+								for(TryCatchBlockNode each : m.tryCatchBlocks){
+									try{
+										Class<?> caught = Class.forName(each.type.replace('/','.'),false,PrimitiveArrayAnalyzer.class.getClassLoader());
+										if(caught == Throwable.class){
+											//if catching Throwable, we'll catch this regardless of whether we can load the exception type or not
+											newControlFlowEdge(idx,m.instructions.indexOf(each.handler));
+											break;
+										}
+										Class<?> thrown = null;
+										try{
+											String onStack = ret[idx].getStack(ret[idx].getStackSize()-1).toString();
+											if(!onStack.startsWith("L"))
+												continue;
+											thrown = Class.forName(Type.getType(ret[idx].getStack(0).toString()).getClassName(),false, PrimitiveArrayAnalyzer.class.getClassLoader());
+										}catch (Throwable t){
+											continue;
+										}
+										if(caught.isAssignableFrom(thrown))
+										{
+											//Found a handler for this thrown
+											newControlFlowEdge(idx,m.instructions.indexOf(each.handler));
+											break;
+										}
+									}catch(Throwable t){} //Maybe can't load exception type, that's ok
+								}
+							}
+						}
+					}
+
 //					if (DEBUG)
 //						for (int i = 0; i < inFrames.size(); i++) {
 //							System.out.println("IN: " + i + " " + inFrames.get(i).stack);
@@ -307,6 +345,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 									System.out.println(toMerge + " AKA " + labelToMerge);
 								if (DEBUG)
 									System.out.println((outFrames.get(labelToMerge) == null ? "null" : outFrames.get(labelToMerge).stack));
+								if(inFrames.get(labelToSuccessor) == null || outFrames.get(labelToMerge) == null) //e.g. for an edge into the first instruction in an exception handler
+									continue;
 								if (!outFrames.get(labelToMerge).stack.isEmpty() && !inFrames.get(labelToSuccessor).stack.isEmpty()) {
 									Object output1Top = outFrames.get(labelToMerge).stack.get(outFrames.get(labelToMerge).stack.size() - 1);
 									Object inputTop = inFrames.get(labelToSuccessor).stack.get(inFrames.get(labelToSuccessor).stack.size() - 1);
@@ -360,13 +400,27 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				}
 
 				HashMap<Integer, LinkedList<Integer>> edges = new HashMap<Integer, LinkedList<Integer>>();
-				
+
 
 				LinkedList<Integer> varsStoredThisInsn = new LinkedList<Integer>();
 				HashSet<String> visited = new HashSet<String>();
 				int insnIdxOrderVisited = 0;
+
+				@Override
+				protected boolean newControlFlowExceptionEdge(int insnIndex, int successorIndex) {
+//					if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
+//						this.newControlFlowEdge(insnIndex, successorIndex, true);
+//					}
+					return true;
+				}
+
 				@Override
 				protected void newControlFlowEdge(int insn, int successor) {
+					newControlFlowEdge(insn, successor, false);
+
+				}
+
+				protected void newControlFlowEdge(int insn, int successor, boolean isExceptionalEdge){
 					if(visited.contains(insn+"-"+successor))
 						return;
 					visited.add(insn+"-"+successor);
@@ -378,7 +432,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						outEdges.put(insn, new LinkedList<Integer>());
 					if (!outEdges.get(insn).contains(successor))
 						outEdges.get(insn).add(successor);
-					
+
 					BasicBlock fromBlock;
 					if(!implicitAnalysisblocks.containsKey(insn))
 					{
@@ -390,7 +444,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					}
 					else
 						fromBlock = implicitAnalysisblocks.get(insn);
-					
+
 					AbstractInsnNode insnN = instructions.get(insn);
 					fromBlock.isJump = (insnN.getType()== AbstractInsnNode.JUMP_INSN && insnN.getOpcode() != Opcodes.GOTO)
 							|| insnN.getType() == AbstractInsnNode.LOOKUPSWITCH_INSN || insnN.getType() == AbstractInsnNode.TABLESWITCH_INSN;
@@ -398,16 +452,16 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					{
 						switch(insnN.getOpcode())
 						{
-						case Opcodes.IF_ICMPEQ:
-						case Opcodes.IF_ICMPNE:
-						case Opcodes.IF_ICMPGE:
-						case Opcodes.IF_ICMPGT:
-						case Opcodes.IF_ICMPLT:
-						case Opcodes.IF_ICMPLE:
-						case Opcodes.IF_ACMPEQ:
-						case Opcodes.IF_ACMPNE:
-							fromBlock.is2ArgJump = true;
-							break;
+							case Opcodes.IF_ICMPEQ:
+							case Opcodes.IF_ICMPNE:
+							case Opcodes.IF_ICMPGE:
+							case Opcodes.IF_ICMPGT:
+							case Opcodes.IF_ICMPLT:
+							case Opcodes.IF_ICMPLE:
+							case Opcodes.IF_ACMPEQ:
+							case Opcodes.IF_ACMPNE:
+								fromBlock.is2ArgJump = true;
+								break;
 						}
 					}
 					BasicBlock succesorBlock;
@@ -427,18 +481,18 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						{
 							switch(succesorBlock.insn.getOpcode())
 							{
-							case ISTORE:
-								succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "I"));
-								break;
-							case ASTORE:
-								succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "Ljava/lang/Object;"));
-								break;
-							case DSTORE:
-								succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "D"));
-								break;
-							case LSTORE:
-								succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "J"));
-								break;
+								case ISTORE:
+									succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "I"));
+									break;
+								case ASTORE:
+									succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "Ljava/lang/Object;"));
+									break;
+								case DSTORE:
+									succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "D"));
+									break;
+								case LSTORE:
+									succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode)succesorBlock.insn).var, "J"));
+									break;
 							}
 						}
 						else if(succesorBlock.insn.getType() == AbstractInsnNode.FIELD_INSN)
@@ -461,9 +515,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								Type[] desc = Type.getArgumentTypes(min.desc);
 								if(
 										(desc.length == 1 && (Type.getReturnType(min.desc).getSort()==Type.VOID || min.desc.equals("Ljava/lang/StringBuilder;")))
-										||
-							(desc.length == 2 && Type.getReturnType(min.desc).getSort() == Type.VOID && min.name.startsWith("set")))
-										{
+												||
+												(desc.length == 2 && Type.getReturnType(min.desc).getSort() == Type.VOID && min.name.startsWith("set")))
+								{
 									Frame fr = this.getFrames()[successor];
 									if(fr != null && fr.getStack(fr.getStackSize()-2) instanceof BasicArrayInterpreter.BasicThisFieldValue) {
 										BasicArrayInterpreter.BasicThisFieldValue vv = (BasicArrayInterpreter.BasicThisFieldValue) fr.getStack(fr.getStackSize()-2);
@@ -482,17 +536,15 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					}
 					fromBlock.successors.add(succesorBlock);
 					succesorBlock.predecessors.add(fromBlock);
-					
-					if(fromBlock.isJump)
-						{
-						if(fromBlock.covered)
+
+					if (fromBlock.isJump) {
+						if (fromBlock.covered)
 							succesorBlock.onTrueSideOfJumpFrom.add(fromBlock);
-						else
-						{
+						else {
 							succesorBlock.onFalseSideOfJumpFrom.add(fromBlock);
 							fromBlock.covered = true;
 						}
-						}
+					}
 					super.newControlFlowEdge(insn, successor);
 				}
 			};
@@ -572,7 +624,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //						if (insertAfter.getOpcode() == Opcodes.GOTO)
 //							insertAfter = insertAfter.getPrevious();
 //						this.instructions.insert(insertAfter, new InsnNode(Opcodes.ACONST_NULL));
-//						nNewNulls++;   
+//						nNewNulls++;
 					} else if (insertACHECKCASTBEFORE.contains(i)) {
 						if (DEBUG)
 							System.out.println("Adding checkcast before: " + i + " (plus " + nNewNulls + ")");
@@ -592,13 +644,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					} else if (alwaysAutoBoxByFrame.containsKey(i)) {
 						for (int j : alwaysAutoBoxByFrame.get(i)) {
 //							System.out.println("Adding checkcast always: before " + i + " (plus " + nNewNulls + ")");
-//								while(insertAfter.getType() == AbstractInsnNode.LABEL || 
-//										insertAfter.getType() == AbstractInsnNode.LINE|| 
+//								while(insertAfter.getType() == AbstractInsnNode.LABEL ||
+//										insertAfter.getType() == AbstractInsnNode.LINE||
 //										insertAfter.getType() == AbstractInsnNode.FRAME)
 //									insertAfter = insertAfter.getNext();
 							AbstractInsnNode query = insertAfter.getNext();
 							while(query.getNext() != null && (query.getType() == AbstractInsnNode.LABEL ||
-									query.getType() == AbstractInsnNode.LINE || 
+									query.getType() == AbstractInsnNode.LINE ||
 									query.getType() == AbstractInsnNode.FRAME || query.getOpcode() > 200))
 								query = query.getNext();
 							if(query.getOpcode() == Opcodes.ALOAD && query.getNext().getOpcode() == Opcodes.MONITOREXIT)
@@ -628,7 +680,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						}
 					}
 				}
-				
+
 //				System.out.println(name+desc);
 				//fix LVs for android (sigh)
 //				for(LabelNode l : problemLabels.keySet())
@@ -664,7 +716,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						this.localVariables.addAll(newLVNodes);
 					}
 				}
-				
+
 			} catch (AnalyzerException e) {
 				System.err.println("While analyzing " + className);
 				e.printStackTrace();
@@ -682,21 +734,39 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						BasicBlock startBlock = null;
 						BasicBlock handlerBlock = null;
 						BasicBlock endBlock = null;
-						for(BasicBlock b : implicitAnalysisblocks.values()){
+						Integer startKey = null;
+						Integer endKey = null;
+
+
+						for(Entry<Integer,BasicBlock> e : implicitAnalysisblocks.entrySet()){
+							BasicBlock b =e.getValue();
+							Integer i = e.getKey();
 							if(b.insn == t.handler){
 								handlerBlock = b;
 							}
 							if(b.insn == t.start)
 							{
 								startBlock = b;
+								startKey = i;
 							}
-							if(b.insn == t.end)
+							if(b.insn == t.end) {
 								endBlock = b;
+								endKey = i;
+							}
 							if(startBlock != null && handlerBlock != null && endBlock != null)
 								break;
 						}
 						if(startBlock == handlerBlock || endBlock == null)
 							continue;
+
+						//Identify all of the instructions in this try block
+						if(startBlock != null && endBlock != null)
+						{
+							for(int i =startKey; i<= endKey; i++){
+								if(implicitAnalysisblocks.get(i) != null)
+								implicitAnalysisblocks.get(i).coveredByTryBlockFor.add(t.type);
+							}
+						}
 						handlerBlock.exceptionsHandled.add(t.type);
 						tryCatchHandlers.add(handlerBlock);
 						startBlock.isTryBlockStart = true;
@@ -706,14 +776,19 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						startBlock.successors.add(handlerBlock);
 						startBlock.ex_count = exceptionHandlerCount;
 						startBlock.tryBlockEnd = endBlock;
-//						System.out.println("EX " + exceptionHandlerCount + " " + startBlock+"-"+endBlock+"..."+handlerBlock);
+						startBlock.handledAt = handlerBlock;
+
+
 						exceptionHandlerCount++;
 						for(BasicBlock suc : startBlock.successors)
 						{
 							if(!suc.onFalseSideOfJumpFrom.contains(startBlock))
 								suc.onTrueSideOfJumpFrom.add(startBlock);
 						}
+//						handlerBlock.onTrueSideOfJumpFrom.remove(startBlock);
+//						System.out.println(handlerBlock + " " + handlerBlock.onTrueSideOfJumpFrom + " " + handlerBlock.onFalseSideOfJumpFrom);
 					}
+//					debug(instructions.getFirst());
 
 				}
 
@@ -868,13 +943,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 //					for(BasicBlock j : implicitAnalysisblocks.values())
 //					{
-//						this.instructions.insertBefore(j.insn, new LdcInsnNode(j.idx + " " + j.onTrueSideOfJumpFrom + " " + j.onFalseSideOfJumpFrom +" RH:" + j.resolvedHereBlocks));
+//						System.out.println(j.idx +  " " + j.onTrueSideOfJumpFrom + " "+j.onFalseSideOfJumpFrom);
+//						this.instructions.insertBefore(j.insn, new LdcInsnNode(j.idx + " " + j.onTrueSideOfJumpFrom + " " + j.onFalseSideOfJumpFrom +" SUC:" + j.successors));
 //						this.instructions.insertBefore(j.insn,new InsnNode(Opcodes.POP));
 //					}
 					for(BasicBlock j : implicitAnalysisblocks.values())
 						j.visited = false;
 
-					
+
 					for(BasicBlock j : implicitAnalysisblocks.values())
 					{
 //						System.out.println(j.idx + " " + j.postDominators);
@@ -893,14 +969,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //								System.out.println(b.exceptionsThrown.toString() + b.onFalseSideOfJumpFrom + " "+b.onTrueSideOfJumpFrom);
 //								System.out.println(b.fieldsWritten);
 //								System.out.println(b.varsWritten);
-								if(b.onFalseSideOfJumpFrom.contains(j))
+								if(b.onTrueSideOfJumpFrom.contains(j))
 								{
 									j.varsWrittenTrueSide.addAll(b.varsWritten);
 									j.fieldsWrittenTrueSide.addAll(b.fieldsWritten);
 									j.exceptionsThrownTrueSide.addAll(b.exceptionsThrown);
 									stack.addAll(b.successors);
 								}
-								else if(b.onTrueSideOfJumpFrom.contains(j))
+								else if(b.onFalseSideOfJumpFrom.contains(j))
 								{
 									j.varsWrittenFalseSide.addAll(b.varsWritten);
 									j.fieldsWrittenFalseSide.addAll(b.fieldsWritten);
@@ -915,56 +991,94 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					int jumpID = 0;
 					for (BasicBlock r : implicitAnalysisblocks.values()) {
 						if(r.isTryBlockStart){
-//							System.out.println(name+"handler " + r +", " + r.successors);
-//							System.out.println("End at " + r.tryBlockEnd +", " + r.insn);
 							//Need to actually insert this code at every exit from the SCC that is this try-catch block.
 
-
-							Set<BasicBlock> ending = r.getSuccessorsOutsideOfRegion(r.idx,r.tryBlockEnd.idx, new HashSet<BasicBlock>());
-							for(BasicBlock b : ending) {
-								AbstractInsnNode insn = b.insn;
-								while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
-									insn = insn.getNext();
-//								System.out.println(b +"," + insn);
-								HashSet<LVAccess> common = new HashSet<LVAccess>();
-								common.addAll(r.varsWrittenFalseSide);
-								common.retainAll(r.varsWrittenTrueSide);
-								HashSet<LVAccess> diff = new HashSet<LVAccess>();
-								diff.addAll(r.varsWrittenTrueSide);
-								diff.addAll(r.varsWrittenFalseSide);
-								diff.removeAll(common);
-
-								HashSet<Field> commonFields = new HashSet<>();
-								commonFields.addAll(r.fieldsWrittenTrueSide);
-								commonFields.retainAll(r.fieldsWrittenFalseSide);
-								HashSet<Field> diffFields = new HashSet<>();
-								diffFields.addAll(r.fieldsWrittenFalseSide);
-								diffFields.addAll(r.fieldsWrittenTrueSide);
-								diffFields.removeAll(common);
-
-
-								HashSet<String> commonExceptionsThrown = new HashSet<>();
-								commonExceptionsThrown.addAll(r.exceptionsThrownFalseSide);
-								commonExceptionsThrown.retainAll(r.exceptionsThrownTrueSide);
-								HashSet<String> diffExceptions = new HashSet<>();
-								diffExceptions.addAll(r.exceptionsThrownTrueSide);
-								diffExceptions.addAll(r.exceptionsThrownFalseSide);
-								diffExceptions.removeAll(commonExceptionsThrown);
-								//If we care about the start and end of the try block, that's here.
-//								instructions.insertBefore(insn, new IntInsnNode(TaintUtils.EXCEPTION_HANDLER_START,exceptionHandlerCount));
-								for (String ex : r.exceptionsHandled) {
-									instructions.insertBefore(insn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_RESOLVED, ex));
+							//Find the end of the handler
+							//this is any block that succeeds the handler and either: has no successors or has a successor in common with the start block
+							LinkedList<BasicBlock> handlerEndBlock = new LinkedList<>();
+							LinkedList<BasicBlock> toCheck = new LinkedList<>(r.handledAt.successors);
+							HashSet<BasicBlock> visited = new HashSet<>();
+							while(!toCheck.isEmpty()){
+								BasicBlock e = toCheck.pop();
+								if(!visited.add(e))
+									continue;
+								if(e.successors.size() == 0)
+								{
+									handlerEndBlock.add(e);
 								}
-
-								for (LVAccess i : diff)
-									instructions.insertBefore(insn, i.getNewForceCtrlStoreNode()); 
-								for (Field f : diffFields)
-									instructions.insertBefore(insn, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
-								for (String ex : r.exceptionsHandled) {
-									instructions.insertBefore(insn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_END, ex));
+								else if(r.postDominators.contains(e))
+								{
+									handlerEndBlock.add(e);
 								}
-								instructions.insertBefore(insn, new IntInsnNode(TaintUtils.EXCEPTION_HANDLER_END, r.ex_count));
+								else
+								{
+									toCheck.addAll(e.successors);
+								}
 							}
+
+							AbstractInsnNode lastInstructionInTryBlock = r.tryBlockEnd.insn;
+							while (lastInstructionInTryBlock.getType() == AbstractInsnNode.FRAME || lastInstructionInTryBlock.getType() == AbstractInsnNode.LINE || lastInstructionInTryBlock.getType() == AbstractInsnNode.LABEL)
+								lastInstructionInTryBlock = lastInstructionInTryBlock.getNext();
+
+
+							//Set up the force control store's at the bottom of the try block
+							HashSet<LVAccess> lvsOnlyInHandler = new HashSet<>(r.varsWrittenFalseSide);
+							lvsOnlyInHandler.removeAll(r.varsWrittenTrueSide);
+							HashSet<Field> fieldsOnlyInHandler = new HashSet<>(r.fieldsWrittenFalseSide);
+							fieldsOnlyInHandler.removeAll(r.fieldsWrittenTrueSide);
+							for (LVAccess i : lvsOnlyInHandler)
+								this.instructions.insertBefore(lastInstructionInTryBlock, i.getNewForceCtrlStoreNode());
+							for (Field f : fieldsOnlyInHandler)
+								this.instructions.insertBefore(lastInstructionInTryBlock, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
+
+
+							AbstractInsnNode handledAtInsn = r.handledAt.insn;
+							while (handledAtInsn.getType() == AbstractInsnNode.FRAME || handledAtInsn.getType() == AbstractInsnNode.LINE || handledAtInsn.getType() == AbstractInsnNode.LABEL)
+								handledAtInsn = handledAtInsn.getNext();
+
+							//Then do all of the force-ctr-stores
+							//In the exception handler, force a store of what was written
+							HashSet<LVAccess> diff = new HashSet<LVAccess>();
+
+							diff.addAll(r.varsWrittenTrueSide);
+							diff.removeAll(r.varsWrittenFalseSide);
+
+							HashSet<Field> diffFields = new HashSet<>();
+							diffFields.addAll(r.fieldsWrittenTrueSide);
+							diffFields.removeAll(r.fieldsWrittenFalseSide);
+
+
+							for (LVAccess i : diff)
+								instructions.insertBefore(handledAtInsn, i.getNewForceCtrlStoreNode());
+							for (Field f : diffFields)
+								instructions.insertBefore(handledAtInsn, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
+
+							//At the START of the handler, note that it's the start...
+							instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, null));
+							for (String ex : r.exceptionsHandled) {
+								if (ex == null)
+									ex = "java/lang/Throwable";
+								instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, ex));
+								this.instructions.insertBefore(lastInstructionInTryBlock,new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_END,ex));
+							}
+
+							//At the END of the handler, remove this exception from the queue
+							for(BasicBlock b : handlerEndBlock) {
+								AbstractInsnNode insn = b.insn;
+//								while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
+//									insn = insn.getNext();
+								//Peek backwards to see if we are behind a GOTO
+								while(insn.getPrevious().getType() == AbstractInsnNode.LABEL || insn.getPrevious().getOpcode() == Opcodes.GOTO)
+									insn = insn.getPrevious();
+								if(insn.getType() == AbstractInsnNode.LABEL)
+									insn = b.insn;
+//								System.out.println(b +"," + insn);
+
+
+								instructions.insertBefore(insn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_END, null));
+							}
+
+//							debug(instructions.getFirst());
 						}
 						else if (r.isJump) {
 							jumpID++;
@@ -1006,11 +1120,43 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								instructions.insertBefore(r.insn, i.getNewForceCtrlStoreNode());
 							for (Field f : diffFields)
 								instructions.insertBefore(r.insn, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
-							for (String s : diffExceptions)
-								instructions.insertBefore(r.insn, new TypeInsnNode(TaintUtils.FORCE_CTRL_STORE, s));
+//							for (String s : diffExceptions)
+//								instructions.insertBefore(r.insn, new TypeInsnNode(TaintUtils.FORCE_CTRL_STORE, s));
 
 
 
+						}
+						else if(Configuration.IMPLICIT_EXCEPTION_FLOW && r.insn.getOpcode() >= Opcodes.IRETURN && r.insn.getOpcode() <= Opcodes.RETURN){
+							//Return statement: check to see how we might have gotten here, and then find which exceptions we might have thrown if we came otherwise
+							HashSet<String> missedExceptions = new HashSet<>();
+							for(BasicBlock b : r.onFalseSideOfJumpFrom)
+							{
+								HashSet<String> tmp = new HashSet(b.exceptionsThrownTrueSide);
+								tmp.removeAll(b.exceptionsThrownFalseSide);
+								missedExceptions.addAll(tmp);
+							}
+							for(BasicBlock b : r.onTrueSideOfJumpFrom)
+							{
+								HashSet<String> tmp = new HashSet(b.exceptionsThrownFalseSide);
+								tmp.removeAll(b.exceptionsThrownTrueSide);
+								missedExceptions.addAll(tmp);
+							}
+//							System.out.println(name + ":"+r.idx+" " + missedExceptions);
+							for(String s : missedExceptions){
+								if(s == null)
+									s = "java/lang/Throwable";
+								instructions.insertBefore(r.insn, new TypeInsnNode(TaintUtils.UNTHROWN_EXCEPTION, s));
+							}
+						}
+						else if(Configuration.IMPLICIT_EXCEPTION_FLOW && (r.insn.getType() == AbstractInsnNode.METHOD_INSN || r.insn
+						.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN)){
+							//Are we in a try handler? If so, after this instruction, we should note that our execution may be contingent on some exception
+							for(String s : r.coveredByTryBlockFor)
+							{
+								if(s == null)
+									s = "java/lang/Throwable";
+								instructions.insert(r.insn,new TypeInsnNode(TaintUtils.UNTHROWN_EXCEPTION_CHECK, s));
+							}
 						}
 					}
 
@@ -1082,78 +1228,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						}
 						//						System.out.println(b.insn + " - " + b.domBlocks + "-" + b.antiDomBlocks);
 					}
-					for(BasicBlock b: tryCatchHandlers){
-						AbstractInsnNode insn = b.insn;
-						while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
-							insn = insn.getNext();
-						for(BasicBlock tryBlockStart : b.handlerForRegionStartingAt) {
-							if(tryBlockStart.ex_count == 0)
-								throw new IllegalStateException();
-							instructions.insertBefore(insn, new IntInsnNode(TaintUtils.EXCEPTION_HANDLER_START, tryBlockStart.ex_count));
-						}
-						for(String t : b.exceptionsHandled) {
-							instructions.insertBefore(insn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START,t));
-
-//							this.instructions.insertBefore(insn, new LdcInsnNode("ExceptionHandlerStarting"));
-//							this.instructions.insertBefore(insn, new LdcInsnNode(Type.getObjectType(t)));
-//							this.instructions.insertBefore(insn, new InsnNode(Opcodes.POP));/
-//							this.instructions.insertBefore(insn, new InsnNode(Opcodes.POP));
-						}
-
-						//Find the last instruction in the handler
-						BasicBlock end = b;
-						BasicBlock min = null;
-						stack.clear();
-						stack.add(b);
-						HashMap<BasicBlock,Integer> distances = new HashMap<>();
-						distances.put(b,0);
-						HashSet<BasicBlock> visited = new HashSet<>();
-						while (!stack.isEmpty()) {
-							BasicBlock d = stack.pop();
-							if (!visited.add(d))
-								continue;
-
-							int myDist = distances.get(d);
-							for (BasicBlock s : d.successors) {
-								boolean brk = false;
-								for (BasicBlock resolvedHere : s.resolvedHereBlocks) {
-									if (b.handlerForRegionStartingAt.contains(resolvedHere))
-										brk = true;
-								}
-								for(BasicBlock handling : b.handlerForRegionStartingAt)
-									if(!s.onFalseSideOfJumpFrom.contains(handling))
-										brk = true;
-								if(brk)
-									continue;
-//								System.out.println(s.onFalseSideOfJumpFrom +","+s.resolvedHereBlocks);
-								Integer cur = distances.get(s);
-								if (cur == null)
-									distances.put(s, myDist + 1);
-								else {
-									if (myDist + 1 < cur) {
-										distances.put(s, myDist + 1);
-										visited.remove(s);
-									}
-								}
-								stack.add(s);
-							}
-						}
-						int maxd = 0;
-						for(Entry<BasicBlock,Integer> e : distances.entrySet())
-						{
-							if(e.getValue() > maxd){
-								maxd=e.getValue();
-								end = e.getKey();
-							}
-						}
-//						System.out.println("End " + end);
-//						for(BasicBlock tryBlockStart : b.handlerForRegionStartingAt)
-//							instructions.insert(end.insn, new IntInsnNode(TaintUtils.EXCEPTION_HANDLER_END,tryBlockStart.ex_count));
-
-//						instructions.insert(end.insn, new IntInsnNode(TaintUtils.EXCEPTION_HANDLER_END,b.ex_count));
-//						this.instructions.insert(end.insn, new InsnNode(Opcodes.POP));
-//						this.instructions.insert(end.insn, new LdcInsnNode("Handler end"));
-					}
 					nJumps = jumpID;
 				}
 
@@ -1186,7 +1260,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 			}
 			this.maxStack += 100;
-			
+
 			AbstractInsnNode insn = instructions.getFirst();
 			while(insn != null)
 			{
@@ -1207,7 +1281,24 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		HashMap<Integer,BasicBlock> implicitAnalysisblocks = new HashMap<Integer,PrimitiveArrayAnalyzer.BasicBlock>();
 
 	}
+	static void debug(AbstractInsnNode insn){
+		while(insn != null) {
+			if (insn.getType() == AbstractInsnNode.LABEL)
+				System.out.println("LABEL " + ((LabelNode)insn).getLabel());
+			if (insn.getOpcode() > 0) {
+				if (insn.getOpcode() > PhosphorTextifier.OPCODES.length) {
+					if (insn.getType() == AbstractInsnNode.TYPE_INSN)
+						System.out.println(PhosphorTextifier.TYPE_OR_INT_OPCODES[insn.getOpcode() - 200]);
+					else
+						System.out.println(PhosphorTextifier.MORE_OPCODES[insn.getOpcode() - 200]);
+				} else
+					System.out.println(PhosphorTextifier.OPCODES[insn.getOpcode()]);
+			}
+			insn=insn.getNext();
+		}
+	}
 	static class BasicBlock{
+		public BasicBlock handledAt;
 		protected int idxOrder;
 		public HashSet<BasicBlock> postDominators= new HashSet<PrimitiveArrayAnalyzer.BasicBlock>() ;
 		int idx;
@@ -1223,6 +1314,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		boolean is2ArgJump;
 		int ex_count;
 		HashSet<String> exceptionsHandled = new HashSet<>();
+		HashSet<String> coveredByTryBlockFor = new HashSet<>();
 		HashSet<BasicBlock> handlerForRegionStartingAt = new HashSet<>();
 		BasicBlock tryBlockEnd;
 
@@ -1401,6 +1493,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			if (Configuration.PREALLOC_STACK_OPS)
 				wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("I"));
 			break;
+		case Opcodes.ATHROW:
+			nThrow++;
+			break;
 		}
 	}
 	@Override
@@ -1418,6 +1513,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		this.mn = new PrimitiveArrayAnalyzerMN(access, name, desc, signature, exceptions, className, cmv);
 		this.mv = mn;
 	}
+
 	public PrimitiveArrayAnalyzer(Type singleWrapperTypeToAdd) {
 		super(Opcodes.ASM5);
 		this.mv = new PrimitiveArrayAnalyzerMN(0, null,null,null,null,null, null);
@@ -1433,16 +1529,54 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 	public boolean hasFinally;
 	public int nTryCatch;
+	public int nThrow;
+	HashMap<Label, LinkedList<Label>> newLabels = new HashMap<>();
+	private Label addUniqueLabelFor(Label existing)
+	{
+		Label ret = new Label();
+		if(!newLabels.containsKey(existing))
+			newLabels.put(existing,new LinkedList<Label>());
+		newLabels.get(existing).add(ret);
+		return ret;
+	}
+
+	@Override
+	public void visitLabel(Label label) {
+		super.visitLabel(label);
+		LinkedList<Label> lbls = this.newLabels.remove(label);
+		if(lbls != null){
+			for(Label l : lbls)
+			super.visitLabel(l);
+		}
+	}
+
+	@Override
+	public void visitEnd() {
+		super.visitEnd();
+	}
+
 	@Override
 	public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
-		super.visitTryCatchBlock(start, end, handler, type);
-		if(type == null)
+
+		super.visitTryCatchBlock(addUniqueLabelFor(start),
+				end,
+//				addUniqueLabelFor(end),
+				handler, type);
+		if (type == null)
 			hasFinally = true;
 		nTryCatch++;
 	}
 	static class LVAccess{
 		int idx;
 		String desc;
+
+		@Override
+		public String toString() {
+			return "LVAccess{" +
+					"idx=" + idx +
+					", desc='" + desc + '\'' +
+					'}';
+		}
 
 		public LVAccess(int idx, String desc) {
 			this.idx = idx;

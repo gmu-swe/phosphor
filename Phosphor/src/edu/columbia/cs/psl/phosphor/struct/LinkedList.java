@@ -70,6 +70,10 @@ public class LinkedList<T> implements Cloneable, Serializable {
 		}
 		
 	}
+
+	public synchronized boolean isEmpty(){
+		return first.next == null;
+	}
 	public synchronized boolean add(T o)
 	{
 		return addUnique(o);
