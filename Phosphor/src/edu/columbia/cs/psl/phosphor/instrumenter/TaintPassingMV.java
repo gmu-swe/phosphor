@@ -7,10 +7,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAd
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingLabel;
 import edu.columbia.cs.psl.phosphor.runtime.*;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
-import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
-import edu.columbia.cs.psl.phosphor.struct.Field;
+import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
@@ -22,6 +19,7 @@ import org.objectweb.asm.util.Printer;
 import org.objectweb.asm.util.Textifier;
 
 import java.util.*;
+import java.util.LinkedList;
 
 @SuppressWarnings("ALL")
 public class TaintPassingMV extends TaintAdapter implements Opcodes {
@@ -2042,6 +2040,33 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			Configuration.taintTagFactory.methodOp(opcode, owner, name, desc, itfc, mv, lvs, this);
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
+		}
+		if(Configuration.IMPLICIT_TRACKING && opcode == Opcodes.INVOKEVIRTUAL && owner.equals("java/lang/Object") && (name.equals("equals") || name.equals("hashCode")))
+		{
+			Type callee = getTopOfStackType();
+			if(name.equals("equals"))
+				callee = getStackTypeAtOffset(1);
+
+			if(callee.getSort() == Type.OBJECT) {
+				String calledOn = callee.getInternalName();
+
+				try {
+					Class in = Class.forName(calledOn.replace('/', '.'), false, TaintPassingMV.class.getClassLoader());
+					if (!in.isInterface() && !Instrumenter.isIgnoredClass(calledOn)) {
+						owner = calledOn;
+					}
+				} catch (Throwable t) {
+					//if not ignored, can still make an invokeinterface
+					if (!Instrumenter.isIgnoredClass(calledOn)) {
+						owner = Type.getInternalName(TaintedWithObjTag.class);
+						opcode = INVOKEINTERFACE;
+						itfc = true;
+//						t.printStackTrace();
+					}
+
+				}
+
+			}
 		}
 		if(opcode == INVOKEVIRTUAL && Configuration.WITH_HEAVY_OBJ_EQUALS_HASHCODE && (name.equals("equals") || name.equals("hashCode")) && owner.equals("java/lang/Object"))
 		{

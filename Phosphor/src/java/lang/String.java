@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
@@ -95,11 +96,11 @@ public final class String implements Serializable, Comparable<String>,
 
     private static final char[] ascii;
 
-    public final char[] value;
+    public char[] value;
 
-    private final int offset;
+    public int offset;
 
-    private final int count;
+    public int count;
 
     private int hashCode;
 
@@ -432,6 +433,10 @@ public final class String implements Serializable, Comparable<String>,
         } else {
             throw new StringIndexOutOfBoundsException();
         }
+    }
+    public String(LazyCharArrayObjTags t, char[] data, ControlTaintTagStack ctrl, TaintSentinel s)
+    {
+
     }
 
     /*

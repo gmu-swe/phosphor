@@ -5,11 +5,15 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class ControlTaintTagStack {
+
+	/** Used for pooling **/
+	public ControlTaintTagStack nextEntry;
+
 	public Taint taint;
 	boolean invalidated;
 	LinkedList<MaybeThrownException> unThrownExceptionStack = new LinkedList<>();
 
-	public LinkedList<MaybeThrownException> influenceExceptions;
+	public LinkedList<MaybeThrownException> influenceExceptions = new LinkedList<>();
 	public final boolean isEmpty() {
 		return taint == null || (taint.lbl == null && taint.hasNoDependencies());
 	}
@@ -18,8 +22,6 @@ public final class ControlTaintTagStack {
 	}
 
 	public ControlTaintTagStack() {
-		if(Configuration.IMPLICIT_EXCEPTION_FLOW)
-			influenceExceptions = new LinkedList<>();
 	}
 	public Taint copyTag()
 	{

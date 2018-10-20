@@ -582,10 +582,11 @@ public class RuntimeBoxUnboxPropogator {
 	}
 
 	public static String toString$$PHOSPHORTAGGED(Taint t, double i, ControlTaintTagStack ctrl) {
-		if (t == null)
-			return Double.toString(i);
-		String ret = new String(Double.toString(i).toCharArray());
-		ret.setPHOSPHOR_TAG(t);
+		char[] c = Double.toString$$PHOSPHORTAGGED(t, i, ctrl).value;
+		String ret = new String(new LazyCharArrayObjTags(c), c, ctrl, null) ;
+		if (t != null) {
+			ret.setPHOSPHOR_TAG(t);
+		}
 		return ret;
 	}
 

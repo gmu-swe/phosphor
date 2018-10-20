@@ -36,6 +36,7 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -107,37 +108,37 @@ public class Instrumenter {
 	public static boolean isIgnoredClass(String owner) {
 		if(Configuration.taintTagFactory.isIgnoredClass(owner))
 			return true;
-		return (Configuration.ADDL_IGNORE != null && owner.startsWith(Configuration.ADDL_IGNORE)) || owner.startsWith("java/lang/Object") || owner.startsWith("java/lang/Boolean") || owner.startsWith("java/lang/Character")
-				|| owner.startsWith("java/lang/Byte")
-				|| owner.startsWith("java/lang/Short")
-				|| owner.startsWith("org/jikesrvm") || owner.startsWith("com/ibm/tuningfork") || owner.startsWith("org/mmtk") || owner.startsWith("org/vmmagic")
-//				|| owner.startsWith("edu/columbia/cs/psl/microbench")
-				|| owner.startsWith("java/lang/Number") || owner.startsWith("java/lang/Comparable") || owner.startsWith("java/lang/ref/SoftReference") || owner.startsWith("java/lang/ref/Reference")
-				//																|| owner.startsWith("java/awt/image/BufferedImage")
+		return (Configuration.ADDL_IGNORE != null && StringUtils.startsWith(owner, Configuration.ADDL_IGNORE)) || StringUtils.startsWith(owner, "java/lang/Object") || StringUtils.startsWith(owner, "java/lang/Boolean") || StringUtils.startsWith(owner, "java/lang/Character")
+				|| StringUtils.startsWith(owner, "java/lang/Byte")
+				|| StringUtils.startsWith(owner, "java/lang/Short")
+				|| StringUtils.startsWith(owner, "org/jikesrvm") || StringUtils.startsWith(owner, "com/ibm/tuningfork") || StringUtils.startsWith(owner, "org/mmtk") || StringUtils.startsWith(owner, "org/vmmagic")
+//				|| StringUtils.startsWith(owner, "edu/columbia/cs/psl/microbench")
+				|| StringUtils.startsWith(owner, "java/lang/Number") || StringUtils.startsWith(owner, "java/lang/Comparable") || StringUtils.startsWith(owner, "java/lang/ref/SoftReference") || StringUtils.startsWith(owner, "java/lang/ref/Reference")
+				//																|| StringUtils.startsWith(owner, "java/awt/image/BufferedImage")
 				//																|| owner.equals("java/awt/Image")
-				|| (owner.startsWith("edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
-				||owner.startsWith("sun/awt/image/codec/")
-								|| (owner.startsWith("sun/reflect/Reflection")) //was on last
+				|| (StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
+				||StringUtils.startsWith(owner, "sun/awt/image/codec/")
+								|| (StringUtils.startsWith(owner, "sun/reflect/Reflection")) //was on last
 				|| owner.equals("java/lang/reflect/Proxy") //was on last
-				|| owner.startsWith("sun/reflection/annotation/AnnotationParser") //was on last
-				|| owner.startsWith("sun/reflect/MethodAccessor") //was on last
-				|| owner.startsWith("org/apache/jasper/runtime/JspSourceDependent")
-				|| owner.startsWith("sun/reflect/ConstructorAccessor") //was on last
-				|| owner.startsWith("sun/reflect/SerializationConstructorAccessor")
+				|| StringUtils.startsWith(owner, "sun/reflection/annotation/AnnotationParser") //was on last
+				|| StringUtils.startsWith(owner, "sun/reflect/MethodAccessor") //was on last
+				|| StringUtils.startsWith(owner, "org/apache/jasper/runtime/JspSourceDependent")
+				|| StringUtils.startsWith(owner, "sun/reflect/ConstructorAccessor") //was on last
+				|| StringUtils.startsWith(owner, "sun/reflect/SerializationConstructorAccessor")
 
-				|| owner.startsWith("sun/reflect/GeneratedMethodAccessor") || owner.startsWith("sun/reflect/GeneratedConstructorAccessor")
-				|| owner.startsWith("sun/reflect/GeneratedSerializationConstructor") || owner.startsWith("sun/awt/image/codec/")
-				|| owner.startsWith("java/lang/invoke/LambdaForm")
-				|| owner.startsWith("java/lang/invoke/LambdaMetafactory")
-				|| owner.startsWith("edu/columbia/cs/psl/phosphor/struct/TaintedWith")
-				|| owner.startsWith("java/util/regex/HashDecompositions") //Huge constant array/hashmap
+				|| StringUtils.startsWith(owner, "sun/reflect/GeneratedMethodAccessor") || StringUtils.startsWith(owner, "sun/reflect/GeneratedConstructorAccessor")
+				|| StringUtils.startsWith(owner, "sun/reflect/GeneratedSerializationConstructor") || StringUtils.startsWith(owner, "sun/awt/image/codec/")
+				|| StringUtils.startsWith(owner, "java/lang/invoke/LambdaForm")
+				|| StringUtils.startsWith(owner, "java/lang/invoke/LambdaMetafactory")
+				|| StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor/struct/TaintedWith")
+				|| StringUtils.startsWith(owner, "java/util/regex/HashDecompositions") //Huge constant array/hashmap
 				
-				|| owner.startsWith("java/lang/invoke/MethodHandle")
-				|| (owner.startsWith("java/lang/invoke/BoundMethodHandle")
-						&& !owner.startsWith("java/lang/invoke/BoundMethodHandle$Factory"))
-				|| owner.startsWith("java/lang/invoke/DelegatingMethodHandle")
+				|| StringUtils.startsWith(owner, "java/lang/invoke/MethodHandle")
+				|| (StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle")
+						&& !StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle$Factory"))
+				|| StringUtils.startsWith(owner, "java/lang/invoke/DelegatingMethodHandle")
 				|| owner.equals("java/lang/invoke/DirectMethodHandle")
-				|| owner.startsWith("java/util/function/Function")
+				|| StringUtils.startsWith(owner, "java/util/function/Function")
 
 		;
 	}
@@ -888,8 +889,8 @@ public class Instrumenter {
 	}
 
 	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc) {
-		if (!owner.startsWith("edu/columbia/cs/psl/phosphor") &&!owner.startsWith("[")
-			&& !owner.startsWith("java")
+		if (!StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor") &&!StringUtils.startsWith(owner, "[")
+			&& !StringUtils.startsWith(owner, "java")
 				&& !SelectiveInstrumentationManager.methodsToInstrument.contains(new MethodDescriptor(name, owner, desc))) {
 			if (TaintUtils.DEBUG_CALLS)
 				System.out.println("Using uninstrument method call for class: " + owner + " method: " + name + " desc: " + desc);

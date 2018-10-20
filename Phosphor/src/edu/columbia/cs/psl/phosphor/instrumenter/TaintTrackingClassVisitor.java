@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
+import edu.columbia.cs.psl.phosphor.runtime.*;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
@@ -32,10 +33,6 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
-import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
-import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
@@ -583,6 +580,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	@Override
 	public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+		if(shouldMakeFieldPublic(className,name,desc)){
+			access = access & ~Opcodes.ACC_PRIVATE;
+			access = access & ~Opcodes.ACC_PROTECTED;
+			access = access | Opcodes.ACC_PUBLIC;
+		}
 		Type fieldType = Type.getType(desc);
 		if (TaintUtils.getShadowTaintType(desc) != null) {
 			if(TaintAdapter.canRawTaintAccess(className))
@@ -597,6 +599,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		if((access & Opcodes.ACC_STATIC) == 0)
 			myFields.add(new FieldNode(access, name, desc, signature, value));
 		return super.visitField(access, name, desc, signature, value);
+	}
+
+	private boolean shouldMakeFieldPublic(String className, String name, String desc) {
+		return className.equals("java/lang/String") && (name.equals("value"));
 	}
 
 	boolean addTaintField = false;
@@ -1186,12 +1192,15 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 							}
 							idx += t.getSize();
 						}
+						int tempControlFlowIdx = -1;
 						if(Configuration.IMPLICIT_TRACKING)
 						{
 							newDesc += Type.getDescriptor(ControlTaintTagStack.class);
-							ga.visitTypeInsn(Opcodes.NEW, Type.getInternalName(ControlTaintTagStack.class));
+							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ControlTaintTagStackPool.class), "instance", "()"+ Type.getDescriptor(ControlTaintTagStack.class), false);
 							ga.visitInsn(Opcodes.DUP);
-							ga.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "()V", false);
+							tempControlFlowIdx = ga.newLocal(Type.getType(ControlTaintTagStack.class));
+							ga.visitVarInsn(Opcodes.ASTORE, tempControlFlowIdx);
+
 						}
 						else if(Configuration.IMPLICIT_HEADERS_NO_TRACKING)
 						{
@@ -1221,6 +1230,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						} else
 							ga.visitMethodInsn(opcode, className, m.name + TaintUtils.METHOD_SUFFIX, newDesc,false);
 
+						if(tempControlFlowIdx >= 0){
+							ga.visitVarInsn(Opcodes.ALOAD, tempControlFlowIdx);
+							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ControlTaintTagStackPool.class), "release", "("+Type.getDescriptor(ControlTaintTagStack.class)+")V", false);
+						}
 						//unbox collections
 						idx =0;
 						if ((m.access & Opcodes.ACC_STATIC) == 0) {
