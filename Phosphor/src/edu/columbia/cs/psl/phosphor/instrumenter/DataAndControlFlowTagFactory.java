@@ -532,9 +532,8 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				mv.visitInsn(SWAP);
 				mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 				mv.visitInsn(SWAP);
-				mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-				ta.callPushControlTaint();
-				mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
+				mv.visitVarInsn(ALOAD, ta.controlTaintArray);
+				ta.callPushControlTaint(branchStarting);
 				ta.doForceCtrlStores();
 				mv.visitJumpInsn(opcode, label);
 				break;
@@ -584,12 +583,10 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				mv.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, tmp);
 				lvs.freeTmpLV(tmp);
 				//V V C T CT
-				mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-				ta.callPushControlTaint();
-				mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
-				mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting+1]);
-				ta.callPushControlTaint();
-				mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting+1]);
+				mv.visitVarInsn(ALOAD, ta.controlTaintArray);
+				ta.callPushControlTaint(branchStarting);
+				mv.visitVarInsn(ALOAD, ta.controlTaintArray);
+				ta.callPushControlTaint(branchStarting+1);
 				ta.doForceCtrlStores();
 				mv.visitJumpInsn(opcode, label);
 				break;

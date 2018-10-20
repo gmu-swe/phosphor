@@ -1,8 +1,10 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -12,11 +14,8 @@ import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TaintAdapter extends MethodVisitor implements Opcodes {
 
@@ -1028,5 +1027,17 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 		getTaintFieldOfBoxedType(Configuration.TAINTED_INT_INTERNAL_NAME);
 		super.visitInsn(SWAP);
 		super.visitFieldInsn(GETFIELD, Configuration.TAINTED_INT_INTERNAL_NAME, "val", "I");
+	}
+
+	public void push(final int value) {
+		if (value >= -1 && value <= 5) {
+			super.visitInsn(Opcodes.ICONST_0 + value);
+		} else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
+			super.visitIntInsn(Opcodes.BIPUSH, value);
+		} else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
+			super.visitIntInsn(Opcodes.SIPUSH, value);
+		} else {
+			super.visitLdcInsn(value);
+		}
 	}
 }

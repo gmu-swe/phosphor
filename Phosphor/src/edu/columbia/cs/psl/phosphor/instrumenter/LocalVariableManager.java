@@ -46,10 +46,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	public void visitVarInsn(int opcode, int var) {
 		if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START || isIgnoreEverything)
 		{
-			if(var == -1)
-				mv.visitVarInsn(opcode, idxOfMasterControlLV);
-			else
-				mv.visitVarInsn(opcode, var);
+			mv.visitVarInsn(opcode, var);
 			return;
 		}
 		super.visitVarInsn(opcode, var);
@@ -204,15 +201,15 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	}
 	public int newControlTaintLV()
 	{
-		int idx = super.newLocal(Type.getType("Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"));
+		int idx = super.newLocal(Type.getType("[Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"));
 		if (ctrlTagStartLbl == null) {
 			ctrlTagStartLbl = new Label();
 			super.visitLabel(ctrlTagStartLbl);
 		}
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag", "[Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
 		createdLVs.add(newLVN);
 //		System.out.println("Create taint tag at " + idx);
-		analyzer.locals.add(idx, "edu/columbia/cs/psl/phosphor/struct/EnqueuedTaint");
+		analyzer.locals.add(idx, "[Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;");
 		jumpIdx++;
 		return idx;
 	}

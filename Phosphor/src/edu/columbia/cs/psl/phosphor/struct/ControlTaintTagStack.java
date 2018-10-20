@@ -128,16 +128,37 @@ public final class ControlTaintTagStack {
 
 	public LinkedList<Taint> prevTaints = new LinkedList<>();
 
-	public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev, ExceptionalTaintData curMethod) {
+	public final void push(Taint tag, EnqueuedTaint prev[], int i, ExceptionalTaintData curMethod) {
 		if(tag != null)
 			curMethod.push(tag);
-		return push(tag, prev);
+		push(tag, prev, i);
+	}
+	public final void push(Taint tag, EnqueuedTaint[] prev, int i) {
+		if (tag == null || tag == taint)
+			return ;
+
+		if(prev[i] == null)
+			prev[i] = new EnqueuedTaint();
+		prev[i].activeCount++;
+		prevTaints.addFast(this.taint);
+		if (this.taint == null)
+		{
+			this.taint = new Taint(tag);
+		}
+		else {
+			Taint prevTaint = this.taint;
+			this.taint = prevTaint.copy();
+			this.taint.addDependency(tag);
+
+		}
+		return;
 	}
 	public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
 		if (tag == null || tag == taint)
 			return null;
 
 		EnqueuedTaint ret = (prev == null ? new EnqueuedTaint() : prev);
+
 		ret.activeCount++;
 		prevTaints.addFast(this.taint);
 		if (this.taint == null)
@@ -152,12 +173,42 @@ public final class ControlTaintTagStack {
 		}
 		return ret;
 	}
-	public final void pop(EnqueuedTaint enq, ExceptionalTaintData curMethod) {
-		if(enq == null)
+	public final void pop(EnqueuedTaint enq[], int i, ExceptionalTaintData curMethod) {
+		if(enq[i] == null)
 			return;
-		curMethod.pop(enq.activeCount);
-		pop(enq);
+		curMethod.pop(enq[i].activeCount);
+		pop(enq, i);
 
+	}
+	public final void pop(EnqueuedTaint[] enq, int i) {
+		if (enq[i] == null)
+			return;
+		while (enq[i].activeCount > 0) {
+			this.taint = prevTaints.pop();
+			enq[i].activeCount--;
+		}
+	}
+	public final void pop(EnqueuedTaint enq[], ExceptionalTaintData curMethod) {
+		for(EnqueuedTaint e : enq) {
+			if(e != null) {
+				curMethod.pop(e.activeCount);
+				while (e.activeCount > 0) {
+					this.taint = prevTaints.pop();
+					e.activeCount--;
+				}
+			}
+		}
+
+	}
+	public final void pop(EnqueuedTaint[] enq) {
+		for(EnqueuedTaint e : enq)
+		{
+			if(e != null)
+				while (e.activeCount > 0) {
+					this.taint = prevTaints.pop();
+					e.activeCount--;
+				}
+		}
 	}
 	public final void pop(EnqueuedTaint enq) {
 		if (enq == null)
