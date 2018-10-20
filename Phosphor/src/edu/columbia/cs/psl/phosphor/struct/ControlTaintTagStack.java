@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class ControlTaintTagStack {
@@ -7,14 +9,17 @@ public final class ControlTaintTagStack {
 	boolean invalidated;
 	LinkedList<MaybeThrownException> unThrownExceptionStack = new LinkedList<>();
 
-	public LinkedList<MaybeThrownException> influenceExceptions = new LinkedList<>();
+	public LinkedList<MaybeThrownException> influenceExceptions;
 	public final boolean isEmpty() {
 		return taint == null || (taint.lbl == null && taint.hasNoDependencies());
 	}
 	public ControlTaintTagStack(int zz) {
 		this();
 	}
+
 	public ControlTaintTagStack() {
+		if(Configuration.IMPLICIT_EXCEPTION_FLOW)
+			influenceExceptions = new LinkedList<>();
 	}
 	public Taint copyTag()
 	{
@@ -128,18 +133,19 @@ public final class ControlTaintTagStack {
 
 	public LinkedList<Taint> prevTaints = new LinkedList<>();
 
-	public final void push(Taint tag, EnqueuedTaint prev[], int i, ExceptionalTaintData curMethod) {
+	public final void push(Taint tag, int prev[], int i, ExceptionalTaintData curMethod) {
 		if(tag != null)
 			curMethod.push(tag);
 		push(tag, prev, i);
 	}
-	public final void push(Taint tag, EnqueuedTaint[] prev, int i) {
+	public final void push(Taint tag, int[] prev, int i) {
 		if (tag == null || tag == taint)
-			return ;
+			return;
+		_push(tag, prev, i);
+	}
 
-		if(prev[i] == null)
-			prev[i] = new EnqueuedTaint();
-		prev[i].activeCount++;
+	public final void _push(Taint tag, int[] prev, int i){
+		prev[i]++;
 		prevTaints.addFast(this.taint);
 		if (this.taint == null)
 		{
@@ -173,41 +179,44 @@ public final class ControlTaintTagStack {
 		}
 		return ret;
 	}
-	public final void pop(EnqueuedTaint enq[], int i, ExceptionalTaintData curMethod) {
-		if(enq[i] == null)
+	public final void pop(int enq[], int i, ExceptionalTaintData curMethod) {
+		if(enq[i] == 0)
 			return;
-		curMethod.pop(enq[i].activeCount);
+		curMethod.pop(enq[i]);
 		pop(enq, i);
 
 	}
-	public final void pop(EnqueuedTaint[] enq, int i) {
-		if (enq[i] == null)
+	public final void pop(int[] enq, int i) {
+		if (enq[i] == 0)
 			return;
-		while (enq[i].activeCount > 0) {
+		_pop(enq, i);
+	}
+	private final void _pop(int[] enq, int i){
+		while (enq[i]> 0) {
 			this.taint = prevTaints.pop();
-			enq[i].activeCount--;
+			enq[i]--;
 		}
 	}
-	public final void pop(EnqueuedTaint enq[], ExceptionalTaintData curMethod) {
-		for(EnqueuedTaint e : enq) {
-			if(e != null) {
-				curMethod.pop(e.activeCount);
-				while (e.activeCount > 0) {
+	public final void pop(int enq[], ExceptionalTaintData curMethod) {
+		for(int i = 0; i < enq.length; i++){
+			if(enq[i] != 0) {
+				curMethod.pop(enq[i]);
+				while (enq[i]> 0) {
 					this.taint = prevTaints.pop();
-					e.activeCount--;
+					enq[i]--;
 				}
 			}
 		}
 
 	}
-	public final void pop(EnqueuedTaint[] enq) {
-		for(EnqueuedTaint e : enq)
-		{
-			if(e != null)
-				while (e.activeCount > 0) {
+	public final void pop(int[] enq) {
+		for (int i = 0; i < enq.length; i++) {
+			if (enq[i] != 0) {
+				while (enq[i] > 0) {
 					this.taint = prevTaints.pop();
-					e.activeCount--;
+					enq[i]--;
 				}
+			}
 		}
 	}
 	public final void pop(EnqueuedTaint enq) {

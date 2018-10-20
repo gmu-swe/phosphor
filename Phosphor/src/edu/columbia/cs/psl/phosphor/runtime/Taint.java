@@ -159,10 +159,12 @@ public class Taint<T> implements Serializable {
 				combineTagsOnArrayInPlace((Object[]) o, t1, dims-1);
 		}
 	}
-	public static <T> void combineTagsInPlace(Object obj, Taint<T> t1)
-	{
-		if(obj == null || t1 == null || IGNORE_TAINTING)
+	public static <T> void combineTagsInPlace(Object obj, Taint<T> t1) {
+		if (obj == null || t1 == null || IGNORE_TAINTING)
 			return;
+		_combineTagsInPlace(obj, t1);
+	}
+	public static <T> void _combineTagsInPlace(Object obj, Taint<T> t1){
 		@SuppressWarnings("unchecked")
 		Taint<T> t = (Taint<T>) TaintUtils.getTaintObj(obj);
 		if(t == null)
@@ -241,7 +243,7 @@ public class Taint<T> implements Serializable {
 	}
 	@SuppressWarnings("unchecked")
 	public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags){
-		if(t1 == null && tags.taint == null && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.influenceExceptions.isEmpty()))
+		if(t1 == null && tags.taint == null && (tags.influenceExceptions == null || tags.influenceExceptions.isEmpty()))
 			return null;
 		return _combineTagsInternal(t1,tags);
 	}

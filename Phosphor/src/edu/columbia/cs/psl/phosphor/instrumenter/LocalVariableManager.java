@@ -201,15 +201,15 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	}
 	public int newControlTaintLV()
 	{
-		int idx = super.newLocal(Type.getType("[Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"));
+		int idx = super.newLocal(Type.getType("[I"));
 		if (ctrlTagStartLbl == null) {
 			ctrlTagStartLbl = new Label();
 			super.visitLabel(ctrlTagStartLbl);
 		}
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag", "[Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag", "[I", null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
 		createdLVs.add(newLVN);
 //		System.out.println("Create taint tag at " + idx);
-		analyzer.locals.add(idx, "[Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;");
+		analyzer.locals.add(idx, "[I");
 		jumpIdx++;
 		return idx;
 	}

@@ -54,10 +54,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		super.push(idx);
 		if (lvs.idxOfMasterExceptionLV >= 0) {
 			super.visitVarInsn(ALOAD, lvs.idxOfMasterExceptionLV);
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "[Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;I" + Type.getDescriptor(ExceptionalTaintData.class) + ")V", false);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "[II" + Type.getDescriptor(ExceptionalTaintData.class) + ")V", false);
 
 		} else
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "[Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;I" + ")V", false);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "[II" + ")V", false);
 	}
 
 	public void callPopControlTaint(MethodVisitor _mv, int idx) {
@@ -70,18 +70,18 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				_mv.visitIntInsn(BIPUSH, idx);
 			if (lvs.idxOfMasterExceptionLV >= 0) {
 				_mv.visitVarInsn(ALOAD, lvs.idxOfMasterExceptionLV);
-				_mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "([" + "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;I" + Type.getDescriptor(ExceptionalTaintData.class) + ")V", false);
+				_mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "([" + "II" + Type.getDescriptor(ExceptionalTaintData.class) + ")V", false);
 			} else {
-				_mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "([" + "Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;I" + ")V", false);
+				_mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "([" + "II" + ")V", false);
 			}
 		}
 	}
 	public void callPopAllControlTaint(MethodVisitor _mv) {
 		if (lvs.idxOfMasterExceptionLV >= 0) {
 			_mv.visitVarInsn(ALOAD,lvs.idxOfMasterExceptionLV);
-			_mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "(" + "[Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;" +Type.getDescriptor(ExceptionalTaintData.class)+ ")V", false);
+			_mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "(" + "[I" +Type.getDescriptor(ExceptionalTaintData.class)+ ")V", false);
 		} else {
-			_mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "(" + "[Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;" + ")V", false);
+			_mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "pop", "(" + "[I" + ")V", false);
 		}
 	}
 
@@ -127,7 +127,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				controlTaintArray = lvs.newControlTaintLV();
 				int nJumps = arrayAnalyzer.nJumps+arrayAnalyzer.nTryCatch+2;
 				super.push(nJumps);
-				super.visitTypeInsn(Opcodes.ANEWARRAY,Type.getInternalName(EnqueuedTaint.class));
+				super.visitIntInsn(NEWARRAY,T_INT);
 				super.visitVarInsn(Opcodes.ASTORE,controlTaintArray);
 			}
 
@@ -2408,7 +2408,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			if(lvs.idxOfMasterExceptionLV >= 0)
 				baseLvs[lvs.idxOfMasterExceptionLV] = Type.getInternalName(ExceptionalTaintData.class);
 			if(controlTaintArray > 0)
-			baseLvs[controlTaintArray] = "[Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;";
+			baseLvs[controlTaintArray] = "[I";
 //			if(this.name.equals("<init>"))
 //				baseLvs[0] = UNINITIALIZED_THIS;
 			super.visitFrame(F_NEW, baseLvs.length, baseLvs,1,new Object[]{"java/lang/Throwable"});

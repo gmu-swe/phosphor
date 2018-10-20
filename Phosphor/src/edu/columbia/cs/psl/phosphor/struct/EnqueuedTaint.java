@@ -4,7 +4,6 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public class EnqueuedTaint {
 	int activeCount;
-	Taint thisMethodsControlTaint;
 	public EnqueuedTaint() {
 	}
 }
