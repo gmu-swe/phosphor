@@ -261,5 +261,6 @@ public final class ControlTaintTagStack {
 		unThrownExceptionStack = new LinkedList<>();
 		prevTaints = new LinkedList<>();
 		taint = null;
+		influenceExceptions = new LinkedList<>();
 	}
 }

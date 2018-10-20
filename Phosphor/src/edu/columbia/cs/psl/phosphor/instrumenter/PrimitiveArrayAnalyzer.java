@@ -340,6 +340,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								System.out.println("Input to successor: " + inFrames.get(labelToSuccessor).stack);
 
 							for (Integer toMerge : edge.getValue()) {
+								if(Configuration.IMPLICIT_EXCEPTION_FLOW)
+								{
+									BasicBlock b = implicitAnalysisblocks.get(toMerge);
+									if(b.insn.getOpcode() == Opcodes.ATHROW)
+										continue;
+								}
 								int labelToMerge = getLabel(toMerge);
 								if (DEBUG)
 									System.out.println(toMerge + " AKA " + labelToMerge);
@@ -674,7 +680,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							}
 							else
 							{
-								this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
+								if(insertAfter.getOpcode() == Opcodes.ATHROW)
+									this.instructions.insertBefore(query, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
+								else
+									this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
 							}
 							nNewNulls++;
 						}
@@ -1033,8 +1042,20 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 
 							AbstractInsnNode handledAtInsn = r.handledAt.insn;
-							while (handledAtInsn.getType() == AbstractInsnNode.FRAME || handledAtInsn.getType() == AbstractInsnNode.LINE || handledAtInsn.getType() == AbstractInsnNode.LABEL)
+							HashSet<String> handledHereAlready = new HashSet<>();
+							HashSet<Integer> forceStoreAlready = new HashSet<>();
+							while (handledAtInsn.getType() == AbstractInsnNode.FRAME || handledAtInsn.getType() == AbstractInsnNode.LINE || handledAtInsn.getType() == AbstractInsnNode.LABEL || handledAtInsn.getOpcode() > 200) {
+								if(handledAtInsn.getOpcode() == TaintUtils.EXCEPTION_HANDLER_START){
+									TypeInsnNode tin = (TypeInsnNode) handledAtInsn;
+									if(tin.desc != null)
+										handledHereAlready.add(tin.desc);
+								}
+								else if(handledAtInsn.getOpcode() == TaintUtils.FORCE_CTRL_STORE && handledAtInsn.getType() == AbstractInsnNode.VAR_INSN){
+									VarInsnNode vn = (VarInsnNode) handledAtInsn;
+									forceStoreAlready.add(vn.var);
+								}
 								handledAtInsn = handledAtInsn.getNext();
+							}
 
 							//Then do all of the force-ctr-stores
 							//In the exception handler, force a store of what was written
@@ -1049,16 +1070,19 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 
 							for (LVAccess i : diff)
-								instructions.insertBefore(handledAtInsn, i.getNewForceCtrlStoreNode());
+								if(!forceStoreAlready.contains(i.idx))
+									instructions.insertBefore(handledAtInsn, i.getNewForceCtrlStoreNode());
 							for (Field f : diffFields)
 								instructions.insertBefore(handledAtInsn, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
 
 							//At the START of the handler, note that it's the start...
-							instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, null));
+							if(handledHereAlready.size() == 0)
+								instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, null));
 							for (String ex : r.exceptionsHandled) {
 								if (ex == null)
 									ex = "java/lang/Throwable";
-								instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, ex));
+								if(!handledHereAlready.contains(ex))
+									instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, ex));
 								this.instructions.insertBefore(lastInstructionInTryBlock,new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_END,ex));
 							}
 
@@ -1068,7 +1092,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //								while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
 //									insn = insn.getNext();
 								//Peek backwards to see if we are behind a GOTO
-								while(insn.getPrevious().getType() == AbstractInsnNode.LABEL || insn.getPrevious().getOpcode() == Opcodes.GOTO)
+								while(insn != null && insn.getPrevious() != null && (insn.getPrevious().getType() == AbstractInsnNode.LABEL || insn.getPrevious().getOpcode() == Opcodes.GOTO))
 									insn = insn.getPrevious();
 								if(insn.getType() == AbstractInsnNode.LABEL)
 									insn = b.insn;
