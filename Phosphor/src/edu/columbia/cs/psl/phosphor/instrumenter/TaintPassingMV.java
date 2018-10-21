@@ -45,17 +45,20 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	Label popAllLabel = new Label();
 
 
+	private int sizeOfControlTaintArray = -1;
 	/**
 	 * Calls "push" on controltainttagstack, possibly requiring loading the exception data
 	 */
 	public void callPushControlTaint(int idx) {
 		super.push(idx);
+		super.push(sizeOfControlTaintArray);
 		if (lvs.idxOfMasterExceptionLV >= 0) {
 			super.visitVarInsn(ALOAD, lvs.idxOfMasterExceptionLV);
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "[II" + Type.getDescriptor(ExceptionalTaintData.class) + ")V", false);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "[III" + Type.getDescriptor(ExceptionalTaintData.class) + ")[I", false);
 
 		} else
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "[II" + ")V", false);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "[III" + ")[I", false);
+		super.visitVarInsn(ASTORE, controlTaintArray);
 	}
 
 	public void callPopControlTaint(MethodVisitor _mv, int idx) {
@@ -123,9 +126,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 			if(arrayAnalyzer.nJumps + arrayAnalyzer.nTryCatch > 0){
 				controlTaintArray = lvs.newControlTaintLV();
-				int nJumps = arrayAnalyzer.nJumps+arrayAnalyzer.nTryCatch+2;
-				super.push(nJumps);
-				super.visitIntInsn(NEWARRAY,T_INT);
+				this.sizeOfControlTaintArray = arrayAnalyzer.nJumps+arrayAnalyzer.nTryCatch+2;
+				super.visitInsn(Opcodes.ACONST_NULL);
 				super.visitVarInsn(Opcodes.ASTORE,controlTaintArray);
 			}
 

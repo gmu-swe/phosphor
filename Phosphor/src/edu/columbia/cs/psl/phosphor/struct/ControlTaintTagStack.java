@@ -135,18 +135,20 @@ public final class ControlTaintTagStack {
 
 	public LinkedList<Taint> prevTaints = new LinkedList<>();
 
-	public final void push(Taint tag, int prev[], int i, ExceptionalTaintData curMethod) {
+	public final int[] push(Taint tag, int prev[], int i, int maxSize, ExceptionalTaintData curMethod) {
 		if(tag != null)
 			curMethod.push(tag);
-		push(tag, prev, i);
+		return push(tag, prev, i, maxSize);
 	}
-	public final void push(Taint tag, int[] prev, int i) {
+	public final int[] push(Taint tag, int[] prev, int i, int maxSize) {
 		if (tag == null || tag == taint)
-			return;
-		_push(tag, prev, i);
+			return prev;
+		return _push(tag, prev, i, maxSize);
 	}
 
-	public final void _push(Taint tag, int[] prev, int i){
+	public final int[] _push(Taint tag, int[] prev, int i, int maxSize){
+		if(prev == null)
+			prev = new int[maxSize];
 		prev[i]++;
 		prevTaints.addFast(this.taint);
 		if (this.taint == null)
@@ -159,7 +161,7 @@ public final class ControlTaintTagStack {
 			this.taint.addDependency(tag);
 
 		}
-		return;
+		return prev;
 	}
 	public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
 		if (tag == null || tag == taint)
@@ -182,14 +184,14 @@ public final class ControlTaintTagStack {
 		return ret;
 	}
 	public final void pop(int enq[], int i, ExceptionalTaintData curMethod) {
-		if(enq[i] == 0)
+		if(enq == null || enq[i] == 0)
 			return;
 		curMethod.pop(enq[i]);
 		pop(enq, i);
 
 	}
 	public final void pop(int[] enq, int i) {
-		if (enq[i] == 0)
+		if (enq == null || enq[i] == 0)
 			return;
 		_pop(enq, i);
 	}
@@ -200,6 +202,8 @@ public final class ControlTaintTagStack {
 		}
 	}
 	public final void pop(int enq[], ExceptionalTaintData curMethod) {
+		if(enq == null)
+			return;
 		for(int i = 0; i < enq.length; i++){
 			if(enq[i] != 0) {
 				curMethod.pop(enq[i]);
@@ -212,6 +216,8 @@ public final class ControlTaintTagStack {
 
 	}
 	public final void pop(int[] enq) {
+		if(enq == null)
+			return;
 		for (int i = 0; i < enq.length; i++) {
 			if (enq[i] != 0) {
 				while (enq[i] > 0) {
