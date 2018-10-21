@@ -215,9 +215,7 @@ public final class ControlTaintTagStack {
 		}
 
 	}
-	public final void pop(int[] enq) {
-		if(enq == null)
-			return;
+	private final void _pop(int[] enq){
 		for (int i = 0; i < enq.length; i++) {
 			if (enq[i] != 0) {
 				while (enq[i] > 0) {
@@ -226,6 +224,11 @@ public final class ControlTaintTagStack {
 				}
 			}
 		}
+	}
+	public final void pop(int[] enq) {
+		if(enq == null)
+			return;
+		_pop(enq);
 	}
 	public final void pop(EnqueuedTaint enq) {
 		if (enq == null)
