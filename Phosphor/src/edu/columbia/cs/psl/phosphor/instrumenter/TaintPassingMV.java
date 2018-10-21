@@ -309,7 +309,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				passthruMV.visitVarInsn(ALOAD, controlTaintArray);
 				callPopControlTaint(passthruMV, var);
 			}
-//			analyzer.clearLabels();
+			analyzer.clearLabels();
 			return;
 		}
 		if (opcode == TaintUtils.ALWAYS_AUTOBOX && analyzer.locals.size() > var && analyzer.locals.get(var) instanceof String) {

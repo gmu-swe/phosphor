@@ -1197,9 +1197,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						{
 							newDesc += Type.getDescriptor(ControlTaintTagStack.class);
 							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ControlTaintTagStackPool.class), "instance", "()"+ Type.getDescriptor(ControlTaintTagStack.class), false);
-							ga.visitInsn(Opcodes.DUP);
-							tempControlFlowIdx = ga.newLocal(Type.getType(ControlTaintTagStack.class));
-							ga.visitVarInsn(Opcodes.ASTORE, tempControlFlowIdx);
+//							ga.visitInsn(Opcodes.DUP);
+//							tempControlFlowIdx = ga.newLocal(Type.getType(ControlTaintTagStack.class));
+//							ga.visitVarInsn(Opcodes.ASTORE, tempControlFlowIdx);
 
 						}
 						else if(Configuration.IMPLICIT_HEADERS_NO_TRACKING)
@@ -1230,10 +1230,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						} else
 							ga.visitMethodInsn(opcode, className, m.name + TaintUtils.METHOD_SUFFIX, newDesc,false);
 
-						if(tempControlFlowIdx >= 0){
-							ga.visitVarInsn(Opcodes.ALOAD, tempControlFlowIdx);
-							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ControlTaintTagStackPool.class), "release", "("+Type.getDescriptor(ControlTaintTagStack.class)+")V", false);
-						}
+//						if(tempControlFlowIdx >= 0){
+//							ga.visitVarInsn(Opcodes.ALOAD, tempControlFlowIdx);
+//							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ControlTaintTagStackPool.class), "release", "("+Type.getDescriptor(ControlTaintTagStack.class)+")V", false);
+//						}
 						//unbox collections
 						idx =0;
 						if ((m.access & Opcodes.ACC_STATIC) == 0) {
