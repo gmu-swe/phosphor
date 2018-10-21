@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class ControlTaintTagStack {
@@ -11,9 +10,9 @@ public final class ControlTaintTagStack {
 
 	public Taint taint;
 	boolean invalidated;
-	LinkedList<MaybeThrownException> unThrownExceptionStack = new LinkedList<>();
+	LinkedList<MaybeThrownException> unThrownExceptionStack;// = new LinkedList<>();
 
-	public LinkedList<MaybeThrownException> influenceExceptions = new LinkedList<>();
+	public LinkedList<MaybeThrownException> influenceExceptions;// = new LinkedList<>();
 	public final boolean isEmpty() {
 		return taint == null || (taint.lbl == null && taint.hasNoDependencies());
 	}
@@ -104,6 +103,8 @@ public final class ControlTaintTagStack {
 	 */
 	public final void applyPossiblyUnthrownExceptionToTaint(Class<? extends Throwable> t)
 	{
+		if(unThrownExceptionStack == null)
+			return;
 		LinkedList.Node<MaybeThrownException> n = unThrownExceptionStack.getFirst();
 		LinkedList.Node<MaybeThrownException> prev = null;
 		while(n != null){
@@ -112,6 +113,8 @@ public final class ControlTaintTagStack {
 					unThrownExceptionStack.pop();
 				else
 					prev.next = n.next;
+				if (influenceExceptions == null)
+					influenceExceptions = new LinkedList<>();
 				influenceExceptions.addFast(n.entry);
 				return;
 			}
@@ -129,6 +132,8 @@ public final class ControlTaintTagStack {
 	public final void addUnthrownException(ExceptionalTaintData taints, Class<? extends Throwable> t) {
 		if (taints != null && taints.taint != null) {
 			MaybeThrownException ex = new MaybeThrownException(t, taints.taint.copy());
+			if(unThrownExceptionStack == null)
+				unThrownExceptionStack = new LinkedList<>();
 			unThrownExceptionStack.add(ex);
 		}
 	}
@@ -267,9 +272,11 @@ public final class ControlTaintTagStack {
 		return taint;
 	}
 	public void reset() {
-		unThrownExceptionStack = new LinkedList<>();
 		prevTaints = new LinkedList<>();
 		taint = null;
-		influenceExceptions = new LinkedList<>();
+		if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
+			unThrownExceptionStack = new LinkedList<>();
+			influenceExceptions = new LinkedList<>();
+		}
 	}
 }
