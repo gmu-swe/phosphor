@@ -80,6 +80,8 @@ public final class ControlTaintTagStack {
 	 * @param exTypeHandled
 	 */
 	public final void tryBlockEnd(Class<? extends Throwable> exTypeHandled){
+		if(influenceExceptions == null)
+			return;
 		LinkedList.Node<MaybeThrownException> n = influenceExceptions.getFirst();
 		LinkedList.Node<MaybeThrownException> prev = null;
 		while(n != null){
@@ -247,12 +249,12 @@ public final class ControlTaintTagStack {
 	public Taint copyTagExceptions(){
 		if(
 				(taint == null || (taint.hasNoDependencies() && taint.lbl == null))
-				&& influenceExceptions.isEmpty()
+				&& (influenceExceptions == null || influenceExceptions.isEmpty())
 		){
 			return null;
 		}
 		Taint ret = taint;
-		if(influenceExceptions.isEmpty())
+		if(influenceExceptions == null || influenceExceptions.isEmpty())
 			return ret.copy();
 		if(ret == null)
 			ret = new Taint();

@@ -217,7 +217,7 @@ public class Taint<T> implements Serializable {
 	}
 
 	public static <T> Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags){
-		if(t1 == null && tags.taint == null && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.influenceExceptions.isEmpty()))
+		if(t1 == null && tags.taint == null && (!Configuration.IMPLICIT_EXCEPTION_FLOW || (tags.influenceExceptions == null || tags.influenceExceptions.isEmpty())))
 			return null;
 		Taint tagsTaint = tags.copyTag();
 		if(Configuration.IMPLICIT_EXCEPTION_FLOW)
