@@ -301,7 +301,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			newDesc = TaintUtils.remapMethodDescForUninst(newDesc);
 			MethodVisitor mv = super.visitMethod(access, newName, newDesc, signature, exceptions);
 			mv = new UninstTaintSentinalArgFixer(mv, access, newName, newDesc, desc);
-			mv = new SpecialOpcodeRemovingMV(mv, ignoreFrames, className, fixLdcClass);
+			SpecialOpcodeRemovingMV somv = new SpecialOpcodeRemovingMV(mv, ignoreFrames, access, className, newDesc, fixLdcClass);
+			mv = somv;
 			MethodVisitor _mv = mv;
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
@@ -312,6 +313,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
 			lvs.disable();
 			mv = lvs;
+			somv.setLVS(lvs);
 			final MethodVisitor cmv = mv;
 			MethodNode wrapper = new MethodNode(Opcodes.ASM5, (isInterface ? access : access & ~Opcodes.ACC_ABSTRACT), name, desc, signature, exceptions) {
 				public void visitEnd() {
@@ -459,7 +461,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 //			if (DO_OPT)
 //				optimizer = new PopOptimizingMV(mv, access, className, name, newDesc, signature, exceptions);
-			mv = new SpecialOpcodeRemovingMV(optimizer,ignoreFrames, className, fixLdcClass);
+			SpecialOpcodeRemovingMV somv = new SpecialOpcodeRemovingMV(optimizer,ignoreFrames, access, className, newDesc, fixLdcClass);
+			mv = somv;
 //			optimizer = new PopOptimizingMV(mv, access,className, name, newDesc, signature, exceptions);
 
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
@@ -482,6 +485,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 			}
 
+			somv.setLVS(lvs);
 			MethodArgReindexer mar = new MethodArgReindexer(nextMV, access, name, newDesc, desc, wrapper, isLambda);
 			TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames);
 
@@ -1122,7 +1126,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 							visitAnnotations(mv,fullMethod);
 						}
 
-						MethodVisitor soc = new SpecialOpcodeRemovingMV(mv, ignoreFrames, className, fixLdcClass);
+						MethodVisitor soc = new SpecialOpcodeRemovingMV(mv, ignoreFrames, m.access, className, m.desc, fixLdcClass);
 						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, soc);
 						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, an, an, mv, generateExtraLVDebug);
 						lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
@@ -1493,7 +1497,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv.visitMaxs(0, 0);
 					mv.visitEnd();
 				} else {
-					mv = new SpecialOpcodeRemovingMV(mv, ignoreFrames, className, fixLdcClass);
+					mv = new SpecialOpcodeRemovingMV(mv, ignoreFrames, mn.access, className, mDesc, fixLdcClass);
 					NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, mn.access, mn.name, mDesc, mv);
 					mv = analyzer;
 					mv = new UninstrumentedReflectionHidingMV(mv, className);
@@ -1714,7 +1718,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		else
 			mv = super.visitMethod(m.access&~Opcodes.ACC_NATIVE, m.name + TaintUtils.METHOD_SUFFIX +(skipUnboxing ? "$$NOUNBOX":""), newDesc, m.signature, exceptions);
 		NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, newDesc, mv);
-		MethodVisitor soc = new SpecialOpcodeRemovingMV(an, ignoreFrames, className, fixLdcClass);
+		MethodVisitor soc = new SpecialOpcodeRemovingMV(an, ignoreFrames, m.access, className, newDesc, fixLdcClass);
 		LocalVariableManager lvs = new LocalVariableManager(m.access,newDesc, soc, an, mv, generateExtraLVDebug);
 		lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
 		GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name + TaintUtils.METHOD_SUFFIX, newDesc);

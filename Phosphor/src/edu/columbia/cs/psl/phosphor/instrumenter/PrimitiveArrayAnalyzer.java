@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	final class PrimitiveArrayAnalyzerMN extends MethodNode {
 		private final String className;
+		private final boolean shouldTrackExceptions;
 		private final MethodVisitor cmv;
 		boolean[] endsWithGOTO;
 		int curLabel = 0;
@@ -32,6 +33,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			super(Opcodes.ASM5,access, name, desc, signature, exceptions);
 			this.className = className;
 			this.cmv = cmv;
+			if(Configuration.IMPLICIT_EXCEPTION_FLOW)
+				shouldTrackExceptions = true;
+			else
+				shouldTrackExceptions = false;
 		}
 
 		@Override
@@ -282,7 +287,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						//														System.out.println(idx + "->"+label);
 					}
 					Frame[] ret = super.analyze(owner, m);
-					if (Configuration.IMPLICIT_EXCEPTION_FLOW) {
+					if (shouldTrackExceptions) {
 						insns = m.instructions.iterator();
 						while (insns.hasNext()) {
 							AbstractInsnNode insn = insns.next();
@@ -340,7 +345,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								System.out.println("Input to successor: " + inFrames.get(labelToSuccessor).stack);
 
 							for (Integer toMerge : edge.getValue()) {
-								if(Configuration.IMPLICIT_EXCEPTION_FLOW)
+								if(shouldTrackExceptions)
 								{
 									BasicBlock b = implicitAnalysisblocks.get(toMerge);
 									if(b.insn.getOpcode() == Opcodes.ATHROW)
@@ -534,7 +539,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						}
 						else if(succesorBlock.insn.getOpcode() == Opcodes.ATHROW){
 							BasicValue ex = (BasicValue) this.getFrames()[successor].getStack(0);
-							if(Configuration.IMPLICIT_EXCEPTION_FLOW && ex!= null && ex.getType() != null && (ex.getType().getDescriptor().contains("Exception") || ex.getType().getDescriptor().contains("Error")))
+							if(shouldTrackExceptions && ex!= null && ex.getType() != null && (ex.getType().getDescriptor().contains("Exception") || ex.getType().getDescriptor().contains("Error")))
 							{
 								succesorBlock.exceptionsThrown.add(ex.getType().getInternalName());
 							}
@@ -734,7 +739,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
 				boolean hasJumps = false;
 				HashSet<BasicBlock> tryCatchHandlers = new HashSet<>();
-				if(Configuration.IMPLICIT_EXCEPTION_FLOW && nTryCatch > 0)
+				if(shouldTrackExceptions && nTryCatch > 0)
 				{
 					int exceptionHandlerCount = 1;
 					hasJumps = true;
@@ -1150,7 +1155,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 
 						}
-						else if(Configuration.IMPLICIT_EXCEPTION_FLOW && r.insn.getOpcode() >= Opcodes.IRETURN && r.insn.getOpcode() <= Opcodes.RETURN){
+						else if(shouldTrackExceptions && r.insn.getOpcode() >= Opcodes.IRETURN && r.insn.getOpcode() <= Opcodes.RETURN){
 							//Return statement: check to see how we might have gotten here, and then find which exceptions we might have thrown if we came otherwise
 							HashSet<String> missedExceptions = new HashSet<>();
 							for(BasicBlock b : r.onFalseSideOfJumpFrom)
@@ -1172,7 +1177,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								instructions.insertBefore(r.insn, new TypeInsnNode(TaintUtils.UNTHROWN_EXCEPTION, s));
 							}
 						}
-						else if(Configuration.IMPLICIT_EXCEPTION_FLOW && (r.insn.getType() == AbstractInsnNode.METHOD_INSN || r.insn
+						else if(shouldTrackExceptions && (r.insn.getType() == AbstractInsnNode.METHOD_INSN || r.insn
 						.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN)){
 							//Are we in a try handler? If so, after this instruction, we should note that our execution may be contingent on some exception
 							for(String s : r.coveredByTryBlockFor)

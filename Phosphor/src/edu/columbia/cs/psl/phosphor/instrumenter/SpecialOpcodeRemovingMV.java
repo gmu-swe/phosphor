@@ -1,13 +1,16 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import com.sun.org.apache.bcel.internal.generic.ACONST_NULL;
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import sun.security.krb5.Config;
 
 public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
@@ -33,11 +36,24 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 		super.visitFieldInsn(opcode, owner, name, desc);
 	}
 
-	public SpecialOpcodeRemovingMV(MethodVisitor sup, boolean ignoreFrames, String clazz, boolean fixLdcClass) {
+	private LocalVariableManager lvs;
+	public void setLVS(LocalVariableManager lvs){
+		this.lvs = lvs;
+	}
+	private int localIdxOfControlTag;
+	public SpecialOpcodeRemovingMV(MethodVisitor sup, boolean ignoreFrames, int acc, String clazz, String desc, boolean fixLdcClass) {
 		super(Opcodes.ASM5, sup);
 		this.ignoreFrames = ignoreFrames;
 		this.clazz = clazz;
 		this.fixLdcClass = fixLdcClass;
+		int n = 0;
+		if((acc & Opcodes.ACC_STATIC) == 0)
+			n++;
+		for(Type t : Type.getArgumentTypes(desc)){
+			if(t.getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class)))
+				this.localIdxOfControlTag = n;
+			n+= t.getSize();
+		}
 	}
 //
 //	HashSet<Label> usedLabels = new HashSet<Label>();
@@ -120,11 +136,26 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	public void visitLdcInsn(Object cst) {
 		if (cst instanceof Type && fixLdcClass) {
 			super.visitLdcInsn(((Type) cst).getInternalName().replace("/", "."));
+			if(Configuration.IMPLICIT_TRACKING)
+				super.visitInsn(Opcodes.ACONST_NULL);
 			super.visitInsn(Opcodes.ICONST_0);
 			super.visitLdcInsn(clazz.replace("/", "."));
-			super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
-			super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;", false);
-			super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", false);
+			if (Configuration.IMPLICIT_TRACKING){
+				if(this.localIdxOfControlTag < 0)
+					localIdxOfControlTag = lvs.idxOfMasterControlLV;
+				super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Class;", false);
+				super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
+				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader$$PHOSPHORTAGGED", "(Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/ClassLoader;", false);
+				super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;"+ Configuration.TAINT_TAG_DESC +"ZLjava/lang/ClassLoader;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Class;", false);
+
+			}
+			else {
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
+				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;", false);
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", false);
+			}
 		} else
 			super.visitLdcInsn(cst);
 	}
