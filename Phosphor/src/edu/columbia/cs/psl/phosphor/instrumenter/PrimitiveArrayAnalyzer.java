@@ -5,6 +5,11 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.struct.Field;
+import org.jgrapht.Graph;
+import org.jgrapht.alg.connectivity.BlockCutpointGraph;
+import org.jgrapht.alg.cycle.CycleDetector;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -1261,27 +1266,31 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			}
 //			System.out.println(name);
 			if (Configuration.ANNOTATE_LOOPS) {
-				SCCAnalyzer scc = new SCCAnalyzer();
-				int max = 0;
-				for(Integer i : implicitAnalysisblocks.keySet())
+				Graph<BasicBlock, DefaultEdge> graph = new DefaultDirectedGraph<BasicBlock, DefaultEdge>(DefaultEdge.class);
+//				for(BasicBlock b : implicitAnalysisblocks.values())
+//					graph.addVertex(b);
+				for(BasicBlock b : implicitAnalysisblocks.values())
 				{
-					if(i > max)
-						max = i;
+					if(b.successorsCompact.size() > 0)
+						graph.addVertex(b);
+					for(BasicBlock c : b.successorsCompact) {
+						graph.addVertex(c);
+						graph.addEdge(b, c);
+					}
 				}
-				BasicBlock[] flatGraph = new BasicBlock[max + 1];
-				for(int i = 0; i < flatGraph.length; i++)
-					flatGraph[i] = implicitAnalysisblocks.get(i);
-				List<List<BasicBlock>> sccs = scc.scc(flatGraph);
-				for (List<BasicBlock> c : sccs) {
-					if (c.size() == 1)
-						continue;
-//					System.out.println(c);
-					for (BasicBlock b : c) {
-						if (b.successors.size() > 1)
-							if (!c.containsAll(b.successors)) {
-								// loop header
-								this.instructions.insertBefore(b.insn, new InsnNode(TaintUtils.LOOP_HEADER));
-							}
+				boolean hadChanges =true;
+				while(hadChanges) {
+					hadChanges = false;
+					CycleDetector<BasicBlock, DefaultEdge> detector = new CycleDetector<>(graph);
+					for (BasicBlock b : implicitAnalysisblocks.values()) {
+						if (!graph.containsVertex(b))
+							continue;
+						Set<BasicBlock> cycle = detector.findCyclesContainingVertex(b);
+						if (b.successorsCompact.size() > 1 && !cycle.containsAll(b.successorsCompact)) {
+							graph.removeVertex(b);
+							this.instructions.insertBefore(b.insn, new InsnNode(TaintUtils.LOOP_HEADER));
+							hadChanges = true;
+						}
 					}
 				}
 
