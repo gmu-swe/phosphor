@@ -740,6 +740,36 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				System.err.println("While analyzing " + className);
 				e.printStackTrace();
 			}
+			if (Configuration.ANNOTATE_LOOPS) {
+				Graph<BasicBlock, DefaultEdge> graph = new DefaultDirectedGraph<BasicBlock, DefaultEdge>(DefaultEdge.class);
+//				for(BasicBlock b : implicitAnalysisblocks.values())
+//					graph.addVertex(b);
+				for(BasicBlock b : implicitAnalysisblocks.values())
+				{
+					if(b.successors.size() > 0)
+						graph.addVertex(b);
+					for(BasicBlock c : b.successors) {
+						graph.addVertex(c);
+						graph.addEdge(b, c);
+					}
+				}
+				boolean hadChanges =true;
+				while(hadChanges) {
+					hadChanges = false;
+					CycleDetector<BasicBlock, DefaultEdge> detector = new CycleDetector<>(graph);
+					for (BasicBlock b : implicitAnalysisblocks.values()) {
+						if (!graph.containsVertex(b))
+							continue;
+						Set<BasicBlock> cycle = detector.findCyclesContainingVertex(b);
+						if (b.successors.size() > 1 && !cycle.containsAll(b.successors)) {
+							graph.removeVertex(b);
+							this.instructions.insertBefore(b.insn, new InsnNode(TaintUtils.LOOP_HEADER));
+							hadChanges = true;
+						}
+					}
+				}
+
+			}
 
 			if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
 				boolean hasJumps = false;
@@ -1264,37 +1294,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				}
 
 			}
-//			System.out.println(name);
-			if (Configuration.ANNOTATE_LOOPS) {
-				Graph<BasicBlock, DefaultEdge> graph = new DefaultDirectedGraph<BasicBlock, DefaultEdge>(DefaultEdge.class);
-//				for(BasicBlock b : implicitAnalysisblocks.values())
-//					graph.addVertex(b);
-				for(BasicBlock b : implicitAnalysisblocks.values())
-				{
-					if(b.successorsCompact.size() > 0)
-						graph.addVertex(b);
-					for(BasicBlock c : b.successorsCompact) {
-						graph.addVertex(c);
-						graph.addEdge(b, c);
-					}
-				}
-				boolean hadChanges =true;
-				while(hadChanges) {
-					hadChanges = false;
-					CycleDetector<BasicBlock, DefaultEdge> detector = new CycleDetector<>(graph);
-					for (BasicBlock b : implicitAnalysisblocks.values()) {
-						if (!graph.containsVertex(b))
-							continue;
-						Set<BasicBlock> cycle = detector.findCyclesContainingVertex(b);
-						if (b.successorsCompact.size() > 1 && !cycle.containsAll(b.successorsCompact)) {
-							graph.removeVertex(b);
-							this.instructions.insertBefore(b.insn, new InsnNode(TaintUtils.LOOP_HEADER));
-							hadChanges = true;
-						}
-					}
-				}
 
-			}
 			this.maxStack += 100;
 
 			AbstractInsnNode insn = instructions.getFirst();
