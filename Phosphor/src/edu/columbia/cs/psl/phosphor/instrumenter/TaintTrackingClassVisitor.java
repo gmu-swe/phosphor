@@ -19,6 +19,8 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.GeneratorAdapter;
+import org.objectweb.asm.commons.SignatureRemapper;
+import org.objectweb.asm.signature.SignatureReader;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
@@ -72,6 +74,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	private LinkedList<MethodNode> methodsToMakeUninstWrappersAround = new LinkedList<MethodNode>();
 
+	private HashMap<MethodNode,Type> methodsToAddWrappersForWithReturnType = new HashMap<>();
 	private LinkedList<MethodNode> methodsToAddWrappersFor = new LinkedList<MethodNode>();
 	private LinkedList<MethodNode> methodsToAddNameOnlyWrappersFor = new LinkedList<MethodNode>();
 	private LinkedList<MethodNode> methodsToAddUnWrappersFor = new LinkedList<>();
@@ -277,7 +280,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		if ((className.equals("java/lang/Integer") || className.equals("java/lang/Long")) && name.equals("toUnsignedString"))
 			access = (access & ~Opcodes.ACC_PRIVATE) | Opcodes.ACC_PUBLIC;
 
-		if (name.contains(TaintUtils.METHOD_SUFFIX)) {
+		if (name.contains(TaintUtils.METHOD_SUFFIX) || (Type.getReturnType(desc).getSort() == Type.VOID && desc.contains("phosphor/struct/Tainted"))) {
 			if(isLambda)
 			{
 				//lambda wrapper method
@@ -381,7 +384,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					addSentinel = true;
 				}
 				newArgTypes.add(t);
-				if (t.getDescriptor().contains("ControlTaintTagStack") || t.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct")) {
+				if (t.getDescriptor().contains("ControlTaintTagStack") || t.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct") || t.getDescriptor().contains("Ledu/columbia/cs/psl/phosphor/runtime/Taint")) {
 					final MethodVisitor cmv = super.visitMethod(access, name, desc, signature, exceptions);
 					MethodNode fullMethod = new MethodNode(Opcodes.ASM6, access,name,desc,signature,exceptions){
 						@Override
@@ -441,7 +444,14 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		//		System.out.println("olddesc " + desc + " newdesc " + newDesc);
 		if ((access & Opcodes.ACC_NATIVE) == 0 && !methodIsTooBigAlready(name, desc)) {
 			//not a native method
-			signature = null;
+			LinkedList<String> addToSig = new LinkedList<>();
+			if(Configuration.IMPLICIT_TRACKING)
+				addToSig.add(Type.getInternalName(ControlTaintTagStack.class));
+			if(name.equals("<init>") && isRewrittenDesc)
+				addToSig.add(Type.getInternalName(TaintSentinel.class));
+			if((oldReturnType.getSort() != Type.VOID && oldReturnType.getSort() != Type.OBJECT && oldReturnType.getSort() != Type.ARRAY))
+				addToSig.add(newReturnType.getInternalName());
+			signature = TaintUtils.remapSignature(signature, addToSig);
 			if (!name.contains("<") && !requiresNoChange)
 				name = name + TaintUtils.METHOD_SUFFIX;
 //			if(className.equals("sun/misc/URLClassPath$JarLoader"))
@@ -961,18 +971,27 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				for(Type t: Type.getArgumentTypes(m.desc))
 				{
 					if(TaintUtils.isPrimitiveOrPrimitiveArrayType(t))
-						newArgs.pop();
+						newArgs.removeLast();
 					if(t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy"))
-						newArgs.push(MultiDTaintedArray.getPrimitiveTypeForWrapper(t.getInternalName()));
+						newArgs.add(MultiDTaintedArray.getPrimitiveTypeForWrapper(t.getInternalName()));
 					else
-						newArgs.push(t);
+						newArgs.add(t);
 				}
 				Type returnType = Type.getReturnType(m.desc);
 				String t = returnType.getDescriptor();
 				Type origReturnType = returnType;
+				Type returnTypeToHackOnLambda = null;
+				if(returnType.getSort() == Type.VOID)
+				{
+					//Check to see if we are one of those annying lambdas with a void return but pre-allocated return obj passed
+					if(newArgs.getLast().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy")
+						|| newArgs.getLast().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")){
+						returnTypeToHackOnLambda = newArgs.removeLast();
+					}
+				}
 				if(returnType.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy") || returnType.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted"))
 				{
-					newArgs.pop();
+					newArgs.removeLast();
 					//Need to change reuturn type...
 					if(returnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct/Tainted"))
 					{
@@ -1007,6 +1026,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 				MethodNode z= new MethodNode(m.access | Opcodes.ACC_MODULE ,m.name.replace("$$PHOSPHORTAGGED",""), newDesc, m.signature, exceptions);
 				methodsToAddWrappersFor.add(z);
+				if(returnTypeToHackOnLambda != null)
+					methodsToAddWrappersForWithReturnType.put(z,returnTypeToHackOnLambda);
 			}
 			if((m.access & Opcodes.ACC_ABSTRACT) == 0 && !m.name.contains("<")) {
 				String[] exceptions = new String[m.exceptions.size()];
@@ -1015,18 +1036,18 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				LinkedList<Type> newArgs = new LinkedList<>();
 				for (Type t : Type.getArgumentTypes(m.desc)) {
 					if (TaintUtils.isPrimitiveOrPrimitiveArrayType(t))
-						newArgs.pop();
+						newArgs.removeLast();
 					if (t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy"))
-						newArgs.push(MultiDTaintedArray.getPrimitiveTypeForWrapper(t.getInternalName()));
+						newArgs.add(MultiDTaintedArray.getPrimitiveTypeForWrapper(t.getInternalName()));
 					else
-						newArgs.push(t);
+						newArgs.add(t);
 				}
 				Type returnType = Type.getReturnType(m.desc);
 				Type origReturnType = returnType;
 				String t = returnType.getDescriptor();
 				if (returnType.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy") || returnType.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
-					newArgs.pop();
-					//Need to change reuturn type...
+					newArgs.removeLast();
+					//Need to change return type...
 					if (returnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct/Tainted")) {
 						t = returnType.getDescriptor().replace("Ledu/columbia/cs/psl/phosphor/struct/Tainted", "");
 						t = t.replace("WithIntTag", "");
@@ -1053,7 +1074,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				newDesc += t;
 
 				if (Configuration.IMPLICIT_TRACKING && newArgs.size() > 0)
-					newArgs.pop();//remove controltaint tag
+					newArgs.removeLast();//remove controltaint tag
 
 				newDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(newDesc);
 				if (newDesc.equals(m.desc))
@@ -1112,7 +1133,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 						Type origReturn = Type.getReturnType(m.desc);
 						Type newReturn = TaintUtils.getContainerReturnType(origReturn);
-						boolean needToPrealloc = TaintUtils.isPreAllocReturnType(m.desc);
+
+						Type returnTypeToHackOnLambda = methodsToAddWrappersForWithReturnType.get(m);
+						boolean needToPrealloc = TaintUtils.isPreAllocReturnType(m.desc) || returnTypeToHackOnLambda!=null;
+						boolean useSuffixName = !TaintUtils.remapMethodDescAndIncludeReturnHolder(m.desc).equals(m.desc) || Type.getReturnType(m.desc).getDescriptor().equals("Ljava/lang/Object;");
 						String[] exceptions = new String[m.exceptions.size()];
 						exceptions = (String[]) m.exceptions.toArray(exceptions);
 
@@ -1129,7 +1153,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						MethodVisitor soc = new SpecialOpcodeRemovingMV(mv, ignoreFrames, m.access, className, m.desc, fixLdcClass);
 						NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, m.desc, soc);
 						LocalVariableManager lvs = new LocalVariableManager(m.access, m.desc, an, an, mv, generateExtraLVDebug);
-						lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
+						lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(returnTypeToHackOnLambda == null ? newReturn : returnTypeToHackOnLambda));
 						GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name, m.desc);
 
 						Label startLabel = new Label();
@@ -1217,8 +1241,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						}
 						if(needToPrealloc)
 						{
-							newDesc += newReturn.getDescriptor();
-							an.visitVarInsn(Opcodes.ALOAD, lvs.getPreAllocedReturnTypeVar(newReturn));
+							newDesc += returnTypeToHackOnLambda == null ? newReturn.getDescriptor() : returnTypeToHackOnLambda.getDescriptor();
+							an.visitVarInsn(Opcodes.ALOAD, lvs.getPreAllocedReturnTypeVar(returnTypeToHackOnLambda  == null ? newReturn : returnTypeToHackOnLambda));
 						}
 						newDesc += ")" + newReturn.getDescriptor();
 
@@ -1232,7 +1256,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						if (m.name.equals("<init>")) {
 							ga.visitMethodInsn(Opcodes.INVOKESPECIAL, className, m.name, newDesc,false);
 						} else
-							ga.visitMethodInsn(opcode, className, m.name + TaintUtils.METHOD_SUFFIX, newDesc,false);
+							ga.visitMethodInsn(opcode, className, m.name + (useSuffixName ? TaintUtils.METHOD_SUFFIX:""), newDesc,false);
 
 //						if(tempControlFlowIdx >= 0){
 //							ga.visitVarInsn(Opcodes.ALOAD, tempControlFlowIdx);

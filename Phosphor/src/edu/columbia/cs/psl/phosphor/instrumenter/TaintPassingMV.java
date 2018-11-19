@@ -1793,9 +1793,41 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         if(bsmArgs != null)
         {
         	boolean instOK = false;
+
+        	//Are we remapping something with a primitive return that gets ignored?
+	        if(bsmArgs[1] instanceof Handle)
+	        {
+		        Type t = Type.getMethodType(((Handle)bsmArgs[1]).getDesc());
+		        if(TaintUtils.isPrimitiveOrPrimitiveArrayType(t.getReturnType()))
+		        {
+		        	Type _t = (Type) bsmArgs[0];
+		        	if(_t.getReturnType().getSort() == Type.VOID){
+		        		//Manually add the return type here;
+				        String nd = "(";
+				        for(Type a : _t.getArgumentTypes())
+				        {
+				        	nd += a.getDescriptor();
+				        }
+				        nd += TaintUtils.getContainerReturnType(t.getReturnType()) +")V";
+				        bsmArgs[0] = Type.getMethodType(nd);
+			        }
+			        _t = (Type) bsmArgs[2];
+			        if(_t.getReturnType().getSort() == Type.VOID){
+				        //Manually add the return type here;
+				        String nd = "(";
+				        for(Type a : _t.getArgumentTypes())
+				        {
+					        nd += a.getDescriptor();
+				        }
+				        nd += TaintUtils.getContainerReturnType(t.getReturnType()) +")V";
+				        bsmArgs[2] = Type.getMethodType(nd);
+			        }
+		        }
+	        }
             for(int k = 0; k < bsmArgs.length; k++)
             {
                 Object o = bsmArgs[k];
+
                 if(o instanceof Handle)
                 {
 	                if (!Instrumenter.isIgnoredClass(((Handle) o).getOwner()) && !Instrumenter.isIgnoredMethod(((Handle) o).getOwner(), ((Handle) o).getName(), ((Handle) o).getDesc()) &&
@@ -1811,7 +1843,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             }
         }
 		if (hasNewName && !Instrumenter.isIgnoredClass(bsm.getOwner())) {
-			if (!Instrumenter.isIgnoredMethod(bsm.getOwner(), bsm.getName(), bsm.getDesc()) && !TaintUtils.remapMethodDesc(bsm.getDesc()).equals(bsm.getDesc()))
+			if (!Instrumenter.isIgnoredMethod(bsm.getOwner(), bsm.getName(), bsm.getDesc()) && !TaintUtils.remapMethodDescAndIncludeReturnHolder(bsm.getDesc()).equals(bsm.getDesc()))
 				bsm = new Handle(bsm.getTag(), bsm.getOwner(), bsm.getName()+TaintUtils.METHOD_SUFFIX, TaintUtils.remapMethodDescAndIncludeReturnHolder(bsm.getDesc()));
         }
         super.visitInvokeDynamicInsn(name, newDesc, bsm, bsmArgs);

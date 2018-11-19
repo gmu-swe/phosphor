@@ -5,7 +5,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 public abstract class TaintedPrimitiveWithObjTag {
 	public Taint taint;
 	public abstract Object getValue();
-	public final Object toPrimitiveType()
+	public Object toPrimitiveType()
 	{
 		Object ret = getValue();
 		try{

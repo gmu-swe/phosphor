@@ -53,4 +53,16 @@ public final class TaintedIntWithObjTag extends TaintedPrimitiveWithObjTag imple
 	public TaintedIntWithObjTag() {
 		// TODO Auto-generated constructor stub
 	}
+	public Object toPrimitiveType()
+	{
+		Object ret = getValue();
+		try{
+			ret.getClass().getDeclaredField("valuePHOSPHOR_TAG").setAccessible(true);
+			ret.getClass().getDeclaredField("valuePHOSPHOR_TAG").setInt(ret, 0);
+		}catch(Exception ex)
+		{
+
+		}
+		return ret;
+	}
 }

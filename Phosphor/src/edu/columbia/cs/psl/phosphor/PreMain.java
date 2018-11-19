@@ -16,6 +16,7 @@ import java.security.MessageDigest;
 import java.security.ProtectionDomain;
 import java.util.List;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.HidePhosphorFromASMCV;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -208,6 +209,11 @@ public class PreMain {
 				ClassNode cn = new ClassNode();
 				cr.accept(cn, ClassReader.SKIP_CODE);
 				boolean skipFrames = false;
+				boolean upgradeVersion = false;
+				if (className.equals("org/jruby/parser/Ruby20YyTables")) {
+					cn.version = 51;
+					upgradeVersion = true;
+				}
 				if (cn.version >= 100 || cn.version <= 50 || className.endsWith("$Access4JacksonSerializer") || className.endsWith("$Access4JacksonDeSerializer"))
 					skipFrames = true;
 				if (cn.visibleAnnotations != null)
@@ -307,6 +313,7 @@ public class PreMain {
 						_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields);
 					else
 						_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+					_cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
 
 					if (Configuration.WITH_SELECTIVE_INST)
 						cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
@@ -385,6 +392,7 @@ public class PreMain {
 							_cv = extra.newInstance(_cv, skipFrames);
 						}
 						_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+						_cv = new HidePhosphorFromASMCV(_cv, false);
 
 						cr.accept(_cv, ClassReader.EXPAND_FRAMES);
 					} catch (Throwable ex2) {

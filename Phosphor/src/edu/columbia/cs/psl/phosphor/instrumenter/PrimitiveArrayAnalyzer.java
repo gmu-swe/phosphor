@@ -1262,6 +1262,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								AbstractInsnNode i = insn;
 								while (i != null && i.getType() != AbstractInsnNode.LABEL)
 									i = i.getPrevious();
+								if(i.getPrevious() != null && i.getPrevious().getType() == AbstractInsnNode.LABEL)
+									i = i.getPrevious();
 								AbstractInsnNode oldLabel = i;
 
 								LabelNode newLabel = new LabelNode(new Label());

@@ -1,51 +1,31 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.SignatureReWriter;
+import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
+import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
+import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.signature.SignatureReader;
+import org.objectweb.asm.signature.SignatureVisitor;
+import org.objectweb.asm.signature.SignatureWriter;
+import sun.misc.VM;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-
-import sun.misc.VM;
-import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
-import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LinkedList;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public class TaintUtils {
 	static Object lock = new Object();
@@ -205,10 +185,6 @@ public class TaintUtils {
 			return type;
 		}
 	}
-	public static void main(String[] args) {
-		System.out.println(getMethodDesc("<java.lang.Runtime: java.lang.Process[][][] exec(java.lang.String,java.lang.String[],java.io.File)>"));
-	}
-	//<java.lang.Runtime: java.lang.Process[][][] exec(java.lang.String,java.lang.String[],java.io.File)>
 	public static MethodDescriptor getMethodDesc(String signature) {
 		// get return type
 		int idxOfColon = signature.indexOf(':');
@@ -958,5 +934,115 @@ public class TaintUtils {
 	public static boolean isPrimitiveOrPrimitiveArrayType(Type t)
 	{
 		return isPrimitiveArrayType(t) || isPrimitiveType(t);
+	}
+
+	public static void main(String[] args) {
+		LinkedList<String> lst = new LinkedList<>();
+		System.out.println(remapSignature("(Ljava/util/stream/AbstractPipeline<TP_OUT;TP_OUT;*>;Ljava/util/stream/PipelineHelper<TP_OUT;>;Ljava/util/Spliterator<TP_IN;>;Ljava/util/function/IntFunction<[TP_OUT;>;JJ)V",lst));
+	}
+
+	public static String remapSignature(String sig, final List<String> extraArgs){
+		if(sig == null)
+			return null;
+//		System.out.println(sig);
+		SignatureReWriter sw = new SignatureReWriter(){
+			int isInArray = 0;
+			@Override
+			public SignatureVisitor visitArrayType() {
+				isInArray++;
+				return super.visitArrayType();
+			}
+
+
+			@Override
+			public void visitBaseType(char descriptor) {
+				if(descriptor == 'V')
+				{
+					super.visitBaseType(descriptor);
+					return;
+				}
+				if(isInParam)
+				{
+					if (isInArray == 0) {
+						if (Configuration.MULTI_TAINTING) {
+							super.visitClassType(Configuration.TAINT_TAG_INTERNAL_NAME);
+							super.visitEnd();
+						}
+						else
+							super.visitBaseType('I');
+						super.visitParameterType();
+						super.visitBaseType(descriptor);
+					}
+					else if(isInArray == 1){
+						super.pop();
+						super.visitClassType(MultiDTaintedArray.getTypeForType(Type.getType("["+descriptor)).getInternalName());
+						super.visitEnd();
+						super.visitArrayType();
+						super.visitParameterType();
+						super.visitBaseType(descriptor);
+					}
+					else
+					{
+						super.pop();
+						super.visitClassType(MultiDTaintedArray.getTypeForType(Type.getType("["+descriptor)).getInternalName());
+						super.visitEnd();
+					}
+				}
+				else
+				{
+					if(isInArray > 0) {
+						super.pop();//reduce dimensions by 1
+						super.visitClassType(TaintUtils.getContainerReturnType("[" + descriptor).getInternalName());
+						super.visitEnd();
+					}
+					else
+					{
+						super.visitClassType(TaintUtils.getContainerReturnType(""+descriptor).getInternalName());
+						super.visitEnd();
+					}
+				}
+				isInParam = false;
+				isInArray =0;
+			}
+
+			boolean isInReturnType;
+			@Override
+			public SignatureVisitor visitReturnType() {
+				//Add in extra stuff as needed.
+				for(String s : extraArgs){
+					super.visitParameterType();
+					super.visitClassType(s);
+					super.visitEnd();
+				}
+				isInReturnType = true;
+				return super.visitReturnType();
+			}
+
+			@Override
+			public void visitTypeVariable(String name) {
+				isInParam = false;
+				isInArray = 0;
+				super.visitTypeVariable(name);
+			}
+
+			@Override
+			public void visitClassType(String name) {
+				isInArray = 0;
+				isInParam = false;
+				super.visitClassType(name);
+			}
+
+			boolean isInParam;
+			@Override
+			public SignatureVisitor visitParameterType() {
+				isInParam = true;
+				return super.visitParameterType();
+			}
+		};
+		SignatureReader sr = new SignatureReader(sig);
+		sr.accept(sw);
+		sig = sw.toString();
+//		System.out.println(">"+sig);
+		return sig;
 	}
 }

@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.WeakHashMap;
 
 import org.objectweb.asm.Type;
@@ -1238,7 +1239,10 @@ public class RuntimeReflectionPropogator {
 			try {
 				Field taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
 				Unsafe u = getUnsafe();
-				u.putObject(obj, u.objectFieldOffset(taintField), val);
+				if(Modifier.isStatic(f.getModifiers()))
+					u.putObject(u.staticFieldBase(taintField), u.staticFieldOffset(taintField), val);
+				else
+					u.putObject(obj, u.objectFieldOffset(taintField), val);
 			} catch (NoSuchFieldException e) {
 			} catch (SecurityException e) {
 			}

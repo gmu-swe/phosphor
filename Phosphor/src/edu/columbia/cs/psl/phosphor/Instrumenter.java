@@ -1,56 +1,26 @@
 package edu.columbia.cs.psl.phosphor;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.instrument.ClassFileTransformer;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.channels.FileChannel;
-import java.nio.file.FileSystems;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Random;
-import java.util.Scanner;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
-
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
+import edu.columbia.cs.psl.phosphor.runtime.Tainter;
+import org.apache.commons.cli.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
-import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
-import edu.columbia.cs.psl.phosphor.runtime.Tainter;
+import java.io.*;
+import java.lang.instrument.ClassFileTransformer;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.channels.FileChannel;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.zip.*;
 
 public class Instrumenter {
 	public static ClassLoader loader;
@@ -687,11 +657,16 @@ public class Instrumenter {
 	 * Handle Jar file, Zip file and War file
 	 */
 	public static LinkedList<Future> processZip(final File f, File outputDir, ExecutorService executor) {
+		return _processZip(f, outputDir, executor, false);
+	}
+	private static LinkedList<Future> _processZip(final File f, File outputDir, ExecutorService executor, boolean unCompressed) {
 		try {
 			LinkedList<Future<Result>> ret = new LinkedList<>();
 			final ZipFile zip = new ZipFile(f);
 			ZipOutputStream zos = null;
 			zos = new ZipOutputStream(new FileOutputStream(outputDir.getPath() + File.separator + f.getName()));
+			if(unCompressed)
+				zos.setLevel(ZipOutputStream.STORED);
 			Enumeration<? extends ZipEntry> entries = zip.entries();
 			while (entries.hasMoreElements()) {
 				final ZipEntry e = entries.nextElement();
@@ -714,7 +689,6 @@ public class Instrumenter {
 					}
 				} else if (e.getName().endsWith(".jar")) {
 					ZipEntry outEntry = new ZipEntry(e.getName());
-
 					Random r = new Random();
 					String markFileName = Long.toOctalString(System.currentTimeMillis())
 						+ Integer.toOctalString(r.nextInt(10000))
@@ -735,9 +709,16 @@ public class Instrumenter {
 					File tmp2 = new File("/tmp/tmp2");
 					if(!tmp2.exists())
 						tmp2.mkdir();
-					processZip(tmp, tmp2, executor);
+					_processZip(tmp, tmp2, executor, true);
 					tmp.delete();
 
+					outEntry.setMethod(ZipEntry.STORED);
+					Path newFile = Paths.get("/tmp/tmp2/" + markFileName);
+
+					outEntry.setSize(Files.size(newFile));
+					CRC32 crc= new CRC32();
+					crc.update(Files.readAllBytes(newFile));
+					outEntry.setCrc(crc.getValue());
 					zos.putNextEntry(outEntry);
 					is = new FileInputStream("/tmp/tmp2/" + markFileName);
 					byte[] buffer = new byte[1024];
