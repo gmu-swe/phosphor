@@ -497,6 +497,42 @@ public class TaintUtils {
 			System.arraycopy(src, srcPos, dest, destPos, length);
 	}
 
+	public static void arraycopy(Object src, Object srcPosTaint, int srcPos, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length, ControlTaintTagStack ctrl) {
+		if(!src.getClass().isArray() && !dest.getClass().isArray())
+		{
+			System.arraycopy(((LazyArrayObjTags)src).getVal(), srcPos, ((LazyArrayObjTags)dest).getVal(), destPos, length);
+			if(((LazyArrayObjTags)src).taints != null)
+			{
+				if(((LazyArrayObjTags)dest).taints == null)
+				{
+					((LazyArrayObjTags)dest).taints = new Taint[((LazyArrayObjTags)src).taints.length];
+				}
+				System.arraycopy(((LazyArrayObjTags)src).taints, srcPos, ((LazyArrayObjTags)dest).taints, destPos, length);
+			}
+			if(!ctrl.isEmpty())
+			{
+				if(((LazyArrayObjTags) dest).taints == null)
+				{
+					((LazyArrayObjTags) dest).taints = new Taint[((LazyArrayObjTags) src).getLength()];
+				}
+				Taint[] taints = ((LazyArrayObjTags) dest).taints;
+				for(int i = 0; i < taints.length; i++)
+				{
+					if(taints[i] == null)
+						taints[i] = ctrl.copyTag();
+					else
+						taints[i].addDependency(ctrl.copyTag());
+				}
+			}
+		}
+		else if(!dest.getClass().isArray())
+		{
+			System.arraycopy(src, srcPos, ((MultiDTaintedArrayWithObjTag)dest).getVal(), destPos, length);
+		}
+		else
+			System.arraycopy(src, srcPos, dest, destPos, length);
+	}
+
 	public static void arraycopyVM(Object src, int srcPosTaint, int srcPos, Object dest, int destPosTaint, int destPos, int lengthTaint, int length) {
 		if(!src.getClass().isArray())
 		{
@@ -572,6 +608,49 @@ public class TaintUtils {
 					((LazyArrayObjTags) destTaint).taints = new Taint[Array.getLength(dest)];
 				if (srcPos == 0 && length <= ((LazyArrayObjTags) destTaint).taints.length && length <= (((LazyArrayObjTags) srcTaint).taints).length)
 					System.arraycopy(((LazyArrayObjTags) srcTaint).taints, srcPos, ((LazyArrayObjTags) destTaint).taints, destPos, length);
+			}
+		} catch (ArrayIndexOutOfBoundsException ex) {
+			Taint t = null;
+			if (srcPosTaint != null) {
+				t = ((Taint) srcPosTaint).copy();
+				t.addDependency((Taint) destPosTaint);
+				t.addDependency((Taint) lengthTaint);
+			} else if (destPosTaint != null) {
+
+				t = ((Taint) destPosTaint).copy();
+				t.addDependency((Taint) lengthTaint);
+			} else if (lengthTaint != null) {
+
+				t = ((Taint) lengthTaint).copy();
+			}
+			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(t);
+			throw ex;
+		}
+	}
+
+	public static void arraycopyControlTrack(Object srcTaint, Object src, Object srcPosTaint, int srcPos, Object destTaint, Object dest, Object destPosTaint, int destPos, Object lengthTaint, int length, ControlTaintTagStack ctrl) {
+		try {
+			System.arraycopy(src, srcPos, dest, destPos, length);
+
+			if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null && ((LazyArrayObjTags) srcTaint).taints != null) {
+				if (((LazyArrayObjTags) destTaint).taints == null)
+					((LazyArrayObjTags) destTaint).taints = new Taint[Array.getLength(dest)];
+				if (srcPos == 0 && length <= ((LazyArrayObjTags) destTaint).taints.length && length <= (((LazyArrayObjTags) srcTaint).taints).length)
+					System.arraycopy(((LazyArrayObjTags) srcTaint).taints, srcPos, ((LazyArrayObjTags) destTaint).taints, destPos, length);
+			}
+			if(!ctrl.isEmpty())
+			{
+				if (((LazyArrayObjTags) destTaint).taints == null)
+					((LazyArrayObjTags) destTaint).taints = new Taint[Array.getLength(dest)];
+				Taint[] taints = ((LazyArrayObjTags) destTaint).taints;
+				for(int i = 0; i < taints.length; i++){
+					if(taints[i] == null)
+						taints[i] = ctrl.copyTag();
+					else
+					{
+						taints[i].addDependency(ctrl.copyTag());
+					}
+				}
 			}
 		} catch (ArrayIndexOutOfBoundsException ex) {
 			Taint t = null;

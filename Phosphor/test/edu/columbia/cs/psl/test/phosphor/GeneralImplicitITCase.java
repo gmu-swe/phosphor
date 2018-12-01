@@ -21,7 +21,35 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	String labelA = "a";
 	String labelFoo = "Foo";
-	
+
+	class Holder{
+		int x;
+		long j;
+	}
+	@Test
+	public void testTaintingOnFieldWrites() throws Exception {
+		int var = MultiTainter.taintedInt(1,"testTaintingOnFieldWrites");
+		Holder h = new Holder();
+
+		if(var == 1){
+			h.x = 40;
+			h.j=40L;
+		}
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(h.x),"testTaintingOnFieldWrites");
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(h),"testTaintingOnFieldWrites");
+	}
+
+	public void testStringBuilderAppend() throws Exception {
+		int var = MultiTainter.taintedInt(1, "testStringBuilderAppend");
+		StringBuilder sb = new StringBuilder();
+		if(var == 1)
+		{
+			sb.append("ah ha!");
+		}
+		String ret = sb.toString();
+		assertTaintHasOnlyLabel(MultiTainter.getStringCharTaints(ret)[0],"testStringBuilderAppend");
+	}
+
 	@Test
 	public void testSerializeBigInt() throws Exception {
 		int five = MultiTainter.taintedInt(5, "abc");

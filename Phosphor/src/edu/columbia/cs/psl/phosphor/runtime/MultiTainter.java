@@ -277,6 +277,10 @@ public final class MultiTainter {
 		return getTaint(obj);
 	}
 
+	public static Taint[] getStringCharTaints(String str)
+	{
+		return str.valuePHOSPHOR_TAG.taints;
+	}
 	public static final Taint getTaint(Object obj)
 	{
 		if(obj instanceof MultiDTaintedArrayWithObjTag)

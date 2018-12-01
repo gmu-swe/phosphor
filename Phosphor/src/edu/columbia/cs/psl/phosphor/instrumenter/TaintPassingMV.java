@@ -741,6 +741,36 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			switch(opcode)
 			{
 			case PUTFIELD:
+				//taint the object owner of this field
+				if(!isSuperUninit) {
+					if (descType.getSize() == 1) {
+						if(topCarriesTaint())
+						{
+							super.visitInsn(DUP2_X1);
+							super.visitInsn(POP2);
+							super.visitInsn(DUP_X2);
+						}
+						else {
+							super.visitInsn(SWAP);
+							super.visitInsn(DUP_X1);
+						}
+						super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+					} else {
+						//Obj Taint ValVal
+						int tmp = lvs.getTmpLV(descType);
+						super.visitVarInsn((descType.getSort() == Type.DOUBLE ? DSTORE : LSTORE), tmp);
+						super.visitInsn(SWAP);
+						super.visitInsn(DUP_X1);
+
+						super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+
+						super.visitVarInsn(descType.getSort() == Type.DOUBLE ? DLOAD: LLOAD, tmp);
+						lvs.freeTmpLV(tmp);
+					}
+
+				}
 			case PUTSTATIC:
 				dispatched = true;
 				Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this, thisIsTracked);
@@ -2066,6 +2096,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 						desc = "(Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;Ljava/lang/Object;ILjava/lang/Object;I)V";
 
 					}
+				}
+				if(Configuration.IMPLICIT_TRACKING)
+				{
+					desc = desc.substring(0,desc.length()-2)+Type.getDescriptor(ControlTaintTagStack.class)+")V";
+					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 				}
 			}
 		}
