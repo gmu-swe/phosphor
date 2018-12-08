@@ -6,6 +6,8 @@ package edu.columbia.cs.psl.phosphor.struct;
  */
 
 
+import edu.columbia.cs.psl.phosphor.Configuration;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -67,7 +69,7 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 		if(element == null)
 			return false;
 		int index;
-		if(element instanceof String) {
+		if(Configuration.IMPLICIT_TRACKING && element instanceof String) {
 			synchronized (this) {
 				index = hashFunction(((String)element).hashCode$$PHOSPHORTAGGED(tmpCtrl,tmpReturn).val);
 			}
@@ -128,7 +130,7 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 	public boolean add(T element) {
 
 		int index;
-		if(element instanceof String) {
+		if(Configuration.IMPLICIT_TRACKING && element instanceof String) {
 			synchronized (this) {
 				index = hashFunction(((String)element).hashCode$$PHOSPHORTAGGED(tmpCtrl,tmpReturn).val);
 			}
@@ -163,7 +165,7 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 	public boolean remove(T element) {
 
 		int index;
-		if(element instanceof String) {
+		if(Configuration.IMPLICIT_TRACKING && element instanceof String) {
 			synchronized (this) {
 				index = hashFunction(((String)element).hashCode$$PHOSPHORTAGGED(tmpCtrl,tmpReturn).val);
 			}
