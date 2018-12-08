@@ -7,6 +7,7 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -52,6 +53,10 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 		return index % buckets.length;
 	}
 
+
+
+	static TaintedIntWithObjTag tmpReturn = new TaintedIntWithObjTag();
+	static ControlTaintTagStack tmpCtrl = new ControlTaintTagStack();
 	/**
 	 *
 	 * @param element
@@ -61,7 +66,14 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 
 		if(element == null)
 			return false;
-		int index = hashFunction(element.hashCode());
+		int index;
+		if(element instanceof String) {
+			synchronized (this) {
+				index = hashFunction(((String)element).hashCode$$PHOSPHORTAGGED(tmpCtrl,tmpReturn).val);
+			}
+		}
+		else
+			index = hashFunction(element.hashCode());
 		Entry current = buckets[index];
 
 		while (current != null) {
@@ -81,6 +93,33 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 		return ret;
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		SimpleHashSet<T> that = (SimpleHashSet<T>) o;
+
+		if (size != that.size) return false;
+		for(T obj : this)
+		{
+			if(!that.contains(obj))
+				return false;
+		}
+		for (T obj : that) {
+			if (!this.contains(obj))
+				return false;
+		}
+		return true;
+	}
+
+	@Override
+	public int hashCode() {
+		int result = Arrays.hashCode(buckets);
+		result = 31 * result + size;
+		return result;
+	}
+
 	/**
 	 *
 	 * @param element
@@ -88,7 +127,14 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 	 */
 	public boolean add(T element) {
 
-		int index = hashFunction(element.hashCode());
+		int index;
+		if(element instanceof String) {
+			synchronized (this) {
+				index = hashFunction(((String)element).hashCode$$PHOSPHORTAGGED(tmpCtrl,tmpReturn).val);
+			}
+		}
+		else
+			index = hashFunction(element.hashCode());
 		//log.info(element.toString() + " hashCode=" + element.hashCode() + " index=" + index);
 		Entry<T> current = buckets[index];
 
@@ -116,7 +162,14 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 	 */
 	public boolean remove(T element) {
 
-		int index = hashFunction(element.hashCode());
+		int index;
+		if(element instanceof String) {
+			synchronized (this) {
+				index = hashFunction(((String)element).hashCode$$PHOSPHORTAGGED(tmpCtrl,tmpReturn).val);
+			}
+		}
+		else
+			index = hashFunction(element.hashCode());
 		Entry<T> current = buckets[index];
 		Entry<T> previous = null;
 

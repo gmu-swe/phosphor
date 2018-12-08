@@ -38,6 +38,34 @@ public class LinkedList<T> implements Cloneable, Serializable {
 		last = n;
 		return true;
 	}
+
+	public int size(){
+		Node<T> i = first.next;
+		int c = 0;
+		while(i != null)
+		{
+			c++;
+			i = i.next;
+		}
+		return c;
+	}
+
+	public synchronized boolean addUniqueObjEquals(T o)
+	{
+		Node<T> i = first.next;
+		while(i != null)
+		{
+			if(i.entry.equals(o))
+				return false;
+			i = i.next;
+		}
+		Node<T> n = new Node<T>();
+		n.entry = o;
+		last.next=n;
+		last = n;
+		return true;
+	}
+
 	public synchronized boolean addAll(LinkedList<T> o)
 	{
 		boolean added = false;

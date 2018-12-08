@@ -136,28 +136,44 @@ public final class ControlTaintTagStack {
 			MaybeThrownException ex = new MaybeThrownException(t, taints.taint.copy());
 			if(unThrownExceptionStack == null)
 				unThrownExceptionStack = new LinkedList<>();
-			unThrownExceptionStack.add(ex);
+			unThrownExceptionStack.addUniqueObjEquals(ex);
 		}
 	}
 
 	public LinkedList<Taint> prevTaints = new LinkedList<>();
 
 	public final int[] push(Taint tag, int prev[], int i, int maxSize, ExceptionalTaintData curMethod) {
-		if(tag != null)
-			curMethod.push(tag);
-		return push(tag, prev, i, maxSize);
+		if (tag == null || tag == taint)
+			return prev;
+		return _push(tag, prev, i, maxSize, curMethod);
 	}
 	public final int[] push(Taint tag, int[] prev, int i, int maxSize) {
 		if (tag == null || tag == taint)
 			return prev;
-		return _push(tag, prev, i, maxSize);
+		return _push(tag, prev, i, maxSize, null);
 	}
 
-	public final int[] _push(Taint tag, int[] prev, int i, int maxSize){
+	public final int[] _push(Taint tag, int[] prev, int i, int maxSize, ExceptionalTaintData exceptionData){
+		//Try a deeper check
+		if(this.taint != null && (tag.lbl == null || tag.lbl == this.taint.lbl || this.taint.dependencies.contains(tag.lbl)))
+		{
+			boolean ok = true;
+			for(Object lbl : tag.dependencies)
+			{
+				if(!this.taint.dependencies.contains(lbl))
+					ok = false;
+			}
+			if(ok)
+				return prev;
+
+		}
 		if(prev == null)
 			prev = new int[maxSize];
 		prev[i]++;
 		prevTaints.addFast(this.taint);
+		if(exceptionData != null){
+			exceptionData.push(tag);
+		}
 		if (this.taint == null)
 		{
 			this.taint = new Taint(tag);

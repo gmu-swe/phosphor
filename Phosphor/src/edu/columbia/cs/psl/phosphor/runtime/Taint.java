@@ -1,12 +1,13 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import java.io.Serializable;
-import java.util.Objects;
-
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.SimpleHashSet;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+
+import java.io.Serializable;
 
 public class Taint<T> implements Serializable {
 	public static boolean IGNORE_TAINTING;
@@ -99,16 +100,25 @@ public class Taint<T> implements Serializable {
 			if(t2.dependencies != null)
 				dependencies.addAll(t2.dependencies);
 		} else {
+			//in this case, should still set this.lbl
+			boolean lblSet = false;
 			if (t1 != null)
-
 			{
 				if (t1.lbl != null)
-					dependencies.add(t1.lbl);
+				{
+					this.lbl = t1.lbl;
+					lblSet = true;
+				}
 				dependencies.addAll(t1.dependencies);
 			}
 			if (t2 != null) {
 				if (t2.lbl != null)
-					dependencies.add(t2.lbl);
+				{
+					if(lblSet)
+						dependencies.add(t2.lbl);
+					else
+						this.lbl = t2.lbl;
+				}
 				dependencies.addAll(t2.dependencies);
 			}
 		}
@@ -123,7 +133,12 @@ public class Taint<T> implements Serializable {
 		if(d == null)
 			return false;
 		boolean added = false;
-		if(d.lbl != null)
+		if(this.lbl == null && d.hasNoDependencies())
+		{
+			this.lbl = d.lbl;
+			added = true;
+		}
+		if(d.lbl != null && d.lbl != this.lbl)
 			added = dependencies.add(d.lbl);
 		added |= dependencies.addAll(d.dependencies);
 		return added;
@@ -190,10 +205,30 @@ public class Taint<T> implements Serializable {
 			return t1;
 		if(IGNORE_TAINTING)
 			return t1;
+		if(t1.equals(t2))
+			return t1;
+		if(t1.contains(t2))
+			return t1;
+		if(t2.contains(t1))
+			return t2;
 		Taint<T> r = new Taint<T>(t1,t2);
 		if(Configuration.derivedTaintListener != null)
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, r);
 		return r;
+	}
+
+	public boolean contains(Taint<T> that) {
+		boolean lblFound = false;
+		if (this.lbl == that.lbl)
+			lblFound = true;
+		if (!lblFound)
+			if (!this.dependencies.contains(that.lbl))
+				return false;
+		for (T obj : that.dependencies) {
+			if (!this.dependencies.contains(obj) || this.lbl == obj)
+				return false;
+		}
+		return true;
 	}
 
 	@Override
@@ -219,9 +254,23 @@ public class Taint<T> implements Serializable {
 	public static <T> Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags){
 		if(t1 == null && tags.taint == null && (!Configuration.IMPLICIT_EXCEPTION_FLOW || (tags.influenceExceptions == null || tags.influenceExceptions.isEmpty())))
 			return null;
-		Taint tagsTaint = tags.copyTag();
-		if(Configuration.IMPLICIT_EXCEPTION_FLOW)
+		Taint tagsTaint;
+		if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
+			if((tags.influenceExceptions == null || tags.influenceExceptions.isEmpty())){
+				//Can do a direct check of taint subsumption, no exception data to look at
+				if(tags.getTag() == null)
+					return t1;
+				if(t1 == null)
+					return tags.copyTag();
+				if(t1.contains(tags.getTag()))
+					return t1;
+				if(tags.getTag().contains(t1))
+					return tags.copyTag();
+			}
 			tagsTaint = tags.copyTagExceptions();
+		}
+		else
+			tagsTaint = tags.copyTag();
 		if(t1 == null || (t1.lbl == null && t1.dependencies.isEmpty()))
 		{
 //			if(tags.isEmpty())

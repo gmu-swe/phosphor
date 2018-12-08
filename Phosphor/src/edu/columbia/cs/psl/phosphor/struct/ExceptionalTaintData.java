@@ -15,8 +15,10 @@ public class ExceptionalTaintData {
 		}
 		else
 		{
-			this.taint = this.taint.copy();
-			this.taint.addDependency(tag);
+			if(!this.taint.contains(tag)) {
+				this.taint = this.taint.copy();
+				this.taint.addDependency(tag);
+			}
 		}
 	}
 	public void pop(int n){
