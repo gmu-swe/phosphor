@@ -61,6 +61,18 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		super.visitVarInsn(ASTORE, controlTaintArray);
 	}
 
+	public void callPushControlTaintObj(int idx) {
+		super.push(idx);
+		super.push(sizeOfControlTaintArray);
+		if (lvs.idxOfMasterExceptionLV >= 0) {
+			super.visitVarInsn(ALOAD, lvs.idxOfMasterExceptionLV);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;[III" + Type.getDescriptor(ExceptionalTaintData.class) + ")[I", false);
+
+		} else
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;[III" + ")[I", false);
+		super.visitVarInsn(ASTORE, controlTaintArray);
+	}
+
 	public void callPopControlTaint(MethodVisitor _mv, int idx) {
 		if(idx < 0)
 			callPopAllControlTaint(_mv);

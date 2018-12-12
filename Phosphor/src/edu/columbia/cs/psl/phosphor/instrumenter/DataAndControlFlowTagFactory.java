@@ -1,17 +1,12 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.struct.Field;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import sun.security.krb5.Config;
 
 public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
@@ -539,23 +534,13 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				break;
 			case Opcodes.IFNULL:
 			case Opcodes.IFNONNULL:
-//				Type typeOnStack = ta.getTopOfStackType();
-//				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT && typeOnStack.getDimensions() == 1) {
-//					//O1 T1
-//					mv.visitInsn(SWAP);
-//					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-//					mv.visitInsn(SWAP);
-//					mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-//					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
-//					mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
-//				} else {
-//					mv.visitInsn(DUP);
-//					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-//					mv.visitInsn(SWAP);
-//					mv.visitVarInsn(ALOAD, ta.taintTagsLoggedAtJumps[branchStarting]);
-//					mv.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(Ljava/lang/Object;"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;"+")"+"Ledu/columbia/cs/psl/phosphor/struct/EnqueuedTaint;", false);
-//					mv.visitVarInsn(ASTORE, ta.taintTagsLoggedAtJumps[branchStarting]);
-//				}
+				if (Configuration.IMPLICIT_TRACKING) {
+					mv.visitInsn(DUP);
+					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+					mv.visitInsn(SWAP);
+					mv.visitVarInsn(ALOAD, ta.controlTaintArray);
+					ta.callPushControlTaintObj(branchStarting);
+				}
 //				mv.visitJumpInsn(opcode, label);
 				ta.doForceCtrlStores();
 				mv.visitJumpInsn(opcode, label);
@@ -592,27 +577,19 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				break;
 			case Opcodes.IF_ACMPNE:
 			case Opcodes.IF_ACMPEQ:
-//				typeOnStack = ta.getTopOfStackType();
-//				if (typeOnStack.getSort() == Type.ARRAY && typeOnStack.getElementType().getSort() != Type.OBJECT) {
-//					mv.visitInsn(SWAP);
-//					mv.visitInsn(POP);
-//				}
-//				//O1 O2 (t2?)
-//				Type secondOnStack = ta.getStackTypeAtOffset(1);
-//				if (secondOnStack.getSort() == Type.ARRAY && secondOnStack.getElementType().getSort() != Type.OBJECT) {
-//					//O1 O2 T2
-//					mv.visitInsn(DUP2_X1);
-//					mv.visitInsn(POP2);
-//					mv.visitInsn(POP);
-//				}
-//				if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
-//				{
-//					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-//					mv.visitInsn(SWAP);
-//					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-//					mv.visitInsn(SWAP);
-//				}
-//				mv.visitJumpInsn(opcode, label);
+				if (Configuration.IMPLICIT_TRACKING) {
+					//OBJ OBJ
+					mv.visitInsn(DUP2);
+					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+					mv.visitInsn(SWAP);
+					mv.visitVarInsn(ALOAD, ta.controlTaintArray);
+					ta.callPushControlTaintObj(branchStarting);
+
+					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+					mv.visitInsn(SWAP);
+					mv.visitVarInsn(ALOAD, ta.controlTaintArray);
+					ta.callPushControlTaintObj(branchStarting + 1);
+				}
 				if(!isIgnoreAcmp && Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE))
 				{
 					mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);

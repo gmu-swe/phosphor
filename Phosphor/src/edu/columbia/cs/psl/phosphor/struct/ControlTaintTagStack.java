@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class ControlTaintTagStack {
@@ -149,6 +150,22 @@ public final class ControlTaintTagStack {
 	}
 	public final int[] push(Taint tag, int[] prev, int i, int maxSize) {
 		if (tag == null || tag == taint)
+			return prev;
+		return _push(tag, prev, i, maxSize, null);
+	}
+	public final int[] push(Object obj, int prev[], int i, int maxSize, ExceptionalTaintData curMethod) {
+		Taint tag = null;
+		if(obj instanceof TaintedWithObjTag)
+			tag = (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
+		if(tag == null || tag == taint)
+			return prev;
+		return _push(tag, prev, i, maxSize, curMethod);
+	}
+	public final int[] push(Object obj, int[] prev, int i, int maxSize) {
+		Taint tag = null;
+		if(obj instanceof TaintedWithObjTag)
+			tag = (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
+		if(tag == null || tag == taint)
 			return prev;
 		return _push(tag, prev, i, maxSize, null);
 	}
