@@ -225,7 +225,7 @@ public class Taint<T> implements Serializable {
 			if (!this.dependencies.contains(that.lbl))
 				return false;
 		for (T obj : that.dependencies) {
-			if (!this.dependencies.contains(obj) || this.lbl == obj)
+			if (!(this.dependencies.contains(obj) || this.lbl == obj))
 				return false;
 		}
 		return true;
@@ -299,7 +299,7 @@ public class Taint<T> implements Serializable {
 	@SuppressWarnings("rawtypes")
 	public static void combineTagsOnObject(Object o, ControlTaintTagStack tags)
 	{
-		if(tags.isEmpty() || IGNORE_TAINTING)
+		if((tags.isEmpty() || IGNORE_TAINTING) && (!Configuration.IMPLICIT_EXCEPTION_FLOW || (tags.influenceExceptions == null || tags.influenceExceptions.isEmpty())))
 			return;
 		if(Configuration.derivedTaintListener != null)
 			Configuration.derivedTaintListener.controlApplied(o, tags);

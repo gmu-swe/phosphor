@@ -2754,7 +2754,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //			case DRETURN:
 //			case LRETURN:
 			case ATHROW:
-				if(controlTaintArray >= 0) {
+				if (controlTaintArray >= 0) {
+					passthruMV.visitInsn(DUP);
+					passthruMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+					passthruMV.visitMethodInsn(INVOKESTATIC, Type.getInternalName(Taint.class), "combineTagsOnObject", "(Ljava/lang/Object;" + Type.getDescriptor(ControlTaintTagStack.class) + ")V", false);
+
 					passthruMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 					passthruMV.visitVarInsn(ALOAD, controlTaintArray);
 					callPopAllControlTaint(passthruMV);

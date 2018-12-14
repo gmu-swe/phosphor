@@ -144,7 +144,7 @@ public final class ControlTaintTagStack {
 	public LinkedList<Taint> prevTaints = new LinkedList<>();
 
 	public final int[] push(Taint tag, int prev[], int i, int maxSize, ExceptionalTaintData curMethod) {
-		if (tag == null || tag == taint)
+		if (tag == null) //|| tag == taint) TODO: is this safe to optimize (commented out)?
 			return prev;
 		return _push(tag, prev, i, maxSize, curMethod);
 	}
@@ -172,18 +172,18 @@ public final class ControlTaintTagStack {
 
 	public final int[] _push(Taint tag, int[] prev, int i, int maxSize, ExceptionalTaintData exceptionData){
 		//Try a deeper check
-		if(this.taint != null && (tag.lbl == null || tag.lbl == this.taint.lbl || this.taint.dependencies.contains(tag.lbl)))
-		{
-			boolean ok = true;
-			for(Object lbl : tag.dependencies)
-			{
-				if(!this.taint.dependencies.contains(lbl))
-					ok = false;
-			}
-			if(ok)
-				return prev;
-
-		}
+//		if(this.taint != null && (tag.lbl == null || tag.lbl == this.taint.lbl || this.taint.dependencies.contains(tag.lbl)))
+//		{
+//			boolean ok = true;
+//			for(Object lbl : tag.dependencies)
+//			{
+//				if(!this.taint.dependencies.contains(lbl))
+//					ok = false;
+//			}
+//			if(ok)
+//				return prev;
+//
+//		}
 		if(prev == null)
 			prev = new int[maxSize];
 		prev[i]++;

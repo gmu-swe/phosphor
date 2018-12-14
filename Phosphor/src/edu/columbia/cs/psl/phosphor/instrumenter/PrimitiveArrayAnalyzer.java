@@ -546,7 +546,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 							BasicValue ex = (BasicValue) this.getFrames()[successor].getStack(0);
 							if(shouldTrackExceptions && ex!= null && ex.getType() != null && (ex.getType().getDescriptor().contains("Exception") || ex.getType().getDescriptor().contains("Error")))
 							{
-								succesorBlock.exceptionsThrown.add(ex.getType().getInternalName());
+								succesorBlock.exceptionsThrown.add(ex.getType().getInternalName() + "#" + successor);
 							}
 						}
 					}
@@ -1205,11 +1205,15 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								tmp.removeAll(b.exceptionsThrownTrueSide);
 								missedExceptions.addAll(tmp);
 							}
+							HashSet<String> filtered =new HashSet<>();
 //							System.out.println(name + ":"+r.idx+" " + missedExceptions);
 							for(String s : missedExceptions){
 								if(s == null)
 									s = "java/lang/Throwable";
-								instructions.insertBefore(r.insn, new TypeInsnNode(TaintUtils.UNTHROWN_EXCEPTION, s));
+								if(s.contains("#"))
+									s = s.substring(0,s.indexOf('#'));
+								if(filtered.add(s))
+									instructions.insertBefore(r.insn, new TypeInsnNode(TaintUtils.UNTHROWN_EXCEPTION, s));
 							}
 						}
 						else if(shouldTrackExceptions && (r.insn.getType() == AbstractInsnNode.METHOD_INSN || r.insn
