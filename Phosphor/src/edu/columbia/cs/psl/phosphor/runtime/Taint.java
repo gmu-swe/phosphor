@@ -2,10 +2,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.SimpleHashSet;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.*;
 
 import java.io.Serializable;
 
@@ -307,16 +304,28 @@ public class Taint<T> implements Serializable {
 		{
 			if(o instanceof String)
 			{
-				Taint onObj  = (Taint) ((TaintedWithObjTag)o).getPHOSPHOR_TAG();
-				((String) o).setPHOSPHOR_TAG(Taint.combineTags(onObj, tags));
-//				for(int i = 0; i < ((String) o).length(); i++)
-//				{
-//					((String)o).valuePHOSPHOR_TAG[i] = Taint.combineTags(((String)o).valuePHOSPHOR_TAG[i], tags);
-//				}
+				combineTagsOnString((String) o, tags);
 			}
 			else
 				((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags((Taint) ((TaintedWithObjTag)o).getPHOSPHOR_TAG(), tags));
 	
+		}
+	}
+
+	private static void combineTagsOnString(String str, ControlTaintTagStack ctrl) {
+		Taint existing = str.PHOSPHOR_TAG;
+		str.PHOSPHOR_TAG = combineTags(existing, ctrl);
+
+		LazyCharArrayObjTags tags = str.valuePHOSPHOR_TAG;
+		if (tags == null) {
+			str.valuePHOSPHOR_TAG = new LazyCharArrayObjTags(str.value);
+			tags = str.valuePHOSPHOR_TAG;
+		}
+		if (tags.taints == null) {
+			tags.taints = new Taint[str.length()];
+		}
+		for (int i = 0; i < tags.taints.length; i++) {
+			tags.taints[i] = combineTags(tags.taints[i], ctrl);
 		}
 	}
 

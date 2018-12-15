@@ -91,7 +91,6 @@ public final class ControlTaintTagStack {
 					influenceExceptions.pop();
 				else
 					prev.next = n.next;
-				return;
 			}
 			prev = n;
 			n = n.next;
@@ -119,7 +118,6 @@ public final class ControlTaintTagStack {
 				if (influenceExceptions == null)
 					influenceExceptions = new LinkedList<>();
 				influenceExceptions.addFast(n.entry);
-				return;
 			}
 			prev = n;
 			n = n.next;
