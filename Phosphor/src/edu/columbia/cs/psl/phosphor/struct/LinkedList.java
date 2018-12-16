@@ -116,6 +116,8 @@ public class LinkedList<T> implements Cloneable, Serializable {
 		if(f == null)
 			return null;
 		first.next = f.next;
+		if(first.next == null)
+			last = first;
 		return f.entry;
 	}
 	public LinkedList()

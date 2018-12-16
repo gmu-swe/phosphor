@@ -89,10 +89,12 @@ public final class ControlTaintTagStack {
 			if(exTypeHandled.isAssignableFrom(n.entry.clazz)){
 				if(prev == null)
 					influenceExceptions.pop();
-				else
+				else {
 					prev.next = n.next;
+				}
 			}
-			prev = n;
+			else
+				prev = n;
 			n = n.next;
 		}
 
@@ -113,13 +115,15 @@ public final class ControlTaintTagStack {
 			if(t.isAssignableFrom(n.entry.clazz)){
 				if(prev == null)
 					unThrownExceptionStack.pop();
-				else
+				else {
 					prev.next = n.next;
+				}
 				if (influenceExceptions == null)
 					influenceExceptions = new LinkedList<>();
 				influenceExceptions.addFast(n.entry);
 			}
-			prev = n;
+			else
+				prev = n;
 			n = n.next;
 		}
 	}

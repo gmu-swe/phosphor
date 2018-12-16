@@ -303,7 +303,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 								for(TryCatchBlockNode each : m.tryCatchBlocks){
 									try{
-										Class<?> caught = Class.forName(each.type.replace('/','.'),false,PrimitiveArrayAnalyzer.class.getClassLoader());
+										Class<?> caught = Class.forName((each.type == null ? "java.lang.Throwable" : each.type.replace('/','.')),false,PrimitiveArrayAnalyzer.class.getClassLoader());
 										if(caught == Throwable.class){
 											//if catching Throwable, we'll catch this regardless of whether we can load the exception type or not
 											newControlFlowEdge(idx,m.instructions.indexOf(each.handler));
