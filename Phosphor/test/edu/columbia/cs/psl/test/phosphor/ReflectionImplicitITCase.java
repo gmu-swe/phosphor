@@ -156,17 +156,14 @@ public class ReflectionImplicitITCase {
 	public void testBoxing() {
 		ArrayList<Integer> list = new ArrayList<Integer>();
 		for (int i = 0; i < 5; i++) {
+			i = MultiTainter.taintedInt(i, "collection");
 			list.add(i);
 		}
 
 		int val = 18;
-		for (int i = 0; i < list.size(); i++) {
-			MultiTainter.taintedObject(list.get(i), new Taint("collection"));
-		}
 
 		val = MultiTainter.taintedInt(val, "int");
 		int newVal = list.get(0) + val;
-		Integer z = Integer.valueOf(newVal);
 		list.add(newVal);
 
 		for (int i = 0; i < list.size(); i++) {
@@ -175,7 +172,8 @@ public class ReflectionImplicitITCase {
 
 			Taint objTaint = MultiTainter.getTaint(obj);
 			Taint valTaint = MultiTainter.getTaint(objVal);
-			assertEquals(objTaint.lbl, valTaint.lbl);
+			assertTrue(objTaint.contains(valTaint));
+			assertTrue(valTaint.contains(objTaint));
 		}
 	}
 }

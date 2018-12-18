@@ -68,6 +68,9 @@ public class Taint<T> implements Serializable {
 	public T getLabel() {
 		return lbl;
 	}
+	public SimpleHashSet<T> getDependencies$$PHOSPHORTAGGED() {
+		return getDependencies();
+	}
 	public SimpleHashSet<T> getDependencies() {
 		return dependencies;
 	}
@@ -130,10 +133,11 @@ public class Taint<T> implements Serializable {
 		if(d == null)
 			return false;
 		boolean added = false;
-		if(this.lbl == null && d.hasNoDependencies())
+		if(d.hasNoDependencies())
 		{
-			this.lbl = d.lbl;
-			added = true;
+			if(this.lbl == d.lbl)
+				return false;
+			return dependencies.add(d.lbl);
 		}
 		if(d.lbl != null && d.lbl != this.lbl)
 			added = dependencies.add(d.lbl);
@@ -214,6 +218,21 @@ public class Taint<T> implements Serializable {
 		return r;
 	}
 
+	public TaintedBooleanWithObjTag contains$$PHOSPHORTAGGED(Taint<T> that, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl){
+		ret.taint = null;
+		ret.val = contains(that);
+		return ret;
+	}
+	public TaintedBooleanWithObjTag contains$$PHOSPHORTAGGED(Taint<T> that, TaintedBooleanWithObjTag ret){
+		ret.taint = null;
+		ret.val = contains(that);
+		return ret;
+	}
+	public TaintedBooleanWithIntTag contains$$PHOSPHORTAGGED(Taint<T> that, TaintedBooleanWithIntTag ret){
+		ret.taint = 0;
+		ret.val = contains(that);
+		return ret;
+	}
 	public boolean contains(Taint<T> that) {
 		boolean lblFound = false;
 		if (this.lbl == that.lbl)

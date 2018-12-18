@@ -130,7 +130,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitInsn(DUP);
 				super.visitFieldInsn(GETFIELD, owner, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 //				super.visitMethodInsn(INVOKESTATIC,Type.getInternalName(Taint.class), "copyTaint","("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC,false);
-				super.visitMethodInsn(INVOKEVIRTUAL, owner, "set"+TaintUtils.TAINT_FIELD, "("+(Configuration.MULTI_TAINTING ? "Ljava/lang/Object;" : "I")+")V", false);
+				super.visitFieldInsn(PUTFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 				FrameNode fn2 = getCurrentFrameNode();
 				super.visitLabel(isOK);
 				if(!followedByFrame)
@@ -188,7 +188,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 				super.visitInsn(DUP);
 				super.visitInsn(DUP);
 				super.visitFieldInsn(GETFIELD, owner, "value"+TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-				super.visitMethodInsn(INVOKEVIRTUAL, owner, "set"+TaintUtils.TAINT_FIELD, "("+(Configuration.MULTI_TAINTING ? "Ljava/lang/Object;" : "I")+")V", false);
+				super.visitFieldInsn(PUTFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 
 				lvs.freeTmpLV(tmp);
 				lvs.freeTmpLV(tmpT);

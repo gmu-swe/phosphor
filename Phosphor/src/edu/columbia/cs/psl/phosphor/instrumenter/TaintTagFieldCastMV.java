@@ -9,8 +9,10 @@ import org.objectweb.asm.Type;
 
 public class TaintTagFieldCastMV extends MethodVisitor implements Opcodes {
 
-	public TaintTagFieldCastMV(MethodVisitor mv) {
+	private String name;
+	public TaintTagFieldCastMV(MethodVisitor mv, String name) {
 		super(Opcodes.ASM5, mv);
+		this.name = name;
 	}
 
 	@Override
@@ -30,7 +32,7 @@ public class TaintTagFieldCastMV extends MethodVisitor implements Opcodes {
 //			}
 		} else if ((opcode == Opcodes.PUTFIELD || opcode == Opcodes.PUTSTATIC) && !TaintAdapter.canRawTaintAccess(owner) && name.endsWith(TaintUtils.TAINT_FIELD)
 				&& (desc.equals(Configuration.TAINT_TAG_DESC) || desc.startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy"))) {
-			if (desc.equals(Configuration.TAINT_TAG_DESC)) {
+			if (this.name.equals("set"+TaintUtils.TAINT_FIELD) && desc.equals(Configuration.TAINT_TAG_DESC)) {
 				if (opcode == PUTFIELD)
 					super.visitInsn(POP2);
 				else
