@@ -32,7 +32,7 @@ public class Taint<T> implements Serializable {
 			return this;
 		Taint<T> ret = new Taint<T>();
 		ret.lbl = lbl;
-		ret.dependencies.addAll(dependencies);
+		ret.dependencies = dependencies.copy();
 		return ret;
 	}
 //	public Object clone()  {

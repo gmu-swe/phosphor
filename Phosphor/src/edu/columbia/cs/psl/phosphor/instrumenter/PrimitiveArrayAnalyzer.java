@@ -1132,8 +1132,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //								while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
 //									insn = insn.getNext();
 								//Peek backwards to see if we are behind a GOTO
-								while(insn != null && insn.getPrevious() != null && (insn.getPrevious().getType() == AbstractInsnNode.LABEL || insn.getPrevious().getOpcode() == Opcodes.GOTO))
+								while(insn != null && insn.getPrevious() != null && mightEndBlock(insn.getPrevious())) {
 									insn = insn.getPrevious();
+								}
 								if(insn.getType() == AbstractInsnNode.LABEL)
 									insn = b.insn;
 //								System.out.println(b +"," + insn);
@@ -1323,6 +1324,23 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		HashMap<Integer,BasicBlock> implicitAnalysisblocks = new HashMap<Integer,PrimitiveArrayAnalyzer.BasicBlock>();
 
 	}
+
+	private boolean mightEndBlock(AbstractInsnNode insn) {
+		if(insn.getType() == AbstractInsnNode.LABEL)
+			return true;
+		switch(insn.getOpcode()){
+			case Opcodes.GOTO:
+			case Opcodes.RETURN:
+			case Opcodes.IRETURN:
+			case Opcodes.LRETURN:
+			case Opcodes.DRETURN:
+			case Opcodes.ARETURN:
+			case Opcodes.ATHROW:
+				return true;
+		}
+		return false;
+	}
+
 	static void debug(AbstractInsnNode insn){
 		while(insn != null) {
 			if (insn.getType() == AbstractInsnNode.LABEL)

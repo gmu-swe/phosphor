@@ -19,6 +19,13 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 	private static class Entry<T> implements Serializable {
 		T key;
 		Entry<T> next;
+		public Entry<T> copy(){
+			Entry<T> ret = new Entry<>();
+			ret.key = key;
+			if(next != null)
+				ret.next = next.copy();
+			return ret;
+		}
 	}
 	private Entry<T>[] buckets;
 
@@ -38,6 +45,17 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 
 		buckets = new Entry[capacity];
 		size = 0;
+	}
+
+	public SimpleHashSet<T> copy() {
+		SimpleHashSet<T> ret = new SimpleHashSet<>(buckets.length);
+		for(int i = 0; i < buckets.length; i++)
+		{
+			if(buckets[i] != null)
+				ret.buckets[i] = buckets[i].copy();
+		}
+		ret.size = size;
+		return ret;
 	}
 
 	public boolean isEmpty(){
