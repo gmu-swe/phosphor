@@ -75,8 +75,6 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 
 
 
-	static TaintedIntWithObjTag tmpReturn = new TaintedIntWithObjTag();
-	static ControlTaintTagStack tmpCtrl = new ControlTaintTagStack();
 	/**
 	 *
 	 * @param element
@@ -89,7 +87,7 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 		int index;
 		if(Configuration.IMPLICIT_TRACKING && element instanceof String) {
 			synchronized (this) {
-				index = hashFunction(((String)element).hashCode$$PHOSPHORTAGGED(tmpCtrl,tmpReturn).val);
+				index = hashFunction(((String)element).hashCode());
 			}
 		}
 		else
@@ -150,7 +148,7 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 		int index;
 		if(Configuration.IMPLICIT_TRACKING && element instanceof String) {
 			synchronized (this) {
-				index = hashFunction(((String)element).hashCode$$PHOSPHORTAGGED(tmpCtrl,tmpReturn).val);
+				index = hashFunction(((String)element).hashCode());
 			}
 		}
 		else
@@ -185,7 +183,7 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 		int index;
 		if(Configuration.IMPLICIT_TRACKING && element instanceof String) {
 			synchronized (this) {
-				index = hashFunction(((String)element).hashCode$$PHOSPHORTAGGED(tmpCtrl,tmpReturn).val);
+				index = hashFunction(((String)element).hashCode());
 			}
 		}
 		else

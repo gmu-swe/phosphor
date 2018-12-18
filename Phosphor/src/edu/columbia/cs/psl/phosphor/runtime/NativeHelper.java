@@ -1,13 +1,12 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import java.util.Collection;
-
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import org.objectweb.asm.Type;
-
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import org.objectweb.asm.Type;
+
+import java.util.Collection;
 
 public final class NativeHelper {
 
@@ -34,13 +33,9 @@ public final class NativeHelper {
 	}
 
 	public static final TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object o, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
-		if (o instanceof String)
-			return ((String) o).hashCode$$PHOSPHORTAGGED(ctrl, ret);
-		else {
-			ret.val = o.hashCode();
-			ret.taint = null;
-			return ret;
-		}
+		ret.val = o.hashCode();
+		ret.taint = null;
+		return ret;
 	}
 
 

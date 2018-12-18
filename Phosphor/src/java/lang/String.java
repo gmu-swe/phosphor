@@ -1000,10 +1000,6 @@ public final class String implements Serializable, Comparable<String>,
         return hashCode;
     }
 
-    public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(ControlTaintTagStack ctrl, TaintedIntWithObjTag ret){
-        return null;
-    }
-
     /**
      * Searches in this string for the first index of the specified character.
      * The search for the character starts at the beginning and moves towards

@@ -700,6 +700,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		}
 
 		if (generateEquals && !goLightOnGeneratedStuff) {
+
 			superMethodsToOverride.remove("equals(Ljava/lang/Object;)Z");
 			methodsToAddWrappersFor.add(new MethodNode(Opcodes.ACC_PUBLIC | Opcodes.ACC_NATIVE, "equals", "(Ljava/lang/Object;)Z", null, null));
 			MethodVisitor mv;
@@ -1126,6 +1127,14 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 		if (!goLightOnGeneratedStuff)
 			for (MethodNode m : methodsToAddWrappersFor) {
+				if( this.className.equals("java/lang/String") && (m.name.equals("hashCode") && m.desc.equals("()I") || (m.name.equals("equals") && m.desc.equals("(Ljava/lang/Object;)Z"))))
+				{
+					MethodNode fullMethod = forMore.get(m);
+
+					MethodVisitor mv = super.visitMethod(m.access,m.name,m.desc,m.signature,null);
+					fullMethod.accept(mv);
+					continue;
+				}
 				if ((m.access & Opcodes.ACC_NATIVE) == 0) {
 					if ((m.access & Opcodes.ACC_ABSTRACT) == 0) {
 						//not native

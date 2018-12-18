@@ -1,12 +1,11 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.HardcodedBypassStore;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 public class TaintTagFieldCastMV extends MethodVisitor implements Opcodes {
 
@@ -31,13 +30,17 @@ public class TaintTagFieldCastMV extends MethodVisitor implements Opcodes {
 //			}
 		} else if ((opcode == Opcodes.PUTFIELD || opcode == Opcodes.PUTSTATIC) && !TaintAdapter.canRawTaintAccess(owner) && name.endsWith(TaintUtils.TAINT_FIELD)
 				&& (desc.equals(Configuration.TAINT_TAG_DESC) || desc.startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy"))) {
-//			if (desc.equals(Configuration.TAINT_TAG_DESC)) {
+			if (desc.equals(Configuration.TAINT_TAG_DESC)) {
+				if (opcode == PUTFIELD)
+					super.visitInsn(POP2);
+				else
+					super.visitInsn(POP);
+			} else {
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(HardcodedBypassStore.class), "add", "(Ljava/lang/Object;)I", false);
 				super.visitFieldInsn(opcode, owner, name, "I");
-//			} else {
 //				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(HardcodedBypassStore.class), "add", "([Ljava/lang/Object;)[I", false);
 //				super.visitFieldInsn(opcode, owner, name, "[I");
-//			}
+			}
 		} else
 			super.visitFieldInsn(opcode, owner, name, desc);
 	}
