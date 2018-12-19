@@ -57,10 +57,12 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public void set(boolean[] b, Taint idxTag, int idx, Taint tag, boolean val, ControlTaintTagStack ctrl) {
+		checkAIOOB(idxTag,idx,ctrl);
 		set(b, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
 	}
 
 	public void set(boolean[] b, int idx, Taint tag, boolean val, ControlTaintTagStack ctrl) {
+		checkAIOOB(null,idx,ctrl);
 		this.val[idx] = val;
 		if (tag != null) {
 			if (taints == null)
@@ -75,6 +77,7 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public TaintedBooleanWithObjTag get(boolean[] b, Taint idxTaint, int idx, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
+		checkAIOOB(idxTaint,idx,ctrl);
 		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
 	}
 
@@ -87,6 +90,7 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 	public TaintedBooleanWithObjTag get(boolean[] b, int idx, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
+		checkAIOOB(null,idx,ctrl);
 		ret.val = val[idx];
 		if (taints == null)
 			ret.taint = null;

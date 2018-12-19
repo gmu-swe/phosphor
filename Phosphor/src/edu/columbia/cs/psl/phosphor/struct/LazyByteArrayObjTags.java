@@ -62,6 +62,7 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public TaintedByteWithObjTag get(byte[] b, Taint idxTaint, int idx, TaintedByteWithObjTag ret, ControlTaintTagStack ctrl){
+		checkAIOOB(idxTaint,idx,ctrl);
 		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
 	}
 
@@ -75,10 +76,12 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 	}
 	
 	public void set(byte[] b, Taint idxTag, int idx, Taint tag, byte val, ControlTaintTagStack ctrl) {
+		checkAIOOB(idxTag,idx,ctrl);
 		set(b, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
 	}
 	
 	public void set(byte[] b, int idx, Taint tag, byte val, ControlTaintTagStack ctrl) {
+		checkAIOOB(null,idx,ctrl);
 		this.val[idx] = val;
 		tag = Taint.combineTags(tag, ctrl);
 		if (tag != null) {
@@ -89,6 +92,7 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public TaintedByteWithObjTag get(byte[] b, int idx, TaintedByteWithObjTag ret, ControlTaintTagStack ctrl) {
+		checkAIOOB(null,idx,ctrl);
 		ret.val = val[idx];
 		if (taints == null)
 			ret.taint = null;

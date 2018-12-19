@@ -36,6 +36,7 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
 	}
 	public TaintedIntWithObjTag get(int[] b, Taint idxTaint, int idx, TaintedIntWithObjTag ret, ControlTaintTagStack ctrl){
+		checkAIOOB(idxTaint, idx, ctrl);
 		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
 	}
 	@Override
@@ -76,10 +77,12 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 	}
 	
 	public void set(int[] b, Taint idxTag, int idx, Taint tag, int val, ControlTaintTagStack ctrl) {
+		checkAIOOB(idxTag, idx, ctrl);
 		set(b, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
 	}
 	
 	public void set(int[] l, int idx, Taint tag, int ival, ControlTaintTagStack tags) {
+		checkAIOOB(null, idx, tags);
 		val[idx] = ival;
 		tag = Taint.combineTags(tag, tags);
 		if (tag != null) {
@@ -93,6 +96,7 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public TaintedIntWithObjTag get(int[] l, int idx, TaintedIntWithObjTag ret, ControlTaintTagStack tags) {
+		checkAIOOB(null, idx, tags);
 		ret.val = val[idx];
 		if (taints == null)
 			ret.taint = null;

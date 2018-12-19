@@ -37,12 +37,14 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 	}
 	
 	public void set(double[] b, Taint idxTag, int idx, Taint tag, double val, ControlTaintTagStack ctrl) {
+		checkAIOOB(idxTag,idx,ctrl);
 		set(b, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
 	}
 	public TaintedDoubleWithObjTag get(double[] b, Taint idxTaint, int idx, TaintedDoubleWithObjTag ret){
 		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
 	}
 	public TaintedDoubleWithObjTag get(double[] b, Taint idxTaint, int idx, TaintedDoubleWithObjTag ret, ControlTaintTagStack ctrl){
+		checkAIOOB(idxTaint,idx,ctrl);
 		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
 	}
 	
@@ -75,6 +77,7 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 	}
 	
 	public void set(double[] d, int idx, Taint tag, double newval, ControlTaintTagStack tags) {
+		checkAIOOB(null,idx,tags);
 		val[idx] = newval;
 		tag = Taint.combineTags(tag, tags);
 		if (tag != null) {
@@ -85,6 +88,7 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public TaintedDoubleWithObjTag get(double[] d, int idx, TaintedDoubleWithObjTag ret, ControlTaintTagStack tags) {
+		checkAIOOB(null,idx,tags);
 		ret.val = val[idx];
 		if (taints == null)
 			ret.taint = null;

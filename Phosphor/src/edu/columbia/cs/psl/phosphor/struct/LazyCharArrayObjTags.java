@@ -4,17 +4,17 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class LazyCharArrayObjTags extends LazyArrayObjTags {
-	
+
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 2765977210252782974L;
 	public char[] val;
 
-	public LazyCharArrayObjTags(int len)
-	{
+	public LazyCharArrayObjTags(int len) {
 		this.val = new char[len];
 	}
+
 	public LazyCharArrayObjTags(char[] array, Taint[] taints) {
 		this.taints = taints;
 		this.val = array;
@@ -23,7 +23,7 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 	public LazyCharArrayObjTags(char[] array) {
 		this.val = array;
 	}
-	
+
 	public LazyCharArrayObjTags(Taint lenTaint, char[] array) {
 		this.val = array;
 		this.lengthTaint = lenTaint;
@@ -37,21 +37,21 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 		return ret;
 	}
 
-	public void set(char[] b, Taint idxTag, int idx, char val){
-		set(b,idxTag,idx,null,val);
+	public void set(char[] b, Taint idxTag, int idx, char val) {
+		set(b, idxTag, idx, null, val);
 	}
 
 	public void set(char[] l, Taint idxTag, int idx, Taint tag, char ival) {
-		if(Configuration.derivedTaintListener != null)
-			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival,null), ival);
-		else if(idxTag == null)
+		if (Configuration.derivedTaintListener != null)
+			set(l, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, ival, null), ival);
+		else if (idxTag == null)
 			set(l, idx, tag, ival);
-		else if(tag == null)
+		else if (tag == null)
 			set(l, idx, idxTag, ival);
 		else
 			set(l, idx, new Taint(tag, idxTag), ival);
 	}
-	
+
 	public void set(char[] c, int idx, Taint tag, char val) {
 		this.val[idx] = val;
 		if (taints == null && tag != null)
@@ -60,10 +60,12 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 			taints[idx] = tag;
 	}
 
-	public TaintedCharWithObjTag get(char[] b, Taint idxTaint, int idx, TaintedCharWithObjTag ret){
+	public TaintedCharWithObjTag get(char[] b, Taint idxTaint, int idx, TaintedCharWithObjTag ret) {
 		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
 	}
-	public TaintedCharWithObjTag get(char[] b, Taint idxTaint, int idx, TaintedCharWithObjTag ret, ControlTaintTagStack ctrl){
+
+	public TaintedCharWithObjTag get(char[] b, Taint idxTaint, int idx, TaintedCharWithObjTag ret, ControlTaintTagStack ctrl) {
+		checkAIOOB(idxTaint,idx,ctrl);
 		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
 	}
 
@@ -75,12 +77,14 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 			ret.taint = taints[idx];
 		return ret;
 	}
-	
+
 	public void set(char[] b, Taint idxTag, int idx, Taint tag, char val, ControlTaintTagStack ctrl) {
+		checkAIOOB(idxTag,idx,ctrl);
 		set(b, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
 	}
-	
+
 	public void set(char[] c, int idx, Taint tag, char val, ControlTaintTagStack tags) {
+		checkAIOOB(null, idx, tags);
 		this.val[idx] = val;
 		tag = Taint.combineTags(tag, tags);
 		if (tag != null) {
@@ -91,6 +95,7 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 	}
 
 	public TaintedCharWithObjTag get(char[] c, int idx, TaintedCharWithObjTag ret, ControlTaintTagStack tags) {
+		checkAIOOB(null, idx, tags);
 		ret.val = val[idx];
 		if (taints == null)
 			ret.taint = null;
@@ -99,18 +104,18 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 		ret.taint = Taint.combineTags(ret.taint, tags);
 		return ret;
 	}
-	
-	public int getLength()
-	{
+
+	public int getLength() {
 		return val.length;
 	}
+
 	@Override
 	public Object getVal() {
 		return val;
 	}
-	public void ensureVal(char[] v)
-	{
-		if(v != val)
+
+	public void ensureVal(char[] v) {
+		if (v != val)
 			val = v;
 	}
 }

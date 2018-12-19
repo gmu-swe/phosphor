@@ -180,6 +180,8 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 		}
 		else if(type.equals("Lnull;"))
 			return BasicArrayValue.NULL_VALUE;
+		else if(Configuration.IMPLICIT_EXCEPTION_FLOW && (type.getDescriptor().contains("Error") || type.getDescriptor().contains("Exception")))
+			return new BasicArrayValue(type);
 		else
 			return super.newValue(type);
 	}
