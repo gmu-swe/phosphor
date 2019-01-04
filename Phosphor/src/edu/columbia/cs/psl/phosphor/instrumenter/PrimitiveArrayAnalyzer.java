@@ -1135,7 +1135,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								while(insn != null && insn.getPrevious() != null && mightEndBlock(insn.getPrevious())) {
 									insn = insn.getPrevious();
 								}
-								if(insn.getType() == AbstractInsnNode.LABEL)
+								if(insn.getType() == AbstractInsnNode.LABEL || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.FRAME)
 									insn = b.insn;
 //								System.out.println(b +"," + insn);
 
