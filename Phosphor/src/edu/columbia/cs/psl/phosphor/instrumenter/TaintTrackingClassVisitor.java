@@ -687,7 +687,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			superMethodsToOverride.remove("equals(Ljava/lang/Object;)Z");
 			methodsToAddWrappersFor.add(new MethodNode(Opcodes.ACC_PUBLIC | Opcodes.ACC_NATIVE, "equals", "(Ljava/lang/Object;)Z", null, null));
 			MethodVisitor mv;
-			mv = super.visitMethod(Opcodes.ACC_PUBLIC, "equals", "(Ljava/lang/Object;)Z", null, null);
+			mv = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC, "equals", "(Ljava/lang/Object;)Z", null, null);
 			mv.visitCode();
 			Label start = new Label();
 			Label end = new Label();
