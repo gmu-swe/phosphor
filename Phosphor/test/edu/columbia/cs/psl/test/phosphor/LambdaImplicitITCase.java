@@ -1,9 +1,7 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static java.security.AccessController.doPrivileged;
-import static org.junit.Assert.*;
+import org.junit.Test;
 
-import java.io.IOException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
@@ -12,16 +10,16 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.Test;
+import static java.security.AccessController.doPrivileged;
 
-public class LambdaObjTagITCase {
+public class LambdaImplicitITCase {
 
 	@Test
 	public void testCollectors() throws Exception{
 		List<String> givenList = Arrays.asList("a", "bb", "ccc", "dd");
 		givenList.stream().collect(Collectors.toList());
-
 	}
+
 	@Test
 	public void testIntStreamsDontCrash() throws Exception {
 		int sum = IntStream.of(1, 2, 3, 4, 5).sum(); //creates a bunch of lambdas

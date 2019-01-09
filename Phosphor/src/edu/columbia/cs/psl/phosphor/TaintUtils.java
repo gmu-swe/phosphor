@@ -781,6 +781,34 @@ public class TaintUtils {
 
 	public static String remapMethodDescAndIncludeReturnHolder(String desc) {
 		String r = "(";
+		boolean ctrlAdded = !(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING);
+		for (Type t : Type.getArgumentTypes(desc)) {
+			if (t.getSort() == Type.ARRAY) {
+				if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1)
+					r += getShadowTaintType(t.getDescriptor());
+			} else if (t.getSort() != Type.OBJECT) {
+				r += getShadowTaintType(t.getDescriptor());
+			}
+			if(t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted"))
+			{
+				ctrlAdded = true;
+				r += Type.getDescriptor(ControlTaintTagStack.class);
+			}
+			if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() > 1) {
+				r += MultiDTaintedArray.getTypeForType(t);
+			} else
+				r += t;
+		}
+		if (!ctrlAdded)
+			r += Type.getDescriptor(ControlTaintTagStack.class);
+		if (isPrimitiveType(Type.getReturnType(desc)))
+			r += getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
+		r += ")" + getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
+		return r;
+	}
+
+	public static String remapMethodDescAndIncludeReturnHolderInit(String desc) {
+		String r = "(";
 		for (Type t : Type.getArgumentTypes(desc)) {
 			if (t.getSort() == Type.ARRAY) {
 				if (t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1)
@@ -795,7 +823,8 @@ public class TaintUtils {
 		}
 		if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING)
 			r += Type.getDescriptor(ControlTaintTagStack.class);
-		if (isPrimitiveOrPrimitiveArrayType(Type.getReturnType(desc)))
+		r += Type.getDescriptor(TaintSentinel.class);
+		if (isPrimitiveType(Type.getReturnType(desc)))
 			r += getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
 		r += ")" + getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
 		return r;
@@ -815,7 +844,7 @@ public class TaintUtils {
 			} else
 				r += t;
 		}
-		if (isPrimitiveOrPrimitiveArrayType(Type.getReturnType(desc)))
+		if (isPrimitiveType(Type.getReturnType(desc)))
 			r += getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
 		r += ")" + getContainerReturnType(Type.getReturnType(desc)).getDescriptor();
 		return r;

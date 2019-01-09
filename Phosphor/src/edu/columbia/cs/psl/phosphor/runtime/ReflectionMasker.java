@@ -1595,8 +1595,18 @@ public class ReflectionMasker {
 					&& (params[params.length - 1].getName().equals("edu.columbia.cs.psl.phosphor.runtime.TaintSentinel") || params[params.length - 1].getName().equals(
 							"edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel"))) {
 
-			} else
-				ret.add(f);
+			} else {
+				boolean bad = false;
+				for(Class p : params){
+					if(p == Taint.class  || p == ControlTaintTagStack.class)
+					{
+						bad = true;
+						break;
+					}
+				}
+				if(!bad)
+					ret.add(f);
+			}
 		}
 		Constructor[] retz = new Constructor[ret.size()];
 		ret.toArray(retz);

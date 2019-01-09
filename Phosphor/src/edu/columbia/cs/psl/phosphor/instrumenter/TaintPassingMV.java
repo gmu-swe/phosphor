@@ -1840,7 +1840,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	        if(bsmArgs[1] instanceof Handle)
 	        {
 		        Type t = Type.getMethodType(((Handle)bsmArgs[1]).getDesc());
-		        if(TaintUtils.isPrimitiveOrPrimitiveArrayType(t.getReturnType()))
+		        if(TaintUtils.isPrimitiveType(t.getReturnType()))
 		        {
 		        	Type _t = (Type) bsmArgs[0];
 		        	if(_t.getReturnType().getSort() == Type.VOID){
@@ -1872,9 +1872,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
                 if(o instanceof Handle)
                 {
-	                if (!Instrumenter.isIgnoredClass(((Handle) o).getOwner()) && !Instrumenter.isIgnoredMethod(((Handle) o).getOwner(), ((Handle) o).getName(), ((Handle) o).getDesc()) &&
+                	String nameH = ((Handle) o).getName();
+	                if (!Instrumenter.isIgnoredClass(((Handle) o).getOwner()) && !Instrumenter.isIgnoredMethod(((Handle) o).getOwner(), nameH, ((Handle) o).getDesc()) &&
 			                !TaintUtils.remapMethodDescAndIncludeReturnHolder(((Handle) o).getDesc()).equals(((Handle) o).getDesc())) {
-		                bsmArgs[k] = new Handle(((Handle) o).getTag(), ((Handle) o).getOwner(), ((Handle) o).getName() + TaintUtils.METHOD_SUFFIX, TaintUtils.remapMethodDescAndIncludeReturnHolder(((Handle) o).getDesc()));
+			                bsmArgs[k] = new Handle(((Handle) o).getTag(), ((Handle) o).getOwner(), nameH+ (nameH.equals("<init>") ? "" : TaintUtils.METHOD_SUFFIX), TaintUtils.remapMethodDescAndIncludeReturnHolder(((Handle) o).getDesc()));
 	                }
                 }
                 else if(o instanceof Type)
