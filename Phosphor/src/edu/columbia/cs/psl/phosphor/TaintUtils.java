@@ -789,7 +789,7 @@ public class TaintUtils {
 			} else if (t.getSort() != Type.OBJECT) {
 				r += getShadowTaintType(t.getDescriptor());
 			}
-			if(t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted"))
+			if(!ctrlAdded && t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted"))
 			{
 				ctrlAdded = true;
 				r += Type.getDescriptor(ControlTaintTagStack.class);

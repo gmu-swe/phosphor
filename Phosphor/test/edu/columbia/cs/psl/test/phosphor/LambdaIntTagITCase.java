@@ -10,16 +10,12 @@ import java.util.stream.IntStream;
 
 public class LambdaIntTagITCase {
 
-	// This is known to not work correctly on int tags. It may never be possible to make it work completely on int tags, because
-	// we need to add a fake parameter to every modified constructor to make sure that it is unique. But, we can't do that
-	// for cases where INVOKEDYNAMIC binds a constructor to a non-constructor call (although maybe we can fix this, not enough
-	// time to look into it now)
-//	@Test
-//	public void testCollectors() throws Exception{
-//		List<String> givenList = Arrays.asList("a", "bb", "ccc", "dd");
-//		givenList.stream().collect(Collectors.toList());
-//
-//	}
+	@Test
+	public void testCollectors() throws Exception{
+		List<String> givenList = Arrays.asList("a", "bb", "ccc", "dd");
+		givenList.stream().collect(Collectors.toList());
+
+	}
 	@Test
 	public void testEmptyLambda() throws Exception {
 		Runnable r = () -> {
