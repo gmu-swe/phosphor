@@ -18,6 +18,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -245,6 +246,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	}
 
 	private HashMap<String, Method> superMethodsToOverride = new HashMap<String, Method>();
+	private HashSet<MethodNode> wrapperMethodsToAdd = new HashSet<>();
 	HashMap<MethodNode, MethodNode> forMore = new HashMap<MethodNode, MethodNode>();
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
@@ -367,7 +369,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					addSentinel = true;
 				}
 				newArgTypes.add(t);
-				if (t.getDescriptor().contains("ControlTaintTagStack") || t.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct") || t.getDescriptor().contains("Ledu/columbia/cs/psl/phosphor/runtime/Taint")) {
+				if (t.getDescriptor().contains("ControlTaintTagStack") || t.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct") || t.getDescriptor().contains("Ledu/columbia/cs/psl/phosphor/runtime/Taint") || TaintUtils.isPrimitiveType(t)) {
 					final MethodVisitor cmv = super.visitMethod(access, name, desc, signature, exceptions);
 					MethodNode fullMethod = new MethodNode(Opcodes.ASM6, access,name,desc,signature,exceptions){
 						@Override
@@ -468,7 +470,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			MethodVisitor nextMV;
 			{
 //				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(access, className, name, desc, signature, exceptions, boxFixer, analyzer);
-				tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV);
+				tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV,wrapperMethodsToAdd);
 				tmv.setFields(fields);
 				TaintAdapter custom = null;
 				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv, generateExtraLVDebug);
@@ -607,6 +609,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	@Override
 	public void visitEnd() {
+
+		for(MethodNode mn : wrapperMethodsToAdd)
+		{
+			mn.accept(this);
+		}
 
 		if((isEnum || className.equals("java/lang/Enum")) && Configuration.WITH_ENUM_BY_VAL)
 		{
@@ -1110,24 +1117,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					MethodVisitor mv = super.visitMethod(m.access,m.name,m.desc,m.signature,null);
 					fullMethod.accept(mv);
 					continue;
-				}
-				if(Configuration.MULTI_TAINTING && m.name.equals("<init>")){
-					String newDesc = TaintUtils.remapMethodDesc(m.desc);
-					MethodVisitor mv = super.visitMethod(m.access, m.name, newDesc, m.signature, null);
-
-					mv.visitCode();
-					Type[] args = Type.getArgumentTypes(newDesc);
-					mv.visitVarInsn(Opcodes.ALOAD,0);
-					int c = 1;
-					for(int i = 0; i<args.length; i++){
-						mv.visitVarInsn(args[i].getOpcode(Opcodes.ILOAD), c);
-						c+=args[i].getSize();
-					}
-					mv.visitInsn(Opcodes.ACONST_NULL);
-					mv.visitMethodInsn(Opcodes.INVOKESPECIAL, className, m.name, TaintUtils.remapMethodDescAndIncludeReturnHolderInit(m.desc), false);
-					mv.visitInsn(Opcodes.RETURN);
-					mv.visitMaxs(0,0);
-					mv.visitEnd();
 				}
 				if ((m.access & Opcodes.ACC_NATIVE) == 0) {
 					if ((m.access & Opcodes.ACC_ABSTRACT) == 0) {

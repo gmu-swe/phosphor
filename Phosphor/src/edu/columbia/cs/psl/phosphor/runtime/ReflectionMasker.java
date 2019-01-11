@@ -1596,16 +1596,7 @@ public class ReflectionMasker {
 							"edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel"))) {
 
 			} else {
-				boolean bad = false;
-				for(Class p : params){
-					if(p == Taint.class  || p == ControlTaintTagStack.class)
-					{
-						bad = true;
-						break;
-					}
-				}
-				if(!bad)
-					ret.add(f);
+				ret.add(f);
 			}
 		}
 		Constructor[] retz = new Constructor[ret.size()];

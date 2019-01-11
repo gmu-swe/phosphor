@@ -12,12 +12,15 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.*;
+import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
+import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.Printer;
 import org.objectweb.asm.util.Textifier;
 
+import java.util.ArrayList;
 import java.util.*;
 import java.util.LinkedList;
 
@@ -203,7 +206,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	private boolean rewriteLVDebug = false;
 
 	private boolean isLambda;
-	public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String signature, String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,MethodVisitor passthruMV) {
+
+
+	private HashSet<MethodNode> wrapperMethodsToAdd;
+	public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String signature, String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,MethodVisitor passthruMV, HashSet<MethodNode> wrapperMethodsToAdd) {
 		//		super(Opcodes.ASM4,mv,access,name,desc);
 		super(access, className,name,desc,  signature, exceptions, mv, analyzer);
 		Configuration.taintTagFactory.instrumentationStarting(access, name, desc); 
@@ -211,6 +217,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		this.isLambda = className.contains("$Lambda$");
 		this.name = name;
 		this.className = className;
+		this.wrapperMethodsToAdd = wrapperMethodsToAdd;
 		Type[] newArgTypes = Type.getArgumentTypes(desc);
 		lastArg = 0;
 		for (Type t : newArgTypes) {
@@ -1866,24 +1873,121 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			        }
 		        }
 	        }
-            for(int k = 0; k < bsmArgs.length; k++)
-            {
-                Object o = bsmArgs[k];
+	        if(bsm.getName().equals("metafactory"))
+	        {
+	            bsmArgs[0] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(((Type) bsmArgs[0]).getDescriptor()));
+	            Handle implMethod = (Handle) bsmArgs[1];
+		        if (!Instrumenter.isIgnoredClass(implMethod.getOwner()) && !Instrumenter.isIgnoredMethod(implMethod.getOwner(), implMethod.getName(), implMethod.getDesc()) && !TaintUtils.remapMethodDescAndIncludeReturnHolder(implMethod.getDesc()).equals(implMethod.getDesc())) {
 
-                if(o instanceof Handle)
-                {
-                	String nameH = ((Handle) o).getName();
-	                if (!Instrumenter.isIgnoredClass(((Handle) o).getOwner()) && !Instrumenter.isIgnoredMethod(((Handle) o).getOwner(), nameH, ((Handle) o).getDesc()) &&
-			                !TaintUtils.remapMethodDescAndIncludeReturnHolder(((Handle) o).getDesc()).equals(((Handle) o).getDesc())) {
-			                bsmArgs[k] = new Handle(((Handle) o).getTag(), ((Handle) o).getOwner(), nameH+ (nameH.equals("<init>") ? "" : TaintUtils.METHOD_SUFFIX), TaintUtils.remapMethodDescAndIncludeReturnHolder(((Handle) o).getDesc()));
-	                }
-                }
-                else if(o instanceof Type)
-                {
-                	Type t = (Type) o;
-                	bsmArgs[k] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(t.getDescriptor()));
-                }
-            }
+			        //make sure that we can directly make this call without needing to add additional parameters
+			        String implMethodDesc = implMethod.getDesc();
+
+			        Type samMethodType = (Type) bsmArgs[0];
+			        String remappedImplDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(implMethodDesc);
+
+			        Type instantiatedType = (Type) bsmArgs[2];
+			        Type[] instantiatedMethodArgs = instantiatedType.getArgumentTypes();
+			        Type[] samMethodArgs = samMethodType.getArgumentTypes();
+
+
+			        String remappedInstantiatedDesc = null;
+			        if (implMethod.getName().equals("<init>"))
+				        remappedInstantiatedDesc = TaintUtils.remapMethodDescAndIncludeReturnHolderInit(instantiatedType.getDescriptor());
+			        else
+				        remappedInstantiatedDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(instantiatedType.getDescriptor());
+			        boolean needToAddUnWrapper = samMethodType.getArgumentTypes().length != Type.getMethodType(remappedInstantiatedDesc).getArgumentTypes().length;
+
+			        if (needToAddUnWrapper) {
+				        Type wrapperDesc = Type.getMethodType(implMethod.getDesc());
+				        Type[] implMethodArgs = Type.getArgumentTypes(implMethod.getDesc());
+				        ArrayList<Type> newWrapperArgs = new ArrayList<>();
+				        int extraArgs = Type.getArgumentTypes(implMethodDesc).length - instantiatedType.getArgumentTypes().length;
+				        for (int j = 0; j < implMethodArgs.length; j++) {
+					        if (j < extraArgs) {
+						        //Add as-is
+						        newWrapperArgs.add(implMethodArgs[j]);
+					        } else if (TaintUtils.isPrimitiveArrayType(implMethodArgs[j]) &&
+							        samMethodArgs[j - extraArgs].getDescriptor().equals("Ljava/lang/Object;")) {
+						        newWrapperArgs.add(samMethodArgs[j - extraArgs]);
+					        } else {
+						        newWrapperArgs.add(implMethodArgs[j]);
+					        }
+				        }
+				        boolean isStatic = (implMethod.getTag() & Opcodes.H_INVOKESTATIC) != 0;
+				        boolean isNEW = (implMethod.getTag() & Opcodes.H_NEWINVOKESPECIAL) != 0;
+				        Type newReturnType = TaintUtils.getContainerReturnType(wrapperDesc.getReturnType());
+				        if(isNEW)
+				        {
+				        	newReturnType = Type.getObjectType(implMethod.getOwner());
+				        }
+				        wrapperDesc = Type.getMethodType(newReturnType, newWrapperArgs.toArray(new Type[newWrapperArgs.size()]));
+
+				        String wrapperName = "phosphorWrapInvokeDymnamic" + wrapperMethodsToAdd.size();
+
+				        if (!isStatic && !isNEW)
+					        throw new UnsupportedOperationException();
+
+				        MethodNode mn = new MethodNode(Opcodes.ACC_STATIC | Opcodes.ACC_FINAL, wrapperName, wrapperDesc.getDescriptor(), null, null);
+
+				        GeneratorAdapter ga = new GeneratorAdapter(mn, Opcodes.ACC_STATIC, wrapperName, wrapperDesc.getDescriptor());
+				        ga.visitCode();
+
+				        if(isNEW){
+				        	ga.visitTypeInsn(Opcodes.NEW, implMethod.getOwner());
+				        	ga.visitInsn(DUP);
+				        }
+				        for (int j = 0; j < newWrapperArgs.size(); j++) {
+					        ga.visitVarInsn(newWrapperArgs.get(j).getOpcode(Opcodes.ILOAD), j);
+					        if(!implMethodArgs[j].getDescriptor().equals(newWrapperArgs.get(j).getDescriptor()))
+					            ga.visitTypeInsn(Opcodes.CHECKCAST, implMethodArgs[j].getInternalName());
+				        }
+				        ga.visitMethodInsn((isNEW ? Opcodes.INVOKESPECIAL:  Opcodes.INVOKESTATIC), implMethod.getOwner(), implMethod.getName(), implMethod.getDesc(), false);
+
+				        ga.returnValue();
+				        ga.visitMaxs(0, 0);
+				        ga.visitEnd();
+
+				        wrapperMethodsToAdd.add(mn);
+
+				        //Change the bsmArgs to point to the new wrapper (which may or may not get the suffix)
+
+				        String taintedWrapperDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(wrapperDesc.getDescriptor());
+
+				        String targetName = wrapperName;
+				        if (!taintedWrapperDesc.equals(wrapperDesc.getDescriptor()))
+					        targetName = targetName + "$$PHOSPHORTAGGED";
+				        bsmArgs[1] = new Handle(Opcodes.H_INVOKESTATIC, className, targetName, taintedWrapperDesc);
+
+				        //build the new instantiated desc
+				        for (int j = 0; j < instantiatedMethodArgs.length; j++) {
+					        if (TaintUtils.isPrimitiveArrayType(instantiatedMethodArgs[j])) {
+						        instantiatedMethodArgs[j] = MultiDTaintedArray.getTypeForType(instantiatedMethodArgs[j]);
+					        }
+				        }
+
+				        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(Type.getMethodType(newReturnType, instantiatedMethodArgs).getDescriptor()));
+
+			        } else {
+				        bsmArgs[1] = new Handle(implMethod.getTag(), implMethod.getOwner(), implMethod.getName() + (implMethod.getName().equals("<init>") ? "" : TaintUtils.METHOD_SUFFIX), remappedImplDesc);
+				        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(instantiatedType.getDescriptor()));
+			        }
+
+		        }
+	        }
+	        else
+		        for (int k = 0; k < bsmArgs.length; k++) {
+			        Object o = bsmArgs[k];
+			        if (o instanceof Handle) {
+				        String nameH = ((Handle) o).getName();
+				        if (!Instrumenter.isIgnoredClass(((Handle) o).getOwner()) && !Instrumenter.isIgnoredMethod(((Handle) o).getOwner(), nameH, ((Handle) o).getDesc()) &&
+						        !TaintUtils.remapMethodDescAndIncludeReturnHolder(((Handle) o).getDesc()).equals(((Handle) o).getDesc())) {
+					        bsmArgs[k] = new Handle(((Handle) o).getTag(), ((Handle) o).getOwner(), nameH + (nameH.equals("<init>") ? "" : TaintUtils.METHOD_SUFFIX), TaintUtils.remapMethodDescAndIncludeReturnHolder(((Handle) o).getDesc()));
+				        }
+			        } else if (o instanceof Type) {
+				        Type t = (Type) o;
+				        bsmArgs[k] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(t.getDescriptor()));
+			        }
+		        }
         }
 		if (hasNewName && !Instrumenter.isIgnoredClass(bsm.getOwner())) {
 			if (!Instrumenter.isIgnoredMethod(bsm.getOwner(), bsm.getName(), bsm.getDesc()) && !TaintUtils.remapMethodDescAndIncludeReturnHolder(bsm.getDesc()).equals(bsm.getDesc()))

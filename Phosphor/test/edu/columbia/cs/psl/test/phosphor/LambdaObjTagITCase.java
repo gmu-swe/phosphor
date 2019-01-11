@@ -8,6 +8,8 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.ObjDoubleConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -16,6 +18,18 @@ import org.junit.Test;
 
 public class LambdaObjTagITCase {
 
+	@Test
+	public void testDoubleConsumer() throws Exception{
+		ObjDoubleConsumer<double[]> consumer = (ll, l) -> {
+			ll[0] += l;
+		};
+		consumer.accept(new double[1], 1.0);
+
+		BiConsumer<double[], double[]> consumer2 = (ll, rr) -> {
+			ll[0] += rr[0];
+		};
+		consumer2.accept(new double[1], new double[1]);
+	}
 	@Test
 	public void testCollectors() throws Exception{
 		List<String> givenList = Arrays.asList("a", "bb", "ccc", "dd");
