@@ -307,7 +307,7 @@ public class PreMain {
 						Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
 						_cv = extra.newInstance(_cv, skipFrames);
 					}
-					if (TaintUtils.VERIFY_CLASS_GENERATION)
+					if (DEBUG)
 						_cv = new CheckClassAdapter(_cv, false);
 					if(isiFace)
 						_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields);
@@ -334,8 +334,9 @@ public class PreMain {
 						// if(TaintUtils.DEBUG_FRAMES)
 						// System.out.println("NOW IN CHECKCLASSADAPTOR");
 						if (DEBUG
-								|| (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler") && !className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache")
-										&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap") && !className.startsWith("jersey/repackaged/com/google/common/collect/"))) {
+//								|| (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler") && !className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache")
+//										&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap") && !className.startsWith("jersey/repackaged/com/google/common/collect/"))
+) {
 							ClassReader cr2 = new ClassReader(cw.toByteArray());
 							cr2.accept(new CheckClassAdapter(new ClassWriter(0), true), 0);
 						}
