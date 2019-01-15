@@ -1875,14 +1875,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	        }
 	        if(bsm.getName().equals("metafactory"))
 	        {
-	            bsmArgs[0] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(((Type) bsmArgs[0]).getDescriptor()));
 	            Handle implMethod = (Handle) bsmArgs[1];
 		        if (!Instrumenter.isIgnoredClass(implMethod.getOwner()) && !Instrumenter.isIgnoredMethod(implMethod.getOwner(), implMethod.getName(), implMethod.getDesc()) && !TaintUtils.remapMethodDescAndIncludeReturnHolder(implMethod.getDesc()).equals(implMethod.getDesc())) {
+			        Type uninstSamMethodType = (Type) bsmArgs[0];
 
+			        bsmArgs[0] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(((Type) bsmArgs[0]).getDescriptor()));
 			        //make sure that we can directly make this call without needing to add additional parameters
 			        String implMethodDesc = implMethod.getDesc();
 
 			        Type samMethodType = (Type) bsmArgs[0];
+
 			        String remappedImplDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(implMethodDesc);
 
 			        Type instantiatedType = (Type) bsmArgs[2];
@@ -1897,24 +1899,55 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				        remappedInstantiatedDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(instantiatedType.getDescriptor());
 			        boolean needToAddUnWrapper = samMethodType.getArgumentTypes().length != Type.getMethodType(remappedInstantiatedDesc).getArgumentTypes().length;
 
+			        boolean isStatic = (implMethod.getTag() == Opcodes.H_INVOKESTATIC);
+			        boolean isNEW = (implMethod.getTag() == Opcodes.H_NEWINVOKESPECIAL);
+			        boolean isVirtual = (implMethod.getTag() == Opcodes.H_INVOKEVIRTUAL) || implMethod.getTag() == Opcodes.H_INVOKESPECIAL || implMethod.getTag() == Opcodes.H_INVOKEINTERFACE;
+
+			        //OR if there are primitives in the impl but not in the sam!
+			        int nPrimsImpl = 0;
+			        int nPrimsSAM = 0;
+			        for (Type t : uninstSamMethodType.getArgumentTypes())
+				        if (TaintUtils.isPrimitiveType(t))
+					        nPrimsSAM++;
+
+			        int nArgsSAM = uninstSamMethodType.getArgumentTypes().length;
+			        boolean skip = isVirtual;
+			        for (Type t : Type.getArgumentTypes(implMethodDesc)) {
+				        if (skip) {
+				        	skip =false;
+				        	if(uninstSamMethodType.getArgumentTypes().length > 0 && !t.getDescriptor().equals(uninstSamMethodType.getArgumentTypes()[0].getDescriptor()))
+				        	    continue;
+				        }
+				        if (TaintUtils.isPrimitiveType(t))
+					        nPrimsImpl++;
+				        nArgsSAM--;
+				        if(nArgsSAM == 0)
+				        	break;
+			        }
+			        if (nPrimsImpl != nPrimsSAM) {
+				        needToAddUnWrapper = true;
+			        }
+
 			        if (needToAddUnWrapper) {
 				        Type wrapperDesc = Type.getMethodType(implMethod.getDesc());
 				        Type[] implMethodArgs = Type.getArgumentTypes(implMethod.getDesc());
 				        ArrayList<Type> newWrapperArgs = new ArrayList<>();
+
+				        if(isVirtual)
+				        	newWrapperArgs.add(Type.getObjectType(implMethod.getOwner()));
 				        int extraArgs = Type.getArgumentTypes(implMethodDesc).length - instantiatedType.getArgumentTypes().length;
 				        for (int j = 0; j < implMethodArgs.length; j++) {
 					        if (j < extraArgs) {
 						        //Add as-is
 						        newWrapperArgs.add(implMethodArgs[j]);
-					        } else if (TaintUtils.isPrimitiveArrayType(implMethodArgs[j]) &&
+					        } else if (TaintUtils.isPrimitiveOrPrimitiveArrayType(implMethodArgs[j]) &&
 							        samMethodArgs[j - extraArgs].getDescriptor().equals("Ljava/lang/Object;")) {
 						        newWrapperArgs.add(samMethodArgs[j - extraArgs]);
 					        } else {
 						        newWrapperArgs.add(implMethodArgs[j]);
 					        }
 				        }
-				        boolean isStatic = (implMethod.getTag() & Opcodes.H_INVOKESTATIC) != 0;
-				        boolean isNEW = (implMethod.getTag() & Opcodes.H_NEWINVOKESPECIAL) != 0;
+
 				        Type newReturnType = TaintUtils.getContainerReturnType(wrapperDesc.getReturnType());
 				        if(isNEW)
 				        {
@@ -1923,9 +1956,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				        wrapperDesc = Type.getMethodType(newReturnType, newWrapperArgs.toArray(new Type[newWrapperArgs.size()]));
 
 				        String wrapperName = "phosphorWrapInvokeDymnamic" + wrapperMethodsToAdd.size();
-
-				        if (!isStatic && !isNEW)
-					        throw new UnsupportedOperationException();
 
 				        MethodNode mn = new MethodNode(Opcodes.ACC_STATIC | Opcodes.ACC_FINAL, wrapperName, wrapperDesc.getDescriptor(), null, null);
 
@@ -1936,12 +1966,45 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				        	ga.visitTypeInsn(Opcodes.NEW, implMethod.getOwner());
 				        	ga.visitInsn(DUP);
 				        }
-				        for (int j = 0; j < newWrapperArgs.size(); j++) {
-					        ga.visitVarInsn(newWrapperArgs.get(j).getOpcode(Opcodes.ILOAD), j);
-					        if(!implMethodArgs[j].getDescriptor().equals(newWrapperArgs.get(j).getDescriptor()))
-					            ga.visitTypeInsn(Opcodes.CHECKCAST, implMethodArgs[j].getInternalName());
+				        int offset = 0;
+				        if(isVirtual)
+				        {
+//					        System.out.println("HI");
+					        ga.visitVarInsn(Opcodes.ALOAD,0);
+					        newWrapperArgs.remove(0);
+					        offset = 1;
 				        }
-				        ga.visitMethodInsn((isNEW ? Opcodes.INVOKESPECIAL:  Opcodes.INVOKESTATIC), implMethod.getOwner(), implMethod.getName(), implMethod.getDesc(), false);
+				        for (int j = 0; j < newWrapperArgs.size(); j++) {
+					        ga.visitVarInsn(newWrapperArgs.get(j).getOpcode(Opcodes.ILOAD), j + offset);
+					        if(!implMethodArgs[j].getDescriptor().equals(newWrapperArgs.get(j).getDescriptor())) {
+					        	if(implMethodArgs[j].getSort() == Type.ARRAY)
+						            ga.visitTypeInsn(Opcodes.CHECKCAST, implMethodArgs[j].getInternalName());
+					        	else
+						        {
+						        	//Cast to box type, then unbox
+							        ga.unbox(implMethodArgs[j]);
+						        }
+					        }
+				        }
+				        int opToCall = INVOKESTATIC;
+				        switch(implMethod.getTag()){
+					        case H_INVOKESTATIC:
+					        	opToCall = INVOKESTATIC;
+					        	break;
+					        case H_INVOKEVIRTUAL:
+					        	opToCall = INVOKEVIRTUAL;
+					        	break;
+					        case H_INVOKESPECIAL:
+					        case H_NEWINVOKESPECIAL:
+					        	opToCall = INVOKESPECIAL;
+					        	break;
+					        case H_INVOKEINTERFACE:
+					        	opToCall = INVOKEINTERFACE;
+					        	break;
+					        default:
+					        	throw new UnsupportedOperationException();
+				        }
+				        ga.visitMethodInsn(opToCall, implMethod.getOwner(), implMethod.getName(), implMethod.getDesc(), false);
 
 				        ga.returnValue();
 				        ga.visitMaxs(0, 0);
