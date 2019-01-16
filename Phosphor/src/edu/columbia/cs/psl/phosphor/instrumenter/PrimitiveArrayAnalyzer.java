@@ -752,8 +752,11 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				Graph<BasicBlock, DefaultEdge> graph = new DefaultDirectedGraph<BasicBlock, DefaultEdge>(DefaultEdge.class);
 //				for(BasicBlock b : implicitAnalysisblocks.values())
 //					graph.addVertex(b);
+				boolean hasJumps = false;
 				for(BasicBlock b : implicitAnalysisblocks.values())
 				{
+					if(b.insn instanceof JumpInsnNode)
+						hasJumps = true;
 					if(b.successors.size() > 0)
 						graph.addVertex(b);
 					for(BasicBlock c : b.successors) {
@@ -761,7 +764,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						graph.addEdge(b, c);
 					}
 				}
-				boolean hadChanges =true;
+				boolean hadChanges =hasJumps;
 				while(hadChanges) {
 					hadChanges = false;
 					CycleDetector<BasicBlock, DefaultEdge> detector = new CycleDetector<>(graph);
