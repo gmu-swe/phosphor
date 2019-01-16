@@ -57,6 +57,9 @@ public class PreMain {
 	public static ClassLoader curLoader;
 
 	public static final class PCLoggingTransformer implements ClassFileTransformer {
+		public PCLoggingTransformer(){
+			TaintUtils.VERIFY_CLASS_GENERATION = System.getProperty("phosphor.verify") != null;
+		}
 		private static final class HackyClassWriter extends ClassWriter {
 
 			private HackyClassWriter(ClassReader classReader, int flags) {
@@ -307,7 +310,7 @@ public class PreMain {
 						Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
 						_cv = extra.newInstance(_cv, skipFrames);
 					}
-					if (DEBUG)
+					if (DEBUG || TaintUtils.VERIFY_CLASS_GENERATION)
 						_cv = new CheckClassAdapter(_cv, false);
 					if(isiFace)
 						_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields);
@@ -333,7 +336,7 @@ public class PreMain {
 					{
 						// if(TaintUtils.DEBUG_FRAMES)
 						// System.out.println("NOW IN CHECKCLASSADAPTOR");
-						if (DEBUG
+						if (DEBUG || TaintUtils.VERIFY_CLASS_GENERATION
 //								|| (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler") && !className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache")
 //										&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap") && !className.startsWith("jersey/repackaged/com/google/common/collect/"))
 ) {

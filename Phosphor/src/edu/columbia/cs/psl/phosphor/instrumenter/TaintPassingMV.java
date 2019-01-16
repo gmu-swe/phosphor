@@ -1952,36 +1952,41 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				        //Are we returning a primitive that needs to be autoboxed?
 				        Type newReturnType = TaintUtils.getContainerReturnType(wrapperDesc.getReturnType());
 				        Type originalReturnType = wrapperDesc.getReturnType();
-				        if (TaintUtils.isPrimitiveType(wrapperDesc.getReturnType()) && !TaintUtils.isPrimitiveType(uninstSamMethodType.getReturnType())) {
-					        boxPrimitiveReturn = true;
-					        switch (wrapperDesc.getReturnType().getSort()) {
-						        case Type.CHAR:
-							        newReturnType = Type.getType("Ljava/lang/Character;");
-							        break;
-						        case Type.BOOLEAN:
-							        newReturnType = Type.getType("Ljava/lang/Boolean;");
-							        break;
-						        case Type.DOUBLE:
-							        newReturnType = Type.getType("Ljava/lang/Double;");
-							        break;
-						        case Type.FLOAT:
-							        newReturnType = Type.getType("Ljava/lang/Float;");
-							        break;
-						        case Type.LONG:
-							        newReturnType = Type.getType("Ljava/lang/Long;");
-							        break;
-						        case Type.INT:
-							        newReturnType = Type.getType("Ljava/lang/Integer;");
-							        break;
-						        case Type.SHORT:
-							        newReturnType = Type.getType("Ljava/lang/Short;");
-							        break;
-						        case Type.BYTE:
-							        newReturnType = Type.getType("Ljava/lang/Byte;");
+				        boolean addReturnWrapper = false;
+				        if (TaintUtils.isPrimitiveType(wrapperDesc.getReturnType())) {
+					        if (TaintUtils.isPrimitiveType(uninstSamMethodType.getReturnType())) {
+					        	addReturnWrapper = true;
+					        	newWrapperArgs.add(newReturnType);
 					        }
-				        }
-				        else if(isNEW)
-				        {
+					        else{
+						        boxPrimitiveReturn = true;
+						        switch (wrapperDesc.getReturnType().getSort()) {
+							        case Type.CHAR:
+								        newReturnType = Type.getType("Ljava/lang/Character;");
+								        break;
+							        case Type.BOOLEAN:
+								        newReturnType = Type.getType("Ljava/lang/Boolean;");
+								        break;
+							        case Type.DOUBLE:
+								        newReturnType = Type.getType("Ljava/lang/Double;");
+								        break;
+							        case Type.FLOAT:
+								        newReturnType = Type.getType("Ljava/lang/Float;");
+								        break;
+							        case Type.LONG:
+								        newReturnType = Type.getType("Ljava/lang/Long;");
+								        break;
+							        case Type.INT:
+								        newReturnType = Type.getType("Ljava/lang/Integer;");
+								        break;
+							        case Type.SHORT:
+								        newReturnType = Type.getType("Ljava/lang/Short;");
+								        break;
+							        case Type.BYTE:
+								        newReturnType = Type.getType("Ljava/lang/Byte;");
+						        }
+					        }
+				        } else if (isNEW) {
 				        	newReturnType = Type.getObjectType(implMethod.getOwner());
 				        }
 				        wrapperDesc = Type.getMethodType(newReturnType, newWrapperArgs.toArray(new Type[newWrapperArgs.size()]));
@@ -2005,6 +2010,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					        newWrapperArgs.remove(0);
 					        offset = 1;
 				        }
+				        if(addReturnWrapper)
+				        {
+				        	newWrapperArgs.remove(newWrapperArgs.size()-1);
+				        }
 				        for (int j = 0; j < newWrapperArgs.size(); j++) {
 					        ga.visitVarInsn(newWrapperArgs.get(j).getOpcode(Opcodes.ILOAD), offset);
 					        offset += newWrapperArgs.get(j).getSize();
@@ -2019,6 +2028,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					        }
 				        }
 				        int opToCall = INVOKESTATIC;
+				        boolean isInterface = false;
 				        switch(implMethod.getTag()){
 					        case H_INVOKESTATIC:
 					        	opToCall = INVOKESTATIC;
@@ -2031,12 +2041,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					        	opToCall = INVOKESPECIAL;
 					        	break;
 					        case H_INVOKEINTERFACE:
+					        	isInterface = true;
 					        	opToCall = INVOKEINTERFACE;
 					        	break;
 					        default:
 					        	throw new UnsupportedOperationException();
 				        }
-				        ga.visitMethodInsn(opToCall, implMethod.getOwner(), implMethod.getName(), implMethod.getDesc(), false);
+				        if(!boxPrimitiveReturn)
+				            ga.visitInsn(TaintUtils.NO_TAINT_STORE_INSN);
+				        ga.visitMethodInsn(opToCall, implMethod.getOwner(), implMethod.getName(), implMethod.getDesc(), isInterface);
 
 				        if(boxPrimitiveReturn)
 				        	ga.box(originalReturnType);
@@ -2062,7 +2075,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					        }
 				        }
 
-				        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(Type.getMethodType(newReturnType, instantiatedMethodArgs).getDescriptor()));
+				        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(Type.getMethodType((boxPrimitiveReturn  || isNEW? newReturnType : originalReturnType), instantiatedMethodArgs).getDescriptor()));
 
 			        } else {
 				        bsmArgs[1] = new Handle(implMethod.getTag(), implMethod.getOwner(), implMethod.getName() + (implMethod.getName().equals("<init>") ? "" : TaintUtils.METHOD_SUFFIX), remappedImplDesc);
@@ -2613,6 +2626,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 //		System.out.println("after: " + analyzer.stack);
 
+		if (isTaintlessArrayStore) {
+			isTaintlessArrayStore = false;
+			return;
+		}
 		if (dontUnboxTaints) {
 			dontUnboxTaints = false;
 			return;

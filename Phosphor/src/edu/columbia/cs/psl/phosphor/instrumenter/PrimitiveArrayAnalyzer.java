@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.PFrame;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.BlockCutpointGraph;
@@ -15,10 +16,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
-import org.objectweb.asm.tree.analysis.Analyzer;
-import org.objectweb.asm.tree.analysis.AnalyzerException;
-import org.objectweb.asm.tree.analysis.BasicValue;
-import org.objectweb.asm.tree.analysis.Frame;
+import org.objectweb.asm.tree.analysis.*;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -272,6 +270,16 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					return -1;
 				}
 
+				protected Frame newFrame(int nLocals, int nStack) {
+					return new Frame(nLocals, nStack){
+						@Override
+						public void execute(AbstractInsnNode insn, Interpreter interpreter) throws AnalyzerException {
+							if(insn.getOpcode() > 200)
+								return;
+							super.execute(insn, interpreter);
+						}
+					};
+				}
 				@Override
 				public Frame[] analyze(String owner, MethodNode m) throws AnalyzerException {
 					Iterator<AbstractInsnNode> insns = m.instructions.iterator();

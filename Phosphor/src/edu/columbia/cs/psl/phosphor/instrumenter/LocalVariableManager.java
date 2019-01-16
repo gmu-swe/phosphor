@@ -115,16 +115,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
 	@Deprecated
 	public int newLocal(Type type) {
-		int idx = super.newLocal(type);
-		Label lbl = new Label();
-		super.visitLabel(lbl);
+		throw new UnsupportedOperationException();
 
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorShadowLV" + createdLVIdx, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), idx);
-		createdLVs.add(newLVN);
-		curLocalIdxToLVNode.put(idx, newLVN);
-		createdLVIdx++;
-
-		return idx;
 	}
 
 	HashMap<Integer, Integer> origLVMap = new HashMap<Integer, Integer>();
@@ -267,20 +259,6 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		return idx;
 	}
 
-	@Override
-	public void remapLocal(int local, Type type) {
-		Label lbl = new Label();
-		super.visitLabel(lbl);
-		curLocalIdxToLVNode.get(local).end = new LabelNode(lbl);
-		super.remapLocal(local, type);
-
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorShadowLV" + createdLVIdx, type.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), local);
-		createdLVs.add(newLVN);
-		curLocalIdxToLVNode.put(local, newLVN);
-
-		createdLVIdx++;
-	}
-
 	/**
 	 * Gets a tmp lv capable of storing the top stack el
 	 * 
@@ -317,6 +295,16 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		for (TmpLV lv : tmpLVs) {
 			if (!lv.inUse && lv.type.getSize() == t.getSize()) {
 				if (!lv.type.equals(t)) {
+					//End the old LV node, make a new one
+
+					Label lbl = new Label();
+					super.visitLabel(lbl);
+
+					LocalVariableNode newLVN = new LocalVariableNode("phosphorTempStack" + createdLVIdx, t.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), lv.idx);
+					createdLVs.add(newLVN);
+					curLocalIdxToLVNode.put(lv.idx, newLVN);
+					createdLVIdx++;
+
 					remapLocal(lv.idx, t);
 					if (analyzer.locals != null && lv.idx < analyzer.locals.size()) {
 						analyzer.locals.set(lv.idx, TaintUtils.getStackTypeForType(t));
@@ -331,8 +319,18 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 				return lv.idx;
 			}
 		}
+
+		int idx = super.newLocal(t);
+		Label lbl = new Label();
+		super.visitLabel(lbl);
+
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorTempStack" + createdLVIdx, t.getDescriptor(), null, new LabelNode(lbl), new LabelNode(end), idx);
+		createdLVs.add(newLVN);
+		curLocalIdxToLVNode.put(idx, newLVN);
+		createdLVIdx++;
+
 		TmpLV newLV = new TmpLV();
-		newLV.idx = newLocal(t);
+		newLV.idx = idx;
 		newLV.type = t;
 		newLV.inUse = true;
 		tmpLVs.add(newLV);

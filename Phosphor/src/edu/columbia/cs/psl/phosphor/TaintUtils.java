@@ -73,7 +73,7 @@ public class TaintUtils {
 	public static final int MAX_CONCURRENT_BRANCHES = 500;
 	public static final String STR_LDC_WRAPPER = "INVIVO_LDC_STR";
 	public static final int UNCONSTRAINED_NEW_STRING = 4;
-	public static final boolean VERIFY_CLASS_GENERATION = true;
+	public static boolean VERIFY_CLASS_GENERATION = false;
 	public static final String METHOD_SUFFIX_UNINST = "$$PHOSPHORUNTAGGED";
 	public static int nextTaint = 0;
 	public static int nextTaintPHOSPHOR_TAG = 0;

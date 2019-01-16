@@ -19,14 +19,12 @@ public class PFrame extends Frame {
 	public PFrame(final int nLocals, final int nStack) {
 		super(nLocals, nStack);
 	}
-	int nArgs = -1;
 	public boolean isChangePoint;
 	public HashSet<Integer> upcastLocals;
 	public HashSet<Integer> upcastStack;
-	public PFrame(final int nLocals, final int nStack, final int nArgs)
+	public PFrame(final int nLocals, final int nStack, int nArgs)
 	{
 		super(nLocals,nStack);
-		this.nArgs = nArgs;
 	}
 	
 //	@Override
