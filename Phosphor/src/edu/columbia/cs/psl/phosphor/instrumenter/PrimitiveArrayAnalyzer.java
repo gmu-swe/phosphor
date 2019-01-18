@@ -4,10 +4,8 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.PFrame;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.jgrapht.Graph;
-import org.jgrapht.alg.connectivity.BlockCutpointGraph;
 import org.jgrapht.alg.cycle.CycleDetector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
@@ -749,37 +747,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				e.printStackTrace();
 			}
 			if (Configuration.ANNOTATE_LOOPS) {
-				Graph<BasicBlock, DefaultEdge> graph = new DefaultDirectedGraph<BasicBlock, DefaultEdge>(DefaultEdge.class);
-//				for(BasicBlock b : implicitAnalysisblocks.values())
-//					graph.addVertex(b);
-				boolean hasJumps = false;
-				for(BasicBlock b : implicitAnalysisblocks.values())
-				{
-					if(b.insn instanceof JumpInsnNode)
-						hasJumps = true;
-					if(b.successors.size() > 0)
-						graph.addVertex(b);
-					for(BasicBlock c : b.successors) {
-						graph.addVertex(c);
-						graph.addEdge(b, c);
-					}
-				}
-				boolean hadChanges =hasJumps;
-				while(hadChanges) {
-					hadChanges = false;
-					CycleDetector<BasicBlock, DefaultEdge> detector = new CycleDetector<>(graph);
-					for (BasicBlock b : implicitAnalysisblocks.values()) {
-						if (!graph.containsVertex(b))
-							continue;
-						Set<BasicBlock> cycle = detector.findCyclesContainingVertex(b);
-						if (b.successors.size() > 1 && !cycle.containsAll(b.successors)) {
-							graph.removeVertex(b);
-							this.instructions.insertBefore(b.insn, new InsnNode(TaintUtils.LOOP_HEADER));
-							hadChanges = true;
-						}
-					}
-				}
-
+				GraphBasedAnalyzer.doGraphAnalysis(this, implicitAnalysisblocks);
 			}
 
 			if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
