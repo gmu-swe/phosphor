@@ -25,10 +25,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.commons.SerialVersionUIDAdder;
-import org.objectweb.asm.tree.AnnotationNode;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.*;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
@@ -210,7 +207,7 @@ public class PreMain {
 			Configuration.taintTagFactory.instrumentationStarting(className);
 			try {
 				ClassNode cn = new ClassNode();
-				cr.accept(cn, ClassReader.SKIP_CODE);
+				cr.accept(cn, (Configuration.ALWAYS_CHECK_FOR_FRAMES ? 0 : ClassReader.SKIP_CODE));
 				boolean skipFrames = false;
 				boolean upgradeVersion = false;
 				if (className.equals("org/jruby/parser/Ruby20YyTables")) {
@@ -219,6 +216,35 @@ public class PreMain {
 				}
 				if (cn.version >= 100 || cn.version <= 50 || className.endsWith("$Access4JacksonSerializer") || className.endsWith("$Access4JacksonDeSerializer"))
 					skipFrames = true;
+				else if(Configuration.ALWAYS_CHECK_FOR_FRAMES)
+				{
+					for(MethodNode mn : cn.methods)
+					{
+						boolean hasJumps = false;
+						boolean foundFrame = false;
+						AbstractInsnNode ins = mn.instructions.getFirst();
+						if(mn.tryCatchBlocks.size() > 0)
+							hasJumps = true;
+						while(ins != null && !foundFrame)
+						{
+							if(ins instanceof JumpInsnNode || ins instanceof TableSwitchInsnNode || ins instanceof LookupSwitchInsnNode)
+								hasJumps = true;
+							if(ins instanceof FrameNode)
+							{
+								foundFrame = true;
+								break;
+							}
+							ins = ins.getNext();
+						}
+						if(foundFrame)
+							break;
+						if(hasJumps)
+						{
+							skipFrames = true;
+							break;
+						}
+					}
+				}
 				if (cn.visibleAnnotations != null)
 					for (Object o : cn.visibleAnnotations) {
 						AnnotationNode an = (AnnotationNode) o;
