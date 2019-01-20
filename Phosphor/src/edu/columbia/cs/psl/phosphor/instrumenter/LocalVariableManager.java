@@ -354,9 +354,10 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 				super.visitLabel(this.end);
 				endVisited = true;
 			}
-			for (LocalVariableNode n : createdLVs) {
-				uninstMV.visitLocalVariable(n.name, n.desc, n.signature, n.start.getLabel(), n.end.getLabel(), n.index);
-			}
+			if(!Configuration.SKIP_LOCAL_VARIABLE_TABLE)
+				for (LocalVariableNode n : createdLVs) {
+					uninstMV.visitLocalVariable(n.name, n.desc, n.signature, n.start.getLabel(), n.end.getLabel(), n.index);
+				}
 			createdLVs.clear();
 		}
 	}
@@ -370,7 +371,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 			super.visitLabel(end);
 			endVisited = true;
 		}
-		if(generateExtraDebug)
+		if(generateExtraDebug && !Configuration.SKIP_LOCAL_VARIABLE_TABLE)
 		{
 			int n = 0;
 			if(!isStatic)

@@ -19,6 +19,7 @@ import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 
 public class Configuration {
+	public static boolean SKIP_LOCAL_VARIABLE_TABLE = false;
 	public static String ADDL_IGNORE = null;
 	public static boolean MULTI_TAINTING = true;
 	public static boolean IMPLICIT_TRACKING = true; //must be set to TRUE for MULTI_TAINTING to work!

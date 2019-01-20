@@ -255,9 +255,13 @@ public class Instrumenter {
 	static Option opt_serialization = Option.builder("serialization")
 			.desc("Read and write taint tags through Java Serialization")
 			.build();
+	static Option opt_disableLocalsInfo = Option.builder("skipLocals")
+			.desc("Do not output local variable debug tables for generated local variables (useful for avoiding warnings from D8)")
+			.build();
 	static Option help = Option.builder("help")
 		.desc("print this message")
 		.build();
+
 
 	public static InputStream sourcesFile;
 	public static InputStream sinksFile;
@@ -290,6 +294,7 @@ public class Instrumenter {
 		options.addOption(opt_readAndSaveBCI);
 		options.addOption(opt_serialization);
 		options.addOption(opt_withoutBranchNotTaken);
+		options.addOption(opt_disableLocalsInfo);
 
 		CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
@@ -340,6 +345,7 @@ public class Instrumenter {
 		
 		Configuration.ARRAY_INDEX_TRACKING = line.hasOption("withArrayIndexTags");
 		Configuration.WITHOUT_BRANCH_NOT_TAKEN = line.hasOption("withoutBranchNotTaken");
+		Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption("skipLocals");
 		Configuration.init();
 
 		

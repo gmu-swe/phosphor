@@ -1928,6 +1928,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				        needToAddUnWrapper = true;
 			        }
 
+			        //OR If there is a wrapped return type on the impl but not in the sam
+			        if(TaintUtils.isPrimitiveType(Type.getReturnType(implMethodDesc)) && !TaintUtils.isPrimitiveType(uninstSamMethodType.getReturnType()))
+			        {
+			        	needToAddUnWrapper = true;
+			        }
+
 			        if (needToAddUnWrapper) {
 				        Type wrapperDesc = Type.getMethodType(implMethod.getDesc());
 				        Type[] implMethodArgs = Type.getArgumentTypes(implMethod.getDesc());
@@ -1949,6 +1955,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				        }
 
 				        boolean boxPrimitiveReturn = false;
+				        boolean unboxPrimitiveReturn = false;
 				        //Are we returning a primitive that needs to be autoboxed?
 				        Type newReturnType = TaintUtils.getContainerReturnType(wrapperDesc.getReturnType());
 				        Type originalReturnType = wrapperDesc.getReturnType();
@@ -1988,6 +1995,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					        }
 				        } else if (isNEW) {
 				        	newReturnType = Type.getObjectType(implMethod.getOwner());
+				        } else if(TaintUtils.isPrimitiveType(uninstSamMethodType.getReturnType()) && !TaintUtils.isPrimitiveType(wrapperDesc.getReturnType())){
+				        	//IMPL method returns boxed type, SAM returns primitive
+//					        newWrapperArgs.add(TaintUtils.getContainerReturnType(uninstSamMethodType.getReturnType()));
+					        newReturnType = uninstSamMethodType.getReturnType();
+					        unboxPrimitiveReturn = true;
 				        }
 				        wrapperDesc = Type.getMethodType(newReturnType, newWrapperArgs.toArray(new Type[newWrapperArgs.size()]));
 
@@ -2047,12 +2059,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					        default:
 					        	throw new UnsupportedOperationException();
 				        }
-				        if(!boxPrimitiveReturn)
+				        if(!boxPrimitiveReturn && !unboxPrimitiveReturn)
 				            ga.visitInsn(TaintUtils.NO_TAINT_STORE_INSN);
 				        ga.visitMethodInsn(opToCall, implMethod.getOwner(), implMethod.getName(), implMethod.getDesc(), isInterface);
 
 				        if(boxPrimitiveReturn)
 				        	ga.box(originalReturnType);
+				        if(unboxPrimitiveReturn)
+				        	ga.unbox(uninstSamMethodType.getReturnType());
 				        ga.returnValue();
 				        ga.visitMaxs(0, 0);
 				        ga.visitEnd();
@@ -2075,7 +2089,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					        }
 				        }
 
-				        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(Type.getMethodType((boxPrimitiveReturn  || isNEW? newReturnType : originalReturnType), instantiatedMethodArgs).getDescriptor()));
+				        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(Type.getMethodType((boxPrimitiveReturn  || isNEW || unboxPrimitiveReturn ? newReturnType : originalReturnType), instantiatedMethodArgs).getDescriptor()));
 
 			        } else {
 				        bsmArgs[1] = new Handle(implMethod.getTag(), implMethod.getOwner(), implMethod.getName() + (implMethod.getName().equals("<init>") ? "" : TaintUtils.METHOD_SUFFIX), remappedImplDesc);
