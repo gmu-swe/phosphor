@@ -128,7 +128,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 				newStack[i] = ((TaggedValue)stack[i]).v;
 			else
 				newStack[i] = stack[i];
-		if (!ignoreFrames)
+//		if (!ignoreFrames)
 			super.visitFrame(type, nLocal, newLocal, nStack, newStack);
 	}
 

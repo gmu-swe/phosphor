@@ -8,11 +8,14 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.*;
-import org.objectweb.asm.tree.analysis.*;
+import org.objectweb.asm.tree.analysis.Analyzer;
+import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
+import org.objectweb.asm.tree.analysis.Value;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -479,19 +482,6 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 				insn = this.instructions.getFirst();
 				for (int i = 0; i < frames.length; i++) {
 					// // System.out.print(i + " " );
-					String fr = "";
-					if (frames[i] != null)
-						for (int j = 0; j < frames[i].getStackSize(); j++)
-							fr += (frames[i].getStack(j)) + " ";
-					String fr2 = "";
-					if (frames[i] != null)
-						for (int j = 0; j < frames[i].getLocals(); j++)
-						{
-							fr2 += (frames[i].getLocal(j)) + " ";
-						}
-//					  System.out.println(fr);
-//					this.instructions.insertBefore(insn, new LdcInsnNode(fr));
-//					this.instructions.insertBefore(insn, new InsnNode(Opcodes.POP));
 //					this.instructions.insertBefore(insn, new LdcInsnNode(fr2));
 					if (insn.getType() == AbstractInsnNode.FRAME && frames[i] != null) {
 						FrameNode fn = (FrameNode) insn;
@@ -549,6 +539,42 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 //				{
 //					System.out.println(System.identityHashCode(v));
 //				}
+				//Before we start mucking around with the instruction list, find the analyzed frame that exists at each relevant value source
+				HashMap<SinkableArrayValue,Frame> framesAtValues = new HashMap<>();
+				for(SinkableArrayValue v : relevantValues)
+				{
+					if (v.getSrc() != null && framesAtValues.get(v) == null) {
+						if (this.instructions.contains(v.getSrc())) {
+							int k = this.instructions.indexOf(v.getSrc());
+							if (k < frames.length && frames[k] != null) {
+								framesAtValues.put(v, frames[k]);
+							}
+						}
+					}
+
+				}
+
+				//for debug
+//				insn = this.instructions.getFirst();
+//				for(int i = 0; i< frames.length; i++)
+//				{
+//					String fr = "";
+//					if (frames[i] != null)
+//						for (int j = 0; j < frames[i].getStackSize(); j++)
+//							fr += (frames[i].getStack(j)) + " ";
+//					String fr2 = "";
+//					if (frames[i] != null)
+//						for (int j = 0; j < frames[i].getLocals(); j++)
+//						{
+//							fr2 += (frames[i].getLocal(j)) + " ";
+//						}
+////					  System.out.println(fr);
+//					this.instructions.insertBefore(insn, new LdcInsnNode(fr));
+//					this.instructions.insertBefore(insn, new InsnNode(Opcodes.POP));
+//					insn = insn.getNext();
+//				}
+
+
 				for (SinkableArrayValue v : relevantValues) {
 					if (!added.add(v.getSrc()))
 						continue;
@@ -560,10 +586,20 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 //												System.out.println(Printer.OPCODES[v.src.getOpcode()] + ", " + v.flowsToInstMethodCall+","+(v.srcVal != null ? v.srcVal.flowsToInstMethodCall : "."));
 					if (this.instructions.contains(v.getSrc())) {
 						if (v.masterDup != null || !v.otherDups.isEmpty()) {
+							if(framesAtValues.containsKey(v))
+							{
+								Frame f = framesAtValues.get(v);
+								Object r = f.getStack(f.getStackSize()-1);
+								if(!(r instanceof SinkableArrayValue))
+								{
+									continue;
+								}
+							}
 							SinkableArrayValue masterDup = v;
-							if(v.masterDup != null)
+							if (v.masterDup != null)
 								masterDup = v.masterDup;
 							int i = 0;
+
 							if(relevantValues.contains(masterDup)) //bottom one is relevant
 								this.instructions.insertBefore(v.getSrc(), new InsnNode(TaintUtils.DUP_TAINT_AT_0+i));
 							i++;
@@ -593,12 +629,24 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 					this.instructions.insert(v.getSrc(), new InsnNode(TaintUtils.IGNORE_EVERYTHING));
 				}
 
-			} catch (AnalyzerException e) {
+			} catch (Throwable e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+				PrintWriter pw = null;
+				try {
+					pw = new PrintWriter("lastMethod.txt");
+					TraceClassVisitor tcv = new TraceClassVisitor(null, new PhosphorTextifier(), pw);
+					this.accept(tcv);
+					tcv.visitEnd();
+					pw.flush();
+				} catch (FileNotFoundException e1) {
+					e1.printStackTrace();
+				}
+
 				throw new IllegalStateException(e);
 			}
 			super.visitEnd();
+
 
 			this.accept(cmv);
 		}

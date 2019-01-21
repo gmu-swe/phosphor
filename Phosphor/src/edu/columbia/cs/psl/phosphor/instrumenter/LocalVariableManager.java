@@ -580,7 +580,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
             		int newVar = remap(index, typ);
             		int shadowVar = 0;
-					if (newVar > lastArg) {
+					if (newVar > lastArg || (newVar < lastArg && oldArgTypes.get(newVar).getDescriptor().equals("Ltop;"))) {
 						if (!varToShadowVar.containsKey(newVar))
 							shadowVar = newShadowLV(typ, newVar);
 						else

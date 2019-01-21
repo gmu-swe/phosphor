@@ -7,6 +7,8 @@ import java.util.LinkedList;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.LineNumberNode;
+import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.util.Printer;
@@ -18,11 +20,13 @@ public class SinkableArrayValue extends BasicValue {
 	public HashSet<SinkableArrayValue> reverseDeps;
 	public HashSet<SinkableArrayValue> deps;
 	private AbstractInsnNode src;
+	public AbstractInsnNode oldSrc;
 	public AbstractInsnNode sink;
 	public boolean isNewArray;
 	
 	public SinkableArrayValue copyOf;
 	public boolean dontPropogateToDeps;
+	public boolean flowsToPrim;
 	public boolean okToPropogateToDeps;
 	
 	public boolean[] leaveDupOnAt = new boolean[4];
@@ -34,11 +38,24 @@ public class SinkableArrayValue extends BasicValue {
 	public SinkableArrayValue masterDup;
 
 	public boolean isConstant;
-	
+
+	public SinkableArrayValue disabledFor;
 	public void disable()
 	{
-//		deps = null;
-		src = null;
+		if(src != null) {
+			this.oldSrc = src;
+			src = null;
+		}
+	}
+	public int getLine(){
+		AbstractInsnNode aa = getSrc();
+		while (aa != null)
+		{
+			if(aa instanceof LineNumberNode)
+				return ((LineNumberNode)aa).line;
+			aa = aa.getPrevious();
+		}
+		return -1;
 	}
 	public void addDepCopy(SinkableArrayValue d) {
 		if (d != null && deps == null)
@@ -127,10 +144,14 @@ public class SinkableArrayValue extends BasicValue {
 
 	@Override
 	public String toString() {
+		if(disabledFor != null)
+		{
+			return "["+(flowsToInstMethodCall ? "T":"F")+ formatDesc()+", disabled for: " + this.disabledFor+"]";
+		}
 		if (this == NULL_VALUE)
 			return "N";
 		else
-			return (flowsToInstMethodCall ? "T" : "F") + formatDesc() + " "+ (dontPropogateToDeps ? "T" : "F")+ (src != null && src.getOpcode() > 0 ? Printer.OPCODES[src.getOpcode()] : "????");
+			return (flowsToInstMethodCall ? "T" : "F") + "<"+ formatDesc() + "> "+ (dontPropogateToDeps ? "T" : "F")+ (src != null && src.getOpcode() > 0 ? Printer.OPCODES[src.getOpcode()] : "????") + (src != null ? "@"+getLine():"");
 	}
 
 	private String formatDesc() {
@@ -153,9 +174,16 @@ public class SinkableArrayValue extends BasicValue {
 		LinkedList<SinkableArrayValue> queue = new LinkedList<SinkableArrayValue>();
 		queue.add(this);
 		LinkedList<SinkableArrayValue> ret = new LinkedList<SinkableArrayValue>();
+		LinkedList<SinkableArrayValue> processed = new LinkedList<>();
 		while(!queue.isEmpty())
 		{
 			SinkableArrayValue v = queue.pop();
+
+			while(v.disabledFor != null) //this is where our problem is
+			{
+				v = v.disabledFor;
+			}
+			processed.add(v);
 			if (!v.flowsToInstMethodCall) {
 				v.flowsToInstMethodCall = true;
 				ret.add(v);

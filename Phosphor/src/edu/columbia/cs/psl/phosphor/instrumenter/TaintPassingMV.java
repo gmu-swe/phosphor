@@ -279,6 +279,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public void visitVarInsn(int opcode, int var) {
 //		if(opcode < 200 && var < analyzer.locals.size())
 //			System.out.println(nextLoadisTracked +" " +Printer.OPCODES[opcode] + var +" - " + analyzer.locals.get(var) + "\t"+analyzer.locals);
+		if(nextLoadisTracked && opcode == Opcodes.ALOAD)
+		{
+			if(analyzer.locals.get(var) != Opcodes.NULL && !TaintUtils.isPrimitiveOrPrimitiveArrayType(getTypeForStackType(analyzer.locals.get(var)))){
+				nextLoadisTracked = false;
+			}
+		}
 		if (!nextLoadisTracked && opcode < 200) {
 			if((Configuration.IMPLICIT_LIGHT_TRACKING || Configuration.IMPLICIT_TRACKING) && opcode == Opcodes.ASTORE)
 			{
@@ -409,7 +415,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			//accessing "this" so no-op, die here so we never have to worry about uninitialized this later on.
 			super.visitVarInsn(opcode, var);
 			return;
-		} else if (var < lastArg && TaintUtils.getShadowTaintType(paramTypes[var].getDescriptor()) != null) {
+		} else if (var < lastArg && paramTypes[var]!= null && TaintUtils.getShadowTaintType(paramTypes[var].getDescriptor()) != null) {
 			//accessing an arg; remap it
 			Type localType = paramTypes[var];
 			if (TaintUtils.DEBUG_LOCAL)
@@ -1844,35 +1850,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         	boolean instOK = false;
 
         	//Are we remapping something with a primitive return that gets ignored?
-	        if(bsmArgs[1] instanceof Handle)
-	        {
-		        Type t = Type.getMethodType(((Handle)bsmArgs[1]).getDesc());
-		        if(TaintUtils.isPrimitiveType(t.getReturnType()))
-		        {
-		        	Type _t = (Type) bsmArgs[0];
-		        	if(_t.getReturnType().getSort() == Type.VOID){
-		        		//Manually add the return type here;
-				        String nd = "(";
-				        for(Type a : _t.getArgumentTypes())
-				        {
-				        	nd += a.getDescriptor();
-				        }
-				        nd += TaintUtils.getContainerReturnType(t.getReturnType()) +")V";
-				        bsmArgs[0] = Type.getMethodType(nd);
-			        }
-			        _t = (Type) bsmArgs[2];
-			        if(_t.getReturnType().getSort() == Type.VOID){
-				        //Manually add the return type here;
-				        String nd = "(";
-				        for(Type a : _t.getArgumentTypes())
-				        {
-					        nd += a.getDescriptor();
-				        }
-				        nd += TaintUtils.getContainerReturnType(t.getReturnType()) +")V";
-				        bsmArgs[2] = Type.getMethodType(nd);
-			        }
-		        }
-	        }
 	        if(bsm.getName().equals("metafactory"))
 	        {
 	            Handle implMethod = (Handle) bsmArgs[1];
@@ -1902,6 +1879,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			        boolean isStatic = (implMethod.getTag() == Opcodes.H_INVOKESTATIC);
 			        boolean isNEW = (implMethod.getTag() == Opcodes.H_NEWINVOKESPECIAL);
 			        boolean isVirtual = (implMethod.getTag() == Opcodes.H_INVOKEVIRTUAL) || implMethod.getTag() == Opcodes.H_INVOKESPECIAL || implMethod.getTag() == Opcodes.H_INVOKEINTERFACE;
+			        int nOrigArgs = Type.getArgumentTypes(desc).length;
+			        if(isVirtual)
+			        	nOrigArgs--;
 
 			        //OR if there are primitives in the impl but not in the sam!
 			        int nPrimsImpl = 0;
@@ -1910,19 +1890,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				        if (TaintUtils.isPrimitiveType(t))
 					        nPrimsSAM++;
 
-			        int nArgsSAM = uninstSamMethodType.getArgumentTypes().length;
-			        boolean skip = isVirtual;
+			        int nArgsSAM = nOrigArgs;
 			        for (Type t : Type.getArgumentTypes(implMethodDesc)) {
-				        if (skip) {
-				        	skip =false;
-				        	if(uninstSamMethodType.getArgumentTypes().length > 0 && !t.getDescriptor().equals(uninstSamMethodType.getArgumentTypes()[0].getDescriptor()))
-				        	    continue;
-				        }
+				        nArgsSAM--;
+			        	if(nArgsSAM >= 0)
+			        		continue;
 				        if (TaintUtils.isPrimitiveType(t))
 					        nPrimsImpl++;
-				        nArgsSAM--;
-				        if(nArgsSAM == 0)
-				        	break;
 			        }
 			        if (nPrimsImpl != nPrimsSAM) {
 				        needToAddUnWrapper = true;
@@ -1935,13 +1909,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			        }
 
 			        if (needToAddUnWrapper) {
+
+				        ArrayList<Type> newWrapperArgs = new ArrayList<>();
 				        Type wrapperDesc = Type.getMethodType(implMethod.getDesc());
 				        Type[] implMethodArgs = Type.getArgumentTypes(implMethod.getDesc());
-				        ArrayList<Type> newWrapperArgs = new ArrayList<>();
+				        int extraArgs = Type.getArgumentTypes(implMethodDesc).length - instantiatedType.getArgumentTypes().length;
 
 				        if(isVirtual)
 				        	newWrapperArgs.add(Type.getObjectType(implMethod.getOwner()));
-				        int extraArgs = Type.getArgumentTypes(implMethodDesc).length - instantiatedType.getArgumentTypes().length;
+
 				        for (int j = 0; j < implMethodArgs.length; j++) {
 					        if (j < extraArgs) {
 						        //Add as-is
@@ -2015,12 +1991,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				        	ga.visitInsn(DUP);
 				        }
 				        int offset = 0;
-				        if(isVirtual)
-				        {
-//					        System.out.println("HI");
-					        ga.visitVarInsn(Opcodes.ALOAD,0);
-					        newWrapperArgs.remove(0);
+				        if (isVirtual) {
+					        ga.visitVarInsn(ALOAD, 0);
 					        offset = 1;
+					        newWrapperArgs.remove(0);
 				        }
 				        if(addReturnWrapper)
 				        {
@@ -2070,6 +2044,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				        ga.returnValue();
 				        ga.visitMaxs(0, 0);
 				        ga.visitEnd();
+				        mn.maxLocals = 100;
 
 				        wrapperMethodsToAdd.add(mn);
 
@@ -2089,7 +2064,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					        }
 				        }
 
-				        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(Type.getMethodType((boxPrimitiveReturn  || isNEW || unboxPrimitiveReturn ? newReturnType : originalReturnType), instantiatedMethodArgs).getDescriptor()));
+				        Type instantiatedReturnType = null;
+				        if(isNEW || unboxPrimitiveReturn || boxPrimitiveReturn)
+				        	instantiatedReturnType = newReturnType;
+				        else
+				        	instantiatedReturnType = originalReturnType;
+				        if(samMethodType.getReturnType().getSort() == Type.VOID)
+				        	instantiatedReturnType = Type.VOID_TYPE;
+				        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(Type.getMethodType(instantiatedReturnType, instantiatedMethodArgs).getDescriptor()));
 
 			        } else {
 				        bsmArgs[1] = new Handle(implMethod.getTag(), implMethod.getOwner(), implMethod.getName() + (implMethod.getName().equals("<init>") ? "" : TaintUtils.METHOD_SUFFIX), remappedImplDesc);
@@ -2098,7 +2080,36 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 		        }
 	        }
-	        else
+	        else {
+		        if(bsmArgs[1] instanceof Handle)
+		        {
+			        Type t = Type.getMethodType(((Handle)bsmArgs[1]).getDesc());
+			        if(TaintUtils.isPrimitiveType(t.getReturnType()))
+			        {
+				        Type _t = (Type) bsmArgs[0];
+				        if(_t.getReturnType().getSort() == Type.VOID){
+					        //Manually add the return type here;
+					        String nd = "(";
+					        for(Type a : _t.getArgumentTypes())
+					        {
+						        nd += a.getDescriptor();
+					        }
+					        nd += TaintUtils.getContainerReturnType(t.getReturnType()) +")V";
+					        bsmArgs[0] = Type.getMethodType(nd);
+				        }
+				        _t = (Type) bsmArgs[2];
+				        if(_t.getReturnType().getSort() == Type.VOID){
+					        //Manually add the return type here;
+					        String nd = "(";
+					        for(Type a : _t.getArgumentTypes())
+					        {
+						        nd += a.getDescriptor();
+					        }
+					        nd += TaintUtils.getContainerReturnType(t.getReturnType()) +")V";
+					        bsmArgs[2] = Type.getMethodType(nd);
+				        }
+			        }
+		        }
 		        for (int k = 0; k < bsmArgs.length; k++) {
 			        Object o = bsmArgs[k];
 			        if (o instanceof Handle) {
@@ -2112,6 +2123,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				        bsmArgs[k] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(t.getDescriptor()));
 			        }
 		        }
+	        }
         }
 		if (hasNewName && !Instrumenter.isIgnoredClass(bsm.getOwner())) {
 			if (!Instrumenter.isIgnoredMethod(bsm.getOwner(), bsm.getName(), bsm.getDesc()) && !TaintUtils.remapMethodDescAndIncludeReturnHolder(bsm.getDesc()).equals(bsm.getDesc()))
@@ -2150,6 +2162,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         if (TaintUtils.DEBUG_CALLS)
             System.out.println("Post invoke stack post swap pop maybe: " + analyzer.stack);
 	}
+
+	private Type[] prepend(Type objectType, Type[] argumentTypes) {
+		Type[] ret = new Type[argumentTypes.length + 1];
+		System.arraycopy(argumentTypes, 0, ret, 1, argumentTypes.length);
+		ret[0] = objectType;
+		return ret;
+	}
+
 	static final boolean isInternalTaintingMethod(String owner)
 	{
 		return owner.startsWith("edu/columbia/cs/psl/phosphor/runtime/")
@@ -2559,7 +2579,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		int n = 1;
 		boolean ignoreNext = false;
 
-//										System.out.println("12dw23 Calling "+owner+"."+name+newDesc + "with " + analyzer.stack);
+//										System.out.println(this.name+this.desc+"12dw23 Calling "+owner+"."+name+newDesc + "with " + analyzer.stack);
 		for (Type t : argsInReverse) {
 			if (analyzer.stack.get(analyzer.stack.size() - i) == Opcodes.TOP)
 				i++;
@@ -4858,8 +4878,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitLabel(newDest);
 				fn.accept(this);
 				for (Integer var : boxAtNextJump) {
-					super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
-					super.visitVarInsn(ASTORE, var);
+					if(lvs.varToShadowVar.get(var) != null) {
+						super.visitVarInsn(ALOAD, lvs.varToShadowVar.get(var));
+						super.visitVarInsn(ASTORE, var);
+					}
 				}
 				super.visitJumpInsn(GOTO, origDest);
 				super.visitLabel(origFalseLoc);
@@ -4914,9 +4936,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	}
 
 
+	int line;
 	@Override
 	public void visitLineNumber(int line, Label start) {
 		super.visitLineNumber(line, start);
+		this.line = line;
 		Configuration.taintTagFactory.lineNumberVisited(line);
 	}
 

@@ -637,17 +637,19 @@ public class TaintUtils {
 ////		}
 //
 //	}
-	public static Object getShadowTaintTypeForFrame(String typeDesc) {
-		Type t = Type.getType(typeDesc);
+	public static Object getShadowTaintTypeForFrame(Type t) {
 		if (t.getSort() == Type.OBJECT || t.getSort() == Type.VOID)
 			return null;
 		if (t.getSort() == Type.ARRAY && t.getDimensions() > 1)
 			return null;
 		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT)
-			return MultiDTaintedArray.getTypeForType(Type.getType(typeDesc)).getInternalName();
+			return MultiDTaintedArray.getTypeForType(t).getInternalName();
 		if (t.getSort() == Type.ARRAY)
 			return null;
 		return Configuration.TAINT_TAG_STACK_TYPE;
+	}
+	public static Object getShadowTaintTypeForFrame(String typeDesc) {
+		return getShadowTaintTypeForFrame(Type.getType(typeDesc));
 	}
 
 	public static String getShadowTaintType(String typeDesc) {

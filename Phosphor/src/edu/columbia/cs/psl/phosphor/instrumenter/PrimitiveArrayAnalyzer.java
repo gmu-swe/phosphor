@@ -742,7 +742,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 					}
 				}
 
-			} catch (AnalyzerException e) {
+			} catch (Throwable e) {
 				System.err.println("While analyzing " + className);
 				e.printStackTrace();
 			}

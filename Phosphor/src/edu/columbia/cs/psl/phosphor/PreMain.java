@@ -17,6 +17,7 @@ import java.security.ProtectionDomain;
 import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.HidePhosphorFromASMCV;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUIDAdder;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -29,8 +30,6 @@ import org.objectweb.asm.tree.*;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
-import edu.columbia.cs.psl.phosphor.runtime.AbstractTaintCheckerSetter;
-import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -341,7 +340,7 @@ public class PreMain {
 					if(isiFace)
 						_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields);
 					else
-						_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+						_cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
 					_cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
 
 					if (Configuration.WITH_SELECTIVE_INST)
@@ -367,7 +366,7 @@ public class PreMain {
 //										&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap") && !className.startsWith("jersey/repackaged/com/google/common/collect/"))
 ) {
 							ClassReader cr2 = new ClassReader(cw.toByteArray());
-							cr2.accept(new CheckClassAdapter(new ClassWriter(0), true), 0);
+							cr2.accept(new CheckClassAdapter(new ClassWriter(0), true), ClassReader.EXPAND_FRAMES);
 						}
 					}
 					// cv= new TraceClassVisitor(null,null);
