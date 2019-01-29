@@ -120,7 +120,7 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 						if(Configuration.MULTI_TAINTING)
 							super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "("+Configuration.TAINT_TAG_DESC+")"+Configuration.TAINT_TAG_DESC, false);
 					}
-					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(" + Configuration.TAINT_TAG_ARRAYDESC + Configuration.TAINT_TAG_DESC + ")V", false);
+					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 				}
 				idx += args[i].getSize();
 			}
