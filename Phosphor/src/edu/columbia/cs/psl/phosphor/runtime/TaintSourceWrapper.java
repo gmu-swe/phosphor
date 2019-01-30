@@ -27,6 +27,38 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 		throw new TaintSinkError(tag, obj);
 	}
 
+	public void combineTaintsOnArray(Object inputArray, Taint<T> tag){
+		if(inputArray instanceof LazyArrayObjTags)
+		{
+			LazyArrayObjTags array = ((LazyArrayObjTags) inputArray);
+			if(array.taints == null)
+				array.taints = new Taint[array.getLength()];
+			for(int i=0; i < array.getLength();i++)
+			{
+				if(array.taints[i] == null)
+					array.taints[i] = tag.copy();
+				else
+					array.taints[i].addDependency(tag);
+			}
+
+		}else if (inputArray instanceof Object[])
+		{
+			//Object[]
+			for(int i = 0; i < ((Object[]) inputArray).length; i++){
+				Object o = ((Object[])inputArray)[i];
+				if(o instanceof TaintedWithObjTag)
+				{
+
+					Taint existing = (Taint) ((TaintedWithObjTag) o).getPHOSPHOR_TAG();
+					if(existing != null)
+						existing.addDependency(tag);
+					else
+						((TaintedWithObjTag) o).setPHOSPHOR_TAG(tag.copy());
+				}
+			}
+		}
+	}
+
 	public Taint<? extends AutoTaintLabel> generateTaint(String source) {
 		StackTraceElement[] st = Thread.currentThread().getStackTrace();
 		StackTraceElement[] s = new StackTraceElement[st.length - 3];
