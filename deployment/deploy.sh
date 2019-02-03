@@ -1,4 +1,4 @@
-!/bin/sh
+#!/bin/sh
 
 if [[ "$TRAVIS_BRANCH" != "master" ]]; then
   gpg2 --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/signingkey.asc
