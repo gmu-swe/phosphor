@@ -37,6 +37,25 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 
 
 	@Test
+	public void testTaintThroughHandlesUntaintedObject() throws Exception{
+
+		try {
+
+			TaintThroughExample ex = new TaintThroughExample();
+
+			int[] ar = new int[10];
+
+			ex.taintBackToArgs(ar);
+
+			assertNullOrEmpty(MultiTainter.getTaint(ar[0]));
+			assertNullOrEmpty(MultiTainter.getTaint(ar[1]));
+		}
+		catch (NullPointerException ex) {
+			fail(ex.toString());
+		}
+	}
+
+	@Test
 	public void testTaintThroughAppliesToArgsAtEndOfMethod() throws Exception{
 		TaintThroughExample ex = new TaintThroughExample();
 		MultiTainter.taintedObject(ex,new Taint("Test"));
