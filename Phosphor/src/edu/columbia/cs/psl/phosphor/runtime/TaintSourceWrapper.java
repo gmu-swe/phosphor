@@ -28,6 +28,9 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 	}
 
 	public void combineTaintsOnArray(Object inputArray, Taint<T> tag){
+		if(tag == null) {
+			return;
+		}
 		if(inputArray instanceof LazyArrayObjTags)
 		{
 			LazyArrayObjTags array = ((LazyArrayObjTags) inputArray);
