@@ -6,7 +6,7 @@ after_success:
 
 deploy:
   provider: script
-  script: bash deployment/deploy.sh
+  script: cd $TRAVIS_BUILD_DIR; bash deployment/deploy.sh
   on:
     branch: master
 env:
