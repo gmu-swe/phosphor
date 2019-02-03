@@ -2,6 +2,8 @@ package edu.columbia.cs.psl.test.phosphor;
 
 import static org.junit.Assert.*;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.test.phosphor.util.TaintThroughExample;
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.AutoTaintLabel;
@@ -32,6 +34,21 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	{
 		a[0] = 2;
 	}
+
+
+	@Test
+	public void testTaintThroughAppliesToArgsAtEndOfMethod() throws Exception{
+		TaintThroughExample ex = new TaintThroughExample();
+		MultiTainter.taintedObject(ex,new Taint("Test"));
+
+		int[] ar = new int[10];
+
+		ex.taintBackToArgs(ar);
+
+		assertNonNullTaint(MultiTainter.getTaint(ar[0]));
+		assertNonNullTaint(MultiTainter.getTaint(ar[1]));
+	}
+
 	@Test
 	public void testAutoTaintTaints() throws Exception {
 		String s = source();
