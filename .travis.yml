@@ -1,5 +1,19 @@
 language: java
-#sudo: false
-script: "jdk_switcher use oraclejdk8; cd Phosphor; export INST_HOME=$JAVA_HOME/jre; mvn -Ddacapo.skip=false verify"
-after_success:
-  - cd phosphor; mvn install --settings ~/settings.xml
+script: jdk_switcher use oraclejdk8; cd Phosphor; export INST_HOME=$JAVA_HOME/jre;
+  mvn -Ddacapo.skip=false verify
+
+deploy:
+  provider: script
+  script: cd $TRAVIS_BUILD_DIR; bash deployment/deploy.sh
+  on:
+    branch: master
+env:
+  global:
+  - secure: OcsnRSlR1MwQI0zHtDUsnjQhiO/xkLcd9QY27Zp51NEM0+xolFQ7ndC9GdludE+A6U/KKpwVxIul0Dv1eFaOjbqGBNTbRuPP0ESi/biQdO0clvXXweJWFL25OQed2JYe9T5/he0Mkc3qY6F/4BPo5iJg4Jv9Rd7CFwvtpZj4sns=
+  - secure: GO/DWjZaw40diKTRrURXsRRnfsfWjJtlXHMSc3MFOTjZwrq0UcJoZIaifdqnjmNdTFxgFPd5Ll0umdCoRXOKTWDSTTw0B/28vUKYCxmV1NxK2rZoKH0CMGo8gBnHWe8g/NUI7ny3H91c1kDKYDxeGeAdiM2yPlhKu8XeYxKlISE=
+  - secure: AJq+e7zmCRIEpuJRU4SdZSFpZ7pNCUYK5WUydQkrTTt/yRgaHeIr2tnxW+JizihLuCtpZ/dtC/Z448oxULLql/FT9YnsG1zo2lBW2gmsjY106X4vQaJSpergjmpzq7aqxzMueUPn0YDrOyW+wHiFGeEPbuySBrnc1PMI/hEuPRQ=
+  - secure: RZ+FB4MF2jqJIKx+X8+kk+nr79ep8NFboe6cUUr10/VDXv8ks/dEoydExLxGbUfp3VV/mO/aq50PcDm1oQ4fHngBQWI8i9eXhsj/k/L4JaOz8TUrak0j0J02WnH2I5psfD+DNtGTB1FWRVgfW70UdTEwjcFeELHzUvkYkS0XsUQ=
+  - secure: D+28IhRMu5khMpaWZ24PM9afp5B0JBxOIyiJHxgsQraVbfrlinSYb9Vj17uBPDixpMroAn5Bb6qYiatqYKu61j5VXqW4rmUhqtby0WuFFPru85/LTyfLryfIBcP4t4QB8DECm3B0Bpq2oZW4Ghn2+Kw1vgCttriOeZE8Sx6/Cco=
+before_install:
+- openssl aes-256-cbc -K $encrypted_d58958f32407_key -iv $encrypted_d58958f32407_iv
+  -in deployment/signingkey.asc.enc -out deployment/signingkey.asc -d
