@@ -39,6 +39,11 @@ public class TaintTagFieldCastMV extends MethodVisitor implements Opcodes {
 					super.visitInsn(POP);
 			} else {
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(HardcodedBypassStore.class), "add", "(Ljava/lang/Object;)I", false);
+				if(name.equals("valuePHOSPHOR_TAG")){
+					//Also set the object's taint tag
+					super.visitInsn(DUP2);
+					super.visitFieldInsn(opcode, owner, "PHOSPHOR_TAG", "I");
+				}
 				super.visitFieldInsn(opcode, owner, name, "I");
 //				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(HardcodedBypassStore.class), "add", "([Ljava/lang/Object;)[I", false);
 //				super.visitFieldInsn(opcode, owner, name, "[I");
