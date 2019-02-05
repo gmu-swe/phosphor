@@ -12,33 +12,51 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintSinkError;
 
 public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 
-	public String source()
-	{
+	public String source() {
 		return "Foo";
 	}
-	public int iSource()
-	{
+
+	public int iSource() {
 		return 10;
 	}
 	
-	public void sink(int i)
-	{
+	public void sink(int i) {
 		System.out.println("Sink'ed: " + i);
 	}
 	
-	public void sink(String i)
-	{
+	public void sink(String i) {
 		System.out.println("Sink'ed: " + i);
 	}
-	public void source(int[] a)
-	{
+
+	public void source(int[] a) {
 		a[0] = 2;
 	}
 
+	/* Tests that calling a taintThrough method for an untainted object doesn't clear existing taint tags of that method's
+	 * primitive return value.
+	 */
+	@Test
+	public void testNestedTaintThroughKeepsExistingTaintPrimitive() throws Exception {
+		TaintThroughExample untaintedObj = new TaintThroughExample();
+		int taintedInt = iSource();
+		taintedInt = untaintedObj.passIntTaintThrough(taintedInt);
+		assertNonNullTaint(taintedInt);
+	}
+
+
+	/* Tests that calling a taintThrough method for an untainted object doesn't clear existing taint tags of that method's
+	 * object return value.
+	 */
+	@Test
+	public void testNestedTaintThroughKeepsExistingTaintObject() throws Exception {
+		TaintThroughExample untaintedObj = new TaintThroughExample();
+		String taintedString = source();
+		taintedString = untaintedObj.passStringTaintThrough(taintedString);
+		assertNonNullTaint(taintedString);
+	}
 
 	@Test
-	public void testTaintThroughHandlesUntaintedObject() throws Exception{
-
+	public void testTaintThroughHandlesUntaintedObject() throws Exception {
 		try {
 
 			TaintThroughExample ex = new TaintThroughExample();
@@ -56,7 +74,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	}
 
 	@Test
-	public void testTaintThroughAppliesToArgsAtEndOfMethod() throws Exception{
+	public void testTaintThroughAppliesToArgsAtEndOfMethod() throws Exception {
 		TaintThroughExample ex = new TaintThroughExample();
 		MultiTainter.taintedObject(ex,new Taint("Test"));
 

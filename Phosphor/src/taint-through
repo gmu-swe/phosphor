@@ -1,1 +1,3 @@
 edu/columbia/cs/psl/test/phosphor/util/TaintThroughExample.taintBackToArgs([I)V
+edu/columbia/cs/psl/test/phosphor/util/TaintThroughExample.passIntTaintThrough(I)I
+edu/columbia/cs/psl/test/phosphor/util/TaintThroughExample.passStringTaintThrough(Ljava/lang/String;)Ljava/lang/String;
