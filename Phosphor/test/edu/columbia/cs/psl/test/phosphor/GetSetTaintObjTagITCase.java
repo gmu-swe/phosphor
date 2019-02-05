@@ -51,6 +51,14 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		assertTrue(MultiTainter.getTaint(l.longValue()) != null);
 		assertTrue(MultiTainter.getTaint(d.doubleValue()) != null);
 	}
+
+	@Test
+	public void testIntConstructorTaintsIntObject()
+	{
+		Integer i = new Integer(MultiTainter.taintedInt(5, new Taint(5)));
+		assertTrue(MultiTainter.getTaint(i)!=null);
+
+	}
 	@Test
 	public void testNotBoxing()
 	{
