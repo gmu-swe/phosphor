@@ -2,11 +2,11 @@ language: java
 script: jdk_switcher use oraclejdk8; cd Phosphor; export INST_HOME=$JAVA_HOME/jre;
   mvn -Ddacapo.skip=false verify
 
-deploy:
-  provider: script
-  script: cd $TRAVIS_BUILD_DIR; bash deployment/deploy.sh
-  on:
-    branch: master
+#deploy:
+#  provider: script
+#  script: cd $TRAVIS_BUILD_DIR; bash deployment/deploy.sh
+#  on:
+#    branch: master
 env:
   global:
   - secure: OcsnRSlR1MwQI0zHtDUsnjQhiO/xkLcd9QY27Zp51NEM0+xolFQ7ndC9GdludE+A6U/KKpwVxIul0Dv1eFaOjbqGBNTbRuPP0ESi/biQdO0clvXXweJWFL25OQed2JYe9T5/he0Mkc3qY6F/4BPo5iJg4Jv9Rd7CFwvtpZj4sns=
