@@ -535,8 +535,7 @@ public class TaintUtils {
 			if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null && ((LazyArrayObjTags) srcTaint).taints != null) {
 				if (((LazyArrayObjTags) destTaint).taints == null)
 					((LazyArrayObjTags) destTaint).taints = new Taint[Array.getLength(dest)];
-				if (srcPos == 0 && length <= ((LazyArrayObjTags) destTaint).taints.length && length <= (((LazyArrayObjTags) srcTaint).taints).length)
-					System.arraycopy(((LazyArrayObjTags) srcTaint).taints, srcPos, ((LazyArrayObjTags) destTaint).taints, destPos, length);
+				System.arraycopy(((LazyArrayObjTags) srcTaint).taints, srcPos, ((LazyArrayObjTags) destTaint).taints, destPos, length);
 			}
 		} catch (ArrayIndexOutOfBoundsException ex) {
 			Taint t = null;
@@ -564,8 +563,7 @@ public class TaintUtils {
 			if (VM.isBooted$$PHOSPHORTAGGED(new ControlTaintTagStack(), new TaintedBooleanWithObjTag()).val && srcTaint != null && destTaint != null && ((LazyArrayObjTags) srcTaint).taints != null) {
 				if (((LazyArrayObjTags) destTaint).taints == null)
 					((LazyArrayObjTags) destTaint).taints = new Taint[Array.getLength(dest)];
-				if (srcPos == 0 && length <= ((LazyArrayObjTags) destTaint).taints.length && length <= (((LazyArrayObjTags) srcTaint).taints).length)
-					System.arraycopy(((LazyArrayObjTags) srcTaint).taints, srcPos, ((LazyArrayObjTags) destTaint).taints, destPos, length);
+				System.arraycopy(((LazyArrayObjTags) srcTaint).taints, srcPos, ((LazyArrayObjTags) destTaint).taints, destPos, length);
 			}
 			if (!ctrl.isEmpty()) {
 				if (((LazyArrayObjTags) destTaint).taints == null)
