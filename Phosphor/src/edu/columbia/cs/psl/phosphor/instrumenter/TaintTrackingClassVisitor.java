@@ -62,6 +62,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	private LinkedList<MethodNode> methodsToAddWrappersFor = new LinkedList<MethodNode>();
 	private LinkedList<MethodNode> methodsToAddNameOnlyWrappersFor = new LinkedList<MethodNode>();
 	private LinkedList<MethodNode> methodsToAddUnWrappersFor = new LinkedList<>();
+	private HashSet<MethodNode> methodsToAddLambdaUnWrappersFor = new HashSet<>();
 	private String className;
 	private boolean isNormalClass;
 	private boolean isInterface;
@@ -1009,6 +1010,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 				MethodNode z= new MethodNode(m.access | Opcodes.ACC_MODULE ,m.name.replace("$$PHOSPHORTAGGED",""), newDesc, m.signature, exceptions);
 				methodsToAddWrappersFor.add(z);
+				methodsToAddLambdaUnWrappersFor.add(z);
 				if(returnTypeToHackOnLambda != null)
 					methodsToAddWrappersForWithReturnType.put(z,returnTypeToHackOnLambda);
 			}
@@ -1128,7 +1130,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 						Type returnTypeToHackOnLambda = methodsToAddWrappersForWithReturnType.get(m);
 						boolean needToPrealloc = TaintUtils.isPreAllocReturnType(m.desc) || returnTypeToHackOnLambda!=null;
-						boolean useSuffixName = !TaintUtils.remapMethodDescAndIncludeReturnHolder(m.desc).equals(m.desc) || Type.getReturnType(m.desc).getDescriptor().equals("Ljava/lang/Object;");
+						boolean useSuffixName = !TaintUtils.remapMethodDescAndIncludeReturnHolder(m.desc).equals(m.desc) || Type.getReturnType(m.desc).getDescriptor().equals("Ljava/lang/Object;") || methodsToAddLambdaUnWrappersFor.contains(m);
 						String[] exceptions = new String[m.exceptions.size()];
 						exceptions = (String[]) m.exceptions.toArray(exceptions);
 
