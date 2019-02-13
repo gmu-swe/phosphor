@@ -7,11 +7,12 @@ deploy:
   script: cd $TRAVIS_BUILD_DIR; bash deployment/deploy.sh
   on:
     branch: travis-fix
+env:
+  global:
+  - secure: biE9BxIfRYdAy0V4pcC+E266kX6qmPoBiy+nWUAO5QEpddIko3G8IUkaxFmeQa9ePNyjqHaygqBNFRk29vLTYmIEVtZrOchXnf9JCD+aLdnnhStZsiGaQZNOVbM5+U6hLD51+CI2Fwrm/06+x2HQnqFJzEWd2rAUE+QNok0xKtM=
+  - secure: DnEUm7IYhVJRKw384oUbKpRDFPZKiSNm7IcyBctDj7KbEIgV2ed20F5YNjpW7dJZ/YB6e06FFhnDORUvNxiz5M6/JkA8DZqMXAVqxSZWRPKHMH6TdUM+NsGpP2L5PAAX5MltpjzfDd/dKI5AT5D2C6CGY0jAwTO5o6lrLpEVf80=
+dd:
+  secure: U3fyPVgjVPvUxY9C+vOTpT65BWqF9y2b+oMlLgR7wR+buNGY/A5CyJwC7l2p6cx92AD96Ch8PLQXOV6a0EyjV3vdpSvpB70+jQVafq6ZEXnPoah/mfsDzRk7hIsOfoPM+f1AuBFI37SY6COuH59M7QCzHV9rn+g+wPovZiFhe2U=
 before_install:
 - openssl aes-256-cbc -K $encrypted_d58958f32407_key -iv $encrypted_d58958f32407_iv
   -in deployment/signingkey.asc.enc -out deployment/signingkey.asc -d
-env:
-  global:
-    secure: biE9BxIfRYdAy0V4pcC+E266kX6qmPoBiy+nWUAO5QEpddIko3G8IUkaxFmeQa9ePNyjqHaygqBNFRk29vLTYmIEVtZrOchXnf9JCD+aLdnnhStZsiGaQZNOVbM5+U6hLD51+CI2Fwrm/06+x2HQnqFJzEWd2rAUE+QNok0xKtM=
-dd:
-  secure: U3fyPVgjVPvUxY9C+vOTpT65BWqF9y2b+oMlLgR7wR+buNGY/A5CyJwC7l2p6cx92AD96Ch8PLQXOV6a0EyjV3vdpSvpB70+jQVafq6ZEXnPoah/mfsDzRk7hIsOfoPM+f1AuBFI37SY6COuH59M7QCzHV9rn+g+wPovZiFhe2U=
