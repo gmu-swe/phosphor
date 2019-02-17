@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
 
+import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 import org.objectweb.asm.tree.ClassNode;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
@@ -133,23 +134,26 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	}
 
 	boolean c1IsSuperforC2(String c1, String c2) {
-		if (c1.equals(c2))
-			return true;
-		ClassNode cn = Instrumenter.classes.get(c2);
-
-		if (cn == null) {
-			return false;
-		}
-
-		if (cn.interfaces != null)
-			for (Object s : cn.interfaces) {
-				if (c1IsSuperforC2(c1, (String) s))
-					return true;
+		LinkedList<String> queue = new LinkedList<>();
+		queue.add(c2);
+		while(!queue.isEmpty()) {
+			String className = queue.pop();
+			if(className.equals(c1)) {
+				return true;
 			}
-
-		if (cn.superName == null || cn.superName.equals("java/lang/Object"))
-			return false;
-		return c1IsSuperforC2(c1, cn.superName);
+			ClassNode cn = Instrumenter.classes.get(className);
+			if(cn != null) {
+				if (cn.interfaces != null) {
+					for (Object s : cn.interfaces) {
+						queue.add((String) s);
+					}
+				}
+				if (cn.superName != null && !cn.superName.equals("java/lang/Object")) {
+					queue.add(cn.superName);
+				}
+			}
+		}
+		return false;
 	}
 
 	@Override
@@ -163,7 +167,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 
 				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
 				{
-				    return true;
+					return true;
 				}
 			}
 			return false;
@@ -172,6 +176,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			return false;
 		}
 	}
+
 	@Override
 	public boolean isSource(String str) {
 		if (str.startsWith("["))
@@ -182,7 +187,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 				String d[] = s.split("\\.");
 				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
 				{
-					System.out.println(d[0]+d[1]+ "  vs " + inD[0]+inD[1]);
+					System.out.printf("Source: %s.%s vs %s.%s\n", d[0], d[1], inD[0], inD[1]);
 					if(!sourceLabels.containsKey(str))
 						sourceLabels.put(str, sourceLabels.get(s));
 				    return true;
@@ -205,7 +210,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 
 				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
 				{
-				    return true;
+					return true;
 				}
 			}
 			return false;

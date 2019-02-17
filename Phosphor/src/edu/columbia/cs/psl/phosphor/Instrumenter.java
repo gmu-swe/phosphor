@@ -140,7 +140,7 @@ public class Instrumenter {
 					ClassNode cn = new ClassNode();
 					cn.name = name;
 					cn.superName = superName;
-					cn.interfaces = new ArrayList<String>();
+					cn.interfaces = new ArrayList<>(Arrays.asList(interfaces));
 					Instrumenter.classes.put(name, cn);
 				}
 			}, ClassReader.SKIP_CODE);
