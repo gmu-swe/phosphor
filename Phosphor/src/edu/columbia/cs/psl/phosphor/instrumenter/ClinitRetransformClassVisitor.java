@@ -13,6 +13,7 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
     private boolean visitedClassInitializer;
     public static final String CLINIT_NAME = "<clinit>";
     private String className;
+    private boolean fixLdcClass;
 
     public ClinitRetransformClassVisitor(ClassVisitor cv) {
         super(Opcodes.ASM5, cv);
@@ -22,6 +23,7 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         super.visit(version, access, name, signature, superName, interfaces);
+        this.fixLdcClass = (version & 0xFFFF) < Opcodes.V1_5;
         this.className = name;
     }
 
@@ -30,9 +32,9 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
         if(name.equals(CLINIT_NAME)) {
             visitedClassInitializer = true;
-            if(!className.startsWith("java") && !className.startsWith("sun")) {
-                mv = new ClinitRetransformMV(mv, className);
-            }
+//            if(!className.startsWith("java") && !className.startsWith("sun")) {
+                mv = new ClinitRetransformMV(mv, className, fixLdcClass);
+//            }
         }
         return mv;
     }

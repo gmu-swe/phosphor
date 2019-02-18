@@ -592,11 +592,4 @@ public class PreMain {
 		return instrumentation;
 	}
 
-	public static void retransform(String className) {
-		try {
-			Class<?> clazz = Class.forName(className.replace("/", "."), false, curLoader);
-			instrumentation.retransformClasses(clazz);
-		} catch (ClassNotFoundException | UnmodifiableClassException e) {
-		}
-	}
 }

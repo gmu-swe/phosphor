@@ -8,6 +8,7 @@ import org.objectweb.asm.*;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
+import java.lang.instrument.UnmodifiableClassException;
 import java.security.ProtectionDomain;
 
 
@@ -94,6 +95,15 @@ public class SourceSinkRetransformer implements ClassFileTransformer {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         cr.accept(new SourceSinkRetransformerCV(cw), 0);
         return cw.toByteArray();
+    }
+
+    public static void retransform(Class<?> clazz) {
+        try{
+        	if(INITED && PreMain.getInstrumentation() != null)
+                PreMain.getInstrumentation().retransformClasses(clazz);
+        } catch (UnmodifiableClassException e) {
+            e.printStackTrace();
+        }
     }
 }
 
