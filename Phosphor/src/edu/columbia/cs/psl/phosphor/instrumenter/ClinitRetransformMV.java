@@ -1,12 +1,10 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.SourceSinkRetransformer;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import edu.columbia.cs.psl.phosphor.PreMain;
 
 public class ClinitRetransformMV extends MethodVisitor {
 

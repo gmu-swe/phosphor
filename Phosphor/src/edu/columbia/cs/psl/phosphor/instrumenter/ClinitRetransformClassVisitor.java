@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -32,9 +33,7 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
         if(name.equals(CLINIT_NAME)) {
             visitedClassInitializer = true;
-//            if(!className.startsWith("java") && !className.startsWith("sun")) {
-                mv = new ClinitRetransformMV(mv, className, fixLdcClass);
-//            }
+            mv = new ClinitRetransformMV(mv, className, fixLdcClass);
         }
         return mv;
     }

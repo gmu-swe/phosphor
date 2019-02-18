@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.SourceSinkTaintingMV;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
+import jdk.nashorn.internal.runtime.regexp.joni.constants.OPCode;
 import org.objectweb.asm.*;
 
 import java.lang.instrument.ClassFileTransformer;
@@ -29,12 +30,13 @@ public class SourceSinkRetransformer implements ClassFileTransformer {
         @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
             MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-            if ((access & Opcodes.ACC_NATIVE) == 0) {
+            if(((access & Opcodes.ACC_NATIVE) == 0) && (name.endsWith(TaintUtils.METHOD_SUFFIX) || !containsPrimitiveType(desc))) {
                 mv = new SourceSinkTaintingMV(mv, access, className, name, desc, desc);
             }
             return mv;
         }
     }
+
     static boolean INITED = false;
 
     public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
@@ -104,6 +106,19 @@ public class SourceSinkRetransformer implements ClassFileTransformer {
         } catch (UnmodifiableClassException e) {
             e.printStackTrace();
         }
+    }
+
+    /* Returns whether the specified method description indicates primitive or primitive array type in the parameter list */
+    public static boolean containsPrimitiveType(String desc) {
+        desc = desc.replaceAll("\\).*", "");
+        desc = desc.replaceAll("L.*;", "");
+        String primitiveChars = "ZBCSIFDJ";
+        for(int i = 0; i < primitiveChars.length(); i++) {
+            if(desc.contains(primitiveChars.substring(i, i+1))) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
