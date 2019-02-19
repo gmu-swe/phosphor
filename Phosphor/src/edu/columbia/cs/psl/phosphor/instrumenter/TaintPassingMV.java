@@ -2206,6 +2206,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		else if(name.equals("getChars") && (owner.equals(INTEGER_NAME) || owner.equals(LONG_NAME)))
 			return true;
+		else if (owner.equals(CHARACTER_NAME) && (name.equals("digit") /*|| name.equals("isWhitespace")*/))
+			return true;
 		return false;
 	}
 	@Override
