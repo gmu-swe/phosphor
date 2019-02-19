@@ -28,7 +28,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
         try{
             // Check if VM is initialized, that PreMain's instrumentation has been set by a call to premain and that
             // Configuration.init() has been called to initialize the configuration
-        	if(sun.misc.VM.isBooted() && INITED && PreMain.getInstrumentation() != null) {
+        	if(INITED && PreMain.getInstrumentation() != null) {
         	    PreMain.getInstrumentation().retransformClasses(clazz);
         	    while(!retransformQueue.isEmpty()) {
                     PreMain.getInstrumentation().retransformClasses(retransformQueue.pop());
