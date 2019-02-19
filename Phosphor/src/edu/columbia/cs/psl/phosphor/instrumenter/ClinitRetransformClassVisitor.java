@@ -1,19 +1,17 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
 
-import java.util.ArrayList;
-
+/* Visits a Java class modifying the <clint> method to add code to retransform the class on class initialization. */
 public class ClinitRetransformClassVisitor extends ClassVisitor {
 
+    // Whether or not the <clint> has been visited
     private boolean visitedClassInitializer;
-    public static final String CLINIT_NAME = "<clinit>";
+    // The name of the class being visited
     private String className;
+    // Whether or not the version is at least the required version 1.5 for the ldc of a constant class
     private boolean fixLdcClass;
 
     public ClinitRetransformClassVisitor(ClassVisitor cv) {
@@ -31,17 +29,20 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-        if(name.equals(CLINIT_NAME)) {
+        if(name.equals("<clinit>")) {
             visitedClassInitializer = true;
-            mv = new ClinitRetransformMV(mv, className, fixLdcClass);
+            if(!className.contains("$$Lambda$")) { // Do not add retransform code to  lambdas
+                mv = new ClinitRetransformMV(mv, className, fixLdcClass);
+            }
         }
         return mv;
     }
 
+    /* Checks if the <clinit> method was visited. If it was not visited, makes calls to visit it. */
     @Override
     public void visitEnd() {
         if(!visitedClassInitializer) {
-            MethodVisitor mv = visitMethod(Opcodes.ACC_STATIC, CLINIT_NAME, "()V", null, null);
+            MethodVisitor mv = visitMethod(Opcodes.ACC_STATIC, "<clinit>", "()V", null, null);
             mv.visitCode();
             mv.visitInsn(Opcodes.RETURN);
             mv.visitMaxs(0, 0);

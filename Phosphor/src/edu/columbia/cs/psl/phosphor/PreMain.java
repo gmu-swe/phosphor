@@ -10,7 +10,6 @@ import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
-import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.security.MessageDigest;
@@ -56,7 +55,7 @@ public class PreMain {
 	 */
 	public static ClassLoader curLoader;
 
-	public static final class PCLoggingTransformer implements ClassFileTransformer {
+	public static final class PCLoggingTransformer extends PhosphorBaseTransformer {
 		public PCLoggingTransformer(){
 			TaintUtils.VERIFY_CLASS_GENERATION = System.getProperty("phosphor.verify") != null;
 		}
@@ -112,63 +111,8 @@ public class PreMain {
 		}
 
 		static boolean innerException = false;
-		static boolean INITED = false;
 
-		public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
-				byte[] classfileBuffer) throws IllegalClassFormatException {
-
-			if (!INITED) {
-				Configuration.IMPLICIT_TRACKING = false;
-				Configuration.MULTI_TAINTING = true;
-				Configuration.init();
-				INITED = true;
-			}
-			LazyByteArrayObjTags ret = null;
-			if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-				ret = new LazyByteArrayObjTags(classfileBuffer);
-			else
-				ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-
-			return ret;
-		}
-
-		public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
-				byte[] classfileBuffer, ControlTaintTagStack ctrl) throws IllegalClassFormatException {
-
-			if (!INITED) {
-				Configuration.IMPLICIT_TRACKING = true;
-				Configuration.MULTI_TAINTING = true;
-				Configuration.init();
-				INITED = true;
-			}
-			LazyByteArrayObjTags ret = null;
-
-			if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-				ret = new LazyByteArrayObjTags(classfileBuffer);
-			else
-				ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-
-
-			return ret;
-		}
-
-		public LazyByteArrayIntTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayIntTags classtaint,
-				byte[] classfileBuffer) throws IllegalClassFormatException {
-
-			if (!INITED) {
-				Configuration.IMPLICIT_TRACKING = false;
-				Configuration.MULTI_TAINTING = false;
-				Configuration.init();
-				INITED = true;
-			}
-			LazyByteArrayIntTags ret;
-			if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-				ret = new LazyByteArrayIntTags(classfileBuffer);
-			else
-				ret = new LazyByteArrayIntTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-			return ret;
-		}
-
+		@Override
 		public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
 				throws IllegalClassFormatException {
 			byte[] ret = _transform(loader, className2, classBeingRedefined, protectionDomain, classfileBuffer);
@@ -584,8 +528,7 @@ public class PreMain {
 			Instrumenter.loader = bigLoader;
 		ClassFileTransformer transformer = new PCLoggingTransformer();
 		inst.addTransformer(transformer);
-		inst.addTransformer(new SourceSinkRetransformer(), true);
-
+		inst.addTransformer(new SourceSinkTransformer(), true);
 	}
 
 	public static Instrumentation getInstrumentation() {

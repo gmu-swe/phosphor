@@ -1,43 +1,17 @@
 package edu.columbia.cs.psl.phosphor;
 
-import edu.columbia.cs.psl.phosphor.instrumenter.SourceSinkTaintingMV;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
-import jdk.nashorn.internal.runtime.regexp.joni.constants.OPCode;
-import org.objectweb.asm.*;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
-import java.lang.instrument.UnmodifiableClassException;
 import java.security.ProtectionDomain;
 
+/* Provides appropriate phosphor tagged versions of transform. */
+public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
 
-public class SourceSinkRetransformer implements ClassFileTransformer {
-
-    public static class SourceSinkRetransformerCV extends ClassVisitor {
-        private String className;
-        public SourceSinkRetransformerCV(ClassVisitor cv) {
-            super(Opcodes.ASM5, cv);
-        }
-
-        @Override
-        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-            super.visit(version, access, name, signature, superName, interfaces);
-            this.className = name;
-        }
-
-        @Override
-        public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-            MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-            if(((access & Opcodes.ACC_NATIVE) == 0) && (name.endsWith(TaintUtils.METHOD_SUFFIX) || !containsPrimitiveType(desc))) {
-                mv = new SourceSinkTaintingMV(mv, access, className, name, desc, desc);
-            }
-            return mv;
-        }
-    }
-
-    static boolean INITED = false;
+    public static boolean INITED = false;
 
     public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
                                                           byte[] classfileBuffer) throws IllegalClassFormatException {
@@ -91,34 +65,4 @@ public class SourceSinkRetransformer implements ClassFileTransformer {
         return ret;
     }
 
-    @Override
-    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-        ClassReader cr = new ClassReader(classfileBuffer);
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        cr.accept(new SourceSinkRetransformerCV(cw), 0);
-        return cw.toByteArray();
-    }
-
-    public static void retransform(Class<?> clazz) {
-        try{
-        	if(INITED && PreMain.getInstrumentation() != null)
-                PreMain.getInstrumentation().retransformClasses(clazz);
-        } catch (UnmodifiableClassException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /* Returns whether the specified method description indicates primitive or primitive array type in the parameter list */
-    public static boolean containsPrimitiveType(String desc) {
-        desc = desc.replaceAll("\\).*", "");
-        desc = desc.replaceAll("L.*;", "");
-        String primitiveChars = "ZBCSIFDJ";
-        for(int i = 0; i < primitiveChars.length(); i++) {
-            if(desc.contains(primitiveChars.substring(i, i+1))) {
-                return true;
-            }
-        }
-        return false;
-    }
 }
-

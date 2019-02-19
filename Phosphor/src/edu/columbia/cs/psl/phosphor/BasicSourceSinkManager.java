@@ -133,7 +133,10 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		return instance;
 	}
 
-	boolean c1IsSuperforC2(String c1, String c2) {
+	/* Returns whether the class or interface with specified string name c1 is either the same as, or is an ancestor
+	 * of the class or interface with specified string name c2. Performs a breadth first search of Instrumenter.classes
+	 * to determine is a class hierarchy path exists. */
+	public static boolean isSuperType(String c1, String c2) {
 		LinkedList<String> queue = new LinkedList<>();
 		queue.add(c2);
 		while(!queue.isEmpty()) {
@@ -165,7 +168,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			for (String s : taintThrough) {
 				String d[] = s.split("\\.");
 
-				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
+				if (d[1].equals(inD[1]) && isSuperType(d[0], inD[0]))//desc is same
 				{
 					return true;
 				}
@@ -185,7 +188,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			String[] inD = str.split("\\.");
 			for (String s : sources) {
 				String d[] = s.split("\\.");
-				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
+				if (d[1].equals(inD[1]) && isSuperType(d[0], inD[0]))//desc is same
 				{
 					System.out.printf("Source: %s.%s vs %s.%s\n", d[0], d[1], inD[0], inD[1]);
 					if(!sourceLabels.containsKey(str))
@@ -200,6 +203,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		}
 	}
 
+	@Override
 	public boolean isSink(String str) {
 		if (str.startsWith("["))
 			return false;
@@ -208,7 +212,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			for (String s : sinks) {
 				String d[] = s.split("\\.");
 
-				if (d[1].equals(inD[1]) && c1IsSuperforC2(d[0], inD[0]))//desc is same
+				if (d[1].equals(inD[1]) && isSuperType(d[0], inD[0]))//desc is same
 				{
 					return true;
 				}
@@ -219,5 +223,4 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			return false;
 		}
 	}
-
 }
