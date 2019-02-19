@@ -29,7 +29,7 @@ public class ClinitRetransformMV extends MethodVisitor {
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
             }
             else {
-                // Directing push the class onto the stack
+                // Directly push the class onto the stack
                 mv.visitLdcInsn(Type.getObjectType(className));
             }
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(SourceSinkTransformer.class), "retransform", "(Ljava/lang/Class;)V", false);
