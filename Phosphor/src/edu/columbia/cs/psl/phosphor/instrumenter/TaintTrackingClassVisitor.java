@@ -976,7 +976,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				if(returnType.getSort() == Type.VOID)
 				{
 					//Check to see if we are one of those annying lambdas with a void return but pre-allocated return obj passed
-					if(newArgs.getLast().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")){
+					if(!newArgs.isEmpty() && newArgs.getLast().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")){
 						returnTypeToHackOnLambda = newArgs.removeLast();
 					}
 				}
@@ -1050,7 +1050,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				if(returnType.getSort() == Type.VOID)
 				{
 					//Check to see if we are one of those annying lambdas with a void return but pre-allocated return obj passed
-					if(newArgs.getLast().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")){
+					if(!newArgs.isEmpty() && newArgs.getLast().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")){
 						newArgs.removeLast();
 					}
 				}

@@ -48,6 +48,16 @@ public class LambdaObjTagITCase {
 	}
 
 	@Test
+	public void testZeroArgVoidWrappedLambda() throws Exception {
+		int[] i = new int[1];
+		Runnable r = () -> {
+			i[0] += 10;
+		};
+		r.run();
+		assertTrue("Expected runnable constructed using lambda to run.", i[0] == 10);
+	}
+
+	@Test
 	public void testLambdaIntArg() throws Exception {
 		intArg(new int[10]);
 	}
