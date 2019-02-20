@@ -1210,4 +1210,16 @@ public class RuntimeBoxUnboxPropogator {
 			ret.taint = cTaint;
 		return ret;
 	}
+
+	public static TaintedIntWithIntTag digit$$PHOSPHORTAGGED(int cTaint, char c, int rTaint, int radix, TaintedIntWithIntTag ret) {
+		ret.val = Character.digit(c, radix);
+		ret.taint = cTaint;
+		return ret;
+	}
+
+	public static TaintedIntWithIntTag digit$$PHOSPHORTAGGED(int cTaint, int codePoint, int rTaint, int radix, TaintedIntWithIntTag ret) {
+		ret.val = Character.digit(codePoint, radix);
+		ret.taint = cTaint;
+		return ret;
+	}
 }
