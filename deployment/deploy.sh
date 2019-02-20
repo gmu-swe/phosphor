@@ -1,4 +1,5 @@
 #!/bin/sh
+openssl aes-256-cbc -K $encrypted_d58958f32407_key -iv $encrypted_d58958f32407_iv -in deployment/signingkey.asc.enc -out deployment/signingkey.asc -d
 
 gpg2 --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import $TRAVIS_BUILD_DIR/deployment/signingkey.asc;
 gpg2 --allow-secret-key-import --keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import $TRAVIS_BUILD_DIR/deployment/signingkey.asc;

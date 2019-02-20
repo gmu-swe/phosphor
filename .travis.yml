@@ -15,6 +15,3 @@ env:
   - secure: DWah08k4GvqOmx6eg5ABC+BlpyxlP88pjbzwSRbBl05LVXa/h8xhsrfUCD9K2/rsH4l063cYieTlD04ss5q640yNm4pRlOfrIE3WXEKDDiT8EVBoNKI3XyDpCp+uMhqMdfBEeZxO2ovIqxeO7YuLAizrSIscDZIVDeG8UnLfZYc=
 dd:
   secure: U3fyPVgjVPvUxY9C+vOTpT65BWqF9y2b+oMlLgR7wR+buNGY/A5CyJwC7l2p6cx92AD96Ch8PLQXOV6a0EyjV3vdpSvpB70+jQVafq6ZEXnPoah/mfsDzRk7hIsOfoPM+f1AuBFI37SY6COuH59M7QCzHV9rn+g+wPovZiFhe2U=
-before_install:
-- openssl aes-256-cbc -K $encrypted_d58958f32407_key -iv $encrypted_d58958f32407_iv
-  -in deployment/signingkey.asc.enc -out deployment/signingkey.asc -d
