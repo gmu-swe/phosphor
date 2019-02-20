@@ -14,8 +14,11 @@ import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.ProtectionDomain;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.ClinitRetransformClassVisitor;
 import edu.columbia.cs.psl.phosphor.instrumenter.HidePhosphorFromASMCV;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUIDAdder;
 import org.objectweb.asm.ClassReader;
@@ -52,7 +55,7 @@ public class PreMain {
 	 */
 	public static ClassLoader curLoader;
 
-	public static final class PCLoggingTransformer implements ClassFileTransformer {
+	public static final class PCLoggingTransformer extends PhosphorBaseTransformer {
 		public PCLoggingTransformer(){
 			TaintUtils.VERIFY_CLASS_GENERATION = System.getProperty("phosphor.verify") != null;
 		}
@@ -108,63 +111,8 @@ public class PreMain {
 		}
 
 		static boolean innerException = false;
-		static boolean INITED = false;
 
-		public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
-				byte[] classfileBuffer) throws IllegalClassFormatException {
-
-			if (!INITED) {
-				Configuration.IMPLICIT_TRACKING = false;
-				Configuration.MULTI_TAINTING = true;
-				Configuration.init();
-				INITED = true;
-			}
-			LazyByteArrayObjTags ret = null;
-			if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-				ret = new LazyByteArrayObjTags(classfileBuffer);
-			else
-				ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-
-			return ret;
-		}
-
-		public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
-				byte[] classfileBuffer, ControlTaintTagStack ctrl) throws IllegalClassFormatException {
-
-			if (!INITED) {
-				Configuration.IMPLICIT_TRACKING = true;
-				Configuration.MULTI_TAINTING = true;
-				Configuration.init();
-				INITED = true;
-			}
-			LazyByteArrayObjTags ret = null;
-
-			if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-				ret = new LazyByteArrayObjTags(classfileBuffer);
-			else
-				ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-
-
-			return ret;
-		}
-
-		public LazyByteArrayIntTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayIntTags classtaint,
-				byte[] classfileBuffer) throws IllegalClassFormatException {
-
-			if (!INITED) {
-				Configuration.IMPLICIT_TRACKING = false;
-				Configuration.MULTI_TAINTING = false;
-				Configuration.init();
-				INITED = true;
-			}
-			LazyByteArrayIntTags ret;
-			if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-				ret = new LazyByteArrayIntTags(classfileBuffer);
-			else
-				ret = new LazyByteArrayIntTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-			return ret;
-		}
-
+		@Override
 		public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
 				throws IllegalClassFormatException {
 			byte[] ret = _transform(loader, className2, classBeingRedefined, protectionDomain, classfileBuffer);
@@ -178,6 +126,17 @@ public class PreMain {
 				throws IllegalClassFormatException {
 			ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer) : new ClassReader(classfileBuffer));
 			String className = cr.getClassName();
+			cr.accept(new ClassVisitor(Opcodes.ASM5) {
+				@Override
+				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+					super.visit(version, access, name, signature, superName, interfaces);
+					ClassNode cn = new ClassNode();
+					cn.name = name;
+					cn.superName = superName;
+					cn.interfaces = new ArrayList<>(Arrays.asList(interfaces));
+					Instrumenter.classes.put(name, cn);
+				}
+			}, ClassReader.SKIP_CODE);
 			innerException = false;
 			curLoader = loader;
 //			bigLoader = loader;
@@ -337,12 +296,12 @@ public class PreMain {
 					}
 					if (DEBUG || TaintUtils.VERIFY_CLASS_GENERATION)
 						_cv = new CheckClassAdapter(_cv, false);
+                    _cv = new ClinitRetransformClassVisitor(_cv);
 					if(isiFace)
 						_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields);
 					else
 						_cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
 					_cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
-
 					if (Configuration.WITH_SELECTIVE_INST)
 						cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
 					cr.accept(
@@ -569,11 +528,11 @@ public class PreMain {
 			Instrumenter.loader = bigLoader;
 		ClassFileTransformer transformer = new PCLoggingTransformer();
 		inst.addTransformer(transformer);
-	
-
+		inst.addTransformer(new SourceSinkTransformer(), true);
 	}
 
 	public static Instrumentation getInstrumentation() {
 		return instrumentation;
 	}
+
 }

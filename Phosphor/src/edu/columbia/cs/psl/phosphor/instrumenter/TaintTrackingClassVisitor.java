@@ -446,7 +446,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv = new TaintTagFieldCastMV(mv, name);
 
 			MethodVisitor rootmV = mv;
-			mv = new SourceSinkTaintingMV(mv, access, className, name, newDesc, desc);
+//			mv = new SourceSinkTaintingMV(mv, access, className, name, newDesc, desc);
 			//			mv = new CheckMethodAdapter(mv);
 //			mv = new SpecialOpcodeRemovingMV(mv,ignoreFrames, className);
 

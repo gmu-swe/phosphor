@@ -35,3 +35,6 @@
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.source()Ljava/lang/String;
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.iSource()I
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.source([I)V
+edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.source([I)V
+edu/columbia/cs/psl/test/phosphor/InheritedAutoTaintObjTagITCase$TaintSourceInterface.getSource()I
+edu/columbia/cs/psl/test/phosphor/InheritedAutoTaintObjTagITCase$TaintSourceClass.getSource()I
