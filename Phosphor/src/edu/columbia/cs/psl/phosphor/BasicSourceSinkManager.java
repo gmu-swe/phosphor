@@ -2,33 +2,33 @@ package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
+import edu.columbia.cs.psl.phosphor.struct.SimpleHashSet;
 import org.objectweb.asm.tree.ClassNode;
 
+import java.io.InputStream;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Scanner;
 
 public class BasicSourceSinkManager extends SourceSinkManager {
-	public static HashSet<String> sinks = new HashSet<String>();
-	public static HashSet<String> sources = new HashSet<String>();
-	public static HashMap<String, Object> sourceLabels = new HashMap<String, Object>();
-	public static HashSet<String> taintThrough = new HashSet<String>();
-	public static HashSet<String> applicableClasses = new HashSet<>();
+
+	public static SimpleHashSet<String> sinks = new SimpleHashSet<>();
+	public static SimpleHashSet<String> sources = new SimpleHashSet<>();
+	public static HashMap<String, Object> sourceLabels = new HashMap<>();
+	public static SimpleHashSet<String> taintThrough = new SimpleHashSet<>();
+	public static SimpleHashSet<String> applicableClasses = new SimpleHashSet<>();
 
 	@Override
 	public boolean isSourceOrSinkOrTaintThrough(Class<?> clazz) {
-		if(applicableClasses.size() == 0)
+		if(applicableClasses == null || applicableClasses.size() == 0)
 			return false;
 		if (applicableClasses.contains(clazz.getName()))
 			return true;
-		boolean superMatches = false;
 		if (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class)
 			if (isSourceOrSinkOrTaintThrough(clazz.getSuperclass()))
 				return true;
 		for (Class c : clazz.getInterfaces())
 			if (isSourceOrSinkOrTaintThrough(c))
 				return true;
-
 		return false;
 	}
 
@@ -36,32 +36,40 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	public Object getLabel(String str) {
 		return sourceLabels.get(str);
 	}
+
 	static {
-		if(Instrumenter.sourcesFile == null && Instrumenter.sinksFile == null && !TaintTrackingClassVisitor.IS_RUNTIME_INST)
-		{
+		if(Instrumenter.sourcesFile == null && Instrumenter.sinksFile == null && !TaintTrackingClassVisitor.IS_RUNTIME_INST) {
 			System.err.println("No taint sources or sinks specified. To specify, add option -taintSources file and/or -taintSinks file where file is a file listing taint sources/sinks. See files taint-sinks and taint-samples in source for examples. Lines beginning with # are ignored.");
 		}
+		readTaintMethods(Instrumenter.sourcesFile, sources, "source", true);
+		readTaintMethods(Instrumenter.sinksFile, sinks, "sink", false);
+		readTaintMethods(Instrumenter.taintThroughFile, taintThrough, "taintThrough", false);
+		if (!TaintTrackingClassVisitor.IS_RUNTIME_INST) {
+			System.out.printf("Loaded %d sinks, %d sources and %d taint through methods.\n", sinks.size(), sources.size(), taintThrough.size());
+		}
+		SourceSinkTransformer.isBasicSourceSinkManagerInit = true;
+	}
 
-		{
-			Scanner s;
-			String lastLine = null;
-			try {
-				if(Instrumenter.sourcesFile != null)
-				{
-					if(PreMain.DEBUG)
-						System.out.println("Using taint sources file");
-					s = new Scanner(Instrumenter.sourcesFile);
-
-					int i = 0;
-					while (s.hasNextLine())
-					{
-						String line = s.nextLine();
-						lastLine = line;
-						if(!line.startsWith("#") && !line.isEmpty())
-						{
-							sources.add(line);
-							String[] parsed = line.split("\\.");
-							applicableClasses.add(parsed[0]);
+	/* Adds method names from the specified source stream into the specified set. If isSource, then sourceLabels are also
+	 * created for each method name added. */
+	private static void readTaintMethods(InputStream src, SimpleHashSet<String> set, String type, boolean isSource) {
+		Scanner s = null;
+		String lastLine = null;
+		try {
+			if(src != null) {
+				if(PreMain.DEBUG) {
+					System.out.printf("Using %s file \n", type);
+				}
+				s = new Scanner(src);
+				int i = 0;
+				while (s.hasNextLine()) {
+					String line = s.nextLine();
+					lastLine = line;
+					if (!line.startsWith("#") && !line.isEmpty()) {
+						String[] parsed = line.split("\\.");
+						applicableClasses.add(parsed[0].replaceAll("/", "."));
+						set.add(line);
+						if(isSource) {
 							if(Configuration.MULTI_TAINTING)
 								sourceLabels.put(line, line);
 							else
@@ -73,73 +81,19 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 							i++;
 						}
 					}
-					s.close();
 				}
-				
-			} catch (Throwable e) {
-				System.err.println("Unable to parse sources file");
-				if (lastLine != null)
-					System.err.println("Last line read: '" + lastLine + "'");
-				throw new RuntimeException(e);
-			} 
-		}
-		{
-			Scanner s;
-			String lastLine = null;
-			try {
-				if(Instrumenter.sinksFile != null)
-				{
-					if(PreMain.DEBUG)
-						System.out.println("Using taint sinks file");
-					s = new Scanner(Instrumenter.sinksFile);
-
-					while (s.hasNextLine()) {
-						String line = s.nextLine();
-						lastLine = line;
-						String[] parsed = line.split("\\.");
-						applicableClasses.add(parsed[0]);
-						if (!line.startsWith("#") && !line.isEmpty())
-							sinks.add(line);
-					}
-					s.close();
-				}
-			} catch (Throwable e) {
-				System.err.println("Unable to parse sink file: " + Instrumenter.sourcesFile);
-				if (lastLine != null)
-					System.err.println("Last line read: '" + lastLine + "'");
-				throw new RuntimeException(e);
-			} 
-		}
-		{
-			Scanner s;
-			String lastLine = null;
-			try {
-				if(Instrumenter.taintThroughFile != null)
-				{
-					if(PreMain.DEBUG)
-						System.out.println("Using taint through file");
-					s = new Scanner(Instrumenter.taintThroughFile);
-
-					while (s.hasNextLine()) {
-						String line = s.nextLine();
-						lastLine = line;
-						String[] parsed = line.split("\\.");
-						applicableClasses.add(parsed[0]);
-						if (!line.startsWith("#") && !line.isEmpty())
-							taintThrough.add(line);
-					}
-					s.close();
-				}
-			} catch (Throwable e) {
-				System.err.println("Unable to parse taintThrough file: " + Instrumenter.taintThroughFile);
-				if (lastLine != null)
-					System.err.println("Last line read: '" + lastLine + "'");
-				throw new RuntimeException(e);
-			} 
-		}
-		if (!TaintTrackingClassVisitor.IS_RUNTIME_INST)
-		{
-			System.out.println("Loaded " + sinks.size() + " sinks, " + sources.size() + " sources and " + taintThrough.size()+ " taint through methods");
+				s.close();
+			}
+		} catch (Throwable e) {
+			System.out.printf("Unable to parse %s file: %s\n", type, src);
+			if (lastLine != null) {
+				System.err.printf("Last line read: '%s'\n", lastLine);
+			}
+			throw new RuntimeException(e);
+		} finally {
+			if(s != null) {
+				s.close();
+			}
 		}
 	}
 	
