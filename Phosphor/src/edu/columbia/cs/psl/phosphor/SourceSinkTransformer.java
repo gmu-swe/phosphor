@@ -13,6 +13,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
 
     /* Stores classes for which retransform was called before VM was initialized. */
     private static LinkedList<Class<?>> retransformQueue = new LinkedList<>();
+    public static boolean isBasicSourceSinkManagerInit = false;
 
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
@@ -28,7 +29,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
         try{
             // Check if VM is initialized, that PreMain's instrumentation has been set by a call to premain and that
             // Configuration.init() has been called to initialize the configuration
-        	if(INITED && PreMain.getInstrumentation() != null) {
+        	if(INITED && PreMain.getInstrumentation() != null && isBasicSourceSinkManagerInit == true) {
         	    retransformQueue.add(clazz);
                 // Retransform clazz and any classes that were initialized before retransformation could occur.
         	    while(!retransformQueue.isEmpty()) {

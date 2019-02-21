@@ -1113,4 +1113,19 @@ public class TaintUtils {
 //		System.out.println(">"+sig);
 		return sig;
 	}
+
+	/* Returns whether the specified opcode is for a return instruction. */
+	public static boolean isReturnOpcode(int opcode) {
+		switch(opcode) {
+			case Opcodes.ARETURN:
+			case Opcodes.IRETURN:
+			case Opcodes.RETURN:
+			case Opcodes.DRETURN:
+			case Opcodes.FRETURN:
+			case Opcodes.LRETURN:
+				return true;
+			default:
+				return false;
+		}
+	}
 }
