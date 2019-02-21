@@ -284,4 +284,14 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 		}
 		return false;
 	}
+
+	/* Called just before a sink method returns. */
+	public void exitingSink(String sink) {
+		return;
+	}
+
+	/* Called after a sink method makes its calls to checkTaint but before the rest of the method body executes. */
+	public void enteringSink(String sink) {
+		return;
+	}
 }

@@ -61,7 +61,7 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 	@Override
 	public void visitCode() {
 		super.visitCode();
-		if (this.thisIsASource || thisIsTaintThrough) {
+		if (this.thisIsASource || this.thisIsTaintThrough) {
 			Type[] args = Type.getArgumentTypes(desc);
 			int idx = 0;
 			if (!isStatic)
@@ -127,7 +127,7 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 				idx += args[i].getSize();
 			}
 		}
-		if (sourceSinkManager.isSink(owner, name, desc)) {
+		if (this.thisIsASink) {
 			//TODO - check every arg to see if is taint tag
 			Type[] args = Type.getArgumentTypes(desc);
 			int idx = 0;
@@ -161,62 +161,56 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 					skipNextPrimitive = false;
 				idx += args[i].getSize();
 			}
+			// Call entering sink
+			super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+			super.visitLdcInsn(owner+"."+name+desc);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "enteringSink", "(Ljava/lang/String;)V", false);
 		}
 	}
 
 	@Override
 	public void visitInsn(int opcode) {
-		if (this.thisIsTaintThrough)
-			switch (opcode) {
-				case ARETURN:
-				case IRETURN:
-				case RETURN:
-				case DRETURN:
-				case FRETURN:
-				case LRETURN:
-					Type[] args = Type.getArgumentTypes(desc);
-					int idx = 0;
-					if (!isStatic)
-						idx++;
-					for (int i = 0; i < args.length; i++) {
-						if (args[i].getSort() == Type.OBJECT) {
-							super.visitVarInsn(ALOAD, idx);
-							if (Configuration.MULTI_TAINTING) {
-								super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
-								super.visitInsn(SWAP);
-								super.visitVarInsn(ALOAD, 0);
-								super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-								if (Configuration.MULTI_TAINTING)
-									super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
-								super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-							}
-						} else if (args[i].getSort() == Type.ARRAY
-								&& args[i].getElementType().getSort() == Type.OBJECT) {
-							super.visitVarInsn(ALOAD, idx);
-							if (Configuration.MULTI_TAINTING) {
-								super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
-								super.visitInsn(SWAP);
-
-								super.visitVarInsn(ALOAD, 0);
-								super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-								if (Configuration.MULTI_TAINTING)
-									super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
-							}
-							super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-						}
-						idx += args[i].getSize();
+		if (this.thisIsTaintThrough && TaintUtils.isReturnOpcode(opcode)) {
+			Type[] args = Type.getArgumentTypes(desc);
+			int idx = 0;
+			if (!isStatic)
+				idx++;
+			for (int i = 0; i < args.length; i++) {
+				if (args[i].getSort() == Type.OBJECT) {
+					super.visitVarInsn(ALOAD, idx);
+					if (Configuration.MULTI_TAINTING) {
+						super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+						super.visitInsn(SWAP);
+						super.visitVarInsn(ALOAD, 0);
+						super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+						if (Configuration.MULTI_TAINTING)
+							super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
+						super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 					}
-					break;
+				} else if (args[i].getSort() == Type.ARRAY
+						&& args[i].getElementType().getSort() == Type.OBJECT) {
+					super.visitVarInsn(ALOAD, idx);
+					if (Configuration.MULTI_TAINTING) {
+						super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+						super.visitInsn(SWAP);
+						super.visitVarInsn(ALOAD, 0);
+						super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+						if (Configuration.MULTI_TAINTING)
+							super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
+					}
+					super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+				}
+				idx += args[i].getSize();
 			}
+		}
 		if (opcode == ARETURN && (this.thisIsASource || this.thisIsTaintThrough)) {
 			Type returnType = Type.getReturnType(this.origDesc);
 			Type boxedReturnType = Type.getReturnType(this.desc);
 
 			if (returnType.getSort() == Type.VOID) {
 				
-			}
-			else if (returnType.getSort() == Type.OBJECT || returnType.getSort() == Type.ARRAY) {
-				if(thisIsASource)
+			} else if (returnType.getSort() == Type.OBJECT || returnType.getSort() == Type.ARRAY) {
+				if(this.thisIsASource)
 				{
 					if(Configuration.MULTI_TAINTING)
 					{
@@ -293,7 +287,12 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 				}
 			}
 		}
-	
+		if (this.thisIsASink && TaintUtils.isReturnOpcode(opcode)) {
+			// call exitingSink before returning from the sink
+			super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+			super.visitLdcInsn(owner+"."+name+desc);
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "exitingSink", "(Ljava/lang/String;)V", false);
+		}
 		super.visitInsn(opcode);
 	}
 }
