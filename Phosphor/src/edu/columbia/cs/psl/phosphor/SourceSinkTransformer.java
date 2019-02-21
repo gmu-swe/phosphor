@@ -29,9 +29,15 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
             // Check if VM is initialized, that PreMain's instrumentation has been set by a call to premain and that
             // Configuration.init() has been called to initialize the configuration
         	if(INITED && PreMain.getInstrumentation() != null) {
-        	    PreMain.getInstrumentation().retransformClasses(clazz);
+        	    retransformQueue.add(clazz);
+                // Retransform clazz and any classes that were initialized before retransformation could occur.
         	    while(!retransformQueue.isEmpty()) {
-                    PreMain.getInstrumentation().retransformClasses(retransformQueue.pop());
+        	        Class<?> poppedClazz = retransformQueue.pop();
+                    // If poppedClazz represents a class or interface that is or is a subtype of a class or interface with
+                    // at least one method labeled as being a sink or source or taintThrough method
+        	        if(BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(poppedClazz)) {
+                        PreMain.getInstrumentation().retransformClasses(poppedClazz);
+                    }
                 }
             } else {
         	    retransformQueue.add(clazz);

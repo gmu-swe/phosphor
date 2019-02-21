@@ -17,18 +17,16 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 
 	@Override
 	public boolean isSourceOrSinkOrTaintThrough(Class<?> clazz) {
-		if(applicableClasses.size() == 0)
+		if(applicableClasses == null || applicableClasses.size() == 0)
 			return false;
 		if (applicableClasses.contains(clazz.getName()))
 			return true;
-		boolean superMatches = false;
 		if (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class)
 			if (isSourceOrSinkOrTaintThrough(clazz.getSuperclass()))
 				return true;
 		for (Class c : clazz.getInterfaces())
 			if (isSourceOrSinkOrTaintThrough(c))
 				return true;
-
 		return false;
 	}
 
@@ -36,9 +34,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	public Object getLabel(String str) {
 		return sourceLabels.get(str);
 	}
+
 	static {
-		if(Instrumenter.sourcesFile == null && Instrumenter.sinksFile == null && !TaintTrackingClassVisitor.IS_RUNTIME_INST)
-		{
+		if(Instrumenter.sourcesFile == null && Instrumenter.sinksFile == null && !TaintTrackingClassVisitor.IS_RUNTIME_INST) {
 			System.err.println("No taint sources or sinks specified. To specify, add option -taintSources file and/or -taintSinks file where file is a file listing taint sources/sinks. See files taint-sinks and taint-samples in source for examples. Lines beginning with # are ignored.");
 		}
 
@@ -61,7 +59,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 						{
 							sources.add(line);
 							String[] parsed = line.split("\\.");
-							applicableClasses.add(parsed[0]);
+							applicableClasses.add(parsed[0].replaceAll("/", "."));
 							if(Configuration.MULTI_TAINTING)
 								sourceLabels.put(line, line);
 							else
@@ -97,7 +95,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 						String line = s.nextLine();
 						lastLine = line;
 						String[] parsed = line.split("\\.");
-						applicableClasses.add(parsed[0]);
+						applicableClasses.add(parsed[0].replaceAll("/", "."));
 						if (!line.startsWith("#") && !line.isEmpty())
 							sinks.add(line);
 					}
@@ -124,7 +122,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 						String line = s.nextLine();
 						lastLine = line;
 						String[] parsed = line.split("\\.");
-						applicableClasses.add(parsed[0]);
+						applicableClasses.add(parsed[0].replaceAll("/", "."));
 						if (!line.startsWith("#") && !line.isEmpty())
 							taintThrough.add(line);
 					}
