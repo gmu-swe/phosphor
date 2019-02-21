@@ -2,7 +2,7 @@ package edu.columbia.cs.psl.test.phosphor;
 
 import org.junit.Test;
 
-public class RuntimeAnnotationImplicitITCase {
+public class RuntimeAnnotationImplicitITCase extends BasePhosphorTest {
 
 	
 	@Test

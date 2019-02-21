@@ -15,7 +15,7 @@ import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 
-public class SerializationIntTagITCase {
+public class SerializationIntTagITCase extends BasePhosphorTest {
 
 	static class ArrayHolder implements Serializable {
 		int[] ar;

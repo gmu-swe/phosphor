@@ -48,6 +48,7 @@ public class PreMain {
 
 	public static boolean DEBUG = System.getProperty("phosphor.debug") != null;
 	public static boolean RUNTIME_INST = false;
+	public static boolean INSTRUMENTATION_EXCEPTION_OCURRED = false;
 
 	public static ClassLoader bigLoader = PreMain.class.getClassLoader();
 	/**
@@ -371,6 +372,7 @@ public class PreMain {
 					}
 					return cw.toByteArray();
 				} catch (Throwable ex) {
+					INSTRUMENTATION_EXCEPTION_OCURRED = true;
 					ex.printStackTrace();
 					cv = new TraceClassVisitor(null, null);
 					try {
@@ -408,8 +410,6 @@ public class PreMain {
 					} catch (Exception ex2) {
 						ex.printStackTrace();
 					}
-					if(RUNTIME_INST)
-						System.exit(-1);
 					return new byte[0];
 
 				}

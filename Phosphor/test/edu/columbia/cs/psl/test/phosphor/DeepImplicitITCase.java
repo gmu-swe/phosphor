@@ -4,7 +4,7 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class DeepImplicitITCase {
+public class DeepImplicitITCase extends BasePhosphorTest {
 	int x;
 	public void setX(int x){
 		this.x=x;

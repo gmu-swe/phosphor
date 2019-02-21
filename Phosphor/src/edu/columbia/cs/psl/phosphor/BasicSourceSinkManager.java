@@ -1,20 +1,37 @@
 package edu.columbia.cs.psl.phosphor;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Scanner;
-
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 import org.objectweb.asm.tree.ClassNode;
 
-import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Scanner;
 
 public class BasicSourceSinkManager extends SourceSinkManager {
 	public static HashSet<String> sinks = new HashSet<String>();
 	public static HashSet<String> sources = new HashSet<String>();
 	public static HashMap<String, Object> sourceLabels = new HashMap<String, Object>();
 	public static HashSet<String> taintThrough = new HashSet<String>();
-	
+	public static HashSet<String> applicableClasses = new HashSet<>();
+
+	@Override
+	public boolean isSourceOrSinkOrTaintThrough(Class<?> clazz) {
+		if(applicableClasses.size() == 0)
+			return false;
+		if (applicableClasses.contains(clazz.getName()))
+			return true;
+		boolean superMatches = false;
+		if (clazz.getSuperclass() != null && clazz.getSuperclass() != Object.class)
+			if (isSourceOrSinkOrTaintThrough(clazz.getSuperclass()))
+				return true;
+		for (Class c : clazz.getInterfaces())
+			if (isSourceOrSinkOrTaintThrough(c))
+				return true;
+
+		return false;
+	}
+
 	@Override
 	public Object getLabel(String str) {
 		return sourceLabels.get(str);
@@ -43,6 +60,8 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 						if(!line.startsWith("#") && !line.isEmpty())
 						{
 							sources.add(line);
+							String[] parsed = line.split("\\.");
+							applicableClasses.add(parsed[0]);
 							if(Configuration.MULTI_TAINTING)
 								sourceLabels.put(line, line);
 							else
@@ -77,6 +96,8 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 					while (s.hasNextLine()) {
 						String line = s.nextLine();
 						lastLine = line;
+						String[] parsed = line.split("\\.");
+						applicableClasses.add(parsed[0]);
 						if (!line.startsWith("#") && !line.isEmpty())
 							sinks.add(line);
 					}
@@ -102,6 +123,8 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 					while (s.hasNextLine()) {
 						String line = s.nextLine();
 						lastLine = line;
+						String[] parsed = line.split("\\.");
+						applicableClasses.add(parsed[0]);
 						if (!line.startsWith("#") && !line.isEmpty())
 							taintThrough.add(line);
 					}

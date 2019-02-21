@@ -8,7 +8,7 @@ import org.junit.Test;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
-public class EnumObjTagITCase {
+public class EnumObjTagITCase extends BasePhosphorTest {
 	@Test
 	public void testEnumFlow() throws Exception {
 		String s = "abcd";

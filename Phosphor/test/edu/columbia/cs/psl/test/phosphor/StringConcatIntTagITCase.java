@@ -7,7 +7,7 @@ import org.junit.Test;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 
-public class StringConcatIntTagITCase {
+public class StringConcatIntTagITCase extends BasePhosphorTest {
 	@Test
 	public void testLDCStringConcat() throws Exception {
 		String str1 = "abcdefg";

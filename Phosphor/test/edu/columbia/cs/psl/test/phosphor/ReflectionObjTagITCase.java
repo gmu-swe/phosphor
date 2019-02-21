@@ -12,7 +12,7 @@ import org.junit.Test;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
-public class ReflectionObjTagITCase {
+public class ReflectionObjTagITCase extends BasePhosphorTest {
 	
 	static class FieldHolder{
 		int i;

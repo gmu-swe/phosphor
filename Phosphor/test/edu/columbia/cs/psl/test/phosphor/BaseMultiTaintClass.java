@@ -11,7 +11,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList.Node;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
-public class BaseMultiTaintClass {
+public class BaseMultiTaintClass extends BasePhosphorTest{
 
 	public static void assertNullOrEmpty(Taint taint)
 	{

@@ -21,7 +21,7 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.test.phosphor.ReflectionObjTagITCase.FieldHolder;
 
-public class ReflectionImplicitITCase {
+public class ReflectionImplicitITCase extends BasePhosphorTest {
 
 	@Test
 	public void testIntStreamsDontCrash() throws Exception {

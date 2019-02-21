@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.test.phosphor;
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
-public class OverTaintingImplicitITCase {
+public class OverTaintingImplicitITCase extends BasePhosphorTest {
 	static int v1;
 	static int v2;
 	

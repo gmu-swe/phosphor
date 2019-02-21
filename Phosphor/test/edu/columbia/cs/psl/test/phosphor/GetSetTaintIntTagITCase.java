@@ -9,7 +9,7 @@ import org.junit.Test;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 
-public class GetSetTaintIntTagITCase {
+public class GetSetTaintIntTagITCase extends BasePhosphorTest {
 	
 	@Test
 	public void testReferenceType() throws Exception {

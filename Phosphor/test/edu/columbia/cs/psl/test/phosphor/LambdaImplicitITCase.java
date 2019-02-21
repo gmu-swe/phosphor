@@ -14,7 +14,7 @@ import java.util.stream.IntStream;
 
 import static java.security.AccessController.doPrivileged;
 
-public class LambdaImplicitITCase {
+public class LambdaImplicitITCase extends BasePhosphorTest {
 
 	@Test
 	public void testDoubleConsumer() throws Exception{

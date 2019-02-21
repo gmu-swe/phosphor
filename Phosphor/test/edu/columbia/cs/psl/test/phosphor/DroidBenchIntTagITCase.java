@@ -21,7 +21,7 @@ import de.ecspride.VarA;
 import de.ecspride.VarB;
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 
-public class DroidBenchIntTagITCase {
+public class DroidBenchIntTagITCase extends BasePhosphorTest {
 
 	public static int getTaint(String description) {
 		return Tainter.getTaint(description.toCharArray()[0]);

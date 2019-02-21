@@ -39,6 +39,8 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 
 public abstract class SourceSinkManager {
+	public abstract boolean isSourceOrSinkOrTaintThrough(Class<?> clazz);
+
 	public abstract boolean isSource(String str);
 
 	public abstract boolean isTaintThrough(String str);

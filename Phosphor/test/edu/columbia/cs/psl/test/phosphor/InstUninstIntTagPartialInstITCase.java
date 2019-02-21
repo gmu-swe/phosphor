@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 
-public class InstUninstIntTagPartialInstITCase {
+public class InstUninstIntTagPartialInstITCase extends BasePhosphorTest {
 
 	@Test
 	public void testInstWorks() throws Exception {

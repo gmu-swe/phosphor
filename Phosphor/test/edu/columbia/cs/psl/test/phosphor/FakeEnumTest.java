@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.test.phosphor;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
-public class FakeEnumTest {
+public class FakeEnumTest extends BasePhosphorTest{
 
 public static void main(String[] args) {
 	System.out.println(Foo.A);

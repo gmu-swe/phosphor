@@ -7,7 +7,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.StringWriter;
 
-public class CharacterCodePointObjTagITCase {
+public class CharacterCodePointObjTagITCase extends BasePhosphorTest {
 	@Test
 	public void testCodePointAt(){
 		char[] c = new char[1];

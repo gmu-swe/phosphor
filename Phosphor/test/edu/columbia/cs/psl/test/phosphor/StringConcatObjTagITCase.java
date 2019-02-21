@@ -9,7 +9,7 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
-public class StringConcatObjTagITCase {
+public class StringConcatObjTagITCase extends BasePhosphorTest {
 	@Test
 	public void testLDCStringConcat() throws Exception {
 		String str1 = "abcdefg";

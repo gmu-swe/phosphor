@@ -10,7 +10,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
-public class ArrayLengthObjTagITCase {
+public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 
 	@Test
 	public void testArrayLengthTaintedPrimArray() throws Exception {

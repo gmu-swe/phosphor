@@ -16,7 +16,7 @@ import java.util.stream.IntStream;
 
 import org.junit.Test;
 
-public class LambdaObjTagITCase {
+public class LambdaObjTagITCase extends BasePhosphorTest{
 
 	@Test
 	public void testDoubleConsumer() throws Exception{

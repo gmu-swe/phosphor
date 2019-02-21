@@ -26,7 +26,7 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
-public class DroidBenchObjTagITCase {
+public class DroidBenchObjTagITCase extends BasePhosphorTest {
 
 	public static void assertNoTaint(String obj)
 	{
