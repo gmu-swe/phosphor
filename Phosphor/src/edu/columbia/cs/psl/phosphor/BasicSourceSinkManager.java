@@ -11,11 +11,11 @@ import java.util.Scanner;
 
 public class BasicSourceSinkManager extends SourceSinkManager {
 
+	public static HashMap<String, Object> sourceLabels = new HashMap<>();
+	public static SimpleHashSet<String> applicableClasses = new SimpleHashSet<>();
 	public static SimpleHashSet<String> sinks = new SimpleHashSet<>();
 	public static SimpleHashSet<String> sources = new SimpleHashSet<>();
-	public static HashMap<String, Object> sourceLabels = new HashMap<>();
 	public static SimpleHashSet<String> taintThrough = new SimpleHashSet<>();
-	public static SimpleHashSet<String> applicableClasses = new SimpleHashSet<>();
 
 	@Override
 	public boolean isSourceOrSinkOrTaintThrough(Class<?> clazz) {
@@ -70,22 +70,21 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 						applicableClasses.add(parsed[0].replaceAll("/", "."));
 						set.add(line);
 						if(isSource) {
-							if(Configuration.MULTI_TAINTING)
-								sourceLabels.put(line, line);
-							else
-							{
-								if(i > 32)
-									i = 0;
+							if(Configuration.MULTI_TAINTING) {
+                                sourceLabels.put(line, line);
+                            } else {
+								if(i > 32) {
+								    i = 0;
+                                }
 								sourceLabels.put(line, 1 << i);
 							}
 							i++;
 						}
 					}
 				}
-				s.close();
 			}
 		} catch (Throwable e) {
-			System.out.printf("Unable to parse %s file: %s\n", type, src);
+			System.err.printf("Unable to parse %s file: %s\n", type, src);
 			if (lastLine != null) {
 				System.err.printf("Last line read: '%s'\n", lastLine);
 			}
