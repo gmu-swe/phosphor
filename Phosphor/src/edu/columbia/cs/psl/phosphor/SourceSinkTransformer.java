@@ -3,7 +3,11 @@ package edu.columbia.cs.psl.phosphor;
 import edu.columbia.cs.psl.phosphor.instrumenter.SourceSinkTaintingClassVisitor;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 import org.objectweb.asm.*;
+import org.objectweb.asm.util.CheckClassAdapter;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.UnmodifiableClassException;
 import java.security.ProtectionDomain;
@@ -17,10 +21,33 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
 
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-        ClassReader cr = new ClassReader(classfileBuffer);
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-        cr.accept(new SourceSinkTaintingClassVisitor(cw), 0);
-        return cw.toByteArray();
+    	try {
+		    ClassReader cr = new ClassReader(classfileBuffer);
+		    ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+		    ClassVisitor cv = cw;
+		    if (PreMain.DEBUG || TaintUtils.VERIFY_CLASS_GENERATION) {
+			    cv = new CheckClassAdapter(cw, false);
+		    }
+		    cr.accept(new SourceSinkTaintingClassVisitor(cv), ClassReader.EXPAND_FRAMES);
+		    if (PreMain.DEBUG) {
+			    try {
+				    File f = new File("debug-source-sink/" + className + ".class");
+				    f.getParentFile().mkdirs();
+				    FileOutputStream fos = new FileOutputStream(f);
+				    fos.write(cw.toByteArray());
+				    fos.close();
+			    } catch (IOException ex) {
+				    ex.printStackTrace();
+			    }
+		    }
+		    return cw.toByteArray();
+	    }catch(Throwable t)
+	    {
+	    	//If we don't try/catch and print the error, then it will be silently swallowed by the JVM
+		    //and we'll never know the instrumentation failed :(
+	    	t.printStackTrace();
+	    	throw t;
+	    }
     }
 
     /* Retransforms the specified class modifying the code for sink, source, and taintThrough methods. Called by <clinit>. Stores

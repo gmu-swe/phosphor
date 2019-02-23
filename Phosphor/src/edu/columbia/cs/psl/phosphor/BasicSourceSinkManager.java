@@ -57,9 +57,10 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		String lastLine = null;
 		try {
 			if(src != null) {
-				if(PreMain.DEBUG) {
-					System.out.printf("Using %s file \n", type);
-				}
+				// Extra printouts can break tests :/
+//				if(PreMain.DEBUG) {
+//					System.out.printf("Using %s file \n", type);
+//				}
 				s = new Scanner(src);
 				int i = 0;
 				while (s.hasNextLine()) {

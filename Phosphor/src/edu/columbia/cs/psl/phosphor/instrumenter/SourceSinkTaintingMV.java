@@ -27,6 +27,7 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 
 	// Starts the scope of the try-finally block placed around sinks
 	private Label startLabel;
+	private Label endLabel;
 
 	public SourceSinkTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc, String origDesc) {
 		super(ASM5, mv);
@@ -171,6 +172,8 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "enteringSink", "(Ljava/lang/String;)V", false);
 			// Begin the try-finally block around the sink
 			startLabel = new Label();
+			endLabel = new Label();
+			mv.visitTryCatchBlock(startLabel, endLabel, endLabel, null);
 			super.visitLabel(startLabel);
 		}
 	}
@@ -303,10 +306,8 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 	@Override
 	public void visitMaxs(int maxStack, int maxLocals) {
 		if(this.thisIsASink) {
-			Label endLabel = new Label();
-			mv.visitTryCatchBlock(startLabel, endLabel, endLabel, null);
 			mv.visitLabel(endLabel); // Ends try block and starts finally block
-			mv.visitFrame(F_SAME1, 0, null, 1, new Object[] {"java/lang/Throwable"});
+			mv.visitFrame(F_NEW, 0, new Object[0], 1, new Object[] {"java/lang/Throwable"});
 			mv.visitVarInsn(ASTORE, 1); // Push the throwable that was thrown onto the stack
 			sinkFinallyBlock();
 			mv.visitVarInsn(ALOAD, 1); // Pop the throwable that was thrown off the stack
