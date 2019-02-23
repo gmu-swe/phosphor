@@ -6,6 +6,7 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -23,6 +24,9 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 	int access;
 	boolean isStatic;
 	Object lbl;
+
+	// Starts the scope of the try-finally block placed around sinks
+	private Label startLabel;
 
 	public SourceSinkTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc, String origDesc) {
 		super(ASM5, mv);
@@ -161,10 +165,13 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 					skipNextPrimitive = false;
 				idx += args[i].getSize();
 			}
-			// Call entering sink
+			// Call enteringSink before the original body code of the sink
 			super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
 			super.visitLdcInsn(owner+"."+name+desc);
 			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "enteringSink", "(Ljava/lang/String;)V", false);
+			// Begin the try-finally block around the sink
+			startLabel = new Label();
+			super.visitLabel(startLabel);
 		}
 	}
 
@@ -287,12 +294,31 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 				}
 			}
 		}
-		if (this.thisIsASink && TaintUtils.isReturnOpcode(opcode)) {
-			// call exitingSink before returning from the sink
-			super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
-			super.visitLdcInsn(owner+"."+name+desc);
-			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "exitingSink", "(Ljava/lang/String;)V", false);
+		if(this.thisIsASink && TaintUtils.isReturnOpcode(opcode)) {
+			sinkFinallyBlock();
 		}
 		super.visitInsn(opcode);
+	}
+
+	@Override
+	public void visitMaxs(int maxStack, int maxLocals) {
+		if(this.thisIsASink) {
+			Label endLabel = new Label();
+			mv.visitTryCatchBlock(startLabel, endLabel, endLabel, null);
+			mv.visitLabel(endLabel); // Ends try block and starts finally block
+			mv.visitFrame(F_SAME1, 0, null, 1, new Object[] {"java/lang/Throwable"});
+			mv.visitVarInsn(ASTORE, 1); // Push the throwable that was thrown onto the stack
+			sinkFinallyBlock();
+			mv.visitVarInsn(ALOAD, 1); // Pop the throwable that was thrown off the stack
+			mv.visitInsn(ATHROW); // Throw the popped throwable
+		}
+		super.visitMaxs(maxStack, maxLocals);
+	}
+
+	/* Adds code that makes a call to exitingSink at the end of a sink method. */
+	private void sinkFinallyBlock() {
+		super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+		super.visitLdcInsn(owner+"."+name+desc);
+		super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "exitingSink", "(Ljava/lang/String;)V", false);
 	}
 }
