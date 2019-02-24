@@ -365,7 +365,9 @@ public class PreMain {
 						fos.close();
 						if (md5inst == null)
 							md5inst = MessageDigest.getInstance("MD5");
-						byte[] checksum = md5inst.digest(classfileBuffer);
+						synchronized (md5inst) {
+							byte[] checksum = md5inst.digest(classfileBuffer);
+						}
 						f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".md5sum");
 						fos = new FileOutputStream(f);
 
