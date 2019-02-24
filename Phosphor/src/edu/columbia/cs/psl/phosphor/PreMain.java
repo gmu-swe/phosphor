@@ -232,7 +232,10 @@ public class PreMain {
 							fis.close();
 							if (md5inst == null)
 								md5inst = MessageDigest.getInstance("MD5");
-							byte[] checksum = md5inst.digest(classfileBuffer);
+							byte[] checksum = null;
+							synchronized (md5inst) {
+								checksum = md5inst.digest(classfileBuffer);
+							}
 							boolean matches = true;
 							if (checksum.length > cachedDigest.length)
 								matches = false;
