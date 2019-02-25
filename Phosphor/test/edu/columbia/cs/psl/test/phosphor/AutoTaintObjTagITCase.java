@@ -100,6 +100,15 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		assertTrue(MultiTainter.getTaint(ar[1]).lbl instanceof AutoTaintLabel);
 
 	}
+
+	/* Asserts that calling a tainted object's taintThrough method taints that method's primitive return value. */
+	@Test
+	public void testPrimitiveTaintThrough() throws Exception {
+		TaintThroughExample taintedObj = new TaintThroughExample();
+		MultiTainter.taintedObject(taintedObj, new Taint("Test"));
+		int ret = taintedObj.taintThroughInt();
+		assertNonNullTaint(ret);
+	}
 	
 	@Test(expected = TaintSinkError.class)
 	public void testIntSink() throws Exception {

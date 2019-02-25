@@ -19,4 +19,8 @@ public class TaintThroughExample {
 	public String passStringTaintThrough(String s) {
 		return s;
 	}
+
+	public int taintThroughInt() {
+		return 7;
+	}
 }
