@@ -1,24 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public final class MultiTainter {
@@ -320,6 +303,8 @@ public final class MultiTainter {
 			obj = ((MultiDTaintedArrayWithObjTag) obj).getVal();
 		if(obj instanceof TaintedWithObjTag)
 			((TaintedWithObjTag) obj).setPHOSPHOR_TAG(tag);
+		else if(obj instanceof TaintedPrimitiveWithObjTag)
+			((TaintedPrimitiveWithObjTag) obj).taint = tag;
 		else if(obj != null && ArrayHelper.engaged == 1)
 			ArrayHelper.setTag(obj, tag);
 	}
