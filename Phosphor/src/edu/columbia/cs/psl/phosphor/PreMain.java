@@ -460,9 +460,7 @@ public class PreMain {
 	}
 
 	public static void premain(String args, Instrumentation inst) {
-		instrumentation = inst;
 		RUNTIME_INST = true;
-		String taintCheckerClazz = null;
 		if (args != null) {
 			String[] aaa = args.split(",");
 			for (String s : aaa) {
@@ -473,8 +471,13 @@ public class PreMain {
 				else if (s.startsWith("cacheDir=")) {
 					Configuration.CACHE_DIR = s.substring(9);
 					File f = new File(Configuration.CACHE_DIR);
-					if (!f.exists())
-						f.mkdir();
+					if (!f.exists()) {
+						if(!f.mkdir()) {
+							// The cache directory did not exist and the attempt to create it failed
+							System.err.printf("Failed to create cache directory: %s. Generated files are not being cached.\n", Configuration.CACHE_DIR);
+							Configuration.CACHE_DIR = null;
+						}
+					}
 				}
 				else if(s.equals("objmethods"))
 					Configuration.WITH_HEAVY_OBJ_EQUALS_HASHCODE = true;
@@ -532,9 +535,11 @@ public class PreMain {
 		}
 		if (Instrumenter.loader == null)
 			Instrumenter.loader = bigLoader;
+		BasicSourceSinkManager.getInstance(); // Ensure that BasicSourceSinkManager gets initialized
 		ClassFileTransformer transformer = new PCLoggingTransformer();
 		inst.addTransformer(transformer);
 		inst.addTransformer(new SourceSinkTransformer(), true);
+		instrumentation = inst;
 	}
 
 	public static Instrumentation getInstrumentation() {

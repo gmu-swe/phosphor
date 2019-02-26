@@ -32,7 +32,7 @@ public class SourceSinkTaintingClassVisitor extends ClassVisitor {
         // $$PHOSPHORTAGGED version should have been created.
         if(((access & Opcodes.ACC_NATIVE) == 0) && (name.contains(TaintUtils.METHOD_SUFFIX)) || !containsPrimitiveType(desc)) {
             final SourceSinkTaintingMV smv = new SourceSinkTaintingMV(mv, access, className, name, desc, desc);
-            mv = new MethodNode(Opcodes.ASM5, access, name, desc, signature, exceptions){
+            mv = new MethodNode(Opcodes.ASM5, access, name, desc, signature, exceptions) {
                 @Override
                 public void visitEnd() {
                     super.visitEnd();
