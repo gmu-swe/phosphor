@@ -32,6 +32,16 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		a[0] = 2;
 	}
 
+	public int exceptionCatchingSink(int i) {
+		try {
+			int[] arr = new int[1];
+			int x = arr[2];
+			return x;
+		} catch(Exception e) {
+			return 7;
+		}
+	}
+
 	/* Tests that calling a taintThrough method for an untainted object doesn't clear existing taint tags of that method's
 	 * primitive return value.
 	 */
@@ -109,7 +119,14 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		int ret = taintedObj.taintThroughInt();
 		assertNonNullTaint(ret);
 	}
-	
+
+	/* Asserts that sink's try-finally blocks don't disrupt methods normal exception handling. */
+	@Test
+	public void testExceptionHandlingSink() throws Exception {
+		int result = exceptionCatchingSink(5);
+		assertEquals(7, result);
+	}
+
 	@Test(expected = TaintSinkError.class)
 	public void testIntSink() throws Exception {
 		sink(iSource());

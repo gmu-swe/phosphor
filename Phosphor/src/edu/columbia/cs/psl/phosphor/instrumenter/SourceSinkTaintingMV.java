@@ -173,8 +173,8 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 			// Begin the try-finally block around the sink
 			startLabel = new Label();
 			endLabel = new Label();
-			mv.visitTryCatchBlock(startLabel, endLabel, endLabel, null);
-			super.visitLabel(startLabel);
+			if(numberOfRemainingTryCatchBlocks == 0)
+				addTryCatchBlockHeader();
 		}
 	}
 
@@ -321,5 +321,23 @@ public class SourceSinkTaintingMV extends MethodVisitor implements Opcodes {
 		super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
 		super.visitLdcInsn(owner+"."+name+desc);
 		super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "exitingSink", "(Ljava/lang/String;)V", false);
+	}
+
+	@Override
+	public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
+		super.visitTryCatchBlock(start, end, handler, type);
+		this.numberOfRemainingTryCatchBlocks--;
+		if(this.numberOfRemainingTryCatchBlocks == 0 && this.thisIsASink){
+			addTryCatchBlockHeader();
+		}
+	}
+	private void addTryCatchBlockHeader(){
+		mv.visitTryCatchBlock(startLabel, endLabel, endLabel, null);
+		super.visitLabel(startLabel);
+	}
+
+	private int numberOfRemainingTryCatchBlocks = 0;
+	public void setNumberOfTryCatchBlocks(int num) {
+		this.numberOfRemainingTryCatchBlocks = num;
 	}
 }

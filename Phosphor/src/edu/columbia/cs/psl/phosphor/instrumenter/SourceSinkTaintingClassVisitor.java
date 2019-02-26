@@ -5,6 +5,8 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.MethodNode;
+
 import static org.objectweb.asm.Type.*;
 
 /* Visits a Java class modifying the code for sink, source, and taintThrough methods. */
@@ -29,7 +31,16 @@ public class SourceSinkTaintingClassVisitor extends ClassVisitor {
         // Adds a SourceSinkTaintingMV to the chain if the method is not a native method and it is not a method for which
         // $$PHOSPHORTAGGED version should have been created.
         if(((access & Opcodes.ACC_NATIVE) == 0) && (name.contains(TaintUtils.METHOD_SUFFIX)) || !containsPrimitiveType(desc)) {
-            mv = new SourceSinkTaintingMV(mv, access, className, name, desc, desc);
+            final SourceSinkTaintingMV smv = new SourceSinkTaintingMV(mv, access, className, name, desc, desc);
+            mv = new MethodNode(Opcodes.ASM5, access, name, desc, signature, exceptions) {
+                @Override
+                public void visitEnd() {
+                    super.visitEnd();
+                    smv.setNumberOfTryCatchBlocks(this.tryCatchBlocks.size());
+                    this.accept(smv);
+                }
+            };
+
         }
         return mv;
     }

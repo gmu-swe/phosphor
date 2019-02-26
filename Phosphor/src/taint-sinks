@@ -6,5 +6,6 @@
 #phosphor/test/SourceSinkTest.sink(Ljava/lang/Object;)V
 #phosphor/test/SourceSinkTest.sink2([I)V
 #phosphor/test/SourceSinkTest.sink(I)V
+edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.exceptionCatchingSink(I)I
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.sink(I)V
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.sink(Ljava/lang/String;)V

@@ -15,12 +15,18 @@ import java.security.ProtectionDomain;
 /* Transforms classes modifying the code for sink, source, and taintThrough methods. */
 public class SourceSinkTransformer extends PhosphorBaseTransformer {
 
-    /* Stores classes for which retransform was called before VM was initialized. */
+    // Stores classes for which retransform was called before Configuration.init() was called or PreMain's instrumentation
+	// was set.
     private static LinkedList<Class<?>> retransformQueue = new LinkedList<>();
-    public static boolean isBasicSourceSinkManagerInit = false;
 
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+    	//
+    	if(classBeingRedefined == null) {
+    		// The transform was is triggered by a class load not a redefine or retransform then no transformations
+			// should be performed
+    		return null;
+		}
     	try {
 		    ClassReader cr = new ClassReader(classfileBuffer);
 		    ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
@@ -41,8 +47,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
 			    }
 		    }
 		    return cw.toByteArray();
-	    }catch(Throwable t)
-	    {
+	    } catch(Throwable t) {
 	    	//If we don't try/catch and print the error, then it will be silently swallowed by the JVM
 		    //and we'll never know the instrumentation failed :(
 	    	t.printStackTrace();
@@ -54,16 +59,16 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
      * classes until the VM is initialized at which point all stored classes are retransformed. */
     public static void retransform(Class<?> clazz) {
         try{
-            // Check if VM is initialized, that PreMain's instrumentation has been set by a call to premain and that
-            // Configuration.init() has been called to initialize the configuration
-        	if(INITED && PreMain.getInstrumentation() != null && isBasicSourceSinkManagerInit == true) {
+            // Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
+			// been called to initialize the configuration
+        	if(INITED && PreMain.getInstrumentation() != null) {
         	    retransformQueue.add(clazz);
                 // Retransform clazz and any classes that were initialized before retransformation could occur.
         	    while(!retransformQueue.isEmpty()) {
         	        Class<?> poppedClazz = retransformQueue.pop();
-                    // If poppedClazz represents a class or interface that is or is a subtype of a class or interface with
-                    // at least one method labeled as being a sink or source or taintThrough method
         	        if(BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(poppedClazz)) {
+						// poppedClazz represents a class or interface that is or is a subtype of a class or interface with
+						// at least one method labeled as being a sink or source or taintThrough method
                         PreMain.getInstrumentation().retransformClasses(poppedClazz);
                     }
                 }
