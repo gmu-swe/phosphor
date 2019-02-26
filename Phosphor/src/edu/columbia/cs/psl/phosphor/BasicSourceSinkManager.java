@@ -29,15 +29,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 
 	/* Reads source, sink and taintThrough methods from their files into their respective maps. */
 	static {
-		if(Instrumenter.sourcesFile == null && Instrumenter.sinksFile == null && !TaintTrackingClassVisitor.IS_RUNTIME_INST) {
-			System.err.println("No taint sources or sinks specified. To specify, add option -taintSources file and/or -taintSinks file where file is a file listing taint sources/sinks. See files taint-sinks and taint-samples in source for examples. Lines beginning with # are ignored.");
-		}
 		readTaintMethods(Instrumenter.sourcesFile, sources, "source", true);
 		readTaintMethods(Instrumenter.sinksFile, sinks, "sink", false);
 		readTaintMethods(Instrumenter.taintThroughFile, taintThrough, "taintThrough", false);
-		if (!TaintTrackingClassVisitor.IS_RUNTIME_INST) {
-			System.out.printf("Loaded %d sinks, %d sources and %d taint through methods.\n", sinks.size(), sources.size(), taintThrough.size());
-		}
 	}
 
 	/* Private constructor ensures that only one instance of BasicSourceSinkManager is ever created. */
