@@ -10,14 +10,14 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class TaintThroughMV extends MethodVisitor implements Opcodes {
+public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
     
     private final String owner;
     private final String desc;
     private final Type origReturnType;
     private final boolean isStatic;
 
-    public TaintThroughMV(MethodVisitor mv, int access, String owner, String name, String desc) {
+    public TaintThroughTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc) {
         super(ASM5, mv);
         this.owner = owner;
         this.desc = desc;
