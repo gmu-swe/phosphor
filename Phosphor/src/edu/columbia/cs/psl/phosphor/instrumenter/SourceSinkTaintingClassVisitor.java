@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.BasicSourceSinkManager;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -28,19 +29,28 @@ public class SourceSinkTaintingClassVisitor extends ClassVisitor {
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-        // Adds a SourceSinkTaintingMV to the chain if the method is not a native method and it is not a method for which
-        // $$PHOSPHORTAGGED version should have been created.
         if(((access & Opcodes.ACC_NATIVE) == 0) && (name.contains(TaintUtils.METHOD_SUFFIX)) || !containsPrimitiveType(desc)) {
-            final SourceSinkTaintingMV smv = new SourceSinkTaintingMV(mv, access, className, name, desc, desc);
-            mv = new MethodNode(Opcodes.ASM5, access, name, desc, signature, exceptions) {
-                @Override
-                public void visitEnd() {
-                    super.visitEnd();
-                    smv.setNumberOfTryCatchBlocks(this.tryCatchBlocks.size());
-                    this.accept(smv);
-                }
-            };
-
+            // Method is not a native method and it is not a method for which $$PHOSPHORTAGGED version should have been created.
+            if(BasicSourceSinkManager.getInstance().isSource(className, name, desc)) {
+                // Method is a source
+                mv = new SourceTaintingMV(mv, access, className, name, desc);
+            }
+            if(BasicSourceSinkManager.getInstance().isTaintThrough(className, name, desc)) {
+                // Method is a taintThrough method
+                mv = new TaintThroughMV(mv, access, className, name, desc);
+            }
+            if(BasicSourceSinkManager.getInstance().isSink(className, name, desc)) {
+                // Method is a sink
+                final SinkTaintingMV sinkMV = new SinkTaintingMV(mv, access, className, name, desc);
+                mv = new MethodNode(Opcodes.ASM5, access, name, desc, signature, exceptions) {
+                    @Override
+                    public void visitEnd() {
+                        super.visitEnd();
+                        sinkMV.setNumberOfTryCatchBlocks(this.tryCatchBlocks.size());
+                        this.accept(sinkMV);
+                    }
+                };
+            }
         }
         return mv;
     }
