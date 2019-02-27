@@ -31,14 +31,6 @@ public class SourceSinkTaintingClassVisitor extends ClassVisitor {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
         if(((access & Opcodes.ACC_NATIVE) == 0) && (name.contains(TaintUtils.METHOD_SUFFIX)) || !containsPrimitiveType(desc)) {
             // Method is not a native method and it is not a method for which $$PHOSPHORTAGGED version should have been created.
-            if(BasicSourceSinkManager.getInstance().isSource(className, name, desc)) {
-                // Method is a source
-                mv = new SourceTaintingMV(mv, access, className, name, desc);
-            }
-            if(BasicSourceSinkManager.getInstance().isTaintThrough(className, name, desc)) {
-                // Method is a taintThrough method
-                mv = new TaintThroughTaintingMV(mv, access, className, name, desc);
-            }
             if(BasicSourceSinkManager.getInstance().isSink(className, name, desc)) {
                 // Method is a sink
                 final SinkTaintingMV sinkMV = new SinkTaintingMV(mv, access, className, name, desc);
@@ -50,6 +42,14 @@ public class SourceSinkTaintingClassVisitor extends ClassVisitor {
                         this.accept(sinkMV);
                     }
                 };
+            }
+            if(BasicSourceSinkManager.getInstance().isSource(className, name, desc)) {
+                // Method is a source
+                mv = new SourceTaintingMV(mv, access, className, name, desc);
+            }
+            if(BasicSourceSinkManager.getInstance().isTaintThrough(className, name, desc)) {
+                // Method is a taintThrough method
+                mv = new TaintThroughTaintingMV(mv, access, className, name, desc);
             }
         }
         return mv;

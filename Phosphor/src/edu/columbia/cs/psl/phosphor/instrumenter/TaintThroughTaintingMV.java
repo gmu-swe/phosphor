@@ -30,9 +30,8 @@ public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
 
     @Override
     public void visitCode() {
-        taintArguments();
         super.visitCode();
-
+        taintArguments();
     }
 
     /* Adds code to add this instance's taint tags to the arguments passed to this method. */
