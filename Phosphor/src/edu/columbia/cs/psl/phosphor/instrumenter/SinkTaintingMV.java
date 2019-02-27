@@ -35,6 +35,7 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
 
     @Override
     public void visitCode() {
+        super.visitCode();
         // Check every arg to see if is taint tag
         Type[] args = Type.getArgumentTypes(desc);
         int idx = isStatic ? 0 : 1; // skip over the "this" argument for non-static methods
