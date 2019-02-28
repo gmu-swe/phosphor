@@ -187,21 +187,6 @@ public class Instrumenter {
 		}
 	}
 
-	static Option opt_taintSources = Option.builder("taintSources")
-		.argName("taintSources")
-		.hasArg()
-		.desc("File with listing of taint sources to auto-taint")
-		.build();
-	static Option opt_taintThrough= Option.builder("taintThrough")
-			.argName("taintThrough")
-			.hasArg()
-			.desc("File with listing of methods that should directly propogate the taint from 'this' to their return value")
-			.build();
-	static Option opt_taintSinks = Option.builder("taintSinks")
-		.argName("taintSinks")
-		.hasArg()
-		.desc("File with listing of taint sinks to use to check for auto-taints")
-		.build();
 	static Option opt_dataTrack = Option.builder("withoutDataTrack")
 		.desc("Disable taint tracking through data flow (on by default)")
 		.build();
@@ -281,9 +266,6 @@ public class Instrumenter {
 		options.addOption(opt_controlLightTrack);
 		options.addOption(opt_controlTrackExceptions);
 		options.addOption(opt_dataTrack);
-		options.addOption(opt_taintSinks);
-		options.addOption(opt_taintSources);
-		options.addOption(opt_taintThrough);
 		options.addOption(opt_trackArrayLengthTaints);
 		options.addOption(opt_trackArrayIndexTaints);
 		options.addOption(opt_withoutFieldHiding);
@@ -317,16 +299,6 @@ public class Instrumenter {
 			return;
 		}
 		
-		try {
-			if (line.getOptionValue("taintSources") != null)
-				sourcesFile = new FileInputStream(line.getOptionValue("taintSources"));
-			if (line.getOptionValue("taintThrough") != null)
-				taintThroughFile = new FileInputStream(line.getOptionValue("taintThrough"));
-			if (line.getOptionValue("taintSinks") != null)
-				sinksFile = new FileInputStream(line.getOptionValue("taintSinks"));
-		} catch (FileNotFoundException ex) {
-			ex.printStackTrace();
-		}
 		Configuration.MULTI_TAINTING = line.hasOption("multiTaint");
 		Configuration.IMPLICIT_TRACKING = line.hasOption("controlTrack");
 		Configuration.IMPLICIT_LIGHT_TRACKING = line.hasOption("lightControlTrack");
