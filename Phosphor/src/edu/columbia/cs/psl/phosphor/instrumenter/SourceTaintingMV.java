@@ -29,9 +29,6 @@ public class SourceTaintingMV extends MethodVisitor implements Opcodes {
 		this.origReturnType = Type.getReturnType(SourceSinkManager.remapMethodDescToRemoveTaints(desc));
 		this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
 		this. lbl = sourceSinkManager.getLabel(owner, name, desc);
-		if(PreMain.DEBUG) {
-			System.out.println("Source: " + owner + "." + name + desc + " Label: " + lbl);
-		}
 	}
 
 	private void loadSourceLblAndMakeTaint() {

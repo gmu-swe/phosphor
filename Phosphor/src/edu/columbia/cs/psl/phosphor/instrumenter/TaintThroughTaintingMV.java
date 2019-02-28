@@ -23,9 +23,6 @@ public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
         this.desc = desc;
         this.origReturnType = Type.getReturnType(SourceSinkManager.remapMethodDescToRemoveTaints(desc));
         this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
-        if (PreMain.DEBUG) {
-            System.out.println("Taint through: " + owner + "." + name + desc);
-        }
     }
 
     @Override

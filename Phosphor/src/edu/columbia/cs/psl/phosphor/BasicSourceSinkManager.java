@@ -228,7 +228,6 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			// Check if the set of source methods for the class name contains the method name
 			if(getAutoTaintMethods(parsed[0], sources, inheritedSources).contains(parsed[1])) {
 				String originalSource = findSuperTypeAutoTaintProvider(parsed[0], parsed[1], sources, inheritedSources);
-				System.out.printf("Source: %s.%s vs %s.%s\n", originalSource, parsed[1], parsed[0], parsed[1]);
 				if(!sourceLabels.containsKey(str)) {
 					sourceLabels.put(str, sourceLabels.get(String.format("%s.%s", originalSource, parsed[1])));
 				}

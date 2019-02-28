@@ -28,9 +28,6 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
         this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
         this.startLabel = new Label();
         this.endLabel = new Label();
-        if (PreMain.DEBUG) {
-            System.out.println("Sink: " + owner + "." + name + desc);
-        }
     }
 
     @Override
