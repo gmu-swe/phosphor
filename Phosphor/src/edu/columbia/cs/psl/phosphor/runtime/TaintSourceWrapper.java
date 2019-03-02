@@ -118,7 +118,8 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 		}
 	}
 
-	public void checkTaint(int tag, String baseSink, String actualSink) {
+
+	public void checkTaint(int tag, Object obj, String baseSink, String actualSink) {
 		if (tag != 0)
 			throw new IllegalAccessError("Argument carries taint " + tag + " at " + actualSink);
 	}
@@ -128,9 +129,9 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 			throw new IllegalAccessError("Argument carries taint " + tag);
 	}
 
-	public void checkTaint(Taint<T> tag, String baseSink, String actualSink) {
+	public void checkTaint(Taint<T> tag, Object obj, String baseSink, String actualSink) {
 		if (tag != null)
-			taintViolation(tag, null, baseSink, actualSink);
+			taintViolation(tag, obj, baseSink, actualSink);
 	}
 
 	@SuppressWarnings("unchecked")

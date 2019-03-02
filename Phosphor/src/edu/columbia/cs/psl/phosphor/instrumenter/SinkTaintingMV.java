@@ -33,48 +33,70 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
         this.endLabel = new Label();
     }
 
+    /* Adds code to make a call to enteringSink. */
+    private void callEnteringSink() {
+        super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+        super.visitLdcInsn(owner+"."+name+desc);
+        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "enteringSink", "(Ljava/lang/String;)V", false);
+    }
+
+    /* Adds code to make a call to checkTaint for a non taint tag object.*/
+    private void callCheckTaintObject(int idx) {
+        super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+        super.visitVarInsn(ALOAD, idx);
+        super.visitLdcInsn(baseSink);
+        super.visitLdcInsn(owner+"."+name+desc);
+        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
+    }
+
+    /* Adds code to make a call to checkTaint for a taint tag*/
+    private void callCheckTaintTag(int tagIdx, int primitiveIdx, Type primitiveType) {
+        super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+        super.visitVarInsn(ALOAD, tagIdx);
+        super.visitVarInsn(primitiveType.getOpcode(ILOAD), primitiveIdx);
+        boxPrimitive(primitiveType);
+        super.visitLdcInsn(baseSink);
+        super.visitLdcInsn(owner+"."+name+desc);
+        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint",
+                "("+Configuration.TAINT_TAG_DESC+"Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
+    }
+
+    /* Adds code to make a call to the appropriate function to box the last value added to the stack */
+    private void boxPrimitive(Type primitiveType) {
+        String boxedType = "";
+        switch(primitiveType.getSort()) {
+            case Type.BOOLEAN: boxedType = "Boolean"; break;
+            case Type.BYTE: boxedType = "Byte"; break;
+            case Type.CHAR: boxedType = "Character"; break;
+            case Type.DOUBLE: boxedType = "Double"; break;
+            case Type.FLOAT: boxedType = "Float"; break;
+            case Type.INT:  boxedType = "Integer"; break;
+            case Type.LONG:  boxedType = "Long"; break;
+            case Type.SHORT:  boxedType = "Short"; break;
+            default:
+                return;
+        }
+        String boxedTypeDesc = String.format("Ljava/lang/%s;", boxedType);
+        mv.visitMethodInsn(INVOKESTATIC, "java/lang/"+boxedType, "valueOf", "("+primitiveType.getDescriptor()+")"+boxedTypeDesc, false);
+    }
+
     @Override
     public void visitCode() {
         super.visitCode();
         // Check every arg to see if is taint tag
         Type[] args = Type.getArgumentTypes(desc);
         int idx = isStatic ? 0 : 1; // skip over the "this" argument for non-static methods
-        boolean skipNextPrimitive = false;
         for (int i = 0; i < args.length; i++) {
-            if ((args[i].getSort() == Type.OBJECT && !args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC)) || args[i].getSort() == Type.ARRAY) {
-                if ((args[i].getSort() == Type.ARRAY && (args[i].getElementType().getSort() != Type.OBJECT || args[i].getDescriptor().equals(Configuration.TAINT_TAG_ARRAYDESC))
-                        && args[i].getDimensions() == 1) || args[i].getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy")) {
-                    if (!skipNextPrimitive) {
-                        super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
-                        super.visitVarInsn(ALOAD, idx);
-                        super.visitLdcInsn(baseSink);
-                        super.visitLdcInsn(owner+"."+name+desc);
-                        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
-                    }
-                    skipNextPrimitive = !skipNextPrimitive;
-                } else {
-                    super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
-                    super.visitVarInsn(ALOAD, idx);
-                    super.visitLdcInsn(baseSink);
-                    super.visitLdcInsn(owner+"."+name+desc);
-                    super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
-                }
-            } else if (!skipNextPrimitive) {
-                super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
-                super.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
-                super.visitLdcInsn(baseSink);
-                super.visitLdcInsn(owner+"."+name+desc);
-                super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(" + Configuration.TAINT_TAG_DESC + "Ljava/lang/String;Ljava/lang/String;)V", false);
-                skipNextPrimitive = true;
-            } else if (skipNextPrimitive) {
-                skipNextPrimitive = false;
+            if(args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
+                // arg is a taint tag
+                callCheckTaintTag(idx, idx + args[i].getSize(), args[i+1]);
+            } else if(args[i].getSort() == Type.OBJECT) {
+                callCheckTaintObject(idx);
             }
             idx += args[i].getSize();
         }
         // Call enteringSink before the original body code of the sink
-        super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
-        super.visitLdcInsn(owner+"."+name+desc);
-        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "enteringSink", "(Ljava/lang/String;)V", false);
+        callEnteringSink();
         // If there are no other exception handlers for this method begin the try-finally block around the sink
         if(numberOfRemainingTryCatchBlocks == 0) {
             addTryCatchBlockHeader();
