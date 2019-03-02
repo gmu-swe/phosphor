@@ -191,4 +191,15 @@ public abstract class SourceSinkManager {
 		else
 			return isSource(owner + "." + name + taintedDesc);
 	}
+
+	/* Returns the name of sink method from which the specified method inherited its sink property or null if the specified
+	 * method is not a sink. */
+	public String getBaseSink(String owner, String name, String taintedDesc) {
+		if (name.endsWith("$$PHOSPHORTAGGED"))
+			return getBaseSink(owner + "." + name.replace("$$PHOSPHORTAGGED", "") + remapMethodDescToRemoveTaints(taintedDesc));
+		else
+			return getBaseSink(owner + "." + name + taintedDesc);
+	}
+
+	public abstract String getBaseSink(String str);
 }

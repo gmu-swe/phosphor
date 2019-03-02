@@ -248,4 +248,12 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			return getAutoTaintMethods(parsed[0], sinks, inheritedSinks).contains(parsed[1]);
 		}
 	}
+
+	/* Returns the name of sink method from which the specified method inherited its sink property or null if the specified
+	 * method is not a sink. */
+	public String getBaseSink(String str) {
+		String[] parsed = str.split("\\.");
+		String baseSink = findSuperTypeAutoTaintProvider(parsed[0], parsed[1], sinks, inheritedSinks);
+		return baseSink == null ? null : String.format("%s.%s", baseSink, parsed[1]);
+	}
 }

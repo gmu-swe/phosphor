@@ -12,6 +12,8 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
     private final String owner;
     private final String name;
     private final String desc;
+    // The sink from which this sink inherited its status as a sink
+    private final String baseSink;
     private final boolean isStatic;
     private int numberOfRemainingTryCatchBlocks = 0;
 
@@ -25,6 +27,7 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
         this.owner = owner;
         this.name = name;
         this.desc = desc;
+        this.baseSink = BasicSourceSinkManager.getInstance().getBaseSink(owner, name, desc);
         this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
         this.startLabel = new Label();
         this.endLabel = new Label();
@@ -44,21 +47,24 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
                     if (!skipNextPrimitive) {
                         super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
                         super.visitVarInsn(ALOAD, idx);
+                        super.visitLdcInsn(baseSink);
                         super.visitLdcInsn(owner+"."+name+desc);
-                        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;)V", false);
+                        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
                     }
                     skipNextPrimitive = !skipNextPrimitive;
                 } else {
                     super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
                     super.visitVarInsn(ALOAD, idx);
+                    super.visitLdcInsn(baseSink);
                     super.visitLdcInsn(owner+"."+name+desc);
-                    super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;)V", false);
+                    super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
                 }
             } else if (!skipNextPrimitive) {
                 super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
                 super.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
+                super.visitLdcInsn(baseSink);
                 super.visitLdcInsn(owner+"."+name+desc);
-                super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(" + Configuration.TAINT_TAG_DESC + "Ljava/lang/String;)V", false);
+                super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(" + Configuration.TAINT_TAG_DESC + "Ljava/lang/String;Ljava/lang/String;)V", false);
                 skipNextPrimitive = true;
             } else if (skipNextPrimitive) {
                 skipNextPrimitive = false;
