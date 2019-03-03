@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.*;
 import edu.columbia.cs.psl.phosphor.runtime.TaintChecker;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -65,6 +66,11 @@ public class SourceTaintingMV extends MethodVisitor implements Opcodes {
 				super.visitVarInsn(ALOAD, idx);
 				loadSourceLblAndMakeTaint();
 				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+			} else if (TaintUtils.isPrimitiveArrayType(args[i])) {
+				super.visitVarInsn(ALOAD, idx-args[i-1].getSize());
+				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(LazyArrayObjTags.class), "getVal", "()Ljava/lang/Object;", false);
+				super.visitTypeInsn(CHECKCAST, args[i].getInternalName());
+				super.visitVarInsn(ASTORE, idx);
 			}
 			idx += args[i].getSize();
 		}
