@@ -68,7 +68,7 @@ public abstract class SourceSinkManager {
 		boolean isSkipping = false;
 		for (Type t : Type.getArgumentTypes(desc)) {
 			if (t.getSort() == Type.ARRAY) {
-				r += t.getDescriptor();
+				r += remapReturnType(t);
 			} else if (t.getSort() != Type.OBJECT) {
 				if (!isSkipping)
 					isSkipping = true;
@@ -92,7 +92,7 @@ public abstract class SourceSinkManager {
 	}
 
 	private static String remapReturnType(Type returnType) {
-		if (returnType.getSort() == Type.OBJECT) {
+		if (returnType.getSort() == Type.OBJECT || returnType.getSort() == Type.ARRAY) {
 			if (returnType.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
 				return MultiDTaintedArray.getPrimitiveTypeForWrapper(returnType.getInternalName()).getDescriptor();
 			}
@@ -100,71 +100,71 @@ public abstract class SourceSinkManager {
 			{
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteWithObjTag.class)))
 					return "B";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyByteArrayObjTags.class)))
-					return "[B";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyByteArrayObjTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyByteArrayObjTags.class), "[B");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanWithObjTag.class)))
 					return "Z";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyBooleanArrayObjTags.class)))
-					return "[Z";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyBooleanArrayObjTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyBooleanArrayObjTags.class), "[Z");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharWithObjTag.class)))
 					return "C";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyCharArrayObjTags.class)))
-					return "[C";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyCharArrayObjTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyCharArrayObjTags.class), "[C");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleWithObjTag.class)))
 					return "D";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyDoubleArrayObjTags.class)))
-					return "[D";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyDoubleArrayObjTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyDoubleArrayObjTags.class), "[D");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntWithObjTag.class)))
 					return "I";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyIntArrayObjTags.class)))
-					return "[I";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyIntArrayObjTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyIntArrayObjTags.class), "[I");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatWithObjTag.class)))
 					return "F";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyFloatArrayObjTags.class)))
-					return "[F";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyFloatArrayObjTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyFloatArrayObjTags.class), "[F");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongWithObjTag.class)))
 					return "J";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyLongArrayObjTags.class)))
-					return "[J";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyLongArrayObjTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyLongArrayObjTags.class), "[J");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortWithObjTag.class)))
 					return "S";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyShortArrayObjTags.class)))
-					return "[S";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyShortArrayObjTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyShortArrayObjTags.class), "[S");
 			}
 			else
 			{
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteWithIntTag.class)))
 					return "B";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyByteArrayIntTags.class)))
-					return "[B";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyByteArrayIntTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyByteArrayIntTags.class), "[B");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanWithIntTag.class)))
 					return "Z";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyBooleanArrayIntTags.class)))
-					return "[Z";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyBooleanArrayIntTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyBooleanArrayIntTags.class), "[Z");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharWithIntTag.class)))
 					return "C";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyCharArrayIntTags.class)))
-					return "[C";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyCharArrayIntTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyCharArrayIntTags.class), "[C");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleWithIntTag.class)))
 					return "D";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyDoubleArrayIntTags.class)))
-					return "[D";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyDoubleArrayIntTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyDoubleArrayIntTags.class), "[D");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntWithIntTag.class)))
 					return "I";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyIntArrayIntTags.class)))
-					return "[I";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyIntArrayIntTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyIntArrayIntTags.class), "[I");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatWithIntTag.class)))
 					return "F";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyFloatArrayIntTags.class)))
-					return "[F";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyFloatArrayIntTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyFloatArrayIntTags.class), "[F");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongWithIntTag.class)))
 					return "J";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyLongArrayIntTags.class)))
-					return "[J";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyLongArrayIntTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyLongArrayIntTags.class), "[J");
 				if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortWithIntTag.class)))
 					return "S";
-				if (returnType.getInternalName().equals(Type.getInternalName(LazyShortArrayIntTags.class)))
-					return "[S";
+				if (returnType.getDescriptor().contains(Type.getDescriptor(LazyShortArrayIntTags.class)))
+					return returnType.getDescriptor().replace(Type.getDescriptor(LazyShortArrayIntTags.class), "[S");
 			}
 		}
 		return returnType.getDescriptor();

@@ -129,11 +129,6 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 			throw new IllegalAccessError("Argument carries taint " + tag);
 	}
 
-	public void checkTaint(Taint<T> tag, Object obj, String baseSink, String actualSink) {
-		if (tag != null)
-			taintViolation(tag, obj, baseSink, actualSink);
-	}
-
 	@SuppressWarnings("unchecked")
 	public void checkTaint(Object obj, String baseSink, String actualSink) {
 		if (obj == null)
@@ -186,6 +181,14 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 			}
 		} else if (obj instanceof Taint) {
 			taintViolation((Taint<T>) obj, null, baseSink, actualSink);
+		} else if (obj instanceof TaintedPrimitiveWithObjTag) {
+			if(((TaintedPrimitiveWithObjTag)obj).taint != null) {
+				taintViolation(((TaintedPrimitiveWithObjTag)obj).taint, ((TaintedPrimitiveWithObjTag)obj).getValue(), baseSink, actualSink);
+			}
+		} else if (obj instanceof TaintedPrimitiveWithIntTag) {
+			if(((TaintedPrimitiveWithIntTag)obj).taint != 0) {
+				throw new IllegalAccessError("Argument carries taint " + ((TaintedPrimitiveWithIntTag)obj).taint);
+			}
 		}
 	}
 

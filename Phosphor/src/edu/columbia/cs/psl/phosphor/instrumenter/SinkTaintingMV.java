@@ -52,32 +52,18 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
     /* Adds code to make a call to checkTaint for a taint tag*/
     private void callCheckTaintTag(int tagIdx, int primitiveIdx, Type primitiveType) {
         super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+        // Wrap the primitive and tag together
+        Type containerType = TaintUtils.getContainerReturnType(primitiveType);
+        mv.visitTypeInsn(NEW, containerType.getInternalName());
+        mv.visitInsn(DUP);
         super.visitVarInsn(ALOAD, tagIdx);
         super.visitVarInsn(primitiveType.getOpcode(ILOAD), primitiveIdx);
-        boxPrimitive(primitiveType);
+        mv.visitMethodInsn(INVOKESPECIAL, containerType.getInternalName(), "<init>", "("+Configuration.TAINT_TAG_DESC+
+                primitiveType.getDescriptor()+")V", false);
+        // Load the sink info
         super.visitLdcInsn(baseSink);
         super.visitLdcInsn(owner+"."+name+desc);
-        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint",
-                "("+Configuration.TAINT_TAG_DESC+"Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
-    }
-
-    /* Adds code to make a call to the appropriate function to box the last value added to the stack */
-    private void boxPrimitive(Type primitiveType) {
-        String boxedType = "";
-        switch(primitiveType.getSort()) {
-            case Type.BOOLEAN: boxedType = "Boolean"; break;
-            case Type.BYTE: boxedType = "Byte"; break;
-            case Type.CHAR: boxedType = "Character"; break;
-            case Type.DOUBLE: boxedType = "Double"; break;
-            case Type.FLOAT: boxedType = "Float"; break;
-            case Type.INT:  boxedType = "Integer"; break;
-            case Type.LONG:  boxedType = "Long"; break;
-            case Type.SHORT:  boxedType = "Short"; break;
-            default:
-                return;
-        }
-        String boxedTypeDesc = String.format("Ljava/lang/%s;", boxedType);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/"+boxedType, "valueOf", "("+primitiveType.getDescriptor()+")"+boxedTypeDesc, false);
+        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
     }
 
     @Override
@@ -91,6 +77,10 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
                 // arg is a taint tag
                 callCheckTaintTag(idx, idx + args[i].getSize(), args[i+1]);
             } else if(args[i].getSort() == Type.OBJECT) {
+                // arg is an object
+                callCheckTaintObject(idx);
+            } else if(args[i].getSort() == Type.ARRAY && args[i].getElementType().getSort() == Type.OBJECT) {
+                // arg is an array of objects (possibly wrapped primitive array objects)
                 callCheckTaintObject(idx);
             }
             idx += args[i].getSize();
