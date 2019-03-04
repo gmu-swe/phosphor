@@ -79,11 +79,11 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
     @SuppressWarnings("unchecked")
 	public TaintedWithObjTag autoTaint(TaintedWithObjTag ret, String source, int argIdx) {
-        Taint prevTag = (Taint)((TaintedWithObjTag) ret).getPHOSPHOR_TAG();
+        Taint prevTag = (Taint)ret.getPHOSPHOR_TAG();
         if(prevTag != null) {
             prevTag.addDependency(generateTaint(source));
         } else {
-            ((TaintedWithObjTag) ret).setPHOSPHOR_TAG(generateTaint(source));
+            ret.setPHOSPHOR_TAG(generateTaint(source));
         }
         return ret;
     }
