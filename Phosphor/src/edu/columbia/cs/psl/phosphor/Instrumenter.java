@@ -776,7 +776,7 @@ public class Instrumenter {
 					try {
 						r = fr.get();
 						break;
-					} catch (InterruptedException e) {
+					} catch (InterruptedException _) {
 						continue;
 					}
 				}
