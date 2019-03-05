@@ -27,4 +27,8 @@ public class NullSourceSinkManager extends SourceSinkManager{
 		return false;
 	}
 
+	@Override
+	public String getBaseSink(String str) {
+		return null;
+	}
 }
