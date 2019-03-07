@@ -11,8 +11,6 @@ import java.io.IOException;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.UnmodifiableClassException;
 import java.security.ProtectionDomain;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 /* Transforms classes modifying the code for sink, source, and taintThrough methods. */
 public class SourceSinkTransformer extends PhosphorBaseTransformer {
@@ -57,10 +55,6 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
 	    }
     }
 
-
-    static{
-    	new ArrayList<>(Arrays.asList(new String[]{"abc","def"}));
-    }
     /* Retransforms the specified class modifying the code for sink, source, and taintThrough methods. Called by <clinit>. Stores
      * classes until the VM is initialized at which point all stored classes are retransformed. */
     public static void retransform(Class<?> clazz) {
