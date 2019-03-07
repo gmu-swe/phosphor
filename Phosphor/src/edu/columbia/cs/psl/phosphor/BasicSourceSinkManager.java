@@ -85,6 +85,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 
 	@Override
 	public boolean isSourceOrSinkOrTaintThrough(Class<?> clazz) {
+		if(clazz.getName() == null) {
+			return false;
+		}
 		String className = clazz.getName().replace(".", "/");
 		// This class has a sink, source or taintThrough method
 		return !getAutoTaintMethods(className, sinks, inheritedSinks).isEmpty() ||

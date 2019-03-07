@@ -58,22 +58,22 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
     /* Retransforms the specified class modifying the code for sink, source, and taintThrough methods. Called by <clinit>. Stores
      * classes until the VM is initialized at which point all stored classes are retransformed. */
     public static void retransform(Class<?> clazz) {
-        try{
+        try {
             // Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
-			// been called to initialize the configuration
-        	if(INITED && PreMain.getInstrumentation() != null) {
-        	    retransformQueue.add(clazz);
+            // been called to initialize the configuration
+            if(INITED && PreMain.getInstrumentation() != null) {
+                retransformQueue.add(clazz);
                 // Retransform clazz and any classes that were initialized before retransformation could occur.
-        	    while(!retransformQueue.isEmpty()) {
-        	        Class<?> poppedClazz = retransformQueue.pop();
-        	        if(BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(poppedClazz)) {
-						// poppedClazz represents a class or interface that is or is a subtype of a class or interface with
-						// at least one method labeled as being a sink or source or taintThrough method
+                while(!retransformQueue.isEmpty()) {
+                    Class<?> poppedClazz = retransformQueue.pop();
+                    if(poppedClazz.getName() != null && BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(poppedClazz)) {
+                        // poppedClazz represents a class or interface that is or is a subtype of a class or interface with
+                        // at least one method labeled as being a sink or source or taintThrough method
                         PreMain.getInstrumentation().retransformClasses(poppedClazz);
                     }
                 }
             } else {
-        	    retransformQueue.add(clazz);
+                retransformQueue.add(clazz);
             }
         } catch (UnmodifiableClassException e) {
             //
