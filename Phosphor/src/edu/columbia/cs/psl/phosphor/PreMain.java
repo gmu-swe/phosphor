@@ -535,7 +535,8 @@ public class PreMain {
 		}
 		if (Instrumenter.loader == null)
 			Instrumenter.loader = bigLoader;
-		BasicSourceSinkManager.getInstance(); // Ensure that BasicSourceSinkManager gets initialized
+		// Ensure that BasicSourceSinkManager & anything needed to call isSourceOrSinkOrTaintThrough gets initialized
+		BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(Object.class);
 		ClassFileTransformer transformer = new PCLoggingTransformer();
 		inst.addTransformer(transformer);
 		inst.addTransformer(new SourceSinkTransformer(), true);

@@ -85,13 +85,10 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 
 	@Override
 	public boolean isSourceOrSinkOrTaintThrough(Class<?> clazz) {
-		String tempClassName = clazz.getName(); // "." separated class name
-		String className = "";
-		// Replaces the "." separator in tempClassName with "/"s. String.replaceAll and String.replace are not used because
-		// they require things to be initialized which may have not yet been initialized.
-		for(int i = 0; i < tempClassName.length(); i++) {
-			className += (tempClassName.charAt(i) == '.') ? '/' : tempClassName.charAt(i);
+		if(clazz.getName() == null) {
+			return false;
 		}
+		String className = clazz.getName().replace(".", "/");
 		// This class has a sink, source or taintThrough method
 		return !getAutoTaintMethods(className, sinks, inheritedSinks).isEmpty() ||
 				!getAutoTaintMethods(className, sources, inheritedSources).isEmpty() ||
@@ -146,32 +143,6 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 				s.close();
 			}
 		}
-	}
-
-	/* Returns whether the class or interface with specified string name c1 is either the same as, or is an ancestor
-	 * of the class or interface with specified string name c2. Performs a breadth first search of Instrumenter.classes
-	 * to determine is a class hierarchy path exists. */
-	public static boolean isSuperType(String c1, String c2) {
-		LinkedList<String> queue = new LinkedList<>();
-		queue.add(c2);
-		while(!queue.isEmpty()) {
-			String className = queue.pop();
-			if(className.equals(c1)) {
-				return true;
-			}
-			ClassNode cn = Instrumenter.classes.get(className);
-			if(cn != null) {
-				if (cn.interfaces != null) {
-					for (Object s : cn.interfaces) {
-						queue.add((String) s);
-					}
-				}
-				if (cn.superName != null && !cn.superName.equals("java/lang/Object")) {
-					queue.add(cn.superName);
-				}
-			}
-		}
-		return false;
 	}
 
 	/* Returns the string class name of the supertype of the class or interface with specified string class name from which
