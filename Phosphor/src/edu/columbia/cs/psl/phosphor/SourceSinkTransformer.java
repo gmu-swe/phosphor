@@ -58,9 +58,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
     }
 
 
-    static{
-    	new ArrayList<>(Arrays.asList(new String[]{"abc","def"}));
-    }
+    static boolean initedDependencies;
     /* Retransforms the specified class modifying the code for sink, source, and taintThrough methods. Called by <clinit>. Stores
      * classes until the VM is initialized at which point all stored classes are retransformed. */
     public static void retransform(Class<?> clazz) {
@@ -68,6 +66,10 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
             // Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
 			// been called to initialize the configuration
         	if(INITED && PreMain.getInstrumentation() != null) {
+        		if(!initedDependencies){
+        			initedDependencies = true;
+			        new ArrayList<>(Arrays.asList(new String[]{"abc","def"}));
+		        }
         	    retransformQueue.add(clazz);
                 // Retransform clazz and any classes that were initialized before retransformation could occur.
         	    while(!retransformQueue.isEmpty()) {
