@@ -127,17 +127,6 @@ public class PreMain {
 				throws IllegalClassFormatException {
 			ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer) : new ClassReader(classfileBuffer));
 			String className = cr.getClassName();
-			cr.accept(new ClassVisitor(Opcodes.ASM5) {
-				@Override
-				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-					super.visit(version, access, name, signature, superName, interfaces);
-					ClassNode cn = new ClassNode();
-					cn.name = name;
-					cn.superName = superName;
-					cn.interfaces = new ArrayList<>(Arrays.asList(interfaces));
-					Instrumenter.classes.put(name, cn);
-				}
-			}, ClassReader.SKIP_CODE);
 			innerException = false;
 			curLoader = loader;
 //			bigLoader = loader;
@@ -460,6 +449,7 @@ public class PreMain {
 	}
 
 	public static void premain(String args, Instrumentation inst) {
+		inst.addTransformer(new ClassSupertypeReadingTransformer());
 		RUNTIME_INST = true;
 		if (args != null) {
 			String[] aaa = args.split(",");
@@ -537,8 +527,7 @@ public class PreMain {
 			Instrumenter.loader = bigLoader;
 		// Ensure that BasicSourceSinkManager & anything needed to call isSourceOrSinkOrTaintThrough gets initialized
 		BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(Object.class);
-		ClassFileTransformer transformer = new PCLoggingTransformer();
-		inst.addTransformer(transformer);
+		inst.addTransformer(new PCLoggingTransformer());
 		inst.addTransformer(new SourceSinkTransformer(), true);
 		instrumentation = inst;
 	}
