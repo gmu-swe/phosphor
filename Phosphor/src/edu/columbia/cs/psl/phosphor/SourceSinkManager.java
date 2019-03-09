@@ -91,7 +91,7 @@ public abstract class SourceSinkManager {
 		return r;
 	}
 
-	private static String remapReturnType(Type returnType) {
+	public static String remapReturnType(Type returnType) {
 		if (returnType.getSort() == Type.OBJECT || returnType.getSort() == Type.ARRAY) {
 			if (returnType.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
 				return MultiDTaintedArray.getPrimitiveTypeForWrapper(returnType.getInternalName()).getDescriptor();
