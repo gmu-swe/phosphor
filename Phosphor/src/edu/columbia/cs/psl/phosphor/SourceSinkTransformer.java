@@ -55,13 +55,16 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
 	    }
     }
 
+    static boolean isBusy = false;
+
     /* Retransforms the specified class modifying the code for sink, source, and taintThrough methods. Called by <clinit>. Stores
      * classes until the VM is initialized at which point all stored classes are retransformed. */
-    public static void retransform(Class<?> clazz) {
+    public static synchronized void retransform(Class<?> clazz) {
         try {
             // Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
             // been called to initialize the configuration
-            if(INITED && PreMain.getInstrumentation() != null) {
+            if(!isBusy && INITED && PreMain.getInstrumentation() != null) {
+            	isBusy = true;
                 retransformQueue.add(clazz);
                 // Retransform clazz and any classes that were initialized before retransformation could occur.
                 while(!retransformQueue.isEmpty()) {
@@ -72,11 +75,16 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
                         PreMain.getInstrumentation().retransformClasses(poppedClazz);
                     }
                 }
+                isBusy = false;
             } else {
                 retransformQueue.add(clazz);
             }
-        } catch (UnmodifiableClassException e) {
-            //
+        } catch(UnmodifiableClassException e){
+        	//
+        } catch (Throwable e) {
+        	//for anything else, we probably want to make sure that it gets printed
+	        e.printStackTrace();
+	        throw e;
         }
     }
 }
