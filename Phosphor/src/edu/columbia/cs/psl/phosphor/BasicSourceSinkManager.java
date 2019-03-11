@@ -95,7 +95,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	private static ClassNode tryToAddClassNode(String className) {
 		try {
 			String resource = className + ".class";
-			InputStream is = ClassLoader.getSystemClassLoader().getResourceAsStream(resource);
+			InputStream is = ClassLoader.getSystemResourceAsStream(resource);
 			if (is == null) {
 				return null;
 			}

@@ -23,7 +23,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
     	//
     	if(classBeingRedefined == null) {
-    		// The transform was is triggered by a class load not a redefine or retransform then no transformations
+    		// The transform was triggered by a class load not a redefine or retransform then no transformations
 			// should be performed
     		return null;
 		}
@@ -55,7 +55,8 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
 	    }
     }
 
-    static boolean isBusy = false;
+    // Whether classes are in the process of being retransformed or checked for retransformation
+    private static boolean isBusyRetransforming = false;
 
     /* Retransforms the specified class modifying the code for sink, source, and taintThrough methods. Called by <clinit>. Stores
      * classes until the VM is initialized at which point all stored classes are retransformed. */
@@ -63,8 +64,8 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
         try {
             // Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
             // been called to initialize the configuration
-            if(!isBusy && INITED && PreMain.getInstrumentation() != null) {
-            	isBusy = true;
+            if(!isBusyRetransforming && INITED && PreMain.getInstrumentation() != null) {
+            	isBusyRetransforming = true;
                 retransformQueue.add(clazz);
                 // Retransform clazz and any classes that were initialized before retransformation could occur.
                 while(!retransformQueue.isEmpty()) {
@@ -75,14 +76,14 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
                         PreMain.getInstrumentation().retransformClasses(poppedClazz);
                     }
                 }
-                isBusy = false;
+                isBusyRetransforming = false;
             } else {
                 retransformQueue.add(clazz);
             }
         } catch(UnmodifiableClassException e){
         	//
         } catch (Throwable e) {
-        	//for anything else, we probably want to make sure that it gets printed
+        	// for anything else, we probably want to make sure that it gets printed
 	        e.printStackTrace();
 	        throw e;
         }
