@@ -569,7 +569,7 @@ public class TaintUtils {
 				if (((LazyArrayObjTags) destTaint).taints == null)
 					((LazyArrayObjTags) destTaint).taints = new Taint[Array.getLength(dest)];
 				Taint[] taints = ((LazyArrayObjTags) destTaint).taints;
-				for (int i = 0; i < taints.length; i++) {
+				for (int i = destPos; i < destPos + length; i++) {
 					if (taints[i] == null)
 						taints[i] = ctrl.copyTag();
 					else {

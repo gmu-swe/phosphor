@@ -12,20 +12,10 @@ public class Taint<T> implements Serializable {
 	public static final <T> Taint<T> copyTaint(Taint<T> in)
 	{
 		if(in == null)
-			return null;			
-		Taint<T> ret = new Taint<T>();
-		ret.copyFrom(in);
-		return ret;
+			return null;
+		return in.copy();
 	}
 
-	protected void copyFrom(Taint<T> in) {
-		if(in == null)
-			return;
-		else if (in.dependencies == null || in.dependencies.isEmpty())
-			lbl = in.lbl;
-		else
-			addDependency(in);
-	}
 	public Taint<T> copy()
 	{
 		if(IGNORE_TAINTING)
