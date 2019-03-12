@@ -16,6 +16,7 @@ import java.util.NoSuchElementException;
 public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 
 
+	public static int DEFAULT_HASHSET_SIZE = 16;
 	private static class Entry<T> implements Serializable {
 		T key;
 		Entry<T> next;
@@ -35,7 +36,7 @@ public class SimpleHashSet<T> implements Iterable<T>, Serializable {
 	}
 
 	public SimpleHashSet(){
-		this(16);
+		this(DEFAULT_HASHSET_SIZE);
 	}
 	/**
 	 *

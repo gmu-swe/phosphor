@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.*;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 public class Taint<T> implements Serializable {
 	public static boolean IGNORE_TAINTING;
@@ -22,7 +23,10 @@ public class Taint<T> implements Serializable {
 			return this;
 		Taint<T> ret = new Taint<T>();
 		ret.lbl = lbl;
-		ret.dependencies = dependencies.copy();
+		if(dependencies != null)
+			ret.dependencies = dependencies.copy();
+		if(tags != null)
+			ret.tags = tags.clone();
 		return ret;
 	}
 //	public Object clone()  {
@@ -50,7 +54,45 @@ public class Taint<T> implements Serializable {
 	public transient Object debug;
 	public T lbl;
 	public SimpleHashSet<T> dependencies;
+	public int[] tags;
+
+	public Taint(int startingTag) {
+		tags = new int[TAINT_ARRAY_SIZE];
+		setBit(startingTag);
+	}
+
+	public static int TAINT_ARRAY_SIZE = -1;
+	public void setBit(int tag) {
+		int bits = tag % 31;
+		int key = tag / 31;
+		tags[key] |= 1 << bits;
+	}
+
+	public boolean hasBitSet(int tag)
+	{
+		int bits = tag % 31;
+		int key = tag / 31;
+		return (tags[key] & (1 << bits)) != 0;
+	}
 	
+	public void setBits(int[] otherTags){
+		for(int i = 0; i < otherTags.length; i++)
+		{
+			tags[i] |= otherTags[i];
+		}
+	}
+
+	private boolean setBitsIfNeeded(int[] otherTags) {
+		boolean changed = false;
+		for (int i = 0; i < otherTags.length; i++) {
+			if ((tags[i] | otherTags[i]) != tags[i]) {
+				tags[i] |= otherTags[i];
+				changed = true;
+			}
+		}
+		return changed;
+	}
+
 	public Taint(T lbl) {
 		this.lbl = lbl;
 		dependencies = new SimpleHashSet<T>();
@@ -61,34 +103,64 @@ public class Taint<T> implements Serializable {
 	public SimpleHashSet<T> getDependencies$$PHOSPHORTAGGED() {
 		return getDependencies();
 	}
+
+	public int[] getTags() {
+		return tags;
+	}
+	public LazyIntArrayObjTags getTags$$PHOSPHORTAGGED(){
+		return new LazyIntArrayObjTags(tags);
+	}
+	public LazyIntArrayObjTags getTags$$PHOSPHORTAGGED(ControlTaintTagStack ctrl){
+		return new LazyIntArrayObjTags(tags);
+	}
+
 	public SimpleHashSet<T> getDependencies() {
 		return dependencies;
 	}
 	public Taint(Taint<T> t1)
 	{
-		dependencies = new SimpleHashSet<>();
 		if(t1 == null)
 			return;
-		lbl = t1.lbl;
-		if(t1.dependencies != null)
+		if(t1.dependencies != null) {
+			dependencies = new SimpleHashSet<>();
 			dependencies.addAll(t1.dependencies);
+		}
+		if(t1.tags != null)
+		{
+			tags = new int[t1.tags.length];
+			System.arraycopy(t1.tags,0,tags,0,tags.length);
+		}
+		lbl = t1.lbl;
 		if(Configuration.derivedTaintListener != null)
 			Configuration.derivedTaintListener.singleDepCreated(t1, this);
 	}
 	public Taint(Taint<T> t1, Taint<T> t2)
 	{
-		dependencies = new SimpleHashSet<>();
 		if(t2 == null && t1 != null)
 		{
 			lbl = t1.lbl;
-			if(t1.dependencies != null)
+			if(t1.dependencies != null) {
+				dependencies = new SimpleHashSet<>();
 				dependencies.addAll(t1.dependencies);
+			}
+			if(t1.tags != null)
+			{
+				tags = new int[t1.tags.length];
+				System.arraycopy(t1.tags,0,tags,0,tags.length);
+			}
 		}
 		else if(t1 == null && t2 != null)
 		{
 			lbl = t2.lbl;
-			if(t2.dependencies != null)
+			if(t2.dependencies != null) {
+				dependencies = new SimpleHashSet<>();
 				dependencies.addAll(t2.dependencies);
+			}
+			if(t2.tags != null)
+			{
+				tags = new int[t2.tags.length];
+				System.arraycopy(t2.tags,0,tags,0,tags.length);
+			}
 		} else {
 			//in this case, should still set this.lbl
 			boolean lblSet = false;
@@ -99,7 +171,15 @@ public class Taint<T> implements Serializable {
 					this.lbl = t1.lbl;
 					lblSet = true;
 				}
-				dependencies.addAll(t1.dependencies);
+				if(t1.dependencies != null) {
+					dependencies = new SimpleHashSet<>();
+					dependencies.addAll(t1.dependencies);
+				}
+				if(t1.tags != null)
+				{
+					tags = new int[t1.tags.length];
+					System.arraycopy(t1.tags,0,tags,0,tags.length);
+				}
 			}
 			if (t2 != null) {
 				if (t2.lbl != null)
@@ -109,19 +189,44 @@ public class Taint<T> implements Serializable {
 					else
 						this.lbl = t2.lbl;
 				}
-				dependencies.addAll(t2.dependencies);
+				if(t2.dependencies != null) {
+					dependencies = new SimpleHashSet<>();
+					dependencies.addAll(t2.dependencies);
+				}
+				if(t2.tags != null)
+				{
+					if(tags == null) {
+						tags = new int[t2.tags.length];
+						System.arraycopy(t2.tags, 0, tags, 0, tags.length);
+					}
+					else{
+						setBits(t2.tags);
+					}
+				}
 			}
 		}
 		if(Configuration.derivedTaintListener != null)
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, this);
 	}
 	public Taint() {
-		dependencies = new SimpleHashSet<>();
+		if(TAINT_ARRAY_SIZE > 0)
+			tags = new int[TAINT_ARRAY_SIZE];
 	}
 	public boolean addDependency(Taint<T> d)
 	{
 		if(d == null)
 			return false;
+		if(d.dependencies == null && d.lbl == null && Taint.TAINT_ARRAY_SIZE > 0)
+		{
+			//accumulate tags
+			if(d.tags == null)
+				return false;
+			if(this.tags == null)
+				this.tags = new int[Taint.TAINT_ARRAY_SIZE];
+			return setBitsIfNeeded(d.tags);
+		}
+		if(dependencies == null)
+			dependencies = new SimpleHashSet<>();
 		boolean added = false;
 		if(d.hasNoDependencies())
 		{
@@ -147,8 +252,21 @@ public class Taint<T> implements Serializable {
 		return ret;
 	}
 	public boolean hasNoDependencies() {
+		if (dependencies == null)
+			if (tags == null)
+				return true;
+			else
+				return isEmpty(tags);
 		return dependencies.isEmpty();
 	}
+
+	private boolean isEmpty(int[] tags) {
+		for (int i : tags)
+			if (i != 0)
+				return false;
+		return true;
+	}
+
 	public static <T> void combineTagsOnArrayInPlace(Object[] ar, Taint<T>[] t1, int dims)
 	{
 		combineTagsInPlace(ar, t1[dims-1]);
@@ -225,6 +343,14 @@ public class Taint<T> implements Serializable {
 	}
 	public boolean contains(Taint<T> that) {
 		boolean lblFound = false;
+		if(that.tags != null){
+			for(int i = 0; i < that.tags.length; i++)
+			{
+				if((tags[i] | that.tags[i]) != tags[i])
+					return false;
+			}
+			return true;
+		}
 		if (this.lbl == that.lbl)
 			lblFound = true;
 		if (!lblFound)
@@ -244,16 +370,18 @@ public class Taint<T> implements Serializable {
 
 		Taint<?> taint = (Taint<?>) o;
 
-		if (debug != null ? !debug.equals(taint.debug) : taint.debug != null) return false;
 		if (lbl != null ? !lbl.equals(taint.lbl) : taint.lbl != null) return false;
+		if (tags != null) {
+			return Arrays.equals(tags, taint.tags);
+		}
 		return dependencies != null ? dependencies.equals(taint.dependencies) : taint.dependencies == null;
 	}
 
 	@Override
 	public int hashCode() {
-		int result = debug != null ? debug.hashCode() : 0;
-		result = 31 * result + (lbl != null ? lbl.hashCode() : 0);
+		int result = lbl != null ? lbl.hashCode() : 0;
 		result = 31 * result + (dependencies != null ? dependencies.hashCode() : 0);
+		result = 31 * result + Arrays.hashCode(tags);
 		return result;
 	}
 
@@ -277,13 +405,13 @@ public class Taint<T> implements Serializable {
 		}
 		else
 			tagsTaint = tags.copyTag();
-		if(t1 == null || (t1.lbl == null && t1.dependencies.isEmpty()))
+		if(t1 == null || (t1.lbl == null && t1.hasNoDependencies()))
 		{
 //			if(tags.isEmpty())
 //				return null;
 			return tagsTaint;
 		}
-		else if(tagsTaint == null || (tagsTaint.lbl == null && tagsTaint.dependencies.isEmpty()))
+		else if(tagsTaint == null || (tagsTaint.lbl == null && tagsTaint.hasNoDependencies()))
 		{
 //			if(t1.lbl == null && t1.hasNoDependencies())
 //				return null;
