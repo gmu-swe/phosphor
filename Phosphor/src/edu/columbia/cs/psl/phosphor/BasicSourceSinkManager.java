@@ -7,7 +7,9 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.lang.instrument.UnmodifiableClassException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,18 +20,18 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	public static ConcurrentHashMap<String, Object> sourceLabels = new ConcurrentHashMap<>();
 
 	// Maps class names to a set of all the methods listed as sources for the class
-	public static ConcurrentHashMap<String, SimpleHashSet<String>> sources = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<String, SimpleHashSet<String>> sources = new ConcurrentHashMap<>();
 	// Maps class names to a set of all the methods listed as sinks for the class
-	public static ConcurrentHashMap<String, SimpleHashSet<String>> sinks = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<String, SimpleHashSet<String>> sinks = new ConcurrentHashMap<>();
 	// Maps class names to a set of all the  methods listed as taintThrough methods for the class
-	public static ConcurrentHashMap<String, SimpleHashSet<String>> taintThrough = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<String, SimpleHashSet<String>> taintThrough = new ConcurrentHashMap<>();
 
 	// Maps class names to a set of all methods listed as sources for the class or one of its supertypes or superinterfaces
-	public static ConcurrentHashMap<String, SimpleHashSet<String>> inheritedSources = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<String, SimpleHashSet<String>> inheritedSources = new ConcurrentHashMap<>();
 	// Maps class names to a set of all methods listed as sinks for the class or one of its supertypes or superinterfaces
-	public static ConcurrentHashMap<String, SimpleHashSet<String>> inheritedSinks = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<String, SimpleHashSet<String>> inheritedSinks = new ConcurrentHashMap<>();
 	// Maps class names to a set of all methods listed as taintThrough methods for the class or one of its supertypes or superinterfaces
-	public static ConcurrentHashMap<String, SimpleHashSet<String>> inheritedTaintThrough = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<String, SimpleHashSet<String>> inheritedTaintThrough = new ConcurrentHashMap<>();
 
 	/* Reads source, sink and taintThrough methods from their files into their respective maps. */
 	static {
@@ -53,11 +55,49 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		private static final BasicSourceSinkManager INSTANCE = new BasicSourceSinkManager();
 	}
 
+	/* Replaces the set of base sink methods with sink methods read from the specified iterable. Calls retransform for any
+	 * class that has already checked whether it is a sink. */
+	public static synchronized void replaceSinks(Iterable<String> src) {
+		StringBuilder builder = new StringBuilder();
+		for(String s : src) {
+			builder.append(s).append("\n");
+		}
+		replaceSinks(new ByteArrayInputStream(builder.toString().getBytes()));
+	}
+
+	/* Replaces the set of base sink methods with sink methods read from the specified stream. Calls retransform for any
+	 * class with a method whose status as a sink or non-sink has changed. */
+	public static synchronized void replaceSinks(InputStream src) {
+		// Update the set of base sinks
+		sinks.clear();
+		readTaintMethods(src, sinks, "sink", false);
+		// Store the previous map of inherited or derived sink methods
+		ConcurrentHashMap<String, SimpleHashSet<String>> prevInheritedSinks = inheritedSinks;
+		// Clear the map of inherited or derived sink methods
+		inheritedSinks = new ConcurrentHashMap<>();
+		// Retransform any class that has a method that changed from being a sink to a non-sink or vice versa
+		for(String className : prevInheritedSinks.keySet()) {
+			SimpleHashSet<String> sinkMethods = getAutoTaintMethods(className, sinks, inheritedSinks);
+			if(!sinkMethods.equals(prevInheritedSinks.get(className))) {
+				// Set of sink methods for this class changed
+				try {
+					PreMain.getInstrumentation().retransformClasses(Class.forName(className.replace("/", ".")));
+				} catch(ClassNotFoundException | UnmodifiableClassException e) {
+					//
+				} catch (Throwable t) {
+					// Make sure that any other type of exception is printed
+					t.printStackTrace();
+					throw t;
+				}
+			}
+		}
+	}
+
 	/* Returns the set of methods that are a particular type of auto taint method (i.e. source, sink or taintThrough) for
 	 * the class or interface with the specified slash-separated string class name. A method is considered to be an auto
 	 * taint method if the method is present in the set of original auto taint methods for either the specified class or a supertype of the
 	 * specified class. Previously determined auto taint methods are stored in inheritedMethods. */
-	private SimpleHashSet<String> getAutoTaintMethods(String className, ConcurrentHashMap<String, SimpleHashSet<String>> originalMethods,
+	private static synchronized SimpleHashSet<String> getAutoTaintMethods(String className, ConcurrentHashMap<String, SimpleHashSet<String>> originalMethods,
 												  ConcurrentHashMap<String, SimpleHashSet<String>> inheritedMethods) {
 		if(inheritedMethods.containsKey(className)) {
 			// The auto taint methods for this class have already been determined.
@@ -183,7 +223,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	/* Returns the string class name of the supertype of the class or interface with specified string class name from which
 	 * its method with the specified method name derived its status as an auto taint (i.e. source, sink or taintThrough)
 	 * method. */
-	private static String findSuperTypeAutoTaintProvider(String className, String methodName, ConcurrentHashMap<String,
+	private static synchronized String findSuperTypeAutoTaintProvider(String className, String methodName, ConcurrentHashMap<String,
 			SimpleHashSet<String>> originalMethods, ConcurrentHashMap<String, SimpleHashSet<String>> inheritedMethods) {
 		LinkedList<String> queue = new LinkedList<>();
 		queue.add(className);
