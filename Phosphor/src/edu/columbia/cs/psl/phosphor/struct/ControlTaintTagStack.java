@@ -6,11 +6,8 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class ControlTaintTagStack {
 
-	/** Used for pooling **/
-	public ControlTaintTagStack nextEntry;
-
+	private boolean isDisabled;
 	public Taint taint;
-	boolean invalidated;
 	LinkedList<MaybeThrownException> unThrownExceptionStack;// = new LinkedList<>();
 
 	public LinkedList<MaybeThrownException> influenceExceptions;// = new LinkedList<>();
@@ -30,7 +27,11 @@ public final class ControlTaintTagStack {
 		return taint.copy();
 	}
 
-	static ControlTaintTagStack instance = new ControlTaintTagStack();
+	private ControlTaintTagStack(boolean isDisabled){
+		this.isDisabled = isDisabled;
+	}
+	static ControlTaintTagStack instance = new ControlTaintTagStack(true);
+
 	public static ControlTaintTagStack factory(){
 		return instance;
 	}
@@ -173,6 +174,8 @@ public final class ControlTaintTagStack {
 	}
 
 	public final int[] _push(Taint tag, int[] prev, int i, int maxSize, ExceptionalTaintData exceptionData){
+		if(isDisabled)
+			return prev;
 		//Try a deeper check
 //		if(this.taint != null && (tag.lbl == null || tag.lbl == this.taint.lbl || this.taint.dependencies.contains(tag.lbl)))
 //		{
@@ -206,7 +209,7 @@ public final class ControlTaintTagStack {
 		return prev;
 	}
 	public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
-		if (tag == null || tag == taint)
+		if (tag == null || tag == taint || isDisabled)
 			return null;
 
 		EnqueuedTaint ret = (prev == null ? new EnqueuedTaint() : prev);
