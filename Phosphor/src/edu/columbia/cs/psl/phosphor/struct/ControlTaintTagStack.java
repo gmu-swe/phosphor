@@ -6,13 +6,13 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class ControlTaintTagStack {
 
-	private boolean isDisabled;
+	public boolean isDisabled;
 	public Taint taint;
 	LinkedList<MaybeThrownException> unThrownExceptionStack;// = new LinkedList<>();
 
 	public LinkedList<MaybeThrownException> influenceExceptions;// = new LinkedList<>();
 	public final boolean isEmpty() {
-		return taint == null || (taint.lbl == null && taint.hasNoDependencies());
+		return taint == null || this.isDisabled || (taint.lbl == null && taint.hasNoDependencies());
 	}
 	public ControlTaintTagStack(int zz) {
 		this();
@@ -307,7 +307,7 @@ public final class ControlTaintTagStack {
 		return ret;
 	}
 	public Taint getTag() {
-		if(taint == null || (taint.hasNoDependencies() && taint.lbl == null))
+		if(taint == null || isDisabled || (taint.hasNoDependencies() && taint.lbl == null))
 			return null;
 		return taint;
 	}

@@ -630,6 +630,13 @@ public class Instrumenter {
 		return ret;
 	}
 
+	public static boolean isIgnoredFromControlTrack(String className, String name) {
+		if((className.equals("java/nio/charset/Charset")  || className.equals("java/lang/StringCoding") || className.equals("java/nio/charset/CharsetEncoder")|| className.equals("java/nio/charset/CharsetDecoder")) && !name.equals("<clinit>")) {
+			return true;
+		}
+		return false;
+	}
+
 	private static class Result {
 		ZipEntry e;
 		byte[] buf;

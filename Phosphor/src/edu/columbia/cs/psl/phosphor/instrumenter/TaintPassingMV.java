@@ -106,6 +106,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public void visitCode() {
 //		System.out.println("TPMVStart" + name);
 		super.visitCode();
+
 		firstLabel = new Label();
 		if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING)
 		{
@@ -145,8 +146,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(Opcodes.ACONST_NULL);
 				super.visitVarInsn(Opcodes.ASTORE,controlTaintArray);
 			}
-
+			if(this.isExcludedFromControlTrack) {
+				super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+				super.visitInsn(ICONST_1);
+				super.visitFieldInsn(PUTFIELD, Type.getInternalName(ControlTaintTagStack.class), "isDisabled", "Z");
+			}
 		}
+
 		if(Configuration.IMPLICIT_TRACKING && !arrayAnalyzer.hasFinally && arrayAnalyzer.nTryCatch == 0 && !isSuperUninit){
 			super.visitTryCatchBlock(firstLabel,endLabel,popAllLabel,null);
 			super.visitLabel(firstLabel);
@@ -209,6 +215,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 
 	private HashSet<MethodNode> wrapperMethodsToAdd;
+
+	private boolean isExcludedFromControlTrack = false;
 	public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String signature, String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,MethodVisitor passthruMV, HashSet<MethodNode> wrapperMethodsToAdd) {
 		//		super(Opcodes.ASM4,mv,access,name,desc);
 		super(access, className,name,desc,  signature, exceptions, mv, analyzer);
@@ -248,6 +256,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 		if(this.isLambda)
 			this.isIgnoreAllInstrumenting = true;
+
+		if(Configuration.IMPLICIT_TRACKING)
+			this.isExcludedFromControlTrack = Instrumenter.isIgnoredFromControlTrack(className, name);
 	}
 
 	protected Type getLocalType(int n) {
@@ -2757,6 +2768,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		if(Configuration.IMPLICIT_TRACKING && !arrayAnalyzer.hasFinally){
 			super.visitLabel(endLabel);
 			super.visitLabel(popAllLabel);
+
+			if(this.isExcludedFromControlTrack) {
+				super.visitVarInsn(ALOAD,lvs.idxOfMasterControlLV);
+				super.visitInsn(ICONST_0);
+				super.visitFieldInsn(PUTFIELD,Type.getInternalName(ControlTaintTagStack.class),"isDisabled","Z");
+			}
+
 			int maxLV = lvs.idxOfMasterControlLV;
 			if(lvs.idxOfMasterExceptionLV > maxLV)
 				maxLV = lvs.idxOfMasterExceptionLV;
@@ -2888,6 +2906,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			nextLoadisTracked = true;
 			super.visitInsn(opcode);
 			return;
+		}
+		if(this.isExcludedFromControlTrack && ((opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN) || opcode == Opcodes.ATHROW)) {
+			super.visitVarInsn(ALOAD,lvs.idxOfMasterControlLV);
+			super.visitInsn(ICONST_0);
+			super.visitFieldInsn(PUTFIELD,Type.getInternalName(ControlTaintTagStack.class),"isDisabled","Z");
 		}
 		if(isLambda && opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN){
 			//Do we need to box?
