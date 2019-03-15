@@ -631,7 +631,7 @@ public class Instrumenter {
 	}
 
 	public static boolean isIgnoredFromControlTrack(String className, String name) {
-		if((className.equals("java/nio/charset/Charset")  || className.equals("java/lang/StringCoding") || className.equals("java/nio/charset/CharsetEncoder")|| className.equals("java/nio/charset/CharsetDecoder")) && !name.equals("<clinit>")) {
+		if((className.equals("java/nio/charset/Charset")  || className.equals("java/lang/StringCoding") || className.equals("java/nio/charset/CharsetEncoder")|| className.equals("java/nio/charset/CharsetDecoder")) && !name.equals("<clinit>") && !name.equals("<init>")) {
 			return true;
 		}
 		return false;

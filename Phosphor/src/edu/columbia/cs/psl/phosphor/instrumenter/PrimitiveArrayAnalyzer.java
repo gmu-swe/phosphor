@@ -5,10 +5,6 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.struct.Field;
-import org.jgrapht.Graph;
-import org.jgrapht.alg.cycle.CycleDetector;
-import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.DefaultEdge;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -20,6 +16,8 @@ import java.util.*;
 import java.util.Map.Entry;
 
 public class PrimitiveArrayAnalyzer extends MethodVisitor {
+	public boolean isEmptyMethod = true;
+
 	final class PrimitiveArrayAnalyzerMN extends MethodNode {
 		private final String className;
 		private final boolean shouldTrackExceptions;
@@ -1543,6 +1541,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		super.visitMethodInsn(opcode, owner, name, desc,itfc);
 		Type returnType = Type.getReturnType(desc);
 		Type newReturnType = TaintUtils.getContainerReturnType(returnType);
+		isEmptyMethod = false;
 		if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY))
 			wrapperTypesToPreAlloc.add(newReturnType);
 	}

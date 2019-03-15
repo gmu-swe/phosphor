@@ -39,7 +39,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	private boolean isSuperUninit;
 	public void setArrayAnalyzer(PrimitiveArrayAnalyzer primitiveArrayFixer) {
 		this.arrayAnalyzer = primitiveArrayFixer;
-	}
+}
 
 	public int controlTaintArray = -1;
 
@@ -104,6 +104,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	int idxOfCaughtExceptionTaint;
 	@Override
 	public void visitCode() {
+		if (this.isExcludedFromControlTrack && this.arrayAnalyzer.isEmptyMethod) {
+			this.isExcludedFromControlTrack = false;
+		}
+
 //		System.out.println("TPMVStart" + name);
 		super.visitCode();
 
