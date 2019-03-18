@@ -2,6 +2,8 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.struct.*;
 
+import java.lang.reflect.Array;
+
 /**
  * This class handles dynamically doing source-based tainting.
  * 
@@ -72,12 +74,19 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
 	/* Called by sources for the arguments and return value. Adds the specified tag to the specified object. */
 	public Object autoTaint(Object obj, String source, int argIdx, Taint<? extends AutoTaintLabel> tag) {
-		if(obj instanceof LazyArrayObjTags) {
+	    if(obj == null) {
+	        return null;
+        } else if(obj instanceof LazyArrayObjTags) {
 			return autoTaint((LazyArrayObjTags) obj, source, argIdx, tag);
 		} else if(obj instanceof TaintedWithObjTag) {
 			return autoTaint((TaintedWithObjTag) obj, source, argIdx, tag);
 		} else if(obj instanceof TaintedPrimitiveWithObjTag) {
 			return autoTaint((TaintedPrimitiveWithObjTag) obj, source, argIdx, tag);
+		} else if(obj.getClass().isArray()) {
+			for(int i = 0; i < Array.getLength(obj); i++) {
+				Array.set(obj, i, autoTaint(Array.get(obj, i), source, argIdx, tag));
+			}
+			return obj;
 		}
 		return obj;
 	}
