@@ -909,7 +909,7 @@ public class ReflectionMasker {
 						ret[j] = null;
 						j++;
 					} else {
-						ret[j] = arr.taints;
+						ret[j] = arr;
 						j++;
 						ret[j] = arr.getVal();
 						j++;
@@ -924,7 +924,7 @@ public class ReflectionMasker {
 						ret[j] = null;
 						j++;
 					} else {
-						ret[j] = arr.taints;
+						ret[j] = arr;
 						j++;
 						ret[j] = arr.getVal();
 						j++;
