@@ -531,8 +531,10 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 			return w;
 		} else if (w.getType() == null || w.getType().getDescriptor().equals("Lnull;")) {
 			if(w instanceof SinkableArrayValue && ((SinkableArrayValue)w).getSrc() != null && !((SinkableArrayValue) w).flowsToPrim) {
-				((SinkableArrayValue) w).disable();
-				((SinkableArrayValue) w).dontPropogateToDeps = true;
+				if(v.getType() == null || !v.getType().getInternalName().equals("java/lang/Object")) {
+					((SinkableArrayValue) w).disable();
+					((SinkableArrayValue) w).dontPropogateToDeps = true;
+				}
 			}
 			return v;
 		}
