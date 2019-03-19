@@ -42,6 +42,14 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		}
 	}
 
+	public void sourceWithDoubleCharArrParam(char[][] arr) {
+		arr[0][0] = 'b';
+	}
+
+	public void sourceWithStringArrParam(String[] arr) {
+		arr[0] = new String("hello");
+	}
+
 	/* Tests that calling a taintThrough method for an untainted object doesn't clear existing taint tags of that method's
 	 * primitive return value.
 	 */
@@ -126,6 +134,23 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		int result = exceptionCatchingSink(5);
 		assertEquals(7, result);
 	}
+
+	/* Checks that sources properly taint multi-dimensional primitive array arguments passed to them. */
+	@Test
+	public void testSourceTaints2DCharArrArg() throws Exception {
+		char[][] chars = new char[1][1];
+		sourceWithDoubleCharArrParam(chars);
+		assertNoTaint(chars[0] + "");
+	}
+
+	/* Checks that sources properly taint object array arguments passed to them. */
+	@Test
+	public void testSourceTaintsStringArg() throws Exception {
+		String[] arr = new String[]{null, new String("Test2")};
+		sourceWithStringArrParam(arr);
+		assertNonNullTaint(arr[0]);
+	}
+
 
 	@Test(expected = TaintSinkError.class)
 	public void testIntSink() throws Exception {

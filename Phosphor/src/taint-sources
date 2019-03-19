@@ -32,9 +32,13 @@
 #phosphor/test/SourceSinkTest.sourceRet2()[I
 #phosphor/test/SourceSinkTest.sourceRet3()Ljava/lang/Object;
 #phosphor/test/SourceSinkTest.sourceRet4()[I
+
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.source()Ljava/lang/String;
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.iSource()I
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.source([I)V
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.source([I)V
+edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.sourceWithDoubleCharArrParam([[C)V
+edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.sourceWithStringArrParam([Ljava/lang/String;)V
+
 edu/columbia/cs/psl/test/phosphor/InheritedAutoTaintObjTagITCase$TaintSourceInterface.getSource()I
 edu/columbia/cs/psl/test/phosphor/InheritedAutoTaintObjTagITCase$TaintSourceClass.getSource()I
