@@ -137,10 +137,27 @@ public final class ControlTaintTagStack {
 	 */
 	public final void addUnthrownException(ExceptionalTaintData taints, Class<? extends Throwable> t) {
 		if (taints != null && taints.taint != null) {
-			MaybeThrownException ex = new MaybeThrownException(t, taints.taint.copy());
 			if(unThrownExceptionStack == null)
 				unThrownExceptionStack = new LinkedList<>();
-			unThrownExceptionStack.addUniqueObjEquals(ex);
+			LinkedList.Node<MaybeThrownException> i = unThrownExceptionStack.getFirst();
+			boolean found = false;
+			while(i != null)
+			{
+				if(i.entry != null && i.entry.clazz == t)
+				{
+					found = true;
+					if(taints.taint.tags != null)
+						i.entry.tag.setBits(taints.taint.tags);
+					else
+						i.entry.tag.addDependency(taints.taint);
+					break;
+				}
+				i = i.next;
+			}
+			if(!found) {
+				MaybeThrownException ex = new MaybeThrownException(t, taints.taint.copy());
+				unThrownExceptionStack.addFast(ex);
+			}
 		}
 	}
 
