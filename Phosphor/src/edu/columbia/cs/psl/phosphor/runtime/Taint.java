@@ -413,7 +413,7 @@ public class Taint<T> implements Serializable {
 		if(Configuration.derivedTaintListener != null) {
 			Configuration.derivedTaintListener.controlApplied(o, tags);
 		}
-		if(o instanceof  String) {
+		if(o instanceof String) {
 			combineTagsOnString((String) o, tags);
 		} else if(o instanceof TaintedWithObjTag) {
 			((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags((Taint) ((TaintedWithObjTag)o).getPHOSPHOR_TAG(), tags));
