@@ -38,7 +38,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 		{
 			if(local[i] instanceof String)
 			{
-				Type t = Type.getType(((String) local[i]));
+				Type t = Type.getObjectType(((String) local[i]));
 				if(t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() > 1)
 					newLocal[i] = MultiDTaintedArray.getTypeForType(t).getInternalName();
 				else
@@ -51,7 +51,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 		{
 			if(stack[i] instanceof String)
 			{
-				Type t = Type.getType(((String) stack[i]));
+				Type t = Type.getObjectType(((String) stack[i]));
 				if(t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() > 1)
 					newStack[i] = MultiDTaintedArray.getTypeForType(t).getInternalName();
 				else
@@ -387,6 +387,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 								super.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
 							super.visitJumpInsn(Opcodes.GOTO, ok);
 							super.visitLabel(isnull);
+							fn.type = Opcodes.F_NEW;
 							fn.accept(this);
 							super.visitInsn(Opcodes.ACONST_NULL);
 							super.visitLabel(ok);

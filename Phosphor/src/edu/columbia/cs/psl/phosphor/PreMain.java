@@ -20,6 +20,7 @@ import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.ClinitRetransformClassVisitor;
 import edu.columbia.cs.psl.phosphor.instrumenter.HidePhosphorFromASMCV;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurJSRInlinerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUIDAdder;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -269,7 +270,7 @@ public class PreMain {
 					cr.accept(new ClassVisitor(Opcodes.ASM5, cw) {
 						@Override
 						public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-							return new JSRInlinerAdapter(super.visitMethod(access, name, desc, signature, exceptions), access, name, desc, signature, exceptions);
+							return new OurJSRInlinerAdapter(super.visitMethod(access, name, desc, signature, exceptions), access, name, desc, signature, exceptions);
 						}
 					}, 0);
 

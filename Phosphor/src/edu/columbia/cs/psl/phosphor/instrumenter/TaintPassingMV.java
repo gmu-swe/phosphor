@@ -1082,6 +1082,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 
 		switch (opcode) {
+			case TaintUtils.IGNORE_EVERYTHING:
+				isIgnoreAllInstrumenting =true;
+				break;
 		case Opcodes.BIPUSH:
 		case Opcodes.SIPUSH:
 			if(nextLoadisTracked)

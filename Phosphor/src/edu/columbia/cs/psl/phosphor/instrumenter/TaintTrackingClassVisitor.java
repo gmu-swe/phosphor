@@ -469,12 +469,17 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			LocalVariableManager lvs;
 			TaintPassingMV tmv;
 			MethodVisitor nextMV;
+			InstOrUninstChoosingMV instOrUninstChoosingMV;
 			{
 //				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(access, className, name, desc, signature, exceptions, boxFixer, analyzer);
 				tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV,wrapperMethodsToAdd);
 				tmv.setFields(fields);
 				TaintAdapter custom = null;
-				lvs = new LocalVariableManager(access, newDesc, tmv, analyzer,mv, generateExtraLVDebug);
+
+				UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, newDesc, signature, exceptions, boxFixer, analyzer, ignoreFrames);
+				instOrUninstChoosingMV = new InstOrUninstChoosingMV(tmv,umv);
+				lvs = new LocalVariableManager(access, newDesc, instOrUninstChoosingMV, analyzer,mv, generateExtraLVDebug);
+				umv.setLocalVariableSorter(lvs);
 
 
 				nextMV = lvs;
@@ -483,7 +488,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 			somv.setLVS(lvs);
 			MethodArgReindexer mar = new MethodArgReindexer(nextMV, access, name, newDesc, desc, wrapper, isLambda);
-			TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames);
+			TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames, instOrUninstChoosingMV);
 
 			PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, tlc);
 			NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, primitiveArrayFixer);

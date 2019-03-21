@@ -1,14 +1,14 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map.Entry;
-
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
 import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
-import edu.columbia.cs.psl.phosphor.struct.MaybeThrownException;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -16,12 +16,10 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map.Entry;
 
 public class LocalVariableManager extends OurLocalVariablesSorter implements Opcodes {
 	private NeverNullArgAnalyzerAdapter analyzer;
@@ -42,6 +40,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 			isIgnoreEverything = !isIgnoreEverything;
 		super.visitInsn(opcode);
 	}
+
+	private boolean isInMethodThatsTooBig;
 	@Override
 	public void visitVarInsn(int opcode, int var) {
 		if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START || isIgnoreEverything)
@@ -49,7 +49,10 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 			mv.visitVarInsn(opcode, var);
 			return;
 		}
-		super.visitVarInsn(opcode, var);
+		if (opcode == TaintUtils.IGNORE_EVERYTHING)
+			isInMethodThatsTooBig = true;
+		else
+			super.visitVarInsn(opcode, var);
 	}
 	public HashMap<Integer, Integer> varToShadowVar = new HashMap<Integer, Integer>();
 	private boolean generateExtraDebug;
@@ -463,7 +466,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
             throw new IllegalStateException(
                     "ClassReader.accept() should be called with EXPAND_FRAMES flag");
         }
-        if (!changed && !isFirstFrame) { // optimization for the case where mapping = identity
+        if (isInMethodThatsTooBig || (!changed && !isFirstFrame)) { // optimization for the case where mapping = identity
             mv.visitFrame(type, nLocal, local, nStack, stack);
             return;
         }

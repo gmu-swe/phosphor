@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import com.sun.org.apache.bcel.internal.generic.ACONST_NULL;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
@@ -10,7 +9,6 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import sun.security.krb5.Config;
 
 public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
@@ -84,12 +82,13 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	@Override
 	public void visitVarInsn(int opcode, int var) {
 		switch (opcode) {
-		case TaintUtils.BRANCH_END:
-		case TaintUtils.BRANCH_START:
-		case TaintUtils.FORCE_CTRL_STORE:
-		case TaintUtils.ALWAYS_AUTOBOX:
-			break;
-		default:
+			case TaintUtils.BRANCH_END:
+			case TaintUtils.BRANCH_START:
+			case TaintUtils.FORCE_CTRL_STORE:
+			case TaintUtils.ALWAYS_AUTOBOX:
+			case TaintUtils.IGNORE_EVERYTHING:
+				break;
+			default:
 			super.visitVarInsn(opcode, var);
 		}
 	}
