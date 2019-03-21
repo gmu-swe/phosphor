@@ -29,11 +29,13 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 	}
 	private boolean ignoreExistingFrames;
 	private InstOrUninstChoosingMV instOrUninstChoosingMV;
-	public TaintLoadCoercer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, boolean ignoreExistingFrames, final InstOrUninstChoosingMV instOrUninstChoosingMV) {
+	private boolean aggressivelyReduceMethodSize;
+	public TaintLoadCoercer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, boolean ignoreExistingFrames, final InstOrUninstChoosingMV instOrUninstChoosingMV, boolean aggressivelyReduceMethodSize) {
 		super(Opcodes.ASM5);
 		this.mv = new UninstTaintLoadCoercerMN(className, access, name, desc, signature, exceptions, cmv);
 		this.ignoreExistingFrames = ignoreExistingFrames;
 		this.instOrUninstChoosingMV = instOrUninstChoosingMV;
+		this.aggressivelyReduceMethodSize = aggressivelyReduceMethodSize;
 	}
 
 	@Override
@@ -463,18 +465,22 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 							}
 							insn = insn.getNext();
 						}
+						super.visitEnd();
+						this.accept(cmv);
+						return;
 					}
-					else
+					else if(aggressivelyReduceMethodSize) //only do this if it's REALLY bad
 					{
 						//Not able to use these cheap tricks. Let's bail.
 						insn = this.instructions.getFirst();
 						this.instructions.insert(new InsnNode(TaintUtils.IGNORE_EVERYTHING));
 						this.instructions.insert(new VarInsnNode(TaintUtils.IGNORE_EVERYTHING,0));
 						instOrUninstChoosingMV.disableTainting();
+						super.visitEnd();
+						this.accept(cmv);
+						return;
 					}
-					super.visitEnd();
-					this.accept(cmv);
-					return;
+
 				}
 
 				HashSet<SinkableArrayValue> swapPop = new HashSet<>();
@@ -714,7 +720,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 				};
 //				mv = new SpecialOpcodeRemovingMV(mv,false,className,false);
 //				NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, className, desc, mv);
-				mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true, null);
+				mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true, null, false);
 //				LocalVariableManager lvs = new LocalVariableManager(access, desc, mv, analyzer, mv, false);
 //				mv = lvs;
 				PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className,access,name,desc,signature,exceptions,mv);

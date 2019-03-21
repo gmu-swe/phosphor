@@ -81,7 +81,14 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	
 	private String classSource;
 	private String classDebug;
-	
+
+	private boolean aggressivelyReduceMethodSize;
+
+	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields, boolean aggressivelyReduceMethodSize) {
+		this(cv,skipFrames, fields);
+		this.aggressivelyReduceMethodSize = aggressivelyReduceMethodSize;
+	}
+
 	@Override
 	public void visitSource(String source, String debug) {
 		super.visitSource(source, debug);
@@ -488,7 +495,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 			somv.setLVS(lvs);
 			MethodArgReindexer mar = new MethodArgReindexer(nextMV, access, name, newDesc, desc, wrapper, isLambda);
-			TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames, instOrUninstChoosingMV);
+			TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames, instOrUninstChoosingMV, aggressivelyReduceMethodSize);
 
 			PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, tlc);
 			NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, primitiveArrayFixer);

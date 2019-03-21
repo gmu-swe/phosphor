@@ -22,12 +22,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.ClinitRetransformClassVisitor;
 import edu.columbia.cs.psl.phosphor.instrumenter.HidePhosphorFromASMCV;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurJSRInlinerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUIDAdder;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
+import org.objectweb.asm.*;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.commons.SerialVersionUIDAdder;
 import org.objectweb.asm.tree.*;
@@ -303,54 +298,54 @@ public class PreMain {
 							_cv
 							// )
 							, ClassReader.EXPAND_FRAMES);
+					byte[] instrumentedBytes = null;
+					try{
+						instrumentedBytes = cw.toByteArray();
+					} catch(MethodTooLargeException ex){
+						cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
+						_cv = cw;
+						if (Configuration.extensionClassVisitor != null) {
+							Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
+							_cv = extra.newInstance(_cv, skipFrames);
+						}
+						if (DEBUG || TaintUtils.VERIFY_CLASS_GENERATION)
+							_cv = new CheckClassAdapter(_cv, false);
+						_cv = new ClinitRetransformClassVisitor(_cv);
+						if(isiFace)
+							_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields, true);
+						else
+							_cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields, true));
+						_cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
+						if (Configuration.WITH_SELECTIVE_INST)
+							cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
+						cr.accept(
+								// new CheckClassAdapter(
+								_cv
+								// )
+								, ClassReader.EXPAND_FRAMES);
+						instrumentedBytes = cw.toByteArray();
+					}
 
 					if (DEBUG) {
 						File f = new File("debug/" + className + ".class");
 						f.getParentFile().mkdirs();
 						FileOutputStream fos = new FileOutputStream(f);
-						fos.write(cw.toByteArray());
+						fos.write(instrumentedBytes);
 						fos.close();
 					}
 					{
-						// if(TaintUtils.DEBUG_FRAMES)
-						// System.out.println("NOW IN CHECKCLASSADAPTOR");
 						if (DEBUG || TaintUtils.VERIFY_CLASS_GENERATION
-//								|| (TaintUtils.VERIFY_CLASS_GENERATION && !className.startsWith("org/codehaus/janino/UnitCompiler") && !className.startsWith("jersey/repackaged/com/google/common/cache/LocalCache")
-//										&& !className.startsWith("jersey/repackaged/com/google/common/collect/AbstractMapBasedMultimap") && !className.startsWith("jersey/repackaged/com/google/common/collect/"))
 ) {
-							ClassReader cr2 = new ClassReader(cw.toByteArray());
+							ClassReader cr2 = new ClassReader(instrumentedBytes);
 							cr2.accept(new CheckClassAdapter(new ClassWriter(0), true), ClassReader.EXPAND_FRAMES);
 						}
 					}
-					// cv= new TraceClassVisitor(null,null);
-					// try{
-					// System.err.println("WARN LOGGING CLASS TO ASCII");
-					// cr = new ClassReader(cw.toByteArray());
-					// cr.accept(
-					// // new CheckClassAdapter(
-					// cv
-					// // )
-					// , 0);
-					// PrintWriter pw = null;
-					// try {
-					// pw = new PrintWriter(new FileWriter("lastClass.txt"));
-					// } catch (IOException e) {
-					// // TODO Auto-generated catch block
-					// e.printStackTrace();
-					// }
-					// cv.p.print(pw);
-					// pw.flush();
-					// }
-					// catch(Throwable t)
-					// {
-					// t.printStackTrace();
-					// }
-					// System.out.println("Succeeded w " + className);
+
 					if (Configuration.CACHE_DIR != null) {
 						String cacheKey = className.replace("/", ".");
 						File f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".class");
 						FileOutputStream fos = new FileOutputStream(f);
-						byte[] ret = cw.toByteArray();
+						byte[] ret = instrumentedBytes;
 						fos.write(ret);
 						fos.close();
 						if (md5inst == null)
@@ -366,7 +361,7 @@ public class PreMain {
 						fos.close();
 						return ret;
 					}
-					return cw.toByteArray();
+					return instrumentedBytes;
 				} catch (Throwable ex) {
 					INSTRUMENTATION_EXCEPTION_OCURRED = true;
 					ex.printStackTrace();
