@@ -1419,18 +1419,28 @@ public class ReflectionMasker {
 //				if(VM.isBooted())
 //				System.out.println("Remove taint fields " + Arrays.toString(in));
 		ArrayList<Field> ret = new ArrayList<Field>();
+		boolean removeSVUIDField = containsSVUIDSentinelField(in);
 		for (Field f : in) {
-			if (f.getName().equals("taint") || f.getName().endsWith(TaintUtils.TAINT_FIELD) 
-					//|| f.getName().equals(TaintUtils.IS_TAINT_SEATCHING_FIELD)
-					//|| f.getName().equals(TaintUtils.HAS_TAINT_FIELD)
-					) {
-
-			} else
+			if(!f.getName().equals("taint") && !f.getName().endsWith(TaintUtils.TAINT_FIELD) && !f.getName().equals(TaintUtils.ADDED_SVUID_SENTINEL)
+					&& !(removeSVUIDField && f.getName().equals("serialVersionUID"))
+					/* && !f.getName().equals(TaintUtils.IS_TAINT_SEATCHING_FIELD) && !f.getName().equals(TaintUtils.HAS_TAINT_FIELD) */) {
 				ret.add(f);
+			}
 		}
 		Field[] retz = new Field[ret.size()];
 		ret.toArray(retz);
 		return retz;
+	}
+
+	/* Returns whether the specified array of fields contains a sentinel field indicating that a SerialVersionUID was
+	 * added to the class by phosphor. */
+	private static boolean containsSVUIDSentinelField(Field[] in) {
+		for(Field f : in) {
+			if(f.getName().equals(TaintUtils.ADDED_SVUID_SENTINEL)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static ReflectionFactory getReflectionFactory() {
