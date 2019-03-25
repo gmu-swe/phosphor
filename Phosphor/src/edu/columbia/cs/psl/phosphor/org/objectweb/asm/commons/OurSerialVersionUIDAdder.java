@@ -37,7 +37,6 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
