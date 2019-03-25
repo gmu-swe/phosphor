@@ -338,7 +338,7 @@ public class OurSerialVersionUIDAdder extends ClassVisitor {
 			fv.visitEnd();
 		}
 		FieldVisitor  sentinelFV = super.visitField(Opcodes.ACC_FINAL + Opcodes.ACC_STATIC + Opcodes.ACC_PRIVATE,
-				TaintUtils.ADDED_SVUID_SENTINEL, Type.getType(TaintSentinel.class).getDescriptor(), null, null);
+				TaintUtils.ADDED_SVUID_SENTINEL, Type.getType(Object.class).getDescriptor(), null, null);
 		if (sentinelFV  != null) {
 			sentinelFV.visitEnd();
 		}
