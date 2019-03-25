@@ -20,6 +20,7 @@ import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.ClinitRetransformClassVisitor;
 import edu.columbia.cs.psl.phosphor.instrumenter.HidePhosphorFromASMCV;
+import edu.columbia.cs.psl.phosphor.instrumenter.JasperCompilerGeneratorCV;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurJSRInlinerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUIDAdder;
 import org.objectweb.asm.*;
@@ -290,6 +291,10 @@ public class PreMain {
 						_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields);
 					else
 						_cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+					if(className != null && (className.equals("org/apache/struts2/jasper/compiler/Generator") ||
+							className.equals("org/apache/jasper/compiler/Generator"))) {
+						_cv = new JasperCompilerGeneratorCV(_cv);
+					}
 					_cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
 					if (Configuration.WITH_SELECTIVE_INST)
 						cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
