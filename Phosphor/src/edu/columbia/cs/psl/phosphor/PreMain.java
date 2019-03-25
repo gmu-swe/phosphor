@@ -291,9 +291,10 @@ public class PreMain {
 						_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields);
 					else
 						_cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
-					if(className != null && (className.equals("org/apache/struts2/jasper/compiler/Generator") ||
-							className.equals("org/apache/jasper/compiler/Generator"))) {
-						_cv = new JasperCompilerGeneratorCV(_cv);
+					if(JasperCompilerGeneratorCV.isJasperCompilerGeneratorClass(className)) {
+						_cv = new JasperCompilerGeneratorCV(_cv, false);
+					} else if(JasperCompilerGeneratorCV.isJasperCompilerGeneratedClass(fields)) {
+						_cv = new JasperCompilerGeneratorCV(_cv, true);
 					}
 					_cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
 					if (Configuration.WITH_SELECTIVE_INST)

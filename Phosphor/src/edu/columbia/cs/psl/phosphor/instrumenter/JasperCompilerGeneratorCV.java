@@ -1,95 +1,98 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.FieldNode;
+
+import java.util.List;
 
 public class JasperCompilerGeneratorCV extends ClassVisitor {
 
     // The name of the class being visited
     private String className;
-    // The name of the field holding the writer
-    private static final String writerFieldName = "out";
+    // The name of the field added to a generated class to indicate that phosphor should make it concrete upon loading it
+    public static String makeConcreteSentinel = "$$PHOSPHOR_MAKE_CONCRETE";
+    // Whether or not this is a class that needs to be made concrete
+    private boolean makeConcrete;
 
-    public JasperCompilerGeneratorCV(ClassVisitor cv) {
+    public JasperCompilerGeneratorCV(ClassVisitor cv, boolean makeConcrete) {
         super(Opcodes.ASM5, cv);
+        this.makeConcrete = makeConcrete;
     }
 
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-        super.visit(version, access, name, signature, superName, interfaces);
         this.className = name;
+        if(makeConcrete) {
+            access &= ~Opcodes.ACC_ABSTRACT;
+            access |= Opcodes.ACC_FINAL;
+            super.visit(version, access, name, signature, superName, interfaces);
+        } else {
+            super.visit(version, access, name, signature, superName, interfaces);
+        }
     }
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-        if(name.equals("genCommonPostamble")) {
+        if(isJasperCompilerGeneratorClass(className)) {
             mv = new MethodVisitor(Opcodes.ASM5, mv) {
                 @Override
-                public void visitCode() {
-                    super.visitCode();
-                    // Load this onto the stack
-                    mv.visitVarInsn(Opcodes.ALOAD, 0);
-                    // generateInheritedPlaceholders
-                    super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, className, "generateInheritedPlaceholders", "()V", false);
+                public void visitLdcInsn(Object cst) {
+                    if(cst instanceof String) {
+                        String s = (String)cst;
+                        if(s.equals("public final class ")) {
+                            super.visitLdcInsn("public abstract class ");
+                            return;
+                        }
+                    }
+                    super.visitLdcInsn(cst);
                 }
             };
+            if(name.equals("genPreambleStaticInitializers")) {
+                mv = new MethodVisitor(Opcodes.ASM5, mv) {
+                    @Override
+                    public void visitCode() {
+                        super.visitCode();
+                        writeStaticSentenielField(mv);
+                    }
+                };
+            }
         }
         return mv;
     }
 
-    public void visitEnd() {
-        MethodVisitor mv = super.visitMethod(Opcodes.ACC_PUBLIC, "generateInheritedPlaceholders", "()V", null, null);
-        mv.visitCode();
-        createMethodBody(mv);
-        mv.visitInsn(Opcodes.RETURN);
-        mv.visitMaxs(2, 1);
-        mv.visitEnd();
-        super.visitEnd();
-    }
-
-    /* Writes a new method using this generator instance's writer field with the specified method signature with the
-     * specified dummy return line. */
-    private void writePlaceholderMethod(MethodVisitor mv, String methodSignature, String returnLine) {
+    private void writeStaticSentenielField(MethodVisitor mv) {
         // Load this onto the stack
         mv.visitVarInsn(Opcodes.ALOAD, 0);
         // Load this instance's writer field onto the stack
-        mv.visitFieldInsn(Opcodes.GETFIELD, className, writerFieldName, "Lorg/apache/jasper/compiler/ServletWriter;");
-        // Load another 5 copies of the writer field onto the stack
-        for(int i = 0; i < 5; i++) {
-            mv.visitInsn(Opcodes.DUP);
-        }
-        // Write the method signature
-        mv.visitLdcInsn(methodSignature);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/apache/jasper/compiler/ServletWriter", "printil", "(Ljava/lang/String;)V", false);
-        // Write a new indent
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/apache/jasper/compiler/ServletWriter", "pushIndent", "()V", false);
-        // Write the return line
-        mv.visitLdcInsn(returnLine);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/apache/jasper/compiler/ServletWriter", "printil", "(Ljava/lang/String;)V", false);
-        // Pop the indent
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/apache/jasper/compiler/ServletWriter", "popIndent", "()V", false);
-        // Write the closing bracket
-        mv.visitLdcInsn("}");
+        mv.visitFieldInsn(Opcodes.GETFIELD, className, "out", "Lorg/apache/jasper/compiler/ServletWriter;");
+        // Load another copy of the writer field onto the stack
+        mv.visitInsn(Opcodes.DUP);
+        // Write the sentinel field
+        mv.visitLdcInsn(String.format("private static final %s %s = null;", TaintSentinel.class.getName(), makeConcreteSentinel));
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/apache/jasper/compiler/ServletWriter", "printil", "(Ljava/lang/String;)V", false);
         // Write the newline
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/apache/jasper/compiler/ServletWriter", "println", "()V", false);
+
     }
 
-    private void createMethodBody(MethodVisitor mv) {
-        writePlaceholderMethod(mv, "public Object getPHOSPHOR_TAG() {", "return null;");
-        writePlaceholderMethod(mv, "public void setPHOSPHOR_TAG(Object var1) {", "return;");
-        writePlaceholderMethod(mv, "public void setPHOSPHOR_TAG(int t) {", "return;");
-        writePlaceholderMethod(mv, "public Class getClass$$PHOSPHORTAGGED(edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack var1) {", "return null;");
-        writePlaceholderMethod(mv, "public Class getClass$$PHOSPHORTAGGED() {", "return null;");
-        writePlaceholderMethod(mv, "public String toString$$PHOSPHORTAGGED(edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack var1) {", "return null;");
-        writePlaceholderMethod(mv, "public String toString$$PHOSPHORTAGGED() {", "return null;");
-        writePlaceholderMethod(mv, "public edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack phosphorJumpControlTag, edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag var2) {", "return null;");
-        writePlaceholderMethod(mv, "public edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag var1) {", "return null;");
-        writePlaceholderMethod(mv, "public edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag hashCode$$PHOSPHORTAGGED(edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag var1) {", "return null;");
-        writePlaceholderMethod(mv, "public edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o, edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack phosphorJumpControlTag, edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag Phosphor$$ReturnPreAllocated) {", "return null;");
-        writePlaceholderMethod(mv, "public edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o, edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag Phosphor$$ReturnPreAllocated) {", "return null;");
-        writePlaceholderMethod(mv, "public edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag equals$$PHOSPHORTAGGED(Object o, edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag Phosphor$$ReturnPreAllocated) {", "return null;");
+    /* Returns whether the class with the specified name is a generator class that needs to create abstract classes instead
+     * concrete ones. */
+    public static boolean isJasperCompilerGeneratorClass(String className) {
+        return className != null && (className.equals("org/apache/struts2/jasper/compiler/Generator") ||
+                className.equals("org/apache/jasper/compiler/Generator"));
+    }
+
+    /* Returns whether the class with the specified name was generated by a Generator and needs to be made concrete. */
+    public static boolean isJasperCompilerGeneratedClass(List<FieldNode> fields) {
+        for(FieldNode field : fields) {
+            if(field.name.equals(makeConcreteSentinel)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
