@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -13,7 +12,7 @@ public class JasperCompilerGeneratorCV extends ClassVisitor {
     // The name of the class being visited
     private String className;
     // The name of the field added to a generated class to indicate that phosphor should make it concrete upon loading it
-    public static String makeConcreteSentinel = "$$PHOSPHOR_MAKE_CONCRETE";
+    private static final String makeConcreteSentinel = "$$PHOSPHOR_MAKE_CONCRETE";
     // Whether or not this is a class that needs to be made concrete
     private boolean makeConcrete;
 
@@ -56,7 +55,7 @@ public class JasperCompilerGeneratorCV extends ClassVisitor {
                     @Override
                     public void visitCode() {
                         super.visitCode();
-                        writeStaticSentenielField(mv);
+                        writeStaticSentinelField(mv);
                     }
                 };
             }
@@ -64,7 +63,8 @@ public class JasperCompilerGeneratorCV extends ClassVisitor {
         return mv;
     }
 
-    private void writeStaticSentenielField(MethodVisitor mv) {
+    /* Adds code to use the instance's ServletWriter field to write a new static sentinel field to the class being generated. */
+    private void writeStaticSentinelField(MethodVisitor mv) {
         // Load this onto the stack
         mv.visitVarInsn(Opcodes.ALOAD, 0);
         // Load this instance's writer field onto the stack
@@ -72,7 +72,7 @@ public class JasperCompilerGeneratorCV extends ClassVisitor {
         // Load another copy of the writer field onto the stack
         mv.visitInsn(Opcodes.DUP);
         // Write the sentinel field
-        mv.visitLdcInsn(String.format("private static final %s %s = null;", TaintSentinel.class.getName(), makeConcreteSentinel));
+        mv.visitLdcInsn(String.format("private static final Object %s = null;", makeConcreteSentinel));
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/apache/jasper/compiler/ServletWriter", "printil", "(Ljava/lang/String;)V", false);
         // Write the newline
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "org/apache/jasper/compiler/ServletWriter", "println", "()V", false);
