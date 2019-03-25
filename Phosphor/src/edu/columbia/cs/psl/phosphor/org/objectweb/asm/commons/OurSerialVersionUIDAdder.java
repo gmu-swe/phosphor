@@ -36,6 +36,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -333,6 +335,11 @@ public class OurSerialVersionUIDAdder extends ClassVisitor {
 						Opcodes.ACC_FINAL + Opcodes.ACC_STATIC, "serialVersionUID", "J", null, svuid);
 		if (fv != null) {
 			fv.visitEnd();
+		}
+		FieldVisitor  sentinelFV = super.visitField(Opcodes.ACC_FINAL + Opcodes.ACC_STATIC + Opcodes.ACC_PRIVATE,
+				TaintUtils.ADDED_SVUID_SENTINEL, Type.getType(Object.class).getDescriptor(), null, null);
+		if (sentinelFV  != null) {
+			sentinelFV.visitEnd();
 		}
 	}
 
