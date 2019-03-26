@@ -109,11 +109,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 				// Add any methods from this class that are directly listed as auto taint methods
 				set.addAll(originalMethods.get(className));
 			}
-			ClassNode cn = Instrumenter.classes.get(className);
-			if(cn == null) {
-				// Class was loaded before ClassSupertypeReadingTransformer was added
-				cn = tryToAddClassNode(className);
-			}
+			ClassNode cn = Instrumenter.getClassNode(className);
 			if(cn != null) {
 				if (cn.interfaces != null) {
 					// Add all auto taint methods from interfaces implemented by this class
@@ -128,33 +124,6 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			}
 			inheritedMethods.put(className, set);
 			return set;
-		}
-	}
-
-	/* Attempts to create a ClassNode populated with supertype information for this class. */
-	private static ClassNode tryToAddClassNode(String className) {
-		try {
-			String resource = className + ".class";
-			InputStream is = ClassLoader.getSystemResourceAsStream(resource);
-			if (is == null) {
-				return null;
-			}
-			ClassReader cr = new ClassReader(is);
-			cr.accept(new ClassVisitor(Opcodes.ASM5) {
-				@Override
-				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-					super.visit(version, access, name, signature, superName, interfaces);
-					ClassNode cn = new ClassNode();
-					cn.name = name;
-					cn.superName = superName;
-					cn.interfaces = new ArrayList<>(Arrays.asList(interfaces));
-					Instrumenter.classes.put(name, cn);
-				}
-			}, ClassReader.SKIP_CODE);
-			is.close();
-			return Instrumenter.classes.get(className);
-		} catch (Exception e) {
-			return null;
 		}
 	}
 
@@ -234,11 +203,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 				if(originalMethods.containsKey(curClassName) && originalMethods.get(curClassName).contains(methodName)) {
 					return curClassName;
 				}
-				ClassNode cn = Instrumenter.classes.get(curClassName);
-				if(cn == null) {
-					// Class was loaded before ClassSupertypeReadingTransformer was added
-					cn = tryToAddClassNode(className);
-				}
+				ClassNode cn = Instrumenter.getClassNode(curClassName);
 				if(cn != null) {
 					if (cn.interfaces != null) {
 						// Enqueue interfaces implemented by the current class
