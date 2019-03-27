@@ -1,9 +1,11 @@
 package edu.columbia.cs.psl.test.phosphor;
 
+import static edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass.assertNonNullTaint;
 import static org.junit.Assert.*;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 
@@ -13,8 +15,9 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public class ReflectionObjTagITCase extends BasePhosphorTest {
-	
-	static class FieldHolder{
+
+	public static class FieldHolder {
+
 		int i;
 		long j;
 		boolean z;
@@ -22,7 +25,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		double d;
 		byte b;
 		char c;
-		
+
 		int[] ia = new int[4];
 		long[] ja = new long[4];
 		boolean[] za = new boolean[4];
@@ -30,9 +33,31 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		double[] da = new double[4];
 		byte[] ba = new byte[4];
 		char[] ca = new char[4];
-
 	}
-	
+
+	public static class MethodHolder {
+		// Whether methods should assert that their arguments are tainted
+		boolean checkArgsTainted;
+
+		MethodHolder(boolean checkArgsTainted) {
+			this.checkArgsTainted = checkArgsTainted;
+		}
+
+		public int primitiveParamMethod(boolean taintedBool) {
+			if(checkArgsTainted) {
+				assertNonNullTaint(MultiTainter.getTaint(taintedBool));
+			}
+			return taintedBool ? 2 : 0;
+		}
+
+		public int primitiveArrParamMethod(boolean[] b) {
+			if(checkArgsTainted) {
+				assertNonNullTaint(MultiTainter.getTaint(b[0]));
+			}
+			return b == null ? 0 : b.length;
+		}
+	}
+
 	@Test
 	public void testArraysSet() throws Exception {
 		boolean[] b = { false };
@@ -114,10 +139,55 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 			Integer obj = list.get(i);
 			int objVal = list.get(i);
 
-			Taint objTaint = MultiTainter.getTaint(obj); 
+			Taint objTaint = MultiTainter.getTaint(obj);
 			Taint valTaint = MultiTainter.getTaint(objVal);
 			assertTrue(objTaint.contains(valTaint));
 			assertTrue(valTaint.contains(objTaint));
 		}
+	}
+
+	@Test
+	public void testInvokeMethodPrimitiveArg() throws Exception {
+		MethodHolder holder = new MethodHolder(false);
+		Method method = MethodHolder.class.getMethod("primitiveParamMethod", Boolean.TYPE);
+		boolean z = true;
+		Object result = method.invoke(holder, z);
+		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
+		int i = (Integer)result;
+		assertEquals(2, i);
+	}
+
+	@Test
+	public void testInvokeMethodTaintedPrimitiveArg() throws Exception {
+		MethodHolder holder = new MethodHolder(true);
+		Method method = MethodHolder.class.getMethod("primitiveParamMethod", Boolean.TYPE);
+		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		Object result = method.invoke(holder, z);
+		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
+		int i = (Integer)result;
+		assertEquals(2, i);
+	}
+
+	@Test
+	public void testInvokeMethodPrimitiveArrArg() throws Exception {
+		MethodHolder holder = new MethodHolder(false);
+		Method method = MethodHolder.class.getMethod("primitiveArrParamMethod", Class.forName("[Z"));
+		boolean[] arr = new boolean[] {true, true};
+		Object result = method.invoke(holder, arr);
+		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
+		int i = (Integer)result;
+		assertEquals(arr.length, i);
+	}
+
+	@Test
+	public void testInvokeMethodTaintedPrimitiveArrArg() throws Exception {
+		MethodHolder holder = new MethodHolder(true);
+		Method method = MethodHolder.class.getMethod("primitiveArrParamMethod", Class.forName("[Z"));
+		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		boolean[] arr = new boolean[] {z, z};
+		Object result = method.invoke(holder, arr);
+		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
+		int i = (Integer)result;
+		assertEquals(arr.length, i);
 	}
 }
