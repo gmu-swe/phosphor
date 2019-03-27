@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,7 +20,7 @@ import org.junit.Test;
 import edu.columbia.cs.psl.phosphor.PreMain;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.test.phosphor.ReflectionObjTagITCase.FieldHolder;
+import edu.columbia.cs.psl.test.phosphor.ReflectionObjTagITCase.MethodHolder;
 
 public class ReflectionImplicitITCase extends BasePhosphorTest {
 
@@ -175,5 +176,50 @@ public class ReflectionImplicitITCase extends BasePhosphorTest {
 			assertTrue(objTaint.contains(valTaint));
 			assertTrue(valTaint.contains(objTaint));
 		}
+	}
+
+	@Test
+	public void testInvokeMethodPrimitiveArg() throws Exception {
+		ReflectionObjTagITCase.MethodHolder holder = new MethodHolder(false);
+		Method method = ReflectionObjTagITCase.MethodHolder.class.getMethod("primitiveParamMethod", Boolean.TYPE);
+		boolean z = true;
+		Object result = method.invoke(holder, z);
+		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
+		int i = (Integer)result;
+		assertEquals(2, i);
+	}
+
+	@Test
+	public void testInvokeMethodTaintedPrimitiveArg() throws Exception {
+		ReflectionObjTagITCase.MethodHolder holder = new MethodHolder(true);
+		Method method = ReflectionObjTagITCase.MethodHolder.class.getMethod("primitiveParamMethod", Boolean.TYPE);
+		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		Object result = method.invoke(holder, z);
+		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
+		int i = (Integer)result;
+		assertEquals(2, i);
+	}
+
+	@Test
+	public void testInvokeMethodPrimitiveArrArg() throws Exception {
+		ReflectionObjTagITCase.MethodHolder holder = new MethodHolder(false);
+		Method method = ReflectionObjTagITCase.MethodHolder.class.getMethod("primitiveArrParamMethod", Class.forName("[Z"));
+		boolean[] arr = new boolean[] {true, true};
+		Object result = method.invoke(holder, arr);
+		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
+		int i = (Integer)result;
+		assertEquals(arr.length, i);
+	}
+
+	@Test
+	public void testInvokeMethodTaintedPrimitiveArrArg() throws Exception {
+		ReflectionObjTagITCase.MethodHolder holder = new MethodHolder(true);
+		Method method = ReflectionObjTagITCase.MethodHolder.class.getMethod("primitiveArrParamMethod", Class.forName("[Z"));
+		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		boolean[] arr = new boolean[] {z, z};
+		Object result = method.invoke(holder, arr);
+		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
+		int i = (Integer)result;
+		assertEquals(arr.length, i);
 	}
 }

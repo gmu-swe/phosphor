@@ -1107,6 +1107,7 @@ public class ReflectionMasker {
 		}
 		return ret;
 	}
+
 	public static MethodInvoke fixAllArgsUninst(Method m, Object owner, Object[] in, ControlTaintTagStack ctrl) {
 		MethodInvoke ret = new MethodInvoke();
 		if (m == null) {
@@ -1131,12 +1132,13 @@ public class ReflectionMasker {
 		}
 		return ret;
 	}
+
 //	static long time;
 //	static Thread printerThread;
 //	static boolean printerStarted = false;
 //	static{
 //		printerThread = new Thread(new Runnable() {
-//			
+//
 //			@Override
 //			public void run() {
 //				PrintStream os = System.out;
@@ -1150,31 +1152,22 @@ public class ReflectionMasker {
 //						e.printStackTrace();
 //					}
 //				}
-//				
+//
 //			}
 //		});
 //
 //	}
+
 	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, boolean isObjTags) {
-//				System.out.println("Making slow call to  " + m);
-		
-//		if(!printerStarted)
-//		{
+//		System.out.println("Making slow call to  " + m);
+//		if(!printerStarted) {
 //			printerThread.setDaemon(true);
 //			printerThread.start();
 //			printerStarted = true;
 //		}
 //		long start = System.currentTimeMillis();
 		MethodInvoke ret = new MethodInvoke();
-		if (m == null) {
-			ret.a = in;
-			ret.o = owner;
-			ret.m = m;
-//			time += (System.currentTimeMillis() - start);
-			return ret;
-		}
-		if(Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/')))
-		{
+		if(m == null || Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/'))) {
 		    ret.a = in;
             ret.o = owner;
             ret.m = m;
@@ -1182,69 +1175,21 @@ public class ReflectionMasker {
             return ret;
 		}
 		m.setAccessible(true);
-		if ((!m.PHOSPHOR_TAGmarked) && 
-				!"java.lang.Object".equals(m.getDeclaringClass().getName())) {
+		if ((!m.PHOSPHOR_TAGmarked) && !"java.lang.Object".equals(m.getDeclaringClass().getName())) {
 			m = getTaintMethod(m, isObjTags);
 		}
 		m.setAccessible(true);
 		ret.a = in;
 		ret.o = owner;
 		ret.m = m;
-//		if(in != null)
-//			System.out.println("FAA: " +m + " "+owner);
-		int j = 0;
-		if (in != null && m.getParameterTypes().length != in.length) {
-			ret.a = new Object[m.getParameterTypes().length];
-			for (int i = 0; i < in.length; i++) {
-				if (m.getParameterTypes()[j].isPrimitive()) {
-					if (in[i] instanceof TaintedWithIntTag)
-						ret.a[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
-					else if(in[i] instanceof TaintedWithObjTag)
-						ret.a[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
-					else if(isObjTags)
-						ret.a[j] = null;
-					else
-						ret.a[j] = 0;
-					j++;
-				} else if (m.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_CLASS){
-					if(in[i] instanceof TaintedWithObjTag)
-						ret.a[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
-					else
-						ret.a[j] = null;
-					j++;
-				} else if (LazyArrayIntTags.class.isAssignableFrom(m.getParameterTypes()[j])) {
-						LazyArrayIntTags arr = ((LazyArrayIntTags) in[i]);
-						ret.a[j] = arr;
-						j++;
-						if(arr != null)
-							ret.a[j] = arr.getVal();
-						j++;
-					
-					continue;
-				} else if(LazyArrayObjTags.class.isAssignableFrom(m.getParameterTypes()[j]))
-				{
-					LazyArrayObjTags arr = ((LazyArrayObjTags) in[i]);
-					ret.a[j] = arr;
-					j++;
-					ret.a[j] = arr.getVal();
-					j++;
-					continue;
-				}
-				ret.a[j] = in[i];
-				j++;
-			}
-		}
+		int j = fillInParams(ret, in);
 		if ((in == null && m != null && m.getParameterTypes().length == 1) || (in != null && j != in.length - 1)) {
-			if (in == null)
-				ret.a = new Object[1];
+			ret.a = (in != null) ? ret.a :  new Object[1];
 			final Class returnType = m.getReturnType();
-			if (TaintedPrimitiveWithIntTag.class.isAssignableFrom(returnType)
-					|| TaintedPrimitiveWithObjTag.class.isAssignableFrom(returnType))  {
+			if (TaintedPrimitiveWithIntTag.class.isAssignableFrom(returnType) || TaintedPrimitiveWithObjTag.class.isAssignableFrom(returnType))  {
 				try {
 					ret.a[j] = returnType.newInstance();
-				} catch (InstantiationException e) {
-					e.printStackTrace();
-				} catch (IllegalAccessException e) {
+				} catch (InstantiationException | IllegalAccessException e) {
 					e.printStackTrace();
 				}
 			}
@@ -1255,6 +1200,60 @@ public class ReflectionMasker {
 //				System.out.println("Fix all args slow: " + Arrays.toString(ret.a) + " for " + m);
 		return ret;
 	}
+
+	/* Adds arguments to the specified MethodInvoke's argument array from the specified array of provided arguments based on the expected
+	 * argument types of the MethodInvoke's method. Returns the number of arguments added. */
+	private static int fillInParams(MethodInvoke mInvoke, Object[] providedArgs) {
+		int targetParamIndex = 0;
+		Method method = mInvoke.m;
+		if (providedArgs != null && method.getParameterTypes().length != providedArgs.length) {
+			mInvoke.a = new Object[method.getParameterTypes().length];
+			for(Object providedArg : providedArgs) {
+				Class<?> targetParamClass = method.getParameterTypes()[targetParamIndex];
+				if(targetParamClass.equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
+					// Add an object taint
+					mInvoke.a[targetParamIndex++] = MultiTainter.getTaint(providedArg);
+					// Add a boxed primitive to the args
+					mInvoke.a[targetParamIndex++] = providedArg;
+				} else if(targetParamClass.equals(Integer.TYPE)) {
+					// Add an int taint to the args
+					if(providedArg instanceof TaintedWithObjTag) {
+						mInvoke.a[targetParamIndex++] = ((TaintedWithObjTag) providedArg).getPHOSPHOR_TAG();
+					} else if(providedArg instanceof Boolean) {
+						mInvoke.a[targetParamIndex++] = BoxedPrimitiveStoreWithIntTags.booleanValue((Boolean)providedArg).taint;
+					} else if(providedArg instanceof Byte) {
+						mInvoke.a[targetParamIndex++] = BoxedPrimitiveStoreWithIntTags.byteValue((Byte)providedArg).taint;
+					} else if(providedArg instanceof Short) {
+						mInvoke.a[targetParamIndex++] = BoxedPrimitiveStoreWithIntTags.shortValue((Short)providedArg).taint;
+					} else if(providedArg instanceof Character) {
+						mInvoke.a[targetParamIndex++]= BoxedPrimitiveStoreWithIntTags.charValue((Character)providedArg).taint;
+					} else {
+						mInvoke.a[targetParamIndex++] = 0;
+					}
+					// Add a boxed primitive to the args
+					mInvoke.a[targetParamIndex++] = providedArg;
+				} else if(LazyArrayIntTags.class.isAssignableFrom(targetParamClass)) {
+					// Add a LazyArray to the args
+					LazyArrayIntTags arr = ((LazyArrayIntTags) providedArg);
+					mInvoke.a[targetParamIndex++] = arr;
+					// Add a primitive array to the args
+					mInvoke.a[targetParamIndex++] = (arr == null) ? null : arr.getVal();
+				} else if(LazyArrayObjTags.class.isAssignableFrom(targetParamClass)) {
+					// Add a LazyArray to the args
+					LazyArrayObjTags arr = ((LazyArrayObjTags) providedArg);
+					mInvoke.a[targetParamIndex++] = arr;
+					// Add a primitive array to the args
+					mInvoke.a[targetParamIndex++] = (arr == null) ? null : arr.getVal();
+				} else {
+					// Add the provided argument as is to the args
+					mInvoke.a[targetParamIndex++] = providedArg;
+				}
+
+			}
+		}
+		return targetParamIndex;
+	}
+
 
 	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, ControlTaintTagStack ctrl) {
 		//		System.out.println("Making slow call to  " + m);
@@ -1281,41 +1280,9 @@ public class ReflectionMasker {
 		ret.o = owner;
 		ret.m = m;
 //				System.out.println("FAA: " +m + " "+owner + " " + Arrays.toString(in));
-		int j = 0;
-
-		if (in != null && m.getParameterTypes().length != in.length) {
-			ret.a = new Object[m.getParameterTypes().length];
-			for (int i = 0; i < in.length; i++) {
-				if (m.getParameterTypes()[j] == Taint.class && m.getParameterTypes()[j+1].isPrimitive()) {
-					if (in[i] instanceof TaintedWithIntTag)
-						ret.a[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
-					else if(in[i] instanceof TaintedWithObjTag)
-						ret.a[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
-					else
-						ret.a[j] = 0;
-					j++;
-				} else if (m.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_CLASS){
-					if(in[i] instanceof TaintedWithObjTag)
-						ret.a[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
-					else
-						ret.a[j] = null;
-					j++;
-				} else if (LazyArrayObjTags.class.isAssignableFrom(m.getParameterTypes()[j])){
-					LazyArrayObjTags arr = ((LazyArrayObjTags) in[i]);
-					ret.a[j] = arr;
-					j++;
-					ret.a[j] = arr.getVal();
-					j++;
-					continue;
-				}
-				ret.a[j] = in[i];
-				j++;
-			}
-		}
-		if(ret.a != null && ret.a.length > j)
-		{
-			ret.a[j] = ctrl;
-			j++;
+		int j = fillInParams(ret, in);
+		if(ret.a != null && ret.a.length > j) {
+			ret.a[j++] = ctrl;
 		}
 //		System.out.println("So far, " + Arrays.toString(ret.a));
 		if (in == null && m != null && m.getParameterTypes().length == 1) {
@@ -1353,8 +1320,6 @@ public class ReflectionMasker {
 //						System.out.println("Fix all args slow: " + Arrays.toString(ret.a) + " for " + m);
 		return ret;
 	}
-
-
 
 	final static String multiDDescriptor = "edu.columbia.cs.psl.phosphor.struct.Lazy";
 	final static int multiDDescriptorLength = multiDDescriptor.length();
