@@ -35,11 +35,13 @@ public class EclipseCompilerCV extends ClassVisitor {
         @Override
         public void visitCode() {
             super.visitCode();
-            int idx = 1; // start at 1 to skip over the "this" argument
+            int idx = 1; // Start at 1 to skip over the "this" argument
             for(Type arg : args) {
                 if(arg.getInternalName().equals("org/eclipse/jdt/internal/compiler/IErrorHandlingPolicy")) {
+                    // Make the replacement policy
                     super.visitMethodInsn(Opcodes.INVOKESTATIC, "org/eclipse/jdt/internal/compiler/DefaultErrorHandlingPolicies", "ignoreAllProblems", "()Lorg/eclipse/jdt/internal/compiler/IErrorHandlingPolicy;", false);
-                    super.visitVarInsn(Opcodes.ASTORE, idx); // load the replace policy onto the stack
+                    // Store the replacement policy into the old policy's local variable
+                    super.visitVarInsn(Opcodes.ASTORE, idx);
                 }
                 idx += arg.getSize();
             }
