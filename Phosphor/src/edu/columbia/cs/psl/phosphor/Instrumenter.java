@@ -885,4 +885,42 @@ public class Instrumenter {
 		return owner.equals("sun/java2d/cmm/lcms/LCMSImageLayout") && name.equals("dataArray");
 	}
 
+	/* Returns the class node associated with the specified class name or null if none exists and a new one could not
+	 * successfully be created for the class name. */
+	public static ClassNode getClassNode(String className) {
+		ClassNode cn = classes.get(className);
+		if(cn == null) {
+			// Class was loaded before ClassSupertypeReadingTransformer was added
+			return tryToAddClassNode(className);
+		} else {
+			return cn;
+		}
+	}
+
+	/* Attempts to create a ClassNode populated with supertype information for this class. */
+	private static ClassNode tryToAddClassNode(String className) {
+		try {
+			String resource = className + ".class";
+			InputStream is = ClassLoader.getSystemResourceAsStream(resource);
+			if (is == null) {
+				return null;
+			}
+			ClassReader cr = new ClassReader(is);
+			cr.accept(new ClassVisitor(Opcodes.ASM5) {
+				@Override
+				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+					super.visit(version, access, name, signature, superName, interfaces);
+					ClassNode cn = new ClassNode();
+					cn.name = name;
+					cn.superName = superName;
+					cn.interfaces = new ArrayList<>(Arrays.asList(interfaces));
+					classes.put(name, cn);
+				}
+			}, ClassReader.SKIP_CODE);
+			is.close();
+			return classes.get(className);
+		} catch (Exception e) {
+			return null;
+		}
+	}
 }

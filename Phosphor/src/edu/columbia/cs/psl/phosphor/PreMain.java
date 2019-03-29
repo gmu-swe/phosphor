@@ -7,23 +7,20 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.ProtectionDomain;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.ClinitRetransformClassVisitor;
+import edu.columbia.cs.psl.phosphor.instrumenter.EclipseCompilerCV;
 import edu.columbia.cs.psl.phosphor.instrumenter.HidePhosphorFromASMCV;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurJSRInlinerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUIDAdder;
 import org.objectweb.asm.*;
-import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.commons.SerialVersionUIDAdder;
 import org.objectweb.asm.tree.*;
 
@@ -290,6 +287,9 @@ public class PreMain {
 						_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields);
 					else
 						_cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+					if(EclipseCompilerCV.isEclipseCompilerClass(className)) {
+						_cv = new EclipseCompilerCV(_cv);
+					}
 					_cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
 					if (Configuration.WITH_SELECTIVE_INST)
 						cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
