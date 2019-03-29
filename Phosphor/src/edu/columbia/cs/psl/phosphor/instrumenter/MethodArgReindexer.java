@@ -45,6 +45,7 @@ public class MethodArgReindexer extends MethodVisitor {
 	boolean returnLVVisited = false;
 	HashMap<String, Integer> parameters = new HashMap<>();
 	int line;
+	int indexOfControlTagsInLocals;
 
 
 	public MethodArgReindexer(MethodVisitor mv, int access, String name, String desc, String originalDesc, MethodNode lvStore, boolean isLambda) {
@@ -119,6 +120,7 @@ public class MethodArgReindexer extends MethodVisitor {
 		}
 		if ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")) {
 			hasBeenRemapped = true;
+			indexOfControlTagsInLocals = oldArgTypes.length + newArgOffset + (isStatic ? 0 : 1);
 			newArgOffset++;
 		}
 		if (name.equals("<init>") && hasBeenRemapped) {
@@ -327,6 +329,12 @@ public class MethodArgReindexer extends MethodVisitor {
 
 			}
 			if (origNumArgs != 0 && (Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
+				while(thisLocalIndexInNewFrame < indexOfControlTagsInLocals) //There are no locals in this frame, BUT there were args on the method - make sure metadata goes to the right spot
+				{
+					remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
+					thisLocalIndexInNewFrame++;
+					nLocal++;
+				}
 				remappedLocals[thisLocalIndexInNewFrame] = Type.getInternalName(ControlTaintTagStack.class);
 				thisLocalIndexInNewFrame++;
 				thisLocalVarNumberInNewFrame++;
