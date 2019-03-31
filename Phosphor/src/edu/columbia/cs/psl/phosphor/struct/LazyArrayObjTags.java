@@ -1,6 +1,8 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Objects;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
@@ -36,11 +38,25 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 	}
 
 	public abstract Object getVal();
+
 	protected void checkAIOOB(Taint idxTaint, int idx, ControlTaintTagStack ctrl) {
 		if (idx >= getLength()) {
 			ArrayIndexOutOfBoundsException ex = new ArrayIndexOutOfBoundsException("" + idx);
 			MultiTainter.taintedObject(ex, Taint.combineTags(idxTaint, ctrl));
 			throw ex;
 		}
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		LazyArrayObjTags that = (LazyArrayObjTags) o;
+		return Objects.equals(this.getVal(), that.getVal());
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hashCode(this.getVal());
 	}
 }

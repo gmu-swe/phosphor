@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 
 public abstract class LazyArrayIntTags implements Serializable {
@@ -33,4 +34,17 @@ public abstract class LazyArrayIntTags implements Serializable {
 	}
 
 	public abstract Object getVal();
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		LazyArrayIntTags that = (LazyArrayIntTags) o;
+		return Objects.equals(this.getVal(), that.getVal());
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hashCode(this.getVal());
+	}
 }
