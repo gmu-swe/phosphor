@@ -39,7 +39,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 				if(array.taints[i] == null)
 					array.taints[i] = tag.copy();
 				else
-					array.taints[i].addDependency(tag);
+					array.taints[i] = Taint.addDependency(array.taints[i], tag);
 			}
 
 		}else if (inputArray instanceof Object[])
@@ -51,10 +51,12 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 				{
 
 					Taint existing = (Taint) ((TaintedWithObjTag) o).getPHOSPHOR_TAG();
-					if(existing != null)
-						existing.addDependency(tag);
-					else
-						((TaintedWithObjTag) o).setPHOSPHOR_TAG(tag.copy());
+          if (existing != null) {
+            existing = Taint.addDependency(existing, tag);
+            ((TaintedWithObjTag) o).setPHOSPHOR_TAG(existing);
+          } else {
+            ((TaintedWithObjTag) o).setPHOSPHOR_TAG(tag.copy());
+          }
 				}
 			}
 		}
@@ -64,7 +66,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 		StackTraceElement[] st = Thread.currentThread().getStackTrace();
 		StackTraceElement[] s = new StackTraceElement[st.length - 3];
 		System.arraycopy(st, 3, s, 0, s.length);
-		return new Taint<>(new AutoTaintLabel(source, s));
+		return Taint.createTaint(new AutoTaintLabel(source, s));
 	}
 
 	/* Called by sources for the arguments and return value. Adds a new taint tag to the specified object. */
@@ -95,7 +97,8 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 	public TaintedWithObjTag autoTaint(TaintedWithObjTag ret, String source, int argIdx, Taint<? extends AutoTaintLabel> tag) {
         Taint prevTag = (Taint)ret.getPHOSPHOR_TAG();
         if(prevTag != null) {
-            prevTag.addDependency(tag);
+            prevTag = Taint.addDependency(prevTag, tag);
+            ret.setPHOSPHOR_TAG(prevTag);
         } else {
             ret.setPHOSPHOR_TAG(tag);
         }
@@ -110,7 +113,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 				if(taintArray[i] == null)
 					taintArray[i] = tag.copy();
 				else
-					taintArray[i].addDependency(tag);
+					taintArray[i] = Taint.addDependency(taintArray[i], tag);
 			}
 		} else {
 			ret.setTaints(tag);
@@ -121,7 +124,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 	@SuppressWarnings("unchecked")
 	public TaintedPrimitiveWithObjTag autoTaint(TaintedPrimitiveWithObjTag ret, String source, int argIdx, Taint<? extends AutoTaintLabel> tag) {
 		if (ret.taint != null)
-			ret.taint.addDependency(tag);
+			ret.taint = Taint.addDependency(ret.taint, tag);
 		else
 			ret.taint = tag;
 		return ret;

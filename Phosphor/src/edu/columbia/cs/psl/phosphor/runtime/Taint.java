@@ -12,86 +12,168 @@ public final class Taint<T> implements Serializable {
 	private static boolean IGNORE_TAINTING;
 	private static int TAINT_ARRAY_SIZE = -1;
 
-	private transient Object debug;
-	private T lbl;
-	private SimpleHashSet<T> dependencies;
-	private int[] tags;
+	private final transient Object debug;
+	private final T lbl;
+	private final SimpleHashSet<T> dependencies;
+	private final int[] tags;
 
-	public Taint() {
-		if(TAINT_ARRAY_SIZE > 0)
+	public static Taint createTaint() {
+		return new Taint();
+	}
+
+	public static Taint createTaint(int startingTag) {
+		return new Taint(startingTag);
+	}
+
+	public static <T> Taint createTaint(T lbl) {
+		return new Taint<>(lbl);
+	}
+
+	public static <T> Taint createTaint(Taint<T> t1) {
+		return t1;
+	}
+
+	public static <T> Taint createTaint(Taint<T> t1, Taint<T> t2) {
+		return new Taint<>(t1, t2);
+	}
+
+	private Taint() {
+		if(TAINT_ARRAY_SIZE > 0) {
 			tags = new int[TAINT_ARRAY_SIZE];
-	}
+		}
+		else {
+			tags = new int[0];
+		}
 
-	public Taint(int startingTag) {
-		tags = new int[TAINT_ARRAY_SIZE];
-		setBit(startingTag);
-	}
-
-	public Taint(T lbl) {
-		this.lbl = lbl;
+		debug = false;
+		lbl = null;
 		dependencies = new SimpleHashSet<T>();
 	}
 
-	public Taint(Taint<T> t1) {
-		if(t1 == null) {
-			return;
-		}
-		if(t1.dependencies != null) {
-			dependencies = new SimpleHashSet<>();
-			dependencies.addAll(t1.dependencies);
-		}
-		if(t1.tags != null) {
-			tags = new int[t1.tags.length];
-			System.arraycopy(t1.tags,0,tags,0,tags.length);
-		}
-		lbl = t1.lbl;
-		if(Configuration.derivedTaintListener != null) {
-			Configuration.derivedTaintListener.singleDepCreated(t1, this);
-		}
+	private Taint(int startingTag) {
+		tags = new int[Math.max(TAINT_ARRAY_SIZE, 1)];
+		setBit(startingTag);
+
+		debug = false;
+		lbl = null;
+		dependencies = new SimpleHashSet<T>();
 	}
 
-	public Taint(Taint<T> t1, Taint<T> t2) {
-		if(t1 != null) {
-			lbl = t1.lbl;
-			if(t1.dependencies != null) {
-				dependencies = new SimpleHashSet<>();
-				dependencies.addAll(t1.dependencies);
-			}
+	private Taint(T lbl) {
+		this.lbl = lbl;
+		dependencies = new SimpleHashSet<T>();
+
+		debug = false;
+		tags = new int[Math.max(TAINT_ARRAY_SIZE, 0)];
+	}
+
+	// TODO why would we create a taint from another taint?
+//	private Taint(Taint<T> t1) {
+//		if(t1 == null) {
+//			return;
+//		}
+//		if(t1.dependencies != null) {
+//			dependencies = new SimpleHashSet<>();
+//			dependencies.addAll(t1.dependencies);
+//		}
+//		if(t1.tags != null) {
+//			tags = new int[t1.tags.length];
+//			System.arraycopy(t1.tags,0,tags,0,tags.length);
+//		}
+//		lbl = t1.lbl;
+//		if(Configuration.derivedTaintListener != null) {
+//			Configuration.derivedTaintListener.singleDepCreated(t1, this);
+//		}
+//	}
+
+	private Taint(Taint<T> t1, Taint<T> t2) {
+		// Set tags array
+		if(t1 != null && t2 != null) {
+			int sizeOfTags = 0;
+
 			if(t1.tags != null) {
-				tags = new int[t1.tags.length];
-				System.arraycopy(t1.tags,0,tags,0,tags.length);
+				sizeOfTags += t1.tags.length;
 			}
-		}
-		if(t2 != null) {
-			if(t2.lbl != null) {
-				lbl = lbl == null ? t2.lbl : lbl; // Set the label to be the second taints label if it was null
-				if(!lbl.equals(t2.lbl)) {
-					// Create dependencies if it does not already exist
-					dependencies = (dependencies == null) ? new SimpleHashSet<T>() : dependencies;
-					dependencies.add(t2.lbl);
-				}
-			}
-			if(t2.dependencies != null) {
-				// Create dependencies if it does not already exist
-				dependencies = (dependencies == null) ? new SimpleHashSet<T>() : dependencies;
-				dependencies.addAll(t2.dependencies);
-			}
+
 			if(t2.tags != null) {
-				if(tags == null) {
-					tags = new int[t2.tags.length];
+				sizeOfTags += t2.tags.length;
+			}
+
+			tags = new int[sizeOfTags];
+
+			if (t1.tags != null) {
+				System.arraycopy(t1.tags,0,tags,0, t1.tags.length);
+			}
+
+			if(t2.tags != null) {
+				if(t1.tags == null) {
 					System.arraycopy(t2.tags, 0, tags, 0, tags.length);
 				} else {
 					setBits(t2.tags);
 				}
 			}
 		}
+		else if(t1 != null) {
+			tags = new int[t1.tags.length];
+			System.arraycopy(t1.tags,0,tags,0,tags.length);
+		}
+		else if(t2 != null) {
+			tags = new int[t2.tags.length];
+			System.arraycopy(t2.tags,0,tags,0,tags.length);
+		}
+		else {
+			tags = new int[Math.max(TAINT_ARRAY_SIZE, 0)];
+		}
+
+		// Set lbl and dependencies
+		dependencies = new SimpleHashSet<>();
+
+		if(t1 != null && t2 != null) {
+			lbl = t1.lbl;
+
+			if(t1.dependencies != null) {
+				dependencies.addAll(t1.dependencies);
+			}
+
+			if(t2.lbl != null) {
+
+				if(!lbl.equals(t2.lbl)) {
+					dependencies.add(t2.lbl);
+				}
+			}
+
+			if(t2.dependencies != null) {
+				dependencies.addAll(t2.dependencies);
+			}
+		}
+		else if(t1 != null) {
+			lbl = t1.lbl;
+
+			if(t1.dependencies != null) {
+				dependencies.addAll(t1.dependencies);
+			}
+		}
+		else if(t2 != null) {
+			lbl = t2.lbl;
+
+			if(t2.dependencies != null) {
+				dependencies.addAll(t2.dependencies);
+			}
+		}
+		else {
+			lbl = null;
+		}
+
 		// Make sure that lbl is not also in the dependencies
-		if(lbl != null && dependencies != null) {
+		if(lbl != null && !dependencies.isEmpty()) {
 			dependencies.remove(lbl);
 		}
+
 		if(Configuration.derivedTaintListener != null) {
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, this);
 		}
+
+		debug = false;
 	}
 
 	public static boolean isIgnoreTainting() {
@@ -125,7 +207,7 @@ public final class Taint<T> implements Serializable {
 		return "Taint [lbl=" + lbl + " " + depStr + "]";
 	}
 
-	public void setBit(int tag) {
+	private void setBit(int tag) {
 		int bits = tag % 31;
 		int key = tag / 31;
 		tags[key] |= 1 << bits;
@@ -137,7 +219,14 @@ public final class Taint<T> implements Serializable {
 		return (tags[key] & (1 << bits)) != 0;
 	}
 
-	public void setBits(int[] otherTags) {
+	public static <T> Taint<T> setBits(Taint<T> oldTaint, int[] otherTags) {
+		Taint<T> newTaint = Taint.createTaint(oldTaint);
+		newTaint.setBits(otherTags);
+
+		return newTaint;
+	}
+
+	private void setBits(int[] otherTags) {
 		for(int i = 0; i < otherTags.length; i++) {
 			tags[i] |= otherTags[i];
 		}
@@ -181,28 +270,37 @@ public final class Taint<T> implements Serializable {
 		return getDependencies();
 	}
 
-	public boolean addDependency(Taint<T> d) {
+	public static <T> Taint<T> addDependency(Taint<T> oldTaint, Taint<T> d) {
+		Taint<T> newTaint = Taint.createTaint(oldTaint);
+		newTaint.addDependency(d);
+
+		return newTaint;
+	}
+
+	private boolean addDependency(Taint<T> d) {
 		if(d == null) {
 			return false;
 		}
+
 		if(d.dependencies == null && d.lbl == null && Taint.TAINT_ARRAY_SIZE > 0) {
 			// accumulate tags
 			if(d.tags == null) {
 				return false;
 			}
-			// Create tags if it does not already exist
-			tags = (tags == null) ? new int[Taint.TAINT_ARRAY_SIZE] : tags;
+
 			return setBitsIfNeeded(d.tags);
 		}
-		// Create dependencies if it does not already exist
-		dependencies = (dependencies == null) ? new SimpleHashSet<T>() : dependencies;
+
 		boolean added = false;
+
 		if(d.lbl != null && !d.lbl.equals(lbl)) {
 			added = dependencies.add(d.lbl);
 		}
+
 		if(!d.hasNoDependencies()) {
 			added |= dependencies.addAll(d.dependencies);
 		}
+
 		return added;
 	}
 
@@ -273,12 +371,12 @@ public final class Taint<T> implements Serializable {
 			return t1;
 		} else if(t1 == null || (t1.lbl == null && t1.hasNoDependencies())) {
 			return t2;
-		} else if(t1.equals(t2) || IGNORE_TAINTING) {
-			return t1;
-		} else if(t1.contains(t2)) {
-			return t1;
-		} else if(t2.contains(t1)) {
-			return t2;
+//		} else if(t1.equals(t2) || IGNORE_TAINTING) {
+//			return t1;
+//		} else if(t1.contains(t2)) {
+//			return t1;
+//		} else if(t2.contains(t1)) {
+//			return t2;
 		} else {
 			Taint<T> r = new Taint<T>(t1,t2);
 			if(Configuration.derivedTaintListener != null) {

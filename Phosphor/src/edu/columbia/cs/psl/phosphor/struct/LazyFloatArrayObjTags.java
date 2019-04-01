@@ -44,7 +44,7 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
 		else if(tag == null)
 			set(l, idx, idxTag, ival);
 		else
-			set(l, idx, new Taint(tag, idxTag), ival);
+			set(l, idx, Taint.createTaint(tag, idxTag), ival);
 	}
 	
 	public void set(float[] f, int idx, Taint tag, float fval) {

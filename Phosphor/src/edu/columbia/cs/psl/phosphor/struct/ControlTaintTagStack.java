@@ -147,9 +147,9 @@ public final class ControlTaintTagStack {
 				{
 					found = true;
 					if(taints.taint.getTags() != null)
-						i.entry.tag.setBits(taints.taint.getTags());
+						i.entry.tag = Taint.setBits(i.entry.tag, taints.taint.getTags());
 					else
-						i.entry.tag.addDependency(taints.taint);
+						i.entry.tag = Taint.addDependency(i.entry.tag, taints.taint);
 					break;
 				}
 				i = i.next;
@@ -215,12 +215,12 @@ public final class ControlTaintTagStack {
 		}
 		if (this.taint == null)
 		{
-			this.taint = new Taint(tag);
+			this.taint = Taint.createTaint(tag);
 		}
 		else {
 			Taint prevTaint = this.taint;
 			this.taint = prevTaint.copy();
-			this.taint.addDependency(tag);
+			this.taint = Taint.addDependency(this.taint, tag);
 
 		}
 		return prev;
@@ -235,12 +235,12 @@ public final class ControlTaintTagStack {
 		prevTaints.addFast(this.taint);
 		if (this.taint == null)
 		{
-			this.taint = new Taint(tag);
+			this.taint = Taint.createTaint(tag);
 		}
 		else {
 			Taint prevTaint = this.taint;
 			this.taint = prevTaint.copy();
-			this.taint.addDependency(tag);
+			this.taint = Taint.addDependency(this.taint, tag);
 
 		}
 		return ret;
@@ -312,13 +312,13 @@ public final class ControlTaintTagStack {
 		if(influenceExceptions == null || influenceExceptions.isEmpty())
 			return ret.copy();
 		if(ret == null)
-			ret = new Taint();
+			ret = Taint.createTaint();
 		else
 			ret = ret.copy();
 		LinkedList.Node<MaybeThrownException> n = influenceExceptions.getFirst();
 		while(n != null){
 			if(n.entry != null && n.entry.tag != null)
-				ret.addDependency(n.entry.tag);
+				ret = Taint.addDependency(ret, n.entry.tag);
 			n=n.next;
 		}
 		return ret;

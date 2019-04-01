@@ -77,7 +77,7 @@ public class CharacterUtils {
 				ret.taint = tags.taints[i];
 			return ret;
 		} catch (StringIndexOutOfBoundsException ex) {
-			Taint _t = new Taint(t);
+			Taint _t = Taint.createTaint(t);
 			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
 			throw ex;
 		}
@@ -90,8 +90,8 @@ public class CharacterUtils {
 				ret.taint = ((String) seq).valuePHOSPHOR_TAG.taints[i];
 			return ret;
 		} catch (StringIndexOutOfBoundsException ex) {
-			Taint _t = new Taint(t);
-			_t.addDependency((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
+			Taint _t = Taint.createTaint(t);
+			_t = Taint.addDependency(_t, (Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
 			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
 			throw ex;
 		}
@@ -105,7 +105,7 @@ public class CharacterUtils {
 				ret.taint = tags.taints[i];
 			return ret;
 		} catch (StringIndexOutOfBoundsException ex) {
-			Taint _t = new Taint(t);
+			Taint _t = Taint.createTaint(t);
 			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
 			throw ex;
 		}
@@ -120,7 +120,7 @@ public class CharacterUtils {
 				ret.taint = tags.taints[i];
 			return ret;
 		} catch (StringIndexOutOfBoundsException ex) {
-			Taint _t = new Taint(t);
+			Taint _t = Taint.createTaint(t);
 			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
 			throw ex;
 		}
@@ -133,8 +133,8 @@ public class CharacterUtils {
 				ret.taint = ((String) seq).valuePHOSPHOR_TAG.taints[i];
 			return ret;
 		} catch (StringIndexOutOfBoundsException ex) {
-			Taint _t = new Taint(t);
-			_t.addDependency((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
+			Taint _t = Taint.createTaint(t);
+			_t = Taint.addDependency(_t, (Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
 			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
 			throw ex;
 		}
@@ -148,7 +148,7 @@ public class CharacterUtils {
 				ret.taint = tags.taints[i];
 			return ret;
 		} catch (StringIndexOutOfBoundsException ex) {
-			Taint _t = new Taint(t);
+			Taint _t = Taint.createTaint(t);
 			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
 			throw ex;
 		}
@@ -187,8 +187,8 @@ public class CharacterUtils {
 				ret.taint = tags.taints[i];
 			return ret;
 		} catch (StringIndexOutOfBoundsException ex) {
-			Taint _t = new Taint(t);
-			_t.addDependency(ctrl.taint);
+			Taint _t = Taint.createTaint(t);
+			_t = Taint.addDependency(_t, ctrl.taint);
 			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
 			throw ex;
 		}
@@ -201,9 +201,9 @@ public class CharacterUtils {
 				ret.taint = seq.toString().valuePHOSPHOR_TAG.taints[i];
 			return ret;
 		} catch (StringIndexOutOfBoundsException ex) {
-			Taint _t = new Taint(t);
-			_t.addDependency((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
-			_t.addDependency(ctrl.taint);
+			Taint _t = Taint.createTaint(t);
+			_t = Taint.addDependency(_t, (Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
+			_t = Taint.addDependency(_t, ctrl.taint);
 			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
 			throw ex;
 		}
@@ -217,8 +217,8 @@ public class CharacterUtils {
 				ret.taint = tags.taints[i];
 			return ret;
 		} catch (StringIndexOutOfBoundsException ex) {
-			Taint _t = new Taint(t);
-			_t.addDependency(ctrl.taint);
+			Taint _t = Taint.createTaint(t);
+			_t = Taint.addDependency(_t, ctrl.taint);
 			((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
 			throw ex;
 		}

@@ -46,7 +46,7 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 		else if(tag == null)
 			set(l, idx, idxTag, ival);
 		else
-			set(l, idx, new Taint(tag, idxTag), ival);
+			set(l, idx, Taint.createTaint(tag, idxTag), ival);
 	}
 
 	public void set(byte[] b, int idx, Taint tag, byte val) {

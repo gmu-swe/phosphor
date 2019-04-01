@@ -331,10 +331,10 @@ public class TaintUtils {
 		} else if (ArrayHelper.engaged == 1) {
 			return ArrayHelper.getTag(obj);
 		} else if (obj instanceof Taint[]) {
-			Taint ret = new Taint();
+			Taint ret = Taint.createTaint();
 			for (Taint t : ((Taint[]) obj)) {
 				if (t != null)
-					ret.addDependency(t);
+					ret = Taint.addDependency(ret, t);
 			}
 			if (ret.hasNoDependencies())
 				return null;
@@ -463,7 +463,7 @@ public class TaintUtils {
 					if (taints[i] == null)
 						taints[i] = ctrl.copyTag();
 					else
-						taints[i].addDependency(ctrl.getTag());
+						taints[i] = Taint.addDependency(taints[i], ctrl.getTag());
 				}
 			}
 		} else if (!dest.getClass().isArray()) {
@@ -542,12 +542,12 @@ public class TaintUtils {
 			Taint t = null;
 			if (srcPosTaint != null) {
 				t = ((Taint) srcPosTaint).copy();
-				t.addDependency((Taint) destPosTaint);
-				t.addDependency((Taint) lengthTaint);
+				t = Taint.addDependency(t, (Taint) destPosTaint);
+				t = Taint.addDependency(t, (Taint) lengthTaint);
 			} else if (destPosTaint != null) {
 
 				t = ((Taint) destPosTaint).copy();
-				t.addDependency((Taint) lengthTaint);
+				t = Taint.addDependency(t, (Taint) lengthTaint);
 			} else if (lengthTaint != null) {
 
 				t = ((Taint) lengthTaint).copy();
@@ -574,7 +574,7 @@ public class TaintUtils {
 					if (taints[i] == null)
 						taints[i] = ctrl.copyTag();
 					else {
-						taints[i].addDependency(ctrl.getTag());
+						taints[i] = Taint.addDependency(taints[i], ctrl.getTag());
 					}
 				}
 			}
@@ -582,12 +582,12 @@ public class TaintUtils {
 			Taint t = null;
 			if (srcPosTaint != null) {
 				t = ((Taint) srcPosTaint).copy();
-				t.addDependency((Taint) destPosTaint);
-				t.addDependency((Taint) lengthTaint);
+				t = Taint.addDependency(t, (Taint) destPosTaint);
+				t = Taint.addDependency(t, (Taint) lengthTaint);
 			} else if (destPosTaint != null) {
 
 				t = ((Taint) destPosTaint).copy();
-				t.addDependency((Taint) lengthTaint);
+				t = Taint.addDependency(t, (Taint) lengthTaint);
 			} else if (lengthTaint != null) {
 
 				t = ((Taint) lengthTaint).copy();

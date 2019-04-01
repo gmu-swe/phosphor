@@ -49,7 +49,7 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
 		else if (tag == null)
 			set(l, idx, idxTag, ival);
 		else
-			set(l, idx, new Taint(tag, idxTag), ival);
+			set(l, idx, Taint.createTaint(tag, idxTag), ival);
 	}
 
 	public void set(char[] c, int idx, Taint tag, char val) {

@@ -11,13 +11,13 @@ public class ExceptionalTaintData {
 		prevTaints.addFast(this.taint);
 		if(this.taint == null)
 		{
-			this.taint = new Taint(tag);
+			this.taint = Taint.createTaint(tag);
 		}
 		else
 		{
 			if(!this.taint.contains(tag)) {
 				this.taint = this.taint.copy();
-				this.taint.addDependency(tag);
+				this.taint = Taint.addDependency(this.taint, tag);
 			}
 		}
 	}

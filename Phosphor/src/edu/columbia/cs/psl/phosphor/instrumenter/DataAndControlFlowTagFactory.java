@@ -12,7 +12,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
 	public Taint<?> getAutoTaint(String source) {
-		return new Taint(source);
+		return Taint.createTaint(source);
 	}
 	@Override
 	public void methodOp(int opcode, String owner, String name, String desc, boolean itfc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {

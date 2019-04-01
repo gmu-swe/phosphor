@@ -673,7 +673,7 @@ public class RuntimeBoxUnboxPropogator {
 					if(ret.taint == null)
 						ret.taint = t.copy();
 					else
-						ret.taint.addDependency(t);
+						ret.taint = Taint.addDependency(ret.taint, t);
 			} else if (t != null)
 				ret.taint = t.copy();
 			else
@@ -703,7 +703,7 @@ public class RuntimeBoxUnboxPropogator {
 					if(ret.taint == null)
 						ret.taint = t.copy();
 					else
-						ret.taint.addDependency(t);
+						ret.taint = Taint.addDependency(ret.taint, t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -734,7 +734,7 @@ public class RuntimeBoxUnboxPropogator {
 					if(ret.taint == null)
 						ret.taint = t.copy();
 					else
-						ret.taint.addDependency(t);
+						ret.taint = Taint.addDependency(ret.taint, t);
 			} else if (t != null)
 				ret.taint = t.copy();
 			else
@@ -764,7 +764,7 @@ public class RuntimeBoxUnboxPropogator {
 					if(ret.taint == null)
 						ret.taint = t.copy();
 					else
-						ret.taint.addDependency(t);
+						ret.taint = Taint.addDependency(ret.taint, t);
 			} else if (t != null)
 				ret.taint = t.copy();
 			else
@@ -812,7 +812,7 @@ public class RuntimeBoxUnboxPropogator {
 					if(ret.taint == null)
 						ret.taint = t.copy();
 					else
-						ret.taint.addDependency(t);
+						ret.taint = Taint.addDependency(ret.taint, t);
 			} else if (t != null)
 				ret.taint = t.copy();
 			else
@@ -869,7 +869,7 @@ public class RuntimeBoxUnboxPropogator {
 					if(ret.taint == null)
 						ret.taint = t.copy();
 					else
-						ret.taint.addDependency(t);
+						ret.taint = Taint.addDependency(ret.taint, t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -900,7 +900,7 @@ public class RuntimeBoxUnboxPropogator {
 					if(ret.taint == null)
 						ret.taint = t.copy();
 					else
-						ret.taint.addDependency(t);
+						ret.taint = Taint.addDependency(ret.taint, t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -931,7 +931,7 @@ public class RuntimeBoxUnboxPropogator {
 					if(ret.taint == null)
 						ret.taint = t.copy();
 					else
-						ret.taint.addDependency(t);
+						ret.taint = Taint.addDependency(ret.taint, t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -962,7 +962,7 @@ public class RuntimeBoxUnboxPropogator {
 					if(ret.taint == null)
 						ret.taint = t.copy();
 					else
-						ret.taint.addDependency(t);
+						ret.taint = Taint.addDependency(ret.taint, t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -993,7 +993,7 @@ public class RuntimeBoxUnboxPropogator {
 					if(ret.taint == null)
 						ret.taint = t.copy();
 					else
-						ret.taint.addDependency(t);
+						ret.taint = Taint.addDependency(ret.taint, t);
 			}
 			else if(t != null)
 				ret.taint = t.copy();
@@ -1024,7 +1024,7 @@ public class RuntimeBoxUnboxPropogator {
 					if(ret.taint == null)
 						ret.taint = t.copy();
 					else
-						ret.taint.addDependency(t);
+						ret.taint = Taint.addDependency(ret.taint, t);
 			} else if (t != null)
 				ret.taint = t.copy();
 			else

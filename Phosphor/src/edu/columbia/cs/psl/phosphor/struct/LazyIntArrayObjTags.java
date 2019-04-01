@@ -56,7 +56,7 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 		else if(tag == null)
 			set(l, idx, idxTag, ival);
 		else
-			set(l, idx, new Taint(tag, idxTag), ival);
+			set(l, idx, Taint.createTaint(tag, idxTag), ival);
 	}
 
 	public void set(int[] l, int idx, Taint tag, int ival) {
