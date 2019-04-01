@@ -190,14 +190,16 @@ public final class ControlTaintTagStack {
 		return _push(tag, prev, i, maxSize, null);
 	}
 
-	public final int[] _push(Taint tag, int[] prev, int i, int maxSize, ExceptionalTaintData exceptionData){
+	public final int[] _push(Taint tag, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData exceptionData){
 		if(isDisabled)
-			return prev;
+			return invocationCountPerBranch;
 		//Try a deeper check
 //		if(this.taint != null && (tag.lbl == null || tag.lbl == this.taint.lbl || this.taint.dependencies.contains(tag.lbl)))
 //		{
 //			boolean ok = true;
 //			for(Object lbl : tag.dependencies)
+//
+//
 //			{
 //				if(!this.taint.dependencies.contains(lbl))
 //					ok = false;
@@ -206,24 +208,24 @@ public final class ControlTaintTagStack {
 //				return prev;
 //
 //		}
-		if(prev == null)
-			prev = new int[maxSize];
-		prev[i]++;
-		prevTaints.addFast(this.taint);
-		if(exceptionData != null){
-			exceptionData.push(tag);
-		}
-		if (this.taint == null)
-		{
-			this.taint = new Taint(tag);
-		}
-		else {
-			Taint prevTaint = this.taint;
-			this.taint = prevTaint.copy();
-			this.taint.addDependency(tag);
+		if(invocationCountPerBranch == null)
+			invocationCountPerBranch = new int[maxSize];
+		invocationCountPerBranch[indexOfBranchInMethod]++;
+		if(invocationCountPerBranch[indexOfBranchInMethod] == 1) {
+			prevTaints.addFast(this.taint);
+			if (exceptionData != null) {
+				exceptionData.push(tag);
+			}
+			if (this.taint == null) {
+				this.taint = new Taint(tag);
+			} else {
+				Taint prevTaint = this.taint;
+				this.taint = prevTaint.copy();
+				this.taint.addDependency(tag);
 
+			}
 		}
-		return prev;
+		return invocationCountPerBranch;
 	}
 	public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
 		if (tag == null || tag == taint || isDisabled)
@@ -258,8 +260,9 @@ public final class ControlTaintTagStack {
 		_pop(enq, i);
 	}
 	private final void _pop(int[] enq, int i){
-		while (enq[i]> 0) {
+		if(enq[i] > 0)
 			this.taint = prevTaints.pop();
+		while (enq[i]> 0) {
 			enq[i]--;
 		}
 	}
@@ -280,8 +283,9 @@ public final class ControlTaintTagStack {
 	private final void _pop(int[] enq){
 		for (int i = 0; i < enq.length; i++) {
 			if (enq[i] != 0) {
-				while (enq[i] > 0) {
+				if(enq[i] > 0)
 					this.taint = prevTaints.pop();
+				while (enq[i] > 0) {
 					enq[i]--;
 				}
 			}
