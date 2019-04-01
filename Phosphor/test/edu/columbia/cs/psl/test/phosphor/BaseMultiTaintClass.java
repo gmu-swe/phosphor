@@ -17,7 +17,7 @@ public class BaseMultiTaintClass extends BasePhosphorTest{
 	{
 		if(taint != null)
 		{
-			if(taint.lbl == null && taint.hasNoDependencies())
+			if(taint.getLbl() == null && taint.hasNoDependencies())
 				return;
 			fail("Expected null taint. Got: " + taint);
 		}
@@ -29,7 +29,7 @@ public class BaseMultiTaintClass extends BasePhosphorTest{
 		{
 			return;
 		}
-		if(taint.lbl == null && taint.hasNoDependencies())
+		if(taint.getLbl() == null && taint.hasNoDependencies())
 			return;
 		fail("Expected null taint. Got: " + taint);
 	}
@@ -38,25 +38,25 @@ public class BaseMultiTaintClass extends BasePhosphorTest{
 	{
 		Taint t = (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
 		assertNotNull(obj);
-		if(t == null || (t.lbl == null && t.hasNoDependencies()))
+		if(t == null || (t.getLbl() == null && t.hasNoDependencies()))
 			fail("Expected non-null taint - got: "  + t);
 	}
 
 	public static void assertNonNullTaint(Taint obj)
 	{
 		assertNotNull(obj);
-		if(obj.lbl == null && obj.hasNoDependencies())
+		if(obj.getLbl()== null && obj.hasNoDependencies())
 			fail("Expected non-null taint - got: "  + obj);
 	}
 	
 	public static void assertTaintHasLabel(Taint obj, Object lbl)
 	{
 		assertNotNull(obj);
-		if(obj.lbl == lbl)
+		if(obj.getLbl() == lbl)
 			return;
 		if(obj.hasNoDependencies())
 			fail("Expected taint contained "+ lbl+", has nothing");
-		for(Object o : obj.dependencies){
+		for(Object o : obj.getDependencies()){
 			if(o == lbl)
 				return;
 		}
@@ -65,12 +65,12 @@ public class BaseMultiTaintClass extends BasePhosphorTest{
 	public static void assertTaintHasOnlyLabel(Taint obj, Object lbl)
 	{
 		assertNotNull(obj);
-		if(obj.lbl == lbl)
+		if(obj.getLbl() == lbl)
 			return;
 		if(obj.hasNoDependencies())
 			fail("Expected taint contained "+ lbl+", has nothing");
 		boolean found = false;
-		for(Object o : obj.dependencies)
+		for(Object o : obj.getDependencies())
 		{
 			if(o == lbl)
 				found = true;
@@ -83,7 +83,7 @@ public class BaseMultiTaintClass extends BasePhosphorTest{
 	public static void assertTaintHasOnlyLabels(Taint obj, Object... lbl)
 	{
 		assertNotNull(obj);
-		if(obj.hasNoDependencies() && obj.lbl == null)
+		if(obj.hasNoDependencies() && obj.getLbl() == null)
 			fail("Expected taint contained "+ Arrays.toString(lbl)+", has nothing");
 		boolean l1 = false;
 		boolean l2 = false;
@@ -97,7 +97,7 @@ public class BaseMultiTaintClass extends BasePhosphorTest{
 			else
 				fail("Expected taint contained ONLY " + Arrays.toString(lbl) + ", found " + o);
 		}
-		expected.remove(obj.lbl);
+		expected.remove(obj.getLbl());
 		if(expected.isEmpty())
 			return;
 		fail("Expected taint contained "+ expected +", has " + obj);

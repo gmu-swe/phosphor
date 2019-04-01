@@ -19,7 +19,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		int[] ar = new int[i];
 		Taint r = MultiTainter.getTaint(ar.length);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
-			assertEquals(t.lbl, r.lbl);
+			assertEquals(t.getLbl(), r.getLbl());
 		else
 			assertNull(r);
 	}
@@ -31,7 +31,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		String[] ar = new String[i];
 		Taint r = MultiTainter.getTaint(ar.length);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
-			assertEquals(t.lbl, r.lbl);
+			assertEquals(t.getLbl(), r.getLbl());
 		else
 			assertNull(r);
 	}
@@ -43,12 +43,12 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		int[][] ar = new int[i][i];
 		Taint r = MultiTainter.getTaint(ar.length);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
-			assertEquals(t.lbl, r.lbl);
+			assertEquals(t.getLbl(), r.getLbl());
 		else
 			assertNull(r);
 		r = MultiTainter.getTaint(ar[0].length);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
-			assertEquals(t.lbl, r.lbl);
+			assertEquals(t.getLbl(), r.getLbl());
 		else
 			assertNull(r);
 	}
@@ -60,12 +60,12 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		String[][] ar = new String[i][i];
 		Taint r = MultiTainter.getTaint(ar.length);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
-			assertEquals(t.lbl, r.lbl);
+			assertEquals(t.getLbl(), r.getLbl());
 		else
 			assertNull(r);
 		r = MultiTainter.getTaint(ar[0].length);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
-			assertEquals(t.lbl, r.lbl);
+			assertEquals(t.getLbl(), r.getLbl());
 		else
 			assertNull(r);
 	}
@@ -79,7 +79,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		int j = ar[i];
 		Taint r = MultiTainter.getTaint(ar[i]);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
-			assertEquals(t.lbl, r.lbl);
+			assertEquals(t.getLbl(), r.getLbl());
 		else
 			assertNull(r);
 		String[] s = new String[10];
@@ -87,7 +87,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 			s[j] = "b";
 		r = (Taint) MultiTainter.getTaint(s[i]);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
-			assertEquals(t.lbl, r.lbl);
+			assertEquals(t.getLbl(), r.getLbl());
 		else
 			assertNull(r);
 	}
@@ -102,7 +102,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		Taint r = MultiTainter.getTaint(ar[5]);
 
 		if (Configuration.ARRAY_LENGTH_TRACKING)
-			assertEquals(t.lbl, r.lbl);
+			assertEquals(t.getLbl(), r.getLbl());
 		else
 			assertNull(r);
 
@@ -110,7 +110,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		s[i] = "bar";
 		r = (Taint) MultiTainter.getTaint(s[5]);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
-			assertEquals(t.lbl, r.lbl);
+			assertEquals(t.getLbl(), r.getLbl());
 		else
 			assertNull(r);
 	}
