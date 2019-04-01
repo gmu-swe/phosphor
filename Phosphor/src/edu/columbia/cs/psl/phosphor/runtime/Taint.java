@@ -7,8 +7,19 @@ import edu.columbia.cs.psl.phosphor.struct.*;
 import java.io.Serializable;
 import java.util.Arrays;
 
-public class Taint<T> implements Serializable {
-	public static boolean IGNORE_TAINTING;
+public final class Taint<T> implements Serializable {
+
+	private static boolean IGNORE_TAINTING;
+	private static int TAINT_ARRAY_SIZE = -1;
+
+	private transient Object debug;
+	private T lbl;
+	private SimpleHashSet<T> dependencies;
+	private int[] tags;
+
+	public static boolean isIgnoreTainting() {
+		return IGNORE_TAINTING;
+	}
 
 	public static final <T> Taint<T> copyTaint(Taint<T> in) {
 		return in == null ? null : in.copy();
@@ -45,17 +56,10 @@ public class Taint<T> implements Serializable {
 		return "Taint [lbl=" + lbl + " " + depStr + "]";
 	}
 
-	public transient Object debug;
-	public T lbl;
-	public SimpleHashSet<T> dependencies;
-	public int[] tags;
-
 	public Taint(int startingTag) {
 		tags = new int[TAINT_ARRAY_SIZE];
 		setBit(startingTag);
 	}
-
-	public static int TAINT_ARRAY_SIZE = -1;
 
 	public void setBit(int tag) {
 		int bits = tag % 31;
@@ -91,7 +95,7 @@ public class Taint<T> implements Serializable {
 		dependencies = new SimpleHashSet<T>();
 	}
 
-	public T getLabel() {
+	public T getLbl() {
 		return lbl;
 	}
 

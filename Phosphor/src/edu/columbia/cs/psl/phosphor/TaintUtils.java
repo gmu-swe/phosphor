@@ -324,7 +324,7 @@ public class TaintUtils {
 	}
 
 	public static Taint getTaintObj(Object obj) {
-		if (obj == null || Taint.IGNORE_TAINTING)
+		if (obj == null || Taint.isIgnoreTainting())
 			return null;
 		if (obj instanceof TaintedWithObjTag) {
 			return (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
@@ -986,7 +986,7 @@ public class TaintUtils {
 		T ret = Enum.valueOf(enumType, name);
 		Taint tag = (Taint) ((TaintedWithObjTag) ((Object) name)).getPHOSPHOR_TAG();
 		tag = Taint.combineTags(tag, ctrl);
-		if (tag != null && !(tag.getLabel() == null && tag.hasNoDependencies())) {
+		if (tag != null && !(tag.getLbl() == null && tag.hasNoDependencies())) {
 			ret = shallowClone(ret);
 			((TaintedWithObjTag) ret).setPHOSPHOR_TAG(tag);
 		}

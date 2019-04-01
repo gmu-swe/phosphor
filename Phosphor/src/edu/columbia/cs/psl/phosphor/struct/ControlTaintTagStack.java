@@ -12,7 +12,7 @@ public final class ControlTaintTagStack {
 
 	public LinkedList<MaybeThrownException> influenceExceptions;// = new LinkedList<>();
 	public final boolean isEmpty() {
-		return taint == null || this.isDisabled || (taint.lbl == null && taint.hasNoDependencies());
+		return taint == null || this.isDisabled || (taint.getLbl() == null && taint.hasNoDependencies());
 	}
 	public ControlTaintTagStack(int zz) {
 		this();
@@ -146,8 +146,8 @@ public final class ControlTaintTagStack {
 				if(i.entry != null && i.entry.clazz == t)
 				{
 					found = true;
-					if(taints.taint.tags != null)
-						i.entry.tag.setBits(taints.taint.tags);
+					if(taints.taint.getTags() != null)
+						i.entry.tag.setBits(taints.taint.getTags());
 					else
 						i.entry.tag.addDependency(taints.taint);
 					break;
@@ -303,7 +303,7 @@ public final class ControlTaintTagStack {
 
 	public Taint copyTagExceptions(){
 		if(
-				(taint == null || (taint.hasNoDependencies() && taint.lbl == null))
+				(taint == null || (taint.hasNoDependencies() && taint.getTags() == null))
 				&& (influenceExceptions == null || influenceExceptions.isEmpty())
 		){
 			return null;
@@ -324,7 +324,7 @@ public final class ControlTaintTagStack {
 		return ret;
 	}
 	public Taint getTag() {
-		if(taint == null || isDisabled || (taint.hasNoDependencies() && taint.lbl == null))
+		if(taint == null || isDisabled || (taint.hasNoDependencies() && taint.getTags() == null))
 			return null;
 		return taint;
 	}
