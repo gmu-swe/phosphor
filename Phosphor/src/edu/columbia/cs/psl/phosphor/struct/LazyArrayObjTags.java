@@ -57,6 +57,6 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 
 	@Override
 	public int hashCode() {
-		return Objects.hashCode(this.getVal());
+	    return this.getVal().hashCode();
 	}
 }
