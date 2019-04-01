@@ -17,43 +17,9 @@ public final class Taint<T> implements Serializable {
 	private SimpleHashSet<T> dependencies;
 	private int[] tags;
 
-	public static boolean isIgnoreTainting() {
-		return IGNORE_TAINTING;
-	}
-
-	public static final <T> Taint<T> copyTaint(Taint<T> in) {
-		return in == null ? null : in.copy();
-	}
-
-	public Taint<T> copy() {
-		if(IGNORE_TAINTING)
-			return this;
-		Taint<T> ret = new Taint<T>();
-		ret.lbl = lbl;
-		if(dependencies != null)
-			ret.dependencies = dependencies.copy();
-		if(tags != null)
-			ret.tags = tags.clone();
-		return ret;
-	}
-
-//	public Object clone()  {
-//		try {
-//			Object ret = super.clone();
-//			Taint r = (Taint) ret;
-//			r.dependencies = (LinkedList<Taint>) dependencies.clone();
-//			return ret;
-//		} catch (CloneNotSupportedException e) {
-//			e.printStackTrace();
-//
-//			return null;
-//		}
-//	}
-
-	@Override
-	public String toString() {
-		String depStr = " deps = [" + (dependencies != null ? dependencies.toString() : "") + "]";
-		return "Taint [lbl=" + lbl + " " + depStr + "]";
+	public Taint() {
+		if(TAINT_ARRAY_SIZE > 0)
+			tags = new int[TAINT_ARRAY_SIZE];
 	}
 
 	public Taint(int startingTag) {
@@ -61,65 +27,9 @@ public final class Taint<T> implements Serializable {
 		setBit(startingTag);
 	}
 
-	public void setBit(int tag) {
-		int bits = tag % 31;
-		int key = tag / 31;
-		tags[key] |= 1 << bits;
-	}
-
-	public boolean hasBitSet(int tag) {
-		int bits = tag % 31;
-		int key = tag / 31;
-		return (tags[key] & (1 << bits)) != 0;
-	}
-
-	public void setBits(int[] otherTags) {
-		for(int i = 0; i < otherTags.length; i++) {
-			tags[i] |= otherTags[i];
-		}
-	}
-
-	private boolean setBitsIfNeeded(int[] otherTags) {
-		boolean changed = false;
-		for (int i = 0; i < otherTags.length; i++) {
-			if ((tags[i] | otherTags[i]) != tags[i]) {
-				tags[i] |= otherTags[i];
-				changed = true;
-			}
-		}
-		return changed;
-	}
-
 	public Taint(T lbl) {
 		this.lbl = lbl;
 		dependencies = new SimpleHashSet<T>();
-	}
-
-	public T getLbl() {
-		return lbl;
-	}
-
-	public int[] getTags() {
-		return tags;
-	}
-
-	@SuppressWarnings("unused")
-	public LazyIntArrayObjTags getTags$$PHOSPHORTAGGED() {
-		return new LazyIntArrayObjTags(tags);
-	}
-
-	@SuppressWarnings("unused")
-	public LazyIntArrayObjTags getTags$$PHOSPHORTAGGED(ControlTaintTagStack ctrl) {
-		return new LazyIntArrayObjTags(tags);
-	}
-
-	public SimpleHashSet<T> getDependencies() {
-		return dependencies;
-	}
-
-	@SuppressWarnings("unused")
-	public SimpleHashSet<T> getDependencies$$PHOSPHORTAGGED() {
-		return getDependencies();
 	}
 
 	public Taint(Taint<T> t1) {
@@ -184,9 +94,91 @@ public final class Taint<T> implements Serializable {
 		}
 	}
 
-	public Taint() {
-		if(TAINT_ARRAY_SIZE > 0)
-			tags = new int[TAINT_ARRAY_SIZE];
+	public static boolean isIgnoreTainting() {
+		return IGNORE_TAINTING;
+	}
+
+	public static final <T> Taint<T> copyTaint(Taint<T> in) {
+		return in;
+	}
+
+	public Taint<T> copy() {
+		return this;
+	}
+
+//	public Object clone()  {
+//		try {
+//			Object ret = super.clone();
+//			Taint r = (Taint) ret;
+//			r.dependencies = (LinkedList<Taint>) dependencies.clone();
+//			return ret;
+//		} catch (CloneNotSupportedException e) {
+//			e.printStackTrace();
+//
+//			return null;
+//		}
+//	}
+
+	@Override
+	public String toString() {
+		String depStr = " deps = [" + (dependencies != null ? dependencies.toString() : "") + "]";
+		return "Taint [lbl=" + lbl + " " + depStr + "]";
+	}
+
+	public void setBit(int tag) {
+		int bits = tag % 31;
+		int key = tag / 31;
+		tags[key] |= 1 << bits;
+	}
+
+	public boolean hasBitSet(int tag) {
+		int bits = tag % 31;
+		int key = tag / 31;
+		return (tags[key] & (1 << bits)) != 0;
+	}
+
+	public void setBits(int[] otherTags) {
+		for(int i = 0; i < otherTags.length; i++) {
+			tags[i] |= otherTags[i];
+		}
+	}
+
+	private boolean setBitsIfNeeded(int[] otherTags) {
+		boolean changed = false;
+		for (int i = 0; i < otherTags.length; i++) {
+			if ((tags[i] | otherTags[i]) != tags[i]) {
+				tags[i] |= otherTags[i];
+				changed = true;
+			}
+		}
+		return changed;
+	}
+
+	public T getLbl() {
+		return lbl;
+	}
+
+	public int[] getTags() {
+		return tags;
+	}
+
+	@SuppressWarnings("unused")
+	public LazyIntArrayObjTags getTags$$PHOSPHORTAGGED() {
+		return new LazyIntArrayObjTags(tags);
+	}
+
+	@SuppressWarnings("unused")
+	public LazyIntArrayObjTags getTags$$PHOSPHORTAGGED(ControlTaintTagStack ctrl) {
+		return new LazyIntArrayObjTags(tags);
+	}
+
+	public SimpleHashSet<T> getDependencies() {
+		return dependencies;
+	}
+
+	@SuppressWarnings("unused")
+	public SimpleHashSet<T> getDependencies$$PHOSPHORTAGGED() {
+		return getDependencies();
 	}
 
 	public boolean addDependency(Taint<T> d) {
