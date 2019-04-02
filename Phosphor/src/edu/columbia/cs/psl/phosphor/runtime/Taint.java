@@ -52,7 +52,7 @@ public final class Taint<T> implements Serializable {
 
 		debug = false;
 		lbl = null;
-		dependencies = null;
+		dependencies = new SimpleHashSet<T>();
 	}
 
 	private Taint(int startingTag) {
