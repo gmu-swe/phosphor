@@ -280,6 +280,10 @@ public final class Taint<T> implements Serializable {
 	}
 
 	public static <T> Taint<T> addDependency(Taint<T> oldTaint, Taint<T> d) {
+		if(oldTaint.contains(d)) {
+			return oldTaint;
+		}
+
 		Taint<T> newTaint = Taint.createTaint(oldTaint);
 		newTaint.addDependency(d);
 
@@ -366,7 +370,7 @@ public final class Taint<T> implements Serializable {
 	public static <T> void _combineTagsInPlace(Object obj, Taint<T> t1) {
 		Taint<T> t = (Taint<T>) TaintUtils.getTaintObj(obj);
 		if(t == null) {
-			MultiTainter.taintedObject(obj, new Taint(t1));
+			MultiTainter.taintedObject(obj, t1);
 		}
 		else {
 			t.addDependency(t1);
@@ -380,14 +384,14 @@ public final class Taint<T> implements Serializable {
 			return t1;
 		} else if(t1 == null || (t1.lbl == null && t1.hasNoDependencies())) {
 			return t2;
-//		} else if(t1.equals(t2) || IGNORE_TAINTING) {
-//			return t1;
-//		} else if(t1.contains(t2)) {
-//			return t1;
-//		} else if(t2.contains(t1)) {
-//			return t2;
+		} else if(t1.equals(t2) || IGNORE_TAINTING) {
+			return t1;
+		} else if(t1.contains(t2)) {
+			return t1;
+		} else if(t2.contains(t1)) {
+			return t2;
 		} else {
-			Taint<T> r = new Taint<T>(t1,t2);
+			Taint<T> r = Taint.createTaint(t1,t2);
 			if(Configuration.derivedTaintListener != null) {
 				Configuration.derivedTaintListener.doubleDepCreated(t1, t2, r);
 			}
