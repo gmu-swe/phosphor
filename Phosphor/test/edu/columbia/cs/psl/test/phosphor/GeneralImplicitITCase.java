@@ -62,7 +62,7 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
         ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
         ObjectInputStream si = new ObjectInputStream(bis);
         b = (BigInteger) si.readObject();
-        System.out.println(b.toByteArray());
+//        System.out.println(b.toByteArray());
 	}
 
 	@Test
