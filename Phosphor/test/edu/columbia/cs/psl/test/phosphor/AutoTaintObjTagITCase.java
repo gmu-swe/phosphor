@@ -94,7 +94,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testTaintThroughAppliesToArgsAtEndOfMethod() throws Exception {
 		TaintThroughExample ex = new TaintThroughExample();
-		MultiTainter.taintedObject(ex,new Taint("Test"));
+		MultiTainter.taintedObject(ex,Taint.createTaint("Test"));
 
 		int[] ar = new int[10];
 
@@ -123,7 +123,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testPrimitiveTaintThrough() throws Exception {
 		TaintThroughExample taintedObj = new TaintThroughExample();
-		MultiTainter.taintedObject(taintedObj, new Taint("Test"));
+		MultiTainter.taintedObject(taintedObj, Taint.createTaint("Test"));
 		int ret = taintedObj.taintThroughInt();
 		assertNonNullTaint(ret);
 	}

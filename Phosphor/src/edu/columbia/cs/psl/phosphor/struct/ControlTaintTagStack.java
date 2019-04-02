@@ -303,7 +303,7 @@ public final class ControlTaintTagStack {
 
 	public Taint copyTagExceptions(){
 		if(
-				(taint == null || (taint.hasNoDependencies() && taint.getTags() == null))
+				(taint == null || (taint.hasNoDependencies() && taint.getLbl() == null))
 				&& (influenceExceptions == null || influenceExceptions.isEmpty())
 		){
 			return null;
@@ -324,7 +324,7 @@ public final class ControlTaintTagStack {
 		return ret;
 	}
 	public Taint getTag() {
-		if(taint == null || isDisabled || (taint.hasNoDependencies() && taint.getTags() == null))
+		if(taint == null || isDisabled || (taint.hasNoDependencies() && taint.getLbl() == null))
 			return null;
 		return taint;
 	}

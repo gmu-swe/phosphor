@@ -48,7 +48,7 @@ public class DroidBenchObjTagITCase extends BasePhosphorTest {
 
 	public static String taintedString(String string) {
 		Object r = new String(string.toCharArray());
-		((TaintedWithObjTag) r).setPHOSPHOR_TAG(new Taint("Some tainted data " + (++i)));
+		((TaintedWithObjTag) r).setPHOSPHOR_TAG(Taint.createTaint("Some tainted data " + (++i)));
 		return (String) r;
 	}
 
@@ -304,8 +304,8 @@ public class DroidBenchObjTagITCase extends BasePhosphorTest {
 		public void doTest() {
 			ArrayList arrayList = new ArrayList();
 			LinkedList linkedList = new LinkedList();
-			((TaintedWithObjTag) arrayList).setPHOSPHOR_TAG(new Taint("arraylist tag"));
-			((TaintedWithObjTag) linkedList).setPHOSPHOR_TAG(new Taint("arraylist tag"));
+			((TaintedWithObjTag) arrayList).setPHOSPHOR_TAG(Taint.createTaint("arraylist tag"));
+			((TaintedWithObjTag) linkedList).setPHOSPHOR_TAG(Taint.createTaint("arraylist tag"));
 
 			leakInformationBit(linkedList);
 			leakInformationBit(arrayList);

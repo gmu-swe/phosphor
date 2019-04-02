@@ -8,7 +8,7 @@ public class FakeEnumTest extends BasePhosphorTest{
 public static void main(String[] args) {
 	System.out.println(Foo.A);
 	String a = "A";
-	MultiTainter.taintedObject(a, new Taint("Z"));;
+	MultiTainter.taintedObject(a, Taint.createTaint("Z"));
 	System.out.println(Foo.valueOf(a));
 	System.out.println(MultiTainter.getTaint(Foo.valueOf(a)));
 	System.out.println(MultiTainter.getTaint(a));

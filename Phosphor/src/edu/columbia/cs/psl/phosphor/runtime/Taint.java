@@ -9,6 +9,7 @@ import java.util.Arrays;
 
 public final class Taint<T> implements Serializable {
 
+	// TODO is this used somewhere?
 	private static boolean IGNORE_TAINTING;
 	private static int TAINT_ARRAY_SIZE = -1;
 
@@ -23,6 +24,10 @@ public final class Taint<T> implements Serializable {
 
 	public static Taint createTaint(int startingTag) {
 		return new Taint(startingTag);
+	}
+
+	public static <T> Taint createTaint$$PHOSPHORTAGGED(T lbl) {
+		return Taint.createTaint(lbl);
 	}
 
 	public static <T> Taint createTaint(T lbl) {
@@ -42,12 +47,12 @@ public final class Taint<T> implements Serializable {
 			tags = new int[TAINT_ARRAY_SIZE];
 		}
 		else {
-			tags = new int[0];
+			tags = null;
 		}
 
 		debug = false;
 		lbl = null;
-		dependencies = new SimpleHashSet<T>();
+		dependencies = null;
 	}
 
 	private Taint(int startingTag) {
@@ -56,7 +61,7 @@ public final class Taint<T> implements Serializable {
 
 		debug = false;
 		lbl = null;
-		dependencies = new SimpleHashSet<T>();
+		dependencies = null;
 	}
 
 	private Taint(T lbl) {
@@ -64,7 +69,7 @@ public final class Taint<T> implements Serializable {
 		dependencies = new SimpleHashSet<T>();
 
 		debug = false;
-		tags = new int[Math.max(TAINT_ARRAY_SIZE, 0)];
+		tags = null;
 	}
 
 	// TODO why would we create a taint from another taint?
@@ -241,6 +246,10 @@ public final class Taint<T> implements Serializable {
 			}
 		}
 		return changed;
+	}
+
+	public T getLbl$$PHOSPHORTAGGED() {
+		return this.getLbl();
 	}
 
 	public T getLbl() {

@@ -16,13 +16,13 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 	public void testReferenceType() throws Exception {
 		String s = "def";
 		HashMap<Object, Object> m =  new HashMap<Object, Object>();
-		MultiTainter.taintedObject(s, new Taint("a"));;
-		MultiTainter.taintedObject(m, new Taint("a"));
+		MultiTainter.taintedObject(s, Taint.createTaint("a"));;
+		MultiTainter.taintedObject(m, Taint.createTaint("a"));
 		
 		int[] x = new int[10];
 		//In its default mode, Phosphor tracks ONLY for the array ELEMENTS - not for the reference
 		//can do -withArrayLengthTags to track a tag for the length of the array
-		x = MultiTainter.taintedIntArray(x, new Taint("b"));
+		x = MultiTainter.taintedIntArray(x, Taint.createTaint("b"));
 		
 		assertTrue(((TaintedWithObjTag)m).getPHOSPHOR_TAG() != null);
 		assertTrue(MultiTainter.getTaint(m) != null);
@@ -32,14 +32,14 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 	@Test
 	public void testBoxing()
 	{
-		Boolean z = MultiTainter.taintedBoolean(false, new Taint("a"));
-		Byte b = MultiTainter.taintedByte((byte) 4, new Taint("a"));
-		Character c = MultiTainter.taintedChar('a', new Taint("a"));
-		Integer i = MultiTainter.taintedInt(4, new Taint("a"));
-		Short s = MultiTainter.taintedShort((short)5, new Taint("a"));
-		Long l = MultiTainter.taintedLong((long) 5, new Taint("a"));
-		Float f = MultiTainter.taintedFloat(4f, new Taint("a"));
-		Double d = MultiTainter.taintedDouble(4d, new Taint("a"));
+		Boolean z = MultiTainter.taintedBoolean(false, Taint.createTaint("a"));
+		Byte b = MultiTainter.taintedByte((byte) 4, Taint.createTaint("a"));
+		Character c = MultiTainter.taintedChar('a', Taint.createTaint("a"));
+		Integer i = MultiTainter.taintedInt(4, Taint.createTaint("a"));
+		Short s = MultiTainter.taintedShort((short)5, Taint.createTaint("a"));
+		Long l = MultiTainter.taintedLong((long) 5, Taint.createTaint("a"));
+		Float f = MultiTainter.taintedFloat(4f, Taint.createTaint("a"));
+		Double d = MultiTainter.taintedDouble(4d, Taint.createTaint("a"));
 		
 
 		assertTrue(MultiTainter.getTaint(z.booleanValue()) != null);
@@ -55,21 +55,21 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 	@Test
 	public void testIntConstructorTaintsIntObject()
 	{
-		Integer i = new Integer(MultiTainter.taintedInt(5, new Taint("a")));
+		Integer i = new Integer(MultiTainter.taintedInt(5, Taint.createTaint("a")));
 		assertTrue(MultiTainter.getTaint(i)!=null);
 
 	}
 	@Test
 	public void testNotBoxing()
 	{
-		boolean z = MultiTainter.taintedBoolean(false, new Taint("a"));
-		byte b = MultiTainter.taintedByte((byte) 4, new Taint("a"));
-		char c = MultiTainter.taintedChar('a', new Taint("a"));
-		int i = MultiTainter.taintedInt(4, new Taint("a"));
-		short s = MultiTainter.taintedShort((short)5, new Taint("a"));
-		long l = MultiTainter.taintedLong((long) 5, new Taint("a"));
-		float f = MultiTainter.taintedFloat(4f, new Taint("a"));
-		double d = MultiTainter.taintedDouble(4d, new Taint("a"));
+		boolean z = MultiTainter.taintedBoolean(false, Taint.createTaint("a"));
+		byte b = MultiTainter.taintedByte((byte) 4, Taint.createTaint("a"));
+		char c = MultiTainter.taintedChar('a', Taint.createTaint("a"));
+		int i = MultiTainter.taintedInt(4, Taint.createTaint("a"));
+		short s = MultiTainter.taintedShort((short)5, Taint.createTaint("a"));
+		long l = MultiTainter.taintedLong((long) 5, Taint.createTaint("a"));
+		float f = MultiTainter.taintedFloat(4f, Taint.createTaint("a"));
+		double d = MultiTainter.taintedDouble(4d, Taint.createTaint("a"));
 		
 
 		assertTrue(MultiTainter.getTaint(z) != null);
@@ -85,14 +85,14 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 	@Test
 	public void testToString()
 	{
-		boolean z = MultiTainter.taintedBoolean(false, new Taint("a"));
-		byte b = MultiTainter.taintedByte((byte) 4, new Taint("a"));
-		char c = MultiTainter.taintedChar('a', new Taint("a"));
-		int i = MultiTainter.taintedInt(4, new Taint("a"));
-		short s = MultiTainter.taintedShort((short)5, new Taint("a"));
-		long l = MultiTainter.taintedLong((long) 5, new Taint("a"));
-		float f = MultiTainter.taintedFloat(4f, new Taint("a"));
-		double d = MultiTainter.taintedDouble(4d, new Taint("a"));
+		boolean z = MultiTainter.taintedBoolean(false, Taint.createTaint("a"));
+		byte b = MultiTainter.taintedByte((byte) 4, Taint.createTaint("a"));
+		char c = MultiTainter.taintedChar('a', Taint.createTaint("a"));
+		int i = MultiTainter.taintedInt(4, Taint.createTaint("a"));
+		short s = MultiTainter.taintedShort((short)5, Taint.createTaint("a"));
+		long l = MultiTainter.taintedLong((long) 5, Taint.createTaint("a"));
+		float f = MultiTainter.taintedFloat(4f, Taint.createTaint("a"));
+		double d = MultiTainter.taintedDouble(4d, Taint.createTaint("a"));
 		assertNonNullTaint(Boolean.toString(z));
 		assertNonNullTaint(Byte.toString(b));
 		assertNonNullTaint(Character.toString(c));
@@ -109,8 +109,8 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		String hundred = new String(new char[]{'1','0','0'});
 		Object lbl = 5;
 		String TRUE = new String(new char[]{'t','r','u','e'});
-		((TaintedWithObjTag) ((Object) hundred)).setPHOSPHOR_TAG(new Taint(lbl));
-		((TaintedWithObjTag) ((Object) TRUE)).setPHOSPHOR_TAG(new Taint(lbl));
+		((TaintedWithObjTag) ((Object) hundred)).setPHOSPHOR_TAG(Taint.createTaint(lbl));
+		((TaintedWithObjTag) ((Object) TRUE)).setPHOSPHOR_TAG(Taint.createTaint(lbl));
 		boolean z = Boolean.parseBoolean(TRUE);
 		byte b = Byte.valueOf(hundred);
 		byte b2 = Byte.parseByte(hundred);
