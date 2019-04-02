@@ -6,7 +6,7 @@ public class HardcodedBypassStore {
 	static GarbageCollectedArrayList<Object> vals = new GarbageCollectedArrayList<>();
 
 	static {
-		vals.add(null);
+		vals.add(null,null);
 	}
 
 	public static final Object get(int i) {
@@ -17,19 +17,11 @@ public class HardcodedBypassStore {
 		}
 	}
 
-	public static final int add(Object a) {
-		if (a == null)
+	public static final int add(Object taintObjectToPointTo, Object referent) {
+		if (taintObjectToPointTo == null)
 			return -1;
 		synchronized (vals) {
-			return vals.add(a);
-		}
-	}
-
-	public static final void free(int i) {
-		if (i >= 0) {
-			synchronized (vals) {
-				vals.free(i);
-			}
+			return vals.add(referent, taintObjectToPointTo);
 		}
 	}
 }
