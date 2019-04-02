@@ -627,6 +627,22 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		{
 			mn.accept(this);
 		}
+		if(Configuration.MULTI_TAINTING && !TaintAdapter.canRawTaintAccess(className))
+		{
+			MethodVisitor mv = super.visitMethod(Opcodes.ACC_PUBLIC,"finalize","()V", null, null);
+			mv.visitCode();
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitFieldInsn(Opcodes.GETFIELD, className,TaintUtils.TAINT_FIELD, "I");
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(HardcodedBypassStore.class), "free", "(I)V", false);
+			for (FieldNode fn : extraFieldsToVisit) {
+				mv.visitVarInsn(Opcodes.ALOAD, 0);
+				mv.visitFieldInsn(Opcodes.GETFIELD, className,fn.name,fn.desc);
+				mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(HardcodedBypassStore.class), "free", "(I)V", false);
+			}
+			mv.visitInsn(Opcodes.RETURN);
+			mv.visitEnd();
+			mv.visitMaxs(0,0);
+		}
 
 		if((isEnum || className.equals("java/lang/Enum")) && Configuration.WITH_ENUM_BY_VAL)
 		{
