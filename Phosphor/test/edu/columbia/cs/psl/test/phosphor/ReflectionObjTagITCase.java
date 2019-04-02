@@ -118,7 +118,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		// edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags cannot be cast
 		// to edu.columbia.cs.psl.phosphor.runtime.Taint
 
-		assertEquals(MultiTainter.getTaint(arr[0]).lbl, MultiTainter.getTaint(ret).lbl);
+		assertEquals(MultiTainter.getTaint(arr[0]).getLabels().pop(), MultiTainter.getTaint(ret).getLabels().pop());
 	}
 
 	@Test
@@ -161,7 +161,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 	public void testInvokeMethodTaintedPrimitiveArg() throws Exception {
 		MethodHolder holder = new MethodHolder(true);
 		Method method = MethodHolder.class.getMethod("primitiveParamMethod", Boolean.TYPE);
-		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		boolean z = MultiTainter.taintedBoolean(true, "PrimArgLabel");
 		Object result = method.invoke(holder, z);
 		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
 		int i = (Integer)result;
@@ -183,7 +183,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 	public void testInvokeMethodTaintedPrimitiveArrArg() throws Exception {
 		MethodHolder holder = new MethodHolder(true);
 		Method method = MethodHolder.class.getMethod("primitiveArrParamMethod", Class.forName("[Z"));
-		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		boolean z = MultiTainter.taintedBoolean(true, "PrimArgLabel");
 		boolean[] arr = new boolean[] {z, z};
 		Object result = method.invoke(holder, arr);
 		assertTrue("Expected integer return from reflected method.", result instanceof Integer);

@@ -336,7 +336,7 @@ public class TaintUtils {
 				if (t != null)
 					ret.addDependency(t);
 			}
-			if (ret.hasNoDependencies())
+			if (ret.isEmpty())
 				return null;
 			return ret;
 		} else if (obj instanceof LazyArrayObjTags) {
@@ -986,7 +986,7 @@ public class TaintUtils {
 		T ret = Enum.valueOf(enumType, name);
 		Taint tag = (Taint) ((TaintedWithObjTag) ((Object) name)).getPHOSPHOR_TAG();
 		tag = Taint.combineTags(tag, ctrl);
-		if (tag != null && !(tag.getLabel() == null && tag.hasNoDependencies())) {
+		if (tag != null && !tag.isEmpty()) {
 			ret = shallowClone(ret);
 			((TaintedWithObjTag) ret).setPHOSPHOR_TAG(tag);
 		}

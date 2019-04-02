@@ -5,237 +5,112 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.*;
 
 import java.io.Serializable;
-import java.util.Arrays;
 
 public class Taint<T> implements Serializable {
+
 	public static boolean IGNORE_TAINTING;
 
-	public static final <T> Taint<T> copyTaint(Taint<T> in) {
-		return in == null ? null : in.copy();
+	/* Returns a copy of the specified taint object. */
+	public static <T> Taint<T> copyTaint(Taint<T> in) {
+		return (in == null) ? null : in.copy();
 	}
 
-	public Taint<T> copy() {
-		if(IGNORE_TAINTING)
-			return this;
-		Taint<T> ret = new Taint<T>();
-		ret.lbl = lbl;
-		if(dependencies != null)
-			ret.dependencies = dependencies.copy();
-		if(tags != null)
-			ret.tags = tags.clone();
-		return ret;
+	/* Represents the set of labels for this taint object. May be the node representing the empty set. */
+	private SetPool<Object>.SetNode labelSet;
+
+	/* Constructs a new taint object with a null label set. */
+	public Taint() {
+		this.labelSet = SetPool.getInstance().emptySet();
 	}
 
-//	public Object clone()  {
-//		try {
-//			Object ret = super.clone();
-//			Taint r = (Taint) ret;
-//			r.dependencies = (LinkedList<Taint>) dependencies.clone();
-//			return ret;
-//		} catch (CloneNotSupportedException e) {
-//			e.printStackTrace();
-//
-//			return null;
-//		}
-//	}
-
-	@Override
-	public String toString() {
-		String depStr = " deps = [" + (dependencies != null ? dependencies.toString() : "") + "]";
-		return "Taint [lbl=" + lbl + " " + depStr + "]";
-	}
-
-	public transient Object debug;
-	public T lbl;
-	public SimpleHashSet<T> dependencies;
-	public int[] tags;
-
-	public Taint(int startingTag) {
-		tags = new int[TAINT_ARRAY_SIZE];
-		setBit(startingTag);
-	}
-
-	public static int TAINT_ARRAY_SIZE = -1;
-
-	public void setBit(int tag) {
-		int bits = tag % 31;
-		int key = tag / 31;
-		tags[key] |= 1 << bits;
-	}
-
-	public boolean hasBitSet(int tag) {
-		int bits = tag % 31;
-		int key = tag / 31;
-		return (tags[key] & (1 << bits)) != 0;
-	}
-
-	public void setBits(int[] otherTags) {
-		for(int i = 0; i < otherTags.length; i++) {
-			tags[i] |= otherTags[i];
+	/* Constructs a new taint object with only the specified label in its label set. */
+	public Taint(T initialLabel) {
+		if(initialLabel == null) {
+			this.labelSet = SetPool.getInstance().emptySet();
+		} else {
+			this.labelSet = SetPool.getInstance().makeSingletonSet(initialLabel);
 		}
 	}
 
-	private boolean setBitsIfNeeded(int[] otherTags) {
-		boolean changed = false;
-		for (int i = 0; i < otherTags.length; i++) {
-			if ((tags[i] | otherTags[i]) != tags[i]) {
-				tags[i] |= otherTags[i];
-				changed = true;
-			}
-		}
-		return changed;
-	}
-
-	public Taint(T lbl) {
-		this.lbl = lbl;
-		dependencies = new SimpleHashSet<T>();
-	}
-
-	public T getLabel() {
-		return lbl;
-	}
-
-	public int[] getTags() {
-		return tags;
-	}
-
-	@SuppressWarnings("unused")
-	public LazyIntArrayObjTags getTags$$PHOSPHORTAGGED() {
-		return new LazyIntArrayObjTags(tags);
-	}
-
-	@SuppressWarnings("unused")
-	public LazyIntArrayObjTags getTags$$PHOSPHORTAGGED(ControlTaintTagStack ctrl) {
-		return new LazyIntArrayObjTags(tags);
-	}
-
-	public SimpleHashSet<T> getDependencies() {
-		return dependencies;
-	}
-
-	@SuppressWarnings("unused")
-	public SimpleHashSet<T> getDependencies$$PHOSPHORTAGGED() {
-		return getDependencies();
-	}
-
+	/* Constructs a new taint object with the same labels as the specified taint object. */
 	public Taint(Taint<T> t1) {
-		if(t1 == null) {
-			return;
+		if(t1 != null) {
+			this.labelSet = t1.labelSet;
+		} else {
+			this.labelSet = SetPool.getInstance().emptySet();
 		}
-		if(t1.dependencies != null) {
-			dependencies = new SimpleHashSet<>();
-			dependencies.addAll(t1.dependencies);
-		}
-		if(t1.tags != null) {
-			tags = new int[t1.tags.length];
-			System.arraycopy(t1.tags,0,tags,0,tags.length);
-		}
-		lbl = t1.lbl;
 		if(Configuration.derivedTaintListener != null) {
 			Configuration.derivedTaintListener.singleDepCreated(t1, this);
 		}
 	}
 
+	/* Constructs a new taint object whose label set is the union of the label sets of the two specified taint objects. */
 	public Taint(Taint<T> t1, Taint<T> t2) {
-		if(t1 != null) {
-			lbl = t1.lbl;
-			if(t1.dependencies != null) {
-				dependencies = new SimpleHashSet<>();
-				dependencies.addAll(t1.dependencies);
-			}
-			if(t1.tags != null) {
-				tags = new int[t1.tags.length];
-				System.arraycopy(t1.tags,0,tags,0,tags.length);
-			}
-		}
-		if(t2 != null) {
-			if(t2.lbl != null) {
-				lbl = lbl == null ? t2.lbl : lbl; // Set the label to be the second taints label if it was null
-				if(!lbl.equals(t2.lbl)) {
-					// Create dependencies if it does not already exist
-					dependencies = (dependencies == null) ? new SimpleHashSet<T>() : dependencies;
-					dependencies.add(t2.lbl);
-				}
-			}
-			if(t2.dependencies != null) {
-				// Create dependencies if it does not already exist
-				dependencies = (dependencies == null) ? new SimpleHashSet<T>() : dependencies;
-				dependencies.addAll(t2.dependencies);
-			}
-			if(t2.tags != null) {
-				if(tags == null) {
-					tags = new int[t2.tags.length];
-					System.arraycopy(t2.tags, 0, tags, 0, tags.length);
-				} else {
-					setBits(t2.tags);
-				}
-			}
-		}
-		// Make sure that lbl is not also in the dependencies
-		if(lbl != null && dependencies != null) {
-			dependencies.remove(lbl);
+		if(t1 != null && t2 != null) {
+			this.labelSet = t1.labelSet.union(t2.labelSet);
+		} else if(t1 != null) {
+			this.labelSet = t1.labelSet;
+		} else if(t2.labelSet != null) {
+			this.labelSet = t2.labelSet;
+		} else {
+			this.labelSet = SetPool.getInstance().emptySet();
 		}
 		if(Configuration.derivedTaintListener != null) {
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, this);
 		}
 	}
 
-	public Taint() {
-		if(TAINT_ARRAY_SIZE > 0)
-			tags = new int[TAINT_ARRAY_SIZE];
+	/* Returns a copy of this taint object. */
+	public Taint<T> copy() {
+		if(IGNORE_TAINTING) {
+			return this;
+		} else {
+			Taint<T> ret = new Taint<>();
+			ret.labelSet = this.labelSet;
+			return ret;
+		}
 	}
 
-	public boolean addDependency(Taint<T> d) {
-		if(d == null) {
+	/* Provides a formatted string representation of this taint object's labels. */
+	@Override
+	public String toString() {
+		return "Taint [Labels = [" + labelSet.toList() + "]";
+	}
+
+	/* Returns a list containing this taint object's labels sorted in ascending order. */
+	public LinkedList<Object> getLabels() {
+		return labelSet.toList();
+	}
+
+	/* Sets this taint object's label set to be the union between this taint object's label set and the specified other
+	 * taint object's label set. Returns whether this taint object's label set changed. */
+	public boolean addDependency(Taint<T> other) {
+		if(other == null) {
 			return false;
 		}
-		if(d.dependencies == null && d.lbl == null && Taint.TAINT_ARRAY_SIZE > 0) {
-			// accumulate tags
-			if(d.tags == null) {
-				return false;
-			}
-			// Create tags if it does not already exist
-			tags = (tags == null) ? new int[Taint.TAINT_ARRAY_SIZE] : tags;
-			return setBitsIfNeeded(d.tags);
-		}
-		// Create dependencies if it does not already exist
-		dependencies = (dependencies == null) ? new SimpleHashSet<T>() : dependencies;
-		boolean added = false;
-		if(d.lbl != null && !d.lbl.equals(lbl)) {
-			added = dependencies.add(d.lbl);
-		}
-		if(!d.hasNoDependencies()) {
-			added |= dependencies.addAll(d.dependencies);
-		}
-		return added;
+		SetPool<Object>.SetNode union = this.labelSet.union(other.labelSet);
+		boolean changed = (this.labelSet != union);
+		this.labelSet = union;
+		return changed;
 	}
 
-	public boolean hasNoDependencies() {
-		return (dependencies == null || dependencies.isEmpty()) && (tags == null || isEmpty(tags));
+	/* Returns whether this taint object's label set is the empty set. */
+	public boolean isEmpty() {
+		return labelSet.isEmpty();
 	}
 
 	@SuppressWarnings("unused")
-	public TaintedBooleanWithObjTag hasNoDependencies$$PHOSPHORTAGGED(TaintedBooleanWithObjTag ret) {
-		ret.val = hasNoDependencies();
+	public TaintedBooleanWithObjTag isEmpty$$PHOSPHORTAGGED(TaintedBooleanWithObjTag ret) {
+		ret.val = isEmpty();
 		ret.taint = null;
 		return ret;
 	}
 
 	@SuppressWarnings("unused")
-	public TaintedBooleanWithObjTag hasNoDependencies$$PHOSPHORTAGGED(ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
-		ret.val = hasNoDependencies();
+	public TaintedBooleanWithObjTag isEmpty$$PHOSPHORTAGGED(ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
+		ret.val = isEmpty();
 		ret.taint = null;
 		return ret;
-	}
-
-	private boolean isEmpty(int[] tags) {
-		for(int i : tags) {
-			if (i != 0) {
-				return false;
-			}
-		}
-
-		return true;
 	}
 
 	public static <T> void combineTagsOnArrayInPlace(Object[] ar, Taint<T>[] t1, int dims) {
@@ -262,10 +137,9 @@ public class Taint<T> implements Serializable {
 	@SuppressWarnings("unchecked")
 	public static <T> void _combineTagsInPlace(Object obj, Taint<T> t1) {
 		Taint<T> t = (Taint<T>) TaintUtils.getTaintObj(obj);
-		if(t == null) {
-			MultiTainter.taintedObject(obj, new Taint(t1));
-		}
-		else {
+		if(t == null && t1 != null) {
+			MultiTainter.taintedObject(obj, t1.copy());
+		} else if(t != null && t1 != null) {
 			t.addDependency(t1);
 		}
 	}
@@ -273,9 +147,9 @@ public class Taint<T> implements Serializable {
 	public static <T> Taint<T> combineTags(Taint<T> t1, Taint<T> t2) {
 		if(t1 == null && t2 == null) {
 			return null;
-		} else if(t2 == null || (t2.lbl == null && t2.hasNoDependencies())) {
+		} else if(t2 == null || t2.isEmpty()) {
 			return t1;
-		} else if(t1 == null || (t1.lbl == null && t1.hasNoDependencies())) {
+		} else if(t1 == null || t1.isEmpty()) {
 			return t2;
 		} else if(t1.equals(t2) || IGNORE_TAINTING) {
 			return t1;
@@ -284,7 +158,8 @@ public class Taint<T> implements Serializable {
 		} else if(t2.contains(t1)) {
 			return t2;
 		} else {
-			Taint<T> r = new Taint<T>(t1,t2);
+			Taint<T> r = t1.copy();
+			r.addDependency(t2);
 			if(Configuration.derivedTaintListener != null) {
 				Configuration.derivedTaintListener.doubleDepCreated(t1, t2, r);
 			}
@@ -292,27 +167,10 @@ public class Taint<T> implements Serializable {
 		}
 	}
 
+	/* Returns whether the set of labels for the specified taint object is a subset of the set of labels for this taint
+	 * object. */
 	public boolean contains(Taint<T> that) {
-		if(that == null) {
-			return true;
-		}
-		if(that.tags != null) {
-			for(int i = 0; i < that.tags.length; i++) {
-				if((tags[i] | that.tags[i]) != tags[i]) {
-					return false;
-				}
-			}
-			return true;
-		}
-		if(that.lbl != null && (lbl == null || !lbl.equals(that.lbl)) && !dependencies.contains(that.lbl)) {
-			return false;
-		}
-		for(T obj : that.dependencies) {
-			if((lbl == null || !lbl.equals(obj)) && !dependencies.contains(obj)) {
-				return false;
-			}
-		}
-		return true;
+		return that == null || this.labelSet.isSuperset(that.labelSet);
 	}
 
 	@SuppressWarnings("unused")
@@ -336,30 +194,85 @@ public class Taint<T> implements Serializable {
 		return ret;
 	}
 
+	/* Returns whether the set of labels for this taint object contains only the specified labels. */
+	public boolean containsOnlyLabels(Object[] labels) {
+		if(labels.length != getLabels().size()) {
+			return false;
+		}
+		for(Object label : labels) {
+			if(!containsLabel(label)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	@SuppressWarnings("unused")
+	public TaintedBooleanWithObjTag containsOnlyLabels$$PHOSPHORTAGGED(Object[] labels, TaintedBooleanWithObjTag ret) {
+		ret.taint = null;
+		ret.val = containsOnlyLabels(labels);
+		return ret;
+	}
+
+	@SuppressWarnings("unused")
+	public TaintedBooleanWithIntTag containsOnlyLabels$$PHOSPHORTAGGED(Object[] labels, TaintedBooleanWithIntTag ret) {
+		ret.taint = 0;
+		ret.val = containsOnlyLabels(labels);
+		return ret;
+	}
+
+	@SuppressWarnings("unused")
+	public TaintedBooleanWithObjTag containsOnlyLabels$$PHOSPHORTAGGED(Object[] labels, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
+		ret.taint = null;
+		ret.val = containsOnlyLabels(labels);
+		return ret;
+	}
+
+	/* Returns whether the set of labels for this taint object contains the specified label. */
+	public boolean containsLabel(Object label) {
+		return labelSet.contains(label);
+	}
+
+	@SuppressWarnings("unused")
+	public TaintedBooleanWithObjTag containsLabel$$PHOSPHORTAGGED(Object label, TaintedBooleanWithObjTag ret) {
+		ret.taint = null;
+		ret.val = containsLabel(label);
+		return ret;
+	}
+
+	@SuppressWarnings("unused")
+	public TaintedBooleanWithIntTag containsLabel$$PHOSPHORTAGGED(Object label, TaintedBooleanWithIntTag ret) {
+		ret.taint = 0;
+		ret.val = containsLabel(label);
+		return ret;
+	}
+
+	@SuppressWarnings("unused")
+	public TaintedBooleanWithObjTag containsLabel$$PHOSPHORTAGGED(Object label, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
+		ret.taint = null;
+		ret.val = containsLabel(label);
+		return ret;
+	}
+
 	@Override
 	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-
-		Taint<?> taint = (Taint<?>) o;
-
-		if (lbl != null ? !lbl.equals(taint.lbl) : taint.lbl != null) return false;
-		if (tags != null) {
-			return Arrays.equals(tags, taint.tags);
+		if(this == o) {
+			return true;
+		} else if (o == null || getClass() != o.getClass()) {
+			return false;
+		} else {
+			Taint<?> taint = (Taint<?>) o;
+			return taint.labelSet == this.labelSet;
 		}
-		return dependencies != null ? dependencies.equals(taint.dependencies) : taint.dependencies == null;
 	}
 
 	@Override
 	public int hashCode() {
-		int result = lbl != null ? lbl.hashCode() : 0;
-		result = 31 * result + (dependencies != null ? dependencies.hashCode() : 0);
-		result = 31 * result + Arrays.hashCode(tags);
-		return result;
+		return labelSet.hashCode();
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T> Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags) {
+	public static <T>  Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags) {
 		if(t1 == null && tags.taint == null && (!Configuration.IMPLICIT_EXCEPTION_FLOW || (tags.influenceExceptions == null || tags.influenceExceptions.isEmpty()))) {
 			return null;
 		}
@@ -380,13 +293,9 @@ public class Taint<T> implements Serializable {
 		} else {
 			tagsTaint = tags.copyTag();
 		}
-		if(t1 == null || (t1.lbl == null && t1.hasNoDependencies())) {
-//			if(tags.isEmpty())
-//				return null;
+		if(t1 == null || t1.isEmpty()) {
 			return tagsTaint;
-		} else if(tagsTaint == null || (tagsTaint.lbl == null && tagsTaint.hasNoDependencies())) {
-//			if(t1.lbl == null && t1.hasNoDependencies())
-//				return null;
+		} else if(tagsTaint == null || tagsTaint.isEmpty()) {
 			return t1;
 		} else if(t1 == tagsTaint) {
 			return t1;
@@ -398,7 +307,7 @@ public class Taint<T> implements Serializable {
 		return tagsTaint;
 	}
 
-	public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags) {
+	public static <T>  Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags) {
 		if(t1 == null && tags.taint == null && (tags.influenceExceptions == null || tags.influenceExceptions.isEmpty())) {
 			return null;
 		}
@@ -436,5 +345,4 @@ public class Taint<T> implements Serializable {
 			tags.taints[i] = combineTags(tags.taints[i], ctrl);
 		}
 	}
-
 }
