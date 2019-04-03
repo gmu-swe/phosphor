@@ -46,7 +46,7 @@ public abstract class SetPool<K> {
     public boolean equals(Object object) {
         if(this == object) {
             return true;
-        } else if(object == null || !(object instanceof SetPool)) {
+        } else if(!(object instanceof SetPool)) {
             return false;
         } else {
             SetPool<?> that = (SetPool<?>) object;
