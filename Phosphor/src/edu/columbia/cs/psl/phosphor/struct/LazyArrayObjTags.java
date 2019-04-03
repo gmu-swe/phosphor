@@ -47,16 +47,63 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 		}
 	}
 
+	/*
+
+	Please also add wrappers for equals and hashCode for each of the appropriate modes
+	(for int, one that returns TaintedBooleanWithIntTag, for obj, one that returns TaintedBooleanWithObjTag,
+	 and also one for obj that also takes a ControlTaintTagStack).
+	 */
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+		if (!(o instanceof  LazyArrayObjTags)) return false;
 		LazyArrayObjTags that = (LazyArrayObjTags) o;
-		return Objects.equals(this.getVal(), that.getVal());
+		return this.getVal() == that.getVal();
+	}
+
+	// Phosphor Wrappers to handle tags
+	// TODO Write integration tests for below
+	public TaintedBooleanWithIntTag equals$$PHOSPHORTAGGED(int taint, Object o, TaintedBooleanWithIntTag ret) {
+		ret.val = this.equals(o);
+		ret.taint = taint;
+		return ret;
+	}
+
+	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object taint, Object o, TaintedBooleanWithObjTag ret) {
+		ret.val = this.equals(o);
+		ret.taint = (Taint) taint;
+		return ret;
+	}
+
+	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object taint, Object o, TaintedBooleanWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
+		ret.val = this.equals(o);
+		ret.taint = (Taint) taint;
+		return ret;
 	}
 
 	@Override
 	public int hashCode() {
-	    return this.getVal().hashCode();
+		return this.getVal().hashCode();
+	}
+
+	// Phosphor Wrappers to handle tags
+	// TODO Write integration tests for below
+	public TaintedIntWithIntTag hashCode$$PHOSPHORTAGGED(int taint, TaintedIntWithIntTag ret) {
+		ret.val = this.hashCode();
+		ret.taint = taint;
+		return ret;
+	}
+
+	public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object taint, TaintedIntWithObjTag ret) {
+		ret.val = this.hashCode();
+		ret.taint = (Taint) taint;
+		return ret;
+	}
+
+	public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object taint, TaintedIntWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
+		ret.val = this.hashCode();
+		ret.taint = (Taint) taint;
+		return ret;
 	}
 }

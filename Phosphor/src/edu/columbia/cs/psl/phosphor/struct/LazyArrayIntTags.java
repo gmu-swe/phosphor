@@ -1,7 +1,8 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
 import java.io.Serializable;
-import java.util.Objects;
 
 
 public abstract class LazyArrayIntTags implements Serializable {
@@ -38,13 +39,53 @@ public abstract class LazyArrayIntTags implements Serializable {
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+		if (!(o instanceof LazyArrayIntTags)) return false;
 		LazyArrayIntTags that = (LazyArrayIntTags) o;
-		return Objects.equals(this.getVal(), that.getVal());
+		return this.getVal() == that.getVal();
+	}
+
+	// Phosphor Wrappers to handle tags
+	// TODO Write integration tests for below
+	public TaintedBooleanWithIntTag equals$$PHOSPHORTAGGED(int taint, Object o, TaintedBooleanWithIntTag ret) {
+		ret.val = this.equals(o);
+		ret.taint = taint;
+	    return ret;
+	}
+
+	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object taint, Object o, TaintedBooleanWithObjTag ret) {
+		ret.val = this.equals(o);
+		ret.taint = (Taint) taint;
+		return ret;
+	}
+
+	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object taint, Object o, TaintedBooleanWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
+		ret.val = this.equals(o);
+		ret.taint = (Taint) taint;
+		return ret;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hashCode(this.getVal());
+		return this.getVal().hashCode();
+	}
+
+	// Phosphor Wrappers to handle tags
+	// TODO Write integration tests for below
+	public TaintedIntWithIntTag hashCode$$PHOSPHORTAGGED(int taint, TaintedIntWithIntTag ret) {
+		ret.val = this.hashCode();
+		ret.taint = taint;
+		return ret;
+	}
+
+	public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object taint, TaintedIntWithObjTag ret) {
+		ret.val = this.hashCode();
+		ret.taint = (Taint) taint;
+		return ret;
+	}
+
+	public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object taint, TaintedIntWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
+		ret.val = this.hashCode();
+		ret.taint = (Taint) taint;
+		return ret;
 	}
 }
