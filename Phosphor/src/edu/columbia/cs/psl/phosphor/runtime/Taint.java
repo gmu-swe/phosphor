@@ -16,7 +16,7 @@ public class Taint<T> implements Serializable {
 	}
 
 	/* Represents the set of labels for this taint object. May be the node representing the empty set. */
-	private SetPool<Object>.SetNode labelSet;
+	private SetPool.SetNode labelSet;
 
 	/* Constructs a new taint object with a null label set. */
 	public Taint() {
@@ -88,7 +88,7 @@ public class Taint<T> implements Serializable {
 		if(other == null) {
 			return false;
 		}
-		SetPool<Object>.SetNode union = this.labelSet.union(other.labelSet);
+		SetPool.SetNode union = this.labelSet.union(other.labelSet);
 		boolean changed = (this.labelSet != union);
 		this.labelSet = union;
 		return changed;
