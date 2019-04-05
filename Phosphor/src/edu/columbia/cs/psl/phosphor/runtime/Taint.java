@@ -341,8 +341,15 @@ public class Taint<T> implements Serializable {
 		if (tags.taints == null) {
 			tags.taints = new Taint[str.length()];
 		}
+		Taint originalPreviousTaint = null;
 		for (int i = 0; i < tags.taints.length; i++) {
-			tags.taints[i] = combineTags(tags.taints[i], ctrl);
+			if(originalPreviousTaint != null && originalPreviousTaint.equals(tags.taints[i])) {
+				tags.taints[i].labelSet = tags.taints[i-1].labelSet;
+			} else {
+				originalPreviousTaint = tags.taints[i];
+				tags.taints[i] = combineTags(tags.taints[i], ctrl);
+			}
+
 		}
 	}
 }
