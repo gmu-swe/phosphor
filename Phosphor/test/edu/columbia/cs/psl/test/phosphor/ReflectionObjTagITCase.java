@@ -205,7 +205,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 	}
 
 	@Test
-	public void testInvokeConstructorPrimitiveArg() throws Exception {
+	public void testNewInstanceConstructorPrimitiveArg() throws Exception {
 		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Boolean.TYPE);
 		boolean z = true;
 		ConstructorHolder instance = cons.newInstance(z);
@@ -213,7 +213,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 	}
 
 	@Test
-	public void testInvokeConstructorTaintedPrimitiveArg() throws Exception {
+	public void testNewInstanceConstructorTaintedPrimitiveArg() throws Exception {
 		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Boolean.TYPE);
 		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
 		ConstructorHolder instance = cons.newInstance(z);
@@ -222,7 +222,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 	}
 
 	@Test
-	public void testInvokeConstructorPrimitiveArrArg() throws Exception {
+	public void testNewInstanceConstructorPrimitiveArrArg() throws Exception {
 		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Class.forName("[Z"));
 		boolean[] arr = new boolean[] {true, true};
 		ConstructorHolder instance = cons.newInstance((Object)arr);
@@ -231,7 +231,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 	}
 
 	@Test
-	public void testInvokeConstructorTaintedPrimitiveArrArg() throws Exception {
+	public void testNewInstanceConstructorTaintedPrimitiveArrArg() throws Exception {
 		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Class.forName("[Z"));
 		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
 		boolean[] arr = new boolean[] {z, z};
