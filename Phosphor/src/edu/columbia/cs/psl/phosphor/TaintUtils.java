@@ -58,6 +58,7 @@ public class TaintUtils {
 	public static final int LOOP_HEADER = 221;
 	public static final String TAINT_FIELD = "PHOSPHOR_TAG";
 	public static final String METHOD_SUFFIX = "$$PHOSPHORTAGGED";
+	public static final String METHOD_SUFFIX_SUMMARY = "$$PHOSPHORSUMMARY";
 	public static final String ADDED_SVUID_SENTINEL = "$$PHOSPHOR_REMOVE_SVUID";
 //	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
 //	public static final String IS_TAINT_SEATCHING_FIELD = "INVIVO_IS_TAINT_SEARCHING";
@@ -1129,4 +1130,26 @@ public class TaintUtils {
 				return false;
 		}
 	}
+	public static int getNullOrZero(Type t){
+		switch(t.getSort()) {
+			case Type.INT:
+			case Type.SHORT:
+			case Type.BOOLEAN:
+			case Type.BYTE:
+			case Type.CHAR:
+				return Opcodes.ICONST_0;
+			case Type.ARRAY:
+			case Type.OBJECT:
+				return Opcodes.ACONST_NULL;
+			case Type.LONG:
+				return Opcodes.LCONST_0;
+			case Type.DOUBLE:
+				return Opcodes.DCONST_0;
+			case Type.FLOAT:
+				return Opcodes.FCONST_0;
+			default:
+				throw new UnsupportedOperationException();
+		}
+	}
+
 }

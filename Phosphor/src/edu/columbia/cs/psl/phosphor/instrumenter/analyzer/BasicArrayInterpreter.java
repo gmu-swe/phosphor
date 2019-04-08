@@ -1,7 +1,10 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.struct.Field;
+import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
+import edu.columbia.cs.psl.phosphor.struct.analysis.Field;
+import edu.columbia.cs.psl.phosphor.struct.analysis.ForceControlStoreAdvice;
+import edu.columbia.cs.psl.phosphor.struct.analysis.LVAccess;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -13,9 +16,75 @@ import java.util.List;
 import java.util.Objects;
 
 public class BasicArrayInterpreter extends BasicInterpreter{
+	public abstract class OriginTrackedValue extends BasicValue{
+		public OriginTrackedValue(Type type) {
+			super(type);
+		}
+		public abstract ForceControlStoreAdvice toAdvice();
 
-	public class BasicThisFieldValue extends BasicValue{
+	}
+
+	PrimitiveArrayAnalyzer an;
+	int remapVar(int var){
+		if(an != null)
+			return an.methodArgReindexer.remap(var);
+		return var;
+	}
+	public class BasicLVValue extends OriginTrackedValue {
+		private int lv;
+		private BasicValue wrapped;
+
+
+		public int getLv() {
+			return lv;
+		}
+
+		public BasicValue getWrapped() {
+			return wrapped;
+		}
+
+		@Override
+		public ForceControlStoreAdvice toAdvice() {
+			return new LVAccess(remapVar(lv), (this.getType() == null ? "Ljava/lang/Object;" : this.getType().getDescriptor()));
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (this == o) return true;
+			if (o == null || getClass() != o.getClass()) return false;
+			if (!super.equals(o)) return false;
+
+			BasicLVValue that = (BasicLVValue) o;
+
+			if (lv != that.lv) return false;
+			return wrapped != null ? wrapped.equals(that.wrapped) : that.wrapped == null;
+		}
+
+		@Override
+		public String toString() {
+			return "BasicLVValue{" +
+					"lv=" + lv +
+					"} " + super.toString();
+		}
+
+		@Override
+		public int hashCode() {
+			int result = super.hashCode();
+			result = 31 * result + lv;
+			result = 31 * result + (wrapped != null ? wrapped.hashCode() : 0);
+			return result;
+		}
+
+		public BasicLVValue(Type type, int lv, BasicValue wrapped) {
+			super(type);
+			this.lv = lv;
+			this.wrapped = wrapped;
+		}
+	}
+	public class BasicFieldValue extends OriginTrackedValue{
 		private Field field;
+
+		private BasicValue parent;
 
 		public Field getField() {
 			return field;
@@ -23,8 +92,13 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 
 
 		@Override
+		public ForceControlStoreAdvice toAdvice() {
+			return field;
+		}
+
+		@Override
 		public String toString() {
-			return "BasicThisFieldValue{" +
+			return "BasicFieldValue{" +
 					"field=" + field +
 					'}';
 		}
@@ -34,25 +108,27 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 			if (this == o) return true;
 			if (o == null || getClass() != o.getClass()) return false;
 			if (!super.equals(o)) return false;
-			BasicThisFieldValue that = (BasicThisFieldValue) o;
-			return Objects.equals(field, that.field);
+			BasicFieldValue that = (BasicFieldValue) o;
+			return Objects.equals(field, that.field) && Objects.equals(parent, that.parent);
 		}
 
 		@Override
 		public int hashCode() {
 
-			return Objects.hash(super.hashCode(), field);
+			return Objects.hash(super.hashCode(), field, parent);
 		}
 
-		public BasicThisFieldValue(Type t, Field f){
+		public BasicFieldValue(Type t, Field f, BasicValue parent){
 			super(t);
 			this.field =f;
+			this.parent = parent;
 		}
 	}
 	private boolean isStaticMethod;
-	public BasicArrayInterpreter(boolean isStaticMethod){
+	public BasicArrayInterpreter(boolean isStaticMethod, PrimitiveArrayAnalyzer an){
 		super(Opcodes.ASM5);
 		this.isStaticMethod = isStaticMethod;
+		this.an = an;
 	}
 
 	@Override
@@ -72,7 +148,7 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 		}
 		if(insn.getOpcode() == Opcodes.GETSTATIC){
 			FieldInsnNode fin = (FieldInsnNode) insn;
-			return new BasicThisFieldValue(Type.getType((fin.desc)),new Field(true, fin.owner,fin.name,fin.desc));
+			return new BasicFieldValue(Type.getType((fin.desc)),new Field(fin, null, null),null);
 		}
 		return super.newOperation(insn);
 	}
@@ -81,37 +157,53 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 
 	@Override
 	public BasicValue copyOperation(AbstractInsnNode insn, BasicValue value) throws AnalyzerException {
-		if(!isStaticMethod && insn.getOpcode() == Opcodes.ALOAD && ((VarInsnNode)insn).var == 0)
-		{
-			return THIS_VALUE;
+		BasicValue v = super.copyOperation(insn, value);
+		switch(insn.getOpcode()){
+			case Opcodes.ILOAD:
+			case Opcodes.ALOAD:
+			case Opcodes.LLOAD:
+			case Opcodes.DLOAD:
+			case Opcodes.FLOAD:
+				return new BasicLVValue(v.getType(),((VarInsnNode)insn).var,v);
 		}
-		return super.copyOperation(insn, value);
+		return v;
 	}
 
 	@Override
 	public BasicValue unaryOperation(AbstractInsnNode insn, BasicValue value) throws AnalyzerException {
-		if(insn.getOpcode() == Opcodes.GETFIELD && value == THIS_VALUE){
+		if(insn.getOpcode() == Opcodes.GETFIELD){
 			FieldInsnNode fin = (FieldInsnNode) insn;
-			return new BasicThisFieldValue(Type.getType((fin.desc)),new Field(false, fin.owner,fin.name,fin.desc));
+			if(value instanceof BasicFieldValue){
+				return new BasicFieldValue(Type.getType((fin.desc)), new Field(fin, ((BasicFieldValue) value).field, null), value);
+			}else if( value instanceof BasicLVValue){
+				return new BasicFieldValue(Type.getType((fin.desc)), new Field(fin, new LVAccess(remapVar(((BasicLVValue) value).lv),(value.getType() == null ? "Ljava/lang/Object;" : value.getType().getDescriptor())), null), value);
+			}
 		}
 		return super.unaryOperation(insn, value);
 	}
 
 	@Override
 	public BasicValue merge(BasicValue v, BasicValue w) {
+		if(v.equals(w))
+			return v;
+		if(v instanceof BasicLVValue)
+			v = ((BasicLVValue) v).wrapped;
+		if(w instanceof BasicLVValue)
+			w = ((BasicLVValue) w).wrapped;
 		if(v == BasicValue.UNINITIALIZED_VALUE || w==BasicValue.UNINITIALIZED_VALUE)
 			return BasicValue.UNINITIALIZED_VALUE;
-		if((v instanceof BasicThisFieldValue && ! (w instanceof BasicThisFieldValue)) || (w instanceof BasicThisFieldValue && ! (v instanceof BasicThisFieldValue)))
+		if((v instanceof BasicFieldValue && ! (w instanceof BasicFieldValue)) || (w instanceof BasicFieldValue && ! (v instanceof BasicFieldValue)))
 		{
 			if(v.getType().equals(w.getType())){
-				if(v.getType().getSort() == Type.OBJECT || v.getType().getSort() == Type.ARRAY)
+				if(v.getType().getSort() == Type.OBJECT || v.getType().getSort() == Type.ARRAY) {
 					return BasicValue.REFERENCE_VALUE;
+				}
 				else
 					return newValue(v.getType());
 			}
 			return BasicValue.UNINITIALIZED_VALUE;
 		}
-		else if(v instanceof BasicThisFieldValue && w instanceof  BasicThisFieldValue){
+		else if(v instanceof BasicFieldValue && w instanceof BasicFieldValue){
 			if(v.equals(w))
 				return v;
 			return BasicValue.UNINITIALIZED_VALUE;

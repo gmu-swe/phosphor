@@ -4,7 +4,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
 
 import org.objectweb.asm.Type;
 
@@ -1505,7 +1504,9 @@ public class ReflectionMasker {
 	static final char[] GETSETCHARS = "setPHOSPHOR_TAG".toCharArray();
 	static final char[] SUFFIXCHARS = "$$PHOSPHORTAGGED".toCharArray();
 	static final char[] SUFFIX2CHARS = "$$PHOSPHORUNTAGGED".toCharArray();
-	
+	static final char[] SUFFIXSUMMARYCHARS = "$$PHOSPHORSUMMARY".toCharArray();
+	static final char[] PREFIXWRAPPER = "$$$phosphor".toCharArray();
+
 	static final char[] FIELDSUFFIXCHARS = TaintUtils.TAINT_FIELD.toCharArray();
 	static final int FIELDSUFFIXLEN = FIELDSUFFIXCHARS.length;
 
@@ -1539,11 +1540,20 @@ public class ReflectionMasker {
 				if (!matched && Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
 					for (int i = chars.length - SUFFIX_LEN -2; i < chars.length; i++) {
 						if (chars[i] != SUFFIX2CHARS[x]) {
+							matched = false;
+							break;
+						}
+						x++;
+					}
+				if(!matched && Configuration.SUMMARIZE_METHODS_NOT_CALLED && chars.length > SUFFIXSUMMARYCHARS.length) {
+					for(int i = chars.length - SUFFIXSUMMARYCHARS.length; i < chars.length; i++){
+						if(chars[i] != SUFFIXSUMMARYCHARS[x]) {
 							ret.add(f);
 							break;
 						}
 						x++;
 					}
+				}
 				else if(!matched)
 					ret.add(f);
 			} else if (!match) {

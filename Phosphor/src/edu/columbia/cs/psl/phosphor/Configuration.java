@@ -27,6 +27,8 @@ public class Configuration {
 	public static boolean IMPLICIT_HEADERS_NO_TRACKING = false;
 	public static boolean WITHOUT_BRANCH_NOT_TAKEN = false;
 
+	public static boolean SUMMARIZE_METHODS_NOT_CALLED = false; //only applies if IMPLICIT or IMPLICIT_LIGHT is on. will propagate taints into receiver objects in branches not taken.
+
 	public static boolean IMPLICIT_EXCEPTION_FLOW = false;
 
 	public static boolean DATAFLOW_TRACKING = true; //default
@@ -109,7 +111,7 @@ public class Configuration {
 	public static Object TAINT_TAG_ARRAY_STACK_TYPE = TAINT_TAG_ARRAY_INTERNAL_NAME;
 	public static String MULTI_TAINT_HANDLER_CLASS = "edu/columbia/cs/psl/phosphor/runtime/Taint";
 	public static String TAINTED_INT_INTERNAL_NAME = (!MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedIntWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedIntWithObjTag");
-	public static String TAINTED_INT_DESC = "L" + TAINTED_INT_INTERNAL_NAME + ";";
+	public static String TAINTED_INT_DESC =  (!MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/struct/TaintedIntWithIntTag;" : "Ledu/columbia/cs/psl/phosphor/struct/TaintedIntWithObjTag;");
 	public static int TAINT_ARRAY_LOAD_OPCODE = (!MULTI_TAINTING ? Opcodes.IALOAD : Opcodes.AALOAD);
 	public static int TAINT_ARRAY_STORE_OPCODE = (!MULTI_TAINTING ? Opcodes.IASTORE : Opcodes.AASTORE);
 	public static int TAINT_LOAD_OPCODE = (!MULTI_TAINTING ? Opcodes.ILOAD : Opcodes.ALOAD);
@@ -141,7 +143,7 @@ public class Configuration {
 		TAINT_TAG_ARRAY_STACK_TYPE = TAINT_TAG_ARRAY_INTERNAL_NAME;
 		MULTI_TAINT_HANDLER_CLASS = "edu/columbia/cs/psl/phosphor/runtime/Taint";
 		TAINTED_INT_INTERNAL_NAME = (!MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedIntWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedIntWithObjTag");
-		TAINTED_INT_DESC = "L" + TAINTED_INT_INTERNAL_NAME + ";";
+		TAINTED_INT_DESC =  (!MULTI_TAINTING ? "Ledu/columbia/cs/psl/phosphor/struct/TaintedIntWithIntTag;" : "Ledu/columbia/cs/psl/phosphor/struct/TaintedIntWithObjTag;");
 		TAINT_ARRAY_LOAD_OPCODE = (!MULTI_TAINTING ? Opcodes.IALOAD : Opcodes.AALOAD);
 		TAINT_ARRAY_STORE_OPCODE = (!MULTI_TAINTING ? Opcodes.IASTORE : Opcodes.AASTORE);
 		TAINT_LOAD_OPCODE = (!MULTI_TAINTING ? Opcodes.ILOAD : Opcodes.ALOAD);

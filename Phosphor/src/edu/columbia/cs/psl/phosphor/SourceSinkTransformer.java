@@ -2,7 +2,9 @@ package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.SourceSinkTaintingClassVisitor;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
-import org.objectweb.asm.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.util.CheckClassAdapter;
 
 import java.io.File;
@@ -78,7 +80,8 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
                 }
                 isBusyRetransforming = false;
             } else {
-                retransformQueue.add(clazz);
+	            if (retransformQueue != null)
+		            retransformQueue.add(clazz);
             }
         } catch(UnmodifiableClassException e){
         	//

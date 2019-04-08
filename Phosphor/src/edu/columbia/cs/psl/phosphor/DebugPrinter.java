@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.LinkedList;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -14,6 +15,7 @@ import org.objectweb.asm.commons.JSRInlinerAdapter;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 public class DebugPrinter {
@@ -56,7 +58,7 @@ public class DebugPrinter {
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 				// TODO Auto-generated method stub
 				MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-				mv = new PrimitiveArrayAnalyzer(cr.getClassName(), access, name, desc, signature, exceptions, mv);
+				mv = new PrimitiveArrayAnalyzer(cr.getClassName(), access, name, desc, desc, signature, exceptions, mv, new LinkedList<MethodNode>());
 				NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(cr.getClassName(), access, name, desc, mv);
 				((PrimitiveArrayAnalyzer) mv).setAnalyzer(an);
 				mv = an;

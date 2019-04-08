@@ -405,19 +405,7 @@ public class MethodArgReindexer extends MethodVisitor {
 
 	@Override
 	public void visitIincInsn(int var, int increment) {
-		int origVar = var;
-		if (!isStatic && var == 0)
-			var = 0;
-		else if (var < originalLastArgIdx) {
-			//accessing an arg; remap it
-			var = oldArgMappings[var];// + (isStatic?0:1);
-		} else {
-			//not accessing an arg. just add offset.
-			var += newArgOffset;
-		}
-		if (TaintUtils.DEBUG_LOCAL)
-			System.out.println("\t\t" + origVar + "->" + var);
-		super.visitIincInsn(var, increment);
+		super.visitIincInsn(remap(var), increment);
 	}
 
 	@Override
@@ -425,11 +413,7 @@ public class MethodArgReindexer extends MethodVisitor {
 		super.visitMethodInsn(opcode, owner, name, desc, itfc);
 	}
 
-	public void visitVarInsn(int opcode, int var) {
-		if (opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START) {
-			super.visitVarInsn(opcode, var);
-			return;
-		}
+	public int remap(int var){
 		int origVar = var;
 		if (!isStatic && var == 0)
 			var = 0;
@@ -440,8 +424,13 @@ public class MethodArgReindexer extends MethodVisitor {
 			//not accessing an arg. just add offset.
 			var += newArgOffset;
 		}
-		if (TaintUtils.DEBUG_LOCAL)
-			System.out.println("MAR\t\t" + origVar + "->" + var + " " + originalLastArgIdx);
-		super.visitVarInsn(opcode, var);
+		return var;
+	}
+	public void visitVarInsn(int opcode, int var) {
+		if (opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START) {
+			super.visitVarInsn(opcode, var);
+			return;
+		}
+		super.visitVarInsn(opcode, remap(var));
 	}
 }

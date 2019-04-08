@@ -660,7 +660,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 	public static void main(String[] args) throws Throwable {
 		Configuration.IMPLICIT_TRACKING =true;
 		Configuration.MULTI_TAINTING =true;
-		Configuration.IMPLICIT_EXCEPTION_FLOW = true;
+//		Configuration.IMPLICIT_EXCEPTION_FLOW = true;
 //		Configuration.IMPLICIT_LIGHT_TRACKING = true;
 //		Configuration.ARRAY_LENGTH_TRACKING = true;
 //		Configuration.ARRAY_INDEX_TRACKING = true;
@@ -697,6 +697,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 		ClassVisitor cv = new ClassVisitor(Opcodes.ASM5, tcv) {
 			String className;
 
+			LinkedList<MethodNode> collectedExtraMethodsToVisitWithoutInst = new LinkedList<>();
 			@Override
 			public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 				super.visit(version, access, name, signature, superName, interfaces);
@@ -723,7 +724,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 				mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true, null, false);
 //				LocalVariableManager lvs = new LocalVariableManager(access, desc, mv, analyzer, mv, false);
 //				mv = lvs;
-				PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className,access,name,desc,signature,exceptions,mv);
+				PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className,access,name,desc,desc,signature,exceptions,mv, collectedExtraMethodsToVisitWithoutInst);
 				NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, access, name, desc, paa);
 				paa.setAnalyzer(an);
 //				((PrimitiveArrayAnalyzer) mv).setAnalyzer(an);
@@ -732,6 +733,14 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 				//				mv = ctvn;
 
 				return mv;
+			}
+
+			@Override
+			public void visitEnd() {
+				for(MethodNode mn : collectedExtraMethodsToVisitWithoutInst){
+					mn.accept(this.cv);
+				}
+				super.visitEnd();
 			}
 		};
 		cr.accept(cv, ClassReader.EXPAND_FRAMES);

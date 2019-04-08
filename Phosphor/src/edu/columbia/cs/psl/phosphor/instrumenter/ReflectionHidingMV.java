@@ -1,14 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.FrameNode;
-
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
@@ -17,6 +9,11 @@ import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.FrameNode;
 
 public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
@@ -55,6 +52,10 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
 		Type[] args = Type.getArgumentTypes(desc);
+		if (Configuration.SUMMARIZE_METHODS_NOT_CALLED && name.endsWith("$$PHOSPHORSUMMARY")) {
+			super.visitMethodInsn(opcode, owner, name, desc, itfc);
+			return;
+		}
 
 		if (isObjOutputStream && name.equals("getClass")) {
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getClassOOS", "(Ljava/lang/Object;)Ljava/lang/Class;", false);

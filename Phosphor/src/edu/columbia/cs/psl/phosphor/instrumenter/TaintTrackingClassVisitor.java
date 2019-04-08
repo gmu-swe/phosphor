@@ -191,7 +191,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				implementsSerializable = true;
 		}
 		super.visit(version, access, name, signature, superName, interfaces);
-		this.visitAnnotation(Type.getDescriptor(TaintInstrumented.class), false);		
+		this.visitAnnotation(Type.getDescriptor(TaintInstrumented.class), false);
 		if(Instrumenter.isIgnoredClass(superName))
 		{
 			//Might need to override stuff.
@@ -255,7 +255,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	private HashMap<String, Method> superMethodsToOverride = new HashMap<String, Method>();
 	private HashSet<MethodNode> wrapperMethodsToAdd = new HashSet<>();
-	HashMap<MethodNode, MethodNode> forMore = new HashMap<MethodNode, MethodNode>();
+	HashMap<MethodNode, MethodNode> methodsToWrapOrUnwrap = new HashMap<MethodNode, MethodNode>();
+	private LinkedList<MethodNode> collectedExtraMethodsToVisitWithoutInst = new LinkedList<>();
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 		if (name.equals("hashCode") && desc.equals("()I"))
@@ -305,7 +306,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv = new UninstrumentedCompatMV(access, className, name, newDesc, signature, (String[]) exceptions, mv, analyzer, ignoreFrames);
 			LocalVariableManager lvs = new LocalVariableManager(access, newDesc, mv, analyzer, _mv, generateExtraLVDebug);
 			((UninstrumentedCompatMV) mv).setLocalVariableSorter(lvs);
-			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, null);
+			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, desc, newDesc, signature, exceptions, null, collectedExtraMethodsToVisitWithoutInst);
 			lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
 			lvs.disable();
 			mv = lvs;
@@ -497,7 +498,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			MethodArgReindexer mar = new MethodArgReindexer(nextMV, access, name, newDesc, desc, wrapper, isLambda);
 			TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames, instOrUninstChoosingMV, aggressivelyReduceMethodSize);
 
-			PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, tlc);
+			PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc, newDesc, signature, exceptions, tlc, collectedExtraMethodsToVisitWithoutInst);
 			NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, primitiveArrayFixer);
 
 			MethodVisitor mvNext = preAnalyzer;
@@ -538,9 +539,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					super.visitFrame(type, nLocal, local, nStack, stack);
 				}
 			};
-			if (!isInterface && !originalName.contains("$$INVIVO"))
-				this.myMethods.add(rawMethod);
-			forMore.put(wrapper,rawMethod);
+			this.originalClassMethods.add(rawMethod);
+			methodsToWrapOrUnwrap.put(wrapper,rawMethod);
 			
 			if(Configuration.extensionMethodVisitor != null)
 			{
@@ -575,7 +575,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					this.accept(prev);
 				}
 			};
-			forMore.put(wrapper, rawMethod);
+			originalClassMethods.add(rawMethod);
+			methodsToWrapOrUnwrap.put(wrapper, rawMethod);
 			return rawMethod;
 		}
 	}
@@ -587,7 +588,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	private LinkedList<FieldNode> extraFieldsToVisit = new LinkedList<FieldNode>();
 	private LinkedList<FieldNode> myFields = new LinkedList<FieldNode>();
-	private LinkedList<MethodNode> myMethods = new LinkedList<MethodNode>();
+	private LinkedList<MethodNode> originalClassMethods = new LinkedList<MethodNode>();
 	boolean hasSerialUID = false;
 
 	@Override
@@ -623,9 +624,43 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	@Override
 	public void visitEnd() {
 
+		superMethodsToOverride.remove("wait(JI)V");
+		superMethodsToOverride.remove("wait(J)V");
+		superMethodsToOverride.remove("wait()V");
+		superMethodsToOverride.remove("notify()V");
+		superMethodsToOverride.remove("notifyAll()V");
 		for(MethodNode mn : wrapperMethodsToAdd)
 		{
 			mn.accept(this);
+		}
+		for (MethodNode mn : collectedExtraMethodsToVisitWithoutInst) {
+			mn.accept(this.cv);
+		}
+		if (!Configuration.WITHOUT_BRANCH_NOT_TAKEN && Configuration.SUMMARIZE_METHODS_NOT_CALLED && (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)) {
+			for (MethodNode mn : originalClassMethods) {
+				if(mn.name.startsWith("phosphorWrap"))
+					continue;
+				BranchNotTakenWrapperGenerator generator = new BranchNotTakenWrapperGenerator();
+				generator.generate(this.cv,className, mn);
+			}
+			for(Method m : superMethodsToOverride.values())
+			{
+				int acc = Opcodes.ACC_PUBLIC;
+				if (Modifier.isProtected(m.getModifiers()) && isInterface)
+					continue;
+				else if (Modifier.isPrivate(m.getModifiers()))
+					continue;
+				if (Modifier.isStatic(m.getModifiers()))
+					acc = acc | Opcodes.ACC_STATIC;
+				if (isInterface)
+					acc = acc | Opcodes.ACC_ABSTRACT;
+				else
+					acc = acc & ~Opcodes.ACC_ABSTRACT;
+				MethodNode mn = new MethodNode(acc, m.getName(), Type.getMethodDescriptor(m), null, null);
+				mn.instructions = null;
+				BranchNotTakenWrapperGenerator generator = new BranchNotTakenWrapperGenerator();
+				generator.generate(this.cv, className, mn);
+			}
 		}
 
 		if((isEnum || className.equals("java/lang/Enum")) && Configuration.WITH_ENUM_BY_VAL)
@@ -636,8 +671,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "clone", "()Ljava/lang/Object;",false);
 
 			mv.visitInsn(Opcodes.ARETURN);
+			mv.visitMaxs(0, 0);
 			mv.visitEnd();
-			mv.visitMaxs(0, 0);			
 		}
 		boolean goLightOnGeneratedStuff = className.equals("java/lang/Byte");// || isLambda;
 //		if (isAnnotation) {
@@ -1085,28 +1120,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				ga.visitLabel(startLabel);
 				ga.visitLineNumber(0, startLabel);
 
-				switch(returnType.getSort()){
-					case Type.INT:
-					case Type.SHORT:
-					case Type.BOOLEAN:
-					case Type.BYTE:
-					case Type.CHAR:
-						ga.visitInsn(Opcodes.ICONST_0);
-						break;
-					case Type.ARRAY:
-					case Type.OBJECT:
-						ga.visitInsn(Opcodes.ACONST_NULL);
-						break;
-					case Type.LONG:
-						ga.visitInsn(Opcodes.LCONST_0);
-						break;
-					case Type.DOUBLE:
-						ga.visitInsn(Opcodes.DCONST_0);
-						break;
-					case Type.FLOAT:
-						ga.visitInsn(Opcodes.FCONST_0);
-						break;
-				}
+				ga.visitInsn(TaintUtils.getNullOrZero(returnType));
 				Label endLabel = new Label();
 				ga.visitLabel(endLabel);
 				ga.returnValue();
@@ -1126,7 +1140,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			for (MethodNode m : methodsToAddWrappersFor) {
 				if( this.className.equals("java/lang/String") && (m.name.equals("hashCode") && m.desc.equals("()I") || (m.name.equals("equals") && m.desc.equals("(Ljava/lang/Object;)Z"))))
 				{
-					MethodNode fullMethod = forMore.get(m);
+					MethodNode fullMethod = methodsToWrapOrUnwrap.get(m);
 
 					MethodVisitor mv = super.visitMethod(m.access,m.name,m.desc,m.signature,null);
 					fullMethod.accept(mv);
@@ -1135,7 +1149,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				if ((m.access & Opcodes.ACC_NATIVE) == 0) {
 					if ((m.access & Opcodes.ACC_ABSTRACT) == 0) {
 						//not native
-						MethodNode fullMethod = forMore.get(m);
+						MethodNode fullMethod = methodsToWrapOrUnwrap.get(m);
 
 						Type origReturn = Type.getReturnType(m.desc);
 						Type newReturn = TaintUtils.getContainerReturnType(origReturn);
@@ -1351,7 +1365,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					} else {
 						String[] exceptions = new String[m.exceptions.size()];
 						exceptions = (String[]) m.exceptions.toArray(exceptions);
-						MethodNode fullMethod = forMore.get(m);
+						MethodNode fullMethod = methodsToWrapOrUnwrap.get(m);
 
 						MethodVisitor mv = super.visitMethod(m.access, m.name, m.desc, m.signature, exceptions);
 						if(fullMethod.annotationDefault != null)
@@ -1370,11 +1384,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						generateNativeWrapper(m,m.name, true);
 				}
 			}
-		superMethodsToOverride.remove("wait(JI)V");
-		superMethodsToOverride.remove("wait(J)V");
-		superMethodsToOverride.remove("wait()V");
-		superMethodsToOverride.remove("notify()V");
-		superMethodsToOverride.remove("notifyAll()V");
+
 //		if(!isLambda)
 		for (Method m : superMethodsToOverride.values()) {
 			int acc = Opcodes.ACC_PUBLIC;
@@ -1484,7 +1494,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		{
 			//make a copy of each raw method, using the proper suffix. right now this only goes 
 			//one level deep - and it will call back into instrumented versions
-			for (Entry<MethodNode, MethodNode> am : forMore.entrySet()) {
+			for (Entry<MethodNode, MethodNode> am : methodsToWrapOrUnwrap.entrySet()) {
 			    MethodNode mn = am.getKey();
 				if(mn.name.equals("<clinit>"))
 					continue;
@@ -1534,7 +1544,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					UninstrumentedReflectionHidingMV ta = (UninstrumentedReflectionHidingMV) mv;
 					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc,mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames);
 					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.desc, mv, analyzer, analyzer, generateExtraLVDebug);
-					final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, mn.access, mn.name, mn.desc, null, null, null);
+					final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, mn.access, mn.name, mn.desc, mn.desc, null, null, null, collectedExtraMethodsToVisitWithoutInst);
 					lvs.disable();
 					lvs.setPrimitiveArrayAnalyzer(primArrayAnalyzer);
 					((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
@@ -1561,7 +1571,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			}
 		}
 //		if (!goLightOnGeneratedStuff && TaintUtils.GENERATE_FASTPATH_VERSIONS)
-//			for (final MethodNode m : myMethods) {
+//			for (final MethodNode m : originalClassMethods) {
 //				final String oldDesc = m.desc;
 //				if (m.name.equals("<init>")) {
 //					m.desc = m.desc.substring(0, m.desc.indexOf(")")) + Type.getDescriptor(UninstrumentedTaintSentinel.class) + ")" + Type.getReturnType(m.desc).getDescriptor();

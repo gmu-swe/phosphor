@@ -30,8 +30,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	MethodVisitor uninstMV;
 
 	Type returnType;
-	int lastArg;
-	ArrayList<Type> oldArgTypes = new ArrayList<Type>();
+	public int lastArg;
+	public ArrayList<Type> newArgTypes = new ArrayList<Type>();
 
 	boolean isIgnoreEverything = false;
 	@Override
@@ -56,7 +56,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	}
 	public HashMap<Integer, Integer> varToShadowVar = new HashMap<Integer, Integer>();
 	private boolean generateExtraDebug;
-	private Type[] args;
+	public Type[] args;
 	private boolean isStatic;
 
 	private int extraLVsInArg;
@@ -68,26 +68,26 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		args = Type.getArgumentTypes(desc);
 		if((access & Opcodes.ACC_STATIC) == 0){
 			lastArg++;
-			oldArgTypes.add(Type.getType("Lthis;"));
+			newArgTypes.add(Type.getType("Lthis;"));
 		}
 		else
 			isStatic = true;
 		for (int i = 0; i < args.length; i++) {
 			lastArg += args[i].getSize();
-			oldArgTypes.add(args[i]);
-			if(args[i].getSize() > 1)
-			{
-				oldArgTypes.add(Type.getType("Ltop;"));
+			newArgTypes.add(args[i]);
+			if (args[i].getSize() > 1) {
+				newArgTypes.add(Type.getType("Ltop;"));
 			}
-			if(args[i].getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class)))
-			{
+			if (args[i].getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class))) {
 				extraLVsInArg++;
-				idxOfMasterControlLV = lastArg-1;
+				idxOfMasterControlLV = lastArg - 1;
+			} else if (args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC))
+				extraLVsInArg++;
+			else if (args[i].getDescriptor().equals(Type.getType(TaintSentinel.class)))
+				extraLVsInArg++;
+			else if (args[i].getDescriptor().equals(Type.getDescriptor(ExceptionalTaintData.class))) {
+				idxOfMasterExceptionLV = lastArg - 1;
 			}
-			if(args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC))
-				extraLVsInArg++;
-			if(args[i].getDescriptor().equals(Type.getType(TaintSentinel.class)))
-				extraLVsInArg++;
 		}
 		if(returnType.getSort() != Type.VOID && (returnType.getSort() != Type.OBJECT || (returnType.getSort() == Type.ARRAY && returnType.getDimensions()==1 && returnType.getElementType().getSort() != Type.OBJECT)))
 			extraLVsInArg++;
@@ -224,7 +224,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		return idx;
 	}
 
-	protected int remap(int var, Type type) {
+	public int remap(int var, Type type) {
 		
 		int ret = super.remap(var, type);
 //		System.out.println(var +" -> " + ret);
@@ -583,7 +583,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
             		int newVar = remap(index, typ);
             		int shadowVar = 0;
-					if (newVar > lastArg || (newVar < lastArg && oldArgTypes.get(newVar).getDescriptor().equals("Ltop;"))) {
+					if (newVar > lastArg || (newVar < lastArg && newArgTypes.get(newVar).getDescriptor().equals("Ltop;"))) {
 						if (!varToShadowVar.containsKey(newVar))
 							shadowVar = newShadowLV(typ, newVar);
 						else
@@ -596,8 +596,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 						//Check to make sure that we already allocated a shadow LV for this in the methodargreindexer
 //						System.out.println("Reusing local storage for " + newVar + " at " + (newVar -1));
 //						System.out.println(index);
-//						System.out.println(oldArgTypes);
-						Type oldT = oldArgTypes.get(index);
+//						System.out.println(newArgTypes);
+						Type oldT = newArgTypes.get(index);
 //						System.out.println(t + " vs " + oldT);
 						if(t instanceof Integer && oldT.getSort() != Type.OBJECT && oldT.getSort() != Type.ARRAY)
 						{

@@ -79,7 +79,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 			if (t.getSort() == Type.OBJECT && t.getDescriptor().equals("Ljava/lang/String;"))
 				argIsStr = true;
 		//Get an extra copy of the taint
-		if(Configuration.WITH_ENUM_BY_VAL && opcode == INVOKESTATIC && owner.equals(Type.getInternalName(Enum.class)))
+		if(Configuration.WITH_ENUM_BY_VAL && (opcode == INVOKESTATIC) && owner.equals(Type.getInternalName(Enum.class)) && !name.endsWith(TaintUtils.METHOD_SUFFIX_SUMMARY))
 		{
 			super.visitMethodInsn(opcode, Type.getInternalName(TaintUtils.class), "enumValueOf", desc,itfc);
 			return;

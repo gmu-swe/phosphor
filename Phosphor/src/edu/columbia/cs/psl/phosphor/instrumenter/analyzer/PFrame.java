@@ -2,8 +2,10 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import java.util.HashSet;
 
+import edu.columbia.cs.psl.phosphor.struct.analysis.TaintAdvice;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
@@ -308,8 +310,15 @@ public class PFrame extends Frame {
         case Opcodes.DCONST_1:
         case Opcodes.BIPUSH:
         case Opcodes.SIPUSH:
-        case Opcodes.LDC:
         	Value v = interpreter.newOperation(insn);
+        	if(v instanceof SinkableArrayValue)
+        		((SinkableArrayValue) v).isConstant = true;
+            push(v);
+            break;
+        case Opcodes.LDC:
+        	if(((LdcInsnNode) insn).cst instanceof TaintAdvice)
+        		break;
+        	v = interpreter.newOperation(insn);
         	if(v instanceof SinkableArrayValue)
         		((SinkableArrayValue) v).isConstant = true;
             push(v);

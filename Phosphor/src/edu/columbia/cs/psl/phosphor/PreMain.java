@@ -29,8 +29,6 @@ import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import org.objectweb.asm.util.CheckClassAdapter;
@@ -516,6 +514,8 @@ public class PreMain {
 					Configuration.ADDL_IGNORE = s.substring(7);
 				} else if (s.equals("withoutBranchNotTaken")) {
 					Configuration.WITHOUT_BRANCH_NOT_TAKEN = true;
+				} else if(s.equals("summarizeMethodsNotCalled")) {
+					Configuration.SUMMARIZE_METHODS_NOT_CALLED = true;
 				}
 			}
 		}

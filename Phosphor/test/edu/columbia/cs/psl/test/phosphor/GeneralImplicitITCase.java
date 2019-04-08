@@ -1,22 +1,16 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.math.BigInteger;
-
+import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import org.junit.After;
 import org.junit.Test;
 
-import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import java.io.*;
+import java.math.BigInteger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	String labelA = "a";
@@ -25,6 +19,10 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	class Holder{
 		int x;
 		long j;
+
+		public void setX(int x) {
+				this.x = x;
+		}
 	}
 	@Test
 	public void testTaintingOnFieldWrites() throws Exception {
@@ -232,9 +230,44 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 		if(A) {
 			d = 1;
 		}
-		assertTaintHasOnlyLabel(MultiTainter.getTaint(d),"A");
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(d), "A");
 
+		Holder holder = new Holder();
+		if (A) {
+			holder.setX(10);
+		}
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(holder.x), "A");
+		thisHolder = new Holder();
+		if (A) {
+			thisHolder.setX(10);
+		}
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(thisHolder.x), "A");
+		HolderHolder holderHolder = new HolderHolder();
+		holderHolder.holder = new Holder();
+		if(A){
+			holderHolder.holder.setX(10);
+		}
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(holderHolder.holder.x), "A");
+
+		HolderHolder unTaintedHolderHolder = new HolderHolder();
+		Holder h2 = new Holder();
+		if(A){
+			unTaintedHolderHolder.mutate(h2);
+		}
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(h2.x), "A");
+		assertNullOrEmpty(MultiTainter.getTaint(unTaintedHolderHolder));
+		assertNullOrEmpty(MultiTainter.getTaint(h2));
+		assertNullOrEmpty(MultiTainter.getTaint(h2.j));
 	}
+	Holder thisHolder;
+
+	static class HolderHolder{
+		Holder holder;
+		void mutate(Holder other){
+			other.x = 40;
+		}
+	}
+
 
 	@After
 	public void resetState() {

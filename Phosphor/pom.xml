@@ -5,7 +5,7 @@
     <groupId>edu.gmu.swe.phosphor</groupId>
     <artifactId>Phosphor</artifactId>
     <name>Phosphor</name>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.0.5-SNAPSHOT</version>
     <properties>
         <dacapo.skip>true</dacapo.skip>
         <skipIntTagNoInstTests>true</skipIntTagNoInstTests>
@@ -300,7 +300,7 @@
                                     <argLine>
                                         -Dphosphor.verify=true
                                         -Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-implicit,implicitExceptions
+                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-implicit,implicitExceptions,summarizeMethodsNotCalled
                                     </argLine>
                                 </configuration>
                                 <goals>

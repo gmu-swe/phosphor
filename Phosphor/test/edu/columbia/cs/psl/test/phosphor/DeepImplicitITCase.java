@@ -18,6 +18,10 @@ public class DeepImplicitITCase extends BasePhosphorTest {
 		public void otherSetZ(int z){
 			this.z = z;
 		}
+		public void checkAndThrow(int z){
+			if(z > 10)
+				throw new IllegalArgumentException();
+		}
 	}
 	static Holder oh;
 	Holder h;
@@ -29,7 +33,6 @@ public class DeepImplicitITCase extends BasePhosphorTest {
 		int y = MultiTainter.taintedInt(10,"testSimpleLV");
 		if(y >100)
 			l = 10;
-		System.out.println(MultiTainter.getTaint(l));
 		Assert.assertNotNull(MultiTainter.getTaint(l));
 	}
 	@Test
@@ -42,10 +45,8 @@ public class DeepImplicitITCase extends BasePhosphorTest {
 			h.setZ(40);
 		if(y > 1000)
 			oh.otherSetZ(455);
-		System.out.println(MultiTainter.getTaint(h));
-		System.out.println(MultiTainter.getTaint(oh));
-		Assert.assertNotNull(MultiTainter.getTaint(h));
-		Assert.assertNotNull(MultiTainter.getTaint(oh));
+		Assert.assertNotNull(MultiTainter.getTaint(h.z));
+		Assert.assertNotNull(MultiTainter.getTaint(oh.z));
 	}
 	@Test
 	public void testFieldsOfThis(){
@@ -53,11 +54,31 @@ public class DeepImplicitITCase extends BasePhosphorTest {
 		int y = MultiTainter.taintedInt(10,"testFieldsOfThis");
 		if(y > 100)
 			this.x =10;
-		System.out.println(MultiTainter.getTaint(this.x));
 		Assert.assertNotNull(MultiTainter.getTaint(this.x));
 	}
 
-	public static void main(String[] args) {
-		new DeepImplicitITCase().testFieldsOfThis();
+	@Test
+	public void testCallsMethodThatThrowsExceptionWrappedInTry(){
+		x = 0;
+		int y = MultiTainter.taintedInt(10, "testCallsMethodThatThrowsException");
+		Holder h = new Holder();
+		try {
+			if (y > 100)
+				h.checkAndThrow(y);
+		} catch (IllegalArgumentException ex) {
+			x = 100;
+		}
+		Assert.assertNotNull(MultiTainter.getTaint(this.x));
+	}
+
+	@Test
+	public void testCallsMethodThatThrowsExceptionNoTry() {
+		x = 0;
+		int y = MultiTainter.taintedInt(10, "testCallsMethodThatThrowsException");
+		Holder h = new Holder();
+		if (y > 100)
+			h.checkAndThrow(y);
+		x = 100;
+		Assert.assertNotNull(MultiTainter.getTaint(this.x));
 	}
 }

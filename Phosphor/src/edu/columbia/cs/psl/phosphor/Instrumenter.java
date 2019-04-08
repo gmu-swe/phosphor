@@ -245,6 +245,10 @@ public class Instrumenter {
 			.build();
 	static Option opt_alwaysCheckForFrames = Option.builder("alwaysCheckForFrames")
 			.desc("Always check to ensure that class files with version > Java 8 ACTUALLY have frames - useful for instrumenting android-targeting code that is compiled with Java 8 but without frames").build();
+
+	static Option opt_summarizeMethodsNotCalled = Option.builder("summarizeMethodsNotCalled")
+			.desc("Generate summaries for all methods such that control tracking can apply the side-effects of methods that are not invoked").build();
+
 	static Option help = Option.builder("help")
 		.desc("print this message")
 		.build();
@@ -280,6 +284,7 @@ public class Instrumenter {
 		options.addOption(opt_withoutBranchNotTaken);
 		options.addOption(opt_disableLocalsInfo);
 		options.addOption(opt_alwaysCheckForFrames);
+		options.addOption(opt_summarizeMethodsNotCalled);
 
 		CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
@@ -322,6 +327,7 @@ public class Instrumenter {
 		Configuration.WITHOUT_BRANCH_NOT_TAKEN = line.hasOption("withoutBranchNotTaken");
 		Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption("skipLocals");
 		Configuration.ALWAYS_CHECK_FOR_FRAMES = line.hasOption("alwaysCheckForFrames");
+		Configuration.SUMMARIZE_METHODS_NOT_CALLED = line.hasOption("summarizeMethodsNotCalled");
 		Configuration.init();
 
 		

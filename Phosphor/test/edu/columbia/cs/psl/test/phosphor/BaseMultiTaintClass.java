@@ -13,13 +13,29 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class BaseMultiTaintClass extends BasePhosphorTest{
 
+	/**
+	 * For implicit tracking, if we just called 'fail', then the
+	 * method summary analysis with exception handling would say
+	 * that the taint tag for our decision to fail or not should
+	 * be accumulated for the control flow of the test :)
+	 *
+	 * However, the analysis is shallow, so it looks only 1 method deep
+	 * that is not called. Hence, if failIndirectly is not called, then
+	 * we don't record that an exception might be thrown by fail.
+	 *
+	 * @param message
+	 */
+	public static void failIndirectly(String message){
+		fail(message);
+	}
+
 	public static void assertNullOrEmpty(Taint taint)
 	{
 		if(taint != null)
 		{
 			if(taint.lbl == null && taint.hasNoDependencies())
 				return;
-			fail("Expected null taint. Got: " + taint);
+			failIndirectly("Expected null taint. Got: " + taint);
 		}
 	}
 	public static void assertNoTaint(String obj)
@@ -31,7 +47,7 @@ public class BaseMultiTaintClass extends BasePhosphorTest{
 		}
 		if(taint.lbl == null && taint.hasNoDependencies())
 			return;
-		fail("Expected null taint. Got: " + taint);
+		failIndirectly("Expected null taint. Got: " + taint);
 	}
 	
 	public static void assertNonNullTaint(Object obj)
@@ -39,14 +55,14 @@ public class BaseMultiTaintClass extends BasePhosphorTest{
 		Taint t = (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
 		assertNotNull(obj);
 		if(t == null || (t.lbl == null && t.hasNoDependencies()))
-			fail("Expected non-null taint - got: "  + t);
+			failIndirectly("Expected non-null taint - got: "  + t);
 	}
 
 	public static void assertNonNullTaint(Taint obj)
 	{
 		assertNotNull(obj);
 		if(obj.lbl == null && obj.hasNoDependencies())
-			fail("Expected non-null taint - got: "  + obj);
+			failIndirectly("Expected non-null taint - got: "  + obj);
 	}
 	
 	public static void assertTaintHasLabel(Taint obj, Object lbl)
@@ -55,36 +71,37 @@ public class BaseMultiTaintClass extends BasePhosphorTest{
 		if(obj.lbl == lbl)
 			return;
 		if(obj.hasNoDependencies())
-			fail("Expected taint contained "+ lbl+", has nothing");
+			failIndirectly("Expected taint contained "+ lbl+", has nothing");
 		for(Object o : obj.dependencies){
 			if(o == lbl)
 				return;
 		}
-		fail("Expected taint contained "+ lbl+", has " + obj);
+		failIndirectly("Expected taint contained "+ lbl+", has " + obj);
 	}
 	public static void assertTaintHasOnlyLabel(Taint obj, Object lbl)
 	{
-		assertNotNull(obj);
+		if(obj == null)
+			failIndirectly("Expected non-null taint");
 		if(obj.lbl == lbl)
 			return;
 		if(obj.hasNoDependencies())
-			fail("Expected taint contained "+ lbl+", has nothing");
+			failIndirectly("Expected taint contained "+ lbl+", has nothing");
 		boolean found = false;
 		for(Object o : obj.dependencies)
 		{
 			if(o == lbl)
 				found = true;
 			else
-				fail("Expected taint contained ONLY "+ lbl+", found " + o);
+				failIndirectly("Expected taint contained ONLY "+ lbl+", found " + o);
 		}
 		if(!found)
-		fail("Expected taint contained "+ lbl+", has " + obj);
+		failIndirectly("Expected taint contained "+ lbl+", has " + obj);
 	}
 	public static void assertTaintHasOnlyLabels(Taint obj, Object... lbl)
 	{
 		assertNotNull(obj);
 		if(obj.hasNoDependencies() && obj.lbl == null)
-			fail("Expected taint contained "+ Arrays.toString(lbl)+", has nothing");
+			failIndirectly("Expected taint contained "+ Arrays.toString(lbl)+", has nothing");
 		boolean l1 = false;
 		boolean l2 = false;
 		HashSet<Object> expected = new HashSet<Object>();
@@ -95,11 +112,11 @@ public class BaseMultiTaintClass extends BasePhosphorTest{
 			if(expected.contains(o))
 				expected.remove(o);
 			else
-				fail("Expected taint contained ONLY " + Arrays.toString(lbl) + ", found " + o);
+				failIndirectly("Expected taint contained ONLY " + Arrays.toString(lbl) + ", found " + o);
 		}
 		expected.remove(obj.lbl);
 		if(expected.isEmpty())
 			return;
-		fail("Expected taint contained "+ expected +", has " + obj);
+		failIndirectly("Expected taint contained "+ expected +", has " + obj);
 	}
 }
