@@ -1202,7 +1202,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsBoxed"+(Configuration.MULTI_TAINTING ? "ObjTags":""), "(Ljava/util/Collection;)Ljava/util/Collection;",false);
 								ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
 							}
-							if(t.getDescriptor().endsWith("java/lang/Object;")  && !className.contains("MethodAccessorImpl") && !m.name.startsWith("invoke"))
+							if(t.getDescriptor().endsWith("java/lang/Object;")  && !className.contains("MethodAccessorImpl") && !m.name.startsWith("invoke") && !className.contains("ConstructorAccessorImpl"))
 							{
 								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
 								ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());

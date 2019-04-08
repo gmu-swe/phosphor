@@ -1,46 +1,20 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import org.objectweb.asm.Type;
+import sun.misc.Unsafe;
+import sun.reflect.ReflectionFactory;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
-
-import org.objectweb.asm.Type;
-
-import sun.misc.Unsafe;
-import sun.reflect.ReflectionFactory;
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.struct.ArrayList;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public class ReflectionMasker {
 
@@ -776,49 +750,50 @@ public class ReflectionMasker {
 	}
 
 	public static Method getDeclaredMethod(Class czz, String name, Class[] params, boolean isObjTags) throws NoSuchMethodException {
-		//		if(VM.isBooted())
-		//		System.out.println("Get declared method: "+name+" with " + (params == null ? "null" : Arrays.toString(params)));
-
-		//		if (czz == Object.class)
-		//			return czz.getDeclaredMethod(name, params);
-		//		if (czz.isAnnotation())
-		//			return czz.getDeclaredMethod(name, params);
-		//		try {
-		//			Method m = czz.getDeclaredMethod(name, params);
-		//			m = getTaintMethod(m);
-		//			m.setAccessible(true);
-		//			return m;
-		//		} catch (SecurityException e1) {
-		//			e1.printStackTrace();
-		//		}
-		//		System.err.println("Bailing just in case.");
-		//		System.exit(-1);
-		//		return null;
+		return czz.getDeclaredMethod(name, params);
+	}
+	public static Method getDeclaredMethod$$PHOSPHORTAGGED(Class czz, String name, Class[] params, ControlTaintTagStack ctrl) throws NoSuchMethodException {
 		return czz.getDeclaredMethod(name, params);
 	}
 
-	public static Method getMethod(Class czz, String name, Class[] params, boolean isObjTags) throws NoSuchMethodException {
-		//		System.out.println("Get method: "+name+" with " + (params == null ? "null" : Arrays.toString(params)));
-		if (czz == Object.class)
+	public static Method getMethod$$PHOSPHORTAGGED(Class czz, String name, Class[] params, ControlTaintTagStack ctrl) throws NoSuchMethodException {
+		if (czz == Object.class || czz.isAnnotation() || Instrumenter.isIgnoredClass(czz.getName().replace('.', '/')))
 			return czz.getMethod(name, params);
-		if (czz.isAnnotation()) {
-			//			System.out.println("returning: " + czz.getMethod(name, params));
-			return czz.getMethod(name, params);
-		}
-		if(Instrumenter.isIgnoredClass(czz.getName().replace('.', '/')))
-		    return czz.getMethod(name, params);
-		//Are we calling wait()?
-		if(name.equals("wait"))
-		{
-			if(params.length == 0 || (params.length == 1 && params[0] == Long.TYPE ) || (params.length == 2 && params[0] == Long.TYPE && params[1] == Integer.TYPE) )
+		//also, return original method if we are calling wait()
+		if (name.equals("wait")) {
+			if (params.length == 0 || (params.length == 1 && params[0] == Long.TYPE) || (params.length == 2 && params[0] == Long.TYPE && params[1] == Integer.TYPE))
 				return czz.getMethod(name, params);
 		}
 		try {
 			Method m = czz.getMethod(name, params);
-			if(Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/')))
-			    return czz.getMethod(name, params);
+			if (Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/'))) {
+				//maybe "this" class is not ignored, but super, which implements method is ignored
+				return czz.getMethod(name, params);
+			}
+			m = getTaintMethodControlTrack(m);
+			return m;
+		} catch (SecurityException e1) {
+			e1.printStackTrace();
+		}
+		System.err.println("Bailing just in case.");
+		System.exit(-1);
+		return null;
+	}
+	public static Method getMethod(Class czz, String name, Class[] params, boolean isObjTags) throws NoSuchMethodException {
+		if (czz == Object.class || czz.isAnnotation() || Instrumenter.isIgnoredClass(czz.getName().replace('.', '/')))
+		    return czz.getMethod(name, params);
+		//also, return original method if we are calling wait()
+		if (name.equals("wait")) {
+			if (params.length == 0 || (params.length == 1 && params[0] == Long.TYPE) || (params.length == 2 && params[0] == Long.TYPE && params[1] == Integer.TYPE))
+				return czz.getMethod(name, params);
+		}
+		try {
+			Method m = czz.getMethod(name, params);
+			if (Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/'))) {
+				//maybe "this" class is not ignored, but super, which implements method is ignored
+				return czz.getMethod(name, params);
+			}
 			m = getTaintMethod(m, isObjTags);
-			//			System.out.println("returning " + m);
 			return m;
 		} catch (SecurityException e1) {
 			e1.printStackTrace();
@@ -898,32 +873,8 @@ public class ReflectionMasker {
 		if (c != null && in != null && c.getParameterTypes().length != in.length) {
 			Object[] ret = new Object[c.getParameterTypes().length];
 			int j = 0;
-			for (int i = 0; i < in.length; i++) {
-				if (c.getParameterTypes()[j].isPrimitive()) {
-					if (in[i] instanceof TaintedWithIntTag)
-						ret[j] = ((TaintedWithIntTag) in[i]).getPHOSPHOR_TAG();
-					else if(in[i] instanceof TaintedWithObjTag)
-						ret[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
-					else
-						ret[j] = 0;
-					j++;
-				} else if (c.getParameterTypes()[j] == Configuration.TAINT_TAG_OBJ_CLASS){
-					if(in[i] instanceof TaintedWithObjTag)
-						ret[j] = ((TaintedWithObjTag) in[i]).getPHOSPHOR_TAG();
-					else
-						ret[j] = null;
-					j++;
-				} else if (c.getParameterTypes()[j].isArray() && (c.getParameterTypes()[j].getComponentType().isPrimitive() || Configuration.TAINT_TAG_OBJ_CLASS.isAssignableFrom(c.getParameterTypes()[j].getComponentType()))) {
-					LazyArrayObjTags arr = ((LazyArrayObjTags) in[i]);
-					ret[j] = arr.taints;
-					j++;
-					ret[j] = arr.getVal();
-					j++;
-					continue;
-				}
-				ret[j] = in[i];
-				j++;
-			}
+
+			fillInParams(ret, in, c.getParameterTypes());
 			ret[ret.length - 2] = ctrl;
 			return ret;
 		} else if (in == null && c.getParameterTypes().length == 1) {
@@ -1107,14 +1058,8 @@ public class ReflectionMasker {
 			ret.m = m;
 			return ret;
 		}
-		if ((IS_KAFFE) || !m.PHOSPHOR_TAGmarked) {
-			if (IS_KAFFE) {
-				if (in.length > 0) {
-					m = getTaintMethodControlTrack(m);
-				}
-			} else {
-				m = getTaintMethodControlTrack(m);
-			}
+		if (!m.PHOSPHOR_TAGmarked) {
+			m = getTaintMethodControlTrack(m);
 		}
 		m.setAccessible(true);
 		ret.o = owner;
