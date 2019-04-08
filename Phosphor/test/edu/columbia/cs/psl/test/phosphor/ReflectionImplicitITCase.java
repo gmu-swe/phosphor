@@ -1,11 +1,13 @@
 package edu.columbia.cs.psl.test.phosphor;
 
+import static edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass.assertNonNullTaint;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -221,5 +223,42 @@ public class ReflectionImplicitITCase extends BasePhosphorTest {
 		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
 		int i = (Integer)result;
 		assertEquals(arr.length, i);
+	}
+
+	@Test
+	public void testNewInstanceConstructorPrimitiveArg() throws Exception {
+		Constructor<ReflectionObjTagITCase.ConstructorHolder> cons = ReflectionObjTagITCase.ConstructorHolder.class.getConstructor(Boolean.TYPE);
+		boolean z = true;
+		ReflectionObjTagITCase.ConstructorHolder instance = cons.newInstance(z);
+		assertTrue("Expected new instance from reflected constructor to have its field set.", instance.bool);
+	}
+
+	@Test
+	public void testNewInstanceConstructorTaintedPrimitiveArg() throws Exception {
+		Constructor<ReflectionObjTagITCase.ConstructorHolder> cons = ReflectionObjTagITCase.ConstructorHolder.class.getConstructor(Boolean.TYPE);
+		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		ReflectionObjTagITCase.ConstructorHolder instance = cons.newInstance(z);
+		assertTrue("Expected new instance from reflected constructor to have its field set.", instance.bool);
+		assertNonNullTaint(MultiTainter.getTaint(instance.bool));
+	}
+
+	@Test
+	public void testNewInstanceConstructorPrimitiveArrArg() throws Exception {
+		Constructor<ReflectionObjTagITCase.ConstructorHolder> cons = ReflectionObjTagITCase.ConstructorHolder.class.getConstructor(Class.forName("[Z"));
+		boolean[] arr = new boolean[] {true, true};
+		ReflectionObjTagITCase.ConstructorHolder instance = cons.newInstance((Object)arr);
+		assertNotNull(instance.bools);
+		assertTrue("Expected new instance from reflected constructor to have its field set.", instance.bools[0]);
+	}
+
+	@Test
+	public void testNewInstanceConstructorTaintedPrimitiveArrArg() throws Exception {
+		Constructor<ReflectionObjTagITCase.ConstructorHolder> cons = ReflectionObjTagITCase.ConstructorHolder.class.getConstructor(Class.forName("[Z"));
+		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		boolean[] arr = new boolean[] {z, z};
+		ReflectionObjTagITCase.ConstructorHolder instance = cons.newInstance((Object)arr);
+		assertNotNull(instance.bools);
+		assertTrue("Expected new instance from reflected constructor to have its field set.", instance.bools[0]);
+		assertNonNullTaint(MultiTainter.getTaint(instance.bools[0]));
 	}
 }
