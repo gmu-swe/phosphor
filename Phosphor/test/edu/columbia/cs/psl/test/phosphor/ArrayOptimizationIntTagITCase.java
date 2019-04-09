@@ -2,6 +2,8 @@ package edu.columbia.cs.psl.test.phosphor;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.runtime.Tainter;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -11,9 +13,10 @@ public class ArrayOptimizationIntTagITCase  extends BaseMultiTaintClass {
     public void testNewArrayConstantClearsTaint(){
 
         byte[] b = new byte[10];
-        b[0] = MultiTainter.taintedByte((byte)1,"Foo");
+        b[0] = Tainter.taintedByte(b[0], 42);
         b[0] = 10;
-        assertNullOrEmpty(MultiTainter.getTaint(b[0]));
+
+        Assert.assertEquals(0, Tainter.getTaint(b[0]));
     }
 
     @Ignore

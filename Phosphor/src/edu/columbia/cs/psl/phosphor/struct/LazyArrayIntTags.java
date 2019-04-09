@@ -38,6 +38,14 @@ public abstract class LazyArrayIntTags implements Serializable {
 
 	public abstract Object getVal();
 
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (!(o instanceof  LazyArrayIntTags)) return false;
+		LazyArrayIntTags that = (LazyArrayIntTags) o;
+		return this.getVal() == that.getVal();
+	}
+
 	// Phosphor Wrappers to handle tags
 	// TODO Write integration tests for below
 	public TaintedBooleanWithIntTag equals$$PHOSPHORTAGGED(int taint, Object o, TaintedBooleanWithIntTag ret) {
