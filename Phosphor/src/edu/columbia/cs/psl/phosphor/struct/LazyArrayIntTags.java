@@ -8,7 +8,9 @@ import java.io.Serializable;
 public abstract class LazyArrayIntTags implements Serializable {
 
 	private static final long serialVersionUID = 7377241443004037122L;
+
 	public int[] taints;
+	public Taint taint;
 
 	public LazyArrayIntTags(int[] taints) {
 		this.taints = taints;
@@ -36,31 +38,23 @@ public abstract class LazyArrayIntTags implements Serializable {
 
 	public abstract Object getVal();
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (!(o instanceof LazyArrayIntTags)) return false;
-		LazyArrayIntTags that = (LazyArrayIntTags) o;
-		return this.getVal() == that.getVal();
-	}
-
 	// Phosphor Wrappers to handle tags
 	// TODO Write integration tests for below
 	public TaintedBooleanWithIntTag equals$$PHOSPHORTAGGED(int taint, Object o, TaintedBooleanWithIntTag ret) {
 		ret.val = this.equals(o);
 		ret.taint = taint;
-	    return ret;
-	}
-
-	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object taint, Object o, TaintedBooleanWithObjTag ret) {
-		ret.val = this.equals(o);
-		ret.taint = (Taint) taint;
 		return ret;
 	}
 
-	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object taint, Object o, TaintedBooleanWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
+	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o, TaintedBooleanWithObjTag ret) {
 		ret.val = this.equals(o);
-		ret.taint = (Taint) taint;
+		ret.taint = Taint.combineTags(this.taint, ret.taint);
+		return ret;
+	}
+
+	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o, TaintedBooleanWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
+		ret.val = this.equals(o);
+		ret.taint = Taint.combineTags(this.taint, ret.taint);
 		return ret;
 	}
 
@@ -71,21 +65,20 @@ public abstract class LazyArrayIntTags implements Serializable {
 
 	// Phosphor Wrappers to handle tags
 	// TODO Write integration tests for below
-	public TaintedIntWithIntTag hashCode$$PHOSPHORTAGGED(int taint, TaintedIntWithIntTag ret) {
+	public TaintedIntWithIntTag hashCode$$PHOSPHORTAGGED(TaintedIntWithIntTag ret) {
 		ret.val = this.hashCode();
-		ret.taint = taint;
 		return ret;
 	}
 
-	public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object taint, TaintedIntWithObjTag ret) {
+	public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(TaintedIntWithObjTag ret) {
 		ret.val = this.hashCode();
-		ret.taint = (Taint) taint;
+		ret.taint = Taint.combineTags(this.taint, ret.taint);
 		return ret;
 	}
 
-	public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object taint, TaintedIntWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
+	public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(TaintedIntWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
 		ret.val = this.hashCode();
-		ret.taint = (Taint) taint;
+		ret.taint = Taint.combineTags(this.taint, ret.taint);
 		return ret;
 	}
 }
