@@ -35,9 +35,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 
 	/* Reads source, sink and taintThrough methods from their files into their respective maps. */
 	static {
-		readTaintMethods(Instrumenter.sourcesFile, sources, "source", true);
-		readTaintMethods(Instrumenter.sinksFile, sinks, "sink", false);
-		readTaintMethods(Instrumenter.taintThroughFile, taintThrough, "taintThrough", false);
+		readTaintMethods(Instrumenter.sourcesFile, AutoTaint.SOURCE);
+		readTaintMethods(Instrumenter.sinksFile, AutoTaint.SINK);
+		readTaintMethods(Instrumenter.taintThroughFile, AutoTaint.TAINT_THROUGH);
 	}
 
 	/* Private constructor ensures that only one instance of BasicSourceSinkManager is ever created. */
@@ -55,31 +55,104 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		private static final BasicSourceSinkManager INSTANCE = new BasicSourceSinkManager();
 	}
 
-	/* Replaces the set of base sink methods with sink methods read from the specified iterable. Calls retransform for any
-	 * class that has already checked whether it is a sink. */
-	public static synchronized void replaceSinks(Iterable<String> src) {
+	/* Adds method names from the specified input stream into the map of base autoTaint methods of the specified type.
+	 * If reading in source methods then sourceLabels are also created for each method name added. */
+	private static synchronized void readTaintMethods(InputStream src, AutoTaint type) {
+		Scanner s = null;
+		String lastLine = null;
+		ConcurrentHashMap<String, SimpleHashSet<String>> baseMethods;
+		switch(type) {
+			case SOURCE:
+				baseMethods = sources;
+				break;
+			case SINK:
+				baseMethods = sinks;
+				break;
+			default:
+				baseMethods = taintThrough;
+		}
+		try {
+			if(src != null) {
+				s = new Scanner(src);
+				int i = 0;
+				while (s.hasNextLine()) {
+					String line = s.nextLine();
+					lastLine = line;
+					if (!line.startsWith("#") && !line.isEmpty()) {
+						String[] parsed = line.split("\\.");
+						if(!baseMethods.containsKey(parsed[0])) {
+							baseMethods.put(parsed[0], new SimpleHashSet<String>());
+						}
+						baseMethods.get(parsed[0]).add(parsed[1]);
+						if(type.equals(AutoTaint.SOURCE)) {
+							if(Configuration.MULTI_TAINTING) {
+								sourceLabels.put(line, line);
+							} else {
+								if(i > 32) {
+									i = 0;
+								}
+								sourceLabels.put(line, 1 << i);
+							}
+							i++;
+						}
+					}
+				}
+			}
+		} catch (Throwable e) {
+			System.err.printf("Unable to parse %s file: %s\n", type.name, src);
+			if (lastLine != null) {
+				System.err.printf("Last line read: '%s'\n", lastLine);
+			}
+			throw new RuntimeException(e);
+		} finally {
+			if(s != null) {
+				s.close();
+			}
+		}
+	}
+
+	public static synchronized java.util.LinkedList<String> replaceAutoTaintMethods(Iterable<String> src, AutoTaint type) {
 		StringBuilder builder = new StringBuilder();
 		for(String s : src) {
 			builder.append(s).append("\n");
 		}
-		replaceSinks(new ByteArrayInputStream(builder.toString().getBytes()));
+		return replaceAutoTaintMethods(new ByteArrayInputStream(builder.toString().getBytes()), type);
 	}
 
-	/* Replaces the set of base sink methods with sink methods read from the specified stream. Calls retransform for any
-	 * class with a method whose status as a sink or non-sink has changed. */
-	public static synchronized void replaceSinks(InputStream src) {
-		// Update the set of base sinks
-		sinks.clear();
-		readTaintMethods(src, sinks, "sink", false);
-		// Store the previous map of inherited or derived sink methods
-		ConcurrentHashMap<String, SimpleHashSet<String>> prevInheritedSinks = inheritedSinks;
-		// Clear the map of inherited or derived sink methods
-		inheritedSinks = new ConcurrentHashMap<>();
-		// Retransform any class that has a method that changed from being a sink to a non-sink or vice versa
-		for(String className : prevInheritedSinks.keySet()) {
-			SimpleHashSet<String> sinkMethods = getAutoTaintMethods(className, sinks, inheritedSinks);
-			if(!sinkMethods.equals(prevInheritedSinks.get(className))) {
-				// Set of sink methods for this class changed
+	/* Replaces the set of base autoTaint methods of the specified type with methods read from the specified stream. Retransforms
+	 * any class with a method whose status as an autoTaint methods of the specified type has changed. Returns a list of
+	 * the replaced base autoTaint methods of the specified type. */
+	public static synchronized java.util.LinkedList<String> replaceAutoTaintMethods(InputStream src, AutoTaint type) {
+		ConcurrentHashMap<String, SimpleHashSet<String>> baseMethods;
+		ConcurrentHashMap<String, SimpleHashSet<String>> inheritedMethods;
+		switch(type) {
+			case SOURCE:
+				baseMethods = sources;
+				inheritedMethods = inheritedSources;
+				break;
+			case SINK:
+				baseMethods = sinks;
+				inheritedMethods = inheritedSinks;
+				break;
+			default:
+				baseMethods = taintThrough;
+				inheritedMethods = inheritedTaintThrough;
+
+		}
+		// Update the set of base autoTaint methods of the specified type
+		java.util.LinkedList<String> prevBaseMethods = new java.util.LinkedList<>(baseMethods.keySet());
+		baseMethods.clear();
+		readTaintMethods(src, type);
+		// Store the previous map of inherited or derived autoTaint methods of the specified type
+		ConcurrentHashMap<String, SimpleHashSet<String>> prevInheritedMethods = inheritedMethods;
+		// Clear the map of inherited or derived  autoTaint methods of the specified type
+		inheritedMethods = new ConcurrentHashMap<>();
+		// Retransform any class that has a method that changed from being a autoTaint methods of the specified type
+		// to a not being an autoTaint methods of the specified type or vice versa
+		for(String className : prevInheritedMethods.keySet()) {
+			SimpleHashSet<String> autoTaintMethods = getAutoTaintMethods(className, baseMethods, inheritedMethods);
+			if(!autoTaintMethods.equals(prevInheritedMethods.get(className))) {
+				// Set of autoTaint methods for this class changed
 				try {
 					PreMain.getInstrumentation().retransformClasses(Class.forName(className.replace("/", ".")));
 				} catch(ClassNotFoundException | UnmodifiableClassException e) {
@@ -91,13 +164,14 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 				}
 			}
 		}
+		return prevBaseMethods;
 	}
 
 	/* Returns the set of methods that are a particular type of auto taint method (i.e. source, sink or taintThrough) for
 	 * the class or interface with the specified slash-separated string class name. A method is considered to be an auto
-	 * taint method if the method is present in the set of original auto taint methods for either the specified class or a supertype of the
+	 * taint method if the method is present in the set of base auto taint methods for either the specified class or a supertype of the
 	 * specified class. Previously determined auto taint methods are stored in inheritedMethods. */
-	private static synchronized SimpleHashSet<String> getAutoTaintMethods(String className, ConcurrentHashMap<String, SimpleHashSet<String>> originalMethods,
+	private static synchronized SimpleHashSet<String> getAutoTaintMethods(String className, ConcurrentHashMap<String, SimpleHashSet<String>> baseMethods,
 												  ConcurrentHashMap<String, SimpleHashSet<String>> inheritedMethods) {
 		if(inheritedMethods.containsKey(className)) {
 			// The auto taint methods for this class have already been determined.
@@ -105,21 +179,21 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		} else {
 			// Recursively build the set of auto taint methods for this class
 			SimpleHashSet<String> set = new SimpleHashSet<>();
-			if(originalMethods.containsKey(className)) {
+			if(baseMethods.containsKey(className)) {
 				// Add any methods from this class that are directly listed as auto taint methods
-				set.addAll(originalMethods.get(className));
+				set.addAll(baseMethods.get(className));
 			}
 			ClassNode cn = Instrumenter.getClassNode(className);
 			if(cn != null) {
 				if (cn.interfaces != null) {
 					// Add all auto taint methods from interfaces implemented by this class
 					for (Object inter : cn.interfaces) {
-						set.addAll(getAutoTaintMethods((String) inter, originalMethods, inheritedMethods));
+						set.addAll(getAutoTaintMethods((String) inter, baseMethods, inheritedMethods));
 					}
 				}
 				if (cn.superName != null && !cn.superName.equals("java/lang/Object")) {
 					// Add all auto taint methods from the superclass of this class
-					set.addAll(getAutoTaintMethods(cn.superName, originalMethods, inheritedMethods));
+					set.addAll(getAutoTaintMethods(cn.superName, baseMethods, inheritedMethods));
 				}
 			}
 			inheritedMethods.put(className, set);
@@ -144,63 +218,18 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		return sourceLabels.get(str);
 	}
 
-	/* Adds method names from the specified input stream into the set of string stored for their class in the specified map.
-	 * If isSource, then sourceLabels are also created for each method name added. */
-	private static void readTaintMethods(InputStream src, ConcurrentHashMap<String, SimpleHashSet<String>> map, String type, boolean isSource) {
-		Scanner s = null;
-		String lastLine = null;
-		try {
-			if(src != null) {
-				s = new Scanner(src);
-				int i = 0;
-				while (s.hasNextLine()) {
-					String line = s.nextLine();
-					lastLine = line;
-					if (!line.startsWith("#") && !line.isEmpty()) {
-						String[] parsed = line.split("\\.");
-						if(!map.containsKey(parsed[0])) {
-							map.put(parsed[0], new SimpleHashSet<String>());
-						}
-						map.get(parsed[0]).add(parsed[1]);
-						if(isSource) {
-							if(Configuration.MULTI_TAINTING) {
-                                sourceLabels.put(line, line);
-                            } else {
-								if(i > 32) {
-								    i = 0;
-                                }
-								sourceLabels.put(line, 1 << i);
-							}
-							i++;
-						}
-					}
-				}
-			}
-		} catch (Throwable e) {
-			System.err.printf("Unable to parse %s file: %s\n", type, src);
-			if (lastLine != null) {
-				System.err.printf("Last line read: '%s'\n", lastLine);
-			}
-			throw new RuntimeException(e);
-		} finally {
-			if(s != null) {
-				s.close();
-			}
-		}
-	}
-
 	/* Returns the string class name of the supertype of the class or interface with specified string class name from which
 	 * its method with the specified method name derived its status as an auto taint (i.e. source, sink or taintThrough)
 	 * method. */
 	private static synchronized String findSuperTypeAutoTaintProvider(String className, String methodName, ConcurrentHashMap<String,
-			SimpleHashSet<String>> originalMethods, ConcurrentHashMap<String, SimpleHashSet<String>> inheritedMethods) {
+			SimpleHashSet<String>> baseMethods, ConcurrentHashMap<String, SimpleHashSet<String>> inheritedMethods) {
 		LinkedList<String> queue = new LinkedList<>();
 		queue.add(className);
 		while(!queue.isEmpty()) {
 			String curClassName = queue.pop();
 			// Check that the current class actually has an inherited auto taint method with the target method name
 			if(inheritedMethods.containsKey(curClassName) && inheritedMethods.get(curClassName).contains(methodName)) {
-				if(originalMethods.containsKey(curClassName) && originalMethods.get(curClassName).contains(methodName)) {
+				if(baseMethods.containsKey(curClassName) && baseMethods.get(curClassName).contains(methodName)) {
 					return curClassName;
 				}
 				ClassNode cn = Instrumenter.getClassNode(curClassName);
@@ -242,9 +271,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			String[] parsed = str.split("\\.");
 			// Check if the set of source methods for the class name contains the method name
 			if(getAutoTaintMethods(parsed[0], sources, inheritedSources).contains(parsed[1])) {
-				String originalSource = findSuperTypeAutoTaintProvider(parsed[0], parsed[1], sources, inheritedSources);
+				String baseSource = findSuperTypeAutoTaintProvider(parsed[0], parsed[1], sources, inheritedSources);
 				if(!sourceLabels.containsKey(str)) {
-					sourceLabels.put(str, sourceLabels.get(String.format("%s.%s", originalSource, parsed[1])));
+					sourceLabels.put(str, sourceLabels.get(String.format("%s.%s", baseSource, parsed[1])));
 				}
 				return true;
 			} else {
@@ -270,5 +299,17 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		String[] parsed = str.split("\\.");
 		String baseSink = findSuperTypeAutoTaintProvider(parsed[0], parsed[1], sinks, inheritedSinks);
 		return baseSink == null ? null : String.format("%s.%s", baseSink, parsed[1]);
+	}
+
+	/* Represents the different types of auto-taint methods: sources, sinks and taintThroughs. */
+	public enum AutoTaint {
+		SOURCE ("sources"),
+		SINK("sinks"),
+		TAINT_THROUGH("taintThrough");
+
+		public final String name;
+		AutoTaint(String name) {
+			this.name = name;
+		}
 	}
 }
