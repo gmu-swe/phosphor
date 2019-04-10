@@ -125,28 +125,36 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	public static synchronized java.util.LinkedList<String> replaceAutoTaintMethods(InputStream src, AutoTaint type) {
 		ConcurrentHashMap<String, SimpleHashSet<String>> baseMethods;
 		ConcurrentHashMap<String, SimpleHashSet<String>> inheritedMethods;
+		ConcurrentHashMap<String, SimpleHashSet<String>> prevInheritedMethods;
 		switch(type) {
 			case SOURCE:
 				baseMethods = sources;
-				inheritedMethods = inheritedSources;
+				prevInheritedMethods = inheritedSources;
+				// Clear the map of inherited or derived autoTaint methods of the specified type
+				inheritedMethods = inheritedSources = new ConcurrentHashMap<>();
 				break;
 			case SINK:
 				baseMethods = sinks;
-				inheritedMethods = inheritedSinks;
+				prevInheritedMethods = inheritedSinks;
+				// Clear the map of inherited or derived autoTaint methods of the specified type
+				inheritedMethods = inheritedSinks = new ConcurrentHashMap<>();
 				break;
 			default:
 				baseMethods = taintThrough;
-				inheritedMethods = inheritedTaintThrough;
-
+				prevInheritedMethods = inheritedTaintThrough;
+				// Clear the map of inherited or derived autoTaint methods of the specified type
+				inheritedMethods = inheritedTaintThrough = new ConcurrentHashMap<>();
+		}
+		// Reconstruct the original set of base methods
+		java.util.LinkedList<String> prevBaseMethods = new java.util.LinkedList<>();
+		for(String className : baseMethods.keySet()) {
+			for(String methodName : baseMethods.get(className)) {
+				prevBaseMethods.add(className + "." + methodName);
+			}
 		}
 		// Update the set of base autoTaint methods of the specified type
-		java.util.LinkedList<String> prevBaseMethods = new java.util.LinkedList<>(baseMethods.keySet());
 		baseMethods.clear();
 		readTaintMethods(src, type);
-		// Store the previous map of inherited or derived autoTaint methods of the specified type
-		ConcurrentHashMap<String, SimpleHashSet<String>> prevInheritedMethods = inheritedMethods;
-		// Clear the map of inherited or derived  autoTaint methods of the specified type
-		inheritedMethods = new ConcurrentHashMap<>();
 		// Retransform any class that has a method that changed from being a autoTaint methods of the specified type
 		// to a not being an autoTaint methods of the specified type or vice versa
 		for(String className : prevInheritedMethods.keySet()) {
@@ -154,7 +162,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			if(!autoTaintMethods.equals(prevInheritedMethods.get(className))) {
 				// Set of autoTaint methods for this class changed
 				try {
-					PreMain.getInstrumentation().retransformClasses(Class.forName(className.replace("/", ".")));
+					PreMain.getInstrumentation().retransformClasses(Class.forName(className.replace("/", "."), true, ClassLoader.getSystemClassLoader()));
 				} catch(ClassNotFoundException | UnmodifiableClassException e) {
 					//
 				} catch (Throwable t) {
