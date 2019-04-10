@@ -33,6 +33,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	// Maps class names to a set of all methods listed as taintThrough methods for the class or one of its supertypes or superinterfaces
 	private static ConcurrentHashMap<String, SimpleHashSet<String>> inheritedTaintThrough = new ConcurrentHashMap<>();
 
+	// Maps class names to class instances
+	private static ConcurrentHashMap<String, Class<?>> classMap = new ConcurrentHashMap<>();
+
 	/* Reads source, sink and taintThrough methods from their files into their respective maps. */
 	static {
 		readTaintMethods(Instrumenter.sourcesFile, AutoTaint.SOURCE);
@@ -162,7 +165,11 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			if(!autoTaintMethods.equals(prevInheritedMethods.get(className))) {
 				// Set of autoTaint methods for this class changed
 				try {
-					PreMain.getInstrumentation().retransformClasses(Class.forName(className.replace("/", "."), true, ClassLoader.getSystemClassLoader()));
+					if(classMap.containsKey(className)) {
+						PreMain.getInstrumentation().retransformClasses(classMap.get(className));
+					} else {
+						PreMain.getInstrumentation().retransformClasses(Class.forName(className.replace("/", "."), true, ClassLoader.getSystemClassLoader()));
+					}
 				} catch(ClassNotFoundException | UnmodifiableClassException e) {
 					//
 				} catch (Throwable t) {
@@ -215,6 +222,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			return false;
 		}
 		String className = clazz.getName().replace(".", "/");
+		classMap.put(className, clazz);
 		// This class has a sink, source or taintThrough method
 		return !getAutoTaintMethods(className, sinks, inheritedSinks).isEmpty() ||
 				!getAutoTaintMethods(className, sources, inheritedSources).isEmpty() ||
