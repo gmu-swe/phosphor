@@ -1,13 +1,18 @@
 package edu.columbia.cs.psl.test.phosphor;
 
+import edu.columbia.cs.psl.phosphor.runtime.AutoTaintLabel;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSinkError;
+import edu.columbia.cs.psl.test.phosphor.util.TaintThroughExample;
 import org.junit.After;
 import org.junit.Test;
 
-import static edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass.assertNonNullTaint;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-public class AutoTaintConstructorsImplicitITCase extends AutoTaintConstructorsObjTagITCase {
+public class AutoTaintImplicitITCase extends AutoTaintObjTagITCase {
+
     /**
      * All tests are inherited from the obj tag test.
      */
@@ -17,4 +22,3 @@ public class AutoTaintConstructorsImplicitITCase extends AutoTaintConstructorsOb
         MultiTainter.getControlFlow().reset();
     }
 }
-
