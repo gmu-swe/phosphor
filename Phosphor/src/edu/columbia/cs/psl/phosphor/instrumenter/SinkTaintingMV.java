@@ -3,11 +3,11 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.*;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import org.objectweb.asm.Label;
+import org.objectweb.asm.commons.AdviceAdapter;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class SinkTaintingMV extends MethodVisitor implements Opcodes {
+public class SinkTaintingMV extends AdviceAdapter {
 
     private final String owner;
     private final String name;
@@ -23,12 +23,12 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
     private final Label endLabel;
 
     public SinkTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc) {
-        super(ASM5, mv);
+        super(ASM5, mv, access, name, desc);
         this.owner = owner;
         this.name = name;
         this.desc = desc;
         this.baseSink = BasicSourceSinkManager.getInstance().getBaseSink(owner, name, desc);
-        this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
+        this.isStatic = (access & ACC_STATIC) != 0;
         this.startLabel = new Label();
         this.endLabel = new Label();
     }
@@ -67,8 +67,10 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
     }
 
     @Override
-    public void visitCode() {
-        super.visitCode();
+    protected void onMethodEnter() {
+        super.onMethodEnter();
+        // Call enteringSink before the original body code of the sink
+        callEnteringSink();
         // Check every arg to see if is taint tag
         Type[] args = Type.getArgumentTypes(desc);
         int idx = isStatic ? 0 : 1; // skip over the "this" argument for non-static methods
@@ -85,8 +87,6 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
             }
             idx += args[i].getSize();
         }
-        // Call enteringSink before the original body code of the sink
-        callEnteringSink();
         // If there are no other exception handlers for this method begin the try-finally block around the sink
         if(numberOfRemainingTryCatchBlocks == 0) {
             addTryCatchBlockHeader();
@@ -94,27 +94,25 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
     }
 
     @Override
-    public void visitInsn(int opcode) {
-        // Add the "finally" code before any return instructions
-        if(TaintUtils.isReturnOpcode(opcode)) {
-            sinkFinallyBlock();
-        }
-        super.visitInsn(opcode);
+    protected void onMethodExit(int opcode) {
+        // Add the call to exiting sink before the method exits
+        callExitingSink();
+        super.onMethodExit(opcode);
     }
 
     @Override
     public void visitMaxs(int maxStack, int maxLocals) {
-        mv.visitLabel(endLabel); // Ends try block and starts finally block
+        super.mark(endLabel); // Ends try block and starts finally block
         mv.visitFrame(F_NEW, 0, new Object[0], 1, new Object[] {"java/lang/Throwable"});
         mv.visitVarInsn(ASTORE, 1); // Push the throwable that was thrown onto the stack
-        sinkFinallyBlock();
+        callExitingSink();
         mv.visitVarInsn(ALOAD, 1); // Pop the throwable that was thrown off the stack
         mv.visitInsn(ATHROW); // Throw the popped throwable
         super.visitMaxs(maxStack, maxLocals);
     }
 
     /* Adds code that makes a call to exitingSink at the end of a sink method. */
-    private void sinkFinallyBlock() {
+    private void callExitingSink() {
         super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
         super.visitLdcInsn(owner+"."+name+desc);
         super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "exitingSink", "(Ljava/lang/String;)V", false);
@@ -128,9 +126,10 @@ public class SinkTaintingMV extends MethodVisitor implements Opcodes {
             addTryCatchBlockHeader();
         }
     }
-    private void addTryCatchBlockHeader(){
+
+    private void addTryCatchBlockHeader() {
         mv.visitTryCatchBlock(startLabel, endLabel, endLabel, null);
-        super.visitLabel(startLabel);
+        super.mark(startLabel);
     }
 
     public void setNumberOfTryCatchBlocks(int num) {

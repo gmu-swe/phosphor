@@ -42,3 +42,7 @@ edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.sourceWithStringArrParam
 
 edu/columbia/cs/psl/test/phosphor/InheritedAutoTaintObjTagITCase$TaintSourceInterface.getSource()I
 edu/columbia/cs/psl/test/phosphor/InheritedAutoTaintObjTagITCase$TaintSourceClass.getSource()I
+
+edu/columbia/cs/psl/test/phosphor/AutoTaintConstructorsObjTagITCase$ExampleWithSourceConstructors.<init>(CLjava/lang/String;)V
+edu/columbia/cs/psl/test/phosphor/AutoTaintConstructorsObjTagITCase$ExampleWithSourceConstructors.<init>([C)V
+edu/columbia/cs/psl/test/phosphor/AutoTaintConstructorsObjTagITCase$ExampleWithSourceConstructors.<init>([[C)V

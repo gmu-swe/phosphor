@@ -226,7 +226,7 @@ public class ReflectionImplicitITCase extends BasePhosphorTest {
 	}
 
 	@Test
-	public void testInvokeConstructorPrimitiveArg() throws Exception {
+	public void testNewInstanceConstructorPrimitiveArg() throws Exception {
 		Constructor<ReflectionObjTagITCase.ConstructorHolder> cons = ReflectionObjTagITCase.ConstructorHolder.class.getConstructor(Boolean.TYPE);
 		boolean z = true;
 		ReflectionObjTagITCase.ConstructorHolder instance = cons.newInstance(z);
@@ -234,7 +234,7 @@ public class ReflectionImplicitITCase extends BasePhosphorTest {
 	}
 
 	@Test
-	public void testInvokeConstructorTaintedPrimitiveArg() throws Exception {
+	public void testNewInstanceConstructorTaintedPrimitiveArg() throws Exception {
 		Constructor<ReflectionObjTagITCase.ConstructorHolder> cons = ReflectionObjTagITCase.ConstructorHolder.class.getConstructor(Boolean.TYPE);
 		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
 		ReflectionObjTagITCase.ConstructorHolder instance = cons.newInstance(z);
@@ -243,7 +243,7 @@ public class ReflectionImplicitITCase extends BasePhosphorTest {
 	}
 
 	@Test
-	public void testInvokeConstructorPrimitiveArrArg() throws Exception {
+	public void testNewInstanceConstructorPrimitiveArrArg() throws Exception {
 		Constructor<ReflectionObjTagITCase.ConstructorHolder> cons = ReflectionObjTagITCase.ConstructorHolder.class.getConstructor(Class.forName("[Z"));
 		boolean[] arr = new boolean[] {true, true};
 		ReflectionObjTagITCase.ConstructorHolder instance = cons.newInstance((Object)arr);
@@ -252,7 +252,7 @@ public class ReflectionImplicitITCase extends BasePhosphorTest {
 	}
 
 	@Test
-	public void testInvokeConstructorTaintedPrimitiveArrArg() throws Exception {
+	public void testNewInstanceConstructorTaintedPrimitiveArrArg() throws Exception {
 		Constructor<ReflectionObjTagITCase.ConstructorHolder> cons = ReflectionObjTagITCase.ConstructorHolder.class.getConstructor(Class.forName("[Z"));
 		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
 		boolean[] arr = new boolean[] {z, z};
