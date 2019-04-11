@@ -33,8 +33,8 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 	// Maps class names to a set of all methods listed as taintThrough methods for the class or one of its supertypes or superinterfaces
 	private static ConcurrentHashMap<String, SimpleHashSet<String>> inheritedTaintThrough = new ConcurrentHashMap<>();
 
-	// Maps class names to class instances
-	private static ConcurrentHashMap<String, Class<?>> classMap = new ConcurrentHashMap<>();
+	// Maps class names to sets of class instances
+	private static ConcurrentHashMap<String, SimpleHashSet<Class<?>>> classMap = new ConcurrentHashMap<>();
 
 	/* Reads source, sink and taintThrough methods from their files into their respective maps. */
 	static {
@@ -114,6 +114,17 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 		}
 	}
 
+
+	/* Stores the specified class instance so that it can last be used to retransform the class if it's autoTaint methods
+	 * change as a result of a call to replaceAutoTaintMethods. */
+	public static synchronized void recordClass(Class<?> clazz) {
+		if(clazz.getName() != null) {
+			String key = clazz.getName().replace(".", "/");
+			classMap.putIfAbsent(key, new SimpleHashSet<Class<?>>());
+			classMap.get(key).add(clazz);
+		}
+	}
+
 	public static synchronized java.util.LinkedList<String> replaceAutoTaintMethods(Iterable<String> src, AutoTaint type) {
 		StringBuilder builder = new StringBuilder();
 		for(String s : src) {
@@ -166,11 +177,11 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 				// Set of autoTaint methods for this class changed
 				try {
 					if(classMap.containsKey(className)) {
-						PreMain.getInstrumentation().retransformClasses(classMap.get(className));
-					} else {
-						PreMain.getInstrumentation().retransformClasses(Class.forName(className.replace("/", "."), true, ClassLoader.getSystemClassLoader()));
+						for(Class<?> clazz : classMap.get(className)) {
+							PreMain.getInstrumentation().retransformClasses(clazz);
+						}
 					}
-				} catch(ClassNotFoundException | UnmodifiableClassException e) {
+				} catch(UnmodifiableClassException e) {
 					//
 				} catch (Throwable t) {
 					// Make sure that any other type of exception is printed
@@ -222,7 +233,6 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 			return false;
 		}
 		String className = clazz.getName().replace(".", "/");
-		classMap.put(className, clazz);
 		// This class has a sink, source or taintThrough method
 		return !getAutoTaintMethods(className, sinks, inheritedSinks).isEmpty() ||
 				!getAutoTaintMethods(className, sources, inheritedSources).isEmpty() ||
