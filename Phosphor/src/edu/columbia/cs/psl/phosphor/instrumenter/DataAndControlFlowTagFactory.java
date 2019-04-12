@@ -11,6 +11,11 @@ import org.objectweb.asm.Type;
 public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
+	public boolean isIgnoredClassFromControlFlowSummarization(String classname) {
+		return false;
+	}
+
+	@Override
 	public Taint<?> getAutoTaint(String source) {
 		return new Taint(source);
 	}
