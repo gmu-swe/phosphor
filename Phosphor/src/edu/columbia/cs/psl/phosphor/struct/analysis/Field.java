@@ -59,7 +59,7 @@ public class Field extends ForceControlStoreAdvice {
 		if (owner != null ? !owner.equals(field.owner) : field.owner != null) return false;
 		if (description != null ? !description.equals(field.description) : field.description != null) return false;
 		if (accessPath != null ? !accessPath.equals(field.accessPath) : field.accessPath != null) return false;
-		return methodCollector != null ? methodCollector.equals(field.methodCollector) : field.methodCollector == null;
+		return true;
 	}
 
 	@Override
@@ -71,7 +71,6 @@ public class Field extends ForceControlStoreAdvice {
 		result = 31 * result + (accessPath != null ? accessPath.hashCode() : 0);
 		result = 31 * result + idxOfGetter;
 		result = 31 * result + (useFlatAccessors ? 1 : 0);
-		result = 31 * result + (methodCollector != null ? methodCollector.hashCode() : 0);
 		return result;
 	}
 
@@ -231,17 +230,17 @@ public class Field extends ForceControlStoreAdvice {
 				}
 				helperMethod.visitInsn(ARETURN);
 				helperMethod.visitLabel(bail);
-				Object[] local = new Object[2];
+				Object[] local = new Object[1];
 				local[0] = Type.getType(argDesc).getInternalName();
-				local[1] = Type.getInternalName(ControlTaintTagStack.class);
-				helperMethod.visitFrame(F_NEW, 2, local, 1, new Object[]{"java/lang/Object"});
+//				local[1] = Type.getInternalName(ControlTaintTagStack.class);
+				helperMethod.visitFrame(F_NEW, 1, local, 1, new Object[]{"java/lang/Object"});
 				helperMethod.visitInsn(POP);
 				helperMethod.visitInsn(ACONST_NULL);
 				helperMethod.visitInsn(ARETURN);
 				helperMethod.visitLabel(end);
 
 				helperMethod.visitLabel(handler);
-				helperMethod.visitFrame(F_NEW, 2, local, 1, new Object[]{"java/lang/Throwable"});
+				helperMethod.visitFrame(F_NEW, 1, local, 1, new Object[]{"java/lang/Throwable"});
 				helperMethod.visitInsn(POP);
 				helperMethod.visitInsn(ACONST_NULL);
 				helperMethod.visitInsn(ARETURN);
