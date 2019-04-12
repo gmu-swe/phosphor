@@ -1371,7 +1371,7 @@ public class ReflectionMasker {
 						}
 						x++;
 					}
-				if(!matched && Configuration.SUMMARIZE_METHODS_NOT_CALLED && chars.length > SUFFIXSUMMARYCHARS.length) {
+				if(!matched && Configuration.TRACK_METHODS_NOT_CALLED && chars.length > SUFFIXSUMMARYCHARS.length) {
 					for(int i = chars.length - SUFFIXSUMMARYCHARS.length; i < chars.length; i++){
 						if(chars[i] != SUFFIXSUMMARYCHARS[x]) {
 							ret.add(f);

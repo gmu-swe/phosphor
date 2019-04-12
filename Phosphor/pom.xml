@@ -300,7 +300,7 @@
                                     <argLine>
                                         -Dphosphor.verify=true
                                         -Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-implicit,implicitExceptions,taintSources=src/taint-sources,taintSinks=src/taint-sinks,taintThrough=src/taint-through,summarizeMethodsNotCalled
+                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-implicit,implicitExceptions,taintSources=src/taint-sources,taintSinks=src/taint-sinks,taintThrough=src/taint-through,trackMethodsNotCalled
                                     </argLine>
                                 </configuration>
                                 <goals>

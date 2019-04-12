@@ -147,7 +147,7 @@ public class Field extends ForceControlStoreAdvice {
 	}
 
 
-	public void fixMethodCollector(LinkedList<MethodNode> methodCollector) {
+	public void fixMethodCollector(Collection<MethodNode> methodCollector) {
 		if (this.methodCollector == null) {
 			this.methodCollector = methodCollector;
 			if (this.accessPath instanceof Field)
@@ -178,7 +178,7 @@ public class Field extends ForceControlStoreAdvice {
 					if (((Field) fv).isStatic) {
 						break;
 					}
-					fieldsToLoadInOrder.add((Field) fv);
+					fieldsToLoadInOrder.push((Field) fv);
 					fv = ((Field) fv).accessPath;
 				} else if (fv instanceof LVAccess) {
 					neededLV = (LVAccess) fv;

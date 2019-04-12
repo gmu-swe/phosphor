@@ -229,6 +229,8 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 	public BasicValue binaryOperation(AbstractInsnNode insn, BasicValue value1, BasicValue value2) throws AnalyzerException {
 		if(insn.getOpcode() == Opcodes.AALOAD)
 		{
+			if(value1 instanceof OriginTrackedValue)
+				return BasicValue.REFERENCE_VALUE;
 			return value1;
 		}
 		else

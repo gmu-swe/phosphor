@@ -514,8 +514,8 @@ public class PreMain {
 					Configuration.ADDL_IGNORE = s.substring(7);
 				} else if (s.equals("withoutBranchNotTaken")) {
 					Configuration.WITHOUT_BRANCH_NOT_TAKEN = true;
-				} else if(s.equals("summarizeMethodsNotCalled")) {
-					Configuration.SUMMARIZE_METHODS_NOT_CALLED = true;
+				} else if(s.equals("trackMethodsNotCalled")) {
+					Configuration.TRACK_METHODS_NOT_CALLED = true;
 				}
 			}
 		}

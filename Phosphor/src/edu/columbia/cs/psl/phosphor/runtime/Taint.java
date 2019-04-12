@@ -8,6 +8,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 public class Taint<T> implements Serializable {
+
 	public static boolean IGNORE_TAINTING;
 
 	public static final <T> Taint<T> copyTaint(Taint<T> in) {
@@ -304,6 +305,10 @@ public class Taint<T> implements Serializable {
 			}
 			return true;
 		}
+		if(that.dependencies == this.dependencies)
+			return true;
+		if(that.dependencies == null || this.dependencies == null)
+			return false;
 		if(that.lbl != null && (lbl == null || !lbl.equals(that.lbl)) && !dependencies.contains(that.lbl)) {
 			return false;
 		}

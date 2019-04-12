@@ -140,7 +140,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitInsn(Opcodes.ACONST_NULL);
 				super.visitVarInsn(ASTORE, this.idxOfCaughtExceptionTaint);
 			}
-			if (Configuration.IMPLICIT_EXCEPTION_FLOW && (this.arrayAnalyzer.nThrow > 0 || Configuration.SUMMARIZE_METHODS_NOT_CALLED)) {
+			if (Configuration.IMPLICIT_EXCEPTION_FLOW && (this.arrayAnalyzer.nThrow > 0 || Configuration.TRACK_METHODS_NOT_CALLED)) {
 				//Create the LV for the exception data
 				int id = lvs.createExceptionTaintLV();
 				super.visitTypeInsn(NEW, Type.getInternalName(ExceptionalTaintData.class));

@@ -27,7 +27,9 @@ public class Configuration {
 	public static boolean IMPLICIT_HEADERS_NO_TRACKING = false;
 	public static boolean WITHOUT_BRANCH_NOT_TAKEN = false;
 
-	public static boolean SUMMARIZE_METHODS_NOT_CALLED = false; //only applies if IMPLICIT or IMPLICIT_LIGHT is on. will propagate taints into receiver objects in branches not taken.
+	public static boolean TRACK_METHODS_NOT_CALLED = false; //only applies if IMPLICIT or IMPLICIT_LIGHT is on. will propagate taints into receiver objects in branches not taken.
+
+	public static boolean SUMMARIZE_METHODS_NOT_CALLED_GENERATE_ONLY = false; //just make the stubs for the summaries; don't add calls to them.
 
 	public static boolean IMPLICIT_EXCEPTION_FLOW = false;
 

@@ -636,12 +636,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		for (MethodNode mn : collectedExtraMethodsToVisitWithoutInst) {
 			mn.accept(this.cv);
 		}
-		if (!Configuration.WITHOUT_BRANCH_NOT_TAKEN && Configuration.SUMMARIZE_METHODS_NOT_CALLED && (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)) {
+		if (!Configuration.WITHOUT_BRANCH_NOT_TAKEN && (Configuration.TRACK_METHODS_NOT_CALLED || Configuration.SUMMARIZE_METHODS_NOT_CALLED_GENERATE_ONLY) && (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)) {
 			for (MethodNode mn : originalClassMethods) {
 				if(mn.name.startsWith("phosphorWrap"))
 					continue;
 				BranchNotTakenWrapperGenerator generator = new BranchNotTakenWrapperGenerator();
-				generator.generate(this.cv,className, mn);
+				generator.generate(this.cv,className, mn, this.fixLdcClass);
 			}
 			for(Method m : superMethodsToOverride.values())
 			{
@@ -659,7 +659,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				MethodNode mn = new MethodNode(acc, m.getName(), Type.getMethodDescriptor(m), null, null);
 				mn.instructions = null;
 				BranchNotTakenWrapperGenerator generator = new BranchNotTakenWrapperGenerator();
-				generator.generate(this.cv, className, mn);
+				generator.generate(this.cv, className, mn, this.fixLdcClass);
 			}
 		}
 

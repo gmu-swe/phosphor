@@ -52,7 +52,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
 		Type[] args = Type.getArgumentTypes(desc);
-		if (Configuration.SUMMARIZE_METHODS_NOT_CALLED && name.endsWith("$$PHOSPHORSUMMARY")) {
+		if (Configuration.TRACK_METHODS_NOT_CALLED && name.endsWith("$$PHOSPHORSUMMARY")) {
 			super.visitMethodInsn(opcode, owner, name, desc, itfc);
 			return;
 		}

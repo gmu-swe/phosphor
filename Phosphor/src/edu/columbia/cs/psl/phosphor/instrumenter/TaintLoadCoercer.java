@@ -108,7 +108,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 			try {
 				String graph ="";
 //				System.out.println("UTLC " + name + desc + " " + this.instructions.size());
-				
+
 				boolean canIgnoreTaintsTillEnd = true;
 				Frame[] frames = a.analyze(className, this);
 				AbstractInsnNode insn = this.instructions.getFirst();
@@ -168,7 +168,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 
 								relevantValues.addAll(((SinkableArrayValue) value1).tag(insn));
 							}
-							
+
 							break;
 						case Opcodes.ARETURN:
 //															System.out.println("ARETURN " + name+desc + " - " + f.getStack(f.getStackSize()-1));
@@ -212,7 +212,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 											)
 								{
 									SinkableArrayValue sv = (SinkableArrayValue) value1;
-									
+
 									relevantValues.addAll(((SinkableArrayValue) value1).tag(insn));
 								}
 							}
@@ -253,7 +253,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 							canIgnoreTaintsTillEnd = false;
 						case Opcodes.PUTSTATIC:
 							BasicValue value = (BasicValue) f.getStack(f.getStackSize() - 1);
-			
+
 							Type vt = Type.getType(((FieldInsnNode) insn).desc);
 							if (value instanceof SinkableArrayValue
 									&& !((SinkableArrayValue) value).flowsToInstMethodCall
@@ -274,7 +274,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 							if (value instanceof SinkableArrayValue
 									&& !((SinkableArrayValue) value).flowsToInstMethodCall) {
 									relevantValues.addAll(((SinkableArrayValue) value).tag(insn));
-							}	
+							}
 						}
 						break;
 					case AbstractInsnNode.IINC_INSN:
@@ -285,7 +285,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 							if (value instanceof SinkableArrayValue
 									&& !((SinkableArrayValue) value).flowsToInstMethodCall) {
 									relevantValues.addAll(((SinkableArrayValue) value).tag(insn));
-							}	
+							}
 						}
 						break;
 					case AbstractInsnNode.JUMP_INSN:
@@ -484,7 +484,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 				}
 
 				HashSet<SinkableArrayValue> swapPop = new HashSet<>();
-				
+
 				insn = this.instructions.getFirst();
 				for (int i = 0; i < frames.length; i++) {
 					// // System.out.print(i + " " );
@@ -499,7 +499,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 							BasicValue calculatedVal = (BasicValue) frames[i].getLocal(analyzerFrameIdx);
 
 //							System.out.println(l + " vs  " + v);
-							if (calculatedVal instanceof SinkableArrayValue && ((SinkableArrayValue) calculatedVal).flowsToInstMethodCall && 
+							if (calculatedVal instanceof SinkableArrayValue && ((SinkableArrayValue) calculatedVal).flowsToInstMethodCall &&
 									(TaintAdapter.isPrimitiveStackType(valInExistingFrame) || valInExistingFrame == Opcodes.NULL || valInExistingFrame.equals("java/lang/Object")
 									)&& valInExistingFrame != Opcodes.TOP) {
 								ignoreExistingFrames = false;
@@ -518,7 +518,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 									fn.local.set(j, new TaggedValue((ignoreExistingFrames ? TaintUtils.getStackTypeForType(calculatedVal.getType()) : valInExistingFrame)));
 //								fn.local.set(j, new TaggedValue(l));
 							}
-							
+
 							if((calculatedVal instanceof SinkableArrayValue) && calculatedVal.getType() == null && valInExistingFrame != Opcodes.NULL && valInExistingFrame != Opcodes.TOP)
 							{
 //								System.out.println("!!" +v+l);
@@ -660,6 +660,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 	public static void main(String[] args) throws Throwable {
 		Configuration.IMPLICIT_TRACKING =true;
 		Configuration.MULTI_TAINTING =true;
+		Configuration.TRACK_METHODS_NOT_CALLED =true;
 //		Configuration.IMPLICIT_EXCEPTION_FLOW = true;
 //		Configuration.IMPLICIT_LIGHT_TRACKING = true;
 //		Configuration.ARRAY_LENGTH_TRACKING = true;
@@ -671,7 +672,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 		final String className = cr.getClassName();
 		PrintWriter pw = new PrintWriter("z.txt");
 		TraceClassVisitor tcv = new TraceClassVisitor(null, new PhosphorTextifier(), pw);
-		
+
 		ClassWriter cw1 = new ClassWriter(ClassWriter.COMPUTE_FRAMES)
 				{
 			@Override
@@ -745,6 +746,6 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 		};
 		cr.accept(cv, ClassReader.EXPAND_FRAMES);
 		pw.flush();
-		
+
 	}
 }

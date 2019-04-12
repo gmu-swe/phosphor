@@ -833,7 +833,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						} else if (succesorBlock.insn.getType() == AbstractInsnNode.METHOD_INSN) {
 							MethodInsnNode min = (MethodInsnNode) succesorBlock.insn;
 							Type[] desc = Type.getArgumentTypes(min.desc);
-							if ((Configuration.SUMMARIZE_METHODS_NOT_CALLED && !Instrumenter.isIgnoredClass(min.owner) && !Instrumenter.isIgnoredMethod(min.owner, min.name, min.desc)) && !min.owner.equals("java/lang/Enum")) {
+							if ((Configuration.TRACK_METHODS_NOT_CALLED && !Instrumenter.isIgnoredClass(min.owner) && !Instrumenter.isIgnoredMethod(min.owner, min.name, min.desc)) && !min.owner.equals("java/lang/Enum")) {
 								Frame fr = this.getFrames()[successor];
 								ForceControlStoreAdvice receiver = null;
 								int offsetToFirstArg = 0;
