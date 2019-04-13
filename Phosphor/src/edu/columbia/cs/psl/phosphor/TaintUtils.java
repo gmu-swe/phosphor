@@ -283,6 +283,22 @@ public class TaintUtils {
 		return false;
 	}
 
+	/* Returns whether the specified type is for a taint sentinel. */
+	public static boolean isTaintSentinel(Type type) {
+		return type.equals(Type.getType(TaintSentinel.class)) || type.equals(Type.getType(UninstrumentedTaintSentinel.class));
+	}
+
+	/* Returns whether the specified method description contains a taint sentinel. */
+	public static boolean containsTaintSentinel(String desc) {
+		Type[] types = Type.getArgumentTypes(desc);
+		for(Type type : types) {
+			if(isTaintSentinel(type)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static boolean arrayHasTaints(int[] a) {
 		for (int i : a)
 			if (i != 0)

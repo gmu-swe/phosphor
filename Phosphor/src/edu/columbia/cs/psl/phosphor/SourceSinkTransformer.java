@@ -70,6 +70,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
                 // Retransform clazz and any classes that were initialized before retransformation could occur.
                 while(!retransformQueue.isEmpty()) {
                     Class<?> poppedClazz = retransformQueue.pop();
+                    BasicSourceSinkManager.recordClass(poppedClazz);
                     if(poppedClazz.getName() != null && BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(poppedClazz)) {
                         // poppedClazz represents a class or interface that is or is a subtype of a class or interface with
                         // at least one method labeled as being a sink or source or taintThrough method
