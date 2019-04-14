@@ -35,4 +35,15 @@ public class ArrayOptimizationObjTagITCase extends BaseMultiTaintClass{
 
 		assertNonNullTaint(MultiTainter.getTaint(taggedEquals));
 	}
+
+	@Test
+	public void testReferenceReassignmentClearsTaint() {
+
+		byte[] b = new byte[10];
+		MultiTainter.taintedObject(b, new Taint("foo"));
+		b = new byte[10];
+		boolean taggedEquals = b.equals(null);
+
+		assertNullOrEmpty(MultiTainter.getTaint(taggedEquals));
+	}
 }
