@@ -19,15 +19,18 @@ public class ArrayOptimizationIntTagITCase  extends BaseMultiTaintClass {
         Assert.assertEquals(0, Tainter.getTaint(b[0]));
     }
 
+    /** As of April 12th, the below tests are failing **/
+
     @Ignore
     @Test
     public void testHashCodeGetsTaint() {
 
         byte[] b = new byte[10];
-        MultiTainter.taintedObject(b, new Taint("foo"));
+        Tainter.taintedObject(b, 42);
         int taggedHashCode = b.hashCode();
 
-        assertNonNullTaint(taggedHashCode);
+        int taint = Tainter.getTaint(taggedHashCode);
+        Assert.assertTrue(0 != taint);
     }
 
     @Ignore
@@ -35,10 +38,12 @@ public class ArrayOptimizationIntTagITCase  extends BaseMultiTaintClass {
     public void testEqualsResultGetsTag() {
 
         byte[] b = new byte[10];
-        MultiTainter.taintedObject(b, new Taint("foo"));
+        Tainter.taintedObject(b, 42);
         boolean taggedEquals = b.equals(null);
 
-        assertNonNullTaint(MultiTainter.getTaint(taggedEquals));
+
+        int taint = Tainter.getTaint(taggedEquals);
+        Assert.assertTrue(0 != taint);
     }
 }
 
