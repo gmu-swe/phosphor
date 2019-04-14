@@ -6,7 +6,7 @@ import java.lang.ref.WeakReference;
  * node in the tree contains the objects associated with the keys of every node on the path from that node to the root of
  * the tree. Elements stored in the sets should be immutable. The elements of a sets will be equivalent to the objects
  * stored in the set with respect to equals but not necessarily referential equality. */
-public class SetPool {
+public class PowerSetTree {
 
     // Root of the tree, represents the empty set
     private final SetNode root;
@@ -16,7 +16,7 @@ public class SetPool {
     private final SimpleHashMap<Object, RankedObject> rankMap = new SimpleHashMap<>();
 
     /* Constructs a new empty pool. Initializes the root node that represents the empty set. */
-    private SetPool() {
+    private PowerSetTree() {
         this.root = new SetNode(null, null);
     }
 
@@ -184,13 +184,13 @@ public class SetPool {
         }
     }
 
-    /* Provides access to the single instance of SetPool. */
-    public static SetPool getInstance() {
-        return SetPoolSingleton.INSTANCE;
+    /* Provides access to the single instance of PowerSetTree. */
+    public static PowerSetTree getInstance() {
+        return PowerSetTreeSingleton.INSTANCE;
     }
 
-    /* Inner class used to provide access to singleton instance of SetPool. */
-    private static class SetPoolSingleton {
-        private static final SetPool INSTANCE = new SetPool();
+    /* Inner class used to provide access to singleton instance of PowerSetTree. */
+    private static class PowerSetTreeSingleton {
+        private static final PowerSetTree INSTANCE = new PowerSetTree();
     }
 }

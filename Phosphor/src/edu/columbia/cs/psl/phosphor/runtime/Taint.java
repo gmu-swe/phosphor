@@ -16,19 +16,19 @@ public class Taint<T> implements Serializable {
 	}
 
 	/* Represents the set of labels for this taint object. May be the node representing the empty set. */
-	private SetPool.SetNode labelSet;
+	private PowerSetTree.SetNode labelSet;
 
 	/* Constructs a new taint object with a null label set. */
 	public Taint() {
-		this.labelSet = SetPool.getInstance().emptySet();
+		this.labelSet = PowerSetTree.getInstance().emptySet();
 	}
 
 	/* Constructs a new taint object with only the specified label in its label set. */
 	public Taint(T initialLabel) {
 		if(initialLabel == null) {
-			this.labelSet = SetPool.getInstance().emptySet();
+			this.labelSet = PowerSetTree.getInstance().emptySet();
 		} else {
-			this.labelSet = SetPool.getInstance().makeSingletonSet(initialLabel);
+			this.labelSet = PowerSetTree.getInstance().makeSingletonSet(initialLabel);
 		}
 	}
 
@@ -37,7 +37,7 @@ public class Taint<T> implements Serializable {
 		if(t1 != null) {
 			this.labelSet = t1.labelSet;
 		} else {
-			this.labelSet = SetPool.getInstance().emptySet();
+			this.labelSet = PowerSetTree.getInstance().emptySet();
 		}
 		if(Configuration.derivedTaintListener != null) {
 			Configuration.derivedTaintListener.singleDepCreated(t1, this);
@@ -53,7 +53,7 @@ public class Taint<T> implements Serializable {
 		} else if(t2.labelSet != null) {
 			this.labelSet = t2.labelSet;
 		} else {
-			this.labelSet = SetPool.getInstance().emptySet();
+			this.labelSet = PowerSetTree.getInstance().emptySet();
 		}
 		if(Configuration.derivedTaintListener != null) {
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, this);
@@ -82,13 +82,18 @@ public class Taint<T> implements Serializable {
 		return labelSet.toList();
 	}
 
+	@SuppressWarnings("unused")
+	public LinkedList<Object> getLabels$$PHOSPHORTAGGED() {
+		return getLabels();
+	}
+
 	/* Sets this taint object's label set to be the union between this taint object's label set and the specified other
 	 * taint object's label set. Returns whether this taint object's label set changed. */
 	public boolean addDependency(Taint<T> other) {
 		if(other == null) {
 			return false;
 		}
-		SetPool.SetNode union = this.labelSet.union(other.labelSet);
+		PowerSetTree.SetNode union = this.labelSet.union(other.labelSet);
 		boolean changed = (this.labelSet != union);
 		this.labelSet = union;
 		return changed;
