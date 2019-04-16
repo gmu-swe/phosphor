@@ -47,7 +47,7 @@ public abstract class SourceSinkManager {
 	
 	public Object getLabel(String owner, String name, String taintedDesc)
 	{
-		if (name.endsWith("$$PHOSPHORTAGGED"))
+		if (name.endsWith("$$PHOSPHORTAGGED") || TaintUtils.containsTaintSentinel(taintedDesc))
 			return getLabel(owner + "." + name.replace("$$PHOSPHORTAGGED", "") + remapMethodDescToRemoveTaints(taintedDesc));
 		else
 			return getLabel(owner + "." + name + taintedDesc);
@@ -78,7 +78,7 @@ public abstract class SourceSinkManager {
 				}
 			} else if (t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
 				r += MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(t.getDescriptor()).getDescriptor();
-			} else if (t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct")) {
+			} else if (t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct") || TaintUtils.isTaintSentinel(t)) {
 				//ignore
 			} else if(t.getDescriptor().equals(Configuration.TAINT_TAG_DESC))
 				isSkipping = true;
@@ -171,7 +171,7 @@ public abstract class SourceSinkManager {
 	}
 
 	public boolean isTaintThrough(String owner, String name, String taintedDesc) {
-		if (name.endsWith("$$PHOSPHORTAGGED"))
+		if (name.endsWith("$$PHOSPHORTAGGED") || TaintUtils.containsTaintSentinel(taintedDesc))
 			return isTaintThrough(owner + "." + name.replace("$$PHOSPHORTAGGED", "") + remapMethodDescToRemoveTaints(taintedDesc));
 		else
 			return isTaintThrough(owner + "." + name + taintedDesc);
@@ -179,14 +179,14 @@ public abstract class SourceSinkManager {
 
 	
 	public boolean isSink(String owner, String name, String taintedDesc) {
-		if (name.endsWith("$$PHOSPHORTAGGED"))
+		if (name.endsWith("$$PHOSPHORTAGGED") || TaintUtils.containsTaintSentinel(taintedDesc))
 			return isSink(owner + "." + name.replace("$$PHOSPHORTAGGED", "") + remapMethodDescToRemoveTaints(taintedDesc));
 		else
 			return isSink(owner + "." + name + taintedDesc);
 	}
 
 	public boolean isSource(String owner, String name, String taintedDesc) {
-		if (name.endsWith("$$PHOSPHORTAGGED"))
+		if (name.endsWith("$$PHOSPHORTAGGED") || TaintUtils.containsTaintSentinel(taintedDesc))
 			return isSource(owner + "." + name.replace("$$PHOSPHORTAGGED", "") + remapMethodDescToRemoveTaints(taintedDesc));
 		else
 			return isSource(owner + "." + name + taintedDesc);
@@ -195,7 +195,7 @@ public abstract class SourceSinkManager {
 	/* Returns the name of sink method from which the specified method inherited its sink property or null if the specified
 	 * method is not a sink. */
 	public String getBaseSink(String owner, String name, String taintedDesc) {
-		if (name.endsWith("$$PHOSPHORTAGGED"))
+		if (name.endsWith("$$PHOSPHORTAGGED") || TaintUtils.containsTaintSentinel(taintedDesc))
 			return getBaseSink(owner + "." + name.replace("$$PHOSPHORTAGGED", "") + remapMethodDescToRemoveTaints(taintedDesc));
 		else
 			return getBaseSink(owner + "." + name + taintedDesc);

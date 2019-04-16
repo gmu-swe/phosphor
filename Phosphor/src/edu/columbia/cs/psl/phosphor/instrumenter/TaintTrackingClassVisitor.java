@@ -655,7 +655,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			if(!Configuration.MULTI_TAINTING)
 				super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD, "I", null, 0);
 			else
-				super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD, TaintAdapter.getTagType(className).getDescriptor(), null, null);				
+				super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD, TaintAdapter.getTagType(className).getDescriptor(), null, null);
+			// Add an int field that can be used to mark an instance as visited when searching
+			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.MARK_FIELD, "I", null, Integer.MIN_VALUE);
 //			if(GEN_HAS_TAINTS_METHOD){
 //			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.HAS_TAINT_FIELD, "Z", null, 0);
 //			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.IS_TAINT_SEATCHING_FIELD, "Z", null, 0);
@@ -1202,7 +1204,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsBoxed"+(Configuration.MULTI_TAINTING ? "ObjTags":""), "(Ljava/util/Collection;)Ljava/util/Collection;",false);
 								ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
 							}
-							if(t.getDescriptor().endsWith("java/lang/Object;")  && !className.contains("MethodAccessorImpl") && !m.name.startsWith("invoke"))
+							if(t.getDescriptor().endsWith("java/lang/Object;")  && !className.contains("MethodAccessorImpl") && !m.name.startsWith("invoke") && !className.contains("ConstructorAccessorImpl"))
 							{
 								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
 								ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());

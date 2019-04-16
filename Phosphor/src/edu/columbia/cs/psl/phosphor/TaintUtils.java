@@ -57,6 +57,7 @@ public class TaintUtils {
 	public static final int CUSTOM_SIGNAL_3 = 220;
 	public static final int LOOP_HEADER = 221;
 	public static final String TAINT_FIELD = "PHOSPHOR_TAG";
+	public static final String MARK_FIELD = "$$PHOSPHOR_MARK";
 	public static final String METHOD_SUFFIX = "$$PHOSPHORTAGGED";
 	public static final String ADDED_SVUID_SENTINEL = "$$PHOSPHOR_REMOVE_SVUID";
 //	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
@@ -278,6 +279,22 @@ public class TaintUtils {
 				if (TaintedPrimitiveWithIntTag.class.isAssignableFrom(c))
 					return true;
 			} catch (ClassNotFoundException e) {
+			}
+		}
+		return false;
+	}
+
+	/* Returns whether the specified type is for a taint sentinel. */
+	public static boolean isTaintSentinel(Type type) {
+		return type.equals(Type.getType(TaintSentinel.class)) || type.equals(Type.getType(UninstrumentedTaintSentinel.class));
+	}
+
+	/* Returns whether the specified method description contains a taint sentinel. */
+	public static boolean containsTaintSentinel(String desc) {
+		Type[] types = Type.getArgumentTypes(desc);
+		for(Type type : types) {
+			if(isTaintSentinel(type)) {
+				return true;
 			}
 		}
 		return false;

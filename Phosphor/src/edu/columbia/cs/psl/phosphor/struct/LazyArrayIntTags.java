@@ -12,6 +12,9 @@ public abstract class LazyArrayIntTags implements Serializable {
 	public int[] taints;
 	public Taint taint;
 
+  // Used to mark this object as visited when searching
+	public int $$PHOSPHOR_MARK = Integer.MIN_VALUE;
+
 	public LazyArrayIntTags(int[] taints) {
 		this.taints = taints;
 	}
@@ -47,7 +50,6 @@ public abstract class LazyArrayIntTags implements Serializable {
 	}
 
 	// Phosphor Wrappers to handle tags
-	// TODO Write integration tests for below
 	public TaintedBooleanWithIntTag equals$$PHOSPHORTAGGED(int taint, Object o, TaintedBooleanWithIntTag ret) {
 		ret.val = this.equals(o);
 		ret.taint = taint;
@@ -72,7 +74,6 @@ public abstract class LazyArrayIntTags implements Serializable {
 	}
 
 	// Phosphor Wrappers to handle tags
-	// TODO Write integration tests for below
 	public TaintedIntWithIntTag hashCode$$PHOSPHORTAGGED(TaintedIntWithIntTag ret) {
 		ret.val = this.hashCode();
 		return ret;

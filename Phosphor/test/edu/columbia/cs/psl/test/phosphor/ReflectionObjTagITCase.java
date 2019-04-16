@@ -4,10 +4,13 @@ import static edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass.assertNonNul
 import static org.junit.Assert.*;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -55,6 +58,18 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 				assertNonNullTaint(MultiTainter.getTaint(b[0]));
 			}
 			return b == null ? 0 : b.length;
+		}
+	}
+
+	public static class ConstructorHolder {
+		public boolean bool;
+		public boolean[] bools;
+		public ConstructorHolder(boolean bool) {
+			this.bool = bool;
+		}
+
+		public ConstructorHolder(boolean[] bools) {
+			this.bools = bools;
 		}
 	}
 
@@ -173,7 +188,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		MethodHolder holder = new MethodHolder(false);
 		Method method = MethodHolder.class.getMethod("primitiveArrParamMethod", Class.forName("[Z"));
 		boolean[] arr = new boolean[] {true, true};
-		Object result = method.invoke(holder, arr);
+		Object result = method.invoke(holder, (Object) arr);
 		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
 		int i = (Integer)result;
 		assertEquals(arr.length, i);
@@ -185,9 +200,64 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		Method method = MethodHolder.class.getMethod("primitiveArrParamMethod", Class.forName("[Z"));
 		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
 		boolean[] arr = new boolean[] {z, z};
-		Object result = method.invoke(holder, arr);
+		Object result = method.invoke(holder, (Object) arr);
 		assertTrue("Expected integer return from reflected method.", result instanceof Integer);
 		int i = (Integer)result;
 		assertEquals(arr.length, i);
+	}
+
+	@Test
+	public void testNewInstanceConstructorPrimitiveArg() throws Exception {
+		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Boolean.TYPE);
+		boolean z = true;
+		ConstructorHolder instance = cons.newInstance(z);
+		assertTrue("Expected new instance from reflected constructor to have its field set.", instance.bool);
+	}
+
+	@Test
+	public void testNewInstanceConstructorTaintedPrimitiveArg() throws Exception {
+		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Boolean.TYPE);
+		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		ConstructorHolder instance = cons.newInstance(z);
+		assertTrue("Expected new instance from reflected constructor to have its field set.", instance.bool);
+		assertNonNullTaint(MultiTainter.getTaint(instance.bool));
+	}
+
+	@Test
+	public void testNewInstanceConstructorPrimitiveArrArg() throws Exception {
+		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Class.forName("[Z"));
+		boolean[] arr = new boolean[] {true, true};
+		ConstructorHolder instance = cons.newInstance((Object)arr);
+		assertNotNull(instance.bools);
+		assertTrue("Expected new instance from reflected constructor to have its field set.", instance.bools[0]);
+	}
+
+	@Test
+	public void testNewInstanceConstructorTaintedPrimitiveArrArg() throws Exception {
+		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Class.forName("[Z"));
+		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		boolean[] arr = new boolean[] {z, z};
+		ConstructorHolder instance = cons.newInstance((Object)arr);
+		assertNotNull(instance.bools);
+		assertTrue("Expected new instance from reflected constructor to have its field set.", instance.bools[0]);
+		assertNonNullTaint(MultiTainter.getTaint(instance.bools[0]));
+	}
+
+	@Test
+	public void testGetFieldsHidesPhosphorFields() {
+		Field[] fields = FieldHolder.class.getFields();
+		assertEquals("Expected FieldHolder to have no public fields.", 0, fields.length);
+	}
+
+	@Test
+	public void testGetDeclaredFieldsHidesPhosphorFields() {
+		Field[] fields = FieldHolder.class.getDeclaredFields();
+		List<String> expectedNames = Arrays.asList("i", "j", "z", "s", "d", "b", "c", "ia", "ja", "za", "sa", "da", "ba", "ca");
+		List<String> actualNames = new ArrayList<>();
+		for(Field field : fields) {
+			actualNames.add(field.getName());
+		}
+		assertTrue(String.format("Expected FieldHolder to have declared fields %s, but got %s", expectedNames, actualNames),
+				expectedNames.size() == actualNames.size() && expectedNames.containsAll(actualNames) && actualNames.containsAll(expectedNames));
 	}
 }
