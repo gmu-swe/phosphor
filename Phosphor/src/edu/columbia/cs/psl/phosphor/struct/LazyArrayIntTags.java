@@ -10,9 +10,8 @@ public abstract class LazyArrayIntTags implements Serializable {
 	private static final long serialVersionUID = 7377241443004037122L;
 
 	public int[] taints;
-	public Taint taint;
 
-  // Used to mark this object as visited when searching
+	// Used to mark this object as visited when searching
 	public int $$PHOSPHOR_MARK = Integer.MIN_VALUE;
 
 	public LazyArrayIntTags(int[] taints) {
@@ -52,19 +51,7 @@ public abstract class LazyArrayIntTags implements Serializable {
 	// Phosphor Wrappers to handle tags
 	public TaintedBooleanWithIntTag equals$$PHOSPHORTAGGED(int taint, Object o, TaintedBooleanWithIntTag ret) {
 		ret.val = this.equals(o);
-		ret.taint = taint;
-		return ret;
-	}
-
-	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o, TaintedBooleanWithObjTag ret) {
-		ret.val = this.equals(o);
-		ret.taint = Taint.combineTags(this.taint, ret.taint);
-		return ret;
-	}
-
-	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o, TaintedBooleanWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
-		ret.val = this.equals(o);
-		ret.taint = Taint.combineTags(this.taint, ret.taint);
+		ret.taint = 0;
 		return ret;
 	}
 
@@ -76,18 +63,7 @@ public abstract class LazyArrayIntTags implements Serializable {
 	// Phosphor Wrappers to handle tags
 	public TaintedIntWithIntTag hashCode$$PHOSPHORTAGGED(TaintedIntWithIntTag ret) {
 		ret.val = this.hashCode();
-		return ret;
-	}
-
-	public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(TaintedIntWithObjTag ret) {
-		ret.val = this.hashCode();
-		ret.taint = Taint.combineTags(this.taint, ret.taint);
-		return ret;
-	}
-
-	public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(TaintedIntWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
-		ret.val = this.hashCode();
-		ret.taint = Taint.combineTags(this.taint, ret.taint);
+		ret.taint = 0;
 		return ret;
 	}
 }
