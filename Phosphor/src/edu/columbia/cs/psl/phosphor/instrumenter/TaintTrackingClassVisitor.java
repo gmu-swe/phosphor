@@ -656,7 +656,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD, "I", null, 0);
 			else
 				super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD, TaintAdapter.getTagType(className).getDescriptor(), null, null);
-			// Add an int field that can be used to mark an instance of this class as visited
+			// Add an int field that can be used to mark an instance as visited when searching
 			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.MARK_FIELD, "I", null, Integer.MIN_VALUE);
 //			if(GEN_HAS_TAINTS_METHOD){
 //			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.HAS_TAINT_FIELD, "Z", null, 0);

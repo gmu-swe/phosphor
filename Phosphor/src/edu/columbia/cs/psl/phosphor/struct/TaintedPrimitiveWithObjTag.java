@@ -5,7 +5,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 public abstract class TaintedPrimitiveWithObjTag {
 
 	public Taint taint;
-	// Used to mark an instance of this class as visited
+	// Used to mark this object as visited when searching
 	public int $$PHOSPHOR_MARK = Integer.MIN_VALUE;
 
 	public abstract Object getValue();

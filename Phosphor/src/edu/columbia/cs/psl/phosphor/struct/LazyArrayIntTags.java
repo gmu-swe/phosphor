@@ -7,7 +7,7 @@ public abstract class LazyArrayIntTags implements Serializable {
 
 	private static final long serialVersionUID = 7377241443004037122L;
 	public int[] taints;
-	// Used to mark an instance of this class as visited
+	// Used to mark this object as visited when searching
 	public int $$PHOSPHOR_MARK = Integer.MIN_VALUE;
 
 	public LazyArrayIntTags(int[] taints) {

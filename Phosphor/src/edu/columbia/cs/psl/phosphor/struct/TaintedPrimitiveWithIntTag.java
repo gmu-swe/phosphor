@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.phosphor.struct;
 public abstract class TaintedPrimitiveWithIntTag {
 
 	public int taint;
-	// Used to mark an instance of this class as visited
+	// Used to mark this object as visited when searching
 	public int $$PHOSPHOR_MARK = Integer.MIN_VALUE;
 
 	public abstract Object getValue();
