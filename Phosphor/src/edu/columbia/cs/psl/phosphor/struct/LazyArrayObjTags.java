@@ -9,6 +9,8 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 
 	private static final long serialVersionUID = -2635717960621951243L;
+	// Used to mark this object as visited when searching
+	public int $$PHOSPHOR_MARK = Integer.MIN_VALUE;
 	public Taint[] taints;
 
 	public LazyArrayObjTags(Taint[] taints) {
