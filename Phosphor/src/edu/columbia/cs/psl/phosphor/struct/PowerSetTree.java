@@ -2,56 +2,64 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import java.lang.ref.WeakReference;
 
-/* Provides access to a thread-safe collection of sets of objects by maintaining a trie-like structure. The set represented
- * by some node in the tree contains the objects associated with the keys of every node on the path from that node to the
- * root of the tree. Elements stored in the sets should be immutable and non-null. The elements of a set will be equivalent
- * to the objects stored in the set with respect to the equals method but not necessarily referential equality.
+/* Provides access to a thread-safe collection of sets of objects by maintaining a trie-like tree structure. The set
+ * represented by some node in the tree contains the objects associated with the keys of every node on the path from that
+ * node to the root of the tree. Elements stored in the sets should be immutable and non-null. The elements of a set will
+ *  be equivalent to the objects stored in the set with respect to the equals method but not necessarily referential equality.
  *
- * Each element in some set represented in the structure is assigned an arbitrary, consistent, unique rank which is used
- * to total order the elements. Ranks strictly decrease along any path from any node to the root of the tree. A node
+ * Each element in some set represented in the structure is assigned a consistent, unique rank which is used
+ * to total order set elements. Ranks strictly decrease along any path from a node to the root of the tree, that is a node
  * will only have child nodes with higher ranks that its own. */
 public class PowerSetTree {
 
-    // Stores the unique elements across all of the sets in the collection. The position of an element in this array determines
-    // its rank.
-    private ArrayList<WeakReference<Object>> elementSet;
+    // The current capacity of elementRankList
+    private volatile int currentCapacity;
+    // Stores the unique elements across all of the sets in the collection with their rank. The position of an element
+    // in this array determines its rank.
+    private ArrayList<WeakReference<RankedObject>> elementRankList;
     // Root of the tree, represents the empty set
     private final SetNode root;
 
     /* Constructs a new empty pool. Initializes the root node that represents the empty set. */
     private PowerSetTree() {
-        this.elementSet = new ArrayList<>(20);
+        this.currentCapacity = 32;
+        this.elementRankList = new ArrayList<>(currentCapacity);
         this.root = new SetNode(null, null);
     }
 
-    /* Stores the specified object in the elementSet if an equal object is not already contained in the set. Returns a
-     * record type containing the specified object (or an object equal to it if one was contained in the set) and the position
-     * of that object. */
+    /* Stores the specified object in the elementRankList if an equal object is not already represented in the list. Returns
+     * the record object for objects equal to the specified object. This record contains the an object equal to the specified
+     * object and the rank assigned to objects equal to the specified object. */
     private synchronized RankedObject getRankedObject(Object object) {
         // The lowest index in the array that was either null or set to null because the referent of the WeakReference
         // at that index was garbage collected
         int lowestGCEntry = -1;
-        for(int i = 0; i < elementSet.size(); i++) {
-            WeakReference<Object> ref = elementSet.get(i);
+        for(int i = 0; i < elementRankList.size(); i++) {
+            WeakReference<RankedObject> ref = elementRankList.get(i);
             if(ref == null) {
                 lowestGCEntry = (lowestGCEntry == -1) ? i : lowestGCEntry;
             } else {
-                Object element = ref.get();
-                if(element == null) {
-                    elementSet.replace(i, null);
+                RankedObject rankedElement = ref.get();
+                if(rankedElement == null) {
+                    elementRankList.replace(i, null);
                     lowestGCEntry = (lowestGCEntry == -1) ? i : lowestGCEntry;
-                } else if(object.equals(element)) {
-                    return new RankedObject(element, i);
+                } else if(object.equals(rankedElement.object)) {
+                    // Found an object represented in the list equal to the specified object
+                    return rankedElement;
                 }
             }
         }
         if(lowestGCEntry == -1) {
             // No garbage collected or null entries were found
-            elementSet.add(new WeakReference<>(object));
-            return new RankedObject(object, elementSet.size() - 1);
+            RankedObject result = new RankedObject(object, elementRankList.size());
+            elementRankList.add(new WeakReference<>(result));
+            // Update the capacity in case it changed
+            this.currentCapacity = elementRankList.getCapacity();
+            return result;
         } else {
-            elementSet.replace(lowestGCEntry, new WeakReference<>(object));
-            return new RankedObject(object, lowestGCEntry);
+            RankedObject result = new RankedObject(object, lowestGCEntry);
+            elementRankList.replace(lowestGCEntry, new WeakReference<>(result));
+            return result;
         }
     }
 
@@ -88,7 +96,7 @@ public class PowerSetTree {
         private SetNode(RankedObject key, SetNode parent) {
             this.key = key;
             this.parent = parent;
-            this.children = (WeakReference<SetNode>[]) new WeakReference[elementSet.size()];
+            this.children = (WeakReference<SetNode>[]) new WeakReference[currentCapacity];
         }
 
         /* Adds a new entry to this node's array child nodes for the specified key if one does not already exist.
@@ -100,13 +108,9 @@ public class PowerSetTree {
                 // Store the child at the difference between its rank and the lowest possible rank for a child of this node
                 int childPosition = childKey.rank - (curRank + 1);
                 if(childPosition >= children.length) {
-                    int newSize;
-                    synchronized(PowerSetTree.this) {
-                        newSize = elementSet.getCapacity();
-                    }
                     // Resize the child array
                     WeakReference<SetNode>[] temp = this.children;
-                    this.children = (WeakReference<SetNode>[]) new WeakReference[newSize];
+                    this.children = (WeakReference<SetNode>[]) new WeakReference[currentCapacity];
                     System.arraycopy(temp, 0, this.children, 0, temp.length);
                 }
                 if(children[childPosition] == null) {
@@ -116,8 +120,8 @@ public class PowerSetTree {
                     return node;
                 }
                 SetNode childNode = children[childPosition].get();
-                if(childNode == null) {
-                    // The entry at the child position has been garbage collected.
+                if(childNode == null || childNode.key != childKey) {
+                    // The entry at the child position has been garbage collected or is going to be garbage collected
                     SetNode node = new SetNode(childKey, this);
                     children[childPosition] = new WeakReference<>(node);
                     return node;
