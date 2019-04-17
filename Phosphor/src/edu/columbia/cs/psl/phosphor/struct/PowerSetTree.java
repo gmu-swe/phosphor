@@ -2,31 +2,57 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import java.lang.ref.WeakReference;
 
-/* Provides access to a thread-safe pool of sets of objects by maintaining a tree structure. The set represented by some
- * node in the tree contains the objects associated with the keys of every node on the path from that node to the root of
- * the tree. Elements stored in the sets should be immutable. The elements of a sets will be equivalent to the objects
- * stored in the set with respect to equals but not necessarily referential equality. */
+/* Provides access to a thread-safe collection of sets of objects by maintaining a trie-like structure. The set represented
+ * by some node in the tree contains the objects associated with the keys of every node on the path from that node to the
+ * root of the tree. Elements stored in the sets should be immutable and non-null. The elements of a set will be equivalent
+ * to the objects stored in the set with respect to the equals method but not necessarily referential equality.
+ *
+ * Each element in some set represented in the structure is assigned an arbitrary, consistent, unique rank which is used
+ * to total order the elements. Ranks strictly decrease along any path from any node to the root of the tree. A node
+ * will only have child nodes with higher ranks that its own. */
 public class PowerSetTree {
 
+    // Stores the unique elements across all of the sets in the collection. The position of an element in this array determines
+    // its rank.
+    private ArrayList<WeakReference<Object>> elementSet;
     // Root of the tree, represents the empty set
     private final SetNode root;
-    // The number that should be assigned as the next rank
-    private volatile int nextId = Integer.MIN_VALUE;
-    // Map objects to (object,rank) records
-    private final SimpleHashMap<Object, RankedObject> rankMap = new SimpleHashMap<>();
 
     /* Constructs a new empty pool. Initializes the root node that represents the empty set. */
     private PowerSetTree() {
+        this.elementSet = new ArrayList<>(20);
         this.root = new SetNode(null, null);
     }
 
-    /* Returns a new RankedObject if none existed for the specified object in the rankMap or the existing
-     * RankedObject for the specified object if a mapping already existed in the rankMap. */
+    /* Stores the specified object in the elementSet if an equal object is not already contained in the set. Returns a
+     * record type containing the specified object (or an object equal to it if one was contained in the set) and the position
+     * of that object. */
     private synchronized RankedObject getRankedObject(Object object) {
-        if(!rankMap.containsKey(object)) {
-            rankMap.put(object, new RankedObject(object, nextId++));
+        // The lowest index in the array that was either null or set to null because the referent of the WeakReference
+        // at that index was garbage collected
+        int lowestGCEntry = -1;
+        for(int i = 0; i < elementSet.size(); i++) {
+            WeakReference<Object> ref = elementSet.get(i);
+            if(ref == null) {
+                lowestGCEntry = (lowestGCEntry == -1) ? i : lowestGCEntry;
+            } else {
+                Object element = ref.get();
+                if(element == null) {
+                    elementSet.replace(i, null);
+                    lowestGCEntry = (lowestGCEntry == -1) ? i : lowestGCEntry;
+                } else if(object.equals(element)) {
+                    return new RankedObject(element, i);
+                }
+            }
         }
-        return rankMap.get(object);
+        if(lowestGCEntry == -1) {
+            // No garbage collected or null entries were found
+            elementSet.add(new WeakReference<>(object));
+            return new RankedObject(object, elementSet.size() - 1);
+        } else {
+            elementSet.replace(lowestGCEntry, new WeakReference<>(object));
+            return new RankedObject(object, lowestGCEntry);
+        }
     }
 
     /* Returns the node representing the empty set. */
@@ -43,7 +69,7 @@ public class PowerSetTree {
         return root.addChild(getRankedObject(element));
     }
 
-    /* Represents some set in the pool. The set represented by some node contains the objects associated with
+    /* Represents some set in the collection. The set represented by some node contains the objects associated with
      * the keys of every node on the path from that node to the root of the tree. */
     public class SetNode {
 
@@ -53,28 +79,50 @@ public class PowerSetTree {
         // The node that represents the set difference between this set and the singleton set containing the object
         // associated with this node's key
         private final SetNode parent;
-        // Maps a key with a rank larger than the rank of this node's key to a node representing the union of the set
-        // represented by this node with a singleton set containing the object associated with that key.
-        private final SimpleHashMap<RankedObject, WeakReference<SetNode>> children;
+        // Stores child nodes that represent the union of the set represented by this node with a singleton set containing the
+        // object associated with the key of the child node.
+        private WeakReference<SetNode>[] children;
 
         /* Constructs a new set node with no child nodes. */
+        @SuppressWarnings("unchecked")
         private SetNode(RankedObject key, SetNode parent) {
             this.key = key;
             this.parent = parent;
-            this.children = new SimpleHashMap<>();
+            this.children = (WeakReference<SetNode>[]) new WeakReference[elementSet.size()];
         }
 
-        /* Adds a new entry to this node's map of child nodes for the specified key if one does not already exist.
-         * Returns the child node mapped to the specified key. */
+        /* Adds a new entry to this node's array child nodes for the specified key if one does not already exist.
+         * Returns the child node for the specified key. */
+        @SuppressWarnings("unchecked")
         private SetNode addChild(RankedObject childKey) {
-            synchronized(children) {
-                if (!children.containsKey(childKey) || children.get(childKey).get() == null) {
-                    // If there is no mapping for the specified key or the mapping's value has been garbage collected.
+            synchronized(this) {
+                int curRank = (key == null) ? -1 : key.rank;
+                // Store the child at the difference between its rank and the lowest possible rank for a child of this node
+                int childPosition = childKey.rank - (curRank + 1);
+                if(childPosition >= children.length) {
+                    int newSize;
+                    synchronized(PowerSetTree.this) {
+                        newSize = elementSet.getCapacity();
+                    }
+                    // Resize the child array
+                    WeakReference<SetNode>[] temp = this.children;
+                    this.children = (WeakReference<SetNode>[]) new WeakReference[newSize];
+                    System.arraycopy(temp, 0, this.children, 0, temp.length);
+                }
+                if(children[childPosition] == null) {
+                    // There is no entry at the child position
                     SetNode node = new SetNode(childKey, this);
-                    children.put(childKey, new WeakReference<SetNode>(node));
+                    children[childPosition] = new WeakReference<>(node);
+                    return node;
+                }
+                SetNode childNode = children[childPosition].get();
+                if(childNode == null) {
+                    // The entry at the child position has been garbage collected.
+                    SetNode node = new SetNode(childKey, this);
+                    children[childPosition] = new WeakReference<>(node);
                     return node;
                 } else {
-                    return children.get(childKey).get();
+                    return childNode;
                 }
             }
         }
@@ -90,19 +138,22 @@ public class PowerSetTree {
             if(other == null) {
                 return this;
             }
-            LinkedList<RankedObject> mergedList = new LinkedList<>();
+            SimpleLinkedList<RankedObject> mergedList = new SimpleLinkedList<>();
             SetNode cur = this;
             // Maintain a sorted list of objects popped off from the two sets until one set is exhausted
             while(!cur.isEmpty() && !other.isEmpty()) {
+                if(cur == other) {
+                    break;
+                }
                 if(cur.key.rank == other.key.rank) {
-                    mergedList.addFast(cur.key);
+                    mergedList.push(cur.key);
                     cur = cur.parent;
                     other = other.parent;
                 } else if(cur.key.rank > other.key.rank) {
-                    mergedList.addFast(cur.key);
+                    mergedList.push(cur.key);
                     cur = cur.parent;
                 } else {
-                    mergedList.addFast(other.key);
+                    mergedList.push(other.key);
                     other = other.parent;
                 }
             }
@@ -145,7 +196,9 @@ public class PowerSetTree {
                 if(cur.isEmpty()) {
                     return false;
                 }
-                if(cur.key.rank == other.key.rank) {
+                if(cur == other) {
+                    return true;
+                } else if(cur.key.rank == other.key.rank) {
                     cur = cur.parent;
                     other = other.parent;
                 } else if(cur.key.rank > other.key.rank) {
@@ -158,11 +211,11 @@ public class PowerSetTree {
         }
 
         /* Returns a list containing the elements of the set represented by this node. */
-        public LinkedList<Object> toList() {
-            LinkedList<Object> list = new LinkedList<>();
+        public SimpleLinkedList<Object> toList() {
+            SimpleLinkedList<Object> list = new SimpleLinkedList<>();
             // Walk to the root adding the objects associated with the nodes' key values to the list
             for(SetNode cur = this; !cur.isEmpty(); cur = cur.parent) {
-                list.add(cur.key.object);
+                list.push(cur.key.object);
             }
             return list;
         }
@@ -184,12 +237,12 @@ public class PowerSetTree {
         }
     }
 
-    /* Provides access to the single instance of PowerSetTree. */
+    /* Returns the singleton instance of PowerSetTree. */
     public static PowerSetTree getInstance() {
         return PowerSetTreeSingleton.INSTANCE;
     }
 
-    /* Inner class used to provide access to singleton instance of PowerSetTree. */
+    /* Inner class used to create the singleton instance of PowerSetTree. */
     private static class PowerSetTreeSingleton {
         private static final PowerSetTree INSTANCE = new PowerSetTree();
     }

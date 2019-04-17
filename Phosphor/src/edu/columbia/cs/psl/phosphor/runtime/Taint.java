@@ -78,12 +78,12 @@ public class Taint<T> implements Serializable {
 	}
 
 	/* Returns a list containing this taint object's labels sorted in ascending order. */
-	public LinkedList<Object> getLabels() {
+	public SimpleLinkedList<Object> getLabels() {
 		return labelSet.toList();
 	}
 
 	@SuppressWarnings("unused")
-	public LinkedList<Object> getLabels$$PHOSPHORTAGGED() {
+	public SimpleLinkedList<Object> getLabels$$PHOSPHORTAGGED() {
 		return getLabels();
 	}
 
