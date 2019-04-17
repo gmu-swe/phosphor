@@ -295,10 +295,10 @@ public class Taint<T> implements Serializable {
 
 	public static Taint combineTagsFromArray(Taint[] taintArray) {
 
-		Taint combinedTaintFromArray;
+		Taint combinedTaintFromArray = null;
 
 		for(int idx = 0; idx < taintArray.length; idx++) {
-			combinedTaintFromArray = Taint.combineTags(combinedTaintFromArray, taintArray[0]);
+			combinedTaintFromArray = Taint.combineTags(combinedTaintFromArray, taintArray[idx]);
 		}
 
 		return combinedTaintFromArray;

@@ -68,13 +68,13 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 	// Phosphor Wrappers to handle tags
 	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o, TaintedBooleanWithObjTag ret) {
 		ret.val = this.equals(o);
-		ret.taint = null;
+		ret.taint = (this.taints != null) ? Taint.combineTagsFromArray(this.taints) : null;
 		return ret;
 	}
 
 	public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o, TaintedBooleanWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
 		ret.val = this.equals(o);
-		ret.taint = null;
+		ret.taint = (this.taints != null) ? Taint.combineTagsFromArray(this.taints) : null;
 		return ret;
 	}
 
@@ -86,7 +86,7 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 	// Phosphor Wrappers to handle tags
 	public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(TaintedIntWithObjTag ret) {
 		ret.val = this.hashCode();
-		ret.taint = null;
+		ret.taint = (this.taints != null) ? Taint.combineTagsFromArray(this.taints) : null;
 		return ret;
 	}
 
