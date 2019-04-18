@@ -39,7 +39,7 @@ public class LinkedList<T> implements Cloneable, Serializable {
 		return true;
 	}
 
-	public int size(){
+	public int size() {
 		Node<T> i = first.next;
 		int c = 0;
 		while(i != null)
@@ -82,21 +82,18 @@ public class LinkedList<T> implements Cloneable, Serializable {
 		}
 		return added;
 	}
-	public synchronized void addFast(T o)
-	{
+
+	/* Adds the specified element to the front of the list. */
+	public synchronized void addFast(T o) {
 		Node<T> n = new Node<T>();
 		n.entry = o;
-		if(first.next == null)
-		{
+		if(first.next == null) {
 			first.next=n;
 			last = n;
-		}
-		else
-		{
+		} else {
 			n.next = first.next;
 			first.next = n;
 		}
-		
 	}
 
 	public synchronized boolean isEmpty(){

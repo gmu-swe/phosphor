@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class ControlTaintTagStack {
@@ -12,7 +11,7 @@ public final class ControlTaintTagStack {
 
 	public LinkedList<MaybeThrownException> influenceExceptions;// = new LinkedList<>();
 	public final boolean isEmpty() {
-		return taint == null || this.isDisabled || (taint.lbl == null && taint.hasNoDependencies());
+		return taint == null || this.isDisabled || taint.isEmpty();
 	}
 	public ControlTaintTagStack(int zz) {
 		this();
@@ -146,10 +145,7 @@ public final class ControlTaintTagStack {
 				if(i.entry != null && i.entry.clazz == t)
 				{
 					found = true;
-					if(taints.taint.tags != null)
-						i.entry.tag.setBits(taints.taint.tags);
-					else
-						i.entry.tag.addDependency(taints.taint);
+					i.entry.tag.addDependency(taints.taint);
 					break;
 				}
 				i = i.next;
@@ -307,7 +303,7 @@ public final class ControlTaintTagStack {
 
 	public Taint copyTagExceptions(){
 		if(
-				(taint == null || (taint.hasNoDependencies() && taint.lbl == null))
+				(taint == null || taint.isEmpty())
 				&& (influenceExceptions == null || influenceExceptions.isEmpty())
 		){
 			return null;
@@ -328,7 +324,7 @@ public final class ControlTaintTagStack {
 		return ret;
 	}
 	public Taint getTag() {
-		if(taint == null || isDisabled || (taint.hasNoDependencies() && taint.lbl == null))
+		if(taint == null || isDisabled || taint.isEmpty())
 			return null;
 		return taint;
 	}
