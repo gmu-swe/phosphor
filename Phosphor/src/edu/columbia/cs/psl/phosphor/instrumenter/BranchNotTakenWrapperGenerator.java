@@ -76,7 +76,7 @@ public class BranchNotTakenWrapperGenerator {
 					}
 					break;
 				case Opcodes.ATHROW:
-					if (Configuration.IMPLICIT_EXCEPTION_FLOW) {
+					if (Configuration.IMPLICIT_EXCEPTION_FLOW || Configuration.IMPLICIT_EXCEPTION_BRANCH_SUMMARIZATION) {
 						f = frames[idx];
 						if (f != null) {
 							BasicValue _val = f.getStack(f.getStackSize() - 1);
@@ -101,7 +101,7 @@ public class BranchNotTakenWrapperGenerator {
 			return;
 		newName = newName + TaintUtils.METHOD_SUFFIX_SUMMARY;
 		String newDesc = TaintUtils.remapMethodDesc(originalMethod.desc);
-		if (Configuration.IMPLICIT_EXCEPTION_FLOW) {
+		if (Configuration.IMPLICIT_EXCEPTION_FLOW || Configuration.IMPLICIT_EXCEPTION_BRANCH_SUMMARIZATION) {
 			//Also need to pass the current method's exception data to the wrapper, to emulate as if that exception were being thrown immediately under this branch
 			Type[] args = Type.getArgumentTypes(newDesc);
 			Type returnType = Type.getReturnType(newDesc);

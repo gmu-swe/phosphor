@@ -55,17 +55,17 @@ public class InvokedMethod extends ForceControlStoreAdvice {
 
 		String summaryMethodName = name + TaintUtils.METHOD_SUFFIX_SUMMARY;
 		String summaryMethodDesc = TaintUtils.remapMethodDesc(desc);
-//		if(Configuration.IMPLICIT_EXCEPTION_FLOW){
-//			//Also need to pass the current method's exception data to the wrapper, to emulate as if that exception were being thrown immediately under this branch
-//			Type[] args = Type.getArgumentTypes(summaryMethodDesc);
-//			Type returnType = Type.getReturnType(summaryMethodDesc);
-//			summaryMethodDesc = "(";
-//			for(Type t : args){
-//				summaryMethodDesc += t.getDescriptor();
-//			}
-//			summaryMethodDesc += Type.getDescriptor(ExceptionalTaintData.class);
-//			summaryMethodDesc+=')'+returnType.getDescriptor();
-//		}
+		if(Configuration.IMPLICIT_EXCEPTION_FLOW){
+			//Also need to pass the current method's exception data to the wrapper, to emulate as if that exception were being thrown immediately under this branch
+			Type[] args = Type.getArgumentTypes(summaryMethodDesc);
+			Type returnType = Type.getReturnType(summaryMethodDesc);
+			summaryMethodDesc = "(";
+			for(Type t : args){
+				summaryMethodDesc += t.getDescriptor();
+			}
+			summaryMethodDesc += Type.getDescriptor(ExceptionalTaintData.class);
+			summaryMethodDesc+=')'+returnType.getDescriptor();
+		}
 		Label bail = new Label();
 		FrameNode fn = TaintAdapter.getCurrentFrameNode(analyzer);
 		fn.type = Opcodes.F_NEW;
@@ -103,8 +103,8 @@ public class InvokedMethod extends ForceControlStoreAdvice {
 		}
 		//load ControlTaintTagStack
 		mv.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-//		if (Configuration.IMPLICIT_EXCEPTION_FLOW)
-//			mv.visitVarInsn(ALOAD, lvs.getIdxOfMasterExceptionLV());
+		if (Configuration.IMPLICIT_EXCEPTION_FLOW)
+			mv.visitVarInsn(ALOAD, lvs.getIdxOfMasterExceptionLV());
 		int idx = this.collectorIdx;
 		if (idx < 0)
 			idx = methodCollector.size();
