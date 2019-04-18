@@ -1,13 +1,14 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class ControlTaintTagStack {
 
 	public boolean isDisabled;
 	public Taint taint;
+	public Taint cachedExceptionTaint;
+
 	LinkedList<MaybeThrownException> unThrownExceptionStack;// = new LinkedList<>();
 
 	public LinkedList<MaybeThrownException> influenceExceptions;// = new LinkedList<>();
@@ -88,8 +89,10 @@ public final class ControlTaintTagStack {
 		LinkedList.Node<MaybeThrownException> prev = null;
 		while(n != null){
 			if(exTypeHandled.isAssignableFrom(n.entry.clazz)){
-				if(prev == null)
+				if(prev == null) {
+					prevExceptionTaints.clear();
 					influenceExceptions.pop();
+				}
 				else {
 					prev.next = n.next;
 				}
@@ -122,11 +125,22 @@ public final class ControlTaintTagStack {
 				if (influenceExceptions == null)
 					influenceExceptions = new LinkedList<>();
 				influenceExceptions.addFast(n.entry);
+				pushToCachedExceptionTaint(n.entry.tag);
 			}
 			else
 				prev = n;
 			n = n.next;
 		}
+	}
+	private final void pushToCachedExceptionTaint(Taint newTag)
+	{
+		if(cachedExceptionTaint == null || ignoreCachedExceptionTaintHistory) {
+			cachedExceptionTaint = (taint == null ? new Taint() : taint.copy());
+			ignoreCachedExceptionTaintHistory = false;
+		}
+		else
+			prevExceptionTaints.addFast(cachedExceptionTaint);
+		cachedExceptionTaint.addDependency(newTag);
 	}
 
 	/*
@@ -162,6 +176,7 @@ public final class ControlTaintTagStack {
 	}
 
 	public LinkedList<Taint> prevTaints = new LinkedList<>();
+	private LinkedList<Taint> prevExceptionTaints = new LinkedList<>();
 
 	public final int[] push(Taint tag, int prev[], int i, int maxSize, ExceptionalTaintData curMethod) {
 		if (tag == null) //|| tag == taint) TODO: is this safe to optimize (commented out)?
@@ -193,21 +208,6 @@ public final class ControlTaintTagStack {
 	public final int[] _push(Taint tag, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData exceptionData){
 		if(isDisabled)
 			return invocationCountPerBranch;
-		//Try a deeper check
-//		if(this.taint != null && (tag.lbl == null || tag.lbl == this.taint.lbl || this.taint.dependencies.contains(tag.lbl)))
-//		{
-//			boolean ok = true;
-//			for(Object lbl : tag.dependencies)
-//
-//
-//			{
-//				if(!this.taint.dependencies.contains(lbl))
-//					ok = false;
-//			}
-//			if(ok)
-//				return prev;
-//
-//		}
 		if(invocationCountPerBranch == null)
 			invocationCountPerBranch = new int[maxSize];
 		invocationCountPerBranch[indexOfBranchInMethod]++;
@@ -222,11 +222,15 @@ public final class ControlTaintTagStack {
 				Taint prevTaint = this.taint;
 				this.taint = prevTaint.copy();
 				this.taint.addDependency(tag);
-
+			}
+			if (exceptionData != null) {
+				exceptionData.push(tag);
 			}
 		}
 		return invocationCountPerBranch;
 	}
+
+
 	public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
 		if (tag == null || tag == taint || isDisabled)
 			return null;
@@ -243,8 +247,8 @@ public final class ControlTaintTagStack {
 			Taint prevTaint = this.taint;
 			this.taint = prevTaint.copy();
 			this.taint.addDependency(tag);
-
 		}
+		pushToCachedExceptionTaint(tag);
 		return ret;
 	}
 	public final void pop(int enq[], int i, ExceptionalTaintData curMethod) {
@@ -260,8 +264,9 @@ public final class ControlTaintTagStack {
 		_pop(enq, i);
 	}
 	private final void _pop(int[] enq, int i){
-		if(enq[i] > 0)
+		if(enq[i] > 0) {
 			this.taint = prevTaints.pop();
+		}
 		while (enq[i]> 0) {
 			enq[i]--;
 		}
@@ -272,8 +277,14 @@ public final class ControlTaintTagStack {
 		for(int i = 0; i < enq.length; i++){
 			if(enq[i] != 0) {
 				curMethod.pop(enq[i]);
-				while (enq[i]> 0) {
+				if(enq[i] > 0) {
 					this.taint = prevTaints.pop();
+					if(!prevExceptionTaints.isEmpty())
+						this.cachedExceptionTaint = prevExceptionTaints.pop();
+					else
+						this.cachedExceptionTaint = null;
+				}
+				while (enq[i] > 0) {
 					enq[i]--;
 				}
 			}
@@ -283,8 +294,13 @@ public final class ControlTaintTagStack {
 	private final void _pop(int[] enq){
 		for (int i = 0; i < enq.length; i++) {
 			if (enq[i] != 0) {
-				if(enq[i] > 0)
+				if(enq[i] > 0) {
 					this.taint = prevTaints.pop();
+					if(!prevExceptionTaints.isEmpty())
+						this.cachedExceptionTaint = prevExceptionTaints.pop();
+					else
+						this.cachedExceptionTaint = null;
+				}
 				while (enq[i] > 0) {
 					enq[i]--;
 				}
@@ -301,10 +317,15 @@ public final class ControlTaintTagStack {
 			return;
 		while (enq.activeCount > 0) {
 			this.taint = prevTaints.pop();
+			if(!prevExceptionTaints.isEmpty())
+				this.cachedExceptionTaint = prevExceptionTaints.pop();
+			else
+				this.cachedExceptionTaint = null;
 			enq.activeCount--;
 		}
 	}
 
+	private boolean ignoreCachedExceptionTaintHistory;
 	public Taint copyTagExceptions(){
 		if(
 				(taint == null || (taint.hasNoDependencies() && taint.lbl == null))
@@ -312,9 +333,14 @@ public final class ControlTaintTagStack {
 		){
 			return null;
 		}
+		if(cachedExceptionTaint !=null)
+			return cachedExceptionTaint.copy();
+		ignoreCachedExceptionTaintHistory = true;
 		Taint ret = taint;
-		if(influenceExceptions == null || influenceExceptions.isEmpty())
+		if(influenceExceptions == null || influenceExceptions.isEmpty()) {
+			cachedExceptionTaint = ret;
 			return ret.copy();
+		}
 		if(ret == null)
 			ret = new Taint();
 		else
@@ -325,6 +351,7 @@ public final class ControlTaintTagStack {
 				ret.addDependency(n.entry.tag);
 			n=n.next;
 		}
+		cachedExceptionTaint = ret;
 		return ret;
 	}
 	public Taint getTag() {
@@ -336,6 +363,7 @@ public final class ControlTaintTagStack {
 		prevTaints = new LinkedList<>();
 		taint = null;
 		if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
+			prevExceptionTaints = new LinkedList<>();
 			unThrownExceptionStack = new LinkedList<>();
 			influenceExceptions = new LinkedList<>();
 		}

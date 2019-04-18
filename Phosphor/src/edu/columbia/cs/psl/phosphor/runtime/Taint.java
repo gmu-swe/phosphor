@@ -88,6 +88,8 @@ public class Taint<T> implements Serializable {
 	}
 
 	public Taint(T lbl) {
+		if(TAINT_ARRAY_SIZE > 0)
+			throw new IllegalStateException("Called Phosphor's Taint(Object label) constructor when finite tainting is enabled!");
 		this.lbl = lbl;
 		dependencies = new SimpleHashSet<T>();
 	}
