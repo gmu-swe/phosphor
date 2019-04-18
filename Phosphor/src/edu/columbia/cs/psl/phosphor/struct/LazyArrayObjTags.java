@@ -32,11 +32,16 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 
 	public abstract int getLength();
 	public void setTaints(Taint tag) {
-		if(taints == null)
-			taints = new Taint[getLength()];
-		for(int i = 0; i < taints.length; i++)
-		{
-			taints[i]=tag;
+	    Object val = getVal();
+
+	    // Ony taint if we have something to taint!
+	    if(val != null) {
+			if (taints == null) {
+				taints = new Taint[getLength()];
+			}
+			for (int i = 0; i < taints.length; i++) {
+				taints[i] = tag;
+			}
 		}
 	}
 
