@@ -300,6 +300,8 @@ public class Taint<T> implements Serializable {
 			return true;
 		}
 		if(that.tags != null) {
+			if(tags == null)
+				return false;
 			for(int i = 0; i < that.tags.length; i++) {
 				if((tags[i] | that.tags[i]) != tags[i]) {
 					return false;
