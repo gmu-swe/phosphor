@@ -303,6 +303,8 @@ public final class MultiTainter {
 			((TaintedPrimitiveWithObjTag) obj).taint = tag;
 		else if(obj != null && ArrayHelper.engaged == 1)
 			ArrayHelper.setTag(obj, tag);
+		else if(obj instanceof LazyArrayObjTags)
+			((LazyArrayObjTags) obj).setTaints(tag);
 	}
 
 	public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint tag, ControlTaintTagStack ctrl) {
