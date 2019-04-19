@@ -1,0 +1,43 @@
+/bin
+/target
+.project
+.classpath
+.settings
+
+# Remove dynamically generated pom
+dependency-reduced-pom.xml
+
+# Ignore vim .swp files
+**/*.swp
+
+
+# Ignore intellij stuff
+*.iml
+.idea
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
