@@ -3293,23 +3293,34 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 				else
 					registerTaintedArray();
-				if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
-				{
-					super.visitInsn(DUP);
-					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);						
-				}
+//				if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
+//				{
+//					super.visitInsn(DUP);
+//					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+//					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+//				}
+//				if(idxTainted)
+//				{
+//					//Array Taint Index Val
+//					super.visitInsn(DUP2_X1);
+//					//Array I V T I V
+//					super.visitInsn(SWAP);
+//					super.visitInsn(POP);
+//					//Array I V T V
+//					super.visitInsn(SWAP);
+//					//Array  I V V T
+//					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+//				}
 				if(idxTainted)
 				{
+					//Not supported
 					//Array Taint Index Val
 					super.visitInsn(DUP2_X1);
-					//Array I V T I V
-					super.visitInsn(SWAP);
+					//Array Index Val Taint Index Val
+					super.visitInsn(POP2);
+					//Array Index Val Taint
 					super.visitInsn(POP);
-					//Array I V T V
-					super.visitInsn(SWAP);
-					//Array  I V V T
-					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+					//Array Index Val
 				}
 				super.visitInsn(opcode);
 			} else {
