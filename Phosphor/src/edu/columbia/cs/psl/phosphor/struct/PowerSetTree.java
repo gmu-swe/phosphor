@@ -22,7 +22,7 @@ public class PowerSetTree {
 
     /* Constructs a new empty pool. Initializes the root node that represents the empty set. */
     private PowerSetTree() {
-        this.currentCapacity = 32;
+        this.currentCapacity = 100;
         this.elementRankList = new ArrayList<>(currentCapacity);
         this.root = new SetNode(null, null);
     }
