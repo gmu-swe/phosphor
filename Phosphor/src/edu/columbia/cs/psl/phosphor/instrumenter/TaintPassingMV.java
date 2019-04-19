@@ -3229,8 +3229,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			if(Configuration.ARRAY_INDEX_TRACKING && topCarriesTaint())
 			{
 				super.visitInsn(SWAP);
-				lvForIdxtaint = lvs.getTmpLV(taintType);
-				super.visitVarInsn(taintType.getOpcode(ISTORE), lvForIdxtaint);
+//				lvForIdxtaint = lvs.getTmpLV(taintType);
+//				super.visitVarInsn(taintType.getOpcode(ISTORE), lvForIdxtaint);
+				super.visitInsn(POP);
 				analyzer.clearTopOfStackTagged();
 			}
 			//?TA A I
@@ -3254,13 +3255,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 			} else
 				super.visitInsn(opcode);
-			if(lvForIdxtaint >= 0)
-			{
-				super.visitInsn(DUP);
-				super.visitVarInsn(taintType.getOpcode(ILOAD), lvForIdxtaint);
-				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-				lvs.freeTmpLV(lvForIdxtaint);
-			}
+//			if(lvForIdxtaint >= 0)
+//			{
+//				super.visitInsn(DUP);
+//				super.visitVarInsn(taintType.getOpcode(ILOAD), lvForIdxtaint);
+//				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+//				lvs.freeTmpLV(lvForIdxtaint);
+//			}
 			break;
 		case Opcodes.AASTORE:
 			arrayType = analyzer.stack.get(analyzer.stack.size() - 1);
@@ -3330,17 +3331,28 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);						
 				}
+//				if(idxTainted)
+//				{
+//					//Array T I V
+//					super.visitInsn(DUP2_X1);
+//					//Array I V T I V
+//					super.visitInsn(SWAP);
+//					super.visitInsn(POP);
+//					//Array I V T V
+//					super.visitInsn(SWAP);
+//					//Array  I V V T
+//					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+//				}
 				if(idxTainted)
 				{
-					//Array T I V
+					//Not supported
+					//Array Taint Index Val
 					super.visitInsn(DUP2_X1);
-					//Array I V T I V
-					super.visitInsn(SWAP);
+					//Array Index Val Taint Index Val
+					super.visitInsn(POP2);
+					//Array Index Val Taint
 					super.visitInsn(POP);
-					//Array I V T V
-					super.visitInsn(SWAP);
-					//Array  I V V T
-					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+					//Array Index Val
 				}
 				super.visitInsn(opcode);
 			}
