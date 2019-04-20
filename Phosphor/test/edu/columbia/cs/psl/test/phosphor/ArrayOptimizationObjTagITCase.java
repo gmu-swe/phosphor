@@ -27,7 +27,7 @@ public class ArrayOptimizationObjTagITCase extends BaseMultiTaintClass{
 		int taggedHashCode = b.hashCode();
 
 		Taint taint = MultiTainter.getTaint(taggedHashCode);
-		assertTaintHasOnlyLabels(taint, "Foo", "Bar");
+		assertNullOrEmpty(taint);
 	}
 
 	@Test
@@ -39,7 +39,7 @@ public class ArrayOptimizationObjTagITCase extends BaseMultiTaintClass{
 		boolean taggedEquals = b.equals(null);
 
 		Taint taint = MultiTainter.getTaint(taggedEquals);
-		assertTaintHasOnlyLabels(taint, "Foo", "Bar");
+		assertNullOrEmpty(taint);
 	}
 
 	@Test
