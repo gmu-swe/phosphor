@@ -77,6 +77,7 @@ public class AddBenchmark {
     }
 
     @Benchmark
+    @OperationsPerInvocation(30)
     public BitSet[] bitSetAddTest() {
         for(int i = 0; i < NUM_SETS; i++) {
             bitSets[i].add(itemStack.pop());
@@ -85,6 +86,7 @@ public class AddBenchmark {
     }
 
     @Benchmark
+    @OperationsPerInvocation(30)
     public PowerSetTree.SetNode[] setNodeAddTest() {
         for(int i = 0; i < NUM_SETS; i++) {
             setNodes[i] = setNodes[i].singletonUnion(itemStack.pop());
@@ -93,6 +95,7 @@ public class AddBenchmark {
     }
 
     @Benchmark
+    @OperationsPerInvocation(30)
     public HashSet<Object>[] hashSetAddTest() {
         for(int i = 0; i < NUM_SETS; i++) {
             hashSets[i].add(itemStack.pop());
@@ -101,6 +104,7 @@ public class AddBenchmark {
     }
 
     @Benchmark
+    @OperationsPerInvocation(30)
     public SimpleHashSet<Object>[] simpleHashSetAddTest() {
         for(int i = 0; i < NUM_SETS; i++) {
             simpleSets[i].add(itemStack.pop());
