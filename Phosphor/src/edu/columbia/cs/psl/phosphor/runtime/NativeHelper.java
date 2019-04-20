@@ -13,6 +13,9 @@ public final class NativeHelper {
 	public static final TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o1, Object o2, TaintedBooleanWithObjTag ret) {
 		if (o1 instanceof TaintedObjectWithObjTag)
 			return ((TaintedObjectWithObjTag) o1).equals$$PHOSPHORTAGGED(o2, ret);
+		else if (o1 instanceof  LazyArrayObjTags) {
+			return ((LazyArrayObjTags) o1).equals$$PHOSPHORTAGGED(o2, ret);
+		}
 		else {
 			if(o2 instanceof MultiDTaintedArrayWithObjTag)
 				o2 = MultiDTaintedArray.unboxRaw(o2);
@@ -25,6 +28,9 @@ public final class NativeHelper {
 	public static final TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object o, TaintedIntWithObjTag ret) {
 		if (o instanceof TaintedObjectWithObjTag)
 			return ((TaintedObjectWithObjTag) o).hashCode$$PHOSPHORTAGGED(ret);
+		else if (o instanceof LazyArrayObjTags) {
+			return ((LazyArrayObjTags) o).hashCode$$PHOSPHORTAGGED(ret);
+		}
 		else {
 			ret.val = o.hashCode();
 			ret.taint = null;
@@ -42,6 +48,9 @@ public final class NativeHelper {
 	public static final TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o1, Object o2, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
 		if (o1 instanceof TaintedObjectWithObjCtrlTag)
 			return ((TaintedObjectWithObjCtrlTag) o1).equals$$PHOSPHORTAGGED(o2, ctrl, ret);
+		else if (o1 instanceof LazyArrayObjTags) {
+			return ((LazyArrayObjTags) o1).equals$$PHOSPHORTAGGED(o2, ret, ctrl);
+		}
 		else {
 			if (o2 instanceof MultiDTaintedArrayWithObjTag)
 				o2 = MultiDTaintedArray.unboxRaw(o2);

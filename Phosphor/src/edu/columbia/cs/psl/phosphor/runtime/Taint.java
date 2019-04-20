@@ -270,6 +270,7 @@ public class Taint<T> implements Serializable {
 		}
 	}
 
+
 	public static <T> Taint<T> combineTags(Taint<T> t1, Taint<T> t2) {
 		if(t1 == null && t2 == null) {
 			return null;
@@ -290,6 +291,17 @@ public class Taint<T> implements Serializable {
 			}
 			return r;
 		}
+	}
+
+	public static Taint combineTagsFromArray(Taint[] taintArray) {
+
+		Taint combinedTaintFromArray = null;
+
+		for(int idx = 0; idx < taintArray.length; idx++) {
+			combinedTaintFromArray = Taint.combineTags(combinedTaintFromArray, taintArray[idx]);
+		}
+
+		return combinedTaintFromArray;
 	}
 
 	public boolean contains(Taint<T> that) {
