@@ -1,4 +1,6 @@
-package edu.columbia.cs.psl.phosphor.bench;
+package edu.columbia.cs.psl.phosphor.struct;
+
+import java.util.Arrays;
 
 public class BitSet {
 
@@ -27,19 +29,19 @@ public class BitSet {
     /* Adds the element represented by the bit at the specified index to the set.*/
     public void add(int bitIndex) {
         // The index of the packet the specified bit index is located in
-        int packetIndex = bitIndex/BITS_PER_PACKET;
+        int packetIndex = bitIndex / BITS_PER_PACKET;
         // The mask to isolate the specified bit in the packet it is located in
-        int mask = 1 << bitIndex%BITS_PER_PACKET;
+        long mask = 1L << bitIndex;
         packets[packetIndex] |= mask;
     }
 
     /* Returns whether or not the element represented by the bit at the specified index is in the set. */
     public boolean contains(int bitIndex) {
         // The index of the packet the specified bit index is located in
-        int packetIndex = bitIndex/BITS_PER_PACKET;
+        int packetIndex = bitIndex / BITS_PER_PACKET;
         // The mask to isolate the specified bit in the packet it is located in
-        int mask = 1 << bitIndex%BITS_PER_PACKET;
-        return (packets[packetIndex] & mask) == 1;
+        long mask = 1L << bitIndex;
+        return (packets[packetIndex] & mask) != 0;
     }
 
     /* Adds all of the elements in the specified other set to this set. */
@@ -68,5 +70,38 @@ public class BitSet {
             result.union(set1);
             return result;
         }
+    }
+
+    /* Returns a list containing the bit indices in this set that are set to one. */
+    public SimpleLinkedList<Integer> toList() {
+        SimpleLinkedList<Integer> list = new SimpleLinkedList<>();
+        for(int i = 0; i < packets.length; i++) {
+            int packetOffset = i * BITS_PER_PACKET;
+            int shifts = 0;
+            for(long packetValue = packets[i]; packetValue != 0; packetValue = packetValue >>> 1) {
+                if((packetValue & 1) != 0) {
+                    list.enqueue(packetOffset + shifts);
+                }
+                shifts++;
+            }
+        }
+        return list;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(this == obj) {
+            return true;
+        } else if(!(obj instanceof BitSet)) {
+            return false;
+        } else {
+            BitSet bitSet = (BitSet)obj;
+            return Arrays.equals(packets, bitSet.packets);
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(packets);
     }
 }

@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.bench;
 
+import edu.columbia.cs.psl.phosphor.struct.BitSet;
 import edu.columbia.cs.psl.phosphor.struct.PowerSetTree;
 import edu.columbia.cs.psl.phosphor.struct.SimpleHashSet;
 
