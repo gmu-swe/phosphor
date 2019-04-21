@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import java.io.Serializable;
+import java.lang.reflect.Array;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -155,6 +156,31 @@ public class SimpleLinkedList<E> implements Iterable<E>, Serializable {
     /* Adds the specified item to the tail of the list. */
     public void enqueue(E item) {
         addLast(item);
+    }
+
+    /* Returns an array containing the elements of this list. */
+    public Object[] toArray() {
+        Object[] arr = new Object[size];
+        Node<E> cur = head;
+        for(int i = 0; i < size; i++) {
+            arr[i] = cur.item;
+            cur = cur.next;
+        }
+        return arr;
+    }
+
+    /* Returns an array containing the elements of this list. The runtime type of the returned array is that of the specified array. */
+    @SuppressWarnings("unchecked")
+    public E[] toArray(E[] arr) {
+        if (arr.length < size) {
+            arr = (E[]) Array.newInstance(arr.getClass().getComponentType(), size);
+        }
+        Node<E> cur = head;
+        for(int i = 0; i < size; i++) {
+            arr[i] = cur.item;
+            cur = cur.next;
+        }
+        return arr;
     }
 
     @Override

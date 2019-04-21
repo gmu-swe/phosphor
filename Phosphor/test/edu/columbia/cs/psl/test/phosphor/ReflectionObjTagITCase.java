@@ -133,7 +133,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		// edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags cannot be cast
 		// to edu.columbia.cs.psl.phosphor.runtime.Taint
 
-		assertEquals(MultiTainter.getTaint(arr[0]).getLabels().pop(), MultiTainter.getTaint(ret).getLabels().pop());
+		assertEquals(MultiTainter.getTaint(arr[0]).getLabels()[0], MultiTainter.getTaint(ret).getLabels()[0]);
 	}
 
 	@Test

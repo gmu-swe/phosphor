@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.*;
 
 import java.io.*;
+import java.lang.reflect.Array;
 
 public class Taint<T> implements Serializable {
 
@@ -57,7 +58,7 @@ public class Taint<T> implements Serializable {
 		}
 	}
 
-	/* Returns a copy of this taint object. */
+	/* Returns a copy of this taint instance. */
 	public Taint<T> copy() {
 		if(IGNORE_TAINTING) {
 			return this;
@@ -68,20 +69,39 @@ public class Taint<T> implements Serializable {
 		}
 	}
 
-	/* Provides a formatted string representation of this taint object's labels. */
+	/* Provides a formatted string representation of this taint's labels. */
 	@Override
 	public String toString() {
 		return "Taint [Labels = [" + labelSet.toList() + "]";
 	}
 
-	/* Returns a list containing this taint object's labels sorted in ascending order. */
-	public SimpleLinkedList<Object> getLabels() {
-		return labelSet.toList();
+	/* Returns an arr containing this taint's labels. */
+	public Object[] getLabels() {
+		return labelSet.toList().toArray();
 	}
 
 	@SuppressWarnings("unused")
-	public SimpleLinkedList<Object> getLabels$$PHOSPHORTAGGED() {
+	public Object[] getLabels$$PHOSPHORTAGGED() {
 		return getLabels();
+	}
+
+	/* Returns an arr containing this taint's labels. The runtime type of the returned array is that of the specified array. */
+	@SuppressWarnings("unchecked")
+	public T[] getLabels(T[] arr) {
+		SimpleLinkedList<Object> list = labelSet.toList();
+		if (arr.length < list.size()) {
+			arr = (T[]) Array.newInstance(arr.getClass().getComponentType(), list.size());
+		}
+		int i = 0;
+		for(Object label : list) {
+			arr[i++] = (T)label;
+		}
+		return arr;
+	}
+
+	@SuppressWarnings("unused")
+	public T[] getLabels$$PHOSPHORTAGGED(T[] arr) {
+		return getLabels(arr);
 	}
 
 	/* Sets this taint object's label set to be the union between this taint object's label set and the specified other
@@ -198,7 +218,7 @@ public class Taint<T> implements Serializable {
 
 	/* Returns whether the set of labels for this taint object contains only the specified labels. */
 	public boolean containsOnlyLabels(Object[] labels) {
-		if(labels.length != getLabels().size()) {
+		if(labels.length != getLabels().length) {
 			return false;
 		}
 		for(Object label : labels) {
@@ -322,7 +342,10 @@ public class Taint<T> implements Serializable {
 	}
 
 	/* Returns a new Taint with a label set that is the union of the label sets of the specified taints. */
-	public static <T> Taint<T> combineTagsFromArray(Taint<T>[] taints) {
+	public static <T> Taint<T> combineTaintArray(Taint<T>[] taints) {
+		if(taints == null) {
+			return null;
+		}
 		Taint<T> result = new Taint<>();
 		// The last label set unioned into result's label set
 		PowerSetTree.SetNode prevLabelSet = setTree.emptySet();

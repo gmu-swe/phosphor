@@ -114,8 +114,8 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		
 		assertNonNullTaint(s);
 		assertNonNullTaint(MultiTainter.getTaint(i));
-		assertTrue(MultiTainter.getTaint(i).getLabels().pop() instanceof AutoTaintLabel);
-		assertTrue(MultiTainter.getTaint(ar[1]).getLabels().pop()  instanceof AutoTaintLabel);
+		assertTrue(MultiTainter.getTaint(i).getLabels()[0] instanceof AutoTaintLabel);
+		assertTrue(MultiTainter.getTaint(ar[1]).getLabels()[0]  instanceof AutoTaintLabel);
 	}
 
 	/* Asserts that calling a tainted object's taintThrough method taints that method's primitive return value. */

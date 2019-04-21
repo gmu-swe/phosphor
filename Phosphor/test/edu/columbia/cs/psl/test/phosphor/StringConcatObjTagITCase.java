@@ -51,9 +51,9 @@ public class StringConcatObjTagITCase extends BasePhosphorTest {
 			char c = concate.charAt(i);
 			Taint ct = MultiTainter.getTaint(c);
 			if (i < 3) {
-				assertEquals(ct.getLabels().pop(), "string");
+				assertEquals(ct.getLabels()[0], "string");
 			} else {
-				assertEquals(ct.getLabels().pop(), "int");
+				assertEquals(ct.getLabels()[0], "int");
 			}
 		}
 	}
