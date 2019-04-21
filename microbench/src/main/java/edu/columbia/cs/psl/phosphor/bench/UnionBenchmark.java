@@ -46,7 +46,7 @@ public class UnionBenchmark {
         int i = 0;
         for(int el : ThreadLocalRandom.current().ints(0, uniqueElementsSize).limit(setSize*2).distinct().toArray()) {
             bitSets[i%2].add(el);
-            setNodes[i%2].singletonUnion(el);
+            setNodes[i%2].add(el);
             simpleSets[i%2].add(el);
             hashSets[i%2].add(el);
             i++;

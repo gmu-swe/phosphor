@@ -41,7 +41,7 @@ public class CopyBenchmark {
         int setSize = (int)(uniqueElementsSize*percentPresent);
         for(int i : ThreadLocalRandom.current().ints(0, uniqueElementsSize).limit(setSize).distinct().toArray()) {
             bitSet.add(i);
-            setNode.singletonUnion(i);
+            setNode.add(i);
             simpleSet.add(i);
             hashSet.add(i);
         }

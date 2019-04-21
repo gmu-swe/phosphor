@@ -57,7 +57,7 @@ public class AddBenchmark {
             // Add setSize unique elements to each set
             for(int el : ThreadLocalRandom.current().ints(0, uniqueElementsSize).limit(setSize).distinct().toArray()) {
                 bitSets[i].add(el);
-                setNodes[i].singletonUnion(el);
+                setNodes[i].add(el);
                 simpleSets[i].add(el);
                 hashSets[i].add(el);
             }
@@ -89,7 +89,7 @@ public class AddBenchmark {
     @OperationsPerInvocation(30)
     public PowerSetTree.SetNode[] setNodeAddTest() {
         for(int i = 0; i < NUM_SETS; i++) {
-            setNodes[i] = setNodes[i].singletonUnion(itemStack.pop());
+            setNodes[i] = setNodes[i].add(itemStack.pop());
         }
         return setNodes;
     }

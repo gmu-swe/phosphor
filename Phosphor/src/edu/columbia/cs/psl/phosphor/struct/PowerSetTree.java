@@ -71,7 +71,7 @@ public class PowerSetTree {
     /* Returns a node representing the set containing only the specified element. */
     public SetNode makeSingletonSet(Object element) {
         if(element == null) {
-            // Return the empty set
+            // Null elements cannot be added to sets; return the node representing the empty set
             return emptySet();
         }
         return root.addChild(getRankedObject(element));
@@ -148,8 +148,7 @@ public class PowerSetTree {
             while(!cur.isEmpty() && !other.isEmpty()) {
                 if(cur == other) {
                     break;
-                }
-                if(cur.key.rank == other.key.rank) {
+                } else if(cur.key.rank == other.key.rank) {
                     mergedList.push(cur.key);
                     cur = cur.parent;
                     other = other.parent;
@@ -172,8 +171,33 @@ public class PowerSetTree {
 
         /* Return a node representing the set union of the set represented by this node and the singleton set containing
          * the specified element. Does not change the elements contained by the set represented by this node. */
-        public SetNode singletonUnion(Object element) {
-            return union(makeSingletonSet(element));
+        public SetNode add(Object element) {
+            if(element == null) {
+                return this;
+            }
+            RankedObject obj = getRankedObject(element);
+            SimpleLinkedList<RankedObject> list = new SimpleLinkedList<>();
+            SetNode cur = this;
+            // Maintain a sorted list of objects popped off from this set until the right place to insert the new element
+            // is found
+            while(!cur.isEmpty()) {
+                if(cur.key.rank == obj.rank) {
+                    // The specified element was already in the list
+                    return this;
+                } else if(cur.key.rank > obj.rank) {
+                    list.push(cur.key);
+                    cur = cur.parent;
+                } else {
+                    // Found the correct spot to insert the new element into the path
+                    list.push(obj);
+                    break;
+                }
+            }
+            // Move down the path in the tree for the list adding child nodes as necessary
+            while(!list.isEmpty()) {
+                cur = cur.addChild(list.pop());
+            }
+            return cur;
         }
 
         /* Returns whether the set represented by this node contains the specified element. */
