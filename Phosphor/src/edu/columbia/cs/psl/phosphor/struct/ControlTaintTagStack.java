@@ -213,6 +213,7 @@ public final class ControlTaintTagStack {
 		invocationCountPerBranch[indexOfBranchInMethod]++;
 		if(invocationCountPerBranch[indexOfBranchInMethod] == 1) {
 			prevTaints.addFast(this.taint);
+			cachedExceptionTaint = null;
 			if (exceptionData != null) {
 				exceptionData.push(tag);
 			}

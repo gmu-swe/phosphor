@@ -145,8 +145,6 @@ public class BranchNotTakenWrapperGenerator {
 				}
 				mv.visitLabel(end);
 				mv.visitLabel(handler);
-				if(newName.startsWith("lambda$intArg$3$$"))
-					System.out.println("!");
 				mv.visitFrame(F_NEW, 0, new Object[0], 1, new Object[]{"java/lang/Throwable"});
 				mv.visitInsn(POP);
 			}
