@@ -1,13 +1,16 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import java.io.Serializable;
 import java.util.Iterator;
 
-public class ArrayList<T> implements Iterable<T> {
+public class ArrayList<T> implements Iterable<T>, Serializable {
 
+	private static final long serialVersionUID = 8055343953798858075L;
 	// The maximum length of the element array
 	private static final int MAX_CAPACITY = Integer.MAX_VALUE - 8;
 	// The initial length of the element array
 	private static final int INITIAL_CAPACITY = 200;
+
 	// The stores the elements contained in the list
 	private T[] elements;
 	// The number of elements in the list

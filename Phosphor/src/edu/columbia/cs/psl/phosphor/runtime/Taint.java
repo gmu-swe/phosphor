@@ -4,31 +4,28 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.*;
 
-import java.io.Serializable;
+import java.io.*;
 
 public class Taint<T> implements Serializable {
 
+	private static final long serialVersionUID = -2367127733023881176L;
 	public static boolean IGNORE_TAINTING;
-
-	/* Returns a copy of the specified taint object. */
-	public static <T> Taint<T> copyTaint(Taint<T> in) {
-		return (in == null) ? null : in.copy();
-	}
-
+	// Singleton instance of PowerSetTree used to create new SetNodes
+	private static final PowerSetTree setTree = PowerSetTree.getInstance();
 	/* Represents the set of labels for this taint object. May be the node representing the empty set. */
-	private PowerSetTree.SetNode labelSet;
+	private transient PowerSetTree.SetNode labelSet;
 
 	/* Constructs a new taint object with a null label set. */
 	public Taint() {
-		this.labelSet = PowerSetTree.getInstance().emptySet();
+		this.labelSet = setTree.emptySet();
 	}
 
 	/* Constructs a new taint object with only the specified label in its label set. */
 	public Taint(T initialLabel) {
 		if(initialLabel == null) {
-			this.labelSet = PowerSetTree.getInstance().emptySet();
+			this.labelSet = setTree.emptySet();
 		} else {
-			this.labelSet = PowerSetTree.getInstance().makeSingletonSet(initialLabel);
+			this.labelSet = setTree.makeSingletonSet(initialLabel);
 		}
 	}
 
@@ -37,7 +34,7 @@ public class Taint<T> implements Serializable {
 		if(t1 != null) {
 			this.labelSet = t1.labelSet;
 		} else {
-			this.labelSet = PowerSetTree.getInstance().emptySet();
+			this.labelSet = setTree.emptySet();
 		}
 		if(Configuration.derivedTaintListener != null) {
 			Configuration.derivedTaintListener.singleDepCreated(t1, this);
@@ -53,7 +50,7 @@ public class Taint<T> implements Serializable {
 		} else if(t2.labelSet != null) {
 			this.labelSet = t2.labelSet;
 		} else {
-			this.labelSet = PowerSetTree.getInstance().emptySet();
+			this.labelSet = setTree.emptySet();
 		}
 		if(Configuration.derivedTaintListener != null) {
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, this);
@@ -276,6 +273,11 @@ public class Taint<T> implements Serializable {
 		return labelSet.hashCode();
 	}
 
+	/* Returns a copy of the specified taint object. */
+	public static <T> Taint<T> copyTaint(Taint<T> in) {
+		return (in == null) ? null : in.copy();
+	}
+
 	@SuppressWarnings("unchecked")
 	public static <T>  Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags) {
 		if(t1 == null && tags.taint == null && (!Configuration.IMPLICIT_EXCEPTION_FLOW || (tags.influenceExceptions == null || tags.influenceExceptions.isEmpty()))) {
@@ -319,6 +321,20 @@ public class Taint<T> implements Serializable {
 		return _combineTagsInternal(t1,tags);
 	}
 
+	/* Returns a new Taint with a label set that is the union of the label sets of the specified taints. */
+	public static <T> Taint<T> combineTagsFromArray(Taint<T>[] taints) {
+		Taint<T> result = new Taint<>();
+		// The last label set unioned into result's label set
+		PowerSetTree.SetNode prevLabelSet = setTree.emptySet();
+		for(Taint taint : taints) {
+			if(taint != null && taint.labelSet != prevLabelSet) {
+				result.labelSet = result.labelSet.union(taint.labelSet);
+				prevLabelSet = taint.labelSet;
+			}
+		}
+		return result;
+	}
+
 	@SuppressWarnings("rawtypes")
 	public static void combineTagsOnObject(Object o, ControlTaintTagStack tags) {
 		if((tags.isEmpty() || IGNORE_TAINTING) && (!Configuration.IMPLICIT_EXCEPTION_FLOW || (tags.influenceExceptions == null || tags.influenceExceptions.isEmpty()))) {
@@ -355,6 +371,23 @@ public class Taint<T> implements Serializable {
 				tags.taints[i] = combineTags(tags.taints[i], ctrl);
 			}
 
+		}
+	}
+
+	/* Saves the Taint instance to the specified stream. */
+	private void writeObject(ObjectOutputStream out) throws IOException {
+		out.defaultWriteObject();
+		out.writeObject(this.labelSet.toList());
+	}
+
+	/* Rebuilds a Taint instance from the specified stream. */
+	@SuppressWarnings("unchecked")
+	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+		in.defaultReadObject();
+		this.labelSet = setTree.emptySet();
+		SimpleLinkedList<Object> list = (SimpleLinkedList<Object>)in.readObject();
+		for(Object obj : list) {
+			this.labelSet.add(obj);
 		}
 	}
 }
