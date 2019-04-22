@@ -85,6 +85,49 @@ public class BitSetTest {
         assertNotEquals(set, copy);
     }
 
+    /* Checks that isEmpty returns true for a BitSet with no bits set. */
+    @Test
+    public void testBitSetIsEmpty() {
+        BitSet set = new BitSet(5);
+        assertTrue(set.isEmpty());
+    }
+
+    /* Checks that isEmpty returns false for a BitSet with a bit set. */
+    @Test
+    public void testBitSetIsNotEmpty() {
+        BitSet set = new BitSet(5);
+        set.add(0);
+        assertFalse(set.isEmpty());
+    }
+
+    /* Checks that isSuperset returns true when the BitSet instance is a superset of the BitSet argument. */
+    @Test
+    public void testBitSetIsSuperSet() {
+        BitSet set1 = new BitSet(10);
+        set1.add(1);
+        set1.add(4);
+        set1.add(9);
+        BitSet set2 = new BitSet(10);
+        set2.add(1);
+        set2.add(9);
+        assertTrue(set1.isSuperset(set2));
+    }
+
+    /* Checks that isSuperset returns false when the BitSet instance is a subset of the BitSet argument. */
+    @Test
+    public void testBitSetIsNotSuperSet() {
+        BitSet set1 = new BitSet(10);
+        set1.add(1);
+        set1.add(4);
+        set1.add(9);
+        BitSet set2 = new BitSet(10);
+        set2.add(1);
+        set2.add(4);
+        set2.add(5);
+        set2.add(9);
+        assertFalse(set1.isSuperset(set2));
+    }
+
     /* Checks that two that two BitSets capable of storing the same maximum number of elements with the same bits set have
      * the same hashcode. */
     @Test

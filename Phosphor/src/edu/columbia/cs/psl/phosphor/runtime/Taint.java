@@ -10,15 +10,27 @@ import java.lang.reflect.Array;
 public class Taint<T> implements Serializable {
 
 	private static final long serialVersionUID = -2367127733023881176L;
-	public static boolean IGNORE_TAINTING;
+	public static boolean IGNORE_TAINTING = false;
+
 	// Singleton instance of PowerSetTree used to create new SetNodes
 	private static final PowerSetTree setTree = PowerSetTree.getInstance();
-	/* Represents the set of labels for this taint object. May be the node representing the empty set. */
-	private transient PowerSetTree.SetNode labelSet;
+	// SetNode representation of the set of labels for this taint object. May be the node representing the empty set.
+	private transient PowerSetTree.SetNode labelSet = null;
 
-	/* Constructs a new taint object with a null label set. */
+	// The maximum number of unique labels stored in any given sets if BitSets are used to store the set of labels.
+	// If this value is greater than 0 then BitSets are used to store the set of labels for taint instances, otherwise
+	// SetNodes are used.
+	public static int BIT_SET_CAPACITY = -1;
+	// BitSet representation of the set of labels for this taint object.
+	private transient BitSet labelBitSet = null;
+
+	/* Constructs a new taint object with an empty label set. */
 	public Taint() {
-		this.labelSet = setTree.emptySet();
+		if(BIT_SET_CAPACITY > 0) {
+			this.labelBitSet = new BitSet(BIT_SET_CAPACITY);
+		} else {
+			this.labelSet = setTree.emptySet();
+		}
 	}
 
 	/* Constructs a new taint object with only the specified label in its label set. */
@@ -32,10 +44,10 @@ public class Taint<T> implements Serializable {
 
 	/* Constructs a new taint object with the same labels as the specified taint object. */
 	public Taint(Taint<T> t1) {
-		if(t1 != null) {
-			this.labelSet = t1.labelSet;
+		if(BIT_SET_CAPACITY > 0) {
+			this.labelBitSet = (t1 == null) ? new BitSet(BIT_SET_CAPACITY) : t1.labelBitSet.copy();
 		} else {
-			this.labelSet = setTree.emptySet();
+			this.labelSet = (t1 == null) ? setTree.emptySet() : t1.labelSet;
 		}
 		if(Configuration.derivedTaintListener != null) {
 			Configuration.derivedTaintListener.singleDepCreated(t1, this);
@@ -44,14 +56,12 @@ public class Taint<T> implements Serializable {
 
 	/* Constructs a new taint object whose label set is the union of the label sets of the two specified taint objects. */
 	public Taint(Taint<T> t1, Taint<T> t2) {
-		if(t1 != null && t2 != null) {
-			this.labelSet = t1.labelSet.union(t2.labelSet);
-		} else if(t1 != null) {
-			this.labelSet = t1.labelSet;
-		} else if(t2.labelSet != null) {
-			this.labelSet = t2.labelSet;
+		if(BIT_SET_CAPACITY > 0) {
+			this.labelBitSet = (t1 == null) ? new BitSet(BIT_SET_CAPACITY) : t1.labelBitSet.copy();
+			this.labelBitSet = (t2 == null) ? this.labelBitSet : BitSet.union(this.labelBitSet, t2.labelBitSet);
 		} else {
-			this.labelSet = setTree.emptySet();
+			this.labelSet = (t1 == null) ? setTree.emptySet() : t1.labelSet;
+			this.labelSet = (t2 == null) ? this.labelSet : this.labelSet.union(t2.labelSet);
 		}
 		if(Configuration.derivedTaintListener != null) {
 			Configuration.derivedTaintListener.doubleDepCreated(t1, t2, this);
@@ -63,21 +73,32 @@ public class Taint<T> implements Serializable {
 		if(IGNORE_TAINTING) {
 			return this;
 		} else {
-			Taint<T> ret = new Taint<>();
-			ret.labelSet = this.labelSet;
-			return ret;
+			return new Taint<>(this);
 		}
 	}
 
-	/* Provides a formatted string representation of this taint's labels. */
+	/* Provides a formatted string representation of this taint's labels or label indices if the BitSet representation is
+	 * used. */
 	@Override
 	public String toString() {
-		return "Taint [Labels = [" + labelSet.toList() + "]";
+		if(labelSet != null) {
+			return "Taint [Labels = [" + labelSet.toList() + "]";
+		} else if(labelBitSet != null){
+			return "Taint [Label indices = [" + labelBitSet.toList() + "]";
+		} else {
+			return "Taint []";
+		}
 	}
 
-	/* Returns an arr containing this taint's labels. */
+	/* Returns an array containing this taint's labels or label indices if the BitSet representation is used. */
 	public Object[] getLabels() {
-		return labelSet.toList().toArray();
+		if(labelSet != null) {
+			return labelSet.toList().toArray();
+		} else if(labelBitSet != null) {
+			return labelBitSet.toList().toArray();
+		} else {
+			return null;
+		}
 	}
 
 	@SuppressWarnings("unused")
@@ -85,18 +106,23 @@ public class Taint<T> implements Serializable {
 		return getLabels();
 	}
 
-	/* Returns an arr containing this taint's labels. The runtime type of the returned array is that of the specified array. */
+	/* Returns an array containing this taint's labels or label indices if the BitSet representation is used. The runtime
+	 * type of the returned array is that of the specified array. */
 	@SuppressWarnings("unchecked")
 	public T[] getLabels(T[] arr) {
-		SimpleLinkedList<Object> list = labelSet.toList();
-		if (arr.length < list.size()) {
-			arr = (T[]) Array.newInstance(arr.getClass().getComponentType(), list.size());
+		Object[] labels = getLabels();
+		if(labels == null) {
+			return null;
+		} else {
+			if (arr.length < labels.length) {
+				arr = (T[]) Array.newInstance(arr.getClass().getComponentType(), labels.length);
+			}
+			int i = 0;
+			for(Object label : labels) {
+				arr[i++] = (T)label;
+			}
+			return arr;
 		}
-		int i = 0;
-		for(Object label : list) {
-			arr[i++] = (T)label;
-		}
-		return arr;
 	}
 
 	@SuppressWarnings("unused")
@@ -104,21 +130,32 @@ public class Taint<T> implements Serializable {
 		return getLabels(arr);
 	}
 
-	/* Sets this taint object's label set to be the union between this taint object's label set and the specified other
-	 * taint object's label set. Returns whether this taint object's label set changed. */
+	/* Sets this taint's label set to be the union between this taint's label set and the specified other
+	 * taint's label set. Returns whether this taint's label set changed. */
 	public boolean addDependency(Taint<T> other) {
 		if(other == null) {
 			return false;
+		} else if(BIT_SET_CAPACITY > 0) {
+			BitSet prev = this.labelBitSet;
+			this.labelBitSet = BitSet.union(this.labelBitSet, other.labelBitSet);
+			return (prev == null && this.labelBitSet != null) || (prev != null && !prev.equals(this.labelBitSet));
+		} else {
+			PowerSetTree.SetNode union = this.labelSet.union(other.labelSet);
+			boolean changed = (this.labelSet != union);
+			this.labelSet = union;
+			return changed;
 		}
-		PowerSetTree.SetNode union = this.labelSet.union(other.labelSet);
-		boolean changed = (this.labelSet != union);
-		this.labelSet = union;
-		return changed;
 	}
 
-	/* Returns whether this taint object's label set is the empty set. */
+	/* Returns whether this taint object's label set is the empty. */
 	public boolean isEmpty() {
-		return labelSet.isEmpty();
+		if(labelSet != null) {
+			return labelSet.isEmpty();
+		} else if(labelBitSet != null) {
+			return labelBitSet.isEmpty();
+		} else {
+			return true;
+		}
 	}
 
 	@SuppressWarnings("unused")
@@ -192,7 +229,15 @@ public class Taint<T> implements Serializable {
 	/* Returns whether the set of labels for the specified taint object is a subset of the set of labels for this taint
 	 * object. */
 	public boolean contains(Taint<T> that) {
-		return that == null || this.labelSet.isSuperset(that.labelSet);
+		if(that == null) {
+			return true;
+		} else if(that.labelSet != null && this.labelSet != null) {
+			return this.labelSet.isSuperset(that.labelSet);
+		} else if(that.labelBitSet != null && this.labelBitSet != null) {
+			return labelBitSet.isSuperset(this.labelBitSet);
+		} else {
+			return false;
+		}
 	}
 
 	@SuppressWarnings("unused")
@@ -252,7 +297,13 @@ public class Taint<T> implements Serializable {
 
 	/* Returns whether the set of labels for this taint object contains the specified label. */
 	public boolean containsLabel(Object label) {
-		return labelSet.contains(label);
+		if(label instanceof Integer && labelBitSet != null) {
+			return labelBitSet.contains((int)label);
+		} else if(labelSet != null) {
+			return labelSet.contains(label);
+		} else {
+			return false;
+		}
 	}
 
 	@SuppressWarnings("unused")
@@ -284,13 +335,16 @@ public class Taint<T> implements Serializable {
 			return false;
 		} else {
 			Taint<?> taint = (Taint<?>) o;
-			return taint.labelSet == this.labelSet;
+			return taint.labelSet == this.labelSet && ((this.labelBitSet == null && taint.labelBitSet == null) ||
+					(this.labelBitSet != null && this.labelBitSet.equals(taint.labelBitSet)));
 		}
 	}
 
 	@Override
 	public int hashCode() {
-		return labelSet.hashCode();
+		int result = (labelSet == null) ? 0 : labelSet.hashCode();
+		result = 31 * result + ((labelBitSet == null) ? 0 : labelBitSet.hashCode());
+		return result;
 	}
 
 	/* Returns a copy of the specified taint object. */
@@ -345,17 +399,24 @@ public class Taint<T> implements Serializable {
 	public static <T> Taint<T> combineTaintArray(Taint<T>[] taints) {
 		if(taints == null) {
 			return null;
-		}
-		Taint<T> result = new Taint<>();
-		// The last label set unioned into result's label set
-		PowerSetTree.SetNode prevLabelSet = setTree.emptySet();
-		for(Taint taint : taints) {
-			if(taint != null && taint.labelSet != prevLabelSet) {
-				result.labelSet = result.labelSet.union(taint.labelSet);
-				prevLabelSet = taint.labelSet;
+		} else if(BIT_SET_CAPACITY > 0) {
+			Taint<T> result = new Taint<>();
+			for(Taint<T> taint : taints) {
+				result.addDependency(taint);
 			}
+			return result;
+		} else {
+			Taint<T> result = new Taint<>();
+			// The last label set unioned into result's label set
+			PowerSetTree.SetNode prevLabelSet = setTree.emptySet();
+			for(Taint taint : taints) {
+				if(taint != null && taint.labelSet != prevLabelSet) {
+					result.labelSet = result.labelSet.union(taint.labelSet);
+					prevLabelSet = taint.labelSet;
+				}
+			}
+			return result;
 		}
-		return result;
 	}
 
 	@SuppressWarnings("rawtypes")
@@ -385,32 +446,96 @@ public class Taint<T> implements Serializable {
 		if (tags.taints == null) {
 			tags.taints = new Taint[str.length()];
 		}
-		Taint originalPreviousTaint = null;
-		for (int i = 0; i < tags.taints.length; i++) {
-			if(originalPreviousTaint != null && originalPreviousTaint.equals(tags.taints[i])) {
-				tags.taints[i].labelSet = tags.taints[i-1].labelSet;
-			} else {
-				originalPreviousTaint = tags.taints[i];
+		if(BIT_SET_CAPACITY > 0) {
+			for (int i = 0; i < tags.taints.length; i++) {
 				tags.taints[i] = combineTags(tags.taints[i], ctrl);
 			}
-
+		} else {
+			Taint originalPreviousTaint = null;
+			for (int i = 0; i < tags.taints.length; i++) {
+				if(originalPreviousTaint != null && originalPreviousTaint.equals(tags.taints[i])) {
+					tags.taints[i].labelSet = tags.taints[i-1].labelSet;
+				} else {
+					originalPreviousTaint = tags.taints[i];
+					tags.taints[i] = combineTags(tags.taints[i], ctrl);
+				}
+			}
 		}
 	}
 
 	/* Saves the Taint instance to the specified stream. */
 	private void writeObject(ObjectOutputStream out) throws IOException {
 		out.defaultWriteObject();
-		out.writeObject(this.labelSet.toList());
+		if(labelSet != null) {
+			out.writeObject(labelSet.toList());
+		} else if(labelBitSet != null) {
+			out.writeObject(labelBitSet.toList());
+		} else {
+			out.writeObject(new SimpleHashSet<Integer>());
+		}
 	}
 
 	/* Rebuilds a Taint instance from the specified stream. */
-	@SuppressWarnings("unchecked")
 	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
 		in.defaultReadObject();
-		this.labelSet = setTree.emptySet();
-		SimpleLinkedList<Object> list = (SimpleLinkedList<Object>)in.readObject();
-		for(Object obj : list) {
-			this.labelSet.add(obj);
+		if(BIT_SET_CAPACITY > 0) {
+			this.labelBitSet = new BitSet(BIT_SET_CAPACITY);
+			SimpleLinkedList<?> list = (SimpleLinkedList<?>)in.readObject();
+			for(Object obj : list) {
+				if(obj instanceof Integer) {
+					labelBitSet.add((int) obj);
+				}
+			}
+		} else {
+			this.labelSet = setTree.emptySet();
+			SimpleLinkedList<?> list = (SimpleLinkedList<?>)in.readObject();
+			for(Object obj : list) {
+				this.labelSet.add(obj);
+			}
 		}
+	}
+
+	/* Returns the first label in the set. */
+	@Deprecated
+	@SuppressWarnings("unchecked")
+	public T getLabel() {
+		return getLabels((T[]) new Object[0])[0];
+	}
+
+	/* Returns every label except the first label in the set. */
+	@Deprecated
+	@SuppressWarnings("unchecked")
+	public SimpleHashSet<T> getDependencies() {
+		SimpleHashSet<T> set = new SimpleHashSet<>();
+		T[] labels = getLabels((T[]) new Object[0]);
+		for(int i = 1; i < labels.length; i++) {
+			set.add(labels[i]);
+		}
+		return set;
+	}
+
+	@Deprecated
+	public SimpleHashSet<T> getDependencies$$PHOSPHORTAGGED() {
+		return getDependencies();
+	}
+
+	/* Returns whether the label set contains 0 or 1 elements. */
+	@Deprecated
+	public boolean hasNoDependencies() {
+		return isEmpty() || getLabels().length == 1;
+	}
+
+	@Deprecated
+	public TaintedBooleanWithObjTag hasNoDependencies$$PHOSPHORTAGGED(TaintedBooleanWithObjTag ret) {
+		ret.val = hasNoDependencies();
+		ret.taint = null;
+		return ret;
+	}
+
+	@Deprecated
+	public TaintedBooleanWithObjTag hasNoDependencies$$PHOSPHORTAGGED(ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
+		ret.val = hasNoDependencies();
+		ret.taint = null;
+		return ret;
 	}
 }

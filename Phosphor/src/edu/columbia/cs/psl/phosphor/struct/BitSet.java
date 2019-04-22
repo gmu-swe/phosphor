@@ -46,29 +46,40 @@ public class BitSet {
 
     /* Adds all of the elements in the specified other set to this set. */
     public void union(BitSet other) {
-        if(other.packets.length > this.packets.length) {
+        if(other != null && other.packets.length > this.packets.length) {
             long[] temp = this.packets;
             this.packets = other.packets.clone();
             for(int i = 0; i < temp.length; i++) {
                 this.packets[i] |= temp[i];
             }
-        } else {
+        } else if(other != null) {
             for(int i = 0; i < other.packets.length; i++) {
                 this.packets[i] |= other.packets[i];
             }
         }
     }
 
-    /* Returns a new BitSet that represents the union of the specified sets. */
-    public static BitSet union(BitSet set1, BitSet set2) {
-        if(set1.packets.length > set2.packets.length) {
-            BitSet result = new BitSet(set1);
-            result.union(set2);
-            return result;
-        }  else {
-            BitSet result = new BitSet(set2);
-            result.union(set1);
-            return result;
+    /* Returns true is none of the bits in the set are set to 1. */
+    public boolean isEmpty() {
+        for(long packet : packets) {
+            if(packet != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /* Returns whether this set is a superset of the specified other set. */
+    public boolean isSuperset(BitSet other) {
+        if(other == null || this.packets.length < other.packets.length) {
+            return true;
+        } else  {
+            for(int i = 0; i < other.packets.length; i++) {
+                if((this.packets[i] | other.packets[i]) != this.packets[i]) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 
@@ -103,5 +114,22 @@ public class BitSet {
     @Override
     public int hashCode() {
         return Arrays.hashCode(packets);
+    }
+
+    /* Returns a new BitSet that represents the union of the specified sets. */
+    public static BitSet union(BitSet set1, BitSet set2) {
+        if(set1 == null) {
+            return set2;
+        } else if(set2 == null) {
+            return set1;
+        } else if(set1.packets.length > set2.packets.length) {
+            BitSet result = new BitSet(set1);
+            result.union(set2);
+            return result;
+        } else {
+            BitSet result = new BitSet(set2);
+            result.union(set1);
+            return result;
+        }
     }
 }
