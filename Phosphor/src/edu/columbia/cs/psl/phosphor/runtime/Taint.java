@@ -538,4 +538,45 @@ public class Taint<T> implements Serializable {
 		ret.taint = null;
 		return ret;
 	}
+
+	@Deprecated
+	public void setBit(int bitIndex) {
+		if(labelBitSet != null) {
+			labelBitSet.add(bitIndex);
+		}
+	}
+
+	@Deprecated
+	public boolean hasBitSet(int bitIndex) {
+		return labelBitSet != null && labelBitSet.contains(bitIndex);
+	}
+
+	@Deprecated
+	public void setBits(long[] otherPackets) {
+		if(labelBitSet != null) {
+			labelBitSet.union(new BitSet(otherPackets));
+		}
+	}
+
+	@Deprecated
+	public void setBits(BitSet other) {
+		if(labelBitSet != null) {
+			labelBitSet.union(new BitSet(other));
+		}
+	}
+
+	@Deprecated
+	public long[] getTags() {
+		return (labelBitSet == null) ? null : labelBitSet.getPackets();
+	}
+
+	@Deprecated
+	public LazyLongArrayObjTags getTags$$PHOSPHORTAGGED() {
+		return (labelBitSet == null) ? null : new LazyLongArrayObjTags(labelBitSet.getPackets());
+	}
+
+	@Deprecated
+	public LazyLongArrayObjTags getTags$$PHOSPHORTAGGED(ControlTaintTagStack ctrl) {
+		return (labelBitSet == null) ? null : new LazyLongArrayObjTags(labelBitSet.getPackets());
+	}
 }

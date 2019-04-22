@@ -16,9 +16,19 @@ public class BitSet {
         this.packets = new long[maxElements/BITS_PER_PACKET + (maxElements%BITS_PER_PACKET == 0 ? 0 : 1)];
     }
 
+    /* Creates a new set with the specified packets. */
+    public BitSet(long[] packets) {
+        this.packets = packets;
+    }
+
     /* Creates a new set that is a copy of the specified set. */
     public BitSet(BitSet set) {
         this.packets = set.packets.clone();
+    }
+
+    /* Returns this instances packets. */
+    public long[] getPackets() {
+        return packets;
     }
 
     /* Returns a copy of this set. */
