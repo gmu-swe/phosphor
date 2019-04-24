@@ -2873,9 +2873,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 		if (opcode == TaintUtils.FORCE_CTRL_STORE) {
-			if(Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
-				return;
-			}
+//			if(Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
+//				return;
+//			}
 
 			//If there is anything on the stack right now, apply the current marker to it
 			if (analyzer.stack.isEmpty() || topOfStackIsNull())

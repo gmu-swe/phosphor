@@ -1464,6 +1464,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 						if (b.resolvedHereBlocks.size() == jumpIDs.size()) {
 							//Everything is resolved
+							if(!isReturn(insn))
 							instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, -1));
 						} else
 							for (BasicBlock r : b.resolvedHereBlocks) {
@@ -1542,6 +1543,17 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				insn = insn.getNext();
 			}
 			this.accept(cmv);
+		}
+
+		private boolean isReturn(AbstractInsnNode insn) {
+			switch(insn.getOpcode()){
+				case Opcodes.IRETURN:
+				case Opcodes.ARETURN:
+				case Opcodes.FRETURN:
+				case Opcodes.DRETURN:
+					return true;
+			}
+			return false;
 		}
 
 	}
