@@ -88,15 +88,14 @@ public class PowerSetTree {
         // associated with this node's key
         private final SetNode parent;
         // Stores child nodes that represent the union of the set represented by this node with a singleton set containing the
-        // object associated with the key of the child node.
+        // object associated with the key of the child node. This array will be null until at least one child node is added.
         private WeakReference<SetNode>[] children;
 
         /* Constructs a new set node with no child nodes. */
-        @SuppressWarnings("unchecked")
         private SetNode(RankedObject key, SetNode parent) {
             this.key = key;
             this.parent = parent;
-            this.children = (WeakReference<SetNode>[]) new WeakReference[currentCapacity];
+            this.children = null;
         }
 
         /* Adds a new entry to this node's array child nodes for the specified key if one does not already exist.
@@ -107,7 +106,9 @@ public class PowerSetTree {
                 int curRank = (key == null) ? -1 : key.rank;
                 // Store the child at the difference between its rank and the lowest possible rank for a child of this node
                 int childPosition = childKey.rank - (curRank + 1);
-                if(childPosition >= children.length) {
+                if(children == null) {
+                    this.children = (WeakReference<SetNode>[]) new WeakReference[currentCapacity];
+                } else if(childPosition >= children.length) {
                     // Resize the child array
                     WeakReference<SetNode>[] temp = this.children;
                     this.children = (WeakReference<SetNode>[]) new WeakReference[currentCapacity];
@@ -142,7 +143,7 @@ public class PowerSetTree {
             if(other == null) {
                 return this;
             }
-            SimpleLinkedList<RankedObject> mergedList = new SimpleLinkedList<>();
+            SinglyLinkedList<RankedObject> mergedList = new SinglyLinkedList<>();
             SetNode cur = this;
             // Maintain a sorted list of objects popped off from the two sets until one set is exhausted
             while(!cur.isEmpty() && !other.isEmpty()) {
@@ -176,7 +177,7 @@ public class PowerSetTree {
                 return this;
             }
             RankedObject obj = getRankedObject(element);
-            SimpleLinkedList<RankedObject> list = new SimpleLinkedList<>();
+            SinglyLinkedList<RankedObject> list = new SinglyLinkedList<>();
             SetNode cur = this;
             // Maintain a sorted list of objects popped off from this set until the right place to insert the new element
             // is found
@@ -239,8 +240,8 @@ public class PowerSetTree {
         }
 
         /* Returns a list containing the elements of the set represented by this node. */
-        public SimpleLinkedList<Object> toList() {
-            SimpleLinkedList<Object> list = new SimpleLinkedList<>();
+        public SinglyLinkedList<Object> toList() {
+            SinglyLinkedList<Object> list = new SinglyLinkedList<>();
             // Walk to the root adding the objects associated with the nodes' key values to the list
             for(SetNode cur = this; !cur.isEmpty(); cur = cur.parent) {
                 list.push(cur.key.object);

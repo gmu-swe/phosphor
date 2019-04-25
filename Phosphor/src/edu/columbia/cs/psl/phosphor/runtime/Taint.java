@@ -517,7 +517,7 @@ public class Taint<T> implements Serializable {
 		in.defaultReadObject();
 		if(BIT_SET_CAPACITY > 0) {
 			// BitSet representation is being used
-			SimpleLinkedList<?> list = (SimpleLinkedList<?>)in.readObject();
+			SinglyLinkedList<?> list = (SinglyLinkedList<?>)in.readObject();
 			if(list.size() > 0) {
 				this.labelBitSet = new BitSet(BIT_SET_CAPACITY);
 				for(Object obj : list) {
@@ -529,7 +529,7 @@ public class Taint<T> implements Serializable {
 		} else {
 			// SetNode representation is being used
 			this.labelSet = setTree.emptySet();
-			SimpleLinkedList<?> list = (SimpleLinkedList<?>)in.readObject();
+			SinglyLinkedList<?> list = (SinglyLinkedList<?>)in.readObject();
 			for(Object obj : list) {
 				this.labelSet.add(obj);
 			}

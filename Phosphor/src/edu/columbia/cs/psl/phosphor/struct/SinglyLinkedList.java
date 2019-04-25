@@ -6,8 +6,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 
-/* A singly linked list. */
-public class SimpleLinkedList<E> implements Iterable<E>, Serializable {
+/* A basic singly linked list implementation. */
+public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
 
     private static final long serialVersionUID = -6504649129625066964L;
     // The first node in the list
@@ -18,7 +18,7 @@ public class SimpleLinkedList<E> implements Iterable<E>, Serializable {
     private int size;
 
     /* Constructs a new empty list. */
-    public SimpleLinkedList() {
+    public SinglyLinkedList() {
         this.head = null;
         this.tail = null;
         this.size = 0;

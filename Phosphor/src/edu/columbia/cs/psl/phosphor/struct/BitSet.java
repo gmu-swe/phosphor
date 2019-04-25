@@ -92,8 +92,8 @@ public class BitSet {
     }
 
     /* Returns a list containing the bit indices in this set that are set to one. */
-    public SimpleLinkedList<Integer> toList() {
-        SimpleLinkedList<Integer> list = new SimpleLinkedList<>();
+    public SinglyLinkedList<Integer> toList() {
+        SinglyLinkedList<Integer> list = new SinglyLinkedList<>();
         for(int i = 0; i < packets.length; i++) {
             int packetOffset = i * BITS_PER_PACKET;
             int shifts = 0;
