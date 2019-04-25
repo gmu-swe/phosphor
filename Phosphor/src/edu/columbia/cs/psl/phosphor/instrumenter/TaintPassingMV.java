@@ -304,7 +304,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 		}
 		if (!nextLoadisTracked && opcode < 200) {
-			if ((Configuration.IMPLICIT_LIGHT_TRACKING || Configuration.IMPLICIT_TRACKING) && opcode == Opcodes.ASTORE) {
+			if ((Configuration.IMPLICIT_LIGHT_TRACKING || Configuration.IMPLICIT_TRACKING) && opcode == Opcodes.ASTORE && !Configuration.WITH_LESS_IMPLICIT_FLOW_TO_OBJECTS) {
 				super.visitInsn(DUP);
 				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject",
@@ -409,10 +409,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					break;
 				case ASTORE:
 					//if (!topOfStackIsNull()) {
-					super.visitInsn(DUP);
-					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject",
-							"(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+					if(!Configuration.WITH_LESS_IMPLICIT_FLOW_TO_OBJECTS) {
+						super.visitInsn(DUP);
+						super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+						super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject",
+								"(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
+					}
 					//}
 					break;
 			}
@@ -750,7 +752,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			switch (opcode) {
 				case PUTFIELD:
 					//taint the object owner of this field
-					if (!isSuperUninit) {
+					if (!isSuperUninit && !Configuration.WITH_LESS_IMPLICIT_FLOW_TO_OBJECTS) {
 						if (descType.getSize() == 1) {
 							if (topCarriesTaint()) {
 								super.visitInsn(DUP2_X1);
@@ -2898,10 +2900,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(POP);
 				}
 			} else {
-				super.visitInsn(DUP);
-				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V",
-						false);
+				if(!Configuration.WITH_LESS_IMPLICIT_FLOW_TO_OBJECTS) {
+					super.visitInsn(DUP);
+					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsOnObject", "(Ljava/lang/Object;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V",
+							false);
+				}
 			}
 			return;
 		}
@@ -3190,7 +3194,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 				else
 					registerTaintedArray();
-				if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
+				if((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !Configuration.WITH_LESS_IMPLICIT_FLOW_TO_OBJECTS)
 				{
 					super.visitInsn(DUP);
 					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
@@ -3210,7 +3214,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				}
 				super.visitInsn(opcode);
 			} else {
-				if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING)
+				if((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !Configuration.WITH_LESS_IMPLICIT_FLOW_TO_OBJECTS)
 				{
 					super.visitInsn(DUP);
 					super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());

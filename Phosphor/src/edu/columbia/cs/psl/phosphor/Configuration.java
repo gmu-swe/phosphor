@@ -26,6 +26,7 @@ public class Configuration {
 	public static boolean IMPLICIT_LIGHT_TRACKING;
 	public static boolean IMPLICIT_HEADERS_NO_TRACKING = false;
 	public static boolean WITHOUT_BRANCH_NOT_TAKEN = false;
+	public static boolean WITH_LESS_IMPLICIT_FLOW_TO_OBJECTS = false;
 
 	public static boolean TRACK_METHODS_NOT_CALLED = false; //only applies if IMPLICIT or IMPLICIT_LIGHT is on. will propagate taints into receiver objects in branches not taken.
 

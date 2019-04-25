@@ -354,7 +354,16 @@ public class Taint<T> implements Serializable {
 
 		if (lbl != null ? !lbl.equals(taint.lbl) : taint.lbl != null) return false;
 		if (tags != null) {
-			return Arrays.equals(tags, taint.tags);
+			if(taint.tags == null)
+				return false;
+			if(taint.tags.length != tags.length)
+				return false;
+			for(int i = 0; i < tags.length; i++)
+			{
+				if(taint.tags[i] != tags[i])
+					return false;
+			}
+			return true;
 		}
 		return dependencies != null ? dependencies.equals(taint.dependencies) : taint.dependencies == null;
 	}
