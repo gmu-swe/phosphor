@@ -1,7 +1,5 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-import java.util.Arrays;
-
 public class BitSet {
 
     // The number of bits that can be packed into a long.
@@ -117,13 +115,26 @@ public class BitSet {
             return false;
         } else {
             BitSet bitSet = (BitSet)obj;
-            return Arrays.equals(packets, bitSet.packets);
+            if(bitSet.packets.length != packets.length) {
+                return false;
+            }
+            for(int i = 0; i < packets.length; i++) {
+                if(bitSet.packets[i] != packets[i]) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(packets);
+        int result = 1;
+        for (long packet : packets) {
+            int packetHash = (int)(packet ^ (packet >>> 32));
+            result = 31 * result + packetHash;
+        }
+        return result;
     }
 
     /* Returns a new BitSet that represents the union of the specified sets. */

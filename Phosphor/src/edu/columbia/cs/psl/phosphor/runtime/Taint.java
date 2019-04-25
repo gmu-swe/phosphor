@@ -21,23 +21,44 @@ public class Taint<T> implements Serializable {
 	// If this value is greater than 0 then BitSets are used to store the set of labels for taint instances, otherwise
 	// SetNodes are used.
 	public static int BIT_SET_CAPACITY = -1;
-	// BitSet representation of the set of labels for this taint object.
+	// BitSet representation of the set of labels for this taint object. If the BitSet representation is being used and
+	// labelBitSet is null then the set is empty. labelBitSet will be initialized when the first label is added to the set.
 	private transient BitSet labelBitSet = null;
 
 	/* Constructs a new taint object with an empty label set. */
 	public Taint() {
-		if(BIT_SET_CAPACITY > 0) {
-			this.labelBitSet = new BitSet(BIT_SET_CAPACITY);
-		} else {
+		if(BIT_SET_CAPACITY <= 0) {
+			// SetNode representation is being used
 			this.labelSet = setTree.emptySet();
 		}
 	}
 
 	/* Constructs a new taint object with only the specified label in its label set. */
 	public Taint(T initialLabel) {
-		if(initialLabel == null) {
-			this.labelSet = setTree.emptySet();
+		if(BIT_SET_CAPACITY > 0) {
+			// BitSet representation is being used
+			if(initialLabel instanceof Integer) {
+				this.labelBitSet = new BitSet(BIT_SET_CAPACITY);
+				this.labelBitSet.add((Integer)initialLabel);
+			}
 		} else {
+			// SetNode representation is being used
+			if(initialLabel == null) {
+				this.labelSet = setTree.emptySet();
+			} else {
+				this.labelSet = setTree.makeSingletonSet(initialLabel);
+			}
+		}
+	}
+
+	/* Constructs a new taint object with only the specified label in its label set. */
+	public Taint(int initialLabel) {
+		if(BIT_SET_CAPACITY > 0) {
+			// BitSet representation is being used
+			this.labelBitSet = new BitSet(BIT_SET_CAPACITY);
+			this.labelBitSet.add(initialLabel);
+		} else {
+			// SetNode representation is being used
 			this.labelSet = setTree.makeSingletonSet(initialLabel);
 		}
 	}
@@ -45,8 +66,12 @@ public class Taint<T> implements Serializable {
 	/* Constructs a new taint object with the same labels as the specified taint object. */
 	public Taint(Taint<T> t1) {
 		if(BIT_SET_CAPACITY > 0) {
-			this.labelBitSet = (t1 == null) ? new BitSet(BIT_SET_CAPACITY) : t1.labelBitSet.copy();
+			// BitSet representation is being used
+			if(t1 != null && t1.labelBitSet != null) {
+				this.labelBitSet = t1.labelBitSet.copy();
+			}
 		} else {
+			// SetNode representation is being used
 			this.labelSet = (t1 == null) ? setTree.emptySet() : t1.labelSet;
 		}
 		if(Configuration.derivedTaintListener != null) {
@@ -57,9 +82,16 @@ public class Taint<T> implements Serializable {
 	/* Constructs a new taint object whose label set is the union of the label sets of the two specified taint objects. */
 	public Taint(Taint<T> t1, Taint<T> t2) {
 		if(BIT_SET_CAPACITY > 0) {
-			this.labelBitSet = (t1 == null) ? new BitSet(BIT_SET_CAPACITY) : t1.labelBitSet.copy();
-			this.labelBitSet = (t2 == null) ? this.labelBitSet : BitSet.union(this.labelBitSet, t2.labelBitSet);
+			// BitSet representation is being used
+			if(t1 != null && t2 != null) {
+				this.labelBitSet = BitSet.union(t1.labelBitSet, t2.labelBitSet);
+			} else if(t1 != null && t1.labelBitSet != null) {
+				this.labelBitSet = t1.labelBitSet.copy();
+			} else if(t2 != null && t2.labelBitSet != null) {
+				this.labelBitSet = t2.labelBitSet.copy();
+			}
 		} else {
+			// SetNode representation is being used
 			this.labelSet = (t1 == null) ? setTree.emptySet() : t1.labelSet;
 			this.labelSet = (t2 == null) ? this.labelSet : this.labelSet.union(t2.labelSet);
 		}
@@ -83,7 +115,7 @@ public class Taint<T> implements Serializable {
 	public String toString() {
 		if(labelSet != null) {
 			return "Taint [Labels = [" + labelSet.toList() + "]";
-		} else if(labelBitSet != null){
+		} else if(labelBitSet != null) {
 			return "Taint [Label indices = [" + labelBitSet.toList() + "]";
 		} else {
 			return "Taint []";
@@ -136,10 +168,12 @@ public class Taint<T> implements Serializable {
 		if(other == null) {
 			return false;
 		} else if(BIT_SET_CAPACITY > 0) {
+			// BitSet representation is being used
 			BitSet prev = this.labelBitSet;
 			this.labelBitSet = BitSet.union(this.labelBitSet, other.labelBitSet);
 			return (prev == null && this.labelBitSet != null) || (prev != null && !prev.equals(this.labelBitSet));
 		} else {
+			// SetNode representation is being used
 			PowerSetTree.SetNode union = this.labelSet.union(other.labelSet);
 			boolean changed = (this.labelSet != union);
 			this.labelSet = union;
@@ -151,10 +185,9 @@ public class Taint<T> implements Serializable {
 	public boolean isEmpty() {
 		if(labelSet != null) {
 			return labelSet.isEmpty();
-		} else if(labelBitSet != null) {
-			return labelBitSet.isEmpty();
 		} else {
-			return true;
+			// labelBitSet should be null until a label is added to it
+			return labelBitSet == null;
 		}
 	}
 
@@ -178,8 +211,7 @@ public class Taint<T> implements Serializable {
 			for(Object o : ar) {
 				combineTagsInPlace(o, t1[dims-1]);
 			}
-		}
-		else {
+		} else {
 			for(Object o : ar) {
 				combineTagsOnArrayInPlace((Object[]) o, t1, dims-1);
 			}
@@ -187,10 +219,9 @@ public class Taint<T> implements Serializable {
 	}
 
 	public static <T> void combineTagsInPlace(Object obj, Taint<T> t1) {
-		if(obj == null || t1 == null || IGNORE_TAINTING) {
-			return;
+		if(obj != null && t1 != null && !IGNORE_TAINTING) {
+			_combineTagsInPlace(obj, t1);
 		}
-		_combineTagsInPlace(obj, t1);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -231,12 +262,12 @@ public class Taint<T> implements Serializable {
 	public boolean contains(Taint<T> that) {
 		if(that == null) {
 			return true;
-		} else if(that.labelSet != null && this.labelSet != null) {
-			return this.labelSet.isSuperset(that.labelSet);
-		} else if(that.labelBitSet != null && this.labelBitSet != null) {
-			return labelBitSet.isSuperset(this.labelBitSet);
+		} else if(BIT_SET_CAPACITY > 0) {
+			// BitSet representation is being used
+			return that.labelBitSet == null || (this.labelBitSet != null && this.labelBitSet.isSuperset(that.labelBitSet));
 		} else {
-			return false;
+			// SetNode representation is being used
+			return that.labelSet == null || (this.labelSet != null && this.labelSet.isSuperset(that.labelSet));
 		}
 	}
 
@@ -261,7 +292,7 @@ public class Taint<T> implements Serializable {
 		return ret;
 	}
 
-	/* Returns whether the set of labels for this taint object contains only the specified labels. */
+	/* Returns whether the set of labels for this taint object contains only the specified unique labels. */
 	public boolean containsOnlyLabels(Object[] labels) {
 		if(labels.length != getLabels().length) {
 			return false;
@@ -297,12 +328,14 @@ public class Taint<T> implements Serializable {
 
 	/* Returns whether the set of labels for this taint object contains the specified label. */
 	public boolean containsLabel(Object label) {
-		if(label instanceof Integer && labelBitSet != null) {
-			return labelBitSet.contains((int)label);
-		} else if(labelSet != null) {
-			return labelSet.contains(label);
+		if(label == null) {
+			return true;
+		} else if(BIT_SET_CAPACITY > 0) {
+			// BitSet representation is being used
+			return label instanceof Integer && labelBitSet != null && labelBitSet.contains((int)label);
 		} else {
-			return false;
+			// SetNode representation is being used
+			return labelSet != null && labelSet.contains(label);
 		}
 	}
 
@@ -400,12 +433,14 @@ public class Taint<T> implements Serializable {
 		if(taints == null) {
 			return null;
 		} else if(BIT_SET_CAPACITY > 0) {
+			// BitSet representation is being used
 			Taint<T> result = new Taint<>();
 			for(Taint<T> taint : taints) {
 				result.addDependency(taint);
 			}
 			return result;
 		} else {
+			// SetNode representation is being used
 			Taint<T> result = new Taint<>();
 			// The last label set unioned into result's label set
 			PowerSetTree.SetNode prevLabelSet = setTree.emptySet();
@@ -447,10 +482,12 @@ public class Taint<T> implements Serializable {
 			tags.taints = new Taint[str.length()];
 		}
 		if(BIT_SET_CAPACITY > 0) {
+			// BitSet representation is being used
 			for (int i = 0; i < tags.taints.length; i++) {
 				tags.taints[i] = combineTags(tags.taints[i], ctrl);
 			}
 		} else {
+			// SetNode representation is being used
 			Taint originalPreviousTaint = null;
 			for (int i = 0; i < tags.taints.length; i++) {
 				if(originalPreviousTaint != null && originalPreviousTaint.equals(tags.taints[i])) {
@@ -479,14 +516,18 @@ public class Taint<T> implements Serializable {
 	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
 		in.defaultReadObject();
 		if(BIT_SET_CAPACITY > 0) {
-			this.labelBitSet = new BitSet(BIT_SET_CAPACITY);
+			// BitSet representation is being used
 			SimpleLinkedList<?> list = (SimpleLinkedList<?>)in.readObject();
-			for(Object obj : list) {
-				if(obj instanceof Integer) {
-					labelBitSet.add((int) obj);
+			if(list.size() > 0) {
+				this.labelBitSet = new BitSet(BIT_SET_CAPACITY);
+				for(Object obj : list) {
+					if(obj instanceof Integer) {
+						labelBitSet.add((int) obj);
+					}
 				}
 			}
 		} else {
+			// SetNode representation is being used
 			this.labelSet = setTree.emptySet();
 			SimpleLinkedList<?> list = (SimpleLinkedList<?>)in.readObject();
 			for(Object obj : list) {
@@ -541,7 +582,11 @@ public class Taint<T> implements Serializable {
 
 	@Deprecated
 	public void setBit(int bitIndex) {
-		if(labelBitSet != null) {
+		if(BIT_SET_CAPACITY > 0) {
+			// BitSet representation is being used
+			if(labelBitSet == null) {
+				labelBitSet = new BitSet(BIT_SET_CAPACITY);
+			}
 			labelBitSet.add(bitIndex);
 		}
 	}
@@ -553,15 +598,25 @@ public class Taint<T> implements Serializable {
 
 	@Deprecated
 	public void setBits(long[] otherPackets) {
-		if(labelBitSet != null) {
-			labelBitSet.union(new BitSet(otherPackets));
+		if(BIT_SET_CAPACITY > 0) {
+			// BitSet representation is being used
+			if (labelBitSet == null) {
+				labelBitSet = new BitSet(otherPackets);
+			} else {
+				labelBitSet.union(new BitSet(otherPackets));
+			}
 		}
 	}
 
 	@Deprecated
 	public void setBits(BitSet other) {
-		if(labelBitSet != null) {
-			labelBitSet.union(new BitSet(other));
+		if(BIT_SET_CAPACITY > 0) {
+			// BitSet representation is being used
+			if (labelBitSet == null) {
+				labelBitSet = other.copy();
+			} else {
+				labelBitSet.union(other);
+			}
 		}
 	}
 
