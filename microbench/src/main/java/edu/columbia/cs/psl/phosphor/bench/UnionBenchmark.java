@@ -1,8 +1,8 @@
 package edu.columbia.cs.psl.phosphor.bench;
 
 import edu.columbia.cs.psl.phosphor.struct.BitSet;
+import edu.columbia.cs.psl.phosphor.struct.IntPowerSetTree;
 import edu.columbia.cs.psl.phosphor.struct.PowerSetTree;
-import edu.columbia.cs.psl.phosphor.struct.SimpleHashSet;
 
 import org.openjdk.jmh.annotations.*;
 
@@ -17,23 +17,24 @@ import java.util.concurrent.TimeUnit;
 public class UnionBenchmark {
 
     // The number of different possible unique elements
-    @Param({"1000", "10000"})
+    @Param({"10000"})
     private int uniqueElementsSize;
 
     // The percentage of the number of unique elements that are present in each set
-    @Param({"0.05", "0.1", "0.2"})
+    @Param({".1", ".2", ".3"})
     private static double percentPresent;
 
     // Singleton used to create empty SetNodes
     private final PowerSetTree setTree = PowerSetTree.getInstance();
+    // Singleton used to create empty SetNodes
+    private final IntPowerSetTree intSetTree = IntPowerSetTree.getInstance();
 
     // Sets being tested
     private BitSet[] bitSets = new BitSet[2];
     private PowerSetTree.SetNode[] setNodes = new PowerSetTree.SetNode[2];
+    private IntPowerSetTree.SetNode[] intSetNodes = new IntPowerSetTree.SetNode[2];
     @SuppressWarnings("unchecked")
     private HashSet<Object>[] hashSets = new HashSet[2];
-    @SuppressWarnings("unchecked")
-    private SimpleHashSet<Object>[] simpleSets = new SimpleHashSet[2];
 
     @Setup(Level.Invocation)
     public void initSets() {
@@ -41,14 +42,14 @@ public class UnionBenchmark {
         for(int i = 0; i < 2; i++) {
             bitSets[i] = new BitSet(uniqueElementsSize);
             setNodes[i] = setTree.emptySet();
+            intSetNodes[i] = intSetTree.emptySet();
             hashSets[i] = new HashSet<>();
-            simpleSets[i] = new SimpleHashSet<>();
         }
         int i = 0;
-        for(int el : ThreadLocalRandom.current().ints(0, uniqueElementsSize).limit(setSize*2).distinct().toArray()) {
+        for(int el : ThreadLocalRandom.current().ints(0, uniqueElementsSize).distinct().limit(setSize*2).toArray()) {
             bitSets[i%2].add(el);
-            setNodes[i%2].add(el);
-            simpleSets[i%2].add(el);
+            setNodes[i%2] = setNodes[i%2].add(el);
+            intSetNodes[i%2] = intSetNodes[i%2].add(el);
             hashSets[i%2].add(el);
             i++;
         }
@@ -57,10 +58,10 @@ public class UnionBenchmark {
     @TearDown(Level.Invocation)
     public void clearSetsForGC() {
         for(int i = 0; i < 2; i++) {
-            bitSets[i] = new BitSet(uniqueElementsSize);
-            setNodes[i] = setTree.emptySet();
-            hashSets[i] = new HashSet<>();
-            simpleSets[i] = new SimpleHashSet<>();
+            bitSets[i] = null;
+            setNodes[i] = null;
+            intSetNodes[i] = null;
+            hashSets[i] = null;
         }
     }
 
@@ -68,6 +69,11 @@ public class UnionBenchmark {
     public BitSet bitSetUnionTest() {
         bitSets[0].union(bitSets[1]);
         return bitSets[0];
+    }
+
+    @Benchmark
+    public IntPowerSetTree.SetNode intSetNodeUnionTest() {
+        return intSetNodes[0].union(intSetNodes[1]);
     }
 
     @Benchmark
@@ -79,11 +85,5 @@ public class UnionBenchmark {
     public HashSet<Object> hashSetUnionTest() {
         hashSets[0].addAll(hashSets[1]);
         return hashSets[0];
-    }
-
-    @Benchmark
-    public SimpleHashSet<Object> simpleHashSetUnionTest() {
-        simpleSets[0].addAll(simpleSets[1]);
-        return simpleSets[0];
     }
 }

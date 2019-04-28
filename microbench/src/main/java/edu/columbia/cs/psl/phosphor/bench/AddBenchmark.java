@@ -1,8 +1,8 @@
 package edu.columbia.cs.psl.phosphor.bench;
 
 import edu.columbia.cs.psl.phosphor.struct.BitSet;
+import edu.columbia.cs.psl.phosphor.struct.IntPowerSetTree;
 import edu.columbia.cs.psl.phosphor.struct.PowerSetTree;
-import edu.columbia.cs.psl.phosphor.struct.SimpleHashSet;
 
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
@@ -24,11 +24,11 @@ import java.util.stream.Collectors;
 public class AddBenchmark {
 
     // The number of different possible unique elements
-    @Param({"1000", "10000"})
+    @Param({"10000"})
     private int uniqueElementsSize;
 
     // The percentage of the number of unique elements that are present in each set
-    @Param({"0.05", ".1", ".2"})
+    @Param({".1", ".2", ".3"})
     private static double percentPresent;
 
     // The number of sets of each type
@@ -37,43 +37,44 @@ public class AddBenchmark {
     private LinkedList<Integer> itemStack;
     // Singleton used to create empty SetNodes
     private final PowerSetTree setTree = PowerSetTree.getInstance();
+    // Singleton used to create empty SetNodes
+    private final IntPowerSetTree intSetTree = IntPowerSetTree.getInstance();
 
     // Sets being tested
     private BitSet[] bitSets = new BitSet[NUM_SETS];
     private PowerSetTree.SetNode[] setNodes = new PowerSetTree.SetNode[NUM_SETS];
+    private IntPowerSetTree.SetNode[] intSetNodes = new IntPowerSetTree.SetNode[NUM_SETS];
     @SuppressWarnings("unchecked")
     private HashSet<Object>[] hashSets = new HashSet[NUM_SETS];
-    @SuppressWarnings("unchecked")
-    private SimpleHashSet<Object>[] simpleSets = new SimpleHashSet[NUM_SETS];
 
     @Setup(Level.Invocation)
     public void initSets() {
+        int setSize = (int)(uniqueElementsSize*percentPresent);
         for(int i = 0; i < NUM_SETS; i++) {
             // Clear the sets
             bitSets[i] = new BitSet(uniqueElementsSize);
             setNodes[i] = setTree.emptySet();
+            intSetNodes[i] = intSetTree.emptySet();
             hashSets[i] = new HashSet<>();
-            simpleSets[i] = new SimpleHashSet<>();
-            int setSize = (int)(uniqueElementsSize*percentPresent);
             // Add setSize unique elements to each set
-            for(int el : ThreadLocalRandom.current().ints(0, uniqueElementsSize).limit(setSize).distinct().toArray()) {
+            for(int el : ThreadLocalRandom.current().ints(0, uniqueElementsSize).distinct().limit(setSize).toArray()) {
                 bitSets[i].add(el);
-                setNodes[i].add(el);
-                simpleSets[i].add(el);
+                setNodes[i] = setNodes[i].add(el);
+                intSetNodes[i] = intSetNodes[i].add(el);
                 hashSets[i].add(el);
             }
         }
         // Create a supply of items to be added to the sets
-        itemStack = ThreadLocalRandom.current().ints(NUM_SETS, 0, uniqueElementsSize).boxed().collect(Collectors.toCollection(LinkedList::new));
+        itemStack = ThreadLocalRandom.current().ints(0, uniqueElementsSize).limit(setSize).boxed().collect(Collectors.toCollection(LinkedList::new));
     }
 
     @TearDown(Level.Invocation)
     public void clearSetsForGC() {
         for(int i = 0; i < NUM_SETS; i++) {
-            bitSets[i] = new BitSet(uniqueElementsSize);
-            setNodes[i] = setTree.emptySet();
-            hashSets[i] = new HashSet<>();
-            simpleSets[i] = new SimpleHashSet<>();
+            bitSets[i] = null;
+            setNodes[i] = null;
+            intSetNodes[i] = null;
+            hashSets[i] = null;
         }
     }
 
@@ -84,6 +85,15 @@ public class AddBenchmark {
             bitSets[i].add(itemStack.pop());
         }
         return bitSets;
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(30)
+    public IntPowerSetTree.SetNode[] intSetNodeAddTest() {
+        for(int i = 0; i < NUM_SETS; i++) {
+            intSetNodes[i] = intSetNodes[i].add(itemStack.pop());
+        }
+        return intSetNodes;
     }
 
     @Benchmark
@@ -102,15 +112,6 @@ public class AddBenchmark {
             hashSets[i].add(itemStack.pop());
         }
        return hashSets;
-    }
-
-    @Benchmark
-    @OperationsPerInvocation(30)
-    public SimpleHashSet<Object>[] simpleHashSetAddTest() {
-        for(int i = 0; i < NUM_SETS; i++) {
-            simpleSets[i].add(itemStack.pop());
-        }
-        return simpleSets;
     }
 
     public static void main(String[] args) throws RunnerException {

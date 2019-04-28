@@ -6,7 +6,6 @@ public class BitSet {
     private final static int BITS_PER_PACKET = 1 << 6;
     // Array of bit-packed longs. Each bit in a packet represents a particular element in the set. If a bit is 1 then
     // the element represented by that bit is present in the set, otherwise the element in is absent.
-    // The if the bit at the position representing a particular element is 1 then that
     private long[] packets;
 
     /* Creates a new set that can have up to the specified maximum number of elements. */

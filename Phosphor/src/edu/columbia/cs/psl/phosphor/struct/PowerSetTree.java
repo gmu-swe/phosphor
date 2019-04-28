@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import java.lang.ref.WeakReference;
+import java.util.Iterator;
 
 /* Provides access to a thread-safe collection of sets of objects by maintaining a trie-like tree structure. The set
  * represented by some node in the tree contains the objects associated with the keys of every node on the path from that
@@ -12,54 +13,64 @@ import java.lang.ref.WeakReference;
  * will only have child nodes with higher ranks that its own. */
 public class PowerSetTree {
 
-    // The current capacity of elementRankList
-    private volatile int currentCapacity;
-    // Stores the unique elements across all of the sets in the collection with their rank. The position of an element
-    // in this array determines its rank.
-    private ArrayList<WeakReference<RankedObject>> elementRankList;
+    // Maps hash codes to a list of pairs of containing an object with that hashcode and a unique rank for that object..
+    private IntObjectAMT<SinglyLinkedList<RankReference>> rankMap;
     // Root of the tree, represents the empty set
     private final SetNode root;
+    // Used to lazily reused ranks after the object assigned the rank is garbage collected
+    private final IntSinglyLinkedList rankQueue;
+    // The next new rank that should be assigned to an object
+    private int nextRank = Integer.MIN_VALUE;
 
     /* Constructs a new empty pool. Initializes the root node that represents the empty set. */
     private PowerSetTree() {
-        this.currentCapacity = 100;
-        this.elementRankList = new ArrayList<>(currentCapacity);
+        this.rankMap = new IntObjectAMT<>();
         this.root = new SetNode(null, null);
+        this.rankQueue = new IntSinglyLinkedList();
     }
 
-    /* Stores the specified object in the elementRankList if an equal object is not already represented in the list. Returns
+    /* If a rank can be reused from the rankQueue, returns that rank. Otherwise returns and increments nextRank. */
+    private int getAvailableRank() {
+        if(!rankQueue.isEmpty()) {
+            // Try to reuse a rank
+            return rankQueue.pop();
+        } else {
+            // There are no available ranks to be reused
+            return nextRank++;
+        }
+    }
+
+    /* Stores the specified object in the rankMap if an equal object is not already represented in the list. Returns
      * the record object for objects equal to the specified object. This record contains the an object equal to the specified
      * object and the rank assigned to objects equal to the specified object. */
     private synchronized RankedObject getRankedObject(Object object) {
-        // The lowest index in the array that was either null or set to null because the referent of the WeakReference
-        // at that index was garbage collected
-        int lowestGCEntry = -1;
-        for(int i = 0; i < elementRankList.size(); i++) {
-            WeakReference<RankedObject> ref = elementRankList.get(i);
-            if(ref == null) {
-                lowestGCEntry = (lowestGCEntry == -1) ? i : lowestGCEntry;
-            } else {
-                RankedObject rankedElement = ref.get();
-                if(rankedElement == null) {
-                    elementRankList.replace(i, null);
-                    lowestGCEntry = (lowestGCEntry == -1) ? i : lowestGCEntry;
-                } else if(object.equals(rankedElement.object)) {
-                    // Found an object represented in the list equal to the specified object
-                    return rankedElement;
+        int hash = object.hashCode();
+        if(!rankMap.contains(hash)) {
+            SinglyLinkedList<RankReference> list = new SinglyLinkedList<>();
+            rankMap.put(hash, list);
+            RankedObject ret = new RankedObject(object, getAvailableRank());
+            list.push(new RankReference(ret));
+            return ret;
+        } else {
+            SinglyLinkedList<RankReference> list = rankMap.get(hash);
+            Iterator<RankReference> it = list.iterator();
+            while(it.hasNext()) {
+                RankReference ref = it.next();
+                RankedObject ro = ref.get();
+                if(ro == null) {
+                    // Remove reference with garbage collected referent from list
+                    it.remove();
+                    // Push the rank of the garbage collected object onto the stack so that it can be reused
+                    rankQueue.push(ref.rank);
+                } else if(object.equals(ro.object)) {
+                    // Existing rank for the specified object was found
+                    return ro;
                 }
             }
-        }
-        if(lowestGCEntry == -1) {
-            // No garbage collected or null entries were found
-            RankedObject result = new RankedObject(object, elementRankList.size());
-            elementRankList.add(new WeakReference<>(result));
-            // Update the capacity in case it changed
-            this.currentCapacity = elementRankList.getCapacity();
-            return result;
-        } else {
-            RankedObject result = new RankedObject(object, lowestGCEntry);
-            elementRankList.replace(lowestGCEntry, new WeakReference<>(result));
-            return result;
+            // No existing rank for the specified object was found
+            RankedObject ret = new RankedObject(object, getAvailableRank());
+            list.push(new RankReference(ret));
+            return ret;
         }
     }
 
@@ -87,9 +98,9 @@ public class PowerSetTree {
         // The node that represents the set difference between this set and the singleton set containing the object
         // associated with this node's key
         private final SetNode parent;
-        // Stores child nodes that represent the union of the set represented by this node with a singleton set containing the
-        // object associated with the key of the child node. This array will be null until at least one child node is added.
-        private WeakReference<SetNode>[] children;
+        // Stores child nodes that represent the union of the set represented by this node with a singleton set containing
+        // the key of the child node. Children is null until at least one child node is added.
+        private IntObjectAMT<WeakReference<SetNode>> children;
 
         /* Constructs a new set node with no child nodes. */
         private SetNode(RankedObject key, SetNode parent) {
@@ -98,36 +109,30 @@ public class PowerSetTree {
             this.children = null;
         }
 
-        /* Adds a new entry to this node's array child nodes for the specified key if one does not already exist.
+        /* Adds a new entry to this node's map of child nodes for the specified key if one does not already exist.
          * Returns the child node for the specified key. */
-        @SuppressWarnings("unchecked")
         private SetNode addChild(RankedObject childKey) {
             synchronized(this) {
-                int curRank = (key == null) ? -1 : key.rank;
-                // Store the child at the difference between its rank and the lowest possible rank for a child of this node
-                int childPosition = childKey.rank - (curRank + 1);
                 if(children == null) {
-                    this.children = (WeakReference<SetNode>[]) new WeakReference[currentCapacity];
-                } else if(childPosition >= children.length) {
-                    // Resize the child array
-                    WeakReference<SetNode>[] temp = this.children;
-                    this.children = (WeakReference<SetNode>[]) new WeakReference[currentCapacity];
-                    System.arraycopy(temp, 0, this.children, 0, temp.length);
+                    // Initialize the child map
+                    children = new IntObjectAMT<>();
                 }
-                if(children[childPosition] == null) {
-                    // There is no entry at the child position
+                if(!children.contains(childKey.rank)) {
+                    // There is no entry for child key
                     SetNode node = new SetNode(childKey, this);
-                    children[childPosition] = new WeakReference<>(node);
-                    return node;
-                }
-                SetNode childNode = children[childPosition].get();
-                if(childNode == null || childNode.key != childKey) {
-                    // The entry at the child position has been garbage collected or is going to be garbage collected
-                    SetNode node = new SetNode(childKey, this);
-                    children[childPosition] = new WeakReference<>(node);
+                    children.put(childKey.rank, new WeakReference<>(node));
                     return node;
                 } else {
-                    return childNode;
+                    SetNode childNode = children.get(childKey.rank).get();
+                    if(childNode != null) {
+                        // There is an existing non-garbage collected entry for the child key
+                        return childNode;
+                    } else {
+                        // The entry for the child key has been garbage collected
+                        SetNode node = new SetNode(childKey, this);
+                        children.put(childKey.rank, new WeakReference<>(node));
+                        return node;
+                    }
                 }
             }
         }
@@ -190,10 +195,10 @@ public class PowerSetTree {
                     cur = cur.parent;
                 } else {
                     // Found the correct spot to insert the new element into the path
-                    list.push(obj);
                     break;
                 }
             }
+            list.push(obj);
             // Move down the path in the tree for the list adding child nodes as necessary
             while(!list.isEmpty()) {
                 cur = cur.addChild(list.pop());
@@ -263,6 +268,30 @@ public class PowerSetTree {
         private RankedObject(Object object, int rank) {
             this.object = object;
             this.rank = rank;
+        }
+
+        /* Returns a nicely formatted string representation of the object and its rank. */
+        @Override
+        public String toString() {
+            return String.format("(%s -> %d)", object, rank);
+        }
+    }
+
+    /* Stores information about the rank of the referent of a WeakReference so that the rank can be reused when the object
+     * is garbage collected. */
+    private static class RankReference extends WeakReference<RankedObject> {
+
+        // The rank assigned to the referent
+        int rank;
+
+        RankReference(RankedObject referent) {
+            super(referent);
+            this.rank = referent.rank;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("RankReference: rank: %d | referent: %s", rank, get());
         }
     }
 
