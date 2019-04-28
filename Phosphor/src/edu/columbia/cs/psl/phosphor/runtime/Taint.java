@@ -531,7 +531,7 @@ public class Taint<T> implements Serializable {
 			this.labelSet = setTree.emptySet();
 			SinglyLinkedList<?> list = (SinglyLinkedList<?>)in.readObject();
 			for(Object obj : list) {
-				this.labelSet.add(obj);
+				this.labelSet = this.labelSet.add(obj);
 			}
 		}
 	}

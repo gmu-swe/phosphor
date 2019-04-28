@@ -2,15 +2,17 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 public class BitSet {
 
+    //Used to determine the packet index for a bit index
+    private final static int SHIFT_AMOUNT = 6;
     // The number of bits that can be packed into a long.
-    private final static int BITS_PER_PACKET = 1 << 6;
+    private final static int BITS_PER_PACKET = 1 << SHIFT_AMOUNT;
     // Array of bit-packed longs. Each bit in a packet represents a particular element in the set. If a bit is 1 then
     // the element represented by that bit is present in the set, otherwise the element in is absent.
     private long[] packets;
 
     /* Creates a new set that can have up to the specified maximum number of elements. */
     public BitSet(int maxElements) {
-        this.packets = new long[maxElements/BITS_PER_PACKET + (maxElements%BITS_PER_PACKET == 0 ? 0 : 1)];
+        this.packets = new long[maxElements / BITS_PER_PACKET + (maxElements % BITS_PER_PACKET == 0 ? 0 : 1)];
     }
 
     /* Creates a new set with the specified packets. */
@@ -33,22 +35,24 @@ public class BitSet {
         return new BitSet(this);
     }
 
+    /* Returns the index of the packet where the specified bit index is located. */
+    private static int getPacketIndex(int bitIndex) {
+        return bitIndex >>> SHIFT_AMOUNT;
+    }
+
+    /* Returns a bit mask where only the bit for the specified bit index is set to 1. */
+    private static long getBitMask(int bitIndex) {
+        return 1L << bitIndex;
+    }
+
     /* Adds the element represented by the bit at the specified index to the set.*/
     public void add(int bitIndex) {
-        // The index of the packet the specified bit index is located in
-        int packetIndex = bitIndex / BITS_PER_PACKET;
-        // The mask to isolate the specified bit in the packet it is located in
-        long mask = 1L << bitIndex;
-        packets[packetIndex] |= mask;
+        packets[getPacketIndex(bitIndex)] |= getBitMask(bitIndex);
     }
 
     /* Returns whether or not the element represented by the bit at the specified index is in the set. */
     public boolean contains(int bitIndex) {
-        // The index of the packet the specified bit index is located in
-        int packetIndex = bitIndex / BITS_PER_PACKET;
-        // The mask to isolate the specified bit in the packet it is located in
-        long mask = 1L << bitIndex;
-        return (packets[packetIndex] & mask) != 0;
+        return (packets[getPacketIndex(bitIndex)] & getBitMask(bitIndex)) != 0;
     }
 
     /* Adds all of the elements in the specified other set to this set. */
