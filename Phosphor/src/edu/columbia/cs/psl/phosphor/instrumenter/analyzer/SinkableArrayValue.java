@@ -175,7 +175,7 @@ public class SinkableArrayValue extends BasicValue {
 		queue.add(this);
 		LinkedList<SinkableArrayValue> ret = new LinkedList<SinkableArrayValue>();
 		LinkedList<SinkableArrayValue> processed = new LinkedList<>();
-		if(this.getType().getDimensions() > 1)
+		if(this.getType() != null && this.getType().getSort() == Type.ARRAY && this.getType().getDimensions() > 1)
 			return ret;
 		while(!queue.isEmpty())
 		{
