@@ -13,20 +13,38 @@ import java.util.Iterator;
  * will only have child nodes with higher ranks that its own. */
 public class PowerSetTree {
 
-    // Maps hash codes to a list of pairs of containing an object with that hashcode and a unique rank for that object..
-    private IntObjectAMT<SinglyLinkedList<RankReference>> rankMap;
     // Root of the tree, represents the empty set
     private final SetNode root;
+    // Maps hash codes to a list of pairs of containing an object with that hashcode and a unique rank for that object.
+    private IntObjectAMT<SinglyLinkedList<RankReference>> rankMap;
     // Used to lazily reused ranks after the object assigned the rank is garbage collected
     private final IntSinglyLinkedList rankQueue;
     // The next new rank that should be assigned to an object
-    private int nextRank = Integer.MIN_VALUE;
+    private int nextRank;
 
     /* Constructs a new empty pool. Initializes the root node that represents the empty set. */
     private PowerSetTree() {
-        this.rankMap = new IntObjectAMT<>();
         this.root = new SetNode(null, null);
+        this.rankMap = new IntObjectAMT<>();
         this.rankQueue = new IntSinglyLinkedList();
+        this.nextRank = Integer.MIN_VALUE;
+    }
+
+    /* Resets the tree to its initial state, turning all reachable SetNodes into quasi-empty sets. */
+    public synchronized void reset() {
+        this.rankMap.clear();
+        this.rankQueue.clear();
+        this.nextRank = Integer.MIN_VALUE;
+        // Make all reachable nodes quasi-empty sets
+        SinglyLinkedList<SetNode> nodeStack = new SinglyLinkedList<>();
+        nodeStack.push(root);
+        while(!nodeStack.isEmpty()) {
+            SetNode node = nodeStack.pop();
+            for(SetNode child : node.getChildren()) {
+                nodeStack.push(child);
+            }
+            node.empty();
+        }
     }
 
     /* If a rank can be reused from the rankQueue, returns that rank. Otherwise returns and increments nextRank. */
@@ -94,10 +112,10 @@ public class PowerSetTree {
 
         // Holds an object and its associated rank. This object is the object with the highest rank in the set
         // represented by this node.
-        private final RankedObject key;
+        private RankedObject key;
         // The node that represents the set difference between this set and the singleton set containing the object
         // associated with this node's key
-        private final SetNode parent;
+        private SetNode parent;
         // Stores child nodes that represent the union of the set represented by this node with a singleton set containing
         // the key of the child node. Children is null until at least one child node is added.
         private IntObjectAMT<WeakReference<SetNode>> children;
@@ -106,6 +124,27 @@ public class PowerSetTree {
         private SetNode(RankedObject key, SetNode parent) {
             this.key = key;
             this.parent = parent;
+            this.children = null;
+        }
+
+        /* Returns all non-null child nodes of this node. */
+        private synchronized SinglyLinkedList<SetNode> getChildren() {
+            SinglyLinkedList<SetNode> list = new SinglyLinkedList<>();
+            if(children != null) {
+                for(WeakReference<SetNode> ref : children.values()) {
+                    SetNode node = ref.get();
+                    if(node != null) {
+                        list.enqueue(node);
+                    }
+                }
+            }
+            return list;
+        }
+
+        /* Empties the set represented by this node. */
+        private synchronized void empty() {
+            this.key = null;
+            this.parent = null;
             this.children = null;
         }
 
@@ -137,9 +176,9 @@ public class PowerSetTree {
             }
         }
 
-        /* Returns whether this node represents the empty set. */
-        public boolean isEmpty() {
-            return this == root;
+        /* Returns whether this node represents the empty set or a quasi-empty set. */
+        public synchronized boolean isEmpty() {
+            return this.parent == null;
         }
 
         /* Returns a node that represents the set union of the set represented by this node with the set represented by
@@ -149,7 +188,10 @@ public class PowerSetTree {
                 return this;
             }
             SinglyLinkedList<RankedObject> mergedList = new SinglyLinkedList<>();
-            SetNode cur = this;
+            // If the this set is empty ensure the node representing the empty set is used
+            SetNode cur = this.isEmpty() ? emptySet() : this;
+            // If the other set is empty ensure the node representing the empty set is used
+            other = other.isEmpty() ? emptySet() : other;
             // Maintain a sorted list of objects popped off from the two sets until one set is exhausted
             while(!cur.isEmpty() && !other.isEmpty()) {
                 if(cur == other) {
@@ -183,7 +225,8 @@ public class PowerSetTree {
             }
             RankedObject obj = getRankedObject(element);
             SinglyLinkedList<RankedObject> list = new SinglyLinkedList<>();
-            SetNode cur = this;
+            // If the this set is empty ensure the node representing the empty set is used
+            SetNode cur = this.isEmpty() ? emptySet() : this;
             // Maintain a sorted list of objects popped off from this set until the right place to insert the new element
             // is found
             while(!cur.isEmpty()) {

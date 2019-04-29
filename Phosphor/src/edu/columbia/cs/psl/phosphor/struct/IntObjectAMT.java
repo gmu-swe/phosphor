@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 /* Simple array mapped trie implementation used to maps integers to objects. Implementation is not threadsafe. */
 public class IntObjectAMT<V> {
+
     // At each node of the AMT, the lower SHIFT_AMOUNT bits are used to determine the correct index into the
     // child array from a given key. SHIFT_AMOUNT is then used to shift these bits out of the key before passing it to a
     // child node.
@@ -17,6 +18,7 @@ public class IntObjectAMT<V> {
     // if trying to determine the number of 1 bits before but index five in some int, x, x & POP_COUNT_MASKS[5] would
     // 0-out bits 31-5, so that only bits 0-4 are potentially set to 1.
     private static final int[] POP_COUNT_MASKS = new int[ARRAY_MAX_SIZE];
+
     static {
         int x = 0;
         for(int i = 0; i < POP_COUNT_MASKS.length; i++) {
@@ -37,6 +39,13 @@ public class IntObjectAMT<V> {
 
     /* Constructs a new empty map. */
     public IntObjectAMT() {
+        this.childrenSize = 0;
+        this.bitSet = 0;
+        this.children = null;
+    }
+
+    /* Removes all mappings. */
+    public void clear() {
         this.childrenSize = 0;
         this.bitSet = 0;
         this.children = null;
@@ -165,6 +174,24 @@ public class IntObjectAMT<V> {
                 return m.value;
             }
         }
+    }
+
+    /* Returns a list containing all of the values in the map. */
+    @SuppressWarnings("unchecked")
+    public SinglyLinkedList<V> values() {
+        SinglyLinkedList<V> ret = new SinglyLinkedList<>();
+        if(!isEmpty()) {
+            for(Object child : children) {
+                if(child instanceof IntObjectAMT) {
+                    for(V value : ((IntObjectAMT<V>)child).values()) {
+                        ret.enqueue(value);
+                    }
+                } else if(child != null) {
+                    ret.enqueue(((Mapping)child).value);
+                }
+            }
+        }
+        return ret;
     }
 
     /* Stores a mapping from a key to a value. */
