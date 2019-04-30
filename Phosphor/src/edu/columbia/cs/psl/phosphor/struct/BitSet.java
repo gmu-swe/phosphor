@@ -142,10 +142,12 @@ public class BitSet {
 
     /* Returns a new BitSet that represents the union of the specified sets. */
     public static BitSet union(BitSet set1, BitSet set2) {
-        if(set1 == null) {
-            return set2;
+        if(set1 == null && set2 == null) {
+            return null;
+        } else if(set1 == null) {
+            return set2.copy();
         } else if(set2 == null) {
-            return set1;
+            return set1.copy();
         } else if(set1.packets.length > set2.packets.length) {
             BitSet result = new BitSet(set1);
             result.union(set2);
