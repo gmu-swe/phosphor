@@ -568,6 +568,8 @@ public class Taint<T> implements Serializable {
 	@Deprecated
 	@SuppressWarnings("unchecked")
 	public T getLabel() {
+		if(isEmpty())
+			return null;
 		return getLabels((T[]) new Object[0])[0];
 	}
 
