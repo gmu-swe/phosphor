@@ -169,13 +169,17 @@ public class Taint<T> implements Serializable {
 			return false;
 		} else if(BIT_SET_CAPACITY > 0) {
 			// BitSet representation is being used
-			BitSet prev = this.labelBitSet;
 			if(this.labelBitSet == null && other.labelBitSet != null) {
 				this.labelBitSet = other.labelBitSet.copy();
-			} else if(this.labelBitSet != null) {
-				this.labelBitSet.union(other.labelBitSet);
+				return true;
+			} else if(this.labelBitSet != null && other.labelBitSet != null) {
+				if(!this.labelBitSet.isSuperset(other.labelBitSet)) {
+					this.labelBitSet.union(other.labelBitSet);
+					return true;
+				}
+				return false;
 			}
-			return (prev == null && this.labelBitSet != null) || (prev != null && !prev.equals(this.labelBitSet));
+			return false;
 		} else {
 			// SetNode representation is being used
 			PowerSetTree.SetNode union = this.labelSet.union(other.labelSet);
