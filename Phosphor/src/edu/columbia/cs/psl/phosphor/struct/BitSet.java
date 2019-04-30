@@ -2,7 +2,7 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 public class BitSet {
 
-    //Used to determine the packet index for a bit index
+    // Used to determine the packet index for a bit index
     private final static int SHIFT_AMOUNT = 6;
     // The number of bits that can be packed into a long.
     private final static int BITS_PER_PACKET = 1 << SHIFT_AMOUNT;
