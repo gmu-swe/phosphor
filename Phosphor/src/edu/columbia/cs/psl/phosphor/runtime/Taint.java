@@ -4,7 +4,10 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.*;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.lang.reflect.Array;
 
 public class Taint<T> implements Serializable {
@@ -25,6 +28,8 @@ public class Taint<T> implements Serializable {
 	// labelBitSet is null then the set is empty. labelBitSet will be initialized when the first label is added to the set.
 	private transient BitSet labelBitSet = null;
 
+	private transient T singleLabelModeLabel;
+
 	/* Constructs a new taint object with an empty label set. */
 	public Taint() {
 		if(BIT_SET_CAPACITY <= 0) {
@@ -41,7 +46,10 @@ public class Taint<T> implements Serializable {
 				this.labelBitSet = new BitSet(BIT_SET_CAPACITY);
 				this.labelBitSet.add((Integer)initialLabel);
 			}
-		} else {
+		} else if(Configuration.SINGLE_TAINT_LABEL) {
+			this.singleLabelModeLabel = initialLabel;
+		}else
+		 {
 			// SetNode representation is being used
 			if(initialLabel == null) {
 				this.labelSet = setTree.emptySet();
@@ -120,6 +128,20 @@ public class Taint<T> implements Serializable {
 		} else {
 			return "Taint []";
 		}
+	}
+
+	/*
+	Returns the single label (only to be used if using single taint label mode)
+	 */
+	public T getSingleLabel() {
+		return singleLabelModeLabel;
+	}
+
+	/*
+	Updates the single label of this taint (only to be used if using single taint label mode)
+	 */
+	public void setSingleLabel(T singleLabelModeLabel) {
+		this.singleLabelModeLabel = singleLabelModeLabel;
 	}
 
 	/* Returns an array containing this taint's labels or label indices if the BitSet representation is used. */
