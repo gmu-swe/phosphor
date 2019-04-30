@@ -82,11 +82,23 @@ public class BitSet {
 
     /* Returns whether this set is a superset of the specified other set. */
     public boolean isSuperset(BitSet other) {
-        if(other == null || this.packets.length < other.packets.length) {
+        if(other == null) {
             return true;
-        } else  {
+        } else if(this.packets.length >= other.packets.length) {
             for(int i = 0; i < other.packets.length; i++) {
                 if((this.packets[i] | other.packets[i]) != this.packets[i]) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            for(int i = 0; i < this.packets.length; i++) {
+                if((this.packets[i] | other.packets[i]) != this.packets[i]) {
+                    return false;
+                }
+            }
+            for(int i = this.packets.length; i < other.packets.length; i++) {
+                if(other.packets[i] != 0) {
                     return false;
                 }
             }
@@ -140,7 +152,7 @@ public class BitSet {
         return result;
     }
 
-    /* Returns a new BitSet that represents the union of the specified sets. */
+    /* Returns a new BitSet that represents the union of the specified sets or null if both sets are null. */
     public static BitSet union(BitSet set1, BitSet set2) {
         if(set1 == null && set2 == null) {
             return null;
