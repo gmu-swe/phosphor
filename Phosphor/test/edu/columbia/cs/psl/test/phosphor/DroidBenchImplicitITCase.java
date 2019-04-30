@@ -31,14 +31,14 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	public static int getTaint(String description) {
 		Taint taint = MultiTainter.getTaint(description.toCharArray()[0]);
-		return (taint == null || (taint.lbl == null && taint.hasNoDependencies())) ? 0 : 1;
+		return (taint == null || taint.isEmpty()) ? 0 : 1;
 	}
 
 	static int i = 0;
 
 	public static String taintedString(String string) {
-		Object r = new String(MultiTainter.taintedCharArray(string.toCharArray(), new Taint("Some stuff")));
-		((TaintedWithObjTag) r).setPHOSPHOR_TAG(new Taint("Some tainted data " + (++i)));
+		Object r = new String(MultiTainter.taintedCharArray(string.toCharArray(), "Some stuff"));
+		((TaintedWithObjTag) r).setPHOSPHOR_TAG(new Taint<>("Some tainted data " + (++i)));
 		return (String) r;
 	}
 
@@ -294,7 +294,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 				ex.printStackTrace();
 			}
 			//should be a sink here
-			assertTrue(MultiTainter.getTaint(passwordCorrect) != null && (MultiTainter.getTaint(passwordCorrect).lbl != null || !MultiTainter.getTaint(passwordCorrect).hasNoDependencies()));
+			assertTrue(MultiTainter.getTaint(passwordCorrect) != null && !MultiTainter.getTaint(passwordCorrect).isEmpty());
 //			assertTrue(false); //We have no concept of exceptional control flow tainting yet
 		}
 
@@ -323,12 +323,10 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 		private void leakInformationBit(List list) {
 			if (list instanceof ArrayList) {
 				boolean labeledWithCurrentTag = false;
-				assertTrue(MultiTainter.getTaint(labeledWithCurrentTag) != null
-						&& (MultiTainter.getTaint(labeledWithCurrentTag).lbl != null || !MultiTainter.getTaint(labeledWithCurrentTag).hasNoDependencies()));
+				assertTrue(MultiTainter.getTaint(labeledWithCurrentTag) != null && !MultiTainter.getTaint(labeledWithCurrentTag).isEmpty());
 			} else if (list instanceof LinkedList) {
 				boolean labeledWithCurrentTag = false;
-				assertTrue(MultiTainter.getTaint(labeledWithCurrentTag) != null
-						&& (MultiTainter.getTaint(labeledWithCurrentTag).lbl != null || !MultiTainter.getTaint(labeledWithCurrentTag).hasNoDependencies()));
+				assertTrue(MultiTainter.getTaint(labeledWithCurrentTag) != null && !MultiTainter.getTaint(labeledWithCurrentTag).isEmpty());
 			}
 		}
 	}
@@ -481,7 +479,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 			passwordCorrect = true;
 		assertNullOrEmpty(MultiTainter.getControlFlow().getTag());
 		Taint taint = MultiTainter.getTaint(passwordCorrect);
-		assertTrue(MultiTainter.getTaint(passwordCorrect) != null && (MultiTainter.getTaint(passwordCorrect).lbl != null || !MultiTainter.getTaint(passwordCorrect).hasNoDependencies()));
+		assertTrue(MultiTainter.getTaint(passwordCorrect) != null && !MultiTainter.getTaint(passwordCorrect).isEmpty());
 	}
 
 	public void testImplicitFlow2p2() {
@@ -491,7 +489,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 		if (userInputPassword.equals("superSecure"))
 			passwordCorrect = true;
 		Taint taint = MultiTainter.getTaint(passwordCorrect);
-		assertTrue(MultiTainter.getTaint(passwordCorrect) != null && (MultiTainter.getTaint(passwordCorrect).lbl != null || !MultiTainter.getTaint(passwordCorrect).hasNoDependencies()));
+		assertTrue(MultiTainter.getTaint(passwordCorrect) != null && !MultiTainter.getTaint(passwordCorrect).isEmpty());
 	}
 
 	@Test

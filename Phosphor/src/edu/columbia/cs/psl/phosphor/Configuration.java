@@ -27,6 +27,8 @@ public class Configuration {
 	public static boolean IMPLICIT_HEADERS_NO_TRACKING = false;
 	public static boolean WITHOUT_BRANCH_NOT_TAKEN = false;
 
+	public static boolean SINGLE_TAINT_LABEL = false;
+
 	public static boolean IMPLICIT_EXCEPTION_FLOW = false;
 
 	public static boolean DATAFLOW_TRACKING = true; //default

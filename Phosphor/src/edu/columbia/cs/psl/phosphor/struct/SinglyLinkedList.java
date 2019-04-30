@@ -1,12 +1,12 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import java.io.Serializable;
+import java.lang.reflect.Array;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-
-/* A singly linked list. */
-public class SimpleLinkedList<E> implements Iterable<E>, Serializable {
+/* A basic singly linked list implementation. */
+public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
 
     private static final long serialVersionUID = -6504649129625066964L;
     // The first node in the list
@@ -17,7 +17,7 @@ public class SimpleLinkedList<E> implements Iterable<E>, Serializable {
     private int size;
 
     /* Constructs a new empty list. */
-    public SimpleLinkedList() {
+    public SinglyLinkedList() {
         this.head = null;
         this.tail = null;
         this.size = 0;
@@ -119,6 +119,12 @@ public class SimpleLinkedList<E> implements Iterable<E>, Serializable {
         if(head == null) {
             // The list is empty
             throw new NoSuchElementException();
+        } else if(head == tail) {
+            // The list was of size one
+            E item = head.item;
+            head = tail = null;
+            size = 0;
+            return item;
         } else {
             E item = head.item;
             head = head.next;
@@ -155,6 +161,40 @@ public class SimpleLinkedList<E> implements Iterable<E>, Serializable {
     /* Adds the specified item to the tail of the list. */
     public void enqueue(E item) {
         addLast(item);
+    }
+
+    /* Returns an array containing the elements of this list. */
+    public Object[] toArray() {
+        Object[] arr = new Object[size];
+        Node<E> cur = head;
+        for(int i = 0; i < size; i++) {
+            arr[i] = cur.item;
+            cur = cur.next;
+        }
+        return arr;
+    }
+
+    /* Returns an array containing the elements of this list. The runtime type of the returned array is that of the specified array. */
+    @SuppressWarnings("unchecked")
+    public E[] toArray(E[] arr) {
+        if (arr.length < size) {
+            arr = (E[]) Array.newInstance(arr.getClass().getComponentType(), size);
+        }
+        Node<E> cur = head;
+        for(int i = 0; i < size; i++) {
+            arr[i] = cur.item;
+            cur = cur.next;
+        }
+        return arr;
+    }
+
+    /* Returns a shallow copy of the list. */
+    public SinglyLinkedList<E> copy() {
+        SinglyLinkedList<E> copy = new SinglyLinkedList<>();
+        for(Node<E> cur = head; cur != null; cur = cur.next) {
+            copy.addLast(cur.item);
+        }
+        return copy;
     }
 
     @Override
@@ -196,9 +236,12 @@ public class SimpleLinkedList<E> implements Iterable<E>, Serializable {
         private static final long serialVersionUID = 2719802043259437539L;
         // The node whose item will be returned next
         Node<E> current;
+        // The node before the last node returned
+        Node<E> prev;
 
         SimpleListIterator() {
             current = head;
+            prev = null;
         }
 
         @Override
@@ -211,6 +254,11 @@ public class SimpleLinkedList<E> implements Iterable<E>, Serializable {
             if(current == null) {
                 throw new NoSuchElementException();
             } else {
+                if(prev == null && current != head) {
+                    prev = head;
+                } else if(prev != null) {
+                    prev = prev.next;
+                }
                 E item = current.item;
                 current = current.next;
                 return item;
@@ -219,7 +267,22 @@ public class SimpleLinkedList<E> implements Iterable<E>, Serializable {
 
         @Override
         public void remove() {
-            throw new UnsupportedOperationException("remove");
+            if(prev == null && current == head) {
+                // No items have been returned yet
+                throw new IllegalStateException();
+            } else if(prev == null) {
+                // Removing the head
+                pop();
+            } else if(current == null) {
+                // Removing the tail
+                tail = prev;
+                prev.next = null;
+                size--;
+            } else {
+                // Removing node in the middle
+                prev.next = current;
+                size--;
+            }
         }
     }
 }

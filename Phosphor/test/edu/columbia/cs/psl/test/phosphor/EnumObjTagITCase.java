@@ -12,15 +12,15 @@ public class EnumObjTagITCase extends BasePhosphorTest {
 	@Test
 	public void testEnumFlow() throws Exception {
 		String s = "abcd";
-		MultiTainter.taintedObject(s, new Taint("foo"));
-		assertEquals("foo", MultiTainter.getTaint(s).lbl);
+		MultiTainter.taintedObject(s, new Taint<>("foo"));
+		assertEquals(new Taint<>("foo"), MultiTainter.getTaint(s));
 		Dummy x = Dummy.a;
 		Dummy y = Dummy.valueOf(s);
-		assertEquals("foo", MultiTainter.getTaint(y).lbl);
+		assertEquals(new Taint<>("foo"), MultiTainter.getTaint(y));
 		assertSame(y, Dummy.abcd);
 	}
 	@Test
-	public void testArrayCmpEq() throws Exception{
+	public void testArrayCmpEq() throws Exception {
 		int[] a = new int[5];
 		Object f = a;
 		assertSame(f, a);

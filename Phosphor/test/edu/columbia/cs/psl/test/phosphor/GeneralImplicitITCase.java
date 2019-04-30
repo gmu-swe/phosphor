@@ -31,7 +31,7 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 		int var = MultiTainter.taintedInt(1,"testTaintingOnFieldWrites");
 		Holder h = new Holder();
 
-		if(var == 1){
+		if(var == 1) {
 			h.x = 40;
 			h.j=40L;
 		}
