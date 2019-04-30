@@ -170,7 +170,11 @@ public class Taint<T> implements Serializable {
 		} else if(BIT_SET_CAPACITY > 0) {
 			// BitSet representation is being used
 			BitSet prev = this.labelBitSet;
-			this.labelBitSet = BitSet.union(this.labelBitSet, other.labelBitSet);
+			if(this.labelBitSet == null && other.labelBitSet != null) {
+				this.labelBitSet = other.labelBitSet.copy();
+			} else if(this.labelBitSet != null) {
+				this.labelBitSet.union(other.labelBitSet);
+			}
 			return (prev == null && this.labelBitSet != null) || (prev != null && !prev.equals(this.labelBitSet));
 		} else {
 			// SetNode representation is being used
@@ -612,9 +616,9 @@ public class Taint<T> implements Serializable {
 	public void setBits(BitSet other) {
 		if(BIT_SET_CAPACITY > 0) {
 			// BitSet representation is being used
-			if (labelBitSet == null) {
+			if (labelBitSet == null && other != null) {
 				labelBitSet = other.copy();
-			} else {
+			} else if(labelBitSet != null) {
 				labelBitSet.union(other);
 			}
 		}
