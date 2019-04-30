@@ -9,14 +9,16 @@ import org.objectweb.asm.Type;
 
 public class SinkTaintingMV extends AdviceAdapter {
 
-    private final String owner;
-    private final String name;
-    private final String desc;
-    // The sink from which this sink inherited its status as a sink
+    // The arguments of the sink method being visited
+    private final Type[] args;
+    // The untainted signature of the sink method from which the sink method being visited inherited its status as a sink
     private final String baseSink;
+    // The untainted signature of the sink method being visited
+    private final String actualSink;
+    // Whether the method being visited is static
     private final boolean isStatic;
+    // The remaining number of try catch blocks that need to be visited before the sink try-catch can be visited
     private int numberOfRemainingTryCatchBlocks = 0;
-
     // Starts the scope of the try block
     private final Label startLabel;
     // Ends the scope of the try block starts the finally block
@@ -24,10 +26,9 @@ public class SinkTaintingMV extends AdviceAdapter {
 
     public SinkTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc) {
         super(ASM5, mv, access, name, desc);
-        this.owner = owner;
-        this.name = name;
-        this.desc = desc;
+        this.args = Type.getArgumentTypes(desc);
         this.baseSink = BasicSourceSinkManager.getInstance().getBaseSink(owner, name, desc);
+        this.actualSink = SourceSinkManager.getOriginalMethodSignature(owner, name, desc);
         this.isStatic = (access & ACC_STATIC) != 0;
         this.startLabel = new Label();
         this.endLabel = new Label();
@@ -36,34 +37,60 @@ public class SinkTaintingMV extends AdviceAdapter {
     /* Adds code to make a call to enteringSink. */
     private void callEnteringSink() {
         super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
-        super.visitLdcInsn(owner+"."+name+desc);
+        super.visitLdcInsn(actualSink);
         super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "enteringSink", "(Ljava/lang/String;)V", false);
     }
 
-    /* Adds code to make a call to checkTaint for a non taint tag object.*/
-    private void callCheckTaintObject(int idx) {
-        super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+    /* Adds code to add a non-taint tag object to the object array. */
+    private void addObject(int arrayIdx, int idx) {
+        // Duplicate the object array
+        super.visitInsn(DUP);
+        // Push the array index onto the stack
+        push(arrayIdx);
+        // Push the argument onto the stack
         super.visitVarInsn(ALOAD, idx);
-        super.visitLdcInsn(baseSink);
-        super.visitLdcInsn(owner+"."+name+desc);
-        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
-    }
+        // Store the argument into the array
+        super.visitInsn(AASTORE);
+ }
 
-    /* Adds code to make a call to checkTaint for a taint tag*/
-    private void callCheckTaintTag(int tagIdx, int primitiveIdx, Type primitiveType) {
-        super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+    /* Adds code to wrap an taint tag argument with its primitive and add the wrapped object to the object array at the specified
+     * index. */
+    private void addWrappedPrimitive(int arrayIdx, int tagIdx, int primitiveIdx, Type primitiveType) {
+        // Duplicate the object array
+        super.visitInsn(DUP);
+        // Push the array index onto the stack
+        push(arrayIdx);
         // Wrap the primitive and tag together
         Type containerType = TaintUtils.getContainerReturnType(primitiveType);
-        mv.visitTypeInsn(NEW, containerType.getInternalName());
-        mv.visitInsn(DUP);
-        super.visitVarInsn(ALOAD, tagIdx);
+        super.visitTypeInsn(NEW, containerType.getInternalName());
+        super.visitInsn(DUP);
+        if(Configuration.MULTI_TAINTING) {
+            super.visitVarInsn(ALOAD, tagIdx);
+        } else {
+            super.visitVarInsn(ILOAD, tagIdx);
+        }
         super.visitVarInsn(primitiveType.getOpcode(ILOAD), primitiveIdx);
-        mv.visitMethodInsn(INVOKESPECIAL, containerType.getInternalName(), "<init>", "("+Configuration.TAINT_TAG_DESC+
+        super.visitMethodInsn(INVOKESPECIAL, containerType.getInternalName(), "<init>", "("+Configuration.TAINT_TAG_DESC+
                 primitiveType.getDescriptor()+")V", false);
-        // Load the sink info
-        super.visitLdcInsn(baseSink);
-        super.visitLdcInsn(owner+"."+name+desc);
-        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
+        // Store the wrapped value into the array
+        super.visitInsn(AASTORE);
+    }
+
+    /* Adds the code to create an appropriately sized array for all of the objects that need to be checked for taint tags. */
+    private void initializeArgumentArray() {
+        int count = 0;
+        for (int i = 0; i < args.length; i++) {
+            if(args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
+                // Argument is a taint tag
+                count++;
+                // Skip the next arg - it is the primitive whose taint tag was just counted
+                i++;
+            } else if (args[i].getSort() == Type.OBJECT || (args[i].getSort() == Type.ARRAY && args[i].getElementType().getSort() == Type.OBJECT)) {
+                count++;
+            }
+        }
+        super.visitIntInsn(SIPUSH, count);
+        super.visitTypeInsn(ANEWARRAY, "java/lang/Object");
     }
 
     @Override
@@ -71,22 +98,31 @@ public class SinkTaintingMV extends AdviceAdapter {
         super.onMethodEnter();
         // Call enteringSink before the original body code of the sink
         callEnteringSink();
-        // Check every arg to see if is taint tag
-        Type[] args = Type.getArgumentTypes(desc);
+        // Add the auto-tainter to the stack
+        super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+        // Initialize the array of objects to check
+        initializeArgumentArray();
+        int arrayIdx = 0;
+        // Added objects that need to be checked to the array
         int idx = isStatic ? 0 : 1; // skip over the "this" argument for non-static methods
         for (int i = 0; i < args.length; i++) {
             if(args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
-                // arg is a taint tag
-                callCheckTaintTag(idx, idx + args[i].getSize(), args[i+1]);
-            } else if(args[i].getSort() == Type.OBJECT) {
-                // arg is an object
-                callCheckTaintObject(idx);
-            } else if(args[i].getSort() == Type.ARRAY && args[i].getElementType().getSort() == Type.OBJECT) {
-                // arg is an array of objects (possibly wrapped primitive array objects)
-                callCheckTaintObject(idx);
+                // The argument is a taint tag
+                addWrappedPrimitive(arrayIdx++, idx, idx + args[i].getSize(), args[i+1]);
+                // Skip the primitive associated with this taint tag
+                idx += args[i].getSize();
+                i++;
+            } else if(args[i].getSort() == Type.OBJECT ||(args[i].getSort() == Type.ARRAY && args[i].getElementType().getSort() == Type.OBJECT)) {
+                // Argument is an object or an array of objects (possibly wrapped primitive array objects)
+                addObject(arrayIdx++, idx);
             }
             idx += args[i].getSize();
         }
+        // Load the sink info
+        super.visitLdcInsn(baseSink);
+        super.visitLdcInsn(actualSink);
+        // Call checkTaint
+        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "([Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
         // If there are no other exception handlers for this method begin the try-finally block around the sink
         if(numberOfRemainingTryCatchBlocks == 0) {
             addTryCatchBlockHeader();
@@ -103,18 +139,18 @@ public class SinkTaintingMV extends AdviceAdapter {
     @Override
     public void visitMaxs(int maxStack, int maxLocals) {
         super.mark(endLabel); // Ends try block and starts finally block
-        mv.visitFrame(F_NEW, 0, new Object[0], 1, new Object[] {"java/lang/Throwable"});
-        mv.visitVarInsn(ASTORE, 1); // Push the throwable that was thrown onto the stack
+        super.visitFrame(F_NEW, 0, new Object[0], 1, new Object[] {"java/lang/Throwable"});
+        super.visitVarInsn(ASTORE, 1); // Push the throwable that was thrown onto the stack
         callExitingSink();
-        mv.visitVarInsn(ALOAD, 1); // Pop the throwable that was thrown off the stack
-        mv.visitInsn(ATHROW); // Throw the popped throwable
+        super.visitVarInsn(ALOAD, 1); // Pop the throwable that was thrown off the stack
+        super.visitInsn(ATHROW); // Throw the popped throwable
         super.visitMaxs(maxStack, maxLocals);
     }
 
     /* Adds code that makes a call to exitingSink at the end of a sink method. */
     private void callExitingSink() {
         super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
-        super.visitLdcInsn(owner+"."+name+desc);
+        super.visitLdcInsn(actualSink);
         super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "exitingSink", "(Ljava/lang/String;)V", false);
     }
 
@@ -128,7 +164,7 @@ public class SinkTaintingMV extends AdviceAdapter {
     }
 
     private void addTryCatchBlockHeader() {
-        mv.visitTryCatchBlock(startLabel, endLabel, endLabel, null);
+        super.visitTryCatchBlock(startLabel, endLabel, endLabel, null);
         super.mark(startLabel);
     }
 

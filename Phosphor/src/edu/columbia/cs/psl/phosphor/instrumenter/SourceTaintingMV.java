@@ -11,22 +11,21 @@ import org.objectweb.asm.Type;
 public class SourceTaintingMV extends MethodVisitor implements Opcodes {
 	static SourceSinkManager sourceSinkManager = BasicSourceSinkManager.getInstance();
 
-	private final String owner;
-	private final String name;
 	private final String desc;
 	private final Type origReturnType;
 	private final boolean isStatic;
 	private final Object lbl;
+	// The untainted signature of the source method being visited
+	private final String actualSource;
 
 
 	public SourceTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc) {
 		super(ASM5, mv);
-		this.owner = owner;
-		this.name = name;
 		this.desc = desc;
 		this.origReturnType = Type.getReturnType(SourceSinkManager.remapMethodDescToRemoveTaints(desc));
 		this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
 		this.lbl = sourceSinkManager.getLabel(owner, name, desc);
+		this.actualSource = SourceSinkManager.getOriginalMethodSignature(owner, name, desc);
 	}
 
 	private void loadSourceLblAndMakeTaint() {
@@ -45,8 +44,9 @@ public class SourceTaintingMV extends MethodVisitor implements Opcodes {
 		super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
 		super.visitInsn(SWAP);
 		super.visitLdcInsn(lbl);
+		super.visitLdcInsn(actualSource);
 		super.visitIntInsn(BIPUSH, argIndex);
-		super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "autoTaint", "(Ljava/lang/Object;Ljava/lang/String;I)Ljava/lang/Object;", false);
+		super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "autoTaint", "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;I)Ljava/lang/Object;", false);
 		super.visitTypeInsn(CHECKCAST, internalName);
 	}
 
