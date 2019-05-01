@@ -73,7 +73,10 @@ public class Taint<T> implements Serializable {
 
 	/* Constructs a new taint object with the same labels as the specified taint object. */
 	public Taint(Taint<T> t1) {
-		if(BIT_SET_CAPACITY > 0) {
+		if(Configuration.SINGLE_TAINT_LABEL) {
+			if(t1 != null)
+				this.singleLabelModeLabel = t1.singleLabelModeLabel;
+		} else if(BIT_SET_CAPACITY > 0) {
 			// BitSet representation is being used
 			if(t1 != null && t1.labelBitSet != null) {
 				this.labelBitSet = t1.labelBitSet.copy();
@@ -89,7 +92,17 @@ public class Taint<T> implements Serializable {
 
 	/* Constructs a new taint object whose label set is the union of the label sets of the two specified taint objects. */
 	public Taint(Taint<T> t1, Taint<T> t2) {
-		if(BIT_SET_CAPACITY > 0) {
+		if(Configuration.SINGLE_TAINT_LABEL){
+			if(t1 == null && t2 == null)
+				this.singleLabelModeLabel = null;
+			else if(t2 == null || t2.singleLabelModeLabel == null)
+				this.singleLabelModeLabel = t1.singleLabelModeLabel;
+			else if(t1 == null || t1.singleLabelModeLabel == null)
+				this.singleLabelModeLabel = t2.singleLabelModeLabel;
+			else
+				throw new IllegalStateException("Attempted to combine two taint tags, but in single taint label mode!");
+		}
+		else if(BIT_SET_CAPACITY > 0) {
 			// BitSet representation is being used
 			if(t1 != null && t2 != null) {
 				this.labelBitSet = BitSet.union(t1.labelBitSet, t2.labelBitSet);
