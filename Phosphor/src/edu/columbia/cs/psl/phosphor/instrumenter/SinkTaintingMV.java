@@ -100,11 +100,17 @@ public class SinkTaintingMV extends AdviceAdapter {
         callEnteringSink();
         // Add the auto-tainter to the stack
         super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+        // Load this onto the stack for non-static methods or null for static methods
+        if(isStatic) {
+            super.visitInsn(ACONST_NULL);
+        } else {
+            loadThis();
+        }
         // Initialize the array of objects to check
         initializeArgumentArray();
         int arrayIdx = 0;
         // Added objects that need to be checked to the array
-        int idx = isStatic ? 0 : 1; // skip over the "this" argument for non-static methods
+        int idx = isStatic ? 0 : 1; // Start the arguments array after "this" argument for non-static methods
         for (int i = 0; i < args.length; i++) {
             if(args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
                 // The argument is a taint tag
@@ -122,7 +128,7 @@ public class SinkTaintingMV extends AdviceAdapter {
         super.visitLdcInsn(baseSink);
         super.visitLdcInsn(actualSink);
         // Call checkTaint
-        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "([Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
+        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "checkTaint", "(Ljava/lang/Object;[Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V", false);
         // If there are no other exception handlers for this method begin the try-finally block around the sink
         if(numberOfRemainingTryCatchBlocks == 0) {
             addTryCatchBlockHeader();

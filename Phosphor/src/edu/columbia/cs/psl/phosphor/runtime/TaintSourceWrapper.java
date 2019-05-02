@@ -139,7 +139,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
 	/* Called by sink methods. */
 	@SuppressWarnings("unused")
-	public void checkTaint(Object[] arguments, String baseSink, String actualSink) {
+	public void checkTaint(Object self, Object[] arguments, String baseSink, String actualSink) {
 		if(arguments != null) {
 			for(Object argument : arguments) {
 				checkTaint(argument, baseSink, actualSink);
