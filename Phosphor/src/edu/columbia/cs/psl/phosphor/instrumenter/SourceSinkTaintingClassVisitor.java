@@ -51,7 +51,9 @@ public class SourceSinkTaintingClassVisitor extends ClassVisitor {
             }
             if(BasicSourceSinkManager.getInstance().isTaintThrough(className, name, desc)) {
                 // Method is a taintThrough method
-                mv = new TaintThroughTaintingMV(mv, access, className, name, desc);
+                if ((access & Opcodes.ACC_STATIC) == 0) {
+                    mv = new TaintThroughTaintingMV(mv, access, className, name, desc);
+                }
             }
         }
         return mv;
