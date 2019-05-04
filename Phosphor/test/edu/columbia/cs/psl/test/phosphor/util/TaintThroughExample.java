@@ -23,4 +23,10 @@ public class TaintThroughExample {
 	public int taintThroughInt() {
 		return 7;
 	}
+
+	public static String staticMethod(String s) {
+		return s;
+	}
+
+
 }

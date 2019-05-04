@@ -127,6 +127,14 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		assertNonNullTaint(ret);
 	}
 
+	@Test
+	public void testStaticThroughMethod() throws Exception {
+		String s = "test";
+		MultiTainter.taintedObject(s, new Taint<>("Test"));
+		String ret = TaintThroughExample.staticMethod(s);
+		assertNonNullTaint(ret);
+	}
+
 	/* Asserts that sink's try-finally blocks don't disrupt methods normal exception handling. */
 	@Test
 	public void testExceptionHandlingSink() throws Exception {
