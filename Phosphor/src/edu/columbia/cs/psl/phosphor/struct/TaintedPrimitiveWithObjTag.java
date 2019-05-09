@@ -25,12 +25,13 @@ public abstract class TaintedPrimitiveWithObjTag {
 		} else if(val instanceof Short) {
 			return BoxedPrimitiveStoreWithObjTags.valueOf(taint, (short)val);
 		} else {
+		    int tag = -1;
 			try {
 				// Set the PHOSPHOR_TAG field if possible
 				java.lang.reflect.Field taintField = val.getClass().getDeclaredField("PHOSPHOR_TAG");
 				taintField.setAccessible(true);
 				if(taintField.getType().equals(Integer.TYPE)) {
-					int tag = HardcodedBypassStore.add(taint, val);
+					tag = HardcodedBypassStore.add(taint, val);
 					taintField.setInt(val, tag);
 				} else {
 					taintField.set(val, taint);
@@ -43,10 +44,12 @@ public abstract class TaintedPrimitiveWithObjTag {
 				java.lang.reflect.Field valueTaintField = val.getClass().getDeclaredField("valuePHOSPHOR_TAG");
 				valueTaintField.setAccessible(true);
 				if(valueTaintField.getType().equals(Integer.TYPE)) {
-					int tag = HardcodedBypassStore.add(taint.copy(), val);
+				    if(tag == -1) {
+                        tag = HardcodedBypassStore.add(taint, val);
+                    }
 					valueTaintField.setInt(val, tag);
 				} else {
-					valueTaintField.set(val, taint.copy());
+					valueTaintField.set(val, taint);
 				}
 			} catch (Exception e) {
 				//
