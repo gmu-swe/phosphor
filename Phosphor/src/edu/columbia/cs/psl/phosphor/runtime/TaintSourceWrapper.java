@@ -67,25 +67,25 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 		return new Taint<>(new AutoTaintLabel(source, s));
 	}
 
-	/* Called by sources for the arguments and return value. Adds a new taint tag to the specified object. */
+	/* Called by sources for the arguments and return value. */
 	@SuppressWarnings("unused")
 	public Object autoTaint(Object obj, String baseSource, String actualSource, int argIdx) {
-		return autoTaint(obj, baseSource, argIdx, generateTaint(baseSource));
+		return autoTaint(obj, generateTaint(baseSource));
 	}
 
-	/* Called by sources for the arguments and return value. Adds the specified tag to the specified object. */
-	public Object autoTaint(Object obj, String source, int argIdx, Taint<? extends AutoTaintLabel> tag) {
+	/* Adds the specified tag to the specified object. */
+	public Object autoTaint(Object obj, Taint<? extends AutoTaintLabel> tag) {
 	    if(obj == null) {
 	        return null;
         } else if(obj instanceof LazyArrayObjTags) {
-			return autoTaint((LazyArrayObjTags) obj, source, argIdx, tag);
+			return autoTaint((LazyArrayObjTags) obj, tag);
 		} else if(obj instanceof TaintedWithObjTag) {
-			return autoTaint((TaintedWithObjTag) obj, source, argIdx, tag);
+			return autoTaint((TaintedWithObjTag) obj, tag);
 		} else if(obj instanceof TaintedPrimitiveWithObjTag) {
-			return autoTaint((TaintedPrimitiveWithObjTag) obj, source, argIdx, tag);
+			return autoTaint((TaintedPrimitiveWithObjTag) obj, tag);
 		} else if(obj.getClass().isArray()) {
 			for(int i = 0; i < Array.getLength(obj); i++) {
-				Array.set(obj, i, autoTaint(Array.get(obj, i), source, argIdx, tag));
+				Array.set(obj, i, autoTaint(Array.get(obj, i), tag));
 			}
 			return obj;
 		}
@@ -93,7 +93,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 	}
 
     @SuppressWarnings("unchecked")
-	public TaintedWithObjTag autoTaint(TaintedWithObjTag ret, String source, int argIdx, Taint<? extends AutoTaintLabel> tag) {
+	public TaintedWithObjTag autoTaint(TaintedWithObjTag ret, Taint<? extends AutoTaintLabel> tag) {
         Taint prevTag = (Taint)ret.getPHOSPHOR_TAG();
         if(prevTag != null) {
             prevTag.addDependency(tag);
@@ -104,7 +104,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
     }
 
 	@SuppressWarnings("unchecked")
-	public LazyArrayObjTags autoTaint(LazyArrayObjTags ret, String source, int argIdx, Taint<? extends AutoTaintLabel> tag) {
+	public LazyArrayObjTags autoTaint(LazyArrayObjTags ret, Taint<? extends AutoTaintLabel> tag) {
 		Taint[] taintArray = ret.taints;
 		if (taintArray != null) {
 			for (int i = 0; i < taintArray.length; i++) {
@@ -120,7 +120,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public TaintedPrimitiveWithObjTag autoTaint(TaintedPrimitiveWithObjTag ret, String source, int argIdx, Taint<? extends AutoTaintLabel> tag) {
+	public TaintedPrimitiveWithObjTag autoTaint(TaintedPrimitiveWithObjTag ret, Taint<? extends AutoTaintLabel> tag) {
 		if (ret.taint != null)
 			ret.taint.addDependency(tag);
 		else
