@@ -128,13 +128,23 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 		return ret;
 	}
 
-	public Taint[] getStringValueTaints(String str) {
+	public static void setStringValueTag(String str, LazyCharArrayObjTags tags) {
+		if(str != null) {
+			str.valuePHOSPHOR_TAG = tags;
+		}
+	}
+
+	public static LazyCharArrayObjTags getStringValueTag(String str) {
 		if(str == null) {
 			return null;
 		} else {
-			return((String)str).valuePHOSPHOR_TAG.taints;
+			return str.valuePHOSPHOR_TAG;
 
 		}
+	}
+
+	public static Taint[] getStringValueTaints(String str) {
+		return getStringValueTag(str).taints;
 	}
 
 	/* Called by sink methods. */
