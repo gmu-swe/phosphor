@@ -1,8 +1,10 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
-public class AutoTaintLabel {
+public class AutoTaintLabel implements Serializable {
+	private static final long serialVersionUID = -5401643312355612496L;
 	private String source;
 	private StackTraceElement[] trace;
 
