@@ -40,7 +40,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 	}
 	private int localIdxOfControlTag;
 	public SpecialOpcodeRemovingMV(MethodVisitor sup, boolean ignoreFrames, int acc, String clazz, String desc, boolean fixLdcClass) {
-		super(Opcodes.ASM5, sup);
+		super(Configuration.ASM_VERSION, sup);
 		this.ignoreFrames = ignoreFrames;
 		this.clazz = clazz;
 		this.fixLdcClass = fixLdcClass;

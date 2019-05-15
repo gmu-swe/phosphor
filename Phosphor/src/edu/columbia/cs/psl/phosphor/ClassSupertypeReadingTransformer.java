@@ -15,7 +15,7 @@ public class ClassSupertypeReadingTransformer extends PhosphorBaseTransformer {
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) {
         ClassReader cr = new ClassReader(classfileBuffer);
-        cr.accept(new ClassVisitor(Opcodes.ASM5) {
+        cr.accept(new ClassVisitor(Configuration.ASM_VERSION) {
             @Override
             public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
                 super.visit(version, access, name, signature, superName, interfaces);

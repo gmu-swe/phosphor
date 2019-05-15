@@ -11,7 +11,7 @@ public class TaintTagFieldCastMV extends MethodVisitor implements Opcodes {
 
 	private String name;
 	public TaintTagFieldCastMV(MethodVisitor mv, String name) {
-		super(Opcodes.ASM5, mv);
+		super(Configuration.ASM_VERSION, mv);
 		this.name = name;
 	}
 

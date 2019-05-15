@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -7,7 +8,7 @@ public class InstOrUninstChoosingMV extends MethodVisitor {
 
 	private UninstrumentedCompatMV umv;
 	public InstOrUninstChoosingMV(TaintPassingMV tmv, UninstrumentedCompatMV umv) {
-		super(Opcodes.ASM5, tmv);
+		super(Configuration.ASM_VERSION, tmv);
 		this.umv = umv;
 	}
 

@@ -34,7 +34,7 @@ public class DebugPrinter {
 				}
 			}
 		};
-		cr1.accept(new ClassVisitor(Opcodes.ASM4, cw1) {
+		cr1.accept(new ClassVisitor(Configuration.ASM_VERSION, cw1) {
 			@Override
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 				// TODO Auto-generated method stub
@@ -43,7 +43,7 @@ public class DebugPrinter {
 		}, ClassReader.EXPAND_FRAMES);
 		final ClassReader cr = new ClassReader(cw1.toByteArray());
 
-		TraceClassVisitor tcv = new TraceClassVisitor(new ClassVisitor(Opcodes.ASM5, new ClassWriter(0)) {
+		TraceClassVisitor tcv = new TraceClassVisitor(new ClassVisitor(Configuration.ASM_VERSION, new ClassWriter(0)) {
 			String className;
 
 			@Override

@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -147,7 +148,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
      */
     public NeverNullArgAnalyzerAdapter(final String owner, final int access,
             final String name, final String desc, final MethodVisitor mv) {
-        this(Opcodes.ASM5, owner, access, name, desc, mv);
+        this(Configuration.ASM_VERSION, owner, access, name, desc, mv);
         this.name = name;
     }
     public String name;

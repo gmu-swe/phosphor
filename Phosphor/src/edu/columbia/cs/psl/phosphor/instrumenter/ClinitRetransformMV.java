@@ -17,7 +17,7 @@ public class ClinitRetransformMV extends MethodVisitor {
     private final boolean fixLdcClass;
 
     public ClinitRetransformMV(MethodVisitor mv, String className, boolean fixLdcClass) {
-        super(Opcodes.ASM5, mv);
+        super(Configuration.ASM_VERSION, mv);
         this.className = className;
         this.fixLdcClass = fixLdcClass;
     }

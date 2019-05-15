@@ -35,6 +35,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -98,7 +100,7 @@ public class OurJSRInlinerAdapter extends MethodNode implements Opcodes {
 			final String descriptor,
 			final String signature,
 			final String[] exceptions) {
-		this(Opcodes.ASM7, methodVisitor, access, name, descriptor, signature, exceptions);
+		this(Configuration.ASM_VERSION, methodVisitor, access, name, descriptor, signature, exceptions);
 		if (getClass() != OurJSRInlinerAdapter.class){
 			throw new IllegalStateException();
 		}

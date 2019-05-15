@@ -32,7 +32,7 @@ public class UninstTaintSentinalArgFixer extends MethodVisitor {
 	ArrayList<Type> oldTypesDoublesAreOne;
 
 	public UninstTaintSentinalArgFixer(MethodVisitor mv, int access, String name, String desc, String originalDesc) {
-		super(Opcodes.ASM5, mv);
+		super(Configuration.ASM_VERSION, mv);
 		this.name = name;
 		this.desc = desc;
 		oldArgTypes = Type.getArgumentTypes(originalDesc);

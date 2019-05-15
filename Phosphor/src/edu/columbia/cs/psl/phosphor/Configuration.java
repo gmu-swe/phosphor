@@ -26,6 +26,7 @@ public class Configuration {
 	public static boolean IMPLICIT_LIGHT_TRACKING;
 	public static boolean IMPLICIT_HEADERS_NO_TRACKING = false;
 	public static boolean WITHOUT_BRANCH_NOT_TAKEN = false;
+	public static int ASM_VERSION = Opcodes.ASM7;
 
 	public static boolean SINGLE_TAINT_LABEL = false;
 

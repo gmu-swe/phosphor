@@ -133,7 +133,7 @@ public class Instrumenter {
 					ex.printStackTrace();
 				}
 			}
-			cr.accept(new ClassVisitor(Opcodes.ASM5) {
+			cr.accept(new ClassVisitor(Configuration.ASM_VERSION) {
 				@Override
 				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 					super.visit(version, access, name, signature, superName, interfaces);
@@ -906,7 +906,7 @@ public class Instrumenter {
 				return null;
 			}
 			ClassReader cr = new ClassReader(is);
-			cr.accept(new ClassVisitor(Opcodes.ASM5) {
+			cr.accept(new ClassVisitor(Configuration.ASM_VERSION) {
 				@Override
 				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 					super.visit(version, access, name, signature, superName, interfaces);

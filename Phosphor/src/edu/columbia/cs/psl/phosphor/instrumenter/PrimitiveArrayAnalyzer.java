@@ -29,7 +29,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		ArrayList<FrameNode> outFrames = new ArrayList<FrameNode>();
 
 		public PrimitiveArrayAnalyzerMN(int access, String name, String desc, String signature, String[] exceptions, String className, MethodVisitor cmv) {
-			super(Opcodes.ASM5,access, name, desc, signature, exceptions);
+			super(Configuration.ASM_VERSION,access, name, desc, signature, exceptions);
 			this.className = className;
 			this.cmv = cmv;
 			if(Configuration.IMPLICIT_EXCEPTION_FLOW)
@@ -1548,13 +1548,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 	public MethodNode mn;
 	public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv) {
-		super(Opcodes.ASM5);
+		super(Configuration.ASM_VERSION);
 		this.mn = new PrimitiveArrayAnalyzerMN(access, name, desc, signature, exceptions, className, cmv);
 		this.mv = mn;
 	}
 
 	public PrimitiveArrayAnalyzer(Type singleWrapperTypeToAdd) {
-		super(Opcodes.ASM5);
+		super(Configuration.ASM_VERSION);
 		this.mv = new PrimitiveArrayAnalyzerMN(0, null,null,null,null,null, null);
 		if(singleWrapperTypeToAdd.getSort() == Type.OBJECT && singleWrapperTypeToAdd.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/Tainted"))
 			this.wrapperTypesToPreAlloc.add(singleWrapperTypeToAdd);

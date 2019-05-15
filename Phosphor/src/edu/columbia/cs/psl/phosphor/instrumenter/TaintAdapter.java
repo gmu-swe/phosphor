@@ -45,14 +45,14 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 	}
 	private TaintAdapter(MethodVisitor mv)
 	{
-		super(Opcodes.ASM5,mv);
+		super(Configuration.ASM_VERSION,mv);
 	}
 	private TaintAdapter(int api, MethodVisitor mv)
 	{
 		super(api, mv);
 	}
 	public TaintAdapter(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
-		super(Opcodes.ASM5, mv);
+		super(Configuration.ASM_VERSION, mv);
 		this.analyzer = analyzer;
 		this.className = className;
 	}
@@ -69,7 +69,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 	}
 
 	public TaintAdapter(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, String classSource, String classDebug) {
-		super(Opcodes.ASM5, mv);
+		super(Configuration.ASM_VERSION, mv);
 		this.analyzer = analyzer;
 		this.className = className;
 		this.classSource = classSource;

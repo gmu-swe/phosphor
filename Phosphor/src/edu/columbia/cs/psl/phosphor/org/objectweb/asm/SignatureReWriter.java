@@ -29,6 +29,7 @@ package edu.columbia.cs.psl.phosphor.org.objectweb.asm;
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.signature.SignatureVisitor;
 
@@ -73,7 +74,7 @@ public class SignatureReWriter extends SignatureVisitor {
 
 	/** Constructs a new {@link org.objectweb.asm.signature.SignatureWriter}. */
 	public SignatureReWriter() {
-		super(Opcodes.ASM6);
+		super(Configuration.ASM_VERSION);
 	}
 
 	public void pop(){

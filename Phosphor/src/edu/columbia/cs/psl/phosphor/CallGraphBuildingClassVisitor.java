@@ -14,7 +14,7 @@ public class CallGraphBuildingClassVisitor extends ClassVisitor {
 	String className;
 	final CallGraph graph;
 	public CallGraphBuildingClassVisitor(ClassVisitor cv,CallGraph graph) {
-		super(Opcodes.ASM5, cv);
+		super(Configuration.ASM_VERSION, cv);
 		this.graph = graph;
 	}
 	MiniClassNode thisCN;
@@ -33,7 +33,7 @@ public class CallGraphBuildingClassVisitor extends ClassVisitor {
 		thisMIN.setVisited(true);
 		if((access & Opcodes.ACC_NATIVE) != 0)
 			thisMIN.setPure(false);
-		return new MethodVisitor(Opcodes.ASM5,super.visitMethod(access, name, desc, signature, exceptions)) {
+		return new MethodVisitor(Configuration.ASM_VERSION,super.visitMethod(access, name, desc, signature, exceptions)) {
 			@Override
 			public void visitMethodInsn(int opcode, String _owner, String _name, String _desc, boolean intfc) {
 				super.visitMethodInsn(opcode, _owner, _name, _desc,intfc);

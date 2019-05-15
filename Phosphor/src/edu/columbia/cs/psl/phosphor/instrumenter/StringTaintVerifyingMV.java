@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import java.util.HashSet;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -18,7 +19,7 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
 
 	public StringTaintVerifyingMV(MethodVisitor mv, boolean implementsSerializable,
 			NeverNullArgAnalyzerAdapter analyzer) {
-		super(Opcodes.ASM5, mv);
+		super(Configuration.ASM_VERSION, mv);
 		this.analyzer = analyzer;
 		this.implementsSerializable = implementsSerializable;
 	}

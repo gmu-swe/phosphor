@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -20,7 +21,7 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 public class PopOptimizingMV extends MethodVisitor implements Opcodes {
 
 	public PopOptimizingMV(MethodVisitor cmv, int access, String owner, String name, String desc, String signature, String[] exceptions) {
-		super(Opcodes.ASM5);
+		super(Configuration.ASM_VERSION);
 		this.mv = new PopOptimizingMN(access, owner, name, desc, signature, exceptions, cmv);
 	}
 
@@ -29,7 +30,7 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
 		final MethodVisitor cmv;
 
 		public PopOptimizingMN(int access, String owner, String name, String desc, String signature, String[] exceptions, MethodVisitor cmv) {
-			super(Opcodes.ASM5,access, name, desc, signature, exceptions);
+			super(Configuration.ASM_VERSION,access, name, desc, signature, exceptions);
 			this.owner = owner;
 			this.cmv = cmv;
 		}

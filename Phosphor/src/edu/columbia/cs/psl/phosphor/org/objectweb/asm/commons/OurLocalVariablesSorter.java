@@ -29,6 +29,7 @@
  */
 package edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Label;
@@ -97,7 +98,7 @@ public class OurLocalVariablesSorter extends MethodVisitor {
      */
     public OurLocalVariablesSorter(final int access, final String desc,
             final MethodVisitor mv) {
-        this(Opcodes.ASM5, access, desc, mv);
+        this(Configuration.ASM_VERSION, access, desc, mv);
         if (getClass() != OurLocalVariablesSorter.class) {
             throw new IllegalStateException();
         }

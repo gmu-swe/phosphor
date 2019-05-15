@@ -18,7 +18,7 @@ public class UninstrumentedReflectionHidingMV extends MethodVisitor implements O
 	private LocalVariableManager lvs;
 
 	public UninstrumentedReflectionHidingMV(MethodVisitor mv, String className) {
-		super(Opcodes.ASM5, mv);
+		super(Configuration.ASM_VERSION, mv);
 		this.className = className;
 	}
 

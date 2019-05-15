@@ -19,7 +19,7 @@ public class SourceSinkTaintingClassVisitor extends ClassVisitor {
     private String className;
 
     public SourceSinkTaintingClassVisitor(ClassVisitor cv) {
-        super(Opcodes.ASM5, cv);
+        super(Configuration.ASM_VERSION, cv);
     }
 
     @Override
@@ -36,7 +36,7 @@ public class SourceSinkTaintingClassVisitor extends ClassVisitor {
             if(BasicSourceSinkManager.getInstance().isSink(className, name, desc)) {
                 // Method is a sink
                 final SinkTaintingMV sinkMV = new SinkTaintingMV(mv, access, className, name, desc);
-                mv = new MethodNode(Opcodes.ASM5, access, name, desc, signature, exceptions) {
+                mv = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature, exceptions) {
                     @Override
                     public void visitEnd() {
                         super.visitEnd();

@@ -254,7 +254,7 @@ public class PreMain {
 					// Generate new frames for analysis reasons, then make sure
 					// to not emit ANY frames.
 					ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-					cr.accept(new ClassVisitor(Opcodes.ASM5, cw) {
+					cr.accept(new ClassVisitor(Configuration.ASM_VERSION, cw) {
 						@Override
 						public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 							return new OurJSRInlinerAdapter(super.visitMethod(access, name, desc, signature, exceptions), access, name, desc, signature, exceptions);
@@ -410,7 +410,7 @@ public class PreMain {
 
 		private static byte[] processBoolean(byte[] classfileBuffer) {
 			ClassReader cr = new ClassReader(classfileBuffer);
-			ClassNode cn = new ClassNode(Opcodes.ASM5);
+			ClassNode cn = new ClassNode(Configuration.ASM_VERSION);
 			cr.accept(cn, 0);
 			boolean addField = true;
 			for(Object  o :cn.fields)

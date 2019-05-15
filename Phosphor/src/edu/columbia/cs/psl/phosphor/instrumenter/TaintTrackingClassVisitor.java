@@ -47,7 +47,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	private boolean ignoreFrames;
 	private boolean generateExtraLVDebug;
 	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields) {
-		super(Opcodes.ASM5,  cv
+		super(Configuration.ASM_VERSION,  cv
 //				new CheckClassAdapter(cv,false)
 				);
 		DO_OPT = DO_OPT && !IS_RUNTIME_INST;
@@ -281,7 +281,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				return super.visitMethod(access, name, desc, signature, exceptions);
 			}
 			//Some dynamic stuff might result in there being weird stuff here
-			return new MethodVisitor(Opcodes.ASM5) {
+			return new MethodVisitor(Configuration.ASM_VERSION) {
 			};
 		}
 		if (Configuration.WITH_SELECTIVE_INST && Instrumenter.isIgnoredMethodFromOurAnalysis(className, name, desc)) {
@@ -311,7 +311,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv = lvs;
 			somv.setLVS(lvs);
 			final MethodVisitor cmv = mv;
-			MethodNode wrapper = new MethodNode(Opcodes.ASM5, (isInterface ? access : access & ~Opcodes.ACC_ABSTRACT), name, desc, signature, exceptions) {
+			MethodNode wrapper = new MethodNode(Configuration.ASM_VERSION, (isInterface ? access : access & ~Opcodes.ACC_ABSTRACT), name, desc, signature, exceptions) {
 				public void visitEnd() {
 					super.visitEnd();
 					this.accept(cmv);
@@ -379,7 +379,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				newArgTypes.add(t);
 				if (t.getDescriptor().contains("ControlTaintTagStack") || t.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct") || t.getDescriptor().contains("Ledu/columbia/cs/psl/phosphor/runtime/Taint") || TaintUtils.isPrimitiveType(t)) {
 					final MethodVisitor cmv = super.visitMethod(access, name, desc, signature, exceptions);
-					MethodNode fullMethod = new MethodNode(Opcodes.ASM6, access,name,desc,signature,exceptions){
+					MethodNode fullMethod = new MethodNode(Configuration.ASM_VERSION, access,name,desc,signature,exceptions){
 						@Override
 						public void visitEnd() {
 							super.visitEnd();
@@ -458,7 +458,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 //			mv = new SpecialOpcodeRemovingMV(mv,ignoreFrames, className);
 
 //			mv = reflectionMasker;
-			//			PropertyDebug debug = new PropertyDebug(Opcodes.ASM4, mv, access, name, newDesc,className);
+			//			PropertyDebug debug = new PropertyDebug(Configuration.ASM_VERSION, mv, access, name, newDesc,className);
 			MethodVisitor optimizer;
 			optimizer = mv;
 
@@ -515,7 +515,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			//				return mvNext;
 			//			}
 			final MethodVisitor prev = mvNext;
-			MethodNode rawMethod = new MethodNode(Opcodes.ASM5, access, name, desc, signature, exceptions) {
+			MethodNode rawMethod = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature, exceptions) {
 				@Override
 				protected LabelNode getLabelNode(Label l) {
 					if(!Configuration.READ_AND_SAVE_BCI)
@@ -568,7 +568,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		} else {
 			//this is a native method. we want here to make a $taint method that will call the original one.
 			final MethodVisitor prev = super.visitMethod(access, name, desc, signature, exceptions);
-			MethodNode rawMethod = new MethodNode(Opcodes.ASM5, access, name, desc, signature, exceptions) {
+			MethodNode rawMethod = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature, exceptions) {
 				@Override
 				public void visitEnd() {
 					super.visitEnd();
@@ -1390,7 +1390,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				acc = acc | Opcodes.ACC_ABSTRACT;
 			else
 				acc = acc &~Opcodes.ACC_ABSTRACT;
-			MethodNode mn = new MethodNode(Opcodes.ASM5, acc, m.getName(), Type.getMethodDescriptor(m), null, null);
+			MethodNode mn = new MethodNode(Configuration.ASM_VERSION, acc, m.getName(), Type.getMethodDescriptor(m), null, null);
 
 			generateNativeWrapper(mn,mn.name, false);
 
@@ -1542,7 +1542,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					((UninstrumentedCompatMV)mv).setLocalVariableSorter(lvs);
 					ta.setLvs(lvs);
 					mv = lvs;
-					meth.accept(new MethodVisitor(Opcodes.ASM5) {
+					meth.accept(new MethodVisitor(Configuration.ASM_VERSION) {
 						@Override
 						public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
 							//determine if this is going to be uninst, and then if we need to pre-alloc for its return :/
@@ -1609,7 +1609,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 //						break;
 //					}
 //				}
-//				m.accept(new ClassVisitor(Opcodes.ASM5, this.cv) {
+//				m.accept(new ClassVisitor(Configuration.ASM_VERSION, this.cv) {
 //					@Override
 //					public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 //						MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);

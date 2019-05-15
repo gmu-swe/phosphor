@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -15,7 +16,7 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
     private boolean fixLdcClass;
 
     public ClinitRetransformClassVisitor(ClassVisitor cv) {
-        super(Opcodes.ASM5, cv);
+        super(Configuration.ASM_VERSION, cv);
         this.visitedClassInitializer = false;
     }
 

@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -11,7 +12,7 @@ import org.objectweb.asm.Type;
 public class EclipseCompilerCV extends ClassVisitor {
 
     public EclipseCompilerCV(ClassVisitor cv) {
-        super(Opcodes.ASM5, cv);
+        super(Configuration.ASM_VERSION, cv);
     }
 
     @Override
@@ -28,7 +29,7 @@ public class EclipseCompilerCV extends ClassVisitor {
         private final Type[] args;
 
         ECJInitMV(MethodVisitor mv, String desc) {
-            super(Opcodes.ASM5, mv);
+            super(Configuration.ASM_VERSION, mv);
             this.args =  Type.getArgumentTypes(desc);
         }
 

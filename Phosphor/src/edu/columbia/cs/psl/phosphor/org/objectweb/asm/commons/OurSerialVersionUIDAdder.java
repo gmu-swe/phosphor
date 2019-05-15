@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.ClassVisitor;
@@ -147,7 +148,7 @@ public class OurSerialVersionUIDAdder extends ClassVisitor {
 	 * @throws IllegalStateException If a subclass calls this constructor.
 	 */
 	public OurSerialVersionUIDAdder(final ClassVisitor cv) {
-		this(Opcodes.ASM6, cv);
+		this(Configuration.ASM_VERSION, cv);
 		if (getClass() != OurSerialVersionUIDAdder.class) {
 			throw new IllegalStateException();
 		}

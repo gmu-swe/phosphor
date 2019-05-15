@@ -31,7 +31,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 	private InstOrUninstChoosingMV instOrUninstChoosingMV;
 	private boolean aggressivelyReduceMethodSize;
 	public TaintLoadCoercer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, boolean ignoreExistingFrames, final InstOrUninstChoosingMV instOrUninstChoosingMV, boolean aggressivelyReduceMethodSize) {
-		super(Opcodes.ASM5);
+		super(Configuration.ASM_VERSION);
 		this.mv = new UninstTaintLoadCoercerMN(className, access, name, desc, signature, exceptions, cmv);
 		this.ignoreExistingFrames = ignoreExistingFrames;
 		this.instOrUninstChoosingMV = instOrUninstChoosingMV;
@@ -55,7 +55,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 		String className;
 		MethodVisitor cmv;
 		public UninstTaintLoadCoercerMN(String className, int access, String name, String desc, String signature, String[] exceptions, MethodVisitor cmv) {
-			super(Opcodes.ASM5, access, name, desc, signature, exceptions);
+			super(Configuration.ASM_VERSION, access, name, desc, signature, exceptions);
 			this.className = className;
 			this.cmv = cmv;
 //			System.out.println(name+desc);
@@ -685,7 +685,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 				}
 			}
 				};
-		cr.accept(new ClassVisitor(Opcodes.ASM5,cw1) {
+		cr.accept(new ClassVisitor(Configuration.ASM_VERSION,cw1) {
 			@Override
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 				MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
@@ -694,7 +694,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 			}
 		}, ClassReader.EXPAND_FRAMES);
 		cr = new ClassReader(cw1.toByteArray());
-		ClassVisitor cv = new ClassVisitor(Opcodes.ASM5, tcv) {
+		ClassVisitor cv = new ClassVisitor(Configuration.ASM_VERSION, tcv) {
 			String className;
 
 			@Override
@@ -712,7 +712,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 				// TODO Auto-generated method stub
 				MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-				mv = new MethodVisitor(Opcodes.ASM5,mv) {
+				mv = new MethodVisitor(Configuration.ASM_VERSION,mv) {
 					@Override
 					public void visitInsn(int opcode) {
 						super.visitInsn(opcode);

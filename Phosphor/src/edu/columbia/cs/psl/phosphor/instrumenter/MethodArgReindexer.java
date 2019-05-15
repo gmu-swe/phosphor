@@ -49,7 +49,7 @@ public class MethodArgReindexer extends MethodVisitor {
 
 
 	public MethodArgReindexer(MethodVisitor mv, int access, String name, String desc, String originalDesc, MethodNode lvStore, boolean isLambda) {
-		super(Opcodes.ASM5, mv);
+		super(Configuration.ASM_VERSION, mv);
 		this.lvStore = lvStore;
 		this.isLambda = isLambda;
 		lvStore.localVariables = new ArrayList<LocalVariableNode>();

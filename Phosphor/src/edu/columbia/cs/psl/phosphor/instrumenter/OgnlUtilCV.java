@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -11,7 +12,7 @@ public class OgnlUtilCV extends ClassVisitor {
     private static final String targetFieldName = "enableExpressionCache";
 
     public OgnlUtilCV(ClassVisitor cv) {
-        super(Opcodes.ASM5, cv);
+        super(Configuration.ASM_VERSION, cv);
     }
 
     @Override
@@ -23,7 +24,7 @@ public class OgnlUtilCV extends ClassVisitor {
     private static class OgnlUtilMV extends MethodVisitor {
 
         OgnlUtilMV(MethodVisitor mv) {
-            super(Opcodes.ASM5, mv);
+            super(Configuration.ASM_VERSION, mv);
         }
 
         @Override

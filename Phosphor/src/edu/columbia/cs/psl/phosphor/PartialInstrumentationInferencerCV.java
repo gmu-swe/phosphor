@@ -28,11 +28,11 @@ public class PartialInstrumentationInferencerCV extends ClassVisitor{
 	List<String> superClasses = new ArrayList<String>();
 	
 	public PartialInstrumentationInferencerCV()  {
-		super(Opcodes.ASM5);
+		super(Configuration.ASM_VERSION);
 	}
 	
 	public PartialInstrumentationInferencerCV(final ClassVisitor cv) {
-		super(Opcodes.ASM5, cv);
+		super(Configuration.ASM_VERSION, cv);
 	}
 		
 	@Override
@@ -90,6 +90,6 @@ public class PartialInstrumentationInferencerCV extends ClassVisitor{
 		MethodVisitor next = super.visitMethod(access, name, desc, signature, exceptions);
 		map.put(mdesc, new ArrayList<MethodDescriptor>());
 		return next;
-//		return new PartialInstrumentationInferencerMV(Opcodes.ASM5, mdesc, next, map, this.superClasses);
+//		return new PartialInstrumentationInferencerMV(Configuration.ASM_VERSION, mdesc, next, map, this.superClasses);
 	}
 }

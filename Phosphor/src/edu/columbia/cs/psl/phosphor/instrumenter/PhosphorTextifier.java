@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
@@ -75,7 +76,7 @@ public class PhosphorTextifier extends Textifier {
 	}
 
 	public PhosphorTextifier() {
-		super(Opcodes.ASM5);
+		super(Configuration.ASM_VERSION);
 	}
 
 	@Override

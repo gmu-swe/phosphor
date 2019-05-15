@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Label;
@@ -10,7 +11,7 @@ import org.objectweb.asm.tree.FrameNode;
 public class HidePhosphorFromASMCV extends ClassVisitor {
 	private boolean upgradeVersion;
 	public HidePhosphorFromASMCV(ClassVisitor cv, boolean upgradeVersion){
-		super(Opcodes.ASM6, cv);
+		super(Configuration.ASM_VERSION, cv);
 		this.upgradeVersion = upgradeVersion;
 	}
 
@@ -30,7 +31,7 @@ public class HidePhosphorFromASMCV extends ClassVisitor {
 		MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
 		if(enabled && name.equals("visitMethod"))
 		{
-			mv = new MethodVisitor(Opcodes.ASM6,mv) {
+			mv = new MethodVisitor(Configuration.ASM_VERSION,mv) {
 				@Override
 				public void visitCode() {
 					super.visitCode();

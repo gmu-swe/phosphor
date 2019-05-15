@@ -11,7 +11,7 @@ import org.objectweb.asm.Opcodes;
 public class ClassHierarchyCreator extends ClassVisitor {
 	
 	public ClassHierarchyCreator() {
-		super(Opcodes.ASM5);
+		super(Configuration.ASM_VERSION);
 	}
 
 	// sub to list of super classes

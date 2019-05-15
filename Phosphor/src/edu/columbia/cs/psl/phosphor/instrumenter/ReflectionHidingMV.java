@@ -25,7 +25,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	private boolean disable = false;
 	private boolean isObjOutputStream = false;
 	public ReflectionHidingMV(MethodVisitor mv, String className, String name, NeverNullArgAnalyzerAdapter analyzer) {
-		super(Opcodes.ASM5, mv);
+		super(Configuration.ASM_VERSION, mv);
 		this.className = className;
         this.analyzer = analyzer;
         this.methodName = name;
