@@ -17,7 +17,7 @@ public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
     private final boolean isStatic;
 
     public TaintThroughTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc) {
-        super(ASM5, mv);
+        super(Configuration.ASM_VERSION, mv);
         this.owner = owner;
         this.desc = desc;
         this.origReturnType = Type.getReturnType(SourceSinkManager.remapMethodDescToRemoveTaints(desc));

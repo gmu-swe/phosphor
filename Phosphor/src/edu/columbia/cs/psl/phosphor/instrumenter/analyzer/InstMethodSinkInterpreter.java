@@ -30,7 +30,7 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 
 	HashMap<AbstractInsnNode, SinkableArrayValue> executed = new HashMap<AbstractInsnNode, SinkableArrayValue>();
 	public InstMethodSinkInterpreter(LinkedList<SinkableArrayValue> relevantValues, HashMap<AbstractInsnNode, Value> liveValues) {
-		super(ASM5);
+		super(Configuration.ASM_VERSION);
 		this.relevant = relevantValues;
 	}
 	
