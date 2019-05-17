@@ -13,6 +13,8 @@ public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
 
     public static boolean INITED = false;
 
+
+    protected static int isBusyTransforming = 0;
     public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
                                                           byte[] classfileBuffer) throws IllegalClassFormatException {
         if (!INITED) {
@@ -21,12 +23,17 @@ public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
             Configuration.init();
             INITED = true;
         }
+        synchronized (PhosphorBaseTransformer.class) {
+	        isBusyTransforming++;
+        }
         LazyByteArrayObjTags ret = null;
         if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
             ret = new LazyByteArrayObjTags(classfileBuffer);
         else
             ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-
+        synchronized (PhosphorBaseTransformer.class){
+            isBusyTransforming--;
+        }
         return ret;
     }
 
@@ -38,13 +45,20 @@ public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
             Configuration.init();
             INITED = true;
         }
-        LazyByteArrayObjTags ret = null;
 
+        synchronized (PhosphorBaseTransformer.class) {
+            isBusyTransforming++;
+        }
+
+        LazyByteArrayObjTags ret = null;
         if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
             ret = new LazyByteArrayObjTags(classfileBuffer);
         else
             ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
 
+        synchronized (PhosphorBaseTransformer.class) {
+            isBusyTransforming--;
+        }
 
         return ret;
     }
@@ -57,11 +71,20 @@ public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
             Configuration.init();
             INITED = true;
         }
+
+        synchronized (PhosphorBaseTransformer.class) {
+            isBusyTransforming++;
+        }
+
         LazyByteArrayIntTags ret;
         if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
             ret = new LazyByteArrayIntTags(classfileBuffer);
         else
             ret = new LazyByteArrayIntTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
+
+        synchronized (PhosphorBaseTransformer.class) {
+            isBusyTransforming--;
+        }
         return ret;
     }
 

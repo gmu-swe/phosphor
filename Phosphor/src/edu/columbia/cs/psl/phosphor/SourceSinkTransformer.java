@@ -64,7 +64,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
         try {
             // Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
             // been called to initialize the configuration
-            if(!isBusyRetransforming && INITED && PreMain.getInstrumentation() != null) {
+            if(PhosphorBaseTransformer.isBusyTransforming == 0 && !isBusyRetransforming && INITED && PreMain.getInstrumentation() != null) {
             	isBusyRetransforming = true;
                 retransformQueue.add(clazz);
                 // Retransform clazz and any classes that were initialized before retransformation could occur.
