@@ -3,3 +3,5 @@ edu/columbia/cs/psl/test/phosphor/util/TaintThroughExample.passIntTaintThrough(I
 edu/columbia/cs/psl/test/phosphor/util/TaintThroughExample.taintThroughInt()I
 edu/columbia/cs/psl/test/phosphor/util/TaintThroughExample.passStringTaintThrough(Ljava/lang/String;)Ljava/lang/String;
 edu/columbia/cs/psl/test/phosphor/util/TaintThroughExample.staticMethod(Ljava/lang/String;)Ljava/lang/String;
+
+java/net/URI.getPath()Ljava/lang/String;

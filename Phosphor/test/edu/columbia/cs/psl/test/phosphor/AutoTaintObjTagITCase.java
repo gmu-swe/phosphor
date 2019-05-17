@@ -10,6 +10,8 @@ import edu.columbia.cs.psl.phosphor.runtime.AutoTaintLabel;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSinkError;
 
+import java.net.URI;
+
 public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 
 	public String source() {
@@ -167,5 +169,13 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test(expected = TaintSinkError.class)
 	public void testStringSink() throws Exception {
 		sink(source());
+	}
+
+	@Test
+	public void testURITaintThrough() throws Exception {
+		URI uri = new URI("http://java.sun.com/j2se/1.3/");
+		MultiTainter.taintedObject(uri, new Taint<>("testURITaintThrough"));
+		String path = uri.getPath();
+		assertNonNullTaint(path);
 	}
 }
