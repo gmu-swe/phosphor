@@ -20,7 +20,7 @@ public class SourceTaintingMV extends MethodVisitor implements Opcodes {
 
 
 	public SourceTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc) {
-		super(ASM5, mv);
+		super(Configuration.ASM_VERSION, mv);
 		this.desc = desc;
 		this.origReturnType = Type.getReturnType(SourceSinkManager.remapMethodDescToRemoveTaints(desc));
 		this.isStatic = (access & Opcodes.ACC_STATIC) != 0;

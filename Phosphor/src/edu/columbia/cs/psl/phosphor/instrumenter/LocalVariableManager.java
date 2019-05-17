@@ -61,7 +61,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
 	private int extraLVsInArg;
 	public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean generateExtraDebug) {
-		super(ASM5, access, desc, mv);
+		super(Configuration.ASM_VERSION, access, desc, mv);
 		this.analyzer = analyzer;
 		this.uninstMV = uninstMV;
 		returnType = Type.getReturnType(desc);

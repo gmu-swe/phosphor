@@ -25,7 +25,7 @@ public class SinkTaintingMV extends AdviceAdapter {
     private final Label endLabel;
 
     public SinkTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc) {
-        super(ASM5, mv, access, name, desc);
+        super(Configuration.ASM_VERSION, mv, access, name, desc);
         this.args = Type.getArgumentTypes(desc);
         this.baseSink = BasicSourceSinkManager.getInstance().getBaseSink(owner, name, desc);
         this.actualSink = SourceSinkManager.getOriginalMethodSignature(owner, name, desc);
