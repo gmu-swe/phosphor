@@ -62,9 +62,13 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
      * classes until the VM is initialized at which point all stored classes are retransformed. */
     public static synchronized void retransform(Class<?> clazz) {
         try {
-            // Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
+			int isBusyTransforming;
+			synchronized(PhosphorBaseTransformer.class) {
+				isBusyTransforming = PhosphorBaseTransformer.isBusyTransforming;
+			}
+			// Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
             // been called to initialize the configuration
-            if(PhosphorBaseTransformer.isBusyTransforming == 0 && !isBusyRetransforming && INITED && PreMain.getInstrumentation() != null) {
+            if(isBusyTransforming == 0 && !isBusyRetransforming && INITED && PreMain.getInstrumentation() != null) {
             	isBusyRetransforming = true;
                 retransformQueue.add(clazz);
                 // Retransform clazz and any classes that were initialized before retransformation could occur.

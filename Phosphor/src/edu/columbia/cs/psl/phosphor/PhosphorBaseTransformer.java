@@ -12,80 +12,57 @@ import java.security.ProtectionDomain;
 public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
 
     public static boolean INITED = false;
-
-
     protected static int isBusyTransforming = 0;
+
+    @SuppressWarnings("unused")
     public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
                                                           byte[] classfileBuffer) throws IllegalClassFormatException {
-        if (!INITED) {
+        if(!INITED) {
             Configuration.IMPLICIT_TRACKING = false;
             Configuration.MULTI_TAINTING = true;
             Configuration.init();
             INITED = true;
         }
-        synchronized (PhosphorBaseTransformer.class) {
-	        isBusyTransforming++;
-        }
-        LazyByteArrayObjTags ret = null;
-        if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-            ret = new LazyByteArrayObjTags(classfileBuffer);
-        else
-            ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-        synchronized (PhosphorBaseTransformer.class){
-            isBusyTransforming--;
-        }
-        return ret;
+        return new LazyByteArrayObjTags(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
     }
 
+    @SuppressWarnings("unused")
     public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
                                                           byte[] classfileBuffer, ControlTaintTagStack ctrl) throws IllegalClassFormatException {
-        if (!INITED) {
+        if(!INITED) {
             Configuration.IMPLICIT_TRACKING = true;
             Configuration.MULTI_TAINTING = true;
             Configuration.init();
             INITED = true;
         }
-
-        synchronized (PhosphorBaseTransformer.class) {
-            isBusyTransforming++;
-        }
-
-        LazyByteArrayObjTags ret = null;
-        if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-            ret = new LazyByteArrayObjTags(classfileBuffer);
-        else
-            ret = new LazyByteArrayObjTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-
-        synchronized (PhosphorBaseTransformer.class) {
-            isBusyTransforming--;
-        }
-
-        return ret;
+        return new LazyByteArrayObjTags(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
     }
 
+    @SuppressWarnings("unused")
     public LazyByteArrayIntTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayIntTags classtaint,
                                                           byte[] classfileBuffer) throws IllegalClassFormatException {
-        if (!INITED) {
+        if(!INITED) {
             Configuration.IMPLICIT_TRACKING = false;
             Configuration.MULTI_TAINTING = false;
             Configuration.init();
             INITED = true;
         }
-
-        synchronized (PhosphorBaseTransformer.class) {
-            isBusyTransforming++;
-        }
-
-        LazyByteArrayIntTags ret;
-        if (className != null && className.startsWith("sun")) //there are dynamically generated accessors for reflection, we don't want to instrument those.
-            ret = new LazyByteArrayIntTags(classfileBuffer);
-        else
-            ret = new LazyByteArrayIntTags(transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-
-        synchronized (PhosphorBaseTransformer.class) {
-            isBusyTransforming--;
-        }
-        return ret;
+        return new LazyByteArrayIntTags(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
     }
 
+    private byte[] signalAndTransform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+        if(className != null && className.startsWith("sun")) {
+            return classfileBuffer;
+        }
+        try {
+            synchronized (PhosphorBaseTransformer.class) {
+                isBusyTransforming++;
+            }
+            return transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+        } finally {
+            synchronized (PhosphorBaseTransformer.class) {
+                isBusyTransforming--;
+            }
+        }
+    }
 }
