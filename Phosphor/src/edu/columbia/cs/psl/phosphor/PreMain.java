@@ -285,6 +285,9 @@ public class PreMain {
 					if(EclipseCompilerCV.isEclipseCompilerClass(className)) {
 						_cv = new EclipseCompilerCV(_cv);
 					}
+					if(TomcatPostSocketCV.isInternalBufferClass(className)) {
+						_cv = new TomcatPostSocketCV(_cv);
+					}
 					if(OgnlUtilCV.isOgnlUtilClass(className)) {
 						_cv = new OgnlUtilCV(_cv);
 					}

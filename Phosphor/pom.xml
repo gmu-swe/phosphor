@@ -377,6 +377,11 @@
             <artifactId>asm-commons</artifactId>
             <version>7.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+            <version>4.4.10</version>
+        </dependency>
     </dependencies>
     <distributionManagement>
         <snapshotRepository>
