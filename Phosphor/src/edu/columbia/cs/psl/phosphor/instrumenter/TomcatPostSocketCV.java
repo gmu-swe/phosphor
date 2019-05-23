@@ -2,8 +2,8 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.struct.ByteArrayGrabbingOutputBuffer;
 
+import edu.columbia.cs.psl.struct.PhosphorHttpRequest;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -19,7 +19,7 @@ public class TomcatPostSocketCV extends ClassVisitor {
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-        if(name.equals("fill") || name.equals("fill" + TaintUtils.METHOD_SUFFIX)) {
+        if(name.equals("fill")) {
             // Visiting the fill method for the internal buffer class
             mv = new BufferFillMV(mv);
         }
@@ -40,7 +40,7 @@ public class TomcatPostSocketCV extends ClassVisitor {
                 super.visitVarInsn(Opcodes.ALOAD, 0);
                 super.visitInsn(Opcodes.DUP);
                 super.visitFieldInsn(Opcodes.GETFIELD, "org/apache/coyote/http11/InternalNioInputBuffer", "buf", Type.getDescriptor(byte[].class));
-                super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ByteArrayGrabbingOutputBuffer.class), "structureIntoRequest", "([B)[B", false);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(PhosphorHttpRequest.class), "structureIntoRequest", "([B)[B", false);
                 super.visitFieldInsn(Opcodes.PUTFIELD, "org/apache/coyote/http11/InternalNioInputBuffer", "buf", Type.getDescriptor(byte[].class));
             }
             super.visitInsn(opcode);
