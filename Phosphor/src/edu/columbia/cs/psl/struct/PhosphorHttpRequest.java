@@ -15,7 +15,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedList;
 
-/* Represents an HTTP request. Used as to convert HttpRequest objects into byte arrays. */
+/* Represents an HTTP request. */
 public class PhosphorHttpRequest implements Serializable {
 
     private static final long serialVersionUID = -2410222280911896035L;
@@ -67,27 +67,27 @@ public class PhosphorHttpRequest implements Serializable {
     }
 
     /* Returns the HTTP method specifying the action to be performed by this request. */
-    String getMethod() {
+    public String getMethod() {
         return method;
     }
 
     /* Returns this request's URI's scheme or null if undefined. */
-    private String getScheme() {
+    public String getScheme() {
         return uri.getScheme();
     }
 
     /* Returns the scheme specified part of the uri or null if undefined. */
-    private String getSchemeSpecificPart() {
+    public String getSchemeSpecificPart() {
         return uri.getRawSchemeSpecificPart();
     }
 
     /* Returns this request's URI's host or null if undefined. */
-    private String getHost() {
+    public String getHost() {
         return uri.getHost();
     }
 
     /* Returns this request's URI's user-information or null if undefined. */
-    private String getUserInfo() {
+    public String getUserInfo() {
         return uri.getRawUserInfo();
     }
 
@@ -97,27 +97,27 @@ public class PhosphorHttpRequest implements Serializable {
     }
 
     /* Returns this request's URI's authority component or null if undefined. */
-    private String getAuthority() {
+    public String getAuthority() {
         return uri.getRawAuthority();
     }
 
     /* Returns this request's URI's path or null if undefined. */
-    private String getPath() {
+    public String getPath() {
         return uri.getRawPath();
     }
 
     /* Returns this request's URI's fragment component or null if undefined. */
-    private String getFragment() {
+    public String getFragment() {
         return uri.getRawFragment();
     }
 
     /* Returns this request's URI's query or null if undefined. */
-    private String getQuery() {
+    public String getQuery() {
         return uri.getQuery();
     }
 
     /* Returns a string indicating the version of HTTP used for this request. */
-    private String getProtocolVersion() {
+    public String getProtocolVersion() {
         return protocolVersion;
     }
 
@@ -127,22 +127,22 @@ public class PhosphorHttpRequest implements Serializable {
     }
 
     /* Returns the value of the cookie header or null if undefined. */
-    private String getCookie() {
+    public String getCookie() {
         return cookieHeaderVal;
     }
 
     /* Returns the value of the content-type header or null if undefined. */
-    private String getContentType() {
+    public String getContentType() {
         return contentTypeHeaderVal;
     }
 
     /* Returns the value of the content-encoding header or null if undefined. */
-    private String getContentEncoding() {
+    public String getContentEncoding() {
         return contentEncodingHeaderVal;
     }
 
     /* Returns the string value of this request's entity body or null if no entity body is present. */
-    private String getEntityBody() {
+    public String getEntityBody() {
         return entityBody;
     }
 
@@ -250,7 +250,6 @@ public class PhosphorHttpRequest implements Serializable {
             lastValidUpdate[0] = startingPosition + processedBytes.length;
             return positionBytes(bytes, processedBytes, startingPosition, size);
         } catch(Exception e) {
-            e.printStackTrace();
             lastValidUpdate[0] = lastValid;
             return copy;
         }
