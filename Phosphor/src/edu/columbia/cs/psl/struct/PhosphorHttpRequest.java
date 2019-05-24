@@ -48,13 +48,13 @@ public class PhosphorHttpRequest implements Serializable {
         this.protocolVersion = request.getProtocolVersion().toString();
         this.headers = new LinkedList<>();
         for(Header header : request.getAllHeaders()) {
-            if(header.getName().equals(COOKIE_HEADER)) {
+            if(header.getName().equalsIgnoreCase(COOKIE_HEADER)) {
                 this.cookieHeaderVal = header.getValue();
-            } else if(header.getName().equals(HttpHeaders.CONTENT_ENCODING)) {
+            } else if(header.getName().equalsIgnoreCase(HttpHeaders.CONTENT_ENCODING)) {
                 this.contentEncodingHeaderVal = header.getValue();
-            } else if(header.getName().equals(HttpHeaders.CONTENT_TYPE)) {
+            } else if(header.getName().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE)) {
                 this.contentTypeHeaderVal = header.getValue();
-            } else if(!header.getName().equals(HttpHeaders.CONTENT_LENGTH)) {
+            } else if(!header.getName().equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH)) {
                 this.headers.add(header);
             }
         }
@@ -236,24 +236,31 @@ public class PhosphorHttpRequest implements Serializable {
     /* Structures the bytes in the specified array into a PhosphorHttpRequest and then converts back to a byte array
      * which is returned. */
     @SuppressWarnings("unused")
-    public static byte[] structureIntoRequest(byte[] bytes) {
+    public static byte[] structureIntoRequest(int[] lastValidUpdate, byte[] bytes, int startingPosition, int lastValid) {
         byte[] copy = bytes.clone();
         int size = bytes.length;
         try {
-            PhosphorHttpRequest request = requestFromBytes(bytes);
+            byte[] trimmedBytes = new byte[lastValid-startingPosition];
+            System.arraycopy(bytes, startingPosition, trimmedBytes, 0, trimmedBytes.length);
+            PhosphorHttpRequest request = requestFromBytes(trimmedBytes);
             String requestString = request.toString();
-            // Ensure that the size of the byte array returned is at least as long as the specified input array
-            if(requestString.length() >= size) {
-                return requestString.getBytes();
-            } else {
-                byte[] ret = new byte[size];
-                System.arraycopy(requestString.getBytes(), 0, ret, 0, requestString.length());
-                return ret;
-            }
+            byte[] processedBytes = requestString.getBytes();
+            // Ensure that the size of the byte array returned is at least as long as the specified input array and that
+            // the content is offset by starting position
+            lastValidUpdate[0] = startingPosition + processedBytes.length;
+            return positionBytes(bytes, processedBytes, startingPosition, size);
         } catch(Exception e) {
             e.printStackTrace();
+            lastValidUpdate[0] = lastValid;
             return copy;
         }
+    }
+
+    private static byte[] positionBytes(byte[] oldBytes, byte[] newBytes, int startingPosition, int minSize) {
+        byte[] result = new byte[Math.max(startingPosition + newBytes.length, minSize)];
+        System.arraycopy(newBytes, 0, result, startingPosition, newBytes.length);
+        System.arraycopy(oldBytes, 0, result, 0, startingPosition);
+        return result;
     }
 
     /* Parses the specified bytes into a PhosphorHttpRequest. Returns the parsed request. */
