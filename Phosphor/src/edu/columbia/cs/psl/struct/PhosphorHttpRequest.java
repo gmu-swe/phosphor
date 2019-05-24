@@ -1,12 +1,15 @@
 package edu.columbia.cs.psl.struct;
 
 import org.apache.http.*;
+import org.apache.http.entity.*;
+import org.apache.http.impl.entity.StrictContentLengthStrategy;
 import org.apache.http.impl.io.*;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -39,7 +42,7 @@ public class PhosphorHttpRequest implements Serializable {
     private final String entityBody;
 
     /* Constructs a new PhosphorHttpRequest containing information from the specified HttpRequest. */
-    public PhosphorHttpRequest(HttpRequest request) throws URISyntaxException, IOException {
+    public PhosphorHttpRequest(HttpRequest request, HttpEntity entity) throws URISyntaxException, IOException {
         this.method = request.getRequestLine().getMethod();
         this.uri = new URI(request.getRequestLine().getUri());
         this.protocolVersion = request.getProtocolVersion().toString();
@@ -55,20 +58,9 @@ public class PhosphorHttpRequest implements Serializable {
                 this.headers.add(header);
             }
         }
-        if(request instanceof HttpEntityEnclosingRequest) {
-            HttpEntity entity = ((HttpEntityEnclosingRequest)request).getEntity();
-            if(entity != null) {
-                if(entity.getContentEncoding() != null) {
-                    this.contentEncodingHeaderVal = entity.getContentEncoding().getValue();
-                }
-                if(entity.getContentType() != null) {
-                    this.contentTypeHeaderVal = entity.getContentType().getValue();
-                }
-                this.entityBody = EntityUtils.toString(entity);
-                EntityUtils.consume(entity);
-            } else {
-                this.entityBody = null;
-            }
+        if(entity != null) {
+            this.entityBody = EntityUtils.toString(entity);
+            EntityUtils.consume(entity);
         } else {
             this.entityBody = null;
         }
@@ -248,9 +240,9 @@ public class PhosphorHttpRequest implements Serializable {
         byte[] copy = bytes.clone();
         int size = bytes.length;
         try {
-            PhosphorHttpRequest request = new PhosphorHttpRequest(requestFromBytes(bytes));
+            PhosphorHttpRequest request = requestFromBytes(bytes);
             String requestString = request.toString();
-            // Ensure that the size of the byte array returned as at least as long as the specified input array
+            // Ensure that the size of the byte array returned is at least as long as the specified input array
             if(requestString.length() >= size) {
                 return requestString.getBytes();
             } else {
@@ -264,11 +256,31 @@ public class PhosphorHttpRequest implements Serializable {
         }
     }
 
-    /* Parses the specified bytes into an HttpRequest. Returns the parsed request. */
-    private static HttpRequest requestFromBytes(byte[] bytes) throws Exception {
+    /* Parses the specified bytes into a PhosphorHttpRequest. Returns the parsed request. */
+    private static PhosphorHttpRequest requestFromBytes(byte[] bytes) throws Exception {
         SessionInputBufferImpl sessionBuffer = new SessionInputBufferImpl(new HttpTransportMetricsImpl(), bytes.length);
         sessionBuffer.bind(new ByteArrayInputStream(bytes));
         DefaultHttpRequestParser parser = new DefaultHttpRequestParser(sessionBuffer);
-        return parser.parse();
+        HttpRequest request = parser.parse();
+        // Read remaining entity body content from the buffer
+        long contentLength = StrictContentLengthStrategy.INSTANCE.determineLength(request);
+        InputStream contentStream;
+        if(contentLength == ContentLengthStrategy.CHUNKED) {
+            contentStream = new ChunkedInputStream(sessionBuffer);
+            contentLength = -1;
+        } else if(contentLength == ContentLengthStrategy.IDENTITY) {
+            contentStream = new IdentityInputStream(sessionBuffer);
+            contentLength = -1;
+        } else {
+            contentStream = new ContentLengthInputStream(sessionBuffer, contentLength);
+        }
+        ContentType contentType;
+        try {
+          contentType = ContentType.parse(request.getFirstHeader(HTTP.CONTENT_TYPE).getValue());
+        } catch(Exception e) {
+            contentType = null;
+        }
+        HttpEntity entity = new InputStreamEntity(contentStream, contentLength, contentType);
+        return new PhosphorHttpRequest(request, entity);
     }
 }
