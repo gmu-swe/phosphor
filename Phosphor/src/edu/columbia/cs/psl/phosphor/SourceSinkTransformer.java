@@ -8,6 +8,7 @@ import org.objectweb.asm.util.CheckClassAdapter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.UnmodifiableClassException;
 import java.security.ProtectionDomain;
@@ -78,14 +79,16 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
                     if(poppedClazz.getName() != null && BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(poppedClazz)) {
                         // poppedClazz represents a class or interface that is or is a subtype of a class or interface with
                         // at least one method labeled as being a sink or source or taintThrough method
-                        PreMain.getInstrumentation().retransformClasses(poppedClazz);
+						if(!poppedClazz.equals(PrintStream.class)) {
+							PreMain.getInstrumentation().retransformClasses(poppedClazz);
+						}
                     }
                 }
                 isBusyRetransforming = false;
             } else {
                 retransformQueue.add(clazz);
             }
-        } catch(UnmodifiableClassException e){
+        } catch(UnmodifiableClassException e) {
         	//
         } catch (Throwable e) {
         	// for anything else, we probably want to make sure that it gets printed
