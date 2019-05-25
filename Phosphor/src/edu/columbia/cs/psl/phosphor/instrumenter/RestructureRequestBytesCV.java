@@ -9,10 +9,10 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-/* Builds a request object from the bytes that reach the server side of a tomcat socket in order to taint them. */
-public class TomcatPostSocketCV extends ClassVisitor implements Opcodes{
+/* Builds a request object from the bytes that reach the server side of a socket in order to taint them. */
+public class RestructureRequestBytesCV extends ClassVisitor implements Opcodes{
 
-    public TomcatPostSocketCV(ClassVisitor cv) {
+    public RestructureRequestBytesCV(ClassVisitor cv) {
         super(Configuration.ASM_VERSION, cv);
     }
 
@@ -42,8 +42,8 @@ public class TomcatPostSocketCV extends ClassVisitor implements Opcodes{
         }
     }
 
-    /* Returns whether the class with the specified name is the targeted internal buffer class. */
-    public static boolean isInternalBufferClass(String className) {
+    /* Returns whether the class with the specified name is one targeted for transformation by this class visitor */
+    public static boolean isApplicable(String className) {
         return className != null && className.equals("org/apache/coyote/http11/InternalNioInputBuffer");
     }
 }

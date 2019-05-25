@@ -318,7 +318,7 @@ public class PhosphorHttpRequest implements Serializable {
                 return;
             }
             ByteChannel socket = (ByteChannel)socketField.get(obj);
-            byte[] buf = byte[].class.cast(bufField.get(obj));
+            byte[] buf = (byte[])bufField.get(obj);
             int pos = posField.getInt(obj);
             int lastValid = lastValidField.getInt(obj);
             byte[] processedBytes = structureIntoRequest(socket, buf, pos, lastValid);

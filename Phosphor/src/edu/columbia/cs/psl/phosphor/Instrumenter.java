@@ -244,7 +244,11 @@ public class Instrumenter {
 			.desc("Do not output local variable debug tables for generated local variables (useful for avoiding warnings from D8)")
 			.build();
 	static Option opt_alwaysCheckForFrames = Option.builder("alwaysCheckForFrames")
-			.desc("Always check to ensure that class files with version > Java 8 ACTUALLY have frames - useful for instrumenting android-targeting code that is compiled with Java 8 but without frames").build();
+			.desc("Always check to ensure that class files with version > Java 8 ACTUALLY have frames - useful for instrumenting android-targeting code that is compiled with Java 8 but without frames")
+			.build();
+	static Option opt_restructureRequestBytes = Option.builder("restructureRequestBytes")
+			.desc("Parse HTTP request bytes into a request object after they are read from a socket")
+			.build();
 	static Option help = Option.builder("help")
 		.desc("print this message")
 		.build();
@@ -280,6 +284,7 @@ public class Instrumenter {
 		options.addOption(opt_withoutBranchNotTaken);
 		options.addOption(opt_disableLocalsInfo);
 		options.addOption(opt_alwaysCheckForFrames);
+		options.addOption(opt_restructureRequestBytes);
 
 		CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
@@ -322,6 +327,7 @@ public class Instrumenter {
 		Configuration.WITHOUT_BRANCH_NOT_TAKEN = line.hasOption("withoutBranchNotTaken");
 		Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption("skipLocals");
 		Configuration.ALWAYS_CHECK_FOR_FRAMES = line.hasOption("alwaysCheckForFrames");
+		Configuration.RESTRUCTURE_REQUEST_BYTES = line.hasOption(opt_restructureRequestBytes.getOpt());
 		Configuration.init();
 
 		

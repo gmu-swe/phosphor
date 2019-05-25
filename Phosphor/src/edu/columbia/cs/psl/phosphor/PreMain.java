@@ -285,8 +285,8 @@ public class PreMain {
 					if(EclipseCompilerCV.isEclipseCompilerClass(className)) {
 						_cv = new EclipseCompilerCV(_cv);
 					}
-					if(TomcatPostSocketCV.isInternalBufferClass(className)) {
-						_cv = new TomcatPostSocketCV(_cv);
+					if(Configuration.RESTRUCTURE_REQUEST_BYTES && RestructureRequestBytesCV.isApplicable(className)) {
+						_cv = new RestructureRequestBytesCV(_cv);
 					}
 					if(OgnlUtilCV.isOgnlUtilClass(className)) {
 						_cv = new OgnlUtilCV(_cv);
@@ -517,6 +517,8 @@ public class PreMain {
 					Configuration.ADDL_IGNORE = s.substring(7);
 				} else if (s.equals("withoutBranchNotTaken")) {
 					Configuration.WITHOUT_BRANCH_NOT_TAKEN = true;
+				} else if(s.equals(Instrumenter.opt_restructureRequestBytes.getOpt())) {
+					Configuration.RESTRUCTURE_REQUEST_BYTES = true;
 				}
 			}
 		}
