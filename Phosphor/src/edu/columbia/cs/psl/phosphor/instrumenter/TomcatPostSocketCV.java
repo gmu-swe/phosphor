@@ -35,30 +35,8 @@ public class TomcatPostSocketCV extends ClassVisitor implements Opcodes{
         @Override
         public void visitInsn(int opcode) {
             if(TaintUtils.isReturnOpcode(opcode)) {
-                // Structure the bytes in the buf array into an HttpUriRequest so that source method from that class are applied
-                // and then convert back to a byte array
-                // Load a length one array onto the stack to get an updated value for lastValid
-                super.visitInsn(ICONST_1);
-                super.visitIntInsn(NEWARRAY, T_INT);
-                super.visitInsn(DUP); // Insert a copy of the array onto the stack
-                super.visitVarInsn(ALOAD, 0); // Load this onto the stack for GETFIELD
-                super.visitFieldInsn(GETFIELD, "org/apache/coyote/http11/InternalNioInputBuffer", "buf", Type.getDescriptor(byte[].class));
-                super.visitVarInsn(ALOAD, 0); // Load this onto the stack for GETFIELD
-                super.visitFieldInsn(GETFIELD, "org/apache/coyote/http11/InternalNioInputBuffer", "pos", "I");
-                super.visitVarInsn(ALOAD, 0); // Load this onto the stack for GETFIELD
-                super.visitFieldInsn(GETFIELD, "org/apache/coyote/http11/InternalNioInputBuffer", "lastValid", "I");
-                // Invoke structureIntoRequest
-                super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(PhosphorHttpRequest.class), "structureIntoRequest", "([I[BII)[B", false);
-                // Update buf with the result of structureIntoRequest
-                super.visitVarInsn(ALOAD, 0); // Load this onto the stack for PUTFIELD buf
-                super.visitInsn(SWAP);
-                super.visitFieldInsn(PUTFIELD, "org/apache/coyote/http11/InternalNioInputBuffer", "buf", Type.getDescriptor(byte[].class));
-                // Update lastValid
-                super.visitInsn(ICONST_0); // Load the updated value for lastValid from the int array passed to structureIntoRequest
-                super.visitInsn(IALOAD);
-                super.visitVarInsn(ALOAD, 0); // Load this onto the stack for PUTFIELD lastValid
-                super.visitInsn(SWAP);
-                super.visitFieldInsn(PUTFIELD, "org/apache/coyote/http11/InternalNioInputBuffer", "lastValid", "I");
+                super.visitVarInsn(ALOAD, 0); // Load this onto the stack
+                super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(PhosphorHttpRequest.class), "structureBuffer", "(Ljava/lang/Object;)V", false);
             }
             super.visitInsn(opcode);
         }

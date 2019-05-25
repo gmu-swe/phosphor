@@ -9,10 +9,12 @@ import org.apache.http.util.EntityUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
 import java.util.LinkedList;
 
 /* Represents an HTTP request. */
@@ -235,22 +237,15 @@ public class PhosphorHttpRequest implements Serializable {
 
     /* Structures the bytes in the specified array into a PhosphorHttpRequest and then converts back to a byte array
      * which is returned. */
-    @SuppressWarnings("unused")
-    public static byte[] structureIntoRequest(int[] lastValidUpdate, byte[] bytes, int startingPosition, int lastValid) {
+    public static byte[] structureIntoRequest(ByteChannel socket, byte[] bytes, int startingPosition, int lastValid) {
         byte[] copy = bytes.clone();
-        int size = bytes.length;
         try {
             byte[] trimmedBytes = new byte[lastValid-startingPosition];
             System.arraycopy(bytes, startingPosition, trimmedBytes, 0, trimmedBytes.length);
-            PhosphorHttpRequest request = requestFromBytes(trimmedBytes);
+            PhosphorHttpRequest request = requestFromBytes(socket, trimmedBytes);
             String requestString = request.toString();
-            byte[] processedBytes = requestString.getBytes();
-            // Ensure that the size of the byte array returned is at least as long as the specified input array and that
-            // the content is offset by starting position
-            lastValidUpdate[0] = startingPosition + processedBytes.length;
-            return positionBytes(bytes, processedBytes, startingPosition, size);
+            return requestString.getBytes();
         } catch(Exception e) {
-            lastValidUpdate[0] = lastValid;
             return copy;
         }
     }
@@ -263,30 +258,96 @@ public class PhosphorHttpRequest implements Serializable {
     }
 
     /* Parses the specified bytes into a PhosphorHttpRequest. Returns the parsed request. */
-    private static PhosphorHttpRequest requestFromBytes(byte[] bytes) throws Exception {
+    private static PhosphorHttpRequest requestFromBytes(ByteChannel socket, byte[] bytes) throws Exception {
         SessionInputBufferImpl sessionBuffer = new SessionInputBufferImpl(new HttpTransportMetricsImpl(), bytes.length);
         sessionBuffer.bind(new ByteArrayInputStream(bytes));
         DefaultHttpRequestParser parser = new DefaultHttpRequestParser(sessionBuffer);
         HttpRequest request = parser.parse();
         // Read remaining entity body content from the buffer
-        long contentLength = StrictContentLengthStrategy.INSTANCE.determineLength(request);
-        InputStream contentStream;
-        if(contentLength == ContentLengthStrategy.CHUNKED) {
-            contentStream = new ChunkedInputStream(sessionBuffer);
-            contentLength = -1;
-        } else if(contentLength == ContentLengthStrategy.IDENTITY) {
-            contentStream = new IdentityInputStream(sessionBuffer);
-            contentLength = -1;
-        } else {
-            contentStream = new ContentLengthInputStream(sessionBuffer, contentLength);
-        }
+        // Determine the content type
         ContentType contentType;
         try {
-          contentType = ContentType.parse(request.getFirstHeader(HTTP.CONTENT_TYPE).getValue());
+            contentType = ContentType.parse(request.getFirstHeader(HTTP.CONTENT_TYPE).getValue());
         } catch(Exception e) {
             contentType = null;
         }
-        HttpEntity entity = new InputStreamEntity(contentStream, contentLength, contentType);
+        // Determine the content length
+        long contentLength;
+        try {
+            contentLength = Long.parseLong(request.getFirstHeader(HTTP.CONTENT_LEN).getValue());
+        } catch(Exception e) {
+            contentLength = StrictContentLengthStrategy.INSTANCE.determineLength(request);
+        }
+        HttpEntity entity = parseEntity(socket, sessionBuffer, contentType, contentLength);
         return new PhosphorHttpRequest(request, entity);
+    }
+
+    /* Reads remaining entity body content from the specified buffer. Reads any additional bytes needed for the entity
+     * from the specified channel. Returns an entity constructed from that content or null if the buffer did not contain
+     * entity body content. */
+    private static HttpEntity parseEntity(ByteChannel socket, SessionInputBufferImpl sessionBuffer, ContentType contentType, long contentLength) throws Exception {
+        HttpEntity entity = null;
+        if(contentLength == ContentLengthStrategy.CHUNKED) {
+            entity = new InputStreamEntity(new ChunkedInputStream(sessionBuffer), -1, contentType);
+        } else if(contentLength == ContentLengthStrategy.IDENTITY) {
+            entity = new InputStreamEntity(new IdentityInputStream(sessionBuffer), -1, contentType);
+        } else if(contentLength > 0){
+            byte[] content = new byte[(int)contentLength];
+            int offset = sessionBuffer.read(content);
+            if(offset < contentLength) {
+                // Read remaining content from the socket
+                ByteBuffer buffer = ByteBuffer.wrap(content, offset, (int)contentLength - offset);
+                socket.read(buffer);
+            }
+            entity = new InputStreamEntity(new ByteArrayInputStream(content), contentLength, contentType);
+        }
+        return entity;
+    }
+
+    @SuppressWarnings("unused")
+    public static void structureBuffer(Object obj) {
+        if(obj == null || obj.getClass() == null || !obj.getClass().getName().equals("org.apache.coyote.http11.InternalNioInputBuffer")) {
+            return;
+        }
+        try {
+            Field socketField = getField(obj, "socket", ByteChannel.class);
+            Field bufField = getField(obj, "buf", byte[].class);
+            Field posField = getField(obj, "pos", Integer.TYPE);
+            Field lastValidField = getField(obj, "lastValid", Integer.TYPE);
+            if(socketField == null || bufField == null || posField == null | lastValidField == null) {
+                return;
+            }
+            ByteChannel socket = (ByteChannel)socketField.get(obj);
+            byte[] buf = byte[].class.cast(bufField.get(obj));
+            int pos = posField.getInt(obj);
+            int lastValid = lastValidField.getInt(obj);
+            byte[] processedBytes = structureIntoRequest(socket, buf, pos, lastValid);
+            // Ensure that the size of the byte array returned is at least as long as the specified input array and that
+            // the content is offset by starting position
+            lastValidField.setInt(obj, pos + processedBytes.length);
+            bufField.set(obj, positionBytes(buf, processedBytes, pos, buf.length));
+        } catch(Exception e) {
+            //
+            e.printStackTrace();
+        }
+    }
+
+    /* Returns the field with the specified name and type for the specified object's class or null if the
+     * field was not found. */
+    private static Field getField(Object obj, String fieldName, Class<?> fieldClass) {
+        for (Class<?> clazz = obj.getClass(); clazz != null; clazz = clazz.getSuperclass()) {
+            // Iterate over superclasses to check for the field
+            for (Field field : clazz.getDeclaredFields()) {
+                try {
+                    if(field.getName().equals(fieldName) && fieldClass.isAssignableFrom(field.getType())) {
+                        field.setAccessible(true);
+                        return field;
+                    }
+                } catch (Exception e) {
+                    //
+                }
+            }
+        }
+        return null;
     }
 }
