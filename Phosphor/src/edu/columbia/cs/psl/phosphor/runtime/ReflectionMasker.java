@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.RestructureRequestBytesCV;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
@@ -1212,7 +1213,7 @@ public class ReflectionMasker {
 		ArrayList<Field> ret = new ArrayList<Field>();
 		boolean removeSVUIDField = containsSVUIDSentinelField(in);
 		for (Field f : in) {
-			if(!f.getName().equals("taint") && !f.getName().endsWith(TaintUtils.TAINT_FIELD) && !f.getName().equals(TaintUtils.ADDED_SVUID_SENTINEL)
+			if(!f.getName().equals("taint") && !f.getName().equals(RestructureRequestBytesCV.BYTE_BUFF_FIELD_NAME) && !f.getName().endsWith(TaintUtils.TAINT_FIELD) && !f.getName().equals(TaintUtils.ADDED_SVUID_SENTINEL)
 					&& !(removeSVUIDField && f.getName().equals("serialVersionUID")) && !f.getName().equals(TaintUtils.MARK_FIELD)) {
 					/* && !f.getName().equals(TaintUtils.IS_TAINT_SEATCHING_FIELD) && !f.getName().equals(TaintUtils.HAS_TAINT_FIELD) */
 				ret.add(f);
