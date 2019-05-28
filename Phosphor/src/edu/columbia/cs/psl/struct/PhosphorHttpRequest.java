@@ -17,16 +17,33 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
-import java.util.LinkedList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
-/* Represents an HTTP request. */
+/* Represents an HTTP request. Capable of converting the request it represents into a byte array using fine-grain public
+ * accessor methods which make excellent auto-taint source methods. */
 public class PhosphorHttpRequest implements Serializable {
 
-    private static final long serialVersionUID = -2410222280911896035L;
+    private static final long serialVersionUID = -2622573790320306202L;
     // Carriage return and line feed characters used to indicate the end of a line.
     private static final String CRLF = "\r\n";
-    // The string name of a cookie header
+    // The string name of the cookie header
     private static final String COOKIE_HEADER = "Cookie";
+    // List of common HTTP header names
+    private static final List<String> COMMON_HEADERS = Arrays.asList(COOKIE_HEADER, HttpHeaders.ACCEPT,
+            HttpHeaders.ACCEPT_CHARSET, HttpHeaders.ACCEPT_ENCODING, HttpHeaders.ACCEPT_LANGUAGE, HttpHeaders.ACCEPT_RANGES,
+            HttpHeaders.AGE, HttpHeaders.ALLOW, HttpHeaders.AUTHORIZATION, HttpHeaders.CACHE_CONTROL, HttpHeaders.CONNECTION,
+            HttpHeaders.CONTENT_ENCODING, HttpHeaders.CONTENT_LANGUAGE, HttpHeaders.CONTENT_LOCATION,
+            HttpHeaders.CONTENT_MD5, HttpHeaders.CONTENT_RANGE, HttpHeaders.CONTENT_TYPE, HttpHeaders.DATE, HttpHeaders.DAV,
+            HttpHeaders.DEPTH, HttpHeaders.DESTINATION, HttpHeaders.ETAG, HttpHeaders.EXPECT, HttpHeaders.EXPIRES,
+            HttpHeaders.FROM, HttpHeaders.HOST, HttpHeaders.IF, HttpHeaders.IF_MATCH, HttpHeaders.IF_MODIFIED_SINCE,
+            HttpHeaders.IF_NONE_MATCH, HttpHeaders.IF_RANGE, HttpHeaders.IF_UNMODIFIED_SINCE, HttpHeaders.LAST_MODIFIED,
+            HttpHeaders.LOCATION, HttpHeaders.LOCK_TOKEN, HttpHeaders.MAX_FORWARDS,
+            HttpHeaders.OVERWRITE, HttpHeaders.PRAGMA, HttpHeaders.PROXY_AUTHENTICATE, HttpHeaders.PROXY_AUTHORIZATION,
+            HttpHeaders.RANGE, HttpHeaders.REFERER, HttpHeaders.RETRY_AFTER, HttpHeaders.SERVER, HttpHeaders.STATUS_URI,
+            HttpHeaders.TE, HttpHeaders.TIMEOUT, HttpHeaders.TRAILER, HttpHeaders.TRANSFER_ENCODING,
+            HttpHeaders.UPGRADE, HttpHeaders.USER_AGENT, HttpHeaders.VARY, HttpHeaders.VIA, HttpHeaders.WARNING, HttpHeaders.WWW_AUTHENTICATE);
 
     // Part of the request line, indicates the method to be performed
     private final String method;
@@ -34,14 +51,10 @@ public class PhosphorHttpRequest implements Serializable {
     private final URI uri;
     // Part of the request line, indicates the version of HTTP used
     private final String protocolVersion;
-    // List of HTTP message headers for the request
-    private final LinkedList<Header> headers;
-    // The String value of the cookie header or null if undefined
-    private String cookieHeaderVal = null;
-    // The String value of the content-encoding header or null if undefined
-    private String contentEncodingHeaderVal = null;
-    // The String value of the content-type header or null if undefined
-    private String contentTypeHeaderVal = null;
+    // Maps commonly used HTTP message header names to their values for this request
+    private final HashMap<String, String> commonHeaders;
+    // Maps non-common HTTP message header names to their values for this request
+    private final HashMap<String, String> uncommonHeaders;
     // The String entity body of the request or null if no entity body is present
     private final String entityBody;
 
@@ -50,23 +63,35 @@ public class PhosphorHttpRequest implements Serializable {
         this.method = request.getRequestLine().getMethod();
         this.uri = new URI(request.getRequestLine().getUri());
         this.protocolVersion = request.getProtocolVersion().toString();
-        this.headers = new LinkedList<>();
+        this.commonHeaders = new HashMap<>();
+        this.uncommonHeaders = new HashMap<>();
         for(Header header : request.getAllHeaders()) {
-            if(header.getName().equalsIgnoreCase(COOKIE_HEADER)) {
-                this.cookieHeaderVal = header.getValue();
-            } else if(header.getName().equalsIgnoreCase(HttpHeaders.CONTENT_ENCODING)) {
-                this.contentEncodingHeaderVal = header.getValue();
-            } else if(header.getName().equalsIgnoreCase(HttpHeaders.CONTENT_TYPE)) {
-                this.contentTypeHeaderVal = header.getValue();
-            } else if(!header.getName().equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH)) {
-                this.headers.add(header);
-            }
+            addHeader(header);
         }
         if(entity != null) {
             this.entityBody = EntityUtils.toString(entity);
             EntityUtils.consume(entity);
         } else {
             this.entityBody = null;
+        }
+    }
+
+    /* Adds the specified header to either the list of common header or the list of other header. */
+    private void addHeader(Header header) {
+        String name = header.getName();
+        String value = header.getValue();
+        if(name.equalsIgnoreCase(COOKIE_HEADER)) {
+            commonHeaders.put(COOKIE_HEADER, value);
+        } else if(!header.getName().equalsIgnoreCase(HttpHeaders.CONTENT_LENGTH)) {
+            // Skip the content length header, it will be recalculated from the entity body
+            for(String commonHeader : COMMON_HEADERS) {
+                if(header.getName().equalsIgnoreCase(commonHeader)) {
+                    commonHeaders.put(commonHeader, value);
+                    return;
+                }
+            }
+            // Header name did not match any of the common headers
+            uncommonHeaders.put(name, value);
         }
     }
 
@@ -80,9 +105,19 @@ public class PhosphorHttpRequest implements Serializable {
         return uri.getScheme();
     }
 
-    /* Returns the scheme specified part of the uri or null if undefined. */
-    public String getSchemeSpecificPart() {
-        return uri.getRawSchemeSpecificPart();
+    /* Returns this request's URI's fragment component or null if undefined. */
+    public String getFragment() {
+        return uri.getFragment();
+    }
+
+    /* Returns this request's URI's authority component or null if undefined. */
+    public String getAuthority() {
+        return uri.getAuthority();
+    }
+
+    /* Returns this request's URI's user-information or null if undefined. */
+    public String getUserInfo() {
+        return uri.getUserInfo();
     }
 
     /* Returns this request's URI's host or null if undefined. */
@@ -90,34 +125,19 @@ public class PhosphorHttpRequest implements Serializable {
         return uri.getHost();
     }
 
-    /* Returns this request's URI's user-information or null if undefined. */
-    public String getUserInfo() {
-        return uri.getRawUserInfo();
-    }
-
     /* Returns this request's URI's port or -1 if undefined. */
-    private int getPort() {
+    public int getPort() {
         return uri.getPort();
-    }
-
-    /* Returns this request's URI's authority component or null if undefined. */
-    public String getAuthority() {
-        return uri.getRawAuthority();
     }
 
     /* Returns this request's URI's path or null if undefined. */
     public String getPath() {
-        return uri.getRawPath();
-    }
-
-    /* Returns this request's URI's fragment component or null if undefined. */
-    public String getFragment() {
-        return uri.getRawFragment();
+        return uri.getPath();
     }
 
     /* Returns this request's URI's query or null if undefined. */
-    public String getQuery() {
-        return uri.getQuery();
+    public String getEncodedQuery() {
+        return uri.getRawQuery();
     }
 
     /* Returns a string indicating the version of HTTP used for this request. */
@@ -125,24 +145,284 @@ public class PhosphorHttpRequest implements Serializable {
         return protocolVersion;
     }
 
-    /* Returns the header list for this request. */
-    private LinkedList<Header> getHeaders() {
-        return headers;
+    /* Returns the map of uncommon headers for this request. */
+    public HashMap<String, String> getUncommonHeaders() {
+        return uncommonHeaders;
     }
 
-    /* Returns the value of the cookie header or null if undefined. */
-    public String getCookie() {
-        return cookieHeaderVal;
+    /* Returns the value of the accept header or null if undefined. */
+    public String getAcceptHeader() {
+        return commonHeaders.get(HttpHeaders.ACCEPT);
     }
 
-    /* Returns the value of the content-type header or null if undefined. */
-    public String getContentType() {
-        return contentTypeHeaderVal;
+    /* Returns the value of the accept-charset header or null if undefined. */
+    public String getAcceptCharsetHeader() {
+        return commonHeaders.get(HttpHeaders.ACCEPT_CHARSET);
+    }
+
+    /* Returns the value of the accept-encoding header or null if undefined. */
+    public String getAcceptEncodingHeader() {
+        return commonHeaders.get(HttpHeaders.ACCEPT_ENCODING);
+    }
+
+    /* Returns the value of the accept-language header or null if undefined. */
+    public String getAcceptLanguageHeader() {
+        return commonHeaders.get(HttpHeaders.ACCEPT_LANGUAGE);
+    }
+
+    /* Returns the value of the accept-ranges header or null if undefined. */
+    public String getAcceptRangesHeader() {
+        return commonHeaders.get(HttpHeaders.ACCEPT_RANGES);
+    }
+
+    /* Returns the value of the age header or null if undefined. */
+    public String getAgeHeader() {
+        return commonHeaders.get(HttpHeaders.AGE);
+    }
+
+    /* Returns the value of the allow header or null if undefined. */
+    public String getAllowHeader() {
+        return commonHeaders.get(HttpHeaders.ALLOW);
+    }
+
+    /* Returns the value of the authorization header or null if undefined. */
+    public String getAuthorizationHeader() {
+        return commonHeaders.get(HttpHeaders.AUTHORIZATION);
+    }
+
+    /* Returns the value of the cache-control header or null if undefined. */
+    public String getCacheControlHeader() {
+        return commonHeaders.get(HttpHeaders.CACHE_CONTROL);
+    }
+
+    /* Returns the value of the connection header or null if undefined. */
+    public String getConnectionHeader() {
+        return commonHeaders.get(HttpHeaders.CONNECTION);
     }
 
     /* Returns the value of the content-encoding header or null if undefined. */
-    public String getContentEncoding() {
-        return contentEncodingHeaderVal;
+    public String getContentEncodingHeader() {
+        return commonHeaders.get(HttpHeaders.CONTENT_ENCODING);
+    }
+
+    /* Returns the value of the content-language header or null if undefined. */
+    public String getContentLanguageHeader() {
+        return commonHeaders.get(HttpHeaders.CONTENT_LANGUAGE);
+    }
+
+    /* Returns the value of the content-location header or null if undefined. */
+    public String getContentLocationHeader() {
+        return commonHeaders.get(HttpHeaders.CONTENT_LOCATION);
+    }
+
+    /* Returns the value of the content-md5 header or null if undefined. */
+    public String getContentMd5Header() {
+        return commonHeaders.get(HttpHeaders.CONTENT_MD5);
+    }
+
+    /* Returns the value of the content-range header or null if undefined. */
+    public String getContentRangeHeader() {
+        return commonHeaders.get(HttpHeaders.CONTENT_RANGE);
+    }
+
+    /* Returns the value of the content-type header or null if undefined. */
+    public String getContentTypeHeader() {
+        return commonHeaders.get(HttpHeaders.CONTENT_TYPE);
+    }
+
+    /* Returns the value of the cookie header or null if undefined. */
+    public String getCookieHeader() {
+        return commonHeaders.get(COOKIE_HEADER);
+    }
+
+    /* Returns the value of the date header or null if undefined. */
+    public String getDateHeader() {
+        return commonHeaders.get(HttpHeaders.DATE);
+    }
+
+    /* Returns the value of the dav header or null if undefined. */
+    public String getDavHeader() {
+        return commonHeaders.get(HttpHeaders.DAV);
+    }
+
+    /* Returns the value of the depth header or null if undefined. */
+    public String getDepthHeader() {
+        return commonHeaders.get(HttpHeaders.DEPTH);
+    }
+
+    /* Returns the value of the destination header or null if undefined. */
+    public String getDestinationHeader() {
+        return commonHeaders.get(HttpHeaders.DESTINATION);
+    }
+
+    /* Returns the value of the ETag header or null if undefined. */
+    public String getETagHeader() {
+        return commonHeaders.get(HttpHeaders.ETAG);
+    }
+
+    /* Returns the value of the expect header or null if undefined. */
+    public String getExpectHeader() {
+        return commonHeaders.get(HttpHeaders.EXPECT);
+    }
+
+    /* Returns the value of the expires header or null if undefined. */
+    public String getExpiresHeader() {
+        return commonHeaders.get(HttpHeaders.EXPIRES);
+    }
+
+    /* Returns the value of the from header or null if undefined. */
+    public String getFromHeader() {
+        return commonHeaders.get(HttpHeaders.FROM);
+    }
+
+    /* Returns the value of the host header or null if undefined. */
+    public String getHostHeader() {
+        return commonHeaders.get(HttpHeaders.HOST);
+    }
+
+    /* Returns the value of the if header or null if undefined. */
+    public String getIfHeader() {
+        return commonHeaders.get(HttpHeaders.IF);
+    }
+
+    /* Returns the value of the if-match header or null if undefined. */
+    public String getIfMatchHeader() {
+        return commonHeaders.get(HttpHeaders.IF_MATCH);
+    }
+
+    /* Returns the value of the if-modified-since header or null if undefined. */
+    public String getIfModifiedSinceHeader() {
+        return commonHeaders.get(HttpHeaders.IF_MODIFIED_SINCE);
+    }
+
+    /* Returns the value of the if-none-match header or null if undefined. */
+    public String getIfNoneMatchHeader() {
+        return commonHeaders.get(HttpHeaders.IF_NONE_MATCH);
+    }
+
+    /* Returns the value of the if-range header or null if undefined. */
+    public String getIfRangeHeader() {
+        return commonHeaders.get(HttpHeaders.IF_RANGE);
+    }
+
+    /* Returns the value of the if-unmodified-since header or null if undefined. */
+    public String getIfUnmodifiedSinceHeader() {
+        return commonHeaders.get(HttpHeaders.IF_UNMODIFIED_SINCE);
+    }
+
+    /* Returns the value of the last-modified header or null if undefined. */
+    public String getLastModifiedHeader() {
+        return commonHeaders.get(HttpHeaders.LAST_MODIFIED);
+    }
+
+    /* Returns the value of the location header or null if undefined. */
+    public String getLocationHeader() {
+        return commonHeaders.get(HttpHeaders.LOCATION);
+    }
+
+    /* Returns the value of the lock-token header or null if undefined. */
+    public String getLockTokenHeader() {
+        return commonHeaders.get(HttpHeaders.LOCK_TOKEN);
+    }
+
+    /* Returns the value of the max-forwards header or null if undefined. */
+    public String getMaxForwardsHeader() {
+        return commonHeaders.get(HttpHeaders.MAX_FORWARDS);
+    }
+
+    /* Returns the value of the overwrite header or null if undefined. */
+    public String getOverwriteHeader() {
+        return commonHeaders.get(HttpHeaders.OVERWRITE);
+    }
+
+    /* Returns the value of the pragma header or null if undefined. */
+    public String getPragmaHeader() {
+        return commonHeaders.get(HttpHeaders.PRAGMA);
+    }
+
+    /* Returns the value of the proxy-authenticate header or null if undefined. */
+    public String getProxyAuthenticateHeader() {
+        return commonHeaders.get(HttpHeaders.PROXY_AUTHENTICATE);
+    }
+
+    /* Returns the value of the proxy-authorization header or null if undefined. */
+    public String getProxyAuthorizationHeader() {
+        return commonHeaders.get(HttpHeaders.PROXY_AUTHORIZATION);
+    }
+
+    /* Returns the value of the range header or null if undefined. */
+    public String getRangeHeader() {
+        return commonHeaders.get(HttpHeaders.RANGE);
+    }
+
+    /* Returns the value of the referer header or null if undefined. */
+    public String getRefererHeader() {
+        return commonHeaders.get(HttpHeaders.REFERER);
+    }
+
+    /* Returns the value of the retry-after header or null if undefined. */
+    public String getRetryAfterHeader() {
+        return commonHeaders.get(HttpHeaders.RETRY_AFTER);
+    }
+
+    /* Returns the value of the server header or null if undefined. */
+    public String getServerHeader() {
+        return commonHeaders.get(HttpHeaders.SERVER);
+    }
+
+    /* Returns the value of the status-uri header or null if undefined. */
+    public String getStatusUriHeader() {
+        return commonHeaders.get(HttpHeaders.STATUS_URI);
+    }
+
+    /* Returns the value of the te header or null if undefined. */
+    public String getTeHeader() {
+        return commonHeaders.get(HttpHeaders.TE);
+    }
+
+    /* Returns the value of the timeout header or null if undefined. */
+    public String getTimeoutHeader() {
+        return commonHeaders.get(HttpHeaders.TIMEOUT);
+    }
+
+    /* Returns the value of the trailer header or null if undefined. */
+    public String getTrailerHeader() {
+        return commonHeaders.get(HttpHeaders.TRAILER);
+    }
+
+    /* Returns the value of the transfer-encoding header or null if undefined. */
+    public String getTransferEncodingHeader() {
+        return commonHeaders.get(HttpHeaders.TRANSFER_ENCODING);
+    }
+
+    /* Returns the value of the upgrade header or null if undefined. */
+    public String getUpgradeHeader() {
+        return commonHeaders.get(HttpHeaders.UPGRADE);
+    }
+
+    /* Returns the value of the user-agent header or null if undefined. */
+    public String getUserAgentHeader() {
+        return commonHeaders.get(HttpHeaders.USER_AGENT);
+    }
+
+    /* Returns the value of the vary header or null if undefined. */
+    public String getVaryHeader() {
+        return commonHeaders.get(HttpHeaders.VARY);
+    }
+
+    /* Returns the value of the via header or null if undefined. */
+    public String getViaHeader() {
+        return commonHeaders.get(HttpHeaders.VIA);
+    }
+
+    /* Returns the value of the warning header or null if undefined. */
+    public String getWarningHeader() {
+        return commonHeaders.get(HttpHeaders.WARNING);
+    }
+
+    /* Returns the value of the www-authenticate header or null if undefined. */
+    public String getWWWAuthenticateHeader() {
+        return commonHeaders.get(HttpHeaders.WWW_AUTHENTICATE);
     }
 
     /* Returns the string value of this request's entity body or null if no entity body is present. */
@@ -151,77 +431,217 @@ public class PhosphorHttpRequest implements Serializable {
     }
 
     /* Adds this request's URI information to the specified StringBuilder. */
-    private void addURIInfo(StringBuilder builder) {
+    private void addURIInfo(StringBuilder builder) throws Exception {
+        String scheme = getScheme();
+        String userInfo = getUserInfo();
+        String host = getHost();
         String fragment = getFragment();
-        if(getScheme() != null) {
-            builder.append(getScheme()).append(':');
-        }
-        if(uri.isOpaque()) {
-            builder.append(getSchemeSpecificPart());
+        int port = getPort();
+        String authority = getAuthority();
+        String path = getPath();
+        URI reconstructedURI = (host == null) ? new URI(scheme, authority, path, null, fragment) : new URI(scheme, userInfo, host, port, path, null, fragment);
+        addEncodedQueryString(reconstructedURI, getEncodedQuery());
+        builder.append(reconstructedURI.toASCIIString());
+    }
+
+    /* Adds an encoded query string to the specified URI. */
+    private static void addEncodedQueryString(URI uri, String queryString) throws IllegalAccessException {
+        Field queryField = getField(uri, "query", String.class);
+        Field stringField = getField(uri, "string", String.class);
+        if(queryField == null || stringField == null) {
+            throw new RuntimeException("Could not find field for URI instance");
         } else {
-            String host = getHost();
-            int port = getPort();
-            String authority = getAuthority();
-            String path = getPath();
-            String query = getQuery();
-            if(host != null) {
-                builder.append("//");
-                if(getUserInfo() != null) {
-                    builder.append(getUserInfo()).append('@');
-                }
-                boolean needBrackets = ((host.indexOf(':') >= 0) && !host.startsWith("[") && !host.endsWith("]"));
-                if(needBrackets) {
-                    builder.append('[');
-                }
-                builder.append(host);
-                if(needBrackets) {
-                    builder.append(']');
-                }
-                if(port != -1) {
-                    builder.append(':').append(port);
-                }
-            } else if(authority != null) {
-                builder.append("//").append(authority);
-            }
-            if(path != null) {
-                builder.append(path);
-            }
-            if(query != null) {
-                builder.append('?').append(query);
-            }
-        }
-        if(fragment != null) {
-            builder.append('#').append(fragment);
+            queryField.set(uri, queryString);
+            // Clear cached string
+            stringField.set(uri, null);
         }
     }
 
-    /* Adds this request's non-entity header information to the specified StringBuilder. */
+    /* Adds this request's header information to the specified StringBuilder. */
     private void addHeaderInfo(StringBuilder builder) {
-        String cookieVal = getCookie();
-        if(cookieVal != null) {
-            builder.append(COOKIE_HEADER).append(": ").append(cookieVal).append(CRLF);
+        // Add common headers
+        if(getCookieHeader() != null) {
+            builder.append(COOKIE_HEADER).append(": ").append(getCookieHeader()).append(CRLF);
         }
-        for(Header header : getHeaders()) {
-            builder.append(header.getName()).append(": ").append(header.getValue()).append(CRLF);
+        if(getAcceptHeader() != null) {
+            builder.append(HttpHeaders.ACCEPT).append(": ").append(getAcceptHeader()).append(CRLF);
+        }
+        if(getAcceptCharsetHeader() != null) {
+            builder.append(HttpHeaders.ACCEPT_CHARSET).append(": ").append(getAcceptCharsetHeader()).append(CRLF);
+        }
+        if(getAcceptEncodingHeader() != null) {
+            builder.append(HttpHeaders.ACCEPT_ENCODING).append(": ").append(getAcceptEncodingHeader()).append(CRLF);
+        }
+        if(getAcceptLanguageHeader() != null) {
+            builder.append(HttpHeaders.ACCEPT_LANGUAGE).append(": ").append(getAcceptLanguageHeader()).append(CRLF);
+        }
+        if(getAcceptRangesHeader() != null) {
+            builder.append(HttpHeaders.ACCEPT_RANGES).append(": ").append(getAcceptRangesHeader()).append(CRLF);
+        }
+        if(getAgeHeader() != null) {
+            builder.append(HttpHeaders.AGE).append(": ").append(getAgeHeader()).append(CRLF);
+        }
+        if(getAllowHeader() != null) {
+            builder.append(HttpHeaders.ALLOW).append(": ").append(getAllowHeader()).append(CRLF);
+        }
+        if(getAuthorizationHeader() != null) {
+            builder.append(HttpHeaders.AUTHORIZATION).append(": ").append(getAuthorizationHeader()).append(CRLF);
+        }
+        if(getCacheControlHeader() != null) {
+            builder.append(HttpHeaders.CACHE_CONTROL).append(": ").append(getCacheControlHeader()).append(CRLF);
+        }
+        if(getConnectionHeader() != null) {
+            builder.append(HttpHeaders.CONNECTION).append(": ").append(getConnectionHeader()).append(CRLF);
+        }
+        if(getContentEncodingHeader() != null) {
+            builder.append(HttpHeaders.CONTENT_ENCODING).append(": ").append(getContentEncodingHeader()).append(CRLF);
+        }
+        if(getContentLanguageHeader() != null) {
+            builder.append(HttpHeaders.CONTENT_LANGUAGE).append(": ").append(getContentLanguageHeader()).append(CRLF);
+        }
+        if(getContentLocationHeader() != null) {
+            builder.append(HttpHeaders.CONTENT_LOCATION).append(": ").append(getContentLocationHeader()).append(CRLF);
+        }
+        if(getContentMd5Header() != null) {
+            builder.append(HttpHeaders.CONTENT_MD5).append(": ").append(getContentMd5Header()).append(CRLF);
+        }
+        if(getContentRangeHeader() != null) {
+            builder.append(HttpHeaders.CONTENT_RANGE).append(": ").append(getContentRangeHeader()).append(CRLF);
+        }
+        if(getContentTypeHeader() != null) {
+            builder.append(HttpHeaders.CONTENT_TYPE).append(": ").append(getContentTypeHeader()).append(CRLF);
+        }
+        if(getDateHeader() != null) {
+            builder.append(HttpHeaders.DATE).append(": ").append(getDateHeader()).append(CRLF);
+        }
+        if(getDavHeader() != null) {
+            builder.append(HttpHeaders.DAV).append(": ").append(getDavHeader()).append(CRLF);
+        }
+        if(getDepthHeader() != null) {
+            builder.append(HttpHeaders.DEPTH).append(": ").append(getDepthHeader()).append(CRLF);
+        }
+        if(getDestinationHeader() != null) {
+            builder.append(HttpHeaders.DESTINATION).append(": ").append(getDestinationHeader()).append(CRLF);
+        }
+        if(getETagHeader() != null) {
+            builder.append(HttpHeaders.ETAG).append(": ").append(getETagHeader()).append(CRLF);
+        }
+        if(getExpectHeader() != null) {
+            builder.append(HttpHeaders.EXPECT).append(": ").append(getExpectHeader()).append(CRLF);
+        }
+        if(getExpiresHeader() != null) {
+            builder.append(HttpHeaders.EXPIRES).append(": ").append(getExpiresHeader()).append(CRLF);
+        }
+        if(getFromHeader() != null) {
+            builder.append(HttpHeaders.FROM).append(": ").append(getFromHeader()).append(CRLF);
+        }
+        if(getHostHeader() != null) {
+            builder.append(HttpHeaders.HOST).append(": ").append(getHostHeader()).append(CRLF);
+        }
+        if(getIfHeader() != null) {
+            builder.append(HttpHeaders.IF).append(": ").append(getIfHeader()).append(CRLF);
+        }
+        if(getIfMatchHeader() != null) {
+            builder.append(HttpHeaders.IF_MATCH).append(": ").append(getIfMatchHeader()).append(CRLF);
+        }
+        if(getIfModifiedSinceHeader() != null) {
+            builder.append(HttpHeaders.IF_MODIFIED_SINCE).append(": ").append(getIfModifiedSinceHeader()).append(CRLF);
+        }
+        if(getIfNoneMatchHeader() != null) {
+            builder.append(HttpHeaders.IF_NONE_MATCH).append(": ").append(getIfNoneMatchHeader()).append(CRLF);
+        }
+        if(getIfRangeHeader() != null) {
+            builder.append(HttpHeaders.IF_RANGE).append(": ").append(getIfRangeHeader()).append(CRLF);
+        }
+        if(getIfUnmodifiedSinceHeader() != null) {
+            builder.append(HttpHeaders.IF_UNMODIFIED_SINCE).append(": ").append(getIfUnmodifiedSinceHeader()).append(CRLF);
+        }
+        if(getLastModifiedHeader() != null) {
+            builder.append(HttpHeaders.LAST_MODIFIED).append(": ").append(getLastModifiedHeader()).append(CRLF);
+        }
+        if(getLocationHeader() != null) {
+            builder.append(HttpHeaders.LOCATION).append(": ").append(getLocationHeader()).append(CRLF);
+        }
+        if(getLockTokenHeader() != null) {
+            builder.append(HttpHeaders.LOCK_TOKEN).append(": ").append(getLockTokenHeader()).append(CRLF);
+        }
+        if(getMaxForwardsHeader() != null) {
+            builder.append(HttpHeaders.MAX_FORWARDS).append(": ").append(getMaxForwardsHeader()).append(CRLF);
+        }
+        if(getOverwriteHeader() != null) {
+            builder.append(HttpHeaders.OVERWRITE).append(": ").append(getOverwriteHeader()).append(CRLF);
+        }
+        if(getPragmaHeader() != null) {
+            builder.append(HttpHeaders.PRAGMA).append(": ").append(getPragmaHeader()).append(CRLF);
+        }
+        if(getProxyAuthenticateHeader() != null) {
+            builder.append(HttpHeaders.PROXY_AUTHENTICATE).append(": ").append(getProxyAuthenticateHeader()).append(CRLF);
+        }
+        if(getProxyAuthorizationHeader() != null) {
+            builder.append(HttpHeaders.PROXY_AUTHORIZATION).append(": ").append(getProxyAuthorizationHeader()).append(CRLF);
+        }
+        if(getRangeHeader() != null) {
+            builder.append(HttpHeaders.RANGE).append(": ").append(getRangeHeader()).append(CRLF);
+        }
+        if(getRefererHeader() != null) {
+            builder.append(HttpHeaders.REFERER).append(": ").append(getRefererHeader()).append(CRLF);
+        }
+        if(getRetryAfterHeader() != null) {
+            builder.append(HttpHeaders.RETRY_AFTER).append(": ").append(getRetryAfterHeader()).append(CRLF);
+        }
+        if(getServerHeader() != null) {
+            builder.append(HttpHeaders.SERVER).append(": ").append(getServerHeader()).append(CRLF);
+        }
+        if(getStatusUriHeader() != null) {
+            builder.append(HttpHeaders.STATUS_URI).append(": ").append(getStatusUriHeader()).append(CRLF);
+        }
+        if(getTeHeader() != null) {
+            builder.append(HttpHeaders.TE).append(": ").append(getTeHeader()).append(CRLF);
+        }
+        if(getTimeoutHeader() != null) {
+            builder.append(HttpHeaders.TIMEOUT).append(": ").append(getTimeoutHeader()).append(CRLF);
+        }
+        if(getTrailerHeader() != null) {
+            builder.append(HttpHeaders.TRAILER).append(": ").append(getTrailerHeader()).append(CRLF);
+        }
+        if(getTransferEncodingHeader() != null) {
+            builder.append(HttpHeaders.TRANSFER_ENCODING).append(": ").append(getTransferEncodingHeader()).append(CRLF);
+        }
+        if(getUpgradeHeader() != null) {
+            builder.append(HttpHeaders.UPGRADE).append(": ").append(getUpgradeHeader()).append(CRLF);
+        }
+        if(getUserAgentHeader() != null) {
+            builder.append(HttpHeaders.USER_AGENT).append(": ").append(getUserAgentHeader()).append(CRLF);
+        }
+        if(getVaryHeader() != null) {
+            builder.append(HttpHeaders.VARY).append(": ").append(getVaryHeader()).append(CRLF);
+        }
+        if(getViaHeader() != null) {
+            builder.append(HttpHeaders.VIA).append(": ").append(getViaHeader()).append(CRLF);
+        }
+        if(getWarningHeader() != null) {
+            builder.append(HttpHeaders.WARNING).append(": ").append(getWarningHeader()).append(CRLF);
+        }
+        if(getWWWAuthenticateHeader() != null) {
+            builder.append(HttpHeaders.WWW_AUTHENTICATE).append(": ").append(getWWWAuthenticateHeader()).append(CRLF);
+        }
+        // Add the uncommon headers
+        HashMap<String, String> uncommonHeaders = getUncommonHeaders();
+        for(String name : uncommonHeaders.keySet()) {
+            if(uncommonHeaders.get(name) != null) {
+                builder.append(name).append(": ").append(uncommonHeaders.get(name)).append(CRLF);
+            }
         }
     }
 
-    /* Adds this request's entity headers and entity body to the specified StringBuilder. */
+    /* Adds this request's content-length header and entity body to the specified StringBuilder. */
     private void addEntityInfo(StringBuilder builder) {
-        String type = getContentType();
-        String encoding = getContentEncoding();
         String body = getEntityBody();
-        if(type != null) {
-            builder.append(HTTP.CONTENT_TYPE).append(": ").append(type).append(CRLF);
-        }
-        if(encoding != null) {
-            builder.append(HTTP.CONTENT_ENCODING).append(": ").append(encoding).append(CRLF);
-        }
         if(body != null) {
-            builder.append(HTTP.CONTENT_LEN).append(": ").append(body.length()).append(CRLF);
+            builder.append(HttpHeaders.CONTENT_LENGTH).append(": ").append(body.length()).append(CRLF);
             builder.append(CRLF).append(body);
         } else {
-            builder.append(HTTP.CONTENT_LEN).append(": ").append("0").append(CRLF).append(CRLF);
+            builder.append(HttpHeaders.CONTENT_LENGTH).append(": ").append("0").append(CRLF).append(CRLF);
         }
     }
 
@@ -230,7 +650,11 @@ public class PhosphorHttpRequest implements Serializable {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append(getMethod()).append(' ');
-        addURIInfo(builder);
+        try {
+            addURIInfo(builder);
+        } catch (Exception e) {
+             builder.append(uri.toASCIIString());
+        }
         builder.append(' ').append(getProtocolVersion()).append(CRLF);
         addHeaderInfo(builder);
         addEntityInfo(builder);
@@ -239,7 +663,6 @@ public class PhosphorHttpRequest implements Serializable {
 
     /* Reads bytes from the specified object's socket, structures the read bytes into a PhosphorHttpRequest, converts that
      * request back into bytes, and return a ByteBuffer wrapping those bytes. */
-    @SuppressWarnings("unused")
     public static ByteBuffer structureRequestBytes(Object obj) {
         try {
             String className = obj.getClass().getName().replace(".", "/");
@@ -337,7 +760,7 @@ public class PhosphorHttpRequest implements Serializable {
             entity = new InputStreamEntity(new ChunkedInputStream(sessionBuffer), -1, contentType);
         } else if(contentLength == ContentLengthStrategy.IDENTITY) {
             entity = new InputStreamEntity(new IdentityInputStream(sessionBuffer), -1, contentType);
-        } else if(contentLength > 0){
+        } else if(contentLength > 0) {
             byte[] content = new byte[(int)contentLength];
             int offset = sessionBuffer.read(content);
             if(offset < contentLength) {
