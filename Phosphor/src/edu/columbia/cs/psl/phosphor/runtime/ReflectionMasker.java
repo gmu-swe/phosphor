@@ -1212,8 +1212,8 @@ public class ReflectionMasker {
 		ArrayList<Field> ret = new ArrayList<Field>();
 		boolean removeSVUIDField = containsSVUIDSentinelField(in);
 		for (Field f : in) {
-			if(!f.getName().equals("taint") && !f.getName().endsWith(TaintUtils.TAINT_FIELD) && !f.getName().equals(TaintUtils.ADDED_SVUID_SENTINEL)
-					&& !(removeSVUIDField && f.getName().equals("serialVersionUID")) && !f.getName().equals(TaintUtils.MARK_FIELD)) {
+			if(!f.getName().equals("taint") && !f.getName().endsWith(TaintUtils.TAINT_FIELD) && !f.getName().startsWith(TaintUtils.PHOSPHOR_ADDED_FIELD_PREFIX)
+					&& !(removeSVUIDField && f.getName().equals("serialVersionUID"))) {
 					/* && !f.getName().equals(TaintUtils.IS_TAINT_SEATCHING_FIELD) && !f.getName().equals(TaintUtils.HAS_TAINT_FIELD) */
 				ret.add(f);
 			}
