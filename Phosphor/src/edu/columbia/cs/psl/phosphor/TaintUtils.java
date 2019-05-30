@@ -57,9 +57,10 @@ public class TaintUtils {
 	public static final int CUSTOM_SIGNAL_3 = 220;
 	public static final int LOOP_HEADER = 221;
 	public static final String TAINT_FIELD = "PHOSPHOR_TAG";
-	public static final String MARK_FIELD = "$$PHOSPHOR_MARK";
 	public static final String METHOD_SUFFIX = "$$PHOSPHORTAGGED";
-	public static final String ADDED_SVUID_SENTINEL = "$$PHOSPHOR_REMOVE_SVUID";
+	public static final String PHOSPHOR_ADDED_FIELD_PREFIX = "$$PHOSPHOR_";
+	public static final String MARK_FIELD = PHOSPHOR_ADDED_FIELD_PREFIX + "MARK";
+	public static final String ADDED_SVUID_SENTINEL = PHOSPHOR_ADDED_FIELD_PREFIX + "REMOVE_SVUID";
 //	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
 //	public static final String IS_TAINT_SEATCHING_FIELD = "INVIVO_IS_TAINT_SEARCHING";
 	public static final boolean DEBUG_ALL = false;
