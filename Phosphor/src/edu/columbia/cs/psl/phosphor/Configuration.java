@@ -57,6 +57,8 @@ public class Configuration {
 	public static String STRING_SET_TAG_TAINT_CLASS = "edu/columbia/cs/psl/phosphor/runtime/TaintChecker";
 	public static boolean ALWAYS_CHECK_FOR_FRAMES = false;
 
+	public static Class<? extends ClassVisitor> PRIOR_CLASS_VISITOR = null;
+
 	public static class Method {
 		final String name;
 		final String owner;
@@ -121,7 +123,7 @@ public class Configuration {
 	public static Class TAINT_TAG_OBJ_CLASS = (Taint.class);
 	public static Class TAINT_TAG_OBJ_ARRAY_CLASS = (LazyArrayObjTags.class);
 	public static String TAINT_INTERFACE_INTERNALNAME = !MULTI_TAINTING ? "edu/columbia/cs/psl/phosphor/struct/TaintedWithIntTag" : "edu/columbia/cs/psl/phosphor/struct/TaintedWithObjTag";
-	
+
 	public static Class<? extends TaintAdapter> extensionMethodVisitor;
 	public static Class extensionClassVisitor;
 

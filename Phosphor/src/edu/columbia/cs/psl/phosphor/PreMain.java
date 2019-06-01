@@ -288,6 +288,14 @@ public class PreMain {
 					if(OgnlUtilCV.isOgnlUtilClass(className)) {
 						_cv = new OgnlUtilCV(_cv);
 					}
+					if(Configuration.PRIOR_CLASS_VISITOR != null) {
+						try {
+							Constructor<? extends ClassVisitor> extra = Configuration.PRIOR_CLASS_VISITOR.getConstructor(ClassVisitor.class, Boolean.TYPE);
+							_cv = extra.newInstance(_cv, skipFrames);
+						} catch(Exception e) {
+							//
+						}
+					}
 					_cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
 					if (Configuration.WITH_SELECTIVE_INST)
 						cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
@@ -505,8 +513,7 @@ public class PreMain {
 					} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
 						e.printStackTrace();
 					}
-				} else if(s.startsWith("serialization"))
-				{
+				} else if(s.startsWith("serialization")) {
 					Configuration.TAINT_THROUGH_SERIALIZATION = true;
 				} else if(s.startsWith("implicitExceptions")){
 					Configuration.IMPLICIT_EXCEPTION_FLOW = true;
@@ -514,6 +521,15 @@ public class PreMain {
 					Configuration.ADDL_IGNORE = s.substring(7);
 				} else if (s.equals("withoutBranchNotTaken")) {
 					Configuration.WITHOUT_BRANCH_NOT_TAKEN = true;
+				} else if(s.startsWith(Instrumenter.opt_priorClassVisitor.getOpt() + "=")) {
+					String priorClassVisitorName = s.substring(Instrumenter.opt_priorClassVisitor.getOpt().length() + 1);
+					try {
+						@SuppressWarnings("unchecked")
+						Class<? extends ClassVisitor> temp = (Class<? extends ClassVisitor>)Class.forName(priorClassVisitorName);
+						Configuration.PRIOR_CLASS_VISITOR = temp;
+					} catch(Exception e) {
+						System.err.println("Failed to create specified prior class visitor: " + priorClassVisitorName);
+					}
 				}
 			}
 		}
