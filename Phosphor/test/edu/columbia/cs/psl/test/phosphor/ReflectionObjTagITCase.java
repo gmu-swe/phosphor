@@ -66,12 +66,29 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 	public static class ConstructorHolder {
 		public boolean bool;
 		public boolean[] bools;
+		public boolean[][] boolsArr;
+
+		@SuppressWarnings("unused")
 		public ConstructorHolder(boolean bool) {
 			this.bool = bool;
 		}
 
+		@SuppressWarnings("unused")
 		public ConstructorHolder(boolean[] bools) {
 			this.bools = bools;
+		}
+
+		@SuppressWarnings("unused")
+		public ConstructorHolder(boolean[] bools, boolean bool) {
+			this.bool = bool;
+			this.bools = bools;
+		}
+
+		@SuppressWarnings("unused")
+		public ConstructorHolder(boolean[][] boolsArr, boolean[] bools, boolean bool) {
+			this.bool = bool;
+			this.bools = bools;
+			this.boolsArr = boolsArr;
 		}
 	}
 
@@ -294,5 +311,29 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		assertNonNullTaint(MultiTainter.getTaint(byteField.get(holder)));
 		assertNonNullTaint(MultiTainter.getTaint(charField.get(holder)));
 		assertNonNullTaint(MultiTainter.getTaint(floatField.get(holder)));
+	}
+
+	/* Checks that phosphor parameters are correctly remapped when calling Constructor.getParameterTypes for a Constructor
+	 * with a primitive parameter. */
+	@Test
+	public void testPrimitiveConstructorGetParamTypes() throws Exception {
+		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Boolean.TYPE);
+		assertArrayEquals(new Class<?>[]{Boolean.TYPE}, cons.getParameterTypes());
+	}
+
+	/* Checks that phosphor parameters are correctly remapped when calling Constructor.getParameterTypes for a Constructor
+	 * with a primitive parameter and a primitive array parameter. */
+	@Test
+	public void testPrimitiveArrayConstructorGetParamTypes() throws Exception {
+		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(boolean[].class, Boolean.TYPE);
+		assertArrayEquals(new Class<?>[]{boolean[].class, Boolean.TYPE}, cons.getParameterTypes());
+	}
+
+	/* Checks that phosphor parameters are correctly remapped when calling Constructor.getParameterTypes for a Constructor
+	 * with a primitive parameter, a primitive array parameter, and primitive 2D array parameter. */
+	@Test
+	public void testPrimitive2DArrayConstructorGetParamTypes() throws Exception {
+		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(boolean[][].class, boolean[].class, Boolean.TYPE);
+		assertArrayEquals(new Class<?>[]{boolean[][].class, boolean[].class, Boolean.TYPE}, cons.getParameterTypes());
 	}
 }

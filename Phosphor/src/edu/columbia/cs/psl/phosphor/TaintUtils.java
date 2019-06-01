@@ -1146,4 +1146,13 @@ public class TaintUtils {
 				return false;
 		}
 	}
+
+	/* Returns the class instance resulting from removing any phosphor taint wrapping from the specified class. */
+	public static Class<?> getUnwrappedClass(Class<?> clazz) {
+		try {
+			return Class.forName(SourceSinkManager.remapReturnType(Type.getType(clazz)));
+		} catch(ClassNotFoundException e) {
+			return clazz;
+		}
+	}
 }

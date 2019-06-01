@@ -633,68 +633,50 @@ public class ReflectionMasker {
 		return m;
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public static Constructor getOrigMethod(Constructor m, boolean isObjTags) {
-		ArrayList<Class> origArgs = new ArrayList<Class>();
-		boolean hasSentinel = false;
-		boolean dontIgnorePrimitive = false;
-//		if(VM.isBooted())
-//		System.out.println("GOOM " + m);
-		for (Class c : m.getParameterTypes()) {
-			Type t = Type.getType(c);
-			if (c.getName().startsWith("edu.columbia.cs.psl.phosphor.struct.Lazy")) {
-				//Remove multid
-				String s = "[";
-				if(isObjTags) 
-					s += MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(c);
-				else 
-					s += MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(c);
-				try {
-					origArgs.add(Class.forName(s));
-				} catch (ClassNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} else if (t.getSort() == Type.ARRAY && t.getElementType().getSort() == Type.OBJECT && t.getElementType().getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/Lazy")) {
-				//Remove multid
-				String s = "";
-				for (int i = 0; i < t.getDimensions(); i++)
-					s += "[";
-				s += "[";
-				if(isObjTags)
-					s += MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(c);
-				else
-					s += MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(c);
-				try {
-					origArgs.add(Class.forName(s));
-				} catch (ClassNotFoundException e) {
-					e.printStackTrace();
-				}
-			} else if ((c.isArray() &&(c.getComponentType().isPrimitive()) || c == Configuration.TAINT_TAG_OBJ_ARRAY_CLASS)) {
-				if (dontIgnorePrimitive)
-					origArgs.add(c);
-				dontIgnorePrimitive = !dontIgnorePrimitive;
-			} else if (c.isPrimitive() || c.equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
-				if (dontIgnorePrimitive)
-					origArgs.add(c);
-				dontIgnorePrimitive = !dontIgnorePrimitive;
-			} else if (c.equals(TaintSentinel.class)) {
-				hasSentinel = true;
-			} else if (!c.equals(ControlTaintTagStack.class))
-				origArgs.add(c);
-		}
-		if (hasSentinel) {
-			Class[] args = new Class[origArgs.size()];
-			origArgs.toArray(args);
-			try {
-				return m.getDeclaringClass().getDeclaredConstructor(args);
-			} catch (NoSuchMethodException e) {
-				e.printStackTrace();
-			} catch (SecurityException e) {
-				e.printStackTrace();
+	/* Returns the original list of the parameters for a method that would produce a phosphor-added method with the specified
+	 * tainted parameters. */
+	private static SinglyLinkedList<Class<?>> getOriginalParamTypes(Class<?>[] taintedParamTypes) {
+		SinglyLinkedList<Class<?>> originalParamTypes = new SinglyLinkedList<>();
+		for(int i = 0; i < taintedParamTypes.length; i++) {
+			Class<?> paramType = taintedParamTypes[i];
+			if(paramType.equals(Taint.class) || paramType.equals(Integer.TYPE)) {
+				// Add the type of the primitive for which the current parameter is the taint tag
+				originalParamTypes.enqueue(taintedParamTypes[++i]);
+			} else if(LazyArrayObjTags.class.isAssignableFrom(paramType) || LazyArrayIntTags.class.isAssignableFrom(paramType)) {
+				// Add the type of the 1D primitive array for which the current parameter is the taint array
+				originalParamTypes.enqueue(taintedParamTypes[++i]);
+			} else if(paramType.getName().contains("edu.columbia.cs.psl.phosphor.struct.Lazy")) {
+				// Add the original multidimensional primitive array for the current LazyArray array
+				originalParamTypes.enqueue(TaintUtils.getUnwrappedClass(paramType));
+			} else if(!paramType.equals(TaintSentinel.class) && !paramType.equals(ControlTaintTagStack.class) &&
+					!TaintedPrimitiveWithObjTag.class.isAssignableFrom(paramType)
+					&& !TaintedPrimitiveWithIntTag.class.isAssignableFrom(paramType)) {
+				// Add the type as is if it is not TaintSentinel, ControlTaintTagStack or a TaintedPrimitiveWithXTags
+				originalParamTypes.enqueue(paramType);
 			}
 		}
-		return m;
+		return originalParamTypes;
+	}
+
+	@SuppressWarnings({"rawtypes", "unchecked", "unused"})
+	public static Constructor getOrigMethod(Constructor cons, boolean isObjTags) {
+		boolean hasSentinel = false;
+		for(Class<?> clazz : cons.getParameterTypes()) {
+			if(clazz.equals(TaintSentinel.class)) {
+				hasSentinel = true;
+				break;
+			}
+		}
+		if(hasSentinel) {
+			Class<?>[] origParams = getOriginalParamTypes(cons.getParameterTypes()).toArray(new Class<?>[0]);
+			try {
+				return cons.getDeclaringClass().getDeclaredConstructor(origParams);
+			} catch(NoSuchMethodException | SecurityException e) {
+				return cons;
+			}
+		} else {
+			return cons;
+		}
 	}
 
 	@SuppressWarnings("rawtypes")
