@@ -2099,7 +2099,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		        }
 	        }
 	        else {
-		        if(bsmArgs[1] instanceof Handle)
+		        if(bsmArgs.length > 1 && bsmArgs[1] instanceof Handle)
 		        {
 			        Type t = Type.getMethodType(((Handle)bsmArgs[1]).getDesc());
 			        if(TaintUtils.isPrimitiveType(t.getReturnType()))
