@@ -1,11 +1,11 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import java.io.Serializable;
+import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-
 /* A special case of linked list for ints to help avoid the cost of boxing primitive int to Integers. */
-public class IntSinglyLinkedList implements Serializable {
+public class IntSinglyLinkedList implements Serializable, Iterable<Integer> {
 
     private static final long serialVersionUID = 2804910377808863384L;
     // The first node in the list
@@ -154,6 +154,40 @@ public class IntSinglyLinkedList implements Serializable {
         return builder.append("]").toString();
     }
 
+    @Override
+    public boolean equals(Object other) {
+        if(this == other) {
+            return true;
+        } else if(other == null || getClass() != other.getClass()) {
+            return false;
+        } else {
+            IntSinglyLinkedList otherList = (IntSinglyLinkedList) other;
+            if(this.size != otherList.size) {
+                return false;
+            }
+            for(IntNode cur1 = this.head, cur2 = otherList.head; cur1 != null && cur2 != null; cur1 = cur1.next, cur2 =cur2.next) {
+                if(cur1.item != cur2.item) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 1;
+        for(IntNode cur = head; cur != null; cur = cur.next) {
+            result = 31 * result + cur.item;
+        }
+        return result;
+    }
+
+    @Override
+    public IntListIterator iterator() {
+        return new IntListIterator();
+    }
+
     /* Stores the in item in the list and a pointer to the next item. */
     private static class IntNode implements Serializable {
         private static final long serialVersionUID = -4640096704981960035L;
@@ -167,6 +201,67 @@ public class IntSinglyLinkedList implements Serializable {
         IntNode(int item, IntNode next) {
             this.item = item;
             this.next = next;
+        }
+    }
+
+    public class IntListIterator implements Iterator<Integer>, Serializable {
+
+        private static final long serialVersionUID = -3285172228359136604L;
+        // The node whose item will be returned next
+        IntNode current;
+        // The node before the last node returned
+        IntNode prev;
+
+        IntListIterator() {
+            current = head;
+            prev = null;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return current != null;
+        }
+
+        /* Returns the next int the list as a boxed Integer. */
+        @Override
+        public Integer next() {
+            return nextInt();
+        }
+
+        @Override
+        public void remove() {
+            if(prev == null && current == head) {
+                // No items have been returned yet
+                throw new IllegalStateException();
+            } else if(prev == null) {
+                // Removing the head
+                pop();
+            } else if(current == null) {
+                // Removing the tail
+                tail = prev;
+                prev.next = null;
+                size--;
+            } else {
+                // Removing node in the middle
+                prev.next = current;
+                size--;
+            }
+        }
+
+        /* Returns the next int in the list without boxing it. */
+        public int nextInt() {
+            if(current == null) {
+                throw new NoSuchElementException();
+            } else {
+                if(prev == null && current != head) {
+                    prev = head;
+                } else if(prev != null) {
+                    prev = prev.next;
+                }
+                int item = current.item;
+                current = current.next;
+                return item;
+            }
         }
     }
 }

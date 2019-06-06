@@ -210,6 +210,35 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
     }
 
     @Override
+    public boolean equals(Object other) {
+        if(this == other) {
+            return true;
+        } else if(other == null || getClass() != other.getClass()) {
+            return false;
+        } else {
+            SinglyLinkedList otherList = (SinglyLinkedList) other;
+            if(this.size != otherList.size) {
+                return false;
+            }
+            for(Node cur1 = this.head, cur2 = otherList.head; cur1 != null && cur2 != null; cur1 = cur1.next, cur2 =cur2.next) {
+                if((cur1.item != cur2.item) && (cur1.item == null || !cur1.item.equals(cur2.item))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 1;
+        for(Node cur = head; cur != null; cur = cur.next) {
+            result = 31 * result + (cur.item == null ? 0 : cur.item.hashCode());
+        }
+        return result;
+    }
+
+    @Override
     public Iterator<E> iterator() {
         return new SimpleListIterator();
     }
