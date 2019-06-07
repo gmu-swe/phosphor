@@ -330,12 +330,14 @@ public class Instrumenter {
 		Configuration.ALWAYS_CHECK_FOR_FRAMES = line.hasOption("alwaysCheckForFrames");
 
 		String priorClassVisitorName = line.getOptionValue(opt_priorClassVisitor.getOpt());
-		try {
-			@SuppressWarnings("unchecked")
-			Class<? extends ClassVisitor> temp = (Class<? extends ClassVisitor>)Class.forName(priorClassVisitorName);
-			Configuration.PRIOR_CLASS_VISITOR = temp;
-		} catch(Exception e) {
-			System.err.println("Failed to create specified prior class visitor: " + priorClassVisitorName);
+		if(priorClassVisitorName != null) {
+			try {
+				@SuppressWarnings("unchecked")
+				Class<? extends ClassVisitor> temp = (Class<? extends ClassVisitor>)Class.forName(priorClassVisitorName);
+				Configuration.PRIOR_CLASS_VISITOR = temp;
+			} catch(Exception e) {
+				System.err.println("Failed to create specified prior class visitor: " + priorClassVisitorName);
+			}
 		}
 
 		Configuration.init();

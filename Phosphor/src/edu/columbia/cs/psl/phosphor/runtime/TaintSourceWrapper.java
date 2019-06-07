@@ -25,38 +25,94 @@ import java.lang.reflect.Array;
  */
 public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
-	public void combineTaintsOnArray(Object inputArray, Taint<T> tag){
+	/* For multi-tainting/object tags. */
+	@SuppressWarnings({"unchecked", "unused"})
+	public static void combineTaintsOnArray(Object inputArray, Taint tag) {
+		if(inputArray instanceof LazyArrayObjTags) {
+			LazyArrayObjTags array = ((LazyArrayObjTags) inputArray);
+			if(array.taints == null) {
+				array.taints = new Taint[array.getLength()];
+			}
+			for(int i=0; i < array.getLength(); i++) {
+				if(array.taints[i] == null) {
+					array.taints[i] = tag.copy();
+				} else {
+					array.taints[i].addDependency(tag);
+				}
+			}
+		} else if(inputArray instanceof Object[]) {
+			for(int i = 0; i < ((Object[]) inputArray).length; i++) {
+				Object o = ((Object[])inputArray)[i];
+				if(o instanceof TaintedWithObjTag) {
+					Taint existing = (Taint) ((TaintedWithObjTag) o).getPHOSPHOR_TAG();
+					if(existing != null) {
+						existing.addDependency(tag);
+					} else {
+						((TaintedWithObjTag) o).setPHOSPHOR_TAG(tag.copy());
+					}
+				}
+			}
+		}
+	}
+
+	/* For int tags. */
+	@SuppressWarnings("unused")
+	public static void combineTaintsOnArray(Object obj, int tag) {
+		if(obj instanceof LazyArrayIntTags) {
+			((LazyArrayIntTags)obj).setTaints(tag);
+		} else if(obj instanceof Object[]) {
+			for(int i = 0; i < ((Object[]) obj).length; i++) {
+				if(((Object[])obj)[i] instanceof TaintedWithIntTag) {
+					((TaintedWithIntTag)((Object[])obj)[i]).setPHOSPHOR_TAG(tag);
+				}
+			}
+		}
+	}
+
+	/* Called by taintThrough methods. */
+	@SuppressWarnings({"unchecked", "unused"})
+	public void addTaint(Object obj, Taint<? extends AutoTaintLabel> tag) {
 		if(tag == null) {
 			return;
 		}
-		if(inputArray instanceof LazyArrayObjTags)
-		{
-			LazyArrayObjTags array = ((LazyArrayObjTags) inputArray);
-			if(array.taints == null)
-				array.taints = new Taint[array.getLength()];
-			for(int i=0; i < array.getLength();i++)
-			{
-				if(array.taints[i] == null)
-					array.taints[i] = tag.copy();
-				else
-					array.taints[i].addDependency(tag);
+		if(obj instanceof LazyArrayObjTags) {
+			combineTaintsOnArray(obj, tag);
+		} else if(obj instanceof TaintedWithObjTag) {
+			TaintedWithObjTag tainted = (TaintedWithObjTag) obj;
+			Taint prevTag = (Taint)tainted.getPHOSPHOR_TAG();
+			if(prevTag != null) {
+				prevTag.addDependency(tag);
+			} else {
+				tainted.setPHOSPHOR_TAG(tag);
 			}
-
-		}else if (inputArray instanceof Object[])
-		{
-			//Object[]
-			for(int i = 0; i < ((Object[]) inputArray).length; i++){
-				Object o = ((Object[])inputArray)[i];
-				if(o instanceof TaintedWithObjTag)
-				{
-
-					Taint existing = (Taint) ((TaintedWithObjTag) o).getPHOSPHOR_TAG();
-					if(existing != null)
-						existing.addDependency(tag);
-					else
-						((TaintedWithObjTag) o).setPHOSPHOR_TAG(tag.copy());
-				}
+		} else if(obj instanceof TaintedPrimitiveWithObjTag) {
+			TaintedPrimitiveWithObjTag tainted = (TaintedPrimitiveWithObjTag)obj;
+			if(tainted.taint != null) {
+				tainted.taint.addDependency(tag);
+			} else {
+				tainted.taint = tag;
 			}
+			autoTaint((TaintedPrimitiveWithObjTag) obj, tag);
+		} else if(obj.getClass().isArray()) {
+			for(int i = 0; i < Array.getLength(obj); i++) {
+				addTaint(Array.get(obj, i), tag);
+			}
+		}
+	}
+
+	/* Called by sources for the arguments and return value. */
+	@SuppressWarnings("unused")
+	public static void autoTaint(Object obj, int tag) {
+		if(obj instanceof LazyArrayIntTags) {
+			((LazyArrayIntTags)obj).setTaints(tag);
+		} else if(obj instanceof Object[]) {
+			for(int i = 0; i < ((Object[]) obj).length; i++) {
+				autoTaint(((Object[])obj)[i], tag);
+			}
+		} else if(obj instanceof TaintedWithIntTag) {
+			((TaintedWithIntTag) obj).setPHOSPHOR_TAG(tag);
+		} else if(obj instanceof TaintedPrimitiveWithIntTag) {
+			((TaintedPrimitiveWithIntTag) obj).taint = tag;
 		}
 	}
 
