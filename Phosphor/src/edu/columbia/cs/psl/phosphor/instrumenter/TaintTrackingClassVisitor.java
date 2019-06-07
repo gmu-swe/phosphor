@@ -792,24 +792,19 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						//T 
 						mv.visitInsn(Opcodes.DUP_X1);
 						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, taintType.getDescriptor());
-						
 						mv.visitVarInsn(Opcodes.ILOAD, 1);
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.STRING_SET_TAG_TAINT_CLASS, "setTaints", "("+taintType.getDescriptor()+"I)V", false);
-//=======
-//						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintChecker.class), "setTaints", "([II)V", false);
+						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 					} else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
 							.equals(TaintPassingMV.DOUBLE_NAME))) {
 							mv.visitVarInsn(Opcodes.ALOAD, 0);
 							mv.visitVarInsn(Opcodes.ILOAD, 1);
 							mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
 						//For primitive types, also set the "value" field
-//>>>>>>> master
 					}
 					mv.visitInsn(Opcodes.RETURN);
 					mv.visitMaxs(0, 0);
 					mv.visitEnd();
-				}
-				else {
+				} else {
 					mv = super.visitMethod(Opcodes.ACC_PUBLIC, "get" + TaintUtils.TAINT_FIELD, "()"+(Configuration.MULTI_TAINTING ? "Ljava/lang/Object;" : "I"), null, null);
 					mv = new TaintTagFieldCastMV(mv, "get" + TaintUtils.TAINT_FIELD);
 					mv.visitCode();
@@ -844,8 +839,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, taintType.getDescriptor());
 						
 						mv.visitVarInsn(Opcodes.ALOAD, 1);
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.STRING_SET_TAG_TAINT_CLASS, "setTaints", "("+taintType.getDescriptor()+"Ljava/lang/Object;)V", false);
-
+						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 					}  else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
 							.equals(TaintPassingMV.DOUBLE_NAME))) {
 						//For primitive types, also set the "value" field

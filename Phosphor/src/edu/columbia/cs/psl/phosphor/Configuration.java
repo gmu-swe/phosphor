@@ -54,7 +54,6 @@ public class Configuration {
 	
 	public static boolean ANNOTATE_LOOPS = false;
 	
-	public static String STRING_SET_TAG_TAINT_CLASS = "edu/columbia/cs/psl/phosphor/runtime/TaintChecker";
 	public static boolean ALWAYS_CHECK_FOR_FRAMES = false;
 
 	public static Class<? extends ClassVisitor> PRIOR_CLASS_VISITOR = null;
