@@ -27,7 +27,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
 	/* For multi-tainting/object tags. */
 	@SuppressWarnings({"unchecked", "unused"})
-	public static void combineTaintsOnArray(Object inputArray, Taint tag) {
+	public void combineTaintsOnArray(Object inputArray, Taint tag) {
 		if(inputArray instanceof LazyArrayObjTags) {
 			LazyArrayObjTags array = ((LazyArrayObjTags) inputArray);
 			if(array.taints == null) {
@@ -57,7 +57,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
 	/* For int tags. */
 	@SuppressWarnings("unused")
-	public static void combineTaintsOnArray(Object obj, int tag) {
+	public void combineTaintsOnArray(Object obj, int tag) {
 		if(obj instanceof LazyArrayIntTags) {
 			((LazyArrayIntTags)obj).setTaints(tag);
 		} else if(obj instanceof Object[]) {

@@ -779,6 +779,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
 						Type taintType = MultiDTaintedArray.getTypeForType(Type.getType(char[].class));
+						mv.visitFieldInsn(Opcodes.GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
 						mv.visitVarInsn(Opcodes.ALOAD, 0);
 						mv.visitInsn(Opcodes.DUP);
 						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value", "[C");
@@ -793,7 +794,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						mv.visitInsn(Opcodes.DUP_X1);
 						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, taintType.getDescriptor());
 						mv.visitVarInsn(Opcodes.ILOAD, 1);
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+						mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 					} else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
 							.equals(TaintPassingMV.DOUBLE_NAME))) {
 							mv.visitVarInsn(Opcodes.ALOAD, 0);
@@ -824,6 +825,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						//Also overwrite the taint tag of all of the chars behind this string
 
 						Type taintType = MultiDTaintedArray.getTypeForType(Type.getType(char[].class));
+						mv.visitFieldInsn(Opcodes.GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
 						mv.visitVarInsn(Opcodes.ALOAD, 0);
 						mv.visitInsn(Opcodes.DUP);
 						mv.visitFieldInsn(Opcodes.GETFIELD, className, "value", "[C");
@@ -839,7 +841,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, taintType.getDescriptor());
 						
 						mv.visitVarInsn(Opcodes.ALOAD, 1);
-						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
+						mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
 					}  else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
 							.equals(TaintPassingMV.DOUBLE_NAME))) {
 						//For primitive types, also set the "value" field
