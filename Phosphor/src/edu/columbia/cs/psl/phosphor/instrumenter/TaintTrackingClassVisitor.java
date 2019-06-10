@@ -12,6 +12,7 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.tree.*;
+import sun.security.krb5.Config;
 
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
@@ -1759,27 +1760,62 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		ga.visitCode();
 		ga.visitLabel(start.getLabel());
 		if(isLambda){
-			switch(Type.getReturnType(newDesc).getSort()){
-				case Type.INT:
-				case Type.SHORT:
-				case Type.BOOLEAN:
-				case Type.BYTE:
-				case Type.CHAR:
-					ga.visitInsn(Opcodes.ICONST_0);
-					break;
-				case Type.ARRAY:
-				case Type.OBJECT:
-					ga.visitInsn(Opcodes.ACONST_NULL);
-					break;
-				case Type.LONG:
-					ga.visitInsn(Opcodes.LCONST_0);
-					break;
-				case Type.DOUBLE:
-					ga.visitInsn(Opcodes.DCONST_0);
-					break;
-				case Type.FLOAT:
-					ga.visitInsn(Opcodes.FCONST_0);
-					break;
+			if(m.name.equals("equals"))
+			{
+				int retVar = (Configuration.IMPLICIT_TRACKING ? 3 : 2);
+				ga.visitVarInsn(Opcodes.ALOAD, retVar);
+				ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint",Configuration.TAINT_TAG_DESC);
+
+				ga.visitVarInsn(Opcodes.ALOAD, 0);
+				ga.visitVarInsn(Opcodes.ALOAD, 1);
+				Label eq = new Label();
+				ga.visitJumpInsn(Opcodes.IF_ACMPEQ, eq);
+				ga.visitVarInsn(Opcodes.ALOAD, retVar);
+				ga.visitInsn(Opcodes.DUP);
+				ga.visitInsn(Opcodes.ICONST_0);
+				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "value","Z");
+				ga.visitInsn(Opcodes.ARETURN);
+				ga.visitLabel(eq);
+				ga.visitFrame(Opcodes.F_NEW, 0, new Object[]{className,"java/lang/Object",newReturn.getInternalName()}, 0, new Object[]{});
+				ga.visitVarInsn(Opcodes.ALOAD, retVar);
+				ga.visitInsn(Opcodes.DUP);
+				ga.visitInsn(Opcodes.ICONST_1);
+				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "value","Z");
+			}
+			else if(m.name.equals("hashCode")){
+				int retVar = (Configuration.IMPLICIT_TRACKING ? 2 : 1);
+				ga.visitVarInsn(Opcodes.ALOAD, retVar);
+				ga.visitInsn(Opcodes.DUP);
+				ga.visitInsn(Opcodes.DUP);
+				ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint",Configuration.TAINT_TAG_DESC);
+				ga.visitInsn(Opcodes.ICONST_0);
+				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "value","I");
+			}
+			else {
+				switch (Type.getReturnType(newDesc).getSort()) {
+					case Type.INT:
+					case Type.SHORT:
+					case Type.BOOLEAN:
+					case Type.BYTE:
+					case Type.CHAR:
+						ga.visitInsn(Opcodes.ICONST_0);
+						break;
+					case Type.ARRAY:
+					case Type.OBJECT:
+						ga.visitInsn(Opcodes.ACONST_NULL);
+						break;
+					case Type.LONG:
+						ga.visitInsn(Opcodes.LCONST_0);
+						break;
+					case Type.DOUBLE:
+						ga.visitInsn(Opcodes.DCONST_0);
+						break;
+					case Type.FLOAT:
+						ga.visitInsn(Opcodes.FCONST_0);
+						break;
+				}
 			}
 		}else {
 			String descToCall = m.desc;
