@@ -716,7 +716,17 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			Label end = new Label();
 			mv.visitLabel(start);
 			if(isLambda) {
+				int retVar = (Configuration.IMPLICIT_TRACKING ? 3 : 2);
+
+				mv.visitVarInsn(Opcodes.ALOAD, 0);
+				mv.visitVarInsn(Opcodes.ALOAD, 1);
+				Label eq = new Label();
+				mv.visitJumpInsn(Opcodes.IF_ACMPEQ, eq);
 				mv.visitInsn(Opcodes.ICONST_0);
+				mv.visitInsn(Opcodes.IRETURN);
+				mv.visitLabel(eq);
+				mv.visitFrame(Opcodes.F_NEW, 2, new Object[]{className,"java/lang/Object"}, 0, new Object[]{});
+				mv.visitInsn(Opcodes.ICONST_1);
 			}
 			else
 			{
@@ -1774,14 +1784,17 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				ga.visitVarInsn(Opcodes.ALOAD, retVar);
 				ga.visitInsn(Opcodes.DUP);
 				ga.visitInsn(Opcodes.ICONST_0);
-				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "value","Z");
+				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val","Z");
 				ga.visitInsn(Opcodes.ARETURN);
 				ga.visitLabel(eq);
-				ga.visitFrame(Opcodes.F_NEW, 0, new Object[]{className,"java/lang/Object",newReturn.getInternalName()}, 0, new Object[]{});
+				if(Configuration.IMPLICIT_TRACKING)
+					ga.visitFrame(Opcodes.F_NEW, 4, new Object[]{className,"java/lang/Object",Type.getInternalName(ControlTaintTagStack.class), newReturn.getInternalName()}, 0, new Object[]{});
+				else
+					ga.visitFrame(Opcodes.F_NEW, 3, new Object[]{className,"java/lang/Object",newReturn.getInternalName()}, 0, new Object[]{});
 				ga.visitVarInsn(Opcodes.ALOAD, retVar);
 				ga.visitInsn(Opcodes.DUP);
 				ga.visitInsn(Opcodes.ICONST_1);
-				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "value","Z");
+				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val","Z");
 			}
 			else if(m.name.equals("hashCode")){
 				int retVar = (Configuration.IMPLICIT_TRACKING ? 2 : 1);
@@ -1791,7 +1804,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
 				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint",Configuration.TAINT_TAG_DESC);
 				ga.visitInsn(Opcodes.ICONST_0);
-				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "value","I");
+				ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val","I");
 			}
 			else {
 				switch (Type.getReturnType(newDesc).getSort()) {
