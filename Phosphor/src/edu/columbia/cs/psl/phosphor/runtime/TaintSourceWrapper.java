@@ -72,7 +72,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 	/* Called by taintThrough methods. */
 	@SuppressWarnings({"unchecked", "unused"})
 	public void addTaint(Object obj, Taint<? extends AutoTaintLabel> tag) {
-		if(tag == null) {
+		if(tag == null || obj == null) {
 			return;
 		}
 		if(obj instanceof LazyArrayObjTags) {
