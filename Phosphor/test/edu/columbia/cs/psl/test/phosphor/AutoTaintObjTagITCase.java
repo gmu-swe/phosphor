@@ -11,6 +11,7 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSinkError;
 
 import java.net.URI;
+import java.nio.channels.SocketChannel;
 
 public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 
@@ -177,5 +178,13 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		MultiTainter.taintedObject(uri, new Taint<>("testURITaintThrough"));
 		String path = uri.getPath();
 		assertNonNullTaint(path);
+	}
+
+	@Test
+	public void testSocketChannelTaintThrough() throws Exception {
+		SocketChannel channel = SocketChannel.open();
+		MultiTainter.taintedObject(channel, new Taint<>("testSocketChannelTaintThrough"));
+		boolean connected = channel.isConnected();
+		assertNonNullTaint(MultiTainter.getTaint(connected));
 	}
 }

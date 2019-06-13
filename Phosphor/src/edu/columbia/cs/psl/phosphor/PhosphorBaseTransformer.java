@@ -51,7 +51,8 @@ public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
     }
 
     private byte[] signalAndTransform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-        if(className != null && className.startsWith("sun")) {
+        if(className != null && className.startsWith("sun") && !className.startsWith("sun/nio")) {
+            // Avoid instrumenting dynamically generated accessors for reflection
             return classfileBuffer;
         }
         try {

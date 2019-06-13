@@ -5,3 +5,4 @@ edu/columbia/cs/psl/test/phosphor/util/TaintThroughExample.passStringTaintThroug
 edu/columbia/cs/psl/test/phosphor/util/TaintThroughExample.staticMethod(Ljava/lang/String;)Ljava/lang/String;
 
 java/net/URI.getPath()Ljava/lang/String;
+java/nio/channels/SocketChannel.isConnected()Z
