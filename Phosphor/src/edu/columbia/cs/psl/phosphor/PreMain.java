@@ -288,6 +288,9 @@ public class PreMain {
 					if(OgnlUtilCV.isOgnlUtilClass(className)) {
 						_cv = new OgnlUtilCV(_cv);
 					}
+					if(JettyBufferUtilCV.isApplicable(className)) {
+						_cv = new JettyBufferUtilCV(_cv);
+					}
 					if(Configuration.PRIOR_CLASS_VISITOR != null) {
 						try {
 							Constructor<? extends ClassVisitor> extra = Configuration.PRIOR_CLASS_VISITOR.getConstructor(ClassVisitor.class, Boolean.TYPE);
