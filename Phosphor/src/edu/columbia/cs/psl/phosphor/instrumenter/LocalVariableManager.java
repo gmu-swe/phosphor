@@ -42,6 +42,17 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	}
 
 	private boolean isInMethodThatsTooBig;
+
+	@Override
+	public void visitIincInsn(int var, int increment) {
+		if(isIgnoreEverything){
+			isInMethodThatsTooBig = true;
+			mv.visitIincInsn(var, increment);
+		}
+		else
+			super.visitIincInsn(var, increment);
+	}
+
 	@Override
 	public void visitVarInsn(int opcode, int var) {
 		if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START || isIgnoreEverything)

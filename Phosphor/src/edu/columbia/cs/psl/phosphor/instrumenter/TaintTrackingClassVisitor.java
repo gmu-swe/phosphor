@@ -303,7 +303,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			MethodVisitor _mv = mv;
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
-			mv = new UninstrumentedCompatMV(access, className, name, newDesc, signature, (String[]) exceptions, mv, analyzer, ignoreFrames);
+			mv = new UninstrumentedCompatMV(access, className, name, newDesc, null, signature, (String[]) exceptions, mv, analyzer, ignoreFrames);
 			LocalVariableManager lvs = new LocalVariableManager(access, newDesc, mv, analyzer, _mv, generateExtraLVDebug);
 			((UninstrumentedCompatMV) mv).setLocalVariableSorter(lvs);
 			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, null);
@@ -484,7 +484,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 				tmv.setFields(fields);
 				TaintAdapter custom = null;
 
-				UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, newDesc, signature, exceptions, boxFixer, analyzer, ignoreFrames);
+				UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, newDesc, oldReturnType, signature, exceptions, boxFixer, analyzer, ignoreFrames);
 				instOrUninstChoosingMV = new InstOrUninstChoosingMV(tmv,umv);
 				lvs = new LocalVariableManager(access, newDesc, instOrUninstChoosingMV, analyzer,mv, generateExtraLVDebug);
 				umv.setLocalVariableSorter(lvs);
@@ -1541,7 +1541,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv = analyzer;
 					mv = new UninstrumentedReflectionHidingMV(mv, className);
 					UninstrumentedReflectionHidingMV ta = (UninstrumentedReflectionHidingMV) mv;
-					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc,mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames);
+					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc, Type.getReturnType(mn.desc), mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames);
 					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.desc, mv, analyzer, analyzer, generateExtraLVDebug);
 					final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, mn.access, mn.name, mn.desc, null, null, null);
 					lvs.disable();

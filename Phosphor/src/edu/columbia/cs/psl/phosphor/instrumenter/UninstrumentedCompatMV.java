@@ -22,12 +22,16 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 public class UninstrumentedCompatMV extends TaintAdapter {
 	private NeverNullArgAnalyzerAdapter analyzer;
 	private boolean skipFrames;
+	private Type returnType;
+	private Type originalReturnType;
 
-	public UninstrumentedCompatMV(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer,
+	public UninstrumentedCompatMV(int access, String className, String name, String desc, Type originalReturnType, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer,
 			boolean skipFrames) {
 		super(access, className, name, desc, signature, exceptions, mv, analyzer);
 		this.analyzer = analyzer;
 		this.skipFrames = skipFrames;
+		this.returnType = Type.getReturnType(desc);
+		this.originalReturnType = originalReturnType;
 	}
 
 	@Override
@@ -226,6 +230,21 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 			super.visitInsn(opcode);
 
 			break;
+			case Opcodes.IRETURN:
+			case Opcodes.DRETURN:
+			case Opcodes.FRETURN:
+			case Opcodes.LRETURN:
+				int lv = lvs.getPreAllocedReturnTypeVar(returnType);
+				super.visitVarInsn(Opcodes.ALOAD, lv);
+				super.visitInsn(DUP);
+				super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+				super.visitFieldInsn(Opcodes.PUTFIELD, returnType.getInternalName(), "taint",Configuration.TAINT_TAG_DESC);
+
+				super.visitInsn(SWAP);
+				super.visitFieldInsn(Opcodes.PUTFIELD, returnType.getInternalName(), "val", originalReturnType.getDescriptor());
+				super.visitVarInsn(Opcodes.ALOAD, lv);
+				super.visitInsn(ARETURN);
+				break;
 		default:
 			super.visitInsn(opcode);
 			break;
@@ -345,12 +364,12 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 					}
 				}
 			}
-			else
+			else if(desc.contains("Ljava/lang/Object;"))
 			{
-				hasChangedDesc = true;
 				String newDesc = TaintUtils.remapMethodDesc(desc);
 				Type[] args = Type.getArgumentTypes(desc);
-				
+				hasChangedDesc = true;
+
 				int[] argStorage = new int[args.length];
 				for (int i = 0; i < args.length; i++) {
 					Type t = args[args.length - i - 1];
@@ -414,7 +433,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 				super.visitInsn(Opcodes.ACONST_NULL);
 				desc = desc.substring(0,desc.indexOf(')'))+Type.getDescriptor(TaintSentinel.class)+")"+desc.substring(desc.indexOf(')')+1);
 			}
-			else
+			else if(hasChangedDesc)
 			{
 				if((origReturnType.getSort() == Type.ARRAY && origReturnType.getDimensions() == 1 && origReturnType.getElementType().getSort() != Type.OBJECT)
 						|| (origReturnType.getSort() != Type.ARRAY && origReturnType.getSort() != Type.OBJECT && origReturnType.getSort() != Type.VOID))
@@ -423,19 +442,17 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 					super.visitVarInsn(ALOAD, lvs.getPreAllocedReturnTypeVar(newReturnType));
 					name += TaintUtils.METHOD_SUFFIX;
 				}
-				else if(hasChangedDesc)
-					name += TaintUtils.METHOD_SUFFIX;
+				name += TaintUtils.METHOD_SUFFIX;
 			}
 			super.visitMethodInsn(opcode, owner, name, desc, itf);
-			if(origReturnType.getSort() == Type.ARRAY && origReturnType.getDimensions() == 1 && origReturnType.getElementType().getSort() != Type.OBJECT)
-			{
-				//unbox array
-				super.visitFieldInsn(GETFIELD, newReturnType.getInternalName(), "val", origReturnType.getDescriptor());
-			}
-			else if(origReturnType.getSort() != Type.ARRAY && origReturnType.getSort() != Type.OBJECT && origReturnType.getSort() != Type.VOID)
-			{
-				//unbox prim
-				super.visitFieldInsn(GETFIELD, newReturnType.getInternalName(), "val", origReturnType.getDescriptor());
+			if(hasChangedDesc) {
+				if (origReturnType.getSort() == Type.ARRAY && origReturnType.getDimensions() == 1 && origReturnType.getElementType().getSort() != Type.OBJECT) {
+					//unbox array
+					super.visitFieldInsn(GETFIELD, newReturnType.getInternalName(), "val", origReturnType.getDescriptor());
+				} else if (origReturnType.getSort() != Type.ARRAY && origReturnType.getSort() != Type.OBJECT && origReturnType.getSort() != Type.VOID) {
+					//unbox prim
+					super.visitFieldInsn(GETFIELD, newReturnType.getInternalName(), "val", origReturnType.getDescriptor());
+				}
 			}
 		}
 		else
