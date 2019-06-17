@@ -23,6 +23,8 @@ public class SinkTaintingMV extends AdviceAdapter {
     private final Label startLabel;
     // Ends the scope of the try block starts the finally block
     private final Label endLabel;
+    // Whether the last parameter of the method being visited is a pre-allocated return value parameter or a TaintSentinel
+    private final boolean skipLastParam;
 
     public SinkTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc) {
         super(Configuration.ASM_VERSION, mv, access, name, desc);
@@ -32,6 +34,14 @@ public class SinkTaintingMV extends AdviceAdapter {
         this.isStatic = (access & ACC_STATIC) != 0;
         this.startLabel = new Label();
         this.endLabel = new Label();
+        if(this.args.length > 0) {
+            Type lastArg = this.args[this.args.length-1];
+            this.skipLastParam = TaintUtils.isTaintSentinel(lastArg) ||
+                    (lastArg.equals(Type.getReturnType(desc)) && TaintUtils.isTaintedPrimitiveType(lastArg));
+        } else {
+            // There is no last param to skip
+            this.skipLastParam = false;
+        }
     }
 
     /* Adds code to make a call to enteringSink. */
@@ -78,14 +88,14 @@ public class SinkTaintingMV extends AdviceAdapter {
 
     /* Adds the code to create an appropriately sized array for all of the objects that need to be checked for taint tags. */
     private void initializeArgumentArray() {
-        int count = 0;
-        for (int i = 0; i < args.length; i++) {
+        int count = skipLastParam ? -1 : 0; // Subtract one if skipping a param
+        for(int i = 0; i < args.length; i++) {
             if(args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
                 // Argument is a taint tag
                 count++;
                 // Skip the next arg - it is the primitive whose taint tag was just counted
                 i++;
-            } else if (args[i].getSort() == Type.OBJECT || (args[i].getSort() == Type.ARRAY && args[i].getElementType().getSort() == Type.OBJECT)) {
+            } else if(args[i].getSort() == Type.OBJECT || (args[i].getSort() == Type.ARRAY && args[i].getElementType().getSort() == Type.OBJECT)) {
                 count++;
             }
         }
@@ -111,8 +121,8 @@ public class SinkTaintingMV extends AdviceAdapter {
         int arrayIdx = 0;
         // Added objects that need to be checked to the array
         int idx = isStatic ? 0 : 1; // Start the arguments array after "this" argument for non-static methods
-        for (int i = 0; i < args.length; i++) {
-            if(args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
+        for (int i = 0; i < (skipLastParam ? args.length - 1 : args.length); i++) {
+            if(args[i].getDescriptor().equals(Configuration.TAINT_TAG_DESC) && (i+1 < args.length)) {
                 // The argument is a taint tag
                 addWrappedPrimitive(arrayIdx++, idx, idx + args[i].getSize(), args[i+1]);
                 // Skip the primitive associated with this taint tag

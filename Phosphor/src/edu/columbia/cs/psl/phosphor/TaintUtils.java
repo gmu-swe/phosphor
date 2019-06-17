@@ -1156,4 +1156,21 @@ public class TaintUtils {
 			return clazz;
 		}
 	}
+
+	/* Returns whether the specified type is a primitive wrapper type. */
+	public static boolean isTaintedPrimitiveType(Type type) {
+		if(type == null) {
+			return false;
+		} else if(Configuration.MULTI_TAINTING) {
+			return type.equals(Type.getType(TaintedByteWithObjTag.class)) || type.equals(Type.getType(TaintedBooleanWithObjTag.class))
+					|| type.equals(Type.getType(TaintedCharWithObjTag.class)) || type.equals(Type.getType(TaintedDoubleWithObjTag.class))
+					|| type.equals(Type.getType(TaintedFloatWithObjTag.class)) || type.equals(Type.getType(TaintedIntWithObjTag.class))
+					|| type.equals(Type.getType(TaintedLongWithObjTag.class)) || type.equals(Type.getType(TaintedShortWithObjTag.class));
+		} else {
+			return type.equals(Type.getType(TaintedByteWithIntTag.class)) || type.equals(Type.getType(TaintedBooleanWithIntTag.class))
+					|| type.equals(Type.getType(TaintedCharWithIntTag.class)) || type.equals(Type.getType(TaintedDoubleWithIntTag.class))
+					|| type.equals(Type.getType(TaintedFloatWithIntTag.class)) || type.equals(Type.getType(TaintedIntWithIntTag.class))
+					|| type.equals(Type.getType(TaintedLongWithIntTag.class)) || type.equals(Type.getType(TaintedShortWithIntTag.class));
+		}
+	}
 }
