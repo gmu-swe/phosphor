@@ -291,6 +291,9 @@ public class PreMain {
 					if(JettyBufferUtilCV.isApplicable(className)) {
 						_cv = new JettyBufferUtilCV(_cv);
 					}
+					if(PowerMockUtilCV.isApplicable(className)) {
+						_cv = new PowerMockUtilCV(_cv);
+					}
 					if(Configuration.PRIOR_CLASS_VISITOR != null) {
 						try {
 							Constructor<? extends ClassVisitor> extra = Configuration.PRIOR_CLASS_VISITOR.getConstructor(ClassVisitor.class, Boolean.TYPE);
