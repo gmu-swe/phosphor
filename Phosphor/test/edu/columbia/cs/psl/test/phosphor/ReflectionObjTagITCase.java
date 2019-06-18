@@ -10,6 +10,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 import org.junit.Test;
@@ -142,6 +143,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		assertNotNull(MultiTainter.getTaint(fh.z));
 
 	}
+
 	@Test
 	public void testRefArraySet() {
 		int[] arr = { 18 };
@@ -335,5 +337,42 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 	public void testPrimitive2DArrayConstructorGetParamTypes() throws Exception {
 		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(boolean[][].class, boolean[].class, Boolean.TYPE);
 		assertArrayEquals(new Class<?>[]{boolean[][].class, boolean[].class, Boolean.TYPE}, cons.getParameterTypes());
+	}
+
+	/* Checks that phosphor added equals and hashcode methods are hidden from Class.getDeclaredMethods. */
+	@Test
+	public void testHashCodeAndEqualsHiddenFromGetDeclaredMethods() {
+		String[] methodNames = new String[]{"primitiveParamMethod", "primitiveArrParamMethod"};
+		Class<?>[] returnTypes = new Class<?>[]{Integer.TYPE, Integer.TYPE};
+		Class<?>[][] paramTypes = new Class<?>[][]{
+				new Class<?>[]{Boolean.TYPE},
+				new Class<?>[]{boolean[].class},
+		};
+		Method[] methods = MethodHolder.class.getDeclaredMethods();
+		assertEquals(2, methods.length);
+		for(Method method : methods) {
+			boolean methodMatchesExpected = false;
+			for(int i = 0; i < methodNames.length; i++) {
+				if(method.getName().equals(methodNames[i]) && method.getReturnType().equals(returnTypes[i])
+					&& Arrays.equals(method.getParameterTypes(), paramTypes[i])) {
+					methodMatchesExpected = true;
+					break;
+				}
+			}
+			assertTrue(methodMatchesExpected);
+		}
+	}
+
+	/* Checks that phosphor added equals and hashcode methods are replaced by Object.equals and Object.hashCode for
+	 * Class.getMethods. */
+	@Test
+	public void testHashCodeAndEqualsReplacedInGetMethods() throws NoSuchMethodException {
+		HashSet<Method> expected = new HashSet<>();
+		expected.add(MethodHolder.class.getDeclaredMethod("primitiveParamMethod", Boolean.TYPE));
+		expected.add(MethodHolder.class.getDeclaredMethod("primitiveArrParamMethod", boolean[].class));
+		expected.addAll(Arrays.asList(Object.class.getMethods()));
+		Method[] methods = MethodHolder.class.getMethods();
+		HashSet<Method> actual = new HashSet<>(Arrays.asList(methods));
+		assertEquals(expected, actual);
 	}
 }

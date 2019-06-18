@@ -25,32 +25,31 @@ public class ReflectionMasker {
 
 	public static final boolean IS_KAFFE = false;
 
-	public static Class<?> getClassOOS(Object o)
-	{
+	public static Class<?> getClassOOS(Object o) {
 		if(o instanceof LazyArrayObjTags && ((LazyArrayObjTags) o).taints != null)
 			return o.getClass();
 		else if(o instanceof LazyArrayIntTags && ((LazyArrayIntTags) o).taints != null)
 			return o.getClass();
 		return removeTaintClass(o.getClass(), Configuration.MULTI_TAINTING);
 	}
-	public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset, ControlTaintTagStack ctrl)
-	{
+
+	public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset, ControlTaintTagStack ctrl) {
 		return MultiDTaintedArrayWithObjTag.boxIfNecessary(u.getObject(obj, offset));
 	}
-	public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset)
-	{
+
+	public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset) {
 		return MultiDTaintedArrayWithObjTag.boxIfNecessary(u.getObject(obj, offset));
 	}
-	public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long offset)
-	{
+
+	public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long offset) {
 		return MultiDTaintedArrayWithIntTag.boxIfNecessary(u.getObject(obj, offset));
 	}
-	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long fieldOffset, Object val, ControlTaintTagStack ctrl)
-	{
+
+	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long fieldOffset, Object val, ControlTaintTagStack ctrl) {
 		putObject$$PHOSPHORTAGGED(u, obj, tag, fieldOffset, val);
 	}
-	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long fieldOffset, Object val)
-	{
+
+	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long fieldOffset, Object val) {
 		//Need to put the actual obj if its a lazyarray and the offset points to the tag field
 		if(val instanceof LazyArrayIntTags)
 		{
@@ -83,8 +82,7 @@ public class ReflectionMasker {
 		u.putObject(obj, fieldOffset, val);
 	}
 
-	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val)
-	{
+	public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val) {
 		//Need to put the actual obj if its a lazyarray and the offset points to the tag field
 		if(val instanceof LazyArrayObjTags)
 		{
@@ -117,8 +115,7 @@ public class ReflectionMasker {
 		u.putObject(obj, fieldOffset, val);
 	}
 	
-	private static void putTaintWrapper(Unsafe u, Field origField, Object obj, Object val)
-	{
+	private static void putTaintWrapper(Unsafe u, Field origField, Object obj, Object val) {
 		if(origField.getType().isArray() && origField.getType().getComponentType().isPrimitive())
 			try {
 				Field taintField = origField.getDeclaringClass().getDeclaredField(origField.getName()+TaintUtils.TAINT_FIELD);
@@ -128,11 +125,12 @@ public class ReflectionMasker {
 			}
 		
 	}
+
 	public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val, ControlTaintTagStack ctrl){
 		putObjectVolatile$$PHOSPHORTAGGED(u, obj, tag, fieldOffset, val);
 	}
-	public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val)
-	{
+
+	public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val) {
 		//Need to put the actual obj if its a lazyarray and the offset points to the tag field
 		if(val instanceof LazyArrayObjTags)
 		{
@@ -165,7 +163,6 @@ public class ReflectionMasker {
 		u.putObjectVolatile(obj, fieldOffset, val);
 	}
 
-	
 	public static TaintedBooleanWithIntTag isInstance(Class<?> c1, Object o, TaintedBooleanWithIntTag ret) {
 		ret.taint = 0;
 		if (o instanceof LazyArrayIntTags || o instanceof LazyArrayIntTags[]) {
@@ -177,9 +174,11 @@ public class ReflectionMasker {
 			ret.val = c1.isInstance(o);
 		return ret;
 	}
+
 	public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, ControlTaintTagStack ctr, TaintedBooleanWithObjTag ret) {
 		return isInstance(c1, o, ret);
 	}
+
 	public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, TaintedBooleanWithObjTag ret) {
 		ret.taint = null;
 		if (o instanceof LazyArrayObjTags || o instanceof LazyArrayObjTags[]) {
@@ -191,6 +190,7 @@ public class ReflectionMasker {
 			ret.val = c1.isInstance(o);
 		return ret;
 	}
+
 	public static TaintedBooleanWithObjTag isInstanceOOS(Class<?> c1, Object o, TaintedBooleanWithObjTag ret) {
 		ret.taint = null;
 		if (o instanceof LazyArrayObjTags || o instanceof LazyArrayObjTags[]) {
@@ -202,6 +202,7 @@ public class ReflectionMasker {
 			ret.val = c1.isInstance(o);
 		return ret;
 	}
+
 	public static TaintedBooleanWithIntTag isInstanceOOS(Class<?> c1, Object o, TaintedBooleanWithIntTag ret) {
 		ret.taint = 0;
 		if (o instanceof LazyArrayIntTags || o instanceof LazyArrayIntTags[]) {
@@ -214,9 +215,7 @@ public class ReflectionMasker {
 		return ret;
 	}
 
-	
-	public static String getPropertyHideBootClasspath(String prop)
-	{
+	public static String getPropertyHideBootClasspath(String prop) {
 		if(prop.equals("sun.boot.class.path"))
 			return null;
 		else if(prop.equals("os.name"))
@@ -734,6 +733,7 @@ public class ReflectionMasker {
 	public static Method getDeclaredMethod(Class czz, String name, Class[] params, boolean isObjTags) throws NoSuchMethodException {
 		return czz.getDeclaredMethod(name, params);
 	}
+
 	public static Method getDeclaredMethod$$PHOSPHORTAGGED(Class czz, String name, Class[] params, ControlTaintTagStack ctrl) throws NoSuchMethodException {
 		return czz.getDeclaredMethod(name, params);
 	}
@@ -761,6 +761,7 @@ public class ReflectionMasker {
 		System.exit(-1);
 		return null;
 	}
+
 	public static Method getMethod(Class czz, String name, Class[] params, boolean isObjTags) throws NoSuchMethodException {
 		if (czz == Object.class || czz.isAnnotation() || Instrumenter.isIgnoredClass(czz.getName().replace('.', '/')))
 		    return czz.getMethod(name, params);
@@ -1317,51 +1318,81 @@ public class ReflectionMasker {
 	static final char[] FIELDSUFFIXCHARS = TaintUtils.TAINT_FIELD.toCharArray();
 	static final int FIELDSUFFIXLEN = FIELDSUFFIXCHARS.length;
 
-	public static Method[] removeTaintMethods(Method[] in) {
-		ArrayList<Method> ret = new ArrayList<Method>();
-		for (Method f : in) {
+	/* Called to mask Class.getDeclaredMethods and Class.getMethods. If declaredOnly is true then synthetic equals and
+	 * hashCode methods are fully remove from the specified array, otherwise they are replaced with Object.equals and
+	 * Object.hashCode respectively. */
+	@SuppressWarnings("unused")
+	public static Method[] removeTaintMethods(Method[] in, boolean declaredOnly) {
+		SinglyLinkedList<Method> ret = new SinglyLinkedList<>();
+		for(Method f : in) {
 			final char[] chars = f.getName().toCharArray();
 			boolean match = false;
-			if (chars.length == GETSETLEN) {
+			if(chars.length == GETSETLEN) {
 				match = true;
-				for (int i = 3; i < GETSETLEN; i++) {
-					if (chars[i] != GETSETCHARS[i]) {
+				for(int i = 3; i < GETSETLEN; i++) {
+					if(chars[i] != GETSETCHARS[i]) {
 						match = false;
 						break;
 					}
 				}
 			}
-			if (!match && chars.length > SUFFIX_LEN) {
+			if(!match && chars.length > SUFFIX_LEN) {
 				int x = 0;
 				boolean matched = true;
-				for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
-					if (chars[i] != SUFFIXCHARS[x]) {
+				for(int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
+					if(chars[i] != SUFFIXCHARS[x]) {
 						matched = false;
 						break;
 					}
 					x++;
 				}
 				x = 0;
-				if (!matched && Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
-					for (int i = chars.length - SUFFIX_LEN -2; i < chars.length; i++) {
-						if (chars[i] != SUFFIX2CHARS[x]) {
-							ret.add(f);
+				if(!matched && Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
+					for(int i = chars.length - SUFFIX_LEN -2; i < chars.length; i++) {
+						if(chars[i] != SUFFIX2CHARS[x]) {
+							ret.enqueue(f);
 							break;
 						}
 						x++;
 					}
 				else if(!matched)
-					ret.add(f);
-			} else if (!match) {
-				if(chars.length == 6 && chars[0] == 'e' && chars[1] == 'q'
-				&& chars[2] == 'u' && chars[3] == 'a' && chars[4] == 'l' && chars[5] == 's' && f.isSynthetic())
-					continue;
-				ret.add(f);
+					ret.enqueue(f);
+			} else if(!match) {
+				// Check for synthetic hashCode and equals methods added by Phosphor
+				if(f.isSynthetic()) {
+					if(chars.length == 6 && chars[0] == 'e' && chars[1] == 'q' && chars[2] == 'u' && chars[3] == 'a' &&
+							chars[4] == 'l' && chars[5] == 's') {
+						if(!declaredOnly) {
+							ret.enqueue(ObjectMethods.EQUALS.method);
+						}
+						continue;
+					} else if(chars.length == 8 && chars[0] == 'h' && chars[1] == 'a' && chars[2] == 's' && chars[3] == 'h' &&
+							chars[4] == 'C' && chars[5] == 'o' && chars[6] == 'd' && chars[7] == 'e') {
+						if(!declaredOnly) {
+							ret.enqueue(ObjectMethods.HASH_CODE.method);
+						}
+						continue;
+					}
+				}
+				ret.enqueue(f);
 			}
 		}
-		Method[] retz = new Method[ret.size()];
-		ret.toArray(retz);
-		return retz;
+		return ret.toArray(new Method[ret.size()]);
+	}
+
+	/* Used to create singleton references to Methods of the Object class. */
+	private enum ObjectMethods {
+		EQUALS("equals", Object.class),
+		HASH_CODE("hashCode");
+
+		public Method method;
+		ObjectMethods(String name, Class<?>... parameterTypes) {
+			try {
+				this.method = Object.class.getDeclaredMethod(name, parameterTypes);
+			} catch(NoSuchMethodException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	@SuppressWarnings("rawtypes")
