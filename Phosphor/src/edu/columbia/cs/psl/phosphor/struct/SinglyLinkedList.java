@@ -177,7 +177,7 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
     /* Returns an array containing the elements of this list. The runtime type of the returned array is that of the specified array. */
     @SuppressWarnings("unchecked")
     public E[] toArray(E[] arr) {
-        if (arr.length < size) {
+        if(arr.length < size) {
             arr = (E[]) Array.newInstance(arr.getClass().getComponentType(), size);
         }
         Node<E> cur = head;

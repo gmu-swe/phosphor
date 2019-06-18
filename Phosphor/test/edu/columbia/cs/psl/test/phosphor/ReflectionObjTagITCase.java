@@ -10,6 +10,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 import org.junit.Test;
@@ -360,5 +361,18 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 			}
 			assertTrue(methodMatchesExpected);
 		}
+	}
+
+	/* Checks that phosphor added equals and hashcode methods are replaced by Object.equals and Object.hashCode for
+	 * Class.getMethods. */
+	@Test
+	public void testHashCodeAndEqualsReplacedInGetMethods() throws NoSuchMethodException {
+		HashSet<Method> expected = new HashSet<>();
+		expected.add(MethodHolder.class.getDeclaredMethod("primitiveParamMethod", Boolean.TYPE));
+		expected.add(MethodHolder.class.getDeclaredMethod("primitiveArrParamMethod", boolean[].class));
+		expected.addAll(Arrays.asList(Object.class.getMethods()));
+		Method[] methods = MethodHolder.class.getMethods();
+		HashSet<Method> actual = new HashSet<>(Arrays.asList(methods));
+		assertEquals(expected, actual);
 	}
 }
