@@ -746,7 +746,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			superMethodsToOverride.remove("hashCode()I");
 			methodsToAddWrappersFor.add(new MethodNode(Opcodes.ACC_PUBLIC | Opcodes.ACC_NATIVE, "hashCode", "()I", null, null));
 			MethodVisitor mv;
-			mv = super.visitMethod(Opcodes.ACC_PUBLIC, "hashCode", "()I", null, null);
+			mv = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC, "hashCode", "()I", null, null);
 			mv.visitCode();
 			Label start = new Label();
 			Label end = new Label();

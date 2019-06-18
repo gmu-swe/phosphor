@@ -1352,10 +1352,17 @@ public class ReflectionMasker {
 					}
 				else if(!matched)
 					ret.add(f);
-			} else if (!match) {
-				if(chars.length == 6 && chars[0] == 'e' && chars[1] == 'q'
-				&& chars[2] == 'u' && chars[3] == 'a' && chars[4] == 'l' && chars[5] == 's' && f.isSynthetic())
-					continue;
+			} else if(!match) {
+				// Check for synthetic hashCode and equals methods added by Phosphor
+				if(f.isSynthetic()) {
+					if(chars.length == 6 && chars[0] == 'e' && chars[1] == 'q' && chars[2] == 'u' && chars[3] == 'a' &&
+							chars[4] == 'l' && chars[5] == 's') {
+						continue;
+					} else if(chars.length == 8 && chars[0] == 'h' && chars[1] == 'a' && chars[2] == 's' && chars[3] == 'h' &&
+							chars[4] == 'C' && chars[5] == 'o' && chars[6] == 'd' && chars[7] == 'e') {
+						continue;
+					}
+				}
 				ret.add(f);
 			}
 		}
