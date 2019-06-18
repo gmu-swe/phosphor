@@ -222,6 +222,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			final HashMap<Integer, LinkedList<Integer>> outEdges = new HashMap<Integer, LinkedList<Integer>>();
 			final HashSet<Integer> insertACHECKCASTBEFORE = new HashSet<Integer>();
 			final HashSet<Integer> insertACONSTNULLBEFORE = new HashSet<Integer>();
+			@SuppressWarnings("unchecked")
 			Analyzer a = new Analyzer(new BasicArrayInterpreter((this.access & Opcodes.ACC_STATIC) != 0)) {
 			    protected int[] insnToLabel;
 
