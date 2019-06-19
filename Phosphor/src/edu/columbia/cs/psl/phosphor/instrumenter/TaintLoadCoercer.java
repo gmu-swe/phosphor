@@ -668,9 +668,9 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 		private void removeAUTOBOXCallsForVar(int j) {
 			AbstractInsnNode insn = this.instructions.getFirst();
 			AbstractInsnNode next;
-			while(insn != null){
+			while (insn != null) {
 				next = insn.getNext();
-				if(insn.getOpcode() == TaintUtils.ALWAYS_AUTOBOX && insn.getType() == AbstractInsnNode.VAR_INSN && ((VarInsnNode) insn).var == j) {
+				if ((insn.getOpcode() == TaintUtils.ALWAYS_AUTOBOX || insn.getOpcode() == TaintUtils.ALWAYS_BOX_JUMP || insn.getOpcode() == TaintUtils.ALWAYS_UNBOX_JUMP) && insn.getType() == AbstractInsnNode.VAR_INSN && ((VarInsnNode) insn).var == j) {
 					this.instructions.remove(insn);
 					/* Need to maintain the instruction list size/indexing, so add a NOP :/ */
 					this.instructions.insertBefore(next, new InsnNode(Opcodes.NOP));
