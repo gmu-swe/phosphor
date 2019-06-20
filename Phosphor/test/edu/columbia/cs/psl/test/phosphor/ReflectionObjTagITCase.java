@@ -10,15 +10,29 @@ import java.util.HashSet;
 import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import org.junit.rules.ExternalResource;
+import sun.misc.Unsafe;
 
 public class ReflectionObjTagITCase extends BasePhosphorTest {
 
-	public static class FieldHolder {
+	private static Unsafe unsafe;
 
+	@ClassRule
+	public static ExternalResource resource= new ExternalResource() {
+		@Override
+		protected void before() throws Throwable {
+			Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+			unsafeField.setAccessible(true);
+			unsafe  = (Unsafe)unsafeField.get(null);
+		}
+	};
+
+	public static class FieldHolder {
 		int i;
 		long j;
 		boolean z;
@@ -138,7 +152,6 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		assertNotNull(MultiTainter.getTaint(fh.j));
 		assertNotNull(MultiTainter.getTaint(fh.s));
 		assertNotNull(MultiTainter.getTaint(fh.z));
-
 	}
 
 	@Test
@@ -282,15 +295,6 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 
 	@Test
 	public void testGetTaintedPrimitiveField() throws Exception {
-		// Get the primitive Field objects
-		Field intField = FieldHolder.class.getDeclaredField("i");
-		Field longField = FieldHolder.class.getDeclaredField("j");
-		Field booleanField = FieldHolder.class.getDeclaredField("z");
-		Field shortField = FieldHolder.class.getDeclaredField("s");
-		Field doubleField = FieldHolder.class.getDeclaredField("d");
-		Field byteField = FieldHolder.class.getDeclaredField("b");
-		Field charField = FieldHolder.class.getDeclaredField("c");
-		Field floatField = FieldHolder.class.getDeclaredField("f");
 		// Create the holder and set its primitive fields to tainted values
 		FieldHolder holder = new FieldHolder();
 		holder.i = MultiTainter.taintedInt(5, "int-field");
@@ -301,15 +305,11 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		holder.b = MultiTainter.taintedByte((byte)4, "byte-field");
 		holder.c = MultiTainter.taintedChar('w', "char-field");
 		holder.f = MultiTainter.taintedFloat(3.3f, "float-field");
-		// Access the primitive fields via Field.get and check that the resulting object is tainted
-		assertNonNullTaint(MultiTainter.getTaint(intField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(longField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(booleanField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(shortField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(doubleField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(byteField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(charField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(floatField.get(holder)));
+		// Access the holder instance's primitive fields via Field.get and check that the resulting object is tainted
+		Field[] primitiveFields = getFieldHolderPrimitiveFields();
+		for(Field primitiveField : primitiveFields) {
+			assertNonNullTaint(MultiTainter.getTaint(primitiveField.get(holder)));
+		}
 	}
 
 	/* Checks that phosphor parameters are correctly remapped when calling Constructor.getParameterTypes for a Constructor
@@ -397,5 +397,103 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		Method method = Boolean.class.getDeclaredMethod("toString", boolean.class);
 		String result = (String)method.invoke(null, false);
 		assertNotNull(result);
+	}
+
+	/* Checks that that using Unsafe.outObject to update the value of a primitive field also updates the taint tag
+	 * for the field. */
+	@Test
+	public void testUnsafePutTaintedPrimitiveField() throws Exception {
+		// Create the holder and tainted values
+		FieldHolder holder = new FieldHolder();
+		Field[] primitiveFields = getFieldHolderPrimitiveFields();
+		int i = MultiTainter.taintedInt(5, "int-field");
+		long j  = MultiTainter.taintedLong(44, "long-field");
+		boolean z = MultiTainter.taintedBoolean(true, "bool-field");
+		short s = MultiTainter.taintedShort((short)5, "short-field");
+		double d = MultiTainter.taintedDouble(4.5, "double-field");
+		byte b = MultiTainter.taintedByte((byte)4, "byte-field");
+		char c = MultiTainter.taintedChar('w', "char-field");
+		float f = MultiTainter.taintedFloat(3.3f, "float-field");
+		// Set the primitive fields using unsafe
+		unsafe.putInt(holder, unsafe.objectFieldOffset(primitiveFields[0]), i);
+		unsafe.putLong(holder, unsafe.objectFieldOffset(primitiveFields[1]), j);
+		unsafe.putBoolean(holder, unsafe.objectFieldOffset(primitiveFields[2]), z);
+		unsafe.putShort(holder, unsafe.objectFieldOffset(primitiveFields[3]), s);
+		unsafe.putDouble(holder, unsafe.objectFieldOffset(primitiveFields[4]), d);
+		unsafe.putByte(holder, unsafe.objectFieldOffset(primitiveFields[5]), b);
+		unsafe.putChar(holder, unsafe.objectFieldOffset(primitiveFields[6]), c);
+		unsafe.putFloat(holder, unsafe.objectFieldOffset(primitiveFields[7]), f);
+		// Check that the primitive fields of the holder instance are tainted
+		assertNonNullTaint(MultiTainter.getTaint(holder.i));
+		assertNonNullTaint(MultiTainter.getTaint(holder.j));
+		assertNonNullTaint(MultiTainter.getTaint(holder.z));
+		assertNonNullTaint(MultiTainter.getTaint(holder.s));
+		assertNonNullTaint(MultiTainter.getTaint(holder.d));
+		assertNonNullTaint(MultiTainter.getTaint(holder.b));
+		assertNonNullTaint(MultiTainter.getTaint(holder.c));
+		assertNonNullTaint(MultiTainter.getTaint(holder.f));
+	}
+
+	/* Checks that that using Unsafe.outObject to update the value of a primitive array field also updates the taint tags
+	 * for the field. */
+	@Test
+	public void testUnsafePutTaintedPrimitiveArrayField() throws Exception {
+		// Create the holder and tainted values
+		FieldHolder holder = new FieldHolder();
+		Field[] primitiveArrFields = getFieldHolderPrimitiveArrayFields();
+		int[] ia = new int[]{MultiTainter.taintedInt(5, "int-field")};
+		long[] ja  = new long[]{MultiTainter.taintedLong(44, "long-field")};
+		boolean[] za = new boolean[]{MultiTainter.taintedBoolean(true, "bool-field")};
+		short[] sa = new short[]{MultiTainter.taintedShort((short)5, "short-field")};
+		double[] da = new double[]{MultiTainter.taintedDouble(4.5, "double-field")};
+		byte[] ba = new byte[]{MultiTainter.taintedByte((byte)4, "byte-field")};
+		char[] ca = new char[]{MultiTainter.taintedChar('w', "char-field")};
+		float[] fa = new float[]{MultiTainter.taintedFloat(3.3f, "float-field")};
+		// Set the primitive array fields using unsafe
+		unsafe.putObject(holder, unsafe.objectFieldOffset(primitiveArrFields[0]), ia);
+		unsafe.putObject(holder, unsafe.objectFieldOffset(primitiveArrFields[1]), ja);
+		unsafe.putObject(holder, unsafe.objectFieldOffset(primitiveArrFields[2]), za);
+		unsafe.putObject(holder, unsafe.objectFieldOffset(primitiveArrFields[3]), sa);
+		unsafe.putObject(holder, unsafe.objectFieldOffset(primitiveArrFields[4]), da);
+		unsafe.putObject(holder, unsafe.objectFieldOffset(primitiveArrFields[5]), ba);
+		unsafe.putObject(holder, unsafe.objectFieldOffset(primitiveArrFields[6]), ca);
+		unsafe.putObject(holder, unsafe.objectFieldOffset(primitiveArrFields[7]), fa);
+		// Check that the primitive array fields' first element is tainted
+		assertNonNullTaint(MultiTainter.getTaint(holder.ia[0]));
+		assertNonNullTaint(MultiTainter.getTaint(holder.ja[0]));
+		assertNonNullTaint(MultiTainter.getTaint(holder.za[0]));
+		assertNonNullTaint(MultiTainter.getTaint(holder.sa[0]));
+		assertNonNullTaint(MultiTainter.getTaint(holder.da[0]));
+		assertNonNullTaint(MultiTainter.getTaint(holder.ba[0]));
+		assertNonNullTaint(MultiTainter.getTaint(holder.ca[0]));
+		assertNonNullTaint(MultiTainter.getTaint(holder.fa[0]));
+	}
+
+	/* Returns the primitive fields for the class FieldHolder. */
+	private static Field[] getFieldHolderPrimitiveFields() throws NoSuchFieldException {
+		return new Field[] {
+				FieldHolder.class.getDeclaredField("i"),
+				FieldHolder.class.getDeclaredField("j"),
+				FieldHolder.class.getDeclaredField("z"),
+				FieldHolder.class.getDeclaredField("s"),
+				FieldHolder.class.getDeclaredField("d"),
+				FieldHolder.class.getDeclaredField("b"),
+				FieldHolder.class.getDeclaredField("c"),
+				FieldHolder.class.getDeclaredField("f")
+		};
+	}
+
+	/* Returns the primitive array fields for the class FieldHolder. */
+	private static Field[] getFieldHolderPrimitiveArrayFields() throws NoSuchFieldException {
+		return new Field[] {
+				FieldHolder.class.getDeclaredField("ia"),
+				FieldHolder.class.getDeclaredField("ja"),
+				FieldHolder.class.getDeclaredField("za"),
+				FieldHolder.class.getDeclaredField("sa"),
+				FieldHolder.class.getDeclaredField("da"),
+				FieldHolder.class.getDeclaredField("ba"),
+				FieldHolder.class.getDeclaredField("ca"),
+				FieldHolder.class.getDeclaredField("fa")
+		};
 	}
 }
