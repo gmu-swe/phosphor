@@ -1363,12 +1363,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						MethodNode fullMethod = forMore.get(m);
 
 						MethodVisitor mv = super.visitMethod(m.access, m.name, m.desc, m.signature, exceptions);
-						if(fullMethod.annotationDefault != null)
-						{
-							AnnotationVisitor av = mv.visitAnnotationDefault();
-							acceptAnnotationRaw(av, null, fullMethod.annotationDefault);
-							av.visitEnd();
-						}
+						visitAnnotations(mv, fullMethod);
 						m.accept(mv);
 					}
 				} else {
