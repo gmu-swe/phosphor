@@ -285,6 +285,11 @@ public class TaintUtils {
 		return false;
 	}
 
+	/* Returns whether the specified class is a taint sentinel type. */
+	public static boolean isTaintSentinel(Class<?> clazz) {
+		return TaintSentinel.class.equals(clazz) || UninstrumentedTaintSentinel.class.equals(clazz);
+	}
+
 	/* Returns whether the specified type is for a taint sentinel. */
 	public static boolean isTaintSentinel(Type type) {
 		return type.equals(Type.getType(TaintSentinel.class)) || type.equals(Type.getType(UninstrumentedTaintSentinel.class));
