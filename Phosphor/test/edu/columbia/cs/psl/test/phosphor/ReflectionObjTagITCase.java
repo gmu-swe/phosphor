@@ -3,16 +3,13 @@ package edu.columbia.cs.psl.test.phosphor;
 import static edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass.assertNonNullTaint;
 import static org.junit.Assert.*;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
@@ -94,7 +91,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 	}
 
 	@Test
-	public void testArraysSet() throws Exception {
+	public void testArraysSet() {
 		boolean[] b = { false };
 		if (b.getClass().isArray()) {
 			for (int i = 0; i < Array.getLength(b); i++) {
@@ -374,5 +371,31 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		Method[] methods = MethodHolder.class.getMethods();
 		HashSet<Method> actual = new HashSet<>(Arrays.asList(methods));
 		assertEquals(expected, actual);
+	}
+
+	/* Checks that parameters passed to getDeclaredConstructor and newInstance for ignored classes like Boolean are not
+	 * remapped. */
+	@Test
+	public void testBooleanIgnoredConstructor() throws Exception {
+		Constructor<Boolean> constructor = Boolean.class.getDeclaredConstructor(boolean.class);
+		Boolean result = constructor.newInstance(false);
+		assertFalse(result);
+	}
+
+	/* Checks that primitive array parameters passed to getDeclaredConstructor and newInstance for ignored classes
+	 * like LazyCharArrayObjTags are not remapped. */
+	@Test
+	public void testPrimitiveArrayIgnoredConstructor() throws Exception {
+		Constructor<LazyCharArrayObjTags> constructor = LazyCharArrayObjTags.class.getDeclaredConstructor(Taint.class, char[].class);
+		Object result = constructor.newInstance(null, "testPrimitiveArrayIgnoredConstructor".toCharArray());
+		assertNotNull(result);
+	}
+
+	/* Checks that parameters passed to getDeclaredMethod and invoke for ignored classes like Boolean are not remapped. */
+	@Test
+	public void testBooleanIgnoredMethod() throws Exception {
+		Method method = Boolean.class.getDeclaredMethod("toString", boolean.class);
+		String result = (String)method.invoke(null, false);
+		assertNotNull(result);
 	}
 }

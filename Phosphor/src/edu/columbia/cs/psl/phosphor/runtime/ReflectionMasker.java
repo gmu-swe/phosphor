@@ -11,10 +11,8 @@ import org.objectweb.asm.Type;
 import sun.misc.Unsafe;
 import sun.reflect.ReflectionFactory;
 
-import java.lang.reflect.Constructor;
+import java.lang.reflect.*;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
 public class ReflectionMasker {
 
@@ -114,7 +112,7 @@ public class ReflectionMasker {
 		}
 		u.putObject(obj, fieldOffset, val);
 	}
-	
+
 	private static void putTaintWrapper(Unsafe u, Field origField, Object obj, Object val) {
 		if(origField.getType().isArray() && origField.getType().getComponentType().isPrimitive())
 			try {
@@ -123,7 +121,6 @@ public class ReflectionMasker {
 			} catch (NoSuchFieldException | SecurityException | IllegalArgumentException e) {
 //				e.printStackTrace();
 			}
-		
 	}
 
 	public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val, ControlTaintTagStack ctrl){
@@ -227,11 +224,11 @@ public class ReflectionMasker {
 		if (m.getDeclaringClass().isAnnotation())
 			return m;
 		final char[] chars = m.getName().toCharArray();
-		if (chars.length > SUFFIX_LEN) {
+		if (chars.length > METHOD_SUFFIX_LEN) {
 			boolean isEq = true;
 			int x = 0;
-			for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
-				if (chars[i] != SUFFIXCHARS[x]) {
+			for (int i = chars.length - METHOD_SUFFIX_LEN; i < chars.length; i++) {
+				if (chars[i] != METHOD_SUFFIX_CHARS[x]) {
 					isEq = false;
 				}
 				x++;
@@ -242,9 +239,9 @@ public class ReflectionMasker {
 				return m;
 			}
 			x = 0;
-			if (Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
-				for (int i = chars.length - SUFFIX_LEN - 2; i < chars.length; i++) {
-					if (chars[i] != SUFFIX2CHARS[x]) {
+			if (Configuration.GENERATE_UNINST_STUBS && chars.length > METHOD_SUFFIX_LEN + 2)
+				for (int i = chars.length - METHOD_SUFFIX_LEN - 2; i < chars.length; i++) {
+					if (chars[i] != METHOD_SUFFIX_UNINST_CHARS[x]) {
 						isEq = false;
 					}
 					x++;
@@ -255,8 +252,7 @@ public class ReflectionMasker {
 				return m;
 			}
 		}
-		if(Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/')))
-		{
+		if(declaredInIgnoredClass(m)) {
 			return m;
 		}
 		//		if (methodCache.containsKey(m))
@@ -285,7 +281,6 @@ public class ReflectionMasker {
 						try {
 							newArgs.add(Class.forName(MultiDTaintedArrayWithObjTag.getTypeForType(Type.getType(c)).getInternalName().replace('/','.')));
 						} catch (ClassNotFoundException e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 						continue;
@@ -306,10 +301,10 @@ public class ReflectionMasker {
 				continue;
 			}
 		}
-			madeChange = true;
-			newArgs.add(ControlTaintTagStack.class);
+		madeChange = true;
+		newArgs.add(ControlTaintTagStack.class);
 		final Class returnType = m.getReturnType();
-		
+
 		if (returnType.isPrimitive() && returnType != Void.TYPE) {
 			if (returnType == Integer.TYPE)
 				newArgs.add(TaintedIntWithObjTag.class);
@@ -354,6 +349,7 @@ public class ReflectionMasker {
 			return m;
 		}
 	}
+
 	static boolean isSelectiveInstManagerInit = false;
 
 	@SuppressWarnings("rawtypes")
@@ -364,16 +360,16 @@ public class ReflectionMasker {
 			return m;
 		else if(!m.PHOSPHOR_TAGmarked && m.PHOSPHOR_TAGmethod != null)
 			return m.PHOSPHOR_TAGmethod;
-		
+
 		if (m.getDeclaringClass().isAnnotation())
 			return m;
-		
+
 		final char[] chars = m.getName().toCharArray();
-		if (chars.length > SUFFIX_LEN) {
+		if (chars.length > METHOD_SUFFIX_LEN) {
 			boolean isEq = true;
 			int x = 0;
-			for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
-				if (chars[i] != SUFFIXCHARS[x]) {
+			for (int i = chars.length - METHOD_SUFFIX_LEN; i < chars.length; i++) {
+				if (chars[i] != METHOD_SUFFIX_CHARS[x]) {
 					isEq = false;
 				}
 				x++;
@@ -384,9 +380,9 @@ public class ReflectionMasker {
 				return m;
 			}
 			x = 0;
-			if (Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
-				for (int i = chars.length - SUFFIX_LEN - 2; i < chars.length; i++) {
-					if (chars[i] != SUFFIX2CHARS[x]) {
+			if (Configuration.GENERATE_UNINST_STUBS && chars.length > METHOD_SUFFIX_LEN + 2)
+				for (int i = chars.length - METHOD_SUFFIX_LEN - 2; i < chars.length; i++) {
+					if (chars[i] != METHOD_SUFFIX_UNINST_CHARS[x]) {
 						isEq = false;
 					}
 					x++;
@@ -449,7 +445,7 @@ public class ReflectionMasker {
 		final Class returnType = m.getReturnType();
 		if (!isObjTags) {
 			if (returnType.isArray()) {
-				
+
 			} else if (returnType.isPrimitive() && returnType != Void.TYPE) {
 				if (returnType == Integer.TYPE)
 					newArgs.add(TaintedIntWithIntTag.class);
@@ -471,7 +467,7 @@ public class ReflectionMasker {
 			}
 		} else {
 			if (returnType.isArray()) {
-				
+
 			} else if (returnType.isPrimitive() && returnType != Void.TYPE) {
 				if (returnType == Integer.TYPE)
 					newArgs.add(TaintedIntWithObjTag.class);
@@ -528,13 +524,13 @@ public class ReflectionMasker {
 		//			return m;
 		if (m.getDeclaringClass().isAnnotation())
 			return m;
-		
+
 		final char[] chars = m.getName().toCharArray();
-		if (chars.length > SUFFIX_LEN + 2) {
+		if (chars.length > METHOD_SUFFIX_LEN + 2) {
 			boolean isEq = true;
 			int x = 0;
-			for (int i = chars.length - SUFFIX_LEN -2; i < chars.length; i++) {
-				if (chars[i] != SUFFIX2CHARS[x]) {
+			for (int i = chars.length - METHOD_SUFFIX_LEN -2; i < chars.length; i++) {
+				if (chars[i] != METHOD_SUFFIX_UNINST_CHARS[x]) {
 					isEq = false;
 				}
 				x++;
@@ -578,7 +574,7 @@ public class ReflectionMasker {
 				newArgs.add(c);
 				continue;
 			}
-		}		
+		}
 		if (madeChange) {
 			Class[] args = new Class[newArgs.size()];
 			newArgs.toArray(args);
@@ -657,8 +653,11 @@ public class ReflectionMasker {
 		return originalParamTypes;
 	}
 
-	@SuppressWarnings({"rawtypes", "unchecked", "unused"})
-	public static Constructor getOrigMethod(Constructor cons, boolean isObjTags) {
+	@SuppressWarnings({"unused"})
+	public static Constructor<?> getOrigMethod(Constructor<?> cons, boolean isObjTags) {
+		if(declaredInIgnoredClass(cons)) {
+			return cons;
+		}
 		boolean hasSentinel = false;
 		for(Class<?> clazz : cons.getParameterTypes()) {
 			if(clazz.equals(TaintSentinel.class)) {
@@ -678,20 +677,26 @@ public class ReflectionMasker {
 		}
 	}
 
-	@SuppressWarnings("rawtypes")
-	public static Class[] addTypeParams(Class[] params, boolean implicitTracking, boolean isObjTags) {
+	public static Class<?>[] addTypeParams(Class<?>[] params, boolean implicitTracking, boolean isObjTags) {
+		return addTypeParams(null, params, implicitTracking, isObjTags);
+	}
+
+		/* Called for Class.getConstructor and Class.getDeclaredConstructor to remap the parameter types. */
+	@SuppressWarnings("unused")
+	public static Class<?>[] addTypeParams(Class<?> clazz, Class<?>[] params, boolean implicitTracking, boolean isObjTags) {
+		if(isIgnoredClass(clazz) || params == null) {
+			return params;
+		}
 		boolean needsChange = false;
-		if (params == null)
-			return null;
-		for (Class c : params) {
+		for(Class<?> c : params) {
 			if (c != null && (c.isPrimitive() || (c.isArray() && isPrimitiveArray(c))))
 				needsChange = true;
 		}
 		if(implicitTracking)
 			needsChange = true;
 		if (needsChange) {
-			ArrayList<Class> newParams = new ArrayList<Class>();
-			for (Class c : params) {
+			ArrayList<Class<?>> newParams = new ArrayList<>();
+			for (Class<?> c : params) {
 				Type t = Type.getType(c);
 				if (t.getSort() == Type.ARRAY) {
 					if (t.getElementType().getSort() != Type.OBJECT) {
@@ -730,67 +735,58 @@ public class ReflectionMasker {
 		return params;
 	}
 
-	public static Method getDeclaredMethod(Class czz, String name, Class[] params, boolean isObjTags) throws NoSuchMethodException {
+	public static Method getDeclaredMethod(Class<?> czz, String name, Class<?>[] params, boolean isObjTags) throws NoSuchMethodException {
 		return czz.getDeclaredMethod(name, params);
 	}
 
-	public static Method getDeclaredMethod$$PHOSPHORTAGGED(Class czz, String name, Class[] params, ControlTaintTagStack ctrl) throws NoSuchMethodException {
+	public static Method getDeclaredMethod$$PHOSPHORTAGGED(Class<?> czz, String name, Class<?>[] params, ControlTaintTagStack ctrl) throws NoSuchMethodException {
 		return czz.getDeclaredMethod(name, params);
 	}
 
-	public static Method getMethod$$PHOSPHORTAGGED(Class czz, String name, Class[] params, ControlTaintTagStack ctrl) throws NoSuchMethodException {
-		if (czz == Object.class || czz.isAnnotation() || Instrumenter.isIgnoredClass(czz.getName().replace('.', '/')))
-			return czz.getMethod(name, params);
-		//also, return original method if we are calling wait()
-		if (name.equals("wait")) {
-			if (params.length == 0 || (params.length == 1 && params[0] == Long.TYPE) || (params.length == 2 && params[0] == Long.TYPE && params[1] == Integer.TYPE))
-				return czz.getMethod(name, params);
-		}
-		try {
-			Method m = czz.getMethod(name, params);
-			if (Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/'))) {
-				//maybe "this" class is not ignored, but super, which implements method is ignored
-				return czz.getMethod(name, params);
-			}
-			m = getTaintMethodControlTrack(m);
-			return m;
-		} catch (SecurityException e1) {
-			e1.printStackTrace();
-		}
-		System.err.println("Bailing just in case.");
-		System.exit(-1);
-		return null;
+	public static Method getMethod$$PHOSPHORTAGGED(Class<?> czz, String name, Class<?>[] params, ControlTaintTagStack ctrl) throws NoSuchMethodException {
+		return getMethod(czz, name, params, true, true);
 	}
 
-	public static Method getMethod(Class czz, String name, Class[] params, boolean isObjTags) throws NoSuchMethodException {
-		if (czz == Object.class || czz.isAnnotation() || Instrumenter.isIgnoredClass(czz.getName().replace('.', '/')))
-		    return czz.getMethod(name, params);
-		//also, return original method if we are calling wait()
-		if (name.equals("wait")) {
-			if (params.length == 0 || (params.length == 1 && params[0] == Long.TYPE) || (params.length == 2 && params[0] == Long.TYPE && params[1] == Integer.TYPE))
-				return czz.getMethod(name, params);
-		}
-		try {
-			Method m = czz.getMethod(name, params);
-			if (Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/'))) {
-				//maybe "this" class is not ignored, but super, which implements method is ignored
-				return czz.getMethod(name, params);
-			}
-			m = getTaintMethod(m, isObjTags);
-			return m;
-		} catch (SecurityException e1) {
-			e1.printStackTrace();
-		}
-		System.err.println("Bailing just in case.");
-		System.exit(-1);
-		return null;
+	public static Method getMethod(Class<?> czz, String name, Class<?>[] params, boolean isObjTags) throws NoSuchMethodException {
+		return getMethod(czz, name, params, isObjTags, false);
 	}
 
-	@SuppressWarnings("rawtypes")
-	static boolean isPrimitiveArray(Class c) {
-		if (c.isArray())
-			return isPrimitiveArray(c.getComponentType());
-		return c.isPrimitive();
+	private static Method getMethod(Class<?> clazz, String name, Class<?>[] params, boolean isObjTags, boolean implicitTracking) throws NoSuchMethodException {
+		if(clazz.isAnnotation() || isIgnoredClass(clazz)) {
+			return clazz.getMethod(name, params);
+		} else if(name.equals("wait") && (params.length == 0 || (params.length == 1 && params[0] == Long.TYPE) ||
+				(params.length == 2 && params[0] == Long.TYPE && params[1] == Integer.TYPE))) {
+			// Return original method if we are calling wait()
+			return clazz.getMethod(name, params);
+		} else {
+			try {
+				Method m = clazz.getMethod(name, params);
+				if(declaredInIgnoredClass(m)) {
+					// Check if "this" class is not ignored, but super, which implements the method is ignored
+					return clazz.getMethod(name, params);
+				}
+				return implicitTracking ? getTaintMethodControlTrack(m) : getTaintMethod(m, isObjTags);
+			} catch(SecurityException e1) {
+				e1.printStackTrace();
+				System.err.println("Bailing just in case.");
+				System.exit(-1);
+				return null;
+			}
+		}
+	}
+
+	/* Returns whether the specified member was declared in a class ignored by Phosphor. */
+	private static boolean declaredInIgnoredClass(Member member) {
+		return member != null && member.getDeclaringClass() != null && isIgnoredClass(member.getDeclaringClass());
+	}
+
+	/* Returns whether the specified class if ignored by Phosphor. */
+	private static boolean isIgnoredClass(Class<?> clazz) {
+		return clazz != null && (Instrumenter.isIgnoredClass(clazz.getName().replace('.', '/')) || Object.class.equals(clazz));
+	}
+
+	static boolean isPrimitiveArray(Class<?> c) {
+		return c.isArray() ? isPrimitiveArray(c.getComponentType()) : c.isPrimitive();
 	}
 
 	@SuppressWarnings("rawtypes")
@@ -833,45 +829,61 @@ public class ReflectionMasker {
 		return ret;
 	}
 
-	@SuppressWarnings("rawtypes")
-	public static Object[] fixAllArgs(Object[] in, Constructor c, boolean isObjTags) {
-		if (c != null && in != null && c.getParameterTypes().length != in.length) {
+	public static Object[] fixAllArgs(Object[] in, Constructor<?> c, boolean isObjTags) {
+		return fixAllArgs(in, c, false, null);
+	}
+
+	public static Object[] fixAllArgs(Object[] in, Constructor c, ControlTaintTagStack ctrl) {
+		return fixAllArgs(in, c, true, ctrl);
+	}
+
+	private static Object[] fixAllArgs(Object[] in, Constructor<?> c, boolean implicitTracking, ControlTaintTagStack ctrl) {
+		if(declaredInIgnoredClass(c)) {
+			return getOriginalParams(c.getParameterTypes(), in);
+		}if(c == null) {
+			return in;
+		} else if(in != null && c.getParameterTypes().length != in.length) {
 			Object[] ret = new Object[c.getParameterTypes().length];
 			fillInParams(ret, in, c.getParameterTypes());
+			if(implicitTracking) {
+				ret[ret.length - 2] = ctrl;
+			}
 			return ret;
-		} else if (in == null && c.getParameterTypes().length == 1) {
+		} else if(in == null && c.getParameterTypes().length == 1) {
 			Object[] ret = new Object[1];
 			ret[0] = null;
 			return ret;
-		} else if (in == null && c.getParameterTypes().length == 2) {
+		} else if(in == null && c.getParameterTypes().length == 2) {
 			Object[] ret = new Object[2];
-			ret[0] = new ControlTaintTagStack();
+			ret[0] = implicitTracking ? ctrl: new ControlTaintTagStack();
 			ret[1] = null;
 			return ret;
 		}
 		return in;
 	}
 
-	public static Object[] fixAllArgs(Object[] in, Constructor c, ControlTaintTagStack ctrl) {
-		if (c != null && in != null && c.getParameterTypes().length != in.length) {
-			Object[] ret = new Object[c.getParameterTypes().length];
-			int j = 0;
+	/* Returns an array of objects derived from the specified array of tainted parameters that match the specified array
+	 * of types. */
+	private static Object[] getOriginalParams(Class<?>[] types, Object[] taintedParams) {
+		Object[] originalParams = new Object[types.length];
+		for(int i = 0; i < types.length; i++) {
+			if (types[i].isPrimitive()) {
+				if (taintedParams[i] instanceof TaintedPrimitiveWithObjTag) {
+					originalParams[i] = ((TaintedPrimitiveWithObjTag) taintedParams[i]).toPrimitiveType();
+				} else if (taintedParams[i] instanceof TaintedPrimitiveWithIntTag) {
+					originalParams[i] = ((TaintedPrimitiveWithIntTag) taintedParams[i]).toPrimitiveType();
+				} else {
+					originalParams[i] = taintedParams[i];
+				}
+			} else if(types[i].isArray()) {
+				Object obj = MultiDTaintedArray.maybeUnbox(taintedParams[i]);
+				originalParams[i] = obj;
 
-			fillInParams(ret, in, c.getParameterTypes());
-			ret[ret.length - 2] = ctrl;
-			return ret;
-		} else if (in == null && c.getParameterTypes().length == 1) {
-			Object[] ret = new Object[1];
-			ret[0] = null;
-			return ret;
-		} else if (in == null && c.getParameterTypes().length == 2) {
-			Object[] ret = new Object[2];
-			ret[0] = ctrl;
-			ret[1] = null;
-			return ret;
+			} else {
+				originalParams[i] = taintedParams[i];
+			}
 		}
-
-		return in;
+		return originalParams;
 	}
 
 	@SuppressWarnings("rawtypes")
@@ -928,9 +940,9 @@ public class ReflectionMasker {
 		}
 		return ret;
 	}
-	
+
 	public static Object[] fixAllArgsUninst(Object[] in, Constructor c, boolean isObjTags) {
-		Class[] params = c.getParameterTypes();
+		Class<?>[] params = c.getParameterTypes();
 		if(params.length == 0) {
 			return in;
 		}
@@ -962,13 +974,13 @@ public class ReflectionMasker {
 			ret.o = owner;
 			ret.a = in;
 			if(ret.a != null && ret.a.getClass().isArray() && ret.a.getClass().getComponentType() == Object.class)
-			for(int i = 0; i < ret.a.length; i++) {
-				if(ret.a[i] instanceof LazyArrayIntTags) {
-					ret.a[i] = ((LazyArrayIntTags)ret.a[i]).getVal();
-				} else if(ret.a[i] instanceof MultiDTaintedArrayWithObjTag) {
-					ret.a[i] = ((MultiDTaintedArrayWithObjTag)ret.a[i]).getVal();
+				for(int i = 0; i < ret.a.length; i++) {
+					if(ret.a[i] instanceof LazyArrayIntTags) {
+						ret.a[i] = ((LazyArrayIntTags)ret.a[i]).getVal();
+					} else if(ret.a[i] instanceof MultiDTaintedArrayWithObjTag) {
+						ret.a[i] = ((MultiDTaintedArrayWithObjTag)ret.a[i]).getVal();
+					}
 				}
-			}
 		} else {
 			ret = fixAllArgs(m, owner, in, isObjTags);
 		}
@@ -996,14 +1008,13 @@ public class ReflectionMasker {
 		return ret;
 	}
 
-
 	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, boolean isObjTags) {
 		MethodInvoke ret = new MethodInvoke();
-		if(m == null || Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/'))) {
-		    ret.a = in;
-            ret.o = owner;
-            ret.m = m;
-            return ret;
+		if(m == null || declaredInIgnoredClass(m)) {
+			ret.a = in;
+			ret.o = owner;
+			ret.m = m;
+			return ret;
 		}
 		m.setAccessible(true);
 		if ((!m.PHOSPHOR_TAGmarked) && !"java.lang.Object".equals(m.getDeclaringClass().getName())) {
@@ -1035,13 +1046,13 @@ public class ReflectionMasker {
 	public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, ControlTaintTagStack ctrl) {
 		MethodInvoke ret = new MethodInvoke();
 		m.setAccessible(true);
-		if(Instrumenter.isIgnoredClass(m.getDeclaringClass().getName().replace('.', '/'))) {
+		if(declaredInIgnoredClass(m)) {
 			ret.a = in;
 			ret.o = owner;
 			ret.m = m;
 			return ret;
 		}
-		if (!m.PHOSPHOR_TAGmarked) {
+		if(!m.PHOSPHOR_TAGmarked) {
 			m = getTaintMethodControlTrack(m);
 		}
 		m.setAccessible(true);
@@ -1133,13 +1144,13 @@ public class ReflectionMasker {
 		return targetParamIndex;
 	}
 
-	final static String multiDDescriptor = "edu.columbia.cs.psl.phosphor.struct.Lazy";
-	final static int multiDDescriptorLength = multiDDescriptor.length();
+	private static final String multiDDescriptor = "edu.columbia.cs.psl.phosphor.struct.Lazy";
+	private static final int multiDDescriptorLength = multiDDescriptor.length();
 
-	@SuppressWarnings("rawtypes")
-	public static Class removeTaintClass(Class clazz, boolean isObjTags) {
-		if(clazz.PHOSPHOR_TAGclass != null)
+	public static Class<?> removeTaintClass(Class<?> clazz, boolean isObjTags) {
+		if(clazz.PHOSPHOR_TAGclass != null) {
 			return clazz.PHOSPHOR_TAGclass;
+		}
 		if (clazz.isArray()) {
 			String cmp = null;
 			Class c = clazz.getComponentType();
@@ -1160,8 +1171,8 @@ public class ReflectionMasker {
 					newName += "[";
 				try {
 					Class ret = Class.forName(newName + innerType);
-					clazz.PHOSPHOR_TAGclass=ret;
-					ret.PHOSPHOR_TAGclass=ret;
+					clazz.PHOSPHOR_TAGclass = ret;
+					ret.PHOSPHOR_TAGclass = ret;
 					return ret;
 				} catch (ClassNotFoundException e) {
 					e.printStackTrace();
@@ -1191,19 +1202,18 @@ public class ReflectionMasker {
 		return clazz;
 	}
 
+	/* Filters the fields returned by Class.getFields and Class.getDeclaredFields. */
+	@SuppressWarnings("unused")
 	public static Field[] removeTaintFields(Field[] in) {
-		ArrayList<Field> ret = new ArrayList<Field>();
+		SinglyLinkedList<Field> ret = new SinglyLinkedList<>();
 		boolean removeSVUIDField = containsSVUIDSentinelField(in);
 		for (Field f : in) {
 			if(!f.getName().equals("taint") && !f.getName().endsWith(TaintUtils.TAINT_FIELD) && !f.getName().startsWith(TaintUtils.PHOSPHOR_ADDED_FIELD_PREFIX)
 					&& !(removeSVUIDField && f.getName().equals("serialVersionUID"))) {
-					/* && !f.getName().equals(TaintUtils.IS_TAINT_SEATCHING_FIELD) && !f.getName().equals(TaintUtils.HAS_TAINT_FIELD) */
-				ret.add(f);
+				ret.enqueue(f);
 			}
 		}
-		Field[] retz = new Field[ret.size()];
-		ret.toArray(retz);
-		return retz;
+		return ret.toArray(new Field[ret.size()]);
 	}
 
 	/* Returns whether the specified array of fields contains a sentinel field indicating that a SerialVersionUID was
@@ -1217,139 +1227,46 @@ public class ReflectionMasker {
 		return false;
 	}
 
-	private static ReflectionFactory getReflectionFactory() {
-		if (reflectionFactory == null) {
-			reflectionFactory = java.security.AccessController.doPrivileged(new sun.reflect.ReflectionFactory.GetReflectionFactoryAction());
-		}
-		return reflectionFactory;
-	}
+	private static final char[] SET_TAG_METHOD_CHARS = "setPHOSPHOR_TAG".toCharArray();
+	private static final int SET_TAG_METHOD_LEN = SET_TAG_METHOD_CHARS.length;
+	private static final char[] METHOD_SUFFIX_CHARS = TaintUtils.METHOD_SUFFIX.toCharArray();
+	private static final int METHOD_SUFFIX_LEN = METHOD_SUFFIX_CHARS.length;
+	private static final char[] METHOD_SUFFIX_UNINST_CHARS = TaintUtils.METHOD_SUFFIX_UNINST.toCharArray();
+	private static final char[] FIELD_SUFFIX_CHARS = TaintUtils.TAINT_FIELD.toCharArray();
+	private static final int FIELD_METHOD_SUFFIX_LEN = FIELD_SUFFIX_CHARS.length;
 
-	private static ReflectionFactory reflectionFactory;
-
-	public static Method[] copyMethods(Method[] arg) {
-		//		if(arg == null || arg.length>0)
-		//			throw new IllegalStateException("this is disabled for testing");
-		//		ArrayList<Method> ret = new ArrayList<Method>();
-		//		ReflectionFactory fact = getReflectionFactory();
-		//		for (Method f : arg) {
-		//			final char[] chars = f.getName().toCharArray();
-		//			boolean match = false;
-		//			if (chars.length == GETSETLEN) {
-		//				match = true;
-		//				for (int i = 3; i < GETSETLEN; i++) {
-		//					if (chars[i] != GETSETCHARS[i]) {
-		//						match = false;
-		//						break;
-		//					}
-		//				}
-		//			}
-		//			if (!match && chars.length > SUFFIX_LEN) {
-		//				int x = 0;
-		//				for (int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
-		//					if (chars[i] != SUFFIXCHARS[x]) {
-		//						ret.add(fact.copyMethod(f));
-		//						break;
-		//					}
-		//					x++;
-		//				}
-		//			} else if (!match) {
-		//				ret.add(fact.copyMethod(f));
-		//			}
-		//		}
-		//		Method[] retz = new Method[ret.size()];
-		//		ret.toArray(retz);
-		//		return retz;
-		return arg;
-	}
-
-	@SuppressWarnings("rawtypes")
-	public static Constructor[] copyConstructors(Constructor[] arg) {
-		//		ArrayList<Constructor> ret = new ArrayList<Constructor>();
-		//		ReflectionFactory fact = getReflectionFactory();
-		//
-		//		for (Constructor f : arg) {
-		//			Class[] params = f.getParameterTypes();
-		//			if (params.length > 0
-		//					&& (params[params.length - 1].getName().equals("edu.columbia.cs.psl.phosphor.runtime.TaintSentinel") || params[params.length - 1].getName().equals(
-		//							"edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel"))) {
-		//
-		//			} else
-		//				ret.add(fact.copyConstructor(f));
-		//		}
-		//		Constructor[] retz = new Constructor[ret.size()];
-		//		ret.toArray(retz);
-		//		return retz;
-		return arg;
-	}
-
-	@SuppressWarnings("rawtypes")
-	public static Field[] copyFields(Field[] arg) {
-		//		ArrayList<Field> ret = new ArrayList<Field>();
-		//		ReflectionFactory fact = getReflectionFactory();
-		//		//        System.out.println("Fields in : " +Arrays.toString(arg));
-		//		for (Field f : arg) {
-		//			final char[] chars = f.getName().toCharArray();
-		//			if (chars.length >= FIELDSUFFIXLEN) {
-		//				int x = 0;
-		//				for (int i = chars.length - FIELDSUFFIXLEN; i < chars.length; i++) {
-		//					if (chars[i] != FIELDSUFFIXCHARS[x]) {
-		//						ret.add(fact.copyField(f));
-		//						break;
-		//					}
-		//					x++;
-		//				}
-		//			} else if (!chars.equals("taint")) {
-		//				ret.add(fact.copyField(f));
-		//			}
-		//		}
-		//		Field[] retz = new Field[ret.size()];
-		//		ret.toArray(retz);
-		//		//        System.out.println("Fields out : " +Arrays.toString(retz));
-		//		return retz;
-		return arg;
-	}
-
-	static final int SUFFIX_LEN = "$$PHOSPHORTAGGED".length();
-	static final int GETSETLEN = "setPHOSPHOR_TAG".length();
-	static final char[] GETSETCHARS = "setPHOSPHOR_TAG".toCharArray();
-	static final char[] SUFFIXCHARS = "$$PHOSPHORTAGGED".toCharArray();
-	static final char[] SUFFIX2CHARS = "$$PHOSPHORUNTAGGED".toCharArray();
-	
-	static final char[] FIELDSUFFIXCHARS = TaintUtils.TAINT_FIELD.toCharArray();
-	static final int FIELDSUFFIXLEN = FIELDSUFFIXCHARS.length;
-
-	/* Called to mask Class.getDeclaredMethods and Class.getMethods. If declaredOnly is true then synthetic equals and
-	 * hashCode methods are fully remove from the specified array, otherwise they are replaced with Object.equals and
-	 * Object.hashCode respectively. */
+	/* Filters the methods returns by Class.getDeclaredMethods and Class.getMethods. If declaredOnly is true then
+	 * synthetic equals and hashCode methods are fully removed from the specified array, otherwise they are replaced with
+	 * Object.equals and Object.hashCode respectively. */
 	@SuppressWarnings("unused")
 	public static Method[] removeTaintMethods(Method[] in, boolean declaredOnly) {
 		SinglyLinkedList<Method> ret = new SinglyLinkedList<>();
 		for(Method f : in) {
 			final char[] chars = f.getName().toCharArray();
 			boolean match = false;
-			if(chars.length == GETSETLEN) {
+			if(chars.length == SET_TAG_METHOD_LEN) {
 				match = true;
-				for(int i = 3; i < GETSETLEN; i++) {
-					if(chars[i] != GETSETCHARS[i]) {
+				for(int i = 3; i < SET_TAG_METHOD_LEN; i++) {
+					if(chars[i] != SET_TAG_METHOD_CHARS[i]) {
 						match = false;
 						break;
 					}
 				}
 			}
-			if(!match && chars.length > SUFFIX_LEN) {
+			if(!match && chars.length > METHOD_SUFFIX_LEN) {
 				int x = 0;
 				boolean matched = true;
-				for(int i = chars.length - SUFFIX_LEN; i < chars.length; i++) {
-					if(chars[i] != SUFFIXCHARS[x]) {
+				for(int i = chars.length - METHOD_SUFFIX_LEN; i < chars.length; i++) {
+					if(chars[i] != METHOD_SUFFIX_CHARS[x]) {
 						matched = false;
 						break;
 					}
 					x++;
 				}
 				x = 0;
-				if(!matched && Configuration.GENERATE_UNINST_STUBS && chars.length > SUFFIX_LEN + 2)
-					for(int i = chars.length - SUFFIX_LEN -2; i < chars.length; i++) {
-						if(chars[i] != SUFFIX2CHARS[x]) {
+				if(!matched && Configuration.GENERATE_UNINST_STUBS && chars.length > METHOD_SUFFIX_LEN + 2)
+					for(int i = chars.length - METHOD_SUFFIX_LEN -2; i < chars.length; i++) {
+						if(chars[i] != METHOD_SUFFIX_UNINST_CHARS[x]) {
 							ret.enqueue(f);
 							break;
 						}
@@ -1380,6 +1297,19 @@ public class ReflectionMasker {
 		return ret.toArray(new Method[ret.size()]);
 	}
 
+	/* Filters the constructors returned by Class.getConstructors and Class.getDeclaredConstructors. */
+	@SuppressWarnings({"unused"})
+	public static Constructor<?>[] removeTaintConstructors(Constructor<?>[] in) {
+		SinglyLinkedList<Constructor<?>> ret = new SinglyLinkedList<>();
+		for(Constructor<?> f : in) {
+			Class<?>[] params = f.getParameterTypes();
+			if(params.length == 0 || !(TaintUtils.isTaintSentinel(params[params.length - 1]))) {
+				ret.enqueue(f);
+			}
+		}
+		return ret.toArray(new Constructor<?>[ret.size()]);
+	}
+
 	/* Used to create singleton references to Methods of the Object class. */
 	private enum ObjectMethods {
 		EQUALS("equals", Object.class),
@@ -1395,21 +1325,93 @@ public class ReflectionMasker {
 		}
 	}
 
-	@SuppressWarnings("rawtypes")
-	public static Constructor[] removeTaintConstructors(Constructor[] in) {
-		ArrayList<Constructor> ret = new ArrayList<Constructor>();
-		for (Constructor f : in) {
-			Class[] params = f.getParameterTypes();
-			if (params.length > 0
-					&& (params[params.length - 1].getName().equals("edu.columbia.cs.psl.phosphor.runtime.TaintSentinel") || params[params.length - 1].getName().equals(
-							"edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel"))) {
-
-			} else {
-				ret.add(f);
-			}
+	private static ReflectionFactory getReflectionFactory() {
+		if (reflectionFactory == null) {
+			reflectionFactory = java.security.AccessController.doPrivileged(new sun.reflect.ReflectionFactory.GetReflectionFactoryAction());
 		}
-		Constructor[] retz = new Constructor[ret.size()];
-		ret.toArray(retz);
-		return retz;
+		return reflectionFactory;
+	}
+
+	private static ReflectionFactory reflectionFactory;
+
+	public static Method[] copyMethods(Method[] arg) {
+		//		if(arg == null || arg.length>0)
+		//			throw new IllegalStateException("this is disabled for testing");
+		//		ArrayList<Method> ret = new ArrayList<Method>();
+		//		ReflectionFactory fact = getReflectionFactory();
+		//		for (Method f : arg) {
+		//			final char[] chars = f.getName().toCharArray();
+		//			boolean match = false;
+		//			if (chars.length == SET_TAG_METHOD_LEN) {
+		//				match = true;
+		//				for (int i = 3; i < SET_TAG_METHOD_LEN; i++) {
+		//					if (chars[i] != SET_TAG_METHOD_CHARS[i]) {
+		//						match = false;
+		//						break;
+		//					}
+		//				}
+		//			}
+		//			if (!match && chars.length > METHOD_SUFFIX_LEN) {
+		//				int x = 0;
+		//				for (int i = chars.length - METHOD_SUFFIX_LEN; i < chars.length; i++) {
+		//					if (chars[i] != METHOD_SUFFIX_CHARS[x]) {
+		//						ret.add(fact.copyMethod(f));
+		//						break;
+		//					}
+		//					x++;
+		//				}
+		//			} else if (!match) {
+		//				ret.add(fact.copyMethod(f));
+		//			}
+		//		}
+		//		Method[] retz = new Method[ret.size()];
+		//		ret.toArray(retz);
+		//		return retz;
+		return arg;
+	}
+
+	public static Constructor<?>[] copyConstructors(Constructor<?>[] arg) {
+		//		ArrayList<Constructor> ret = new ArrayList<Constructor>();
+		//		ReflectionFactory fact = getReflectionFactory();
+		//
+		//		for (Constructor f : arg) {
+		//			Class<?>[] params = f.getParameterTypes();
+		//			if (params.length > 0
+		//					&& (params[params.length - 1].getName().equals("edu.columbia.cs.psl.phosphor.runtime.TaintSentinel") || params[params.length - 1].getName().equals(
+		//							"edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel"))) {
+		//
+		//			} else
+		//				ret.add(fact.copyConstructor(f));
+		//		}
+		//		Constructor[] retz = new Constructor[ret.size()];
+		//		ret.toArray(retz);
+		//		return retz;
+		return arg;
+	}
+
+	public static Field[] copyFields(Field[] arg) {
+		//		ArrayList<Field> ret = new ArrayList<Field>();
+		//		ReflectionFactory fact = getReflectionFactory();
+		//		//        System.out.println("Fields in : " +Arrays.toString(arg));
+		//		for (Field f : arg) {
+		//			final char[] chars = f.getName().toCharArray();
+		//			if (chars.length >= FIELD_METHOD_SUFFIX_LEN) {
+		//				int x = 0;
+		//				for (int i = chars.length - FIELD_METHOD_SUFFIX_LEN; i < chars.length; i++) {
+		//					if (chars[i] != FIELD_SUFFIX_CHARS[x]) {
+		//						ret.add(fact.copyField(f));
+		//						break;
+		//					}
+		//					x++;
+		//				}
+		//			} else if (!chars.equals("taint")) {
+		//				ret.add(fact.copyField(f));
+		//			}
+		//		}
+		//		Field[] retz = new Field[ret.size()];
+		//		ret.toArray(retz);
+		//		//        System.out.println("Fields out : " +Arrays.toString(retz));
+		//		return retz;
+		return arg;
 	}
 }
