@@ -16,16 +16,19 @@ import static org.junit.Assert.assertEquals;
 
 public class SerializationObjTagITCase extends BaseMultiTaintClass {
 
-    public static class ArrayHolderObjField implements Serializable{
+    public static class ArrayHolderObjField implements Serializable {
         private static final long serialVersionUID = 2710507305915502837L;
         private Object arr;
-        public ArrayHolderObjField(Object arr){
+
+        public ArrayHolderObjField(Object arr) {
             this.arr = arr;
         }
+
         private void writeObject(ObjectOutputStream oos) throws IOException {
 
-        	oos.defaultWriteObject();
+            oos.defaultWriteObject();
         }
+    }
 
     public static class ArrayHolder implements Serializable {
         private static final long serialVersionUID = 7515681563331750671L;
