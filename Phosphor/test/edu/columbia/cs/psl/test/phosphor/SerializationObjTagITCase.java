@@ -1,23 +1,36 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.*;
+import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
-import org.junit.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 
 public class SerializationObjTagITCase extends BaseMultiTaintClass {
 
+    public static class ArrayHolderObjField implements Serializable{
+        private static final long serialVersionUID = 2710507305915502837L;
+        private Object arr;
+        public ArrayHolderObjField(Object arr){
+            this.arr = arr;
+        }
+        private void writeObject(ObjectOutputStream oos) throws IOException {
+
+        	oos.defaultWriteObject();
+        }
+
     public static class ArrayHolder implements Serializable {
         private static final long serialVersionUID = 7515681563331750671L;
-        private int[] arr;
-        public ArrayHolder(int[] arr) {
+        private byte[] arr;
+        public ArrayHolder(byte[] arr) {
             this.arr = arr;
         }
     }
@@ -34,9 +47,9 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
      * array of the deserialized object is also tainted. */
     @Test
     public void testSerializeObjectWithTaintedPrimitiveArrayField() throws Exception {
-        int[] arr = new int[3];
+        byte[] arr = new byte[3];
         for(int i = 0; i < arr.length; i++) {
-            arr[i] = MultiTainter.taintedInt(i, "label");
+            arr[i] = MultiTainter.taintedByte((byte)i, "label");
         }
         ArrayHolder holderInput = new ArrayHolder(arr);
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -46,6 +59,23 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
         ArrayHolder holderOutput = (ArrayHolder) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
         assertArrayEquals(holderInput.arr, holderOutput.arr);
         for(int el : holderOutput.arr) {
+            assertNonNullTaint(MultiTainter.getTaint(el));
+        }
+    }
+
+    public void testSerializeObjectWithTaintedPrimitiveArrayInObjectField() throws Exception {
+        int[] arr = new int[3];
+        for(int i = 0; i < arr.length; i++) {
+            arr[i] = MultiTainter.taintedInt(i, "label");
+        }
+        ArrayHolderObjField holderInput = new ArrayHolderObjField(arr);
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
+        outStream.writeObject(holderInput);
+        outStream.close();
+        ArrayHolderObjField holderOutput = (ArrayHolderObjField) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
+        assertArrayEquals((int[]) holderInput.arr, (int[]) holderOutput.arr);
+        for (int el : ((int[]) (holderOutput.arr))) {
             assertNonNullTaint(MultiTainter.getTaint(el));
         }
     }
@@ -100,9 +130,9 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
      * array of the deserialized object is not tainted. */
     @Test
     public void testSerializeObjectWithNonTaintedPrimitiveArrayField() throws Exception {
-        int[] arr = new int[3];
+        byte[] arr = new byte[3];
         for(int i = 0; i < arr.length; i++) {
-            arr[i] = i;
+            arr[i] = (byte)i;
         }
         ArrayHolder holderInput = new ArrayHolder(arr);
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
