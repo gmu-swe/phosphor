@@ -125,6 +125,49 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			lvs.freeTmpLV(lv2);
 		}
 	}
+	
+	/* Return whether a method instruction with the specified information is a phosphor-added getter specified in Unsafe
+	 *  for a field of a Java heap object. */
+	private boolean isUnsafeHeapObjectGetter(int opcode, String owner, String name, String desc, Type[] args) {
+		if(className.equals("sun/misc/Unsafe") || opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
+			return false;
+		} else if(!(name.startsWith("getByte") || name.startsWith("getBoolean") || name.startsWith("getChar") ||
+					name.startsWith("getDouble") || name.startsWith("getFloat") || name.startsWith("getInt") ||
+					name.startsWith("getLong") || name.startsWith("getShort") || name.startsWith("getObject"))) {
+			return false;
+		} else {
+			return Type.getReturnType(desc).getSort() != Type.VOID && args.length > 0 &&
+					args[0].getClassName().equals("java.lang.Object");
+		}
+	}
+
+	/* Calls getTagOrOriginalField. */
+	private void maskUnsafeHeapObjectGetter(int opcode, String owner, String name, String desc, boolean isInterface, Type[] args) {
+		// Store the arguments for the original method call
+		int[] localVars = new int[args.length-1];
+		for(int i = args.length-1; i >= 1; i--) {
+			int lv = lvs.getTmpLV();
+			super.visitVarInsn(args[i].getOpcode(Opcodes.ISTORE), lv);
+			localVars[i-1] = lv;
+		}
+		// Copy the Unsafe
+		super.visitInsn(DUP2);
+		for(int i = 0; i < localVars.length; i++) {
+			super.visitVarInsn(args[i+1].getOpcode(Opcodes.ILOAD), localVars[i]);
+		}
+		super.visitMethodInsn(opcode, owner, name, desc, isInterface);
+		super.visitTypeInsn(CHECKCAST,  Type.getInternalName(Object.class));
+		super.visitVarInsn(args[2].getOpcode(Opcodes.ILOAD), localVars[1]);
+		if(args[2].getSort() == Type.INT) {
+			// Cast int offsets to longs
+			super.visitInsn(I2L);
+		}
+		for(int lv : localVars) {
+			lvs.freeTmpLV(lv);
+		}
+		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), "getTagAndOriginalField", "(Lsun/misc/Unsafe;Ljava/lang/Object;Ljava/lang/Object;J)Ljava/lang/Object;", false);
+		super.visitTypeInsn(CHECKCAST,  Type.getReturnType(desc).getInternalName());
+	}
 
 	/* Return whether a method instruction with the specified information is a phosphor-added setter specified in Unsafe
 	 *  for a field of a Java heap object. */
@@ -137,8 +180,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		}
 	}
 
-	/* Calls putTag to set the taint field associated with the field about to be set using Unsafe.put. */
-	private void setTagForUnsafeHeapObjectSetter(String name, Type[] args) {
+	/* Calls putTagOrOriginalField to set the field associated with the field about to be set using Unsafe.put. */
+	private void maskUnsafeHeapObjectSetter(String name, Type[] args) {
 		// Store the arguments for the original method call
 		int[] localVars = new int[args.length-1];
 		int j = localVars.length - 1;
@@ -164,7 +207,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			lastArg = "Ljava/lang/Object;";
 		}
 		String desc = String.format("(Lsun/misc/Unsafe;Ljava/lang/Object;J%s)V", lastArg);
-		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), "putTag", desc, false);
+		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), "putTagOrOriginalField", desc, false);
 		// Restore the arguments for the original method call
 		for(int i = 1; i < args.length; i++) {
 			int lv = localVars[i-1];
@@ -266,7 +309,10 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				}
 			}
 			if(isUnsafeHeapObjectSetter(opcode, owner, name, desc, args)) {
-				setTagForUnsafeHeapObjectSetter(name, args);
+				maskUnsafeHeapObjectSetter(name, args);
+			} else if(isUnsafeHeapObjectGetter(opcode, owner, name, desc, args)) {
+				maskUnsafeHeapObjectGetter(opcode, owner, name, desc, isInterface, args);
+				return;
 			}
 			super.visitMethodInsn(opcode, owner, name, desc, isInterface);
 			if(owner.equals("java/lang/Class") && desc.endsWith("[Ljava/lang/reflect/Field;") && !className.equals("java/lang/Class")) {

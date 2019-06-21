@@ -36,6 +36,17 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
         public ArrayHolder(byte[] arr) {
             this.arr = arr;
         }
+
+        public byte[] getArr() {
+            return arr;
+        }
+    }
+
+    public static class ArrayHolderChild extends ArrayHolder {
+        private static final long serialVersionUID = 10585365320351952L;
+        public ArrayHolderChild(byte[] arr) {
+            super(arr);
+        }
     }
 
     public static class PrimitiveHolder implements  Serializable {
@@ -62,6 +73,26 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
         ArrayHolder holderOutput = (ArrayHolder) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
         assertArrayEquals(holderInput.arr, holderOutput.arr);
         for(int el : holderOutput.arr) {
+            assertNonNullTaint(MultiTainter.getTaint(el));
+        }
+    }
+
+    /* Checks that when an object whose superclass has a tainted primitive array field is serialized and then deserialized the primitive
+     * array of the deserialized object is also tainted. */
+    @Test
+    public void testSerializeSubclassObjectWithTaintedPrimitiveArrayField() throws Exception {
+        byte[] arr = new byte[3];
+        for(int i = 0; i < arr.length; i++) {
+            arr[i] = MultiTainter.taintedByte((byte)i, "label");
+        }
+        ArrayHolderChild holderInput = new ArrayHolderChild(arr);
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
+        outStream.writeObject(holderInput);
+        outStream.close();
+        ArrayHolderChild holderOutput = (ArrayHolderChild) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
+        assertArrayEquals(holderInput.getArr(), holderOutput.getArr());
+        for(int el : holderOutput.getArr()) {
             assertNonNullTaint(MultiTainter.getTaint(el));
         }
     }

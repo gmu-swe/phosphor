@@ -399,7 +399,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		assertNotNull(result);
 	}
 
-	/* Checks that that using Unsafe.outObject to update the value of a primitive field also updates the taint tag
+	/* Checks that that using Unsafe.put to update the value of a primitive field also updates the taint tag
 	 * for the field. */
 	@Test
 	public void testUnsafePutTaintedPrimitiveField() throws Exception {
@@ -434,7 +434,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		assertNonNullTaint(MultiTainter.getTaint(holder.f));
 	}
 
-	/* Checks that that using Unsafe.outObject to update the value of a primitive array field also updates the taint tags
+	/* Checks that that using Unsafe.putObject to update the value of a primitive array field also updates the taint tags
 	 * for the field. */
 	@Test
 	public void testUnsafePutTaintedPrimitiveArrayField() throws Exception {
@@ -467,6 +467,61 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		assertNonNullTaint(MultiTainter.getTaint(holder.ba[0]));
 		assertNonNullTaint(MultiTainter.getTaint(holder.ca[0]));
 		assertNonNullTaint(MultiTainter.getTaint(holder.fa[0]));
+	}
+
+	/* Checks that that using Unsafe.getto get the value of a tainted primitive field returns a tainted primitive. */
+	@Test
+	public void testUnsafeGetTaintedPrimitiveField() throws Exception {
+		// Create the holder and tainted values
+		FieldHolder holder = new FieldHolder();
+		holder.i = MultiTainter.taintedInt(5, "int-field");
+		holder.j = MultiTainter.taintedLong(44, "long-field");
+		holder.z = MultiTainter.taintedBoolean(true, "bool-field");
+		holder.s = MultiTainter.taintedShort((short)5, "short-field");
+		holder.d = MultiTainter.taintedDouble(4.5, "double-field");
+		holder.b = MultiTainter.taintedByte((byte)4, "byte-field");
+		holder.c = MultiTainter.taintedChar('w', "char-field");
+		holder.f = MultiTainter.taintedFloat(3.3f, "float-field");
+		// Get the primitive fields using unsafe
+		Field[] primitiveFields = getFieldHolderPrimitiveFields();
+		int i = unsafe.getInt(holder, unsafe.objectFieldOffset(primitiveFields[0]));
+		long j = unsafe.getLong(holder, unsafe.objectFieldOffset(primitiveFields[1]));
+		boolean z = unsafe.getBoolean(holder, unsafe.objectFieldOffset(primitiveFields[2]));
+		short s = unsafe.getShort(holder, unsafe.objectFieldOffset(primitiveFields[3]));
+		double d = unsafe.getDouble(holder, unsafe.objectFieldOffset(primitiveFields[4]));
+		byte b = unsafe.getByte(holder, unsafe.objectFieldOffset(primitiveFields[5]));
+		char c = unsafe.getChar(holder, unsafe.objectFieldOffset(primitiveFields[6]));
+		float f = unsafe.getFloat(holder, unsafe.objectFieldOffset(primitiveFields[7]));
+		// Check that the primitives are tainted
+		assertNonNullTaint(MultiTainter.getTaint(i));
+		assertNonNullTaint(MultiTainter.getTaint(j));
+		assertNonNullTaint(MultiTainter.getTaint(z));
+		assertNonNullTaint(MultiTainter.getTaint(s));
+		assertNonNullTaint(MultiTainter.getTaint(d));
+		assertNonNullTaint(MultiTainter.getTaint(b));
+		assertNonNullTaint(MultiTainter.getTaint(c));
+		assertNonNullTaint(MultiTainter.getTaint(f));
+	}
+
+	/* Checks that that using Unsafe.getObject to update the value of a primitive array field also updates the taint tags
+	 * for the field. */
+	@Test
+	public void testUnsafeGetTaintedPrimitiveArrayField() throws Exception {
+		// Create the holder and tainted values
+		FieldHolder holder = new FieldHolder();
+		Field[] primitiveArrFields = getFieldHolderPrimitiveArrayFields();
+		holder.ia = new int[]{MultiTainter.taintedInt(5, "int-field")};
+		holder.ja  = new long[]{MultiTainter.taintedLong(44, "long-field")};
+		holder.za = new boolean[]{MultiTainter.taintedBoolean(true, "bool-field")};
+		holder.sa = new short[]{MultiTainter.taintedShort((short)5, "short-field")};
+		holder.da = new double[]{MultiTainter.taintedDouble(4.5, "double-field")};
+		holder.ba = new byte[]{MultiTainter.taintedByte((byte)4, "byte-field")};
+		holder.ca = new char[]{MultiTainter.taintedChar('w', "char-field")};
+		holder.fa = new float[]{MultiTainter.taintedFloat(3.3f, "float-field")};
+		// Get the primitive array fields using unsafe and check that they are tainted
+		for(Field field : primitiveArrFields) {
+			assertNonNullTaint(MultiTainter.getTaint(Array.get(unsafe.getObject(holder, unsafe.objectFieldOffset(field)), 0)));
+		}
 	}
 
 	/* Returns the primitive fields for the class FieldHolder. */

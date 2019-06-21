@@ -2,9 +2,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
+import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import sun.misc.Unsafe;
 
@@ -21,6 +19,8 @@ public class RuntimeUnsafePropagator {
         }
     }
 
+    /* Stores pairs containing the offset of an original, non-static primitive or primitive array field for the specified
+     * class and the offset of the tag field associated with that original field. */
     private static SinglyLinkedList<OffsetPair> getOffsetPairs(Unsafe unsafe, Class<?> targetClazz) {
         SinglyLinkedList<OffsetPair> list = new SinglyLinkedList<>();
         for(Class<?> clazz = targetClazz; clazz != null && !Object.class.equals(clazz); clazz = clazz.getSuperclass()) {
@@ -69,30 +69,32 @@ public class RuntimeUnsafePropagator {
         return list;
     }
 
-    /* Returns the offset of the taint field associated with the field at the specified offset for the specified object or
-     * Unsafe.INVALID_FIELD_OFFSET if an associated taint field could not be found. */
-    private static long getTagFieldOffset(Unsafe unsafe, Object o, long offset) {
+    /* Returns an offset pair for the specified object's class where either the original field offset or the tag field
+     * offset matches the specified offset or null if such an offset pair could not be found. */
+    private static OffsetPair getOffsetPair(Unsafe unsafe, Object o, long offset) {
         if(o == null || o.getClass() == null) {
-            return Unsafe.INVALID_FIELD_OFFSET;
+            return null;
         }
         if(o.getClass().$$PHOSPHOR_OFFSET_CACHE == null) {
             o.getClass().$$PHOSPHOR_OFFSET_CACHE = getOffsetPairs(unsafe, o.getClass());
         }
         for(OffsetPair pair : o.getClass().$$PHOSPHOR_OFFSET_CACHE) {
-            if(pair.origFieldOffset == offset) {
-                return pair.tagFieldOffset;
+            if(pair.origFieldOffset == offset || pair.tagFieldOffset == offset) {
+                return pair;
             }
         }
-        return Unsafe.INVALID_FIELD_OFFSET;
+        return null;
     }
 
     @SuppressWarnings("unused")
-    public static void putTag(Unsafe unsafe, Object o, long offset, Taint tag) {
+    public static void putTagOrOriginalField(Unsafe unsafe, Object o, long offset, Taint tag) {
         try {
-            o = unwrap(o);
-            long tagOffset = getTagFieldOffset(unsafe, o, offset);
-            if(tagOffset != Unsafe.INVALID_FIELD_OFFSET) {
-                unsafe.putObject(o, tagOffset, tag);
+            OffsetPair pair = getOffsetPair(unsafe, o, offset);
+            if(pair != null) {
+                if(pair.origFieldOffset == offset &&  pair.tagFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                    // Given offset is for an original field
+                    unsafe.putObject(o, pair.tagFieldOffset, tag);
+                }
             }
         } catch(Exception e) {
             //
@@ -100,12 +102,15 @@ public class RuntimeUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putTag(Unsafe unsafe, Object o, long offset, int tag) {
+    public static void putTagOrOriginalField(Unsafe unsafe, Object o, long offset, int tag) {
+        // Not fully supported
         try {
-            o = unwrap(o);
-            long tagOffset = getTagFieldOffset(unsafe, o, offset);
-            if(tagOffset != Unsafe.INVALID_FIELD_OFFSET) {
-                unsafe.putInt(o, tagOffset, tag);
+            OffsetPair pair = getOffsetPair(unsafe, o, offset);
+            if(pair != null) {
+                if(pair.origFieldOffset == offset &&  pair.tagFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                    // Given offset is for an original field
+                    unsafe.putInt(o, pair.tagFieldOffset, tag);
+                }
             }
         } catch(Exception e) {
             //
@@ -113,17 +118,66 @@ public class RuntimeUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putTag(Unsafe unsafe, Object o, long offset, Object tags) {
+    public static void putTagOrOriginalField(Unsafe unsafe, Object o, long offset, Object tags) {
         if(tags == null || tags instanceof LazyArrayObjTags || tags instanceof LazyArrayIntTags) {
             try {
-                o = unwrap(o);
-                long tagOffset = getTagFieldOffset(unsafe, o, offset);
-                if(tagOffset != Unsafe.INVALID_FIELD_OFFSET) {
-                    unsafe.putObject(o, tagOffset, tags);
+                OffsetPair pair = getOffsetPair(unsafe, o, offset);
+                if(pair != null) {
+                    if(pair.tagFieldOffset == offset && pair.origFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                        // Given offset is for a tag field
+                        unsafe.putObject(o, pair.origFieldOffset, unwrap(tags));
+                    } else if(pair.origFieldOffset == offset &&  pair.tagFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                        // Given offset is for an original field
+                        unsafe.putObject(o, pair.tagFieldOffset, tags);
+                    }
                 }
             } catch(Exception e) {
                 //
             }
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public static Object getTagAndOriginalField(Unsafe unsafe, Object o, Object prealloc, long offset) {
+        if(prealloc instanceof LazyArrayObjTags || prealloc instanceof TaintedPrimitiveWithObjTag) {
+            try {
+                OffsetPair pair = getOffsetPair(unsafe, o, offset);
+                if(pair != null) {
+                    if(pair.origFieldOffset == offset && pair.tagFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                        // Given offset is for an original field
+                        Object tag = unsafe.getObject(o, pair.tagFieldOffset);
+                        if(tag instanceof Taint && prealloc instanceof TaintedPrimitiveWithObjTag) {
+                            ((TaintedPrimitiveWithObjTag) prealloc).taint = (Taint)tag;
+                        } else if(tag instanceof LazyArrayObjTags && prealloc instanceof LazyArrayObjTags) {
+                            ((LazyArrayObjTags) prealloc).taints = ((LazyArrayObjTags) tag).taints;
+                        }
+                    }
+                }
+            } catch(Exception e) {
+                //
+            }
+        }
+        return prealloc;
+    }
+
+    /* Puts the primitive stored in the specified tag into the field at the specified offset in the specified object. */
+    private static void putPrimitive(Unsafe unsafe, Object o, long offset, TaintedPrimitiveWithObjTag tag) {
+        if(tag instanceof TaintedByteWithObjTag) {
+            unsafe.putByte(o, offset, ((TaintedByteWithObjTag) tag).val);
+        } else if(tag instanceof TaintedBooleanWithObjTag) {
+            unsafe.putBoolean(o, offset, ((TaintedBooleanWithObjTag) tag).val);
+        } else if(tag instanceof TaintedCharWithObjTag) {
+            unsafe.putChar(o, offset, ((TaintedCharWithObjTag) tag).val);
+        } else if(tag instanceof TaintedDoubleWithObjTag) {
+            unsafe.putDouble(o, offset, ((TaintedDoubleWithObjTag) tag).val);
+        } else if(tag instanceof TaintedFloatWithObjTag) {
+            unsafe.putFloat(o, offset, ((TaintedFloatWithObjTag) tag).val);
+        } else if(tag instanceof TaintedIntWithObjTag) {
+            unsafe.putInt(o, offset, ((TaintedIntWithObjTag) tag).val);
+        } else if(tag instanceof TaintedLongWithObjTag) {
+            unsafe.putLong(o, offset, ((TaintedLongWithObjTag) tag).val);
+        } else if(tag instanceof TaintedShortWithObjTag) {
+            unsafe.putShort(o, offset, ((TaintedShortWithObjTag) tag).val);
         }
     }
 
