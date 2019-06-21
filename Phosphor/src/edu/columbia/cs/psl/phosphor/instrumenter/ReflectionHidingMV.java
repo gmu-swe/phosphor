@@ -6,6 +6,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAd
 import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
+import edu.columbia.cs.psl.phosphor.runtime.RuntimeUnsafePropagator;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
@@ -15,6 +16,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FrameNode;
+import sun.misc.Unsafe;
 
 public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
@@ -124,6 +126,17 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		}
 	}
 
+	/* Return whether a method instruction with the specified information is a setter specified in Unsafe for a field of
+	 * a Java heap object. */
+	private boolean isUnsafeHeapObjectSetter(int opcode, String owner, String name, String desc, Type[] args) {
+		if(opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner)) {
+			return false;
+		} else {
+			return name.startsWith("put") && Type.getReturnType(desc).getSort() == Type.VOID && args.length > 0 &&
+					args[0].getClassName().equals("java.lang.Object");
+		}
+	}
+
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean isInterface) {
 		Type[] args = Type.getArgumentTypes(desc);
@@ -215,6 +228,14 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;Z)V";
 					super.visitInsn((Configuration.MULTI_TAINTING ? Opcodes.ICONST_1 : Opcodes.ICONST_0));
 				}
+			}
+			if(isUnsafeHeapObjectSetter(opcode, owner, name, desc, args)) {
+				opcode = Opcodes.INVOKESTATIC;
+				owner = Type.getInternalName(RuntimeUnsafePropagator.class);
+				Type[] newArgs = new Type[args.length+1];
+				newArgs[0] = Type.getType(Unsafe.class);
+				System.arraycopy(args, 0, newArgs, 1, args.length);
+				desc = Type.getMethodDescriptor(Type.VOID_TYPE, newArgs);
 			}
 			super.visitMethodInsn(opcode, owner, name, desc, isInterface);
 			if(owner.equals("java/lang/Class") && desc.endsWith("[Ljava/lang/reflect/Field;") && !className.equals("java/lang/Class")) {
