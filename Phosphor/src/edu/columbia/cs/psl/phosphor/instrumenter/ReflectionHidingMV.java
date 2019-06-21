@@ -126,14 +126,50 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		}
 	}
 
-	/* Return whether a method instruction with the specified information is a setter specified in Unsafe for a field of
-	 * a Java heap object. */
+	/* Return whether a method instruction with the specified information is a phosphor-added setter specified in Unsafe
+	 *  for a field of a Java heap object. */
 	private boolean isUnsafeHeapObjectSetter(int opcode, String owner, String name, String desc, Type[] args) {
-		if(opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner)) {
+		if(opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
 			return false;
 		} else {
 			return name.startsWith("put") && Type.getReturnType(desc).getSort() == Type.VOID && args.length > 0 &&
 					args[0].getClassName().equals("java.lang.Object");
+		}
+	}
+
+	/* Calls putTag to set the taint field associated with the field about to be set using Unsafe.put. */
+	private void setTagForUnsafeHeapObjectSetter(String name, Type[] args) {
+		// Store the arguments for the original method call
+		int[] localVars = new int[args.length-1];
+		int j = localVars.length - 1;
+		for(int i = args.length-1; i >=1; i--) {
+			int lv = lvs.getTmpLV();
+			super.visitVarInsn(args[i].getOpcode(Opcodes.ISTORE), lv);
+			localVars[j--] = lv;
+		}
+		// Copy the Unsafe and Object arguments
+		super.visitInsn(DUP2);
+		// Put the offset onto the stack
+		Type offsetType = args[2];
+		super.visitVarInsn(offsetType.getOpcode(Opcodes.ILOAD), localVars[1]);
+		if(offsetType.getSort() == Type.INT) {
+			// Cast int offsets to longs
+			super.visitInsn(I2L);
+		}
+		// Put the taint tag or object onto the stack
+		super.visitVarInsn(args[3].getOpcode(Opcodes.ILOAD), localVars[2]);
+		// Call putTag
+		String lastArg = Configuration.TAINT_TAG_DESC;
+		if(name.contains("Object")) {
+			lastArg = "Ljava/lang/Object;";
+		}
+		String desc = String.format("(Lsun/misc/Unsafe;Ljava/lang/Object;J%s)V", lastArg);
+		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), "putTag", desc, false);
+		// Restore the arguments for the original method call
+		for(int i = 1; i < args.length; i++) {
+			int lv = localVars[i-1];
+			super.visitVarInsn(args[i].getOpcode(Opcodes.ILOAD), lv);
+			lvs.freeTmpLV(lv);
 		}
 	}
 
@@ -230,12 +266,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				}
 			}
 			if(isUnsafeHeapObjectSetter(opcode, owner, name, desc, args)) {
-				opcode = Opcodes.INVOKESTATIC;
-				owner = Type.getInternalName(RuntimeUnsafePropagator.class);
-				Type[] newArgs = new Type[args.length+1];
-				newArgs[0] = Type.getType(Unsafe.class);
-				System.arraycopy(args, 0, newArgs, 1, args.length);
-				desc = Type.getMethodDescriptor(Type.VOID_TYPE, newArgs);
+				setTagForUnsafeHeapObjectSetter(name, args);
 			}
 			super.visitMethodInsn(opcode, owner, name, desc, isInterface);
 			if(owner.equals("java/lang/Class") && desc.endsWith("[Ljava/lang/reflect/Field;") && !className.equals("java/lang/Class")) {
