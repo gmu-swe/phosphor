@@ -150,7 +150,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			super.visitVarInsn(args[i].getOpcode(Opcodes.ISTORE), lv);
 			localVars[i-1] = lv;
 		}
-		// Copy the Unsafe
+		// Copy the Unsafe instance
 		super.visitInsn(DUP2);
 		for(int i = 0; i < localVars.length; i++) {
 			super.visitVarInsn(args[i+1].getOpcode(Opcodes.ILOAD), localVars[i]);

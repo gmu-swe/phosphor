@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import sun.misc.Unsafe;
 
@@ -11,9 +12,11 @@ import java.lang.reflect.Modifier;
 
 public class RuntimeUnsafePropagator {
 
-    private static Object unwrap(Object o) {
+    public static Object unwrap(Object o) {
         if(o instanceof LazyArrayObjTags[] | o instanceof LazyArrayObjTags) {
             return MultiDTaintedArrayWithObjTag.unboxRawOnly1D(o);
+        } else if(o instanceof LazyArrayIntTags[] | o instanceof LazyArrayIntTags) {
+            return MultiDTaintedArrayWithIntTag.unboxRawOnly1D(o);
         } else {
             return o;
         }
@@ -71,7 +74,7 @@ public class RuntimeUnsafePropagator {
 
     /* Returns an offset pair for the specified object's class where either the original field offset or the tag field
      * offset matches the specified offset or null if such an offset pair could not be found. */
-    private static OffsetPair getOffsetPair(Unsafe unsafe, Object o, long offset) {
+    public static OffsetPair getOffsetPair(Unsafe unsafe, Object o, long offset) {
         if(o == null || o.getClass() == null) {
             return null;
         }

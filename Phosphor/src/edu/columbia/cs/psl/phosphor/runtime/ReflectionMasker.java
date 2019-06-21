@@ -48,114 +48,53 @@ public class ReflectionMasker {
     }
 
     public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long fieldOffset, Object val) {
-        //Need to put the actual obj if its a lazyarray and the offset points to the tag field
-        if(val instanceof LazyArrayIntTags)
-        {
-            for (Field f : obj.getClass().getDeclaredFields())
-                if (!Modifier.isStatic(f.getModifiers()) && u.objectFieldOffset(f) == fieldOffset)
-                {
-                    if(f.getType().isArray())
-                    {
-                        u.putObject(obj, fieldOffset, ((LazyArrayIntTags) val).getVal());
-                        putTaintWrapper(u, f, obj, val);
-                    }
-                    else
-                        u.putObject(obj, fieldOffset, val);
+        if(val instanceof LazyArrayIntTags) {
+            try {
+                RuntimeUnsafePropagator.OffsetPair pair = RuntimeUnsafePropagator.getOffsetPair(u, obj, fieldOffset);
+                if(pair != null) {
+                    u.putObject(obj, pair.origFieldOffset, RuntimeUnsafePropagator.unwrap(val));
+                    u.putObject(obj, pair.tagFieldOffset, val);
                     return;
                 }
-            for (Field f : obj.getClass().getFields())
-                if (!Modifier.isStatic(f.getModifiers()) && u.objectFieldOffset(f) == fieldOffset)
-                {
-                    if(f.getType().isArray())
-                    {
-                        u.putObject(obj, fieldOffset, ((LazyArrayIntTags) val).getVal());
-                        putTaintWrapper(u, f, obj, val);
-                    }
-                    else
-                        u.putObject(obj, fieldOffset, val);
-                    return;
-                }
-            u.putObject(obj, fieldOffset, ((LazyArrayIntTags) val).getVal());
+            } catch(Exception e) {
+                //
+            }
         }
         u.putObject(obj, fieldOffset, val);
     }
 
     public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val) {
-        //Need to put the actual obj if its a lazyarray and the offset points to the tag field
-        if(val instanceof LazyArrayObjTags)
-        {
-            for (Field f : obj.getClass().getDeclaredFields())
-                if (!Modifier.isStatic(f.getModifiers()) && u.objectFieldOffset(f) == fieldOffset)
-                {
-                    if(f.getType().isArray())
-                    {
-                        u.putObject(obj, fieldOffset, ((LazyArrayObjTags) val).getVal());
-                        putTaintWrapper(u, f, obj, val);
-                    }
-                    else
-                        u.putObject(obj, fieldOffset, val);
+        if(val instanceof LazyArrayObjTags) {
+            try {
+                RuntimeUnsafePropagator.OffsetPair pair = RuntimeUnsafePropagator.getOffsetPair(u, obj, fieldOffset);
+                if(pair != null) {
+                    u.putObject(obj, pair.origFieldOffset, RuntimeUnsafePropagator.unwrap(val));
+                    u.putObject(obj, pair.tagFieldOffset, val);
                     return;
                 }
-            for (Field f : obj.getClass().getFields())
-                if (!Modifier.isStatic(f.getModifiers()) && u.objectFieldOffset(f) == fieldOffset)
-                {
-                    if(f.getType().isArray())
-                    {
-                        u.putObject(obj, fieldOffset, ((LazyArrayObjTags) val).getVal());
-                        putTaintWrapper(u, f, obj, val);
-                    }
-                    else
-                        u.putObject(obj, fieldOffset, val);
-                    return;
-                }
-            u.putObject(obj, fieldOffset, ((LazyArrayObjTags) val).getVal());
+            } catch(Exception e) {
+                //
+            }
         }
         u.putObject(obj, fieldOffset, val);
     }
 
-    private static void putTaintWrapper(Unsafe u, Field origField, Object obj, Object val) {
-        if(origField.getType().isArray() && origField.getType().getComponentType().isPrimitive())
-            try {
-                Field taintField = origField.getDeclaringClass().getDeclaredField(origField.getName()+TaintUtils.TAINT_FIELD);
-                u.putObject(obj, u.objectFieldOffset(taintField), val);
-            } catch (NoSuchFieldException | SecurityException | IllegalArgumentException e) {
-//				e.printStackTrace();
-            }
-    }
-
-    public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val, ControlTaintTagStack ctrl){
+    public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val, ControlTaintTagStack ctrl) {
         putObjectVolatile$$PHOSPHORTAGGED(u, obj, tag, fieldOffset, val);
     }
 
     public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val) {
-        //Need to put the actual obj if its a lazyarray and the offset points to the tag field
-        if(val instanceof LazyArrayObjTags)
-        {
-            for (Field f : obj.getClass().getDeclaredFields())
-                if (!Modifier.isStatic(f.getModifiers()) && u.objectFieldOffset(f) == fieldOffset)
-                {
-                    if(f.getType().isArray())
-                    {
-                        u.putObjectVolatile(obj, fieldOffset, ((LazyArrayObjTags) val).getVal());
-                        putTaintWrapper(u, f, obj, val);
-                    }
-                    else
-                        u.putObjectVolatile(obj, fieldOffset, val);
+        if(val instanceof LazyArrayObjTags) {
+            try {
+                RuntimeUnsafePropagator.OffsetPair pair = RuntimeUnsafePropagator.getOffsetPair(u, obj, fieldOffset);
+                if(pair != null) {
+                    u.putObject(obj, pair.origFieldOffset, RuntimeUnsafePropagator.unwrap(val));
+                    u.putObject(obj, pair.tagFieldOffset, val);
                     return;
                 }
-            for (Field f : obj.getClass().getFields())
-                if (!Modifier.isStatic(f.getModifiers()) && u.objectFieldOffset(f) == fieldOffset)
-                {
-                    if(f.getType().isArray())
-                    {
-                        u.putObjectVolatile(obj, fieldOffset, ((LazyArrayObjTags) val).getVal());
-                        putTaintWrapper(u, f, obj, val);
-                    }
-                    else
-                        u.putObjectVolatile(obj, fieldOffset, val);
-                    return;
-                }
-            u.putObjectVolatile(obj, fieldOffset, ((LazyArrayObjTags) val).getVal());
+            } catch(Exception e) {
+                //
+            }
         }
         u.putObjectVolatile(obj, fieldOffset, val);
     }

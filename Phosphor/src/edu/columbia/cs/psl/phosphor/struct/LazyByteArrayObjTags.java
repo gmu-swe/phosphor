@@ -103,22 +103,23 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 		ret.taint = Taint.combineTags(ret.taint, ctrl);
 		return ret;
 	}
-	public int getLength()
-	{
+
+	public int getLength() {
 		return val.length;
 	}
+
 	@Override
 	public Object getVal() {
 		return val;
 	}
-	public void ensureVal(byte[] v)
-	{
+
+	public void ensureVal(byte[] v) {
 		if(v != val)
 			val = v;
 	}
 
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
-		if (val == null) {
+		if(val == null) {
 			stream.writeInt(-1);
 		} else {
 			stream.writeInt(val.length);
@@ -130,7 +131,7 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 
 	private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
 		int len = stream.readInt();
-		if (len == -1)
+		if(len == -1)
 			val = null;
 		else {
 			val = new byte[len];
