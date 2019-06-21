@@ -9,6 +9,7 @@ import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 public class RuntimeUnsafePropagator {
 
@@ -26,7 +27,7 @@ public class RuntimeUnsafePropagator {
             for(Field field : clazz.getDeclaredFields()) {
                 try {
                     Class<?> fieldClazz = field.getType();
-                    if(fieldClazz.isPrimitive()) {
+                    if(!Modifier.isStatic(fieldClazz.getModifiers()) && fieldClazz.isPrimitive()) {
                         // The field is a primitive
                         long fieldOffset = unsafe.objectFieldOffset(field);
                         // Find the associated taint field's offset
@@ -42,7 +43,7 @@ public class RuntimeUnsafePropagator {
                             //
                         }
                         list.enqueue(new OffsetPair(fieldOffset, tagOffset));
-                    } else if(fieldClazz.isArray() && fieldClazz.getComponentType().isPrimitive()) {
+                    } else if(!Modifier.isStatic(fieldClazz.getModifiers()) && fieldClazz.isArray() && fieldClazz.getComponentType().isPrimitive()) {
                         // The fields is a 1D primitive array
                         long fieldOffset = unsafe.objectFieldOffset(field);
                         // Find the associated taint field's offset
