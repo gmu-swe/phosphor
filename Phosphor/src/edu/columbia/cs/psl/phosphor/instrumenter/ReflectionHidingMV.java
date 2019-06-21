@@ -129,7 +129,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	/* Return whether a method instruction with the specified information is a phosphor-added setter specified in Unsafe
 	 *  for a field of a Java heap object. */
 	private boolean isUnsafeHeapObjectSetter(int opcode, String owner, String name, String desc, Type[] args) {
-		if(opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
+		if(className.equals("sun/misc/Unsafe") || opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
 			return false;
 		} else {
 			return name.startsWith("put") && Type.getReturnType(desc).getSort() == Type.VOID && args.length > 0 &&
