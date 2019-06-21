@@ -83,10 +83,9 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
         }
     }
 
-    /* Checks that when an object with a tainted primitive field is serialized and then deserialized the primitive of the
-     * deserialized object is also tainted. */
+    /* Checks that when a tainted primitive is serialized and then deserialized the deserialized primitive is also tainted. */
     @Test
-    public void testSerializeTaintedPrimitiveField() throws Exception {
+    public void testSerializeTaintedPrimitive() throws Exception {
         int input = MultiTainter.taintedInt(37, "label");
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
         ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
@@ -98,7 +97,7 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
     }
 
     /* Checks that when an object with a non-tainted primitive array field is serialized and then deserialized the primitive
-     * array of the deserialized object is also not tainted. */
+     * array of the deserialized object is not tainted. */
     @Test
     public void testSerializeObjectWithNonTaintedPrimitiveArrayField() throws Exception {
         int[] arr = new int[3];
@@ -118,7 +117,7 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
     }
 
     /* Checks that when an object with a non-tainted primitive field is serialized and then deserialized the primitive of the
-     * deserialized object is also not tainted. */
+     * deserialized object is not tainted. */
     @Test
     public void testSerializeObjectWithNonTaintedPrimitiveField() throws Exception {
         PrimitiveHolder holderInput = new PrimitiveHolder(37);
@@ -132,7 +131,7 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
     }
 
     /* Checks that when a non-tainted primitive array field is serialized and then deserialized the deserialized primitive
-     * array is also not tainted. */
+     * array is not tainted. */
     @Test
     public void testSerializeNonTaintedPrimitiveArray() throws Exception {
         int[] inputArr = new int[3];
@@ -150,10 +149,9 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
         }
     }
 
-    /* Checks that when an object with a non-tainted primitive field is serialized and then deserialized the primitive of the
-     * deserialized object is also not tainted. */
+    /* Checks that when a non-tainted primitive is serialized and then deserialized the deserialized primitive is not tainted. */
     @Test
-    public void testSerializeNonTaintedPrimitiveField() throws Exception {
+    public void testSerializeNonTaintedPrimitive() throws Exception {
         int input = 37;
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
         ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
