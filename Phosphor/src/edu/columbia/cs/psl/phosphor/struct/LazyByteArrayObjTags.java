@@ -3,6 +3,8 @@ package edu.columbia.cs.psl.phosphor.struct;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
+import java.io.IOException;
+
 public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 	public byte[] val;
 	
@@ -113,5 +115,29 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 	{
 		if(v != val)
 			val = v;
+	}
+
+	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
+		if (val == null) {
+			stream.writeInt(-1);
+		} else {
+			stream.writeInt(val.length);
+			for(int i = 0; i < val.length; i++)
+				stream.writeByte(val[i]);
+		}
+		stream.writeObject(taints);
+	}
+
+	private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
+		int len = stream.readInt();
+		if (len == -1)
+			val = null;
+		else {
+			val = new byte[len];
+			for (int i = 0; i < len; i++) {
+				val[i] = stream.readByte();
+			}
+		}
+		taints = (Taint[]) stream.readObject();
 	}
 }
