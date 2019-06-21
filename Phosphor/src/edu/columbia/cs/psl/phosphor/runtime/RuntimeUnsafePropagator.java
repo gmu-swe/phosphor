@@ -140,6 +140,5 @@ public class RuntimeUnsafePropagator {
         public String toString() {
             return String.format("{field @ %d -> tag @ %d}", origFieldOffset, tagFieldOffset);
         }
-
     }
 }
