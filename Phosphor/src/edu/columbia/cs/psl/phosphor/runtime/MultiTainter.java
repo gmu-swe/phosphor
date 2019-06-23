@@ -330,7 +330,7 @@ public final class MultiTainter {
 			Taint[] taints = new Taint[((Object[]) obj).length];
 			int i = 0;
 			for(Object el : (Object[]) obj) {
-				taints[i] = getTaint(el);
+				taints[i] = getMergedTaint(el);
 			}
 			return Taint.combineTaintArray(taints);
 		} else {

@@ -32,7 +32,7 @@ public class ArrayReflectionObjTagITCase extends BaseMultiTaintClass {
     }
 
     @Test
-    public void testNewInstanceMultiDimensionalPrimitiveArray() {
+    public void testNewInstancePrimitiveComponentMultiDimensionalArray() {
         int[] expectedDimensions = new int[]{33, 2, 9};
         Object arr = Array.newInstance(int.class, expectedDimensions);
         LinkedList<Integer> actual = new LinkedList<>();
@@ -46,4 +46,19 @@ public class ArrayReflectionObjTagITCase extends BaseMultiTaintClass {
         }
         assertArrayEquals(expectedDimensions, actualDimensions);
     }
+
+    @Test
+    public void testNewInstancePrimitiveArrayComponentMultiDimensionalArray() {
+        Object arr = Array.newInstance(int[].class, 33, 2, 9);
+        assertTrue(arr instanceof int[][][][]);
+    }
+
+    @Test
+    public void testTaintedPrimitiveArraySet() {
+        int[] arr = new int[2];
+        int val = MultiTainter.taintedInt(23, "label");
+        Array.set(arr, 0, val);
+        assertNonNullTaint(arr[0]);
+    }
+
 }

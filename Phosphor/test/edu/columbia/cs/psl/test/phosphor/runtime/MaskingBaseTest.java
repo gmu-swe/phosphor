@@ -50,7 +50,7 @@ public abstract class MaskingBaseTest extends FieldHolderBaseTest {
         holder.checkFieldsAreNotTainted();
     }
 
-    /* Checks that using Field.set to set 2-D primitive array fields with non-tainted elements to arrays with tainted
+    /* Checks that using Field.set to set 2D primitive array fields with non-tainted elements to arrays with tainted
      * elements results in the fields' arrays' elements being tainted. */
     @Test
     public void testSetTainted2DPrimitiveArrayField() throws Exception {
@@ -59,7 +59,7 @@ public abstract class MaskingBaseTest extends FieldHolderBaseTest {
         holder.checkFieldsAreTainted();
     }
 
-    /* Checks that using Field.set to set 2-D primitive array fields with tainted elements to arrays with non-tainted
+    /* Checks that using Field.set to set 2D primitive array fields with tainted elements to arrays with non-tainted
      * elements results in the fields' arrays' elements being non-tainted. */
     @Test
     public void testSetNonTainted2DPrimitiveArrayField() throws Exception {
@@ -96,5 +96,21 @@ public abstract class MaskingBaseTest extends FieldHolderBaseTest {
     public void testGetNonTaintedPrimitiveArrayField() throws Exception {
         PrimitiveArrayHolder holder = new PrimitiveArrayHolder(false);
         checkFields(holder, PrimitiveArrayHolder.fields(), false);
+    }
+
+    /* Checks that using Field.get to get 2D primitive array fields with tainted elements returns primitive arrays
+     * with tainted elements. */
+    @Test
+    public void testGetTainted2DPrimitiveArrayField() throws Exception {
+        Primitive2DArrayHolder holder = new Primitive2DArrayHolder(true);
+        checkFields(holder, Primitive2DArrayHolder.fields(), true);
+    }
+
+    /* Checks that using Field.get to get 2D primitive array fields with non-tainted elements returns primitive arrays
+     * with non-tainted elements. */
+    @Test
+    public void testGetNonTainted2DPrimitiveArrayField() throws Exception {
+        Primitive2DArrayHolder holder = new Primitive2DArrayHolder(false);
+        checkFields(holder, Primitive2DArrayHolder.fields(), false);
     }
 }
