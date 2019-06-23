@@ -60,5 +60,4 @@ public class ArrayReflectionObjTagITCase extends BaseMultiTaintClass {
         Array.set(arr, 0, val);
         assertNonNullTaint(arr[0]);
     }
-
 }

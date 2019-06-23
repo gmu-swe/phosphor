@@ -372,7 +372,10 @@ public class RuntimeUnsafePropagator {
         if(obj != null && (value == null || value instanceof TaintedPrimitiveWithObjTag || value instanceof TaintedPrimitiveWithIntTag ||
                 value instanceof LazyArrayObjTags || value instanceof LazyArrayIntTags)) {
             OffsetPair pair = getOffsetPair(unsafe, obj, offset);
-            if(pair == null) {
+            if(pair == null && (value instanceof LazyArrayObjTags || value instanceof LazyArrayIntTags)) {
+                // Don't unwrap the primitive array
+                putTag(unsafe, obj, offset, value, policy);
+            } else if(pair == null) {
                 putValue(unsafe, obj, offset, value, policy);
             } else {
                 if(pair.origFieldOffset != Unsafe.INVALID_FIELD_OFFSET && offset != pair.tagFieldOffset) {

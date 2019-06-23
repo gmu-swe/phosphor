@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
 
 import java.lang.reflect.Field;
+import java.util.LinkedList;
 
 public class FieldReflectionObjTagITCase extends MaskingBaseTest {
 
@@ -30,6 +31,11 @@ public class FieldReflectionObjTagITCase extends MaskingBaseTest {
                 field.setShort(obj, supplier.getShort(taint));
             } else if(field.getType().isArray()) {
                 field.set(obj, supplier.getArray(taint, field.getType()));
+            } else {
+                // Cycle through primitive array classes
+                Class<?> next = primArrayTypes.pop();
+                field.set(obj, supplier.getArray(taint, next));
+                primArrayTypes.add(next);
             }
         }
     }

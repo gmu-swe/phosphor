@@ -9,17 +9,32 @@ import sun.misc.Unsafe;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.LinkedList;
 
 /* Provides classes with fields of various types and standard methods for interacting with them. */
 public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
 
     public PrimitiveSupplier supplier;
+    public LinkedList<Class<?>> primArrayTypes;
 
     @Rule
     public ExternalResource resource = new ExternalResource() {
         @Override
         protected void before() {
             supplier = new PrimitiveSupplier();
+            primArrayTypes = new LinkedList<Class<?>>(
+                    Arrays.asList(
+                            int[].class,
+                            long[].class,
+                            boolean[].class,
+                            short[].class,
+                            double[].class,
+                            byte[].class,
+                            char[].class,
+                            float[].class
+                    )
+            );
         }
     };
 

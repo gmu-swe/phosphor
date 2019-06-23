@@ -45,6 +45,11 @@ public class UnsafeObjTagITCase extends MaskingBaseTest {
                 unsafe.putShort(obj, unsafe.objectFieldOffset(field), supplier.getShort(taint));
             } else if(field.getType().isArray()) {
                 unsafe.putObject(obj, unsafe.objectFieldOffset(field), supplier.getArray(taint, field.getType()));
+            } else {
+                // Cycle through primitive array classes
+                Class<?> next = primArrayTypes.pop();
+                unsafe.putObject(obj, unsafe.objectFieldOffset(field), supplier.getArray(taint, next));
+                primArrayTypes.add(next);
             }
         }
     }

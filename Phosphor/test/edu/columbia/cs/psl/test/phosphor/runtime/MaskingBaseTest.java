@@ -68,6 +68,24 @@ public abstract class MaskingBaseTest extends FieldHolderBaseTest {
         holder.checkFieldsAreNotTainted();
     }
 
+    /* Checks that using Field.set to set object fields to arrays with tainted elements results in the fields' arrays'
+     * elements being tainted. */
+    @Test
+    public void testSetTaintedPrimitiveArrayObjectField() throws Exception {
+        PrimitiveArrayObjHolder holder = new PrimitiveArrayObjHolder(false);
+        setFields(holder, PrimitiveArrayObjHolder.fields(), true);
+        holder.checkFieldsAreTainted();
+    }
+
+    /* Checks that using Field.set to set object fields to arrays with non-tainted elements results in the fields' arrays'
+     * elements being non-tainted. */
+    @Test
+    public void testSetNonTaintedPrimitiveArrayObjectField() throws Exception {
+        PrimitiveArrayObjHolder holder = new PrimitiveArrayObjHolder(true);
+        setFields(holder, PrimitiveArrayObjHolder.fields(), false);
+        holder.checkFieldsAreNotTainted();
+    }
+
     /* Checks that using Field.get to get tainted primitive fields returns tainted primitives. */
     @Test
     public void testGetTaintedPrimitiveField() throws Exception {
