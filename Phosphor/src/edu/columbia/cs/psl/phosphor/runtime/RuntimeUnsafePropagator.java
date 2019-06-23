@@ -95,7 +95,7 @@ public class RuntimeUnsafePropagator {
 
     /* Returns an offset pair for the specified object's class where either the original field offset or the tag field
      * offset matches the specified offset or null if such an offset pair could not be found. */
-    private static OffsetPair getOffsetPair(Unsafe unsafe, Object o, long offset) {
+    public static OffsetPair getOffsetPair(Unsafe unsafe, Object o, long offset) {
         try {
             if(o != null && o.getClass() != null) {
                 if(o.getClass().$$PHOSPHOR_OFFSET_CACHE == null) {

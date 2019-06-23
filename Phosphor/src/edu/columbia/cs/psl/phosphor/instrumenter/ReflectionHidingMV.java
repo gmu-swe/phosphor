@@ -332,9 +332,11 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", newDesc, false);
 		} else if(disable) {
 			if((this.methodName.startsWith("setObjFieldValues") || this.className.startsWith("java/math/BigInteger")) && owner.equals("sun/misc/Unsafe") && (name.startsWith("putObject") || name.startsWith("compareAndSwapObject"))) {
-				maskUnsafeFieldSetter(nameWithoutSuffix, args);
+				owner = Type.getInternalName(ReflectionMasker.class);
+				super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), isInterface);
 			} else if(this.methodName.startsWith("getObjFieldValues") && owner.equals("sun/misc/Unsafe") && name.startsWith("getObject")) {
-				maskUnsafeFieldGetter(returnType, nameWithoutSuffix, args);
+				owner = Type.getInternalName(ReflectionMasker.class);
+				super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), isInterface);
 			} else if((this.methodName.startsWith("getPrimFieldValues") || this.methodName.startsWith("setPrimFieldValues")) && owner.equals("sun/misc/Unsafe") && (name.startsWith("put") || name.startsWith("get"))) {
 				name = name + "$$NOUNBOX";
 				super.visitMethodInsn(opcode, owner, name, desc, isInterface);

@@ -23,12 +23,96 @@ public class ReflectionMasker {
 
     public static final boolean IS_KAFFE = false;
 
+    @SuppressWarnings("unused")
     public static Class<?> getClassOOS(Object o) {
         if(o instanceof LazyArrayObjTags && ((LazyArrayObjTags) o).taints != null)
             return o.getClass();
         else if(o instanceof LazyArrayIntTags && ((LazyArrayIntTags) o).taints != null)
             return o.getClass();
         return removeTaintClass(o.getClass(), Configuration.MULTI_TAINTING);
+    }
+
+    @SuppressWarnings("unused")
+    public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset, ControlTaintTagStack ctrl) {
+        return MultiDTaintedArrayWithObjTag.boxIfNecessary(u.getObject(obj, offset));
+    }
+
+    @SuppressWarnings("unused")
+    public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset) {
+        return MultiDTaintedArrayWithObjTag.boxIfNecessary(u.getObject(obj, offset));
+    }
+
+    @SuppressWarnings("unused")
+    public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long offset) {
+        return MultiDTaintedArrayWithIntTag.boxIfNecessary(u.getObject(obj, offset));
+    }
+
+    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long fieldOffset, Object val, ControlTaintTagStack ctrl) {
+        putObject$$PHOSPHORTAGGED(u, obj, tag, fieldOffset, val);
+    }
+
+    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long fieldOffset, Object val) {
+        if(val instanceof LazyArrayIntTags) {
+            try {
+                RuntimeUnsafePropagator.OffsetPair pair = RuntimeUnsafePropagator.getOffsetPair(u, obj, fieldOffset);
+                if(pair != null) {
+                    if(pair.origFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                        u.putObject(obj, pair.origFieldOffset, MultiDTaintedArray.unbox1D(val));
+                    }
+                    if(pair.tagFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                        u.putObject(obj, pair.tagFieldOffset, val);
+                    }
+                    return;
+                }
+            } catch(Exception e) {
+                //
+            }
+        }
+        u.putObject(obj, fieldOffset, val);
+    }
+
+    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val) {
+        if(val instanceof LazyArrayObjTags) {
+            try {
+                RuntimeUnsafePropagator.OffsetPair pair = RuntimeUnsafePropagator.getOffsetPair(u, obj, fieldOffset);
+                if(pair != null) {
+                    if(pair.origFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                        u.putObject(obj, pair.origFieldOffset, MultiDTaintedArray.unbox1D(val));
+                    }
+                    if(pair.tagFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                        u.putObject(obj, pair.tagFieldOffset, val);
+                    }
+                    return;
+                }
+            } catch(Exception e) {
+                //
+            }
+        }
+        u.putObject(obj, fieldOffset, val);
+    }
+
+    public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val, ControlTaintTagStack ctrl) {
+        putObjectVolatile$$PHOSPHORTAGGED(u, obj, tag, fieldOffset, val);
+    }
+
+    public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val) {
+        if(val instanceof LazyArrayObjTags) {
+            try {
+                RuntimeUnsafePropagator.OffsetPair pair = RuntimeUnsafePropagator.getOffsetPair(u, obj, fieldOffset);
+                if(pair != null) {
+                    if(pair.origFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                        u.putObjectVolatile(obj, pair.origFieldOffset, MultiDTaintedArray.unbox1D(val));
+                    }
+                    if(pair.tagFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                        u.putObjectVolatile(obj, pair.tagFieldOffset, val);
+                    }
+                    return;
+                }
+            } catch(Exception e) {
+                //
+            }
+        }
+        u.putObjectVolatile(obj, fieldOffset, val);
     }
 
     public static TaintedBooleanWithIntTag isInstance(Class<?> c1, Object o, TaintedBooleanWithIntTag ret) {
