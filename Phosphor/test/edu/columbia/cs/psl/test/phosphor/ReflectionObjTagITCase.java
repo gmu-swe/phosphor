@@ -4,10 +4,7 @@ import static edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass.assertNonNul
 import static org.junit.Assert.*;
 
 import java.lang.reflect.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
 import org.junit.Test;
@@ -153,6 +150,22 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		// to edu.columbia.cs.psl.phosphor.runtime.Taint
 
 		assertEquals(MultiTainter.getTaint(arr[0]).getLabels()[0], MultiTainter.getTaint(ret).getLabels()[0]);
+	}
+
+	@Test
+	public void testNewInstanceMultiDimensionalPrimitiveArray() {
+		int[] expectedDimensions = new int[]{33, 2, 9};
+		Object arr = Array.newInstance(int.class, expectedDimensions);
+		LinkedList<Integer> actual = new LinkedList<>();
+		for(Class<?> clazz = arr.getClass(); clazz.isArray(); clazz = clazz.getComponentType()) {
+			actual.add(Array.getLength(arr));
+			arr = Array.get(arr, 0);
+		}
+		int[] actualDimensions = new int[actual.size()];
+		for(int i = 0; i < actualDimensions.length; i++) {
+			actualDimensions[i] = actual.pop();
+		}
+		assertArrayEquals(expectedDimensions, actualDimensions);
 	}
 
 	@Test
