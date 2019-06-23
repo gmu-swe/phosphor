@@ -257,29 +257,18 @@ public class ArrayReflectionMasker {
 	}
 
 	public static Object newInstance$$PHOSPHORTAGGED(Class clazz, LazyIntArrayObjTags dimsTaint, int[] dims) {
-		//		System.out.println("22Creating array instance of type " + clazz);
 		Type t = Type.getType(clazz);
 		if (t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
+			// Component type is multi-dimensional primitive array
 			try {
 				clazz = Class.forName(MultiDTaintedArrayWithObjTag.getTypeForType(t).getInternalName().replace("/", "."));
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
 			return Array.newInstance(clazz, dims);
-		} else if (t.getSort() != Type.OBJECT) {
-			clazz = MultiDTaintedArrayWithObjTag.getClassForComponentType(t.getSort());
-			if (clazz.isArray()) {
-				int lastDim = dims[dims.length - 1];
-				int[] newDims = new int[dims.length - 1];
-				System.arraycopy(dims, 0, newDims, 0, dims.length - 1);
-				Object[] ret = (Object[]) Array.newInstance(clazz, newDims);
-				MultiDTaintedArrayWithObjTag.initLastDim(ret, lastDim, t.getSort());
-				return ret;
-
-			} else {
-				int lastDimSize = dims[dims.length - 1];
-
-				switch (t.getSort()) {
+		} else if(clazz.isPrimitive() && dims.length == 1) {
+			int lastDimSize = dims[dims.length - 1];
+			switch (t.getSort()) {
 				case Type.BOOLEAN:
 					return new LazyBooleanArrayObjTags(new boolean[lastDimSize]);
 				case Type.BYTE:
@@ -298,10 +287,18 @@ public class ArrayReflectionMasker {
 					return new LazyShortArrayObjTags(new short[lastDimSize]);
 				default:
 					throw new IllegalArgumentException();
-				}
 			}
+		} else if(clazz.isPrimitive()) {
+			clazz = MultiDTaintedArrayWithObjTag.getClassForComponentType(t.getSort());
+			int lastDim = dims[dims.length - 1];
+			int[] newDims = new int[dims.length - 1];
+			System.arraycopy(dims, 0, newDims, 0, dims.length - 1);
+			Object[] ret = (Object[]) Array.newInstance(clazz, newDims);
+			MultiDTaintedArrayWithObjTag.initLastDim(ret, lastDim, t.getSort());
+			return ret;
+		} else {
+			return Array.newInstance(clazz, dims);
 		}
-		return Array.newInstance(clazz, dims);
 	}
 
 	public static TaintedByteWithIntTag getByte$$PHOSPHORTAGGED(Object obj, int idxTaint, int idx, TaintedByteWithIntTag ret) {
