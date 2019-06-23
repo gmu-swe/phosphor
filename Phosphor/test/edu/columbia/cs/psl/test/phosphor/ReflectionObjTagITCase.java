@@ -169,6 +169,14 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 	}
 
 	@Test
+	public void testTaintedPrimitiveArraySet() {
+		int[] arr = new int[2];
+		int val = MultiTainter.taintedInt(23, "label");
+		Array.set(arr, 0, val);
+		assertNonNullTaint(arr[0]);
+	}
+
+	@Test
 	public void testBoxing() {
 		ArrayList<Integer> list = new ArrayList<Integer>();
 		for (int i = 0; i < 5; i++) {
