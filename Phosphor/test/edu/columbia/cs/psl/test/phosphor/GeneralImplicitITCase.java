@@ -201,8 +201,7 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 
 
 	@Test
-	public void testStringContains()
-	{
+	public void testStringContains() {
 		resetState();
 		String x = "afoo";
 		String lbl = "taintedStr";

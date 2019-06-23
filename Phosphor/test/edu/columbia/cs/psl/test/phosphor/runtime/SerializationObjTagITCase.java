@@ -1,21 +1,23 @@
-package edu.columbia.cs.psl.test.phosphor;
+package edu.columbia.cs.psl.test.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
+import java.io.*;
+import java.lang.reflect.Array;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 
 public class SerializationObjTagITCase extends BaseMultiTaintClass {
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    /* Class containing Object fields used to store primitive arrays. */
     public static class ArrayHolderObjField implements Serializable {
         private static final long serialVersionUID = 2710507305915502837L;
         private Object arr;
@@ -48,12 +50,53 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
         }
     }
 
-    public static class PrimitiveHolder implements  Serializable {
+    public static class PrimitiveHolder implements Serializable {
         private static final long serialVersionUID = -7447282366633906624L;
         private int x;
         public PrimitiveHolder(int x) {
             this.x = x;
         }
+    }
+
+    /* Checks that the value and taint tags of the specified output matches the specified input . */
+    private static void checkValueAndTagsMatch(Object input, Object output) {
+        if(input == null) {
+            assertNull(output);
+            return;
+        }
+        assertEquals(input.getClass(), output.getClass());
+        if(input.getClass().isArray()) {
+            assertTrue(output.getClass().isArray());
+            checkArrayValuesAndTagsMatch(input, output);
+        } else {
+            assertEquals(input, output);
+            assertEquals(MultiTainter.getTaint(input), MultiTainter.getTaint(output));
+        }
+    }
+
+    /* Checks that the values and tags of the elements of the specified output array match the values and tags of the
+     * elements of the specified input array. */
+    private static void checkArrayValuesAndTagsMatch(Object inputArray, Object outputArray) {
+        int length = Array.getLength(inputArray);
+        assertEquals(length, Array.getLength(outputArray));
+        for(int i = 0; i < length; i++) {
+            checkValueAndTagsMatch(Array.get(inputArray, i), Array.get(outputArray, i));
+        }
+    }
+
+    /* Checks that when a tainted primitive is serialized to a file output stream and then deserialized the primitive
+     * deserialized is tainted. */
+    @Test
+    public void testSerializeTaintedPrimitiveToFileObjectStream() throws Exception {
+        File file = folder.newFile();
+        ObjectOutputStream outStream = new ObjectOutputStream(new FileOutputStream(folder.newFile()));
+        int input = MultiTainter.taintedInt(11, "label");
+        outStream.writeInt(input);
+        outStream.close();
+        ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream(file));
+        int output = inputStream.readInt();
+        inputStream.close();
+        assertEquals(input, output);
     }
 
     /* Checks that when an object with a tainted primitive array field is serialized and then deserialized the primitive

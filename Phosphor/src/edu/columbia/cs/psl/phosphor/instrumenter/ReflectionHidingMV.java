@@ -36,18 +36,15 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	private static boolean shouldDisable(String className, String methodName) {
 		if(className.equals("org/codehaus/groovy/vmplugin/v5/Java5") && methodName.equals("makeInterfaceTypes")) {
 			return true;
-		} else if(Configuration.TAINT_THROUGH_SERIALIZATION && (className.startsWith("java/io/ObjectStreamClass")
-				|| className.equals("java/io/ObjectStreamField"))) {
-			return true;
 		} else {
-			return className.startsWith("java/math/BigInteger");
+			return Configuration.TAINT_THROUGH_SERIALIZATION &&
+					(className.startsWith("java/io/ObjectStreamClass") || className.equals("java/io/ObjectStreamField"));
 		}
 	}
 
 	public void setLvs(LocalVariableManager lvs) {
 		this.lvs = lvs;
 	}
-
 
 	private void maskMethodInvoke() {
 		// method owner [Args
@@ -331,7 +328,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			newDesc += (retDesc + ")" + retDesc);
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", newDesc, false);
 		} else if(disable) {
-			if((this.methodName.startsWith("setObjFieldValues") || this.className.startsWith("java/math/BigInteger")) && owner.equals("sun/misc/Unsafe") && (name.startsWith("putObject") || name.startsWith("compareAndSwapObject"))) {
+			if(this.methodName.startsWith("setObjFieldValues") && owner.equals("sun/misc/Unsafe") && (name.startsWith("putObject") || name.startsWith("compareAndSwapObject"))) {
 				owner = Type.getInternalName(ReflectionMasker.class);
 				super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), isInterface);
 			} else if(this.methodName.startsWith("getObjFieldValues") && owner.equals("sun/misc/Unsafe") && name.startsWith("getObject")) {

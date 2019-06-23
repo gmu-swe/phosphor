@@ -60,7 +60,7 @@ public class RuntimeUnsafePropagator {
                         } catch(Exception e) {
                             //
                         }
-                        list.enqueue(new OffsetPair(fieldClazz,fieldOffset, tagOffset));
+                        list.enqueue(new OffsetPair(fieldOffset, tagOffset));
                     } else if(!Modifier.isStatic(fieldClazz.getModifiers()) && fieldClazz.isArray() && fieldClazz.getComponentType().isPrimitive()) {
                         // The fields is a 1D primitive array
                         long fieldOffset = unsafe.objectFieldOffset(field);
@@ -77,13 +77,7 @@ public class RuntimeUnsafePropagator {
                         } catch(Exception e) {
                             //
                         }
-                        list.enqueue(new OffsetPair(fieldClazz, fieldOffset, tagOffset));
-                    } else if(!Modifier.isStatic(fieldClazz.getModifiers()) && (LazyArrayIntTags.class.isAssignableFrom(fieldClazz)
-                        || LazyArrayObjTags.class.isAssignableFrom(fieldClazz) || Taint.class.isAssignableFrom(fieldClazz))) {
-                        if(field.getName().equals(TaintUtils.TAINT_FIELD) || !field.getName().endsWith(TaintUtils.TAINT_FIELD)) {
-                            Class<?> placeholderClass = Taint.class.isAssignableFrom(fieldClazz) ? TaintedIntWithObjTag.class : null;
-                            list.enqueue(new OffsetPair(placeholderClass, Unsafe.INVALID_FIELD_OFFSET, unsafe.objectFieldOffset(field)));
-                        }
+                        list.enqueue(new OffsetPair(fieldOffset, tagOffset));
                     }
                 } catch (Exception e) {
                     //
@@ -102,7 +96,7 @@ public class RuntimeUnsafePropagator {
                     o.getClass().$$PHOSPHOR_OFFSET_CACHE = getOffsetPairs(unsafe, o.getClass());
                 }
                 for(OffsetPair pair : o.getClass().$$PHOSPHOR_OFFSET_CACHE) {
-                    if(pair.origFieldOffset == offset || pair.tagFieldOffset == offset) {
+                    if(pair.origFieldOffset == offset) {
                         return pair;
                     }
                 }
@@ -372,11 +366,13 @@ public class RuntimeUnsafePropagator {
     }
 
     private static void put(Unsafe unsafe, Object obj, long offset, Object value, SpecialAccessPolicy policy) {
+        if(value instanceof TaintedPrimitiveWithObjTag || value instanceof TaintedPrimitiveWithIntTag) {
+            obj = MultiDTaintedArray.unbox1D(obj);
+        }
         if(obj != null && (value == null || value instanceof TaintedPrimitiveWithObjTag || value instanceof TaintedPrimitiveWithIntTag ||
                 value instanceof LazyArrayObjTags || value instanceof LazyArrayIntTags)) {
             OffsetPair pair = getOffsetPair(unsafe, obj, offset);
             if(pair == null) {
-                obj = MultiDTaintedArray.unbox1D(obj);
                 putValue(unsafe, obj, offset, value, policy);
             } else {
                 if(pair.origFieldOffset != Unsafe.INVALID_FIELD_OFFSET && offset != pair.tagFieldOffset) {
@@ -392,7 +388,7 @@ public class RuntimeUnsafePropagator {
     }
 
     private static Object get(Unsafe unsafe, Object obj, long offset, Object prealloc, SpecialAccessPolicy policy) {
-        if(prealloc != null) {
+        if(prealloc instanceof TaintedPrimitiveWithObjTag || prealloc instanceof TaintedPrimitiveWithIntTag) {
             obj = MultiDTaintedArray.unbox1D(obj);
         }
         if(obj == null) {
@@ -402,19 +398,11 @@ public class RuntimeUnsafePropagator {
             if(pair == null) {
                 return getValue(unsafe, obj, offset, prealloc, policy);
             } else {
-                if(prealloc == null && pair.origFieldType != null && pair.origFieldType.isPrimitive()) {
-                    prealloc = makePrimitiveWrapper(pair.origFieldType);
-                }
                 if(pair.origFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
                     prealloc = getValue(unsafe, obj, pair.origFieldOffset, prealloc, policy);
                 }
                 if(pair.tagFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
                     prealloc = getTag(unsafe, obj, pair.tagFieldOffset, prealloc, policy);
-                }
-                if(offset == pair.tagFieldOffset && (prealloc instanceof TaintedPrimitiveWithObjTag ||
-                        prealloc instanceof TaintedPrimitiveWithIntTag)) {
-                    return (prealloc instanceof TaintedPrimitiveWithObjTag) ? ((TaintedPrimitiveWithObjTag) prealloc).taint :
-                            ((TaintedPrimitiveWithIntTag) prealloc).taint;
                 }
                 return prealloc;
             }
@@ -448,14 +436,22 @@ public class RuntimeUnsafePropagator {
 
     public static class OffsetPair {
 
-        public final Class<?> origFieldType;
         public final long origFieldOffset;
         public final long tagFieldOffset;
 
-        public OffsetPair(Class<?> origFieldType, long origFieldOffset, long tagFieldOffset) {
-            this.origFieldType = origFieldType;
+        public OffsetPair(long origFieldOffset, long tagFieldOffset) {
             this.origFieldOffset = origFieldOffset;
             this.tagFieldOffset = tagFieldOffset;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof OffsetPair && this.origFieldOffset == ((OffsetPair) other).origFieldOffset;
+        }
+
+        @Override
+        public int hashCode() {
+            return (int) (origFieldOffset ^ (origFieldOffset >>> 32));
         }
 
         @Override
