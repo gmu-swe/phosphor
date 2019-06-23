@@ -276,29 +276,35 @@ public class ArrayReflectionMasker {
 				MultiDTaintedArrayWithObjTag.initLastDim(ret, lastDim, t.getSort());
 				return ret;
 
-			} else {
+			} else if(t.getSort() != Type.ARRAY && dims.length == 1) {
 				int lastDimSize = dims[dims.length - 1];
-
 				switch (t.getSort()) {
-				case Type.BOOLEAN:
-					return new LazyBooleanArrayObjTags(new boolean[lastDimSize]);
-				case Type.BYTE:
-					return new LazyByteArrayObjTags(new byte[lastDimSize]);
-				case Type.CHAR:
-					return new LazyCharArrayObjTags(new char[lastDimSize]);
-				case Type.DOUBLE:
-					return new LazyDoubleArrayObjTags(new double[lastDimSize]);
-				case Type.FLOAT:
-					return new LazyFloatArrayObjTags(new float[lastDimSize]);
-				case Type.INT:
-					return new LazyIntArrayObjTags(new int[lastDimSize]);
-				case Type.LONG:
-					return new LazyLongArrayObjTags(new long[lastDimSize]);
-				case Type.SHORT:
-					return new LazyShortArrayObjTags(new short[lastDimSize]);
-				default:
-					throw new IllegalArgumentException();
+					case Type.BOOLEAN:
+						return new LazyBooleanArrayObjTags(new boolean[lastDimSize]);
+					case Type.BYTE:
+						return new LazyByteArrayObjTags(new byte[lastDimSize]);
+					case Type.CHAR:
+						return new LazyCharArrayObjTags(new char[lastDimSize]);
+					case Type.DOUBLE:
+						return new LazyDoubleArrayObjTags(new double[lastDimSize]);
+					case Type.FLOAT:
+						return new LazyFloatArrayObjTags(new float[lastDimSize]);
+					case Type.INT:
+						return new LazyIntArrayObjTags(new int[lastDimSize]);
+					case Type.LONG:
+						return new LazyLongArrayObjTags(new long[lastDimSize]);
+					case Type.SHORT:
+						return new LazyShortArrayObjTags(new short[lastDimSize]);
+					default:
+						throw new IllegalArgumentException();
 				}
+			} else {
+				int lastDim = dims[dims.length - 1];
+				int[] newDims = new int[dims.length - 1];
+				System.arraycopy(dims, 0, newDims, 0, dims.length - 1);
+				Object[] ret = (Object[]) Array.newInstance(clazz, newDims);
+				MultiDTaintedArrayWithObjTag.initLastDim(ret, lastDim, t.getSort());
+				return ret;
 			}
 		}
 		return Array.newInstance(clazz, dims);
@@ -458,12 +464,7 @@ public class ArrayReflectionMasker {
 	}
 
 	public static Taint tryToGetTaintObj(Object val) {
-		try {
-			val.getClass().getDeclaredField("valuePHOSPHOR_TAG").setAccessible(true);
-			return (Taint) val.getClass().getDeclaredField("valuePHOSPHOR_TAG").get(val);
-		} catch (Exception ex) {
-			return null;
-		}
+		return MultiTainter.getTaint(val);
 	}
 
 	public static void set$$PHOSPHORTAGGED(Object obj, int idxtaint, int idx, Object val) {

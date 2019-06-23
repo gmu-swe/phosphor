@@ -174,6 +174,18 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		int val = MultiTainter.taintedInt(23, "label");
 		Array.set(arr, 0, val);
 		assertNonNullTaint(arr[0]);
+
+		byte[] barr = new byte[2];
+		Array.set(barr, 0, MultiTainter.taintedByte((byte) 2,"label"));
+		assertNonNullTaint(barr[0]);
+
+		char[] carr = new char[2];
+		Array.set(carr, 0, MultiTainter.taintedChar((char) 2,"label"));
+		assertNonNullTaint(carr[0]);
+
+		long[] jarr = new long[2];
+		Array.set(jarr, 0, MultiTainter.taintedLong(2L,"label"));
+		assertNonNullTaint(jarr[0]);
 	}
 
 	@Test
