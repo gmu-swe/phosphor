@@ -26,22 +26,33 @@ public abstract class MultiDTaintedArray {
 		}
 		return in;
 	}
-	public static final Object unbox1D(final Object in)
-	{
+
+	public static final Object unbox1D(final Object in) {
 		if(in instanceof LazyArrayObjTags)
 			return ((LazyArrayObjTags) in).getVal();
 		else if(in instanceof LazyArrayIntTags)
 			return ((LazyArrayIntTags) in).getVal();
 		return in;
 	}
-	public static final Object maybeUnbox(final Object in)
-	{
+
+	/* If the specified object is a one dimensional array of primitives, boxes and returns the specified object. Otherwise
+	 * returns the specified object. */
+	public static Object boxOnly1D(final Object obj) {
+		if(Configuration.MULTI_TAINTING) {
+			return MultiDTaintedArrayWithObjTag.boxOnly1D(obj);
+		} else {
+			return MultiDTaintedArrayWithIntTag.boxOnly1D(obj);
+		}
+	}
+
+	public static final Object maybeUnbox(final Object in) {
 		if(in == null)
 			return null;
 		if(null != isPrimitiveBoxClass(in.getClass()))
 			return unboxRaw(in);
 		return in;
 	}
+
 	public static final Type getTypeForType(final Type originalElementType) {
 		if (!Configuration.MULTI_TAINTING)
 			return MultiDTaintedArrayWithIntTag.getTypeForType(originalElementType);

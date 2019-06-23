@@ -25,7 +25,6 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
         }
 
         private void writeObject(ObjectOutputStream oos) throws IOException {
-
             oos.defaultWriteObject();
         }
     }

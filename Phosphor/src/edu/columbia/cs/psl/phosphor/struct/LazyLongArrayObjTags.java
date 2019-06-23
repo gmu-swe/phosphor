@@ -3,118 +3,136 @@ package edu.columbia.cs.psl.phosphor.struct;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 public final class LazyLongArrayObjTags extends LazyArrayObjTags {
-	
-	public long[] val;
 
-	public LazyLongArrayObjTags(int len)
-	{
-		val = new long[len];
-	}
-	public LazyLongArrayObjTags(long[] array, Taint[] taints) {
-		this.taints = taints;
-		this.val = array;
-	}
+    private static final long serialVersionUID = -6718708899858849708L;
 
-	public LazyLongArrayObjTags(long[] array) {
-		this.val = array;
-	}
+    public long[] val;
 
-	public LazyLongArrayObjTags(Taint lenTaint, long[] array) {
-		this.val = array;
-		this.lengthTaint = lenTaint;
-	}
+    public LazyLongArrayObjTags(int len) {
+        val = new long[len];
+    }
 
-	public TaintedLongWithObjTag get(long[] b, Taint idxTaint, int idx, TaintedLongWithObjTag ret){
-		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
-	}
+    public LazyLongArrayObjTags(long[] array, Taint[] taints) {
+        this.taints = taints;
+        this.val = array;
+    }
 
-	public TaintedLongWithObjTag get(long[] b, Taint idxTaint, int idx, TaintedLongWithObjTag ret, ControlTaintTagStack ctrl){
-		checkAIOOB(idxTaint, idx, ctrl);
-		return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
-	}
+    public LazyLongArrayObjTags(long[] array) {
+        this.val = array;
+    }
 
+    public LazyLongArrayObjTags(Taint lenTaint, long[] array) {
+        this.val = array;
+        this.lengthTaint = lenTaint;
+    }
 
-	@Override
-	public Object clone() {
-		LazyLongArrayObjTags ret = new LazyLongArrayObjTags(val.clone());
-		if (taints != null)
-			ret.taints = taints.clone();
-		return ret;
-	}
+    @Override
+    public Object clone() {
+        return new LazyLongArrayObjTags(val.clone(), (taints != null) ? taints.clone() : null);
+    }
 
-	public void set(long[] l, Taint idxTag, int idx, Taint tag, long ival) {
-		if(Configuration.derivedTaintListener != null)
-			set(l,idx, Configuration.derivedTaintListener.arraySet(this,idxTag,idx,tag, ival, null), ival);
-		else if(idxTag == null)
-			set(l, idx, tag, ival);
-		else if(tag == null)
-			set(l, idx, idxTag, ival);
-		else
-			set(l, idx, new Taint(tag, idxTag), ival);
-	}
-	
-	public void set(long[] b, int idx, Taint tag, long lval) {
-		this.val[idx] = lval;
-		if (taints == null && tag != null)
-			taints = new Taint[this.val.length];
-		if (taints != null)
-			taints[idx] = tag;
-	}
+    public void set(long[] arr, Taint idxTag, int idx, long val) {
+        set(arr, idxTag, idx, null, val);
+    }
 
-	public TaintedLongWithObjTag get(long[] b, int idx, TaintedLongWithObjTag ret) {
-		ret.val = val[idx];
-		if (taints == null)
-			ret.taint = null;
-		else
-			ret.taint = taints[idx];
-		return ret;
-	}
-	
-	public void set(long[] b, Taint idxTag, int idx, Taint tag, long val, ControlTaintTagStack ctrl) {
-		checkAIOOB(idxTag, idx, ctrl);
-		set(b, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
-	}
-	
-	public void set(long[] b, int idx, Taint tag, long lval, ControlTaintTagStack tags) {
-		checkAIOOB(null, idx, tags);
-		val[idx] = lval;
-		tag = Taint.combineTags(tag, tags);
-		if (tag != null) {
-			if (taints == null)
-				taints = new Taint[val.length];
-			taints[idx] = tag;
-		}
-	}
+    public void set(long[] l, Taint idxTag, int idx, Taint tag, long val) {
+        if(Configuration.derivedTaintListener != null) {
+            set(l, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, null), val);
+        } else if(idxTag == null) {
+            set(l, idx, tag, val);
+        } else if(tag == null) {
+            set(l, idx, idxTag, val);
+        } else {
+            set(l, idx, new Taint(tag, idxTag), val);
+        }
+    }
 
-	public void set(long[] b, Taint idxTag, int idx, long val){
-		set(b,idxTag,idx,null,val);
-	}
+    public void set(long[] arr, int idx, Taint tag, long val) {
+        this.val[idx] = val;
+        if(taints == null && tag != null) {
+            taints = new Taint[this.val.length];
+        }
+        if(taints != null) {
+            taints[idx] = tag;
+        }
+    }
 
-	public TaintedLongWithObjTag get(long[] b, int idx, TaintedLongWithObjTag ret, ControlTaintTagStack tags) {
-		checkAIOOB(null, idx, tags);
-		ret.val = val[idx];
-		if (taints == null)
-			ret.taint = null;
-		else
-			ret.taint = taints[idx];
-		ret.taint = Taint.combineTags(ret.taint, tags);
-		return ret;
-	}
-	
-	
-	
-	public int getLength()
-	{
-		return val.length;
-	}
-	@Override
-	public Object getVal() {
-		return val;
-	}
-	public void ensureVal(long[] v)
-	{
-		if(v != val)
-			val = v;
-	}
+    public void set(long[] arr, Taint idxTag, int idx, Taint tag, long val, ControlTaintTagStack ctrl) {
+        checkAIOOB(idxTag, idx, ctrl);
+        set(arr, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
+    }
+
+    public void set(long[] arr, int idx, Taint tag, long val, ControlTaintTagStack ctrl) {
+        checkAIOOB(null, idx, ctrl);
+        set(arr, idx, Taint.combineTags(tag, ctrl), val);
+    }
+
+    public TaintedLongWithObjTag get(long[] arr, Taint idxTaint, int idx, TaintedLongWithObjTag ret) {
+        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+    }
+
+    public TaintedLongWithObjTag get(long[] arr, Taint idxTaint, int idx, TaintedLongWithObjTag ret, ControlTaintTagStack ctrl) {
+        checkAIOOB(idxTaint, idx, ctrl);
+        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
+    }
+
+    public TaintedLongWithObjTag get(long[] arr, int idx, TaintedLongWithObjTag ret) {
+        ret.val = val[idx];
+        ret.taint = (taints == null) ? null : taints[idx];
+        return ret;
+    }
+
+    public TaintedLongWithObjTag get(long[] arr, int idx, TaintedLongWithObjTag ret, ControlTaintTagStack ctrl) {
+        checkAIOOB(null, idx, ctrl);
+        get(arr, idx, ret);
+        ret.taint = Taint.combineTags(ret.taint, ctrl);
+        return ret;
+    }
+
+    public int getLength() {
+        return val.length;
+    }
+
+    @Override
+    public Object getVal() {
+        return val;
+    }
+
+    public void ensureVal(long[] v) {
+        if(v != val) {
+            val = v;
+        }
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        if(val == null) {
+            stream.writeInt(-1);
+        } else {
+            stream.writeInt(val.length);
+            for(long el : val) {
+                stream.writeLong(el);
+            }
+        }
+        stream.writeObject(taints);
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        int len = stream.readInt();
+        if(len == -1) {
+            val = null;
+        } else {
+            val = new long[len];
+            for(int i = 0; i < len; i++) {
+                val[i] = stream.readLong();
+            }
+        }
+        taints = (Taint[]) stream.readObject();
+    }
 }
+
+

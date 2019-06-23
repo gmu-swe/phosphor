@@ -469,7 +469,7 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		assertNonNullTaint(MultiTainter.getTaint(holder.fa[0]));
 	}
 
-	/* Checks that that using Unsafe.getto get the value of a tainted primitive field returns a tainted primitive. */
+	/* Checks that that using Unsafe.get to get the value of a tainted primitive field returns a tainted primitive. */
 	@Test
 	public void testUnsafeGetTaintedPrimitiveField() throws Exception {
 		// Create the holder and tainted values

@@ -7,16 +7,12 @@ import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropogator;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeUnsafePropagator;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.*;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FrameNode;
-import sun.misc.Unsafe;
 
 public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
@@ -125,100 +121,204 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			lvs.freeTmpLV(lv2);
 		}
 	}
-	
-	/* Return whether a method instruction with the specified information is a phosphor-added getter specified in Unsafe
-	 *  for a field of a Java heap object. */
-	private boolean isUnsafeHeapObjectGetter(int opcode, String owner, String name, String desc, Type[] args) {
-		if(className.equals("sun/misc/Unsafe") || opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
-			return false;
-		} else if(!(name.startsWith("getByte") || name.startsWith("getBoolean") || name.startsWith("getChar") ||
-					name.startsWith("getDouble") || name.startsWith("getFloat") || name.startsWith("getInt") ||
-					name.startsWith("getLong") || name.startsWith("getShort") || name.startsWith("getObject"))) {
-			return false;
-		} else {
-			return Type.getReturnType(desc).getSort() != Type.VOID && args.length > 0 &&
-					args[0].getClassName().equals("java.lang.Object");
-		}
-	}
 
-	/* Calls getTagOrOriginalField. */
-	private void maskUnsafeHeapObjectGetter(int opcode, String owner, String name, String desc, boolean isInterface, Type[] args) {
-		// Store the arguments for the original method call
-		int[] localVars = new int[args.length-1];
-		for(int i = args.length-1; i >= 1; i--) {
-			int lv = lvs.getTmpLV();
-			super.visitVarInsn(args[i].getOpcode(Opcodes.ISTORE), lv);
-			localVars[i-1] = lv;
-		}
-		// Copy the Unsafe instance
-		super.visitInsn(DUP2);
-		for(int i = 0; i < localVars.length; i++) {
-			super.visitVarInsn(args[i+1].getOpcode(Opcodes.ILOAD), localVars[i]);
-		}
-		super.visitMethodInsn(opcode, owner, name, desc, isInterface);
-		super.visitTypeInsn(CHECKCAST,  Type.getInternalName(Object.class));
-		super.visitVarInsn(args[2].getOpcode(Opcodes.ILOAD), localVars[1]);
-		if(args[2].getSort() == Type.INT) {
-			// Cast int offsets to longs
-			super.visitInsn(I2L);
-		}
-		for(int lv : localVars) {
-			lvs.freeTmpLV(lv);
-		}
-		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), "getTagAndOriginalField", "(Lsun/misc/Unsafe;Ljava/lang/Object;Ljava/lang/Object;J)Ljava/lang/Object;", false);
-		super.visitTypeInsn(CHECKCAST,  Type.getReturnType(desc).getInternalName());
-	}
-
-	/* Return whether a method instruction with the specified information is a phosphor-added setter specified in Unsafe
-	 *  for a field of a Java heap object. */
-	private boolean isUnsafeHeapObjectSetter(int opcode, String owner, String name, String desc, Type[] args) {
+	/* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
+	 * that retrieves the value of a field of a Java heap object. */
+	private boolean isUnsafeFieldGetter(int opcode, String owner, String name, Type[] args,  String nameWithoutSuffix) {
 		if(className.equals("sun/misc/Unsafe") || opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
 			return false;
 		} else {
-			return name.startsWith("put") && Type.getReturnType(desc).getSort() == Type.VOID && args.length > 0 &&
-					args[0].getClassName().equals("java.lang.Object");
+			if(args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
+				return false;
+			}
+			switch(nameWithoutSuffix) {
+				case "getBoolean":
+				case "getByte":
+				case "getChar":
+				case "getDouble":
+				case "getFloat":
+				case "getInt":
+				case "getLong":
+				case "getObject":
+				case "getShort":
+				case "getBooleanVolatile":
+				case "getByteVolatile":
+				case "getCharVolatile":
+				case "getDoubleVolatile":
+				case "getFloatVolatile":
+				case "getLongVolatile":
+				case "getIntVolatile":
+				case "getObjectVolatile":
+				case "getShortVolatile":
+					return true;
+				default:
+					return false;
+			}
 		}
 	}
 
-	/* Calls putTagOrOriginalField to set the field associated with the field about to be set using Unsafe.put. */
-	private void maskUnsafeHeapObjectSetter(String name, Type[] args) {
-		// Store the arguments for the original method call
-		int[] localVars = new int[args.length-1];
-		int j = localVars.length - 1;
-		for(int i = args.length-1; i >=1; i--) {
-			int lv = lvs.getTmpLV();
-			super.visitVarInsn(args[i].getOpcode(Opcodes.ISTORE), lv);
-			localVars[j--] = lv;
+	/* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
+	 * that sets the value of a field of a Java heap object. */
+	private boolean isUnsafeFieldSetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
+		if(className.equals("sun/misc/Unsafe") || opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
+			return false;
+		} else {
+			if(args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
+				return false;
+			}
+			switch(nameWithoutSuffix) {
+				case "putBoolean":
+				case "putByte":
+				case "putChar":
+				case "putDouble":
+				case "putFloat":
+				case "putInt":
+				case "putLong":
+				case "putObject":
+				case "putShort":
+				case "putBooleanVolatile":
+				case "putByteVolatile":
+				case "putCharVolatile":
+				case "putDoubleVolatile":
+				case "putFloatVolatile":
+				case "putIntVolatile":
+				case "putLongVolatile":
+				case "putObjectVolatile":
+				case "putShortVolatile":
+				case "putOrderedInt":
+				case "putOrderedLong":
+				case "putOrderedObject":
+					return true;
+				default:
+					return false;
+			}
 		}
-		// Copy the Unsafe and Object arguments
-		super.visitInsn(DUP2);
-		// Put the offset onto the stack
-		Type offsetType = args[2];
-		super.visitVarInsn(offsetType.getOpcode(Opcodes.ILOAD), localVars[1]);
-		if(offsetType.getSort() == Type.INT) {
-			// Cast int offsets to longs
+	}
+
+	/* Swaps the top stack value of the specified type with the value below it of the specified other type. */
+	private void swap(Type top, Type below) {
+		if(top.getSize() == 1) {
+			if(below.getSize() == 1) {
+				super.visitInsn(SWAP);
+			} else {
+				super.visitInsn(DUP_X2);
+				super.visitInsn(POP);
+			}
+		} else {
+			super.visitInsn((below.getSize() == 1) ? DUP2_X1 : DUP2_X2);
+			super.visitInsn(POP2);
+		}
+	}
+
+	/* If the the type at the top of the specified stack is a ControlTaintTagStack type or the top type is a tainted
+	 * primitive container type and the type under it is a ControlTaintTagStack type pops the ControlTaintTagStack off of
+	 * the stack and updates the stack to reflect the changes made. */
+	private void popControlTaintTagStack(SinglyLinkedList<Type> argStack) {
+		if(!argStack.isEmpty() && argStack.peek().equals(Type.getType(ControlTaintTagStack.class))) {
+			super.visitInsn(POP);
+			argStack.pop();
+		} else if(argStack.size() >= 2 && TaintUtils.isTaintedPrimitiveType(argStack.peek())) {
+			Type top = argStack.pop();
+			if(argStack.peek().equals(Type.getType(ControlTaintTagStack.class))) {
+				swap(top, argStack.peek());
+				super.visitInsn(POP);
+				argStack.pop();
+			}
+			argStack.push(top);
+		}
+	}
+
+	/* If the type at the top of the specified stack is a primitive type wraps that primitive into a
+	 * TaintedPrimitiveWithObjTags or TaintedPrimitiveWithIntTags instance. */
+	private void wrapPrimitive(SinglyLinkedList<Type> argStack) {
+		int sort = argStack.peek().getSort();
+		if(sort != Type.ARRAY && sort != Type.OBJECT) {
+			// Store the primitive into a local variable
+			int lv = lvs.getTmpLV();
+			super.visitVarInsn(argStack.peek().getOpcode(Opcodes.ISTORE), lv);
+			Type containerType = TaintUtils.getContainerReturnType(argStack.peek());
+			super.visitTypeInsn(NEW, containerType.getInternalName());
+			super.visitInsn(DUP_X1);
+			super.visitInsn(DUP_X1);
+			super.visitInsn(POP);
+			// Load the primitive from the local variable
+			super.visitVarInsn(argStack.peek().getOpcode(Opcodes.ILOAD), lv);
+			lvs.freeTmpLV(lv);
+			super.visitMethodInsn(INVOKESPECIAL, containerType.getInternalName(), "<init>", "("+Configuration.TAINT_TAG_DESC+
+					argStack.peek().getDescriptor()+")V", false);
+			argStack.pop();
+			argStack.pop();
+			argStack.push(Type.getType(Object.class));
+		}
+	}
+
+	/* The stack when entering this method should have a Object followed by either an int or a long and then the taint tag
+	 * for that int or long. Removes the taint tag from the stack and ensures that the second value is always a long. */
+	private void removeOffsetTagAndCastOffset(SinglyLinkedList<Type> argStack) {
+		Type top = argStack.pop();
+		Type second = argStack.pop();
+		swap(top, second);
+		// Cast the second value if necessary
+		if(second.getSort() == Type.INT) {
 			super.visitInsn(I2L);
 		}
-		// Put the taint tag or object onto the stack
-		super.visitVarInsn(args[3].getOpcode(Opcodes.ILOAD), localVars[2]);
-		// Call putTag
-		String lastArg = Configuration.TAINT_TAG_DESC;
-		if(name.contains("Object")) {
-			lastArg = "Ljava/lang/Object;";
+		// Store the long into a local variable
+		int lv = lvs.getTmpLV();
+		super.visitVarInsn(LSTORE, lv);
+		// Pop the taint tag off of the stack
+		super.visitInsn(SWAP);
+		super.visitInsn(POP);
+		// Load the long from the local variable
+		super.visitVarInsn(LLOAD, lv);
+		lvs.freeTmpLV(lv);
+		// Swap the long and the object so that the object is back on the top of the stack
+		swap(Type.LONG_TYPE, top);
+		// Update argStack
+		argStack.pop();
+		argStack.push(Type.LONG_TYPE);
+		argStack.push(top);
+	}
+
+	/* Changes calls to methods added to Unsafe by Phosphor which retrieve the value of a field of a Java heap object to
+	 * instead call a method in RuntimeUnsafePropagator. */
+	private void maskUnsafeFieldGetter(Type retType, String nameWithoutSuffix, Type[] args) {
+		SinglyLinkedList<Type> argStack = new SinglyLinkedList<>();
+		for(Type arg : args) {
+			argStack.push(arg);
 		}
-		String desc = String.format("(Lsun/misc/Unsafe;Ljava/lang/Object;J%s)V", lastArg);
-		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), "putTagOrOriginalField", desc, false);
-		// Restore the arguments for the original method call
-		for(int i = 1; i < args.length; i++) {
-			int lv = localVars[i-1];
-			super.visitVarInsn(args[i].getOpcode(Opcodes.ILOAD), lv);
-			lvs.freeTmpLV(lv);
+		popControlTaintTagStack(argStack);
+		if(!TaintUtils.isTaintedPrimitiveType(argStack.peek())) {
+			// Put a null value onto the stack in place of the prealloc
+			super.visitInsn(ACONST_NULL);
+			argStack.push(Type.getType(Object.class));
 		}
+		removeOffsetTagAndCastOffset(argStack);
+		String name = nameWithoutSuffix.contains("Volatile") ? "getVolatile" : "get";
+		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name,
+				"(Lsun/misc/Unsafe;Ljava/lang/Object;JLjava/lang/Object;)Ljava/lang/Object;", false);
+		super.visitTypeInsn(CHECKCAST,  retType.getInternalName());
+	}
+
+	/* Changes calls to methods added to Unsafe by Phosphor which set the value of a field of a Java heap object to instead
+	 * call a method in RuntimeUnsafePropagator. */
+	private void maskUnsafeFieldSetter(String nameWithoutSuffix, Type[] args) {
+		SinglyLinkedList<Type> argStack = new SinglyLinkedList<>();
+		for(Type arg : args) {
+			argStack.push(arg);
+		}
+		popControlTaintTagStack(argStack);
+		wrapPrimitive(argStack);
+		removeOffsetTagAndCastOffset(argStack);
+		String name = nameWithoutSuffix.contains("Volatile") ? "putVolatile" : (nameWithoutSuffix.contains("Ordered") ? "putOrdered" : "put");
+		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name,
+				"(Lsun/misc/Unsafe;Ljava/lang/Object;JLjava/lang/Object;)V", false);
 	}
 
 	@Override
 	public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean isInterface) {
 		Type[] args = Type.getArgumentTypes(desc);
+		String nameWithoutSuffix = name.replace(TaintUtils.METHOD_SUFFIX,"");
+		Type returnType = Type.getReturnType(desc);
 		if(isObjOutputStream && name.equals("getClass")) {
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "getClassOOS", "(Ljava/lang/Object;)Ljava/lang/Class;", false);
 		} else if((disable || className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream")) && owner.equals("java/lang/Class") && !owner.equals(className) && name.startsWith("isInstance$$PHOSPHORTAGGED")) {
@@ -232,11 +332,9 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", newDesc, false);
 		} else if(disable) {
 			if((this.methodName.startsWith("setObjFieldValues") || this.className.startsWith("java/math/BigInteger")) && owner.equals("sun/misc/Unsafe") && (name.startsWith("putObject") || name.startsWith("compareAndSwapObject"))) {
-				owner = Type.getInternalName(ReflectionMasker.class);
-				super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), isInterface);
+				maskUnsafeFieldSetter(nameWithoutSuffix, args);
 			} else if(this.methodName.startsWith("getObjFieldValues") && owner.equals("sun/misc/Unsafe") && name.startsWith("getObject")) {
-				owner = Type.getInternalName(ReflectionMasker.class);
-				super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), isInterface);
+				maskUnsafeFieldGetter(returnType, nameWithoutSuffix, args);
 			} else if((this.methodName.startsWith("getPrimFieldValues") || this.methodName.startsWith("setPrimFieldValues")) && owner.equals("sun/misc/Unsafe") && (name.startsWith("put") || name.startsWith("get"))) {
 				name = name + "$$NOUNBOX";
 				super.visitMethodInsn(opcode, owner, name, desc, isInterface);
@@ -244,7 +342,6 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				super.visitMethodInsn(opcode, owner, name, desc, isInterface);
 			}
 		} else {
-			String nameWithoutSuffix = name.replace(TaintUtils.METHOD_SUFFIX,"");
 			if("java/lang/reflect/Method".equals(owner)) {
 				if(name.startsWith("invoke")) {
 					maskMethodInvoke();
@@ -308,10 +405,11 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					super.visitInsn((Configuration.MULTI_TAINTING ? Opcodes.ICONST_1 : Opcodes.ICONST_0));
 				}
 			}
-			if(isUnsafeHeapObjectSetter(opcode, owner, name, desc, args)) {
-				maskUnsafeHeapObjectSetter(name, args);
-			} else if(isUnsafeHeapObjectGetter(opcode, owner, name, desc, args)) {
-				maskUnsafeHeapObjectGetter(opcode, owner, name, desc, isInterface, args);
+			if(isUnsafeFieldGetter(opcode, owner, name, args, nameWithoutSuffix)) {
+				maskUnsafeFieldGetter(returnType, nameWithoutSuffix, args);
+				return;
+			} else if(isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
+				maskUnsafeFieldSetter(nameWithoutSuffix, args);
 				return;
 			}
 			super.visitMethodInsn(opcode, owner, name, desc, isInterface);
