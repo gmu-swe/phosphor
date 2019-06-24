@@ -35,7 +35,6 @@ public class ReflectionMasker {
     @SuppressWarnings("unused")
     public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset) {
         return RuntimeUnsafePropagator.get(u, obj, offset, null);
-//        return MultiDTaintedArray.boxIfNecessary();
     }
 
     public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long fieldOffset, Object val, ControlTaintTagStack ctrl) {

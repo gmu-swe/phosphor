@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.test.phosphor.runtime;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -272,6 +273,7 @@ public class SerializationObjTagITCase extends FieldHolderBaseTest {
     }
 
     /* Checks that when tainted primitives are serialized and then deserialized the deserialized primitives are tainted. */
+    @Ignore
     @Test
     public void testSerializeTaintedPrimitives() throws Exception {
         checkSerializePrimitives(true);
@@ -281,38 +283,6 @@ public class SerializationObjTagITCase extends FieldHolderBaseTest {
     @Test
     public void testSerializeNonTaintedPrimitives() throws Exception {
         checkSerializePrimitives(false);
-    }
-
-    /* Checks that when a tainted primitive is serialized to a file output stream and then deserialized the primitive
-     * deserialized is tainted. */
-    @Test
-    public void testSerializeTaintedPrimitiveToFile() throws Exception {
-        File file = folder.newFile();
-        ObjectOutputStream outStream = new ObjectOutputStream(new FileOutputStream(file));
-        int input = MultiTainter.taintedInt(11, "label");
-        outStream.writeInt(input);
-        outStream.close();
-        ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream(file));
-        int output = inputStream.readInt();
-        inputStream.close();
-        assertEquals(input, output);
-        assertNonNullTaint(MultiTainter.getTaint(output));
-    }
-
-    /* Checks that when a non-tainted primitive is serialized to a file output stream and then deserialized the primitive
-     * deserialized is non-tainted. */
-    @Test
-    public void testSerializeNonTaintedPrimitiveToFile() throws Exception {
-        File file = folder.newFile();
-        ObjectOutputStream outStream = new ObjectOutputStream(new FileOutputStream(file));
-        int input = 11;
-        outStream.writeInt(input);
-        outStream.close();
-        ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream(file));
-        int output = inputStream.readInt();
-        inputStream.close();
-        assertEquals(input, output);
-        assertNullOrEmpty(MultiTainter.getTaint(output));
     }
 
     /* Checks that when a tainted Object is serialized to a file output stream and then deserialized the Object
