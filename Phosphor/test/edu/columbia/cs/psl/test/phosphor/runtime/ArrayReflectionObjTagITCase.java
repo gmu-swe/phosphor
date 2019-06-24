@@ -55,9 +55,21 @@ public class ArrayReflectionObjTagITCase extends BaseMultiTaintClass {
 
     @Test
     public void testTaintedPrimitiveArraySet() {
-        int[] arr = new int[2];
+        int[] ia = new int[2];
         int val = MultiTainter.taintedInt(23, "label");
-        Array.set(arr, 0, val);
-        assertNonNullTaint(arr[0]);
+        Array.set(ia, 0, val);
+        assertNonNullTaint(ia[0]);
+
+        byte[] ba = new byte[2];
+        Array.set(ba, 0, MultiTainter.taintedByte((byte) 2,"label"));
+        assertNonNullTaint(ba[0]);
+
+        char[] ca = new char[2];
+        Array.set(ca, 0, MultiTainter.taintedChar((char) 2,"label"));
+        assertNonNullTaint(ca[0]);
+
+        long[] ja = new long[2];
+        Array.set(ja, 0, MultiTainter.taintedLong(2L,"label"));
+        assertNonNullTaint(ja[0]);
     }
 }

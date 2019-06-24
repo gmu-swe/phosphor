@@ -1,12 +1,14 @@
 package edu.columbia.cs.psl.test.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import edu.columbia.cs.psl.phosphor.struct.IntObjectAMT;
 import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.ExternalResource;
 import sun.misc.Unsafe;
 
+import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -39,7 +41,10 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
     };
 
     /* Supplies primitives and primitive arrays to a holder. */
-    public static class PrimitiveSupplier {
+    public static class PrimitiveSupplier implements Serializable {
+
+        private static final long serialVersionUID = 8493043490151333333L;
+
         private int i = 7;
         private long j = 9L;
         private boolean z = false;
@@ -109,56 +114,56 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
         /* Returns a int array with the specified number of dimensions whose elements are tainted if taint is true. */
         public Object getIntArray(boolean taint, int dims) {
             Object arr = makeArray(int.class, dims);
-            Array.set(get1D(arr), 0, getInt(taint));
+            Array.setInt(get1D(arr), 0, getInt(taint));
             return arr;
         }
 
         /* Returns a long array with the specified number of dimensions whose elements are tainted if taint is true. */
         public Object getLongArray(boolean taint, int dims) {
             Object arr = makeArray(long.class, dims);
-            Array.set(get1D(arr), 0, getLong(taint));
+            Array.setLong(get1D(arr), 0, getLong(taint));
             return arr;
         }
 
         /* Returns a boolean array with the specified number of dimensions whose elements are tainted if taint is true. */
         public Object getBooleanArray(boolean taint, int dims) {
             Object arr = makeArray(boolean.class, dims);
-            Array.set(get1D(arr), 0, getBoolean(taint));
+            Array.setBoolean(get1D(arr), 0, getBoolean(taint));
             return arr;
         }
 
         /* Returns a short array with the specified number of dimensions whose elements are tainted if taint is true. */
         public Object getShortArray(boolean taint, int dims) {
             Object arr = makeArray(short.class, dims);
-            Array.set(get1D(arr), 0, getShort(taint));
+            Array.setShort(get1D(arr), 0, getShort(taint));
             return arr;
         }
 
         /* Returns a double array with the specified number of dimensions whose elements are tainted if taint is true. */
         public Object getDoubleArray(boolean taint, int dims) {
             Object arr = makeArray(double.class, dims);
-            Array.set(get1D(arr), 0, getDouble(taint));
+            Array.setDouble(get1D(arr), 0, getDouble(taint));
             return arr;
         }
 
         /* Returns a byte array with the specified number of dimensions whose elements are tainted if taint is true. */
         public Object getByteArray(boolean taint, int dims) {
             Object arr = makeArray(byte.class, dims);
-            Array.set(get1D(arr), 0, getByte(taint));
+            Array.setByte(get1D(arr), 0, getByte(taint));
             return arr;
         }
 
         /* Returns a char array with the specified number of dimensions whose elements are tainted if taint is true. */
         public Object getCharArray(boolean taint, int dims) {
             Object arr = makeArray(char.class, dims);
-            Array.set(get1D(arr), 0, getChar(taint));
+            Array.setChar(get1D(arr), 0, getChar(taint));
             return arr;
         }
 
         /* Returns a float array with the specified number of dimensions whose elements are tainted if taint is true. */
         public Object getFloatArray(boolean taint, int dims) {
             Object arr = makeArray(float.class, dims);
-            Array.set(get1D(arr), 0, getFloat(taint));
+            Array.setFloat(get1D(arr), 0, getFloat(taint));
             return arr;
         }
 
@@ -192,7 +197,10 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
     }
 
     /* Holds primitive fields. */
-    public static class PrimitiveHolder {
+    public static class PrimitiveHolder implements Serializable {
+
+        private static final long serialVersionUID = 1785984900982403834L;
+
         private int i;
         private long j;
         private boolean z;
@@ -250,6 +258,39 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
             assertNullOrEmpty(MultiTainter.getTaint(f));
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            PrimitiveHolder that = (PrimitiveHolder) o;
+
+            if (i != that.i) return false;
+            if (j != that.j) return false;
+            if (z != that.z) return false;
+            if (s != that.s) return false;
+            if (Double.compare(that.d, d) != 0) return false;
+            if (b != that.b) return false;
+            if (c != that.c) return false;
+            return Float.compare(that.f, f) == 0;
+        }
+
+        @Override
+        public int hashCode() {
+            int result;
+            long temp;
+            result = i;
+            result = 31 * result + (int) (j ^ (j >>> 32));
+            result = 31 * result + (z ? 1 : 0);
+            result = 31 * result + (int) s;
+            temp = Double.doubleToLongBits(d);
+            result = 31 * result + (int) (temp ^ (temp >>> 32));
+            result = 31 * result + (int) b;
+            result = 31 * result + (int) c;
+            result = 31 * result + (f != +0.0f ? Float.floatToIntBits(f) : 0);
+            return result;
+        }
+
         /* Returns the names of this class' fields without using reflection. */
         public static String[] fieldNames() {
             return new String[]{"i", "j", "z", "s", "d", "b", "c", "f"};
@@ -261,8 +302,111 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
         }
     }
 
+    /* Holds boxed primitive fields. */
+    public static class BoxedPrimitiveHolder implements Serializable {
+
+        private static final long serialVersionUID = 8912602941266021704L;
+
+        private Integer i;
+        private Long j;
+        private Boolean z;
+        private Short s;
+        private Double d;
+        private Byte b;
+        private Character c;
+        private Float f;
+
+        /* Constructs a new BoxedPrimitiveHolder with initial values. If taintFields is true then the initial values should be
+         * tainted. */
+        public BoxedPrimitiveHolder(boolean taintFields) {
+            if(taintFields) {
+                this.i = MultiTainter.taintedInt(5, "int-field");
+                this.j = MultiTainter.taintedLong(44, "long-field");
+                this.z = MultiTainter.taintedBoolean(true, "bool-field");
+                this.s = MultiTainter.taintedShort((short)5, "short-field");
+                this.d = MultiTainter.taintedDouble(4.5, "double-field");
+                this.b = MultiTainter.taintedByte((byte)4, "byte-field");
+                this.c = MultiTainter.taintedChar('w', "char-field");
+                this.f = MultiTainter.taintedFloat(3.3f, "float-field");
+            } else {
+                this.i = 5;
+                this.j = (long)44;
+                this.z = true;
+                this.s = 5;
+                this.d = 4.5;
+                this.b = 4;
+                this.c = 'w';
+                this.f = 3.3f;
+            }
+        }
+
+        /* Checks that every field for this instance is tainted. */
+        public void checkFieldsAreTainted() {
+            assertNonNullTaint(MultiTainter.getTaint(i));
+            assertNonNullTaint(MultiTainter.getTaint(j));
+            assertNonNullTaint(MultiTainter.getTaint(z));
+            assertNonNullTaint(MultiTainter.getTaint(s));
+            assertNonNullTaint(MultiTainter.getTaint(d));
+            assertNonNullTaint(MultiTainter.getTaint(b));
+            assertNonNullTaint(MultiTainter.getTaint(c));
+            assertNonNullTaint(MultiTainter.getTaint(f));
+        }
+
+        /* Checks that every field for this instance is not tainted. */
+        public void checkFieldsAreNotTainted() {
+            assertNullOrEmpty(MultiTainter.getTaint(i));
+            assertNullOrEmpty(MultiTainter.getTaint(j));
+            assertNullOrEmpty(MultiTainter.getTaint(z));
+            assertNullOrEmpty(MultiTainter.getTaint(s));
+            assertNullOrEmpty(MultiTainter.getTaint(d));
+            assertNullOrEmpty(MultiTainter.getTaint(b));
+            assertNullOrEmpty(MultiTainter.getTaint(c));
+            assertNullOrEmpty(MultiTainter.getTaint(f));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            BoxedPrimitiveHolder that = (BoxedPrimitiveHolder) o;
+            if (i != null ? !i.equals(that.i) : that.i != null) return false;
+            if (j != null ? !j.equals(that.j) : that.j != null) return false;
+            if (z != null ? !z.equals(that.z) : that.z != null) return false;
+            if (s != null ? !s.equals(that.s) : that.s != null) return false;
+            if (d != null ? !d.equals(that.d) : that.d != null) return false;
+            if (b != null ? !b.equals(that.b) : that.b != null) return false;
+            if (c != null ? !c.equals(that.c) : that.c != null) return false;
+            return f != null ? f.equals(that.f) : that.f == null;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = i != null ? i.hashCode() : 0;
+            result = 31 * result + (j != null ? j.hashCode() : 0);
+            result = 31 * result + (z != null ? z.hashCode() : 0);
+            result = 31 * result + (s != null ? s.hashCode() : 0);
+            result = 31 * result + (d != null ? d.hashCode() : 0);
+            result = 31 * result + (b != null ? b.hashCode() : 0);
+            result = 31 * result + (c != null ? c.hashCode() : 0);
+            result = 31 * result + (f != null ? f.hashCode() : 0);
+            return result;
+        }
+
+        /* Returns the names of this class' fields without using reflection. */
+        public static String[] fieldNames() {
+            return new String[]{"i", "j", "z", "s", "d", "b", "c", "f"};
+        }
+
+        /* Returns this class' fields without calling getDeclaredFields. */
+        public static Field[] fields() throws NoSuchFieldException {
+            return getFields(BoxedPrimitiveHolder.class, fieldNames());
+        }
+    }
+
     /* Holds primitive array fields. */
-    public static class PrimitiveArrayHolder {
+    public static class PrimitiveArrayHolder implements Serializable {
+
+        private static final long serialVersionUID = 2944796967332409895L;
 
         private int[] ia;
         private long[] ja;
@@ -321,6 +465,34 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
             assertNullOrEmpty(MultiTainter.getMergedTaint(fa));
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PrimitiveArrayHolder that = (PrimitiveArrayHolder) o;
+            if (!Arrays.equals(ia, that.ia)) return false;
+            if (!Arrays.equals(ja, that.ja)) return false;
+            if (!Arrays.equals(za, that.za)) return false;
+            if (!Arrays.equals(sa, that.sa)) return false;
+            if (!Arrays.equals(da, that.da)) return false;
+            if (!Arrays.equals(ba, that.ba)) return false;
+            if (!Arrays.equals(ca, that.ca)) return false;
+            return Arrays.equals(fa, that.fa);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Arrays.hashCode(ia);
+            result = 31 * result + Arrays.hashCode(ja);
+            result = 31 * result + Arrays.hashCode(za);
+            result = 31 * result + Arrays.hashCode(sa);
+            result = 31 * result + Arrays.hashCode(da);
+            result = 31 * result + Arrays.hashCode(ba);
+            result = 31 * result + Arrays.hashCode(ca);
+            result = 31 * result + Arrays.hashCode(fa);
+            return result;
+        }
+
         /* Returns the names of this class' fields without using reflection. */
         public static String[] fieldNames() {
             return new String[]{"ia", "ja", "za", "sa", "da", "ba", "ca", "fa"};
@@ -333,7 +505,9 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
     }
 
     /* Hold 2D primitive array fields. */
-    public static class Primitive2DArrayHolder {
+    public static class Primitive2DArrayHolder implements Serializable {
+
+        private static final long serialVersionUID = 1814117877155387001L;
 
         private int[][] iaa;
         private long[][] jaa;
@@ -392,6 +566,34 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
             assertNullOrEmpty(MultiTainter.getMergedTaint(faa));
         }
 
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Primitive2DArrayHolder that = (Primitive2DArrayHolder) o;
+            if (!Arrays.deepEquals(iaa, that.iaa)) return false;
+            if (!Arrays.deepEquals(jaa, that.jaa)) return false;
+            if (!Arrays.deepEquals(zaa, that.zaa)) return false;
+            if (!Arrays.deepEquals(saa, that.saa)) return false;
+            if (!Arrays.deepEquals(daa, that.daa)) return false;
+            if (!Arrays.deepEquals(baa, that.baa)) return false;
+            if (!Arrays.deepEquals(caa, that.caa)) return false;
+            return Arrays.deepEquals(faa, that.faa);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Arrays.deepHashCode(iaa);
+            result = 31 * result + Arrays.deepHashCode(jaa);
+            result = 31 * result + Arrays.deepHashCode(zaa);
+            result = 31 * result + Arrays.deepHashCode(saa);
+            result = 31 * result + Arrays.deepHashCode(daa);
+            result = 31 * result + Arrays.deepHashCode(baa);
+            result = 31 * result + Arrays.deepHashCode(caa);
+            result = 31 * result + Arrays.deepHashCode(faa);
+            return result;
+        }
+
         /* Returns the names of this class' fields without using reflection. */
         public static String[] fieldNames() {
             return new String[]{"iaa", "jaa", "zaa", "saa", "daa", "baa", "caa", "faa"};
@@ -404,7 +606,10 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
     }
 
     /* Class containing Object fields used to store primitive arrays. */
-    public static class PrimitiveArrayObjHolder {
+    public static class PrimitiveArrayObjHolder implements Serializable {
+
+        private static final long serialVersionUID = -975399692415868060L;
+
         public Object ia;
         public Object ja;
         public Object za;

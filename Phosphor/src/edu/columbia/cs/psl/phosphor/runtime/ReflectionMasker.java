@@ -19,32 +19,23 @@ public class ReflectionMasker {
     static {
         System.setSecurityManager(null);
     }
-    //	static WeakHashMap<Method, Method> methodCache = new WeakHashMap<Method, Method>();
 
-    public static final boolean IS_KAFFE = false;
-
-    @SuppressWarnings("unused")
-    public static Class<?> getClassOOS(Object o) {
-        if(o instanceof LazyArrayObjTags && ((LazyArrayObjTags) o).taints != null)
-            return o.getClass();
-        else if(o instanceof LazyArrayIntTags && ((LazyArrayIntTags) o).taints != null)
-            return o.getClass();
-        return removeTaintClass(o.getClass(), Configuration.MULTI_TAINTING);
-    }
+    private static final boolean IS_KAFFE = false;
 
     @SuppressWarnings("unused")
     public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset, ControlTaintTagStack ctrl) {
-        return MultiDTaintedArrayWithObjTag.boxIfNecessary(u.getObject(obj, offset));
-    }
-
-    @SuppressWarnings("unused")
-    public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset) {
-        return MultiDTaintedArrayWithObjTag.boxIfNecessary(u.getObject(obj, offset));
+        return getObject$$PHOSPHORTAGGED(u, obj, null, offset);
     }
 
     @SuppressWarnings("unused")
     public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, int tag, long offset) {
-        return MultiDTaintedArrayWithIntTag.boxIfNecessary(u.getObject(obj, offset));
+        return getObject$$PHOSPHORTAGGED(u, obj, null, offset);
+    }
+
+    @SuppressWarnings("unused")
+    public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset) {
+        return RuntimeUnsafePropagator.get(u, obj, offset, null);
+//        return MultiDTaintedArray.boxIfNecessary();
     }
 
     public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long fieldOffset, Object val, ControlTaintTagStack ctrl) {
@@ -91,79 +82,29 @@ public class ReflectionMasker {
         u.putObject(obj, fieldOffset, val);
     }
 
-    public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val, ControlTaintTagStack ctrl) {
-        putObjectVolatile$$PHOSPHORTAGGED(u, obj, tag, fieldOffset, val);
-    }
-
-    public static void putObjectVolatile$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val) {
-        if(val instanceof LazyArrayObjTags) {
-            try {
-                RuntimeUnsafePropagator.OffsetPair pair = RuntimeUnsafePropagator.getOffsetPair(u, obj, fieldOffset);
-                if(pair != null) {
-                    if(pair.origFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
-                        u.putObjectVolatile(obj, pair.origFieldOffset, MultiDTaintedArray.unbox1D(val));
-                    }
-                    if(pair.tagFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
-                        u.putObjectVolatile(obj, pair.tagFieldOffset, val);
-                    }
-                    return;
-                }
-            } catch(Exception e) {
-                //
-            }
-        }
-        u.putObjectVolatile(obj, fieldOffset, val);
-    }
-
+    @SuppressWarnings("unused")
     public static TaintedBooleanWithIntTag isInstance(Class<?> c1, Object o, TaintedBooleanWithIntTag ret) {
         ret.taint = 0;
-        if (o instanceof LazyArrayIntTags || o instanceof LazyArrayIntTags[]) {
-            if (LazyArrayIntTags.class.isAssignableFrom(c1))
-                ret.val = c1.isInstance(o);
-            else
-                ret.val = c1.isInstance(MultiDTaintedArrayWithIntTag.unboxRaw(o));
-        } else
+        if(o instanceof LazyArrayIntTags && !LazyArrayIntTags.class.isAssignableFrom(c1)) {
+            ret.val = c1.isInstance(MultiDTaintedArrayWithIntTag.unboxRaw(o));
+        } else {
             ret.val = c1.isInstance(o);
+        }
         return ret;
     }
 
-    public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, ControlTaintTagStack ctr, TaintedBooleanWithObjTag ret) {
+    @SuppressWarnings("unused")
+    public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
         return isInstance(c1, o, ret);
     }
 
     public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, TaintedBooleanWithObjTag ret) {
         ret.taint = null;
-        if (o instanceof LazyArrayObjTags || o instanceof LazyArrayObjTags[]) {
-            if (LazyArrayObjTags.class.isAssignableFrom(c1))
-                ret.val = c1.isInstance(o);
-            else
+        if(o instanceof LazyArrayObjTags && !LazyArrayObjTags.class.isAssignableFrom(c1)) {
                 ret.val = c1.isInstance(MultiDTaintedArrayWithObjTag.unboxRaw(o));
-        } else
+        } else {
             ret.val = c1.isInstance(o);
-        return ret;
-    }
-
-    public static TaintedBooleanWithObjTag isInstanceOOS(Class<?> c1, Object o, TaintedBooleanWithObjTag ret) {
-        ret.taint = null;
-        if (o instanceof LazyArrayObjTags || o instanceof LazyArrayObjTags[]) {
-            if (LazyArrayObjTags.class.isAssignableFrom(c1))
-                ret.val = c1.isInstance(o);
-            else
-                ret.val = c1.isInstance(MultiDTaintedArrayWithObjTag.unboxRaw(o));
-        } else
-            ret.val = c1.isInstance(o);
-        return ret;
-    }
-
-    public static TaintedBooleanWithIntTag isInstanceOOS(Class<?> c1, Object o, TaintedBooleanWithIntTag ret) {
-        ret.taint = 0;
-        if (o instanceof LazyArrayIntTags || o instanceof LazyArrayIntTags[]) {
-            if (LazyArrayIntTags.class.isAssignableFrom(c1))
-                ret.val = c1.isInstance(o);
-            else
-                ret.val = c1.isInstance(MultiDTaintedArrayWithIntTag.unboxRaw(o));
-        } else
-            ret.val = c1.isInstance(o);
+        }
         return ret;
     }
 
@@ -1097,25 +1038,20 @@ public class ReflectionMasker {
     private static final String multiDDescriptor = "edu.columbia.cs.psl.phosphor.struct.Lazy";
     private static final int multiDDescriptorLength = multiDDescriptor.length();
 
-    public static Class<?> removeTaintClass(Class<?> clazz, boolean isObjTags) {
+    /* Called after calls to Object.getClass. */
+    public static Class<?> removeTaintClass(Class<?> clazz) {
         if(clazz.PHOSPHOR_TAGclass != null) {
             return clazz.PHOSPHOR_TAGclass;
-        }
-        if (clazz.isArray()) {
+        } else if(clazz.isArray()) {
             String cmp = null;
             Class c = clazz.getComponentType();
             while(c.isArray())
                 c = c.getComponentType();
             cmp = c.getName();
-            if (cmp.length() >= multiDDescriptorLength
+            if(cmp.length() >= multiDDescriptorLength
                     && cmp.subSequence(0, multiDDescriptorLength).equals(multiDDescriptor)) {
-                String innerType = null;
                 Type t = Type.getType(clazz);
-
-                if(isObjTags)
-                    innerType = (MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(clazz));
-                else
-                    innerType = (MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(clazz));
+                String innerType = MultiDTaintedArray.getPrimitiveTypeForWrapper(clazz);
                 String newName = "[";
                 for (int i = 0; i < t.getDimensions(); i++)
                     newName += "[";
@@ -1130,26 +1066,35 @@ public class ReflectionMasker {
             }
             clazz.PHOSPHOR_TAGclass = clazz;
             return clazz;
-        }
-        String cmp = clazz.getName();
-        if (cmp.length() >= multiDDescriptorLength
-                && cmp.subSequence(0, multiDDescriptorLength).equals(multiDDescriptor)) {
-            String innerType = null;
-            if(isObjTags)
-                innerType = (MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(clazz));
-            else
-                innerType = (MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(clazz));
-            try {
-                Class ret = Class.forName("[" + innerType);
-                clazz.PHOSPHOR_TAGclass=ret;
-                ret.PHOSPHOR_TAGclass=ret;
-                return ret;
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+        } else {
+            String cmp = clazz.getName();
+            if (cmp.length() >= multiDDescriptorLength
+                    && cmp.subSequence(0, multiDDescriptorLength).equals(multiDDescriptor)) {
+                String innerType = MultiDTaintedArray.getPrimitiveTypeForWrapper(clazz);
+                try {
+                    Class ret = Class.forName("[" + innerType);
+                    clazz.PHOSPHOR_TAGclass=ret;
+                    ret.PHOSPHOR_TAGclass=ret;
+                    return ret;
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
             }
+            clazz.PHOSPHOR_TAGclass = clazz;
+            return clazz;
         }
-        clazz.PHOSPHOR_TAGclass = clazz;
-        return clazz;
+    }
+
+    /* Masks calls to Object.getClass from ObjectOutputStream. */
+    @SuppressWarnings("unused")
+    public static Class<?> getClassOOS(Object o) {
+        if(o instanceof LazyArrayObjTags && ((LazyArrayObjTags) o).taints != null) {
+            return o.getClass();
+        } else if(o instanceof LazyArrayIntTags && ((LazyArrayIntTags) o).taints != null) {
+            return o.getClass();
+        } else {
+            return removeTaintClass(o.getClass());
+        }
     }
 
     /* Filters the fields returned by Class.getFields and Class.getDeclaredFields. */

@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.test.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -8,88 +9,286 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.*;
 import java.lang.reflect.Array;
+import java.math.BigInteger;
 
 import static org.junit.Assert.*;
 
 
-public class SerializationObjTagITCase extends BaseMultiTaintClass {
+public class SerializationObjTagITCase extends FieldHolderBaseTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    /* Class containing Object fields used to store primitive arrays. */
-    public static class ArrayHolderObjField implements Serializable {
-        private static final long serialVersionUID = 2710507305915502837L;
-        private Object arr;
+    public static class PrimitiveArrayHolderChild extends PrimitiveArrayHolder {
 
-        public ArrayHolderObjField(Object arr) {
-            this.arr = arr;
-        }
+        private static final long serialVersionUID = 2460391570566213782L;
 
-        private void writeObject(ObjectOutputStream oos) throws IOException {
-            oos.defaultWriteObject();
+        public PrimitiveArrayHolderChild(boolean taintFields) {
+            super(taintFields);
         }
     }
 
-    public static class ArrayHolder implements Serializable {
-        private static final long serialVersionUID = 7515681563331750671L;
-        private byte[] arr;
-        public ArrayHolder(byte[] arr) {
-            this.arr = arr;
-        }
+    public static class EmptyHolder implements Serializable {
 
-        public byte[] getArr() {
-            return arr;
+        private static final long serialVersionUID = 9061758314720341782L;
+    }
+
+    /* Serializes the specified input and then deserializes it. Returns the object deserialized. */
+    @SuppressWarnings("unchecked")
+    private <T> T roundTripSerialize(T input) throws IOException, ClassNotFoundException {
+        ByteArrayOutputStream byteStream =new ByteArrayOutputStream();
+        ObjectOutputStream outputStream = new ObjectOutputStream(byteStream);
+        outputStream.writeObject(input);
+        outputStream.close();
+        ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray()));
+        T result = (T)inputStream.readObject();
+        inputStream.close();
+        return result;
+    }
+
+    /* Checks that when an object with tainted primitive fields is serialized and then deserialized the primitive
+     * fields of the deserialized object are tainted. */
+    @Test
+    public void testSerializeTaintedPrimitiveFields() throws Exception {
+        PrimitiveHolder input = new PrimitiveHolder(true);
+        PrimitiveHolder output = roundTripSerialize(input);
+        assertEquals(input, output);
+        output.checkFieldsAreTainted();
+    }
+
+    /* Checks that when an object with non-tainted primitive fields is serialized and then deserialized the primitive
+     * fields of the deserialized object are non-tainted. */
+    @Test
+    public void testSerializeNonTaintedPrimitiveFields() throws Exception {
+        PrimitiveHolder input = new PrimitiveHolder(false);
+        PrimitiveHolder output = roundTripSerialize(input);
+        assertEquals(input, output);
+        output.checkFieldsAreNotTainted();
+    }
+
+    /* Checks that when an object with tainted boxed primitive fields is serialized and then deserialized the boxed
+     * primitive fields of the deserialized object are tainted. */
+    @Test
+    public void testSerializeTaintedBoxedPrimitiveFields() throws Exception {
+        BoxedPrimitiveHolder input = new BoxedPrimitiveHolder(true);
+        BoxedPrimitiveHolder output = roundTripSerialize(input);
+        assertEquals(input, output);
+        output.checkFieldsAreTainted();
+    }
+
+    /* Checks that when an object with non-tainted boxed primitive fields is serialized and then deserialized the boxed
+     * primitive fields of the deserialized object are non-tainted. */
+    @Test
+    public void testSerializeNonTaintedBoxedPrimitiveFields() throws Exception {
+        BoxedPrimitiveHolder input = new BoxedPrimitiveHolder(false);
+        BoxedPrimitiveHolder output = roundTripSerialize(input);
+        assertEquals(input, output);
+        output.checkFieldsAreNotTainted();
+    }
+
+    /* Checks that when an object with tainted primitive array fields is serialized and then deserialized the primitive
+     * arrays of the deserialized object are tainted. */
+    @Test
+    public void testSerializeTaintedPrimitiveArrayFields() throws Exception {
+        PrimitiveArrayHolder input = new PrimitiveArrayHolder(true);
+        PrimitiveArrayHolder output = roundTripSerialize(input);
+        assertEquals(input, output);
+        output.checkFieldsAreTainted();
+    }
+
+    /* Checks that when an object with non-tainted primitive array fields is serialized and then deserialized the primitive
+     * arrays of the deserialized object are non-tainted. */
+    @Test
+    public void testSerializeNonTaintedPrimitiveArrayFields() throws Exception {
+        PrimitiveArrayHolder input = new PrimitiveArrayHolder(false);
+        PrimitiveArrayHolder output = roundTripSerialize(input);
+        assertEquals(input, output);
+        output.checkFieldsAreNotTainted();
+    }
+
+    /* Checks that when an object with tainted primitive array fields declared in a superclass is serialized and then
+     * deserialized the primitive arrays of the deserialized object are tainted. */
+    @Test
+    public void testSerializeTaintedSuperClassPrimitiveArrayFields() throws Exception {
+        PrimitiveArrayHolderChild input = new PrimitiveArrayHolderChild(true);
+        PrimitiveArrayHolderChild output = roundTripSerialize(input);
+        assertEquals(input, output);
+        output.checkFieldsAreTainted();
+    }
+
+    /* Checks that when an object with non-tainted primitive array fields declared in a superclass is serialized and then
+     * deserialized the primitive arrays of the deserialized object are non-tainted. */
+    @Test
+    public void testSerializeNonTaintedSuperClassPrimitiveArrayFields() throws Exception {
+        PrimitiveArrayHolderChild input = new PrimitiveArrayHolderChild(false);
+        PrimitiveArrayHolderChild output = roundTripSerialize(input);
+        assertEquals(input, output);
+        output.checkFieldsAreNotTainted();
+    }
+
+    /* Checks that when an object with tainted primitive arrays in object fields is serialized and then deserialized the
+     * primitive arrays of the deserialized object are tainted. */
+    @Test
+    public void testSerializeTaintedPrimitiveArrayObjFields() throws Exception {
+        PrimitiveArrayObjHolder input = new PrimitiveArrayObjHolder(true);
+        PrimitiveArrayObjHolder output = roundTripSerialize(input);
+        output.checkFieldsAreTainted();
+    }
+
+    /* Checks that when an object with non-tainted primitive array in object fields is serialized and then deserialized the
+     * primitive arrays of the deserialized object are non-tainted. */
+    @Test
+    public void testSerializeNonTaintedPrimitiveArrayObjFields() throws Exception {
+        PrimitiveArrayObjHolder input = new PrimitiveArrayObjHolder(false);
+        PrimitiveArrayObjHolder output = roundTripSerialize(input);
+        output.checkFieldsAreNotTainted();
+    }
+
+    /* Checks that when an object with tainted 2D primitive array fields is serialized and then deserialized the 2D primitive
+     * arrays of the deserialized object are tainted. */
+    @Test
+    public void testSerializeTainted2DPrimitiveArrayFields() throws Exception {
+        Primitive2DArrayHolder input = new Primitive2DArrayHolder(true);
+        Primitive2DArrayHolder output = roundTripSerialize(input);
+        assertEquals(input, output);
+        output.checkFieldsAreTainted();
+    }
+
+    /* Checks that when an object with non-tainted 2D primitive array fields is serialized and then deserialized the 2D primitive
+     * arrays of the deserialized object are non-tainted. */
+    @Test
+    public void testSerializeNonTainted2DPrimitiveArrayFields() throws Exception {
+        Primitive2DArrayHolder input = new Primitive2DArrayHolder(false);
+        Primitive2DArrayHolder output = roundTripSerialize(input);
+        assertEquals(input, output);
+        output.checkFieldsAreNotTainted();
+    }
+
+    /* Checks that when a tainted BigInteger is serialized and then deserialized the deserialized BigInteger is tainted. */
+    @Test
+    public void testSerializeTaintedBigInt() throws Exception {
+        byte[] b = (byte[])supplier.getByteArray(true, 1);
+        BigInteger input = new BigInteger(b);
+        BigInteger output = roundTripSerialize(input);
+        assertEquals(input, output);
+        assertNonNullTaint(MultiTainter.getTaint(output.longValue()));
+    }
+
+    /* Checks that when a non-tainted BigInteger is serialized and then deserialized the deserialized BigInteger is non-tainted. */
+    @Test
+    public void testSerializeNonTaintedBigInt() throws Exception {
+        BigInteger input = BigInteger.valueOf(5);
+        BigInteger output = roundTripSerialize(input);
+        assertEquals(input, output);
+        assertNullOrEmpty(MultiTainter.getTaint(output.longValue()));
+    }
+
+    /* Checks that when tainted primitive arrays are serialized and then deserialized the deserialized primitive arrays
+     * are tainted. */
+    @Test
+    public void testSerializeTaintedPrimitiveArrays() throws Exception {
+        for(Class<?> clazz : primArrayTypes) {
+            Object input = supplier.getArray(true, clazz);
+            Object output = roundTripSerialize(input);
+            assertNonNullTaint(MultiTainter.getMergedTaint(output));
         }
     }
 
-    public static class ArrayHolderChild extends ArrayHolder {
-        private static final long serialVersionUID = 10585365320351952L;
-        public ArrayHolderChild(byte[] arr) {
-            super(arr);
+    /* Checks that when non-tainted primitive arrays are serialized and then deserialized the deserialized primitive arrays
+     * are non-tainted. */
+    @Test
+    public void testSerializeNonTaintedPrimitiveArrays() throws Exception {
+        for(Class<?> clazz : primArrayTypes) {
+            Object input = supplier.getArray(false, clazz);
+            Object output = roundTripSerialize(input);
+            assertNullOrEmpty(MultiTainter.getMergedTaint(output));
         }
     }
 
-    public static class PrimitiveHolder implements Serializable {
-        private static final long serialVersionUID = -7447282366633906624L;
-        private int x;
-        public PrimitiveHolder(int x) {
-            this.x = x;
-        }
-    }
-
-    /* Checks that the value and taint tags of the specified output matches the specified input . */
-    private static void checkValueAndTagsMatch(Object input, Object output) {
-        if(input == null) {
-            assertNull(output);
-            return;
-        }
-        assertEquals(input.getClass(), output.getClass());
-        if(input.getClass().isArray()) {
-            assertTrue(output.getClass().isArray());
-            checkArrayValuesAndTagsMatch(input, output);
+    /* Serializes primitives that are tainted if taint is true and non-tainted otherwise. Check that primitive deserializes
+     * from the serialized primitives are tainted only if the originals are tainted. */
+    private void checkSerializePrimitives(boolean taint) throws IOException {
+        // Create the input primitives
+        int i = supplier.getInt(taint);
+        long j = supplier.getLong(taint);
+        boolean z = supplier.getBoolean(taint);
+        short s = supplier.getShort(taint);
+        double d = supplier.getDouble(taint);
+        byte b = supplier.getByte(taint);
+        char c = supplier.getChar(taint);
+        float f = supplier.getFloat(taint);
+        // Write the primitives to the stream
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
+        outStream.writeInt(i);
+        outStream.writeLong(j);
+        outStream.writeBoolean(z);
+        outStream.writeShort(s);
+        outStream.writeDouble(d);
+        outStream.writeByte(b);
+        outStream.writeChar(c);
+        outStream.writeFloat(f);
+        outStream.close();
+        // Read primitive from the stream
+        ObjectInputStream inStream = new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray()));
+        int outI = inStream.readInt();
+        long outJ = inStream.readLong();
+        boolean outZ = inStream.readBoolean();
+        short outS = inStream.readShort();
+        double outD = inStream.readDouble();
+        byte outB = inStream.readByte();
+        char outC = inStream.readChar();
+        float outF = inStream.readFloat();
+        inStream.close();
+        // Check the values of the output primitives match the input primitives
+        assertEquals(i, outI);
+        assertEquals(j, outJ);
+        assertEquals(z, outZ);
+        assertEquals(s, outS);
+        assertEquals(d, outD, 0.001);
+        assertEquals(b, outB);
+        assertEquals(c, outC);
+        assertEquals(f, outF, 0.001);
+        // Check the taint tags of the output primitives
+        if(taint) {
+            assertNonNullTaint(MultiTainter.getTaint(outI));
+            assertNonNullTaint(MultiTainter.getTaint(outJ));
+            assertNonNullTaint(MultiTainter.getTaint(outZ));
+            assertNonNullTaint(MultiTainter.getTaint(outS));
+            assertNonNullTaint(MultiTainter.getTaint(outD));
+            assertNonNullTaint(MultiTainter.getTaint(outB));
+            assertNonNullTaint(MultiTainter.getTaint(outC));
+            assertNonNullTaint(MultiTainter.getTaint(outF));
         } else {
-            assertEquals(input, output);
-            assertEquals(MultiTainter.getTaint(input), MultiTainter.getTaint(output));
+            assertNullOrEmpty(MultiTainter.getTaint(outI));
+            assertNullOrEmpty(MultiTainter.getTaint(outJ));
+            assertNullOrEmpty(MultiTainter.getTaint(outZ));
+            assertNullOrEmpty(MultiTainter.getTaint(outS));
+            assertNullOrEmpty(MultiTainter.getTaint(outD));
+            assertNullOrEmpty(MultiTainter.getTaint(outB));
+            assertNullOrEmpty(MultiTainter.getTaint(outC));
+            assertNullOrEmpty(MultiTainter.getTaint(outF));
         }
     }
 
-    /* Checks that the values and tags of the elements of the specified output array match the values and tags of the
-     * elements of the specified input array. */
-    private static void checkArrayValuesAndTagsMatch(Object inputArray, Object outputArray) {
-        int length = Array.getLength(inputArray);
-        assertEquals(length, Array.getLength(outputArray));
-        for(int i = 0; i < length; i++) {
-            checkValueAndTagsMatch(Array.get(inputArray, i), Array.get(outputArray, i));
-        }
+    /* Checks that when tainted primitives are serialized and then deserialized the deserialized primitives are tainted. */
+    @Test
+    public void testSerializeTaintedPrimitives() throws Exception {
+        checkSerializePrimitives(true);
+    }
+
+    /* Checks that when non-tainted primitives are serialized and then deserialized the deserialized primitives are non-tainted. */
+    @Test
+    public void testSerializeNonTaintedPrimitives() throws Exception {
+        checkSerializePrimitives(false);
     }
 
     /* Checks that when a tainted primitive is serialized to a file output stream and then deserialized the primitive
      * deserialized is tainted. */
     @Test
-    public void testSerializeTaintedPrimitiveToFileObjectStream() throws Exception {
+    public void testSerializeTaintedPrimitiveToFile() throws Exception {
         File file = folder.newFile();
-        ObjectOutputStream outStream = new ObjectOutputStream(new FileOutputStream(folder.newFile()));
+        ObjectOutputStream outStream = new ObjectOutputStream(new FileOutputStream(file));
         int input = MultiTainter.taintedInt(11, "label");
         outStream.writeInt(input);
         outStream.close();
@@ -97,175 +296,32 @@ public class SerializationObjTagITCase extends BaseMultiTaintClass {
         int output = inputStream.readInt();
         inputStream.close();
         assertEquals(input, output);
-    }
-
-    /* Checks that when an object with a tainted primitive array field is serialized and then deserialized the primitive
-     * array of the deserialized object is also tainted. */
-    @Test
-    public void testSerializeObjectWithTaintedPrimitiveArrayField() throws Exception {
-        byte[] arr = new byte[3];
-        for(int i = 0; i < arr.length; i++) {
-            arr[i] = MultiTainter.taintedByte((byte)i, "label");
-        }
-        ArrayHolder holderInput = new ArrayHolder(arr);
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
-        outStream.writeObject(holderInput);
-        outStream.close();
-        ArrayHolder holderOutput = (ArrayHolder) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
-        assertArrayEquals(holderInput.arr, holderOutput.arr);
-        for(int el : holderOutput.arr) {
-            assertNonNullTaint(MultiTainter.getTaint(el));
-        }
-    }
-
-    /* Checks that when an object whose superclass has a tainted primitive array field is serialized and then deserialized the primitive
-     * array of the deserialized object is also tainted. */
-    @Test
-    public void testSerializeSubclassObjectWithTaintedPrimitiveArrayField() throws Exception {
-        byte[] arr = new byte[3];
-        for(int i = 0; i < arr.length; i++) {
-            arr[i] = MultiTainter.taintedByte((byte)i, "label");
-        }
-        ArrayHolderChild holderInput = new ArrayHolderChild(arr);
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
-        outStream.writeObject(holderInput);
-        outStream.close();
-        ArrayHolderChild holderOutput = (ArrayHolderChild) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
-        assertArrayEquals(holderInput.getArr(), holderOutput.getArr());
-        for(int el : holderOutput.getArr()) {
-            assertNonNullTaint(MultiTainter.getTaint(el));
-        }
-    }
-
-    @Test
-    public void testSerializeObjectWithTaintedPrimitiveArrayInObjectField() throws Exception {
-        int[] arr = new int[3];
-        for(int i = 0; i < arr.length; i++) {
-            arr[i] = MultiTainter.taintedInt(i, "label");
-        }
-        ArrayHolderObjField holderInput = new ArrayHolderObjField(arr);
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
-        outStream.writeObject(holderInput);
-        outStream.close();
-        ArrayHolderObjField holderOutput = (ArrayHolderObjField) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
-        assertArrayEquals((int[]) holderInput.arr, (int[]) holderOutput.arr);
-        for (int el : ((int[]) (holderOutput.arr))) {
-            assertNonNullTaint(MultiTainter.getTaint(el));
-        }
-    }
-
-    /* Checks that when an object with a tainted primitive field is serialized and then deserialized the primitive of the
-     * deserialized object is also tainted. */
-    @Test
-    public void testSerializeObjectWithTaintedPrimitiveField() throws Exception {
-        PrimitiveHolder holderInput = new PrimitiveHolder(MultiTainter.taintedInt(37, "label"));
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
-        outStream.writeObject(holderInput);
-        outStream.close();
-        PrimitiveHolder holderOutput = (PrimitiveHolder) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
-        assertEquals(holderInput.x, holderOutput.x);
-        assertNonNullTaint(MultiTainter.getTaint(holderOutput.x));
-    }
-
-    /* Checks that when a tainted primitive array field is serialized and then deserialized the deserialized primitive
-     * array is also tainted. */
-    @Test
-    public void testSerializeTaintedPrimitiveArray() throws Exception {
-        int[] inputArr = new int[3];
-        for(int i = 0; i < inputArr.length; i++) {
-            inputArr[i] = MultiTainter.taintedInt(i, "label");
-        }
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
-        outStream.writeObject(inputArr);
-        outStream.close();
-        int[] outputArr = (int[]) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
-        assertArrayEquals(inputArr, outputArr);
-        for(int el : outputArr) {
-            assertNonNullTaint(MultiTainter.getTaint(el));
-        }
-    }
-
-    /* Checks that when a tainted primitive is serialized and then deserialized the deserialized primitive is also tainted. */
-    @Test
-    public void testSerializeTaintedPrimitive() throws Exception {
-        int input = MultiTainter.taintedInt(37, "label");
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
-        outStream.writeObject(input);
-        outStream.close();
-        int output = (int) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
-        assertEquals(input, output);
         assertNonNullTaint(MultiTainter.getTaint(output));
     }
 
-    /* Checks that when an object with a non-tainted primitive array field is serialized and then deserialized the primitive
-     * array of the deserialized object is not tainted. */
+    /* Checks that when a non-tainted primitive is serialized to a file output stream and then deserialized the primitive
+     * deserialized is non-tainted. */
     @Test
-    public void testSerializeObjectWithNonTaintedPrimitiveArrayField() throws Exception {
-        byte[] arr = new byte[3];
-        for(int i = 0; i < arr.length; i++) {
-            arr[i] = (byte)i;
-        }
-        ArrayHolder holderInput = new ArrayHolder(arr);
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
-        outStream.writeObject(holderInput);
+    public void testSerializeNonTaintedPrimitiveToFile() throws Exception {
+        File file = folder.newFile();
+        ObjectOutputStream outStream = new ObjectOutputStream(new FileOutputStream(file));
+        int input = 11;
+        outStream.writeInt(input);
         outStream.close();
-        ArrayHolder holderOutput = (ArrayHolder) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
-        assertArrayEquals(holderInput.arr, holderOutput.arr);
-        for(int el : holderOutput.arr) {
-            assertNullOrEmpty(MultiTainter.getTaint(el));
-        }
-    }
-
-    /* Checks that when an object with a non-tainted primitive field is serialized and then deserialized the primitive of the
-     * deserialized object is not tainted. */
-    @Test
-    public void testSerializeObjectWithNonTaintedPrimitiveField() throws Exception {
-        PrimitiveHolder holderInput = new PrimitiveHolder(37);
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
-        outStream.writeObject(holderInput);
-        outStream.close();
-        PrimitiveHolder holderOutput = (PrimitiveHolder) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
-        assertEquals(holderInput.x, holderOutput.x);
-        assertNullOrEmpty(MultiTainter.getTaint(holderOutput.x));
-    }
-
-    /* Checks that when a non-tainted primitive array field is serialized and then deserialized the deserialized primitive
-     * array is not tainted. */
-    @Test
-    public void testSerializeNonTaintedPrimitiveArray() throws Exception {
-        int[] inputArr = new int[3];
-        for(int i = 0; i < inputArr.length; i++) {
-            inputArr[i] = i;
-        }
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
-        outStream.writeObject(inputArr);
-        outStream.close();
-        int[] outputArr = (int[]) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
-        assertArrayEquals(inputArr, outputArr);
-        for(int el : outputArr) {
-            assertNullOrEmpty(MultiTainter.getTaint(el));
-        }
-    }
-
-    /* Checks that when a non-tainted primitive is serialized and then deserialized the deserialized primitive is not tainted. */
-    @Test
-    public void testSerializeNonTaintedPrimitive() throws Exception {
-        int input = 37;
-        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-        ObjectOutputStream outStream = new ObjectOutputStream(byteStream);
-        outStream.writeObject(input);
-        outStream.close();
-        int output = (int) new ObjectInputStream(new ByteArrayInputStream(byteStream.toByteArray())).readObject();
+        ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream(file));
+        int output = inputStream.readInt();
+        inputStream.close();
         assertEquals(input, output);
         assertNullOrEmpty(MultiTainter.getTaint(output));
+    }
+
+    /* Checks that when a tainted Object is serialized to a file output stream and then deserialized the Object
+     * deserialized is tainted. */
+    @Test
+    public void testSerializeTaintedObject() throws Exception {
+        EmptyHolder input = new EmptyHolder();
+        MultiTainter.taintedObject(input, new Taint<>("label"));
+        EmptyHolder output = roundTripSerialize(input);
+        assertNonNullTaint(output);
     }
 }
