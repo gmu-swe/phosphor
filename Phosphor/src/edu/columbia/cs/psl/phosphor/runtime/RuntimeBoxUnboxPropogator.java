@@ -453,6 +453,18 @@ public class RuntimeBoxUnboxPropogator {
 		return ret;
 	}
 
+	public static String toBinaryString$$PHOSPHORTAGGED(Taint t, int i) {
+		if (t == null)
+			return Integer.toBinaryString(i);
+		String ret = new String(Integer.toBinaryString(i).toCharArray());
+		ret.setPHOSPHOR_TAG(t);
+		return ret;
+	}
+
+	public static String toBinaryString$$PHOSPHORTAGGED(Taint t, int i, ControlTaintTagStack ctrl) {
+		return toBinaryString$$PHOSPHORTAGGED(t, i);
+	}
+
 	public static String toHexString$$PHOSPHORTAGGED(Taint t, long i) {
 		if (t == null)
 			return Long.toHexString(i);
