@@ -61,6 +61,7 @@ public class TaintUtils {
 	public static final String PHOSPHOR_ADDED_FIELD_PREFIX = "$$PHOSPHOR_";
 	public static final String MARK_FIELD = PHOSPHOR_ADDED_FIELD_PREFIX + "MARK";
 	public static final String ADDED_SVUID_SENTINEL = PHOSPHOR_ADDED_FIELD_PREFIX + "REMOVE_SVUID";
+	public static final String CLASS_OFFSET_CACHE_ADDED_FIELD = PHOSPHOR_ADDED_FIELD_PREFIX + "OFFSET_CACHE";
 //	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
 //	public static final String IS_TAINT_SEATCHING_FIELD = "INVIVO_IS_TAINT_SEARCHING";
 	public static final boolean DEBUG_ALL = false;

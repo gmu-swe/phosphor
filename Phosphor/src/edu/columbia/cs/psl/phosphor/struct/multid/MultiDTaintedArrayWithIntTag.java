@@ -2,19 +2,8 @@ package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import java.util.HashSet;
 
+import edu.columbia.cs.psl.phosphor.struct.*;
 import org.objectweb.asm.Type;
-
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
 
 public abstract class MultiDTaintedArrayWithIntTag {
 	public static final long serialVersionUID = 40523489234L;
@@ -24,7 +13,6 @@ public abstract class MultiDTaintedArrayWithIntTag {
 		ret.val = hashCode();
 		return ret;
 	}
-
 
 	public static final Type getTypeForType(final Type originalElementType) {
 		if (originalElementType.getSort() != Type.ARRAY)
@@ -224,6 +212,30 @@ public abstract class MultiDTaintedArrayWithIntTag {
 		if(in instanceof LazyArrayIntTags)
 			return ((LazyArrayIntTags) in).getVal();
 		return in;
+	}
+
+	/* If the specified object is a one dimensional array of primitives, boxes and returns the specified object. Otherwise
+	 * returns the specified object. */
+	public static Object boxOnly1D(final Object obj) {
+		if(obj instanceof boolean[]) {
+			return new LazyBooleanArrayIntTags((boolean[])obj);
+		} else if(obj instanceof byte[]) {
+			return new LazyByteArrayIntTags((byte[])obj);
+		} else if(obj instanceof char[]) {
+			return new LazyCharArrayIntTags((char[])obj);
+		} if(obj instanceof double[]) {
+			return new LazyDoubleArrayIntTags((double[])obj);
+		} else if(obj instanceof float[]) {
+			return new LazyFloatArrayIntTags((float[])obj);
+		} else if(obj instanceof int[]) {
+			return new LazyIntArrayIntTags((int[])obj);
+		} if(obj instanceof long[]) {
+			return new LazyLongArrayIntTags((long[])obj);
+		} if(obj instanceof short[]) {
+			return new LazyShortArrayIntTags((short[])obj);
+		} else {
+			return obj;
+		}
 	}
 	
 	public static final Object unboxVal(final Object _in, final int componentType, final int dims) {

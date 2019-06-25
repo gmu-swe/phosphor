@@ -243,6 +243,30 @@ public abstract class MultiDTaintedArrayWithObjTag {
 		return in;
 	}
 
+	/* If the specified object is a one dimensional array of primitives, boxes and returns the specified object. Otherwise
+	 * returns the specified object. */
+	public static Object boxOnly1D(final Object obj) {
+		if(obj instanceof boolean[]) {
+			return new LazyBooleanArrayObjTags((boolean[])obj);
+		} else if(obj instanceof byte[]) {
+			return new LazyByteArrayObjTags((byte[])obj);
+		} else if(obj instanceof char[]) {
+			return new LazyCharArrayObjTags((char[])obj);
+		} if(obj instanceof double[]) {
+			return new LazyDoubleArrayObjTags((double[])obj);
+		} else if(obj instanceof float[]) {
+			return new LazyFloatArrayObjTags((float[])obj);
+		} else if(obj instanceof int[]) {
+			return new LazyIntArrayObjTags((int[])obj);
+		} if(obj instanceof long[]) {
+			return new LazyLongArrayObjTags((long[])obj);
+		} if(obj instanceof short[]) {
+			return new LazyShortArrayObjTags((short[])obj);
+		} else {
+			return obj;
+		}
+	}
+
 	public static final Object unboxVal(final Object _in, final int componentType, final int dims) {
 
 		if (dims == 0) {

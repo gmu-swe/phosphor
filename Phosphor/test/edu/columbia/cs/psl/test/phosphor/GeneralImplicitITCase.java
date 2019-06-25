@@ -1,16 +1,6 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.math.BigInteger;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import org.junit.After;
@@ -48,21 +38,6 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 		}
 		String ret = sb.toString();
 		assertTaintHasOnlyLabel(MultiTainter.getStringCharTaints(ret)[0],"testStringBuilderAppend");
-	}
-
-	@Test
-	public void testSerializeBigInt() throws Exception {
-		int five = MultiTainter.taintedInt(5, "abc");
-		BigInteger b = BigInteger.valueOf(five);
-		ByteArrayOutputStream bos =new ByteArrayOutputStream();
-        ObjectOutputStream so = new ObjectOutputStream(bos);
-        so.writeObject(b);
-
-        // deserialize the Object
-        ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
-        ObjectInputStream si = new ObjectInputStream(bis);
-        b = (BigInteger) si.readObject();
-        System.out.println(b.toByteArray());
 	}
 
 	@Test
@@ -151,22 +126,7 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	    assertTaintHasOnlyLabel(MultiTainter.getTaint(y), "I");
 	    assertNull(MultiTainter.getTaint(x));
     }
-	@Test
-	public void testObjectStream() throws Exception {
-		File f = new File("test.tmp.out");
-		if (f.exists()) {
-			f.delete();
-		}
 
-		ObjectOutputStream oot = new ObjectOutputStream(new FileOutputStream(f));
-		oot.writeInt(11);
-		oot.close();
-
-		ObjectInputStream ois = new ObjectInputStream(new FileInputStream(f));
-		int obj = ois.readInt();
-		ois.close();
-		assertEquals(11, obj);
-	}
 	@Test
 	public void testRelationalConditional() throws Exception {
 		int x = -1;
@@ -201,8 +161,7 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 
 
 	@Test
-	public void testStringContains()
-	{
+	public void testStringContains() {
 		resetState();
 		String x = "afoo";
 		String lbl = "taintedStr";

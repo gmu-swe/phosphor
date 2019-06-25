@@ -252,6 +252,7 @@ public final class MultiTainter {
 		return ret;
 	}
 
+	@SuppressWarnings("unused")
 	public static Taint getTaint$$PHOSPHORTAGGED(Object obj) {
 		return getTaint(obj);
 	}
@@ -262,8 +263,7 @@ public final class MultiTainter {
 		return str.valuePHOSPHOR_TAG.taints;
 	}
 
-	public static Taint getTaint(Object obj)
-	{
+	public static Taint getTaint(Object obj) {
 		if(obj instanceof MultiDTaintedArrayWithObjTag)
 			obj = ((MultiDTaintedArrayWithObjTag) obj).getVal();
 		if(Configuration.taintTagFactory == null)
@@ -290,6 +290,7 @@ public final class MultiTainter {
 			return null;
 	}
 
+	@SuppressWarnings("unused")
 	public static Taint getTaint$$PHOSPHORTAGGED(Object obj, ControlTaintTagStack ctrl) {
 		return getTaint(obj);
 	}
@@ -307,11 +308,43 @@ public final class MultiTainter {
 			ArrayHelper.setTag(obj, tag);
 	}
 
+	@SuppressWarnings("unused")
 	public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint tag, ControlTaintTagStack ctrl) {
 		taintedObject(obj, tag);
 	}
 
+	@SuppressWarnings("unused")
 	public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint tag) {
 		taintedObject(obj, tag);
+	}
+
+	/* If multi-tainted and the specified object is a multi-dimensional array returns a Taint tag containing the taints of
+	 * all of its elements, otherwise returns the object's taint. */
+	public static Taint getMergedTaint(Object obj) {
+		if(!Configuration.MULTI_TAINTING) {
+			return getTaint(obj);
+		}
+		if(obj instanceof LazyArrayObjTags) {
+			return Taint.combineTaintArray(((LazyArrayObjTags) obj).taints);
+		}  else if(obj instanceof Object[]) {
+			Taint[] taints = new Taint[((Object[]) obj).length];
+			int i = 0;
+			for(Object el : (Object[]) obj) {
+				taints[i] = getMergedTaint(el);
+			}
+			return Taint.combineTaintArray(taints);
+		} else {
+			return getTaint(obj);
+		}
+	}
+
+	@SuppressWarnings("unused")
+	public static Taint getMergedTaint$$PHOSPHORTAGGED(Object obj, ControlTaintTagStack ctrl) {
+		return getMergedTaint(obj);
+	}
+
+	@SuppressWarnings("unused")
+	public static Taint getMergedTaint$$PHOSPHORTAGGED(Object obj) {
+		return getMergedTaint(obj);
 	}
 }

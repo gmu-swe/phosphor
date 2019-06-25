@@ -20,6 +20,9 @@
 
 package java.lang;
 
+import edu.columbia.cs.psl.phosphor.runtime.RuntimeUnsafePropagator;
+import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
+
 import java.io.InputStream;
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
@@ -1031,4 +1034,5 @@ public final class Class<T> implements Serializable, AnnotatedElement,
     }
     public  boolean PHOSPHOR_TAGmarked;
     public  Class PHOSPHOR_TAGclass;
+    public SinglyLinkedList<RuntimeUnsafePropagator.OffsetPair> $$PHOSPHOR_OFFSET_CACHE;
 }

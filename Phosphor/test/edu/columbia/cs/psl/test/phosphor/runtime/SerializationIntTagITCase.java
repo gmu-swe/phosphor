@@ -1,4 +1,4 @@
-package edu.columbia.cs.psl.test.phosphor;
+package edu.columbia.cs.psl.test.phosphor.runtime;
 
 import static org.junit.Assert.*;
 
@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
+import edu.columbia.cs.psl.test.phosphor.BasePhosphorTest;
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.Tainter;

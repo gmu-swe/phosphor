@@ -29,7 +29,7 @@ public class BaseMultiTaintClass extends BasePhosphorTest {
 	
 	public static void assertNonNullTaint(Object obj)
 	{
-		Taint t = (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
+		Taint t = MultiTainter.getTaint(obj);
 		assertNotNull(obj);
 		if(t == null || t.isEmpty())
 			fail("Expected non-null taint - got: "  + t);

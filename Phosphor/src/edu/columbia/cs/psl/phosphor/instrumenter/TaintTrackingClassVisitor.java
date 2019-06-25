@@ -673,6 +673,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		{
 			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD+"marked", "Z", null, 0);
 			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.TAINT_FIELD+"class", "Ljava/lang/Class;", null, 0);
+			super.visitField(Opcodes.ACC_PUBLIC, TaintUtils.CLASS_OFFSET_CACHE_ADDED_FIELD, "Ledu/columbia/cs/psl/phosphor/struct/SinglyLinkedList;", null, 0);
 		}
 		for (FieldNode fn : extraFieldsToVisit) {
 			if (className.equals("java/lang/Byte") && !fn.name.startsWith("value"))

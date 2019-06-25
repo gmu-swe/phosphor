@@ -1,6 +1,5 @@
-package edu.columbia.cs.psl.test.phosphor;
+package edu.columbia.cs.psl.test.phosphor.runtime;
 
-import static edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass.assertNonNullTaint;
 import static org.junit.Assert.*;
 
 import java.lang.reflect.*;
@@ -10,15 +9,15 @@ import java.util.HashSet;
 import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
+import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
-public class ReflectionObjTagITCase extends BasePhosphorTest {
+public class ReflectionObjTagITCase extends BaseMultiTaintClass {
 
 	public static class FieldHolder {
-
 		int i;
 		long j;
 		boolean z;
@@ -91,88 +90,19 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 	}
 
 	@Test
-	public void testArraysSet() {
-		boolean[] b = { false };
-		if (b.getClass().isArray()) {
-			for (int i = 0; i < Array.getLength(b); i++) {
-				Array.get(b, i);
-			}
-		}
-	}
-
-	@Test
-	public void testReflectionSetField() throws Exception {
-		FieldHolder fh = new FieldHolder();
-		for(Field f : fh.getClass().getDeclaredFields())
-		{
-			if(f.getType().isPrimitive() && !Modifier.isFinal(f.getModifiers()))
-			{
-				if(f.getType() == int.class)
-				{
-					f.setInt(fh, MultiTainter.taintedInt(f.getInt(fh), "tainted_"+f.getName()));
-				} else if (f.getType() == long.class) {
-					f.setLong(fh, MultiTainter.taintedLong(f.getLong(fh), "tainted_" + f.getName()));
-				} else if (f.getType() == boolean.class) {
-					f.setBoolean(fh, MultiTainter.taintedBoolean(f.getBoolean(fh), "tainted_" + f.getName()));
-				} else if (f.getType() == short.class) {
-					f.setShort(fh, MultiTainter.taintedShort(f.getShort(fh), "tainted_" + f.getName()));
-				} else if (f.getType() == double.class) {
-					f.setDouble(fh, MultiTainter.taintedDouble(f.getDouble(fh), "tainted_" + f.getName()));
-				} else if (f.getType() == byte.class) {
-					f.setByte(fh, MultiTainter.taintedByte(f.getByte(fh), "tainted_" + f.getName()));
-				} else if (f.getType() == char.class) {
-					f.setChar(fh, MultiTainter.taintedChar(f.getChar(fh), "tainted_" + f.getName()));
-				}
-			} else if (f.getType().isArray()) {
-				if (f.getType().getComponentType() == Integer.TYPE) {
-					f.set(fh, MultiTainter.taintedIntArray((int[]) f.get(fh), "tainted_" + f.getName()));
-				}
-			}
-		}
-		assertNotNull(MultiTainter.getTaint(fh.ia[0]));
-
-		assertNotNull(MultiTainter.getTaint(fh.i));
-		assertNotNull(MultiTainter.getTaint(fh.b));
-		assertNotNull(MultiTainter.getTaint(fh.c));
-		assertNotNull(MultiTainter.getTaint(fh.d));
-		assertNotNull(MultiTainter.getTaint(fh.j));
-		assertNotNull(MultiTainter.getTaint(fh.s));
-		assertNotNull(MultiTainter.getTaint(fh.z));
-
-	}
-
-	@Test
-	public void testRefArraySet() {
-		int[] arr = { 18 };
-		arr = MultiTainter.taintedIntArray(arr, "arr");
-
-		Object obj = (Object) arr;
-		int ret = Array.getInt(obj, 0);
-		// Exception in thread "main" java.lang.ClassCastException:
-		// edu.columbia.cs.psl.phosphor.runtime.LazyArrayObjTags cannot be cast
-		// to edu.columbia.cs.psl.phosphor.runtime.Taint
-
-		assertEquals(MultiTainter.getTaint(arr[0]).getLabels()[0], MultiTainter.getTaint(ret).getLabels()[0]);
-	}
-
-	@Test
 	public void testBoxing() {
-		ArrayList<Integer> list = new ArrayList<Integer>();
-		for (int i = 0; i < 5; i++) {
+		ArrayList<Integer> list = new ArrayList<>();
+		for(int i = 0; i < 5; i++) {
 			i = MultiTainter.taintedInt(i, "collection");
 			list.add(i);
 		}
-
 		int val = 18;
-
 		val = MultiTainter.taintedInt(val, "int");
 		int newVal = list.get(0) + val;
 		list.add(newVal);
-
-		for (int i = 0; i < list.size(); i++) {
+		for(int i = 0; i < list.size(); i++) {
 			Integer obj = list.get(i);
 			int objVal = list.get(i);
-
 			Taint objTaint = MultiTainter.getTaint(obj);
 			Taint valTaint = MultiTainter.getTaint(objVal);
 			assertTrue(objTaint.contains(valTaint));
@@ -276,40 +206,8 @@ public class ReflectionObjTagITCase extends BasePhosphorTest {
 		for(Field field : fields) {
 			actualNames.add(field.getName());
 		}
-		assertTrue(String.format("Expected FieldHolder to have declared fields %s, but got %s", expectedNames, actualNames),
+		assertTrue(String.format("Expected declared fields %s, but got %s", expectedNames, actualNames),
 				expectedNames.size() == actualNames.size() && expectedNames.containsAll(actualNames) && actualNames.containsAll(expectedNames));
-	}
-
-	@Test
-	public void testGetTaintedPrimitiveField() throws Exception {
-		// Get the primitive Field objects
-		Field intField = FieldHolder.class.getDeclaredField("i");
-		Field longField = FieldHolder.class.getDeclaredField("j");
-		Field booleanField = FieldHolder.class.getDeclaredField("z");
-		Field shortField = FieldHolder.class.getDeclaredField("s");
-		Field doubleField = FieldHolder.class.getDeclaredField("d");
-		Field byteField = FieldHolder.class.getDeclaredField("b");
-		Field charField = FieldHolder.class.getDeclaredField("c");
-		Field floatField = FieldHolder.class.getDeclaredField("f");
-		// Create the holder and set its primitive fields to tainted values
-		FieldHolder holder = new FieldHolder();
-		holder.i = MultiTainter.taintedInt(5, "int-field");
-		holder.j = MultiTainter.taintedLong(44, "long-field");
-		holder.z = MultiTainter.taintedBoolean(true, "bool-field");
-		holder.s = MultiTainter.taintedShort((short)5, "short-field");
-		holder.d = MultiTainter.taintedDouble(4.5, "double-field");
-		holder.b = MultiTainter.taintedByte((byte)4, "byte-field");
-		holder.c = MultiTainter.taintedChar('w', "char-field");
-		holder.f = MultiTainter.taintedFloat(3.3f, "float-field");
-		// Access the primitive fields via Field.get and check that the resulting object is tainted
-		assertNonNullTaint(MultiTainter.getTaint(intField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(longField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(booleanField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(shortField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(doubleField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(byteField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(charField.get(holder)));
-		assertNonNullTaint(MultiTainter.getTaint(floatField.get(holder)));
 	}
 
 	/* Checks that phosphor parameters are correctly remapped when calling Constructor.getParameterTypes for a Constructor
