@@ -153,6 +153,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     }
     public String name;
     private List<Object> args;
+    private List<Object> argsFormattedForFrame;
     /**
      * Creates a new {@link NeverNullArgAnalyzerAdapter}.
      * 
@@ -183,6 +184,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         stackConstantVals = new ArrayList<Object>();
         uninitializedTypes = new HashMap<Object, Object>();
         args = new ArrayList<Object>();
+        argsFormattedForFrame = new ArrayList<>();
         if ((access & Opcodes.ACC_STATIC) == 0) {
             if ("<init>".equals(name)) {
                 locals.add(Opcodes.UNINITIALIZED_THIS);
@@ -190,6 +192,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
                 locals.add(owner);
             }
             args.add(owner);
+            argsFormattedForFrame.add(owner);
         }
         Type[] types = Type.getArgumentTypes(desc);
         for (int i = 0; i < types.length; ++i) {
@@ -202,31 +205,37 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             case Type.INT:
                 locals.add(Opcodes.INTEGER);
                 args.add(Opcodes.INTEGER);
+                argsFormattedForFrame.add(Opcodes.INTEGER);
                 break;
             case Type.FLOAT:
                 locals.add(Opcodes.FLOAT);
                 args.add(Opcodes.FLOAT);
+                argsFormattedForFrame.add(Opcodes.FLOAT);
                 break;
             case Type.LONG:
                 locals.add(Opcodes.LONG);
                 locals.add(Opcodes.TOP);
                 args.add(Opcodes.LONG);
                 args.add(Opcodes.TOP);
+                argsFormattedForFrame.add(Opcodes.LONG);
                 break;
             case Type.DOUBLE:
                 locals.add(Opcodes.DOUBLE);
                 locals.add(Opcodes.TOP);
                 args.add(Opcodes.LONG);
                 args.add(Opcodes.TOP);
+                argsFormattedForFrame.add(Opcodes.DOUBLE);
                 break;
             case Type.ARRAY:
                 locals.add(types[i].getDescriptor());
                 args.add(types[i].getDescriptor());
+                argsFormattedForFrame.add(types[i].getDescriptor());
                 break;
             // case Type.OBJECT:
             default:
                 locals.add(types[i].getInternalName());
                 args.add(types[i].getInternalName());
+                argsFormattedForFrame.add(types[i].getInternalName());
             }
         }
     }
@@ -234,8 +243,8 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     boolean noInsnsSinceListFrame = false;
     public List<Object> frameLocals;
     @Override
-    public void visitFrame(final int type, final int nLocal,
-            final Object[] local, final int nStack, final Object[] stack) {
+    public void visitFrame(final int type, int nLocal,
+            Object[] local, final int nStack, final Object[] stack) {
         if (type != Opcodes.F_NEW && type != TaintUtils.RAW_INSN) { // uncompressed frame
             throw new IllegalStateException(
                     "ClassReader.accept() should be called with EXPAND_FRAMES flag");
@@ -243,6 +252,17 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if(noInsnsSinceListFrame && this.locals != null)
         {
         	return;
+        }
+        if(argsFormattedForFrame != null && argsFormattedForFrame.size() > nLocal) {
+            Object[] oldLocals = local;
+        	local = new Object[argsFormattedForFrame.size()];
+        	for(int i = 0; i < nLocal; i++){
+        	    local[i] = oldLocals[i];
+            }
+        	for(int i = nLocal; i < argsFormattedForFrame.size(); i++){
+        	    local[i] = Opcodes.TOP;
+            }
+            nLocal = argsFormattedForFrame.size();
         }
         isFollowedByFrame = false;
         noInsnsSinceListFrame = true;

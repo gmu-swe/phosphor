@@ -429,7 +429,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 					}
 					insn = insn.getNext();
 				}
-				if(this.instructions.size() > 20000) {
+				if(this.instructions.size() > 20000 && !aggressivelyReduceMethodSize) {
 					if (canIgnoreTaintsTillEnd) {
 //					System.out.println("Can opt " + className + name + " "+canIgnoreTaintsTillEnd);
 						insn = this.instructions.getFirst();
@@ -469,18 +469,17 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						this.accept(cmv);
 						return;
 					}
-					else if(aggressivelyReduceMethodSize) //only do this if it's REALLY bad
-					{
-						//Not able to use these cheap tricks. Let's bail.
-						insn = this.instructions.getFirst();
-						this.instructions.insert(new InsnNode(TaintUtils.IGNORE_EVERYTHING));
-						this.instructions.insert(new VarInsnNode(TaintUtils.IGNORE_EVERYTHING,0));
-						instOrUninstChoosingMV.disableTainting();
-						super.visitEnd();
-						this.accept(cmv);
-						return;
-					}
-
+				}
+				else if(aggressivelyReduceMethodSize) //only do this if it's REALLY bad
+				{
+					//Not able to use these cheap tricks. Let's bail.
+					insn = this.instructions.getFirst();
+					this.instructions.insert(new InsnNode(TaintUtils.IGNORE_EVERYTHING));
+					this.instructions.insert(new VarInsnNode(TaintUtils.IGNORE_EVERYTHING,0));
+					instOrUninstChoosingMV.disableTainting();
+					super.visitEnd();
+					this.accept(cmv);
+					return;
 				}
 
 				HashSet<SinkableArrayValue> swapPop = new HashSet<>();

@@ -436,7 +436,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 		String newDesc = Type.getMethodDescriptor(newReturnType, newArgs);
 		//		System.out.println("olddesc " + desc + " newdesc " + newDesc);
-		if ((access & Opcodes.ACC_NATIVE) == 0 && !methodIsTooBigAlready(name, desc)) {
+		if ((access & Opcodes.ACC_NATIVE) == 0) {
 			//not a native method
 			LinkedList<String> addToSig = new LinkedList<>();
 			if(Configuration.IMPLICIT_TRACKING)
@@ -494,15 +494,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 			}
 
-			if(Configuration.ignoredMethods.contains(className+"."+originalName+desc))
-			{
-				instOrUninstChoosingMV.disableTainting();
-				lvs.disable();
-			}
+			boolean isDisabled = Configuration.ignoredMethods.contains(className+"."+originalName+desc);
 
 			somv.setLVS(lvs);
 			MethodArgReindexer mar = new MethodArgReindexer(nextMV, access, name, newDesc, desc, wrapper, isLambda);
-			TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames, instOrUninstChoosingMV, aggressivelyReduceMethodSize);
+			TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames, instOrUninstChoosingMV, aggressivelyReduceMethodSize | isDisabled);
 
 			PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, tlc);
 			NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, primitiveArrayFixer);
@@ -585,11 +581,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			forMore.put(wrapper, rawMethod);
 			return rawMethod;
 		}
-	}
-
-	private boolean methodIsTooBigAlready(String name, String desc) {
-		// TODO we need to implement something to detect massive constant array loads and optimize it. for now... just this :-/
-		return false;
 	}
 
 	private LinkedList<FieldNode> extraFieldsToVisit = new LinkedList<FieldNode>();
