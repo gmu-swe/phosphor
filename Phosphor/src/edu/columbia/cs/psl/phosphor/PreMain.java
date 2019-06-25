@@ -536,6 +536,9 @@ public class PreMain {
 					} catch(Exception e) {
 						System.err.println("Failed to create specified prior class visitor: " + priorClassVisitorName);
 					}
+				} else if(s.startsWith("ignoredMethod=")) {
+					String methodName = s.substring(14);
+					Configuration.ignoredMethods.add(methodName);
 				}
 			}
 		}
@@ -551,5 +554,4 @@ public class PreMain {
 	public static Instrumentation getInstrumentation() {
 		return instrumentation;
 	}
-
 }

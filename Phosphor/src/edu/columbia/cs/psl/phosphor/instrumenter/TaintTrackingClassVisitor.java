@@ -494,6 +494,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 			}
 
+			if(Configuration.ignoredMethods.contains(className+"."+originalName+desc))
+			{
+				instOrUninstChoosingMV.disableTainting();
+				lvs.disable();
+			}
+
 			somv.setLVS(lvs);
 			MethodArgReindexer mar = new MethodArgReindexer(nextMV, access, name, newDesc, desc, wrapper, isLambda);
 			TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames, instOrUninstChoosingMV, aggressivelyReduceMethodSize);

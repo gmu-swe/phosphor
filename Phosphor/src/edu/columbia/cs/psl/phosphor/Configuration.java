@@ -5,6 +5,7 @@ import java.net.URL;
 import java.util.HashSet;
 import java.util.Properties;
 
+import edu.columbia.cs.psl.phosphor.struct.SimpleHashSet;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -58,6 +59,8 @@ public class Configuration {
 
 	public static Class<? extends ClassVisitor> PRIOR_CLASS_VISITOR = null;
 
+	public static SimpleHashSet<String> ignoredMethods = new SimpleHashSet<>();
+
 	public static class Method {
 		final String name;
 		final String owner;
@@ -99,8 +102,6 @@ public class Configuration {
 		}
 	}
 	
-	public static HashSet<Method> ignoredMethods = new HashSet<>();
-
 	/*
 	 * Derived configuration values
 	 */

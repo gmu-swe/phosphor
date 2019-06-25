@@ -2204,10 +2204,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	static final String SHORT_NAME = "java/lang/Short";
 
 	static final boolean isBoxUnboxMethodToWrap(String owner, String name, String desc) {
-		if (Configuration.ignoredMethods.contains(new Configuration.Method(name, owner))) {
-			return false;
-		}
-		
 		if(name.equals("valueOf") && desc.startsWith("(Ljava/lang/String"))
 			return Instrumenter.isIgnoredClass(owner);//All of these no matter what will get caught by parseXXX
 		if ((owner.equals(INTEGER_NAME) || owner.equals(BYTE_NAME) || owner.equals(BOOLEAN_NAME) || owner.equals(CHARACTER_NAME) || owner.equals(SHORT_NAME) || owner.equals(LONG_NAME) || owner.equals(FLOAT_NAME) || owner.equals(DOUBLE_NAME))
