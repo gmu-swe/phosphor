@@ -154,6 +154,26 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		}
 	}
 
+	/* Changes calls to methods added to Unsafe by Phosphor which retrieve the value of a field of a Java heap object to
+	 * instead call a method in RuntimeUnsafePropagator. */
+	private void maskUnsafeFieldGetter(Type retType, String nameWithoutSuffix, Type[] args) {
+		SinglyLinkedList<Type> argStack = new SinglyLinkedList<>();
+		for(Type arg : args) {
+			argStack.push(arg);
+		}
+		popControlTaintTagStack(argStack);
+		if(!TaintUtils.isTaintedPrimitiveType(argStack.peek())) {
+			// Put a null value onto the stack in place of the prealloc
+			super.visitInsn(ACONST_NULL);
+			argStack.push(Type.getType(Object.class));
+		}
+		removeOffsetTagAndCastOffset(argStack);
+		String name = nameWithoutSuffix.contains("Volatile") ? "getVolatile" : "get";
+		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name,
+				"(Lsun/misc/Unsafe;Ljava/lang/Object;JLjava/lang/Object;)Ljava/lang/Object;", false);
+		super.visitTypeInsn(CHECKCAST,  retType.getInternalName());
+	}
+
 	/* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
 	 * that sets the value of a field of a Java heap object. */
 	private boolean isUnsafeFieldSetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
@@ -192,6 +212,72 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		}
 	}
 
+	/* Changes calls to methods added to Unsafe by Phosphor which set the value of a field of a Java heap object to instead
+	 * call a method in RuntimeUnsafePropagator. */
+	private void maskUnsafeFieldSetter(String nameWithoutSuffix, Type[] args) {
+		SinglyLinkedList<Type> argStack = new SinglyLinkedList<>();
+		for(Type arg : args) {
+			argStack.push(arg);
+		}
+		popControlTaintTagStack(argStack);
+		wrapPrimitive(argStack);
+		removeOffsetTagAndCastOffset(argStack);
+		String name = nameWithoutSuffix.contains("Volatile") ? "putVolatile" : (nameWithoutSuffix.contains("Ordered") ? "putOrdered" : "put");
+		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name,
+				"(Lsun/misc/Unsafe;Ljava/lang/Object;JLjava/lang/Object;)V", false);
+	}
+
+	/* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
+	 * for a compareAndSwap method. */
+	private boolean isUnsafeCAS(String owner, String name, String nameWithoutSuffix) {
+		if(!"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX) || className.equals("sun/misc/Unsafe")) {
+			return false;
+		} else {
+			return "compareAndSwapInt".equals(nameWithoutSuffix) || "compareAndSwapLong".equals(nameWithoutSuffix)
+					|| "compareAndSwapObject".equals(nameWithoutSuffix);
+		}
+	}
+
+	/* Changes calls to methods added to Unsafe by Phosphor for compareAndSwap to instead call a method in
+	 * RuntimeUnsafePropagator. */
+	private void maskUnsafeCAS(Type[] args) {
+        SinglyLinkedList<Type> argStack = new SinglyLinkedList<>();
+        for(Type arg : args) {
+            argStack.push(arg);
+        }
+        popControlTaintTagStack(argStack);
+        // Store the prealloc into a local variable
+        int preallocLV = lvs.getTmpLV();
+        super.visitVarInsn(ASTORE, preallocLV);
+        argStack.pop();
+        // If a primitive and its tag are at the top of the stack, wrap them together
+        wrapPrimitive(argStack);
+        int valLV = lvs.getTmpLV();
+        super.visitVarInsn(ASTORE, valLV);
+        argStack.pop();
+        // If a primitive and its tag are at the top of the stack, wrap them together
+        wrapPrimitive(argStack);
+        removeOffsetTagAndCastOffset(argStack);
+        super.visitVarInsn(ALOAD, valLV);
+        lvs.freeTmpLV(valLV);
+        super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), "compareAndSwap",
+                "(Lsun/misc/Unsafe;Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z", false);
+        // Set the prealloc's val field to be the returned boolean, and taint field be null/0
+        super.visitVarInsn(ALOAD, preallocLV);
+		super.visitInsn(SWAP);
+        String fieldOwner = Configuration.MULTI_TAINTING ? Type.getInternalName(TaintedBooleanWithObjTag.class) : Type.getInternalName(TaintedBooleanWithIntTag.class);
+        super.visitFieldInsn(PUTFIELD, fieldOwner, "val", "Z");
+		super.visitVarInsn(ALOAD, preallocLV);
+		lvs.freeTmpLV(preallocLV);
+		super.visitInsn(DUP);
+        if(Configuration.MULTI_TAINTING) {
+            super.visitInsn(ACONST_NULL);
+        } else {
+            super.visitInsn(ICONST_0);
+        }
+        super.visitFieldInsn(PUTFIELD, fieldOwner, "taint", Configuration.TAINT_TAG_DESC);
+	}
+
 	/* Swaps the top stack value of the specified type with the value below it of the specified other type. */
 	private void swap(Type top, Type below) {
 		if(top.getSize() == 1) {
@@ -226,7 +312,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	}
 
 	/* If the type at the top of the specified stack is a primitive type wraps that primitive into a
-	 * TaintedPrimitiveWithObjTags or TaintedPrimitiveWithIntTags instance. */
+	 * TaintedPrimitiveWithObjTag or TaintedPrimitiveWithIntTag instance. */
 	private void wrapPrimitive(SinglyLinkedList<Type> argStack) {
 		int sort = argStack.peek().getSort();
 		if(sort != Type.ARRAY && sort != Type.OBJECT) {
@@ -274,41 +360,6 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 		argStack.pop();
 		argStack.push(Type.LONG_TYPE);
 		argStack.push(top);
-	}
-
-	/* Changes calls to methods added to Unsafe by Phosphor which retrieve the value of a field of a Java heap object to
-	 * instead call a method in RuntimeUnsafePropagator. */
-	private void maskUnsafeFieldGetter(Type retType, String nameWithoutSuffix, Type[] args) {
-		SinglyLinkedList<Type> argStack = new SinglyLinkedList<>();
-		for(Type arg : args) {
-			argStack.push(arg);
-		}
-		popControlTaintTagStack(argStack);
-		if(!TaintUtils.isTaintedPrimitiveType(argStack.peek())) {
-			// Put a null value onto the stack in place of the prealloc
-			super.visitInsn(ACONST_NULL);
-			argStack.push(Type.getType(Object.class));
-		}
-		removeOffsetTagAndCastOffset(argStack);
-		String name = nameWithoutSuffix.contains("Volatile") ? "getVolatile" : "get";
-		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name,
-				"(Lsun/misc/Unsafe;Ljava/lang/Object;JLjava/lang/Object;)Ljava/lang/Object;", false);
-		super.visitTypeInsn(CHECKCAST,  retType.getInternalName());
-	}
-
-	/* Changes calls to methods added to Unsafe by Phosphor which set the value of a field of a Java heap object to instead
-	 * call a method in RuntimeUnsafePropagator. */
-	private void maskUnsafeFieldSetter(String nameWithoutSuffix, Type[] args) {
-		SinglyLinkedList<Type> argStack = new SinglyLinkedList<>();
-		for(Type arg : args) {
-			argStack.push(arg);
-		}
-		popControlTaintTagStack(argStack);
-		wrapPrimitive(argStack);
-		removeOffsetTagAndCastOffset(argStack);
-		String name = nameWithoutSuffix.contains("Volatile") ? "putVolatile" : (nameWithoutSuffix.contains("Ordered") ? "putOrdered" : "put");
-		super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name,
-				"(Lsun/misc/Unsafe;Ljava/lang/Object;JLjava/lang/Object;)V", false);
 	}
 
 	@Override
@@ -409,6 +460,9 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				return;
 			} else if(isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
 				maskUnsafeFieldSetter(nameWithoutSuffix, args);
+				return;
+			} else if(isUnsafeCAS(owner, name, nameWithoutSuffix)) {
+				maskUnsafeCAS(args);
 				return;
 			}
 			super.visitMethodInsn(opcode, owner, name, desc, isInterface);

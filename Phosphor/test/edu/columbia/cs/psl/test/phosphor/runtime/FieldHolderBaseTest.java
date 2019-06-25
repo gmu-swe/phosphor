@@ -291,6 +291,38 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
             return result;
         }
 
+        public int getI() {
+            return i;
+        }
+
+        public long getJ() {
+            return j;
+        }
+
+        public boolean isZ() {
+            return z;
+        }
+
+        public short getS() {
+            return s;
+        }
+
+        public double getD() {
+            return d;
+        }
+
+        public byte getB() {
+            return b;
+        }
+
+        public char getC() {
+            return c;
+        }
+
+        public float getF() {
+            return f;
+        }
+
         /* Returns the names of this class' fields without using reflection. */
         public static String[] fieldNames() {
             return new String[]{"i", "j", "z", "s", "d", "b", "c", "f"};
@@ -491,6 +523,38 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
             result = 31 * result + Arrays.hashCode(ca);
             result = 31 * result + Arrays.hashCode(fa);
             return result;
+        }
+
+        public int[] getIa() {
+            return ia;
+        }
+
+        public long[] getJa() {
+            return ja;
+        }
+
+        public boolean[] getZa() {
+            return za;
+        }
+
+        public short[] getSa() {
+            return sa;
+        }
+
+        public double[] getDa() {
+            return da;
+        }
+
+        public byte[] getBa() {
+            return ba;
+        }
+
+        public char[] getCa() {
+            return ca;
+        }
+
+        public float[] getFa() {
+            return fa;
         }
 
         /* Returns the names of this class' fields without using reflection. */

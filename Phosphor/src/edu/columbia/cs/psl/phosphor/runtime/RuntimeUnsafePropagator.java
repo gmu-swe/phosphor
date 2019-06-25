@@ -13,30 +13,6 @@ import java.lang.reflect.Modifier;
  * retrieve both the original field and its associated taint field if it has one. */
 public class RuntimeUnsafePropagator {
 
-    /* Returns a new primitive wrapper of the specified type if the specified type is a primitive type. Otherwise
-     * returns nul. */
-    private static Object makePrimitiveWrapper(Class<?> clazz) {
-        if(byte.class.equals(clazz)) {
-            return Configuration.MULTI_TAINTING ? new TaintedByteWithObjTag() : new TaintedByteWithIntTag();
-        } else if(boolean.class.equals(clazz)) {
-            return Configuration.MULTI_TAINTING ? new TaintedBooleanWithObjTag() : new TaintedBooleanWithIntTag();
-        } else if(char.class.equals(clazz)) {
-            return Configuration.MULTI_TAINTING ? new TaintedCharWithObjTag() : new TaintedCharWithIntTag();
-        } else if(double.class.equals(clazz)) {
-            return Configuration.MULTI_TAINTING ? new TaintedDoubleWithObjTag() : new TaintedDoubleWithIntTag();
-        } else if(float.class.equals(clazz)) {
-            return Configuration.MULTI_TAINTING ? new TaintedFloatWithObjTag() : new TaintedFloatWithIntTag();
-        } else if(int.class.equals(clazz)) {
-            return Configuration.MULTI_TAINTING ? new TaintedIntWithObjTag() : new TaintedIntWithIntTag();
-        } else if(long.class.equals(clazz)) {
-            return Configuration.MULTI_TAINTING ? new TaintedLongWithObjTag() : new TaintedLongWithIntTag();
-        } else if(short.class.equals(clazz)) {
-            return Configuration.MULTI_TAINTING ? new TaintedShortWithObjTag() : new TaintedShortWithIntTag();
-        } else {
-            return null;
-        }
-    }
-
     /* Stores pairs containing the offset of an original, non-static primitive or primitive array field for the specified
      * class and the offset of the tag field associated with that original field. */
     private static SinglyLinkedList<OffsetPair> getOffsetPairs(Unsafe unsafe, Class<?> targetClazz) {
@@ -365,7 +341,83 @@ public class RuntimeUnsafePropagator {
         }
     }
 
+    /* If the specified TaintedPrimitiveWithObjTag and LazyArrayObjTags's component types match sets an element and tag
+     * in the specified LazyArrayObjTags. Returns whether the TaintedPrimitiveWithObjTag and LazyArrayObjTags's component
+     * type's match. */
+    private static boolean putArrayElement(Unsafe unsafe, LazyArrayObjTags tags, long offset, TaintedPrimitiveWithObjTag value) {
+        if(tags.getVal() != null && tags.getVal().getClass().isArray()) {
+            Class<?> clazz = tags.getVal().getClass();
+            long baseOffset = unsafe.arrayBaseOffset(clazz);
+            long scale = unsafe.arrayIndexScale(clazz);
+            // Calculate the index based off the offset
+            int index = (int) ((offset - baseOffset) / scale);
+            if(tags instanceof LazyBooleanArrayObjTags && value instanceof TaintedBooleanWithObjTag) {
+                ((LazyBooleanArrayObjTags) tags).set(null, index, value.taint, ((TaintedBooleanWithObjTag) value).val);
+            } else if(tags instanceof LazyByteArrayObjTags && value instanceof TaintedByteWithObjTag) {
+                ((LazyByteArrayObjTags) tags).set(null, index, value.taint, ((TaintedByteWithObjTag) value).val);
+            } else if(tags instanceof LazyCharArrayObjTags && value instanceof TaintedCharWithObjTag) {
+                ((LazyCharArrayObjTags) tags).set(null, index, value.taint, ((TaintedCharWithObjTag) value).val);
+            } else if(tags instanceof LazyDoubleArrayObjTags && value instanceof TaintedDoubleWithObjTag) {
+                ((LazyDoubleArrayObjTags) tags).set(null, index, value.taint, ((TaintedDoubleWithObjTag) value).val);
+            } else if(tags instanceof LazyFloatArrayObjTags && value instanceof TaintedFloatWithObjTag) {
+                ((LazyFloatArrayObjTags) tags).set(null, index, value.taint, ((TaintedFloatWithObjTag) value).val);
+            } else if(tags instanceof LazyIntArrayObjTags && value instanceof TaintedIntWithObjTag) {
+                ((LazyIntArrayObjTags) tags).set(null, index, value.taint, ((TaintedIntWithObjTag) value).val);
+            } else if(tags instanceof LazyLongArrayObjTags && value instanceof TaintedLongWithObjTag) {
+                ((LazyLongArrayObjTags) tags).set(null, index, value.taint, ((TaintedLongWithObjTag) value).val);
+            } else if(tags instanceof LazyShortArrayObjTags && value instanceof TaintedShortWithObjTag) {
+                ((LazyShortArrayObjTags) tags).set(null, index, value.taint, ((TaintedShortWithObjTag) value).val);
+            } else {
+                return false;
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /* If the specified TaintedPrimitiveWithObjTag and LazyArrayObjTags's component types match sets an element and tag
+     * in the specified LazyArrayObjTags. Returns whether the TaintedPrimitiveWithObjTag and LazyArrayObjTags's component
+     * type's match. */
+    private static boolean getArrayElement(Unsafe unsafe, LazyArrayObjTags tags, long offset, TaintedPrimitiveWithObjTag prealloc) {
+        if(tags.getVal() != null && tags.getVal().getClass().isArray()) {
+            Class<?> clazz = tags.getVal().getClass();
+            long baseOffset = unsafe.arrayBaseOffset(clazz);
+            long scale = unsafe.arrayIndexScale(clazz);
+            // Calculate the index based off the offset
+            int index = (int) ((offset - baseOffset) / scale);
+            if(tags instanceof LazyBooleanArrayObjTags && prealloc instanceof TaintedBooleanWithObjTag) {
+                ((LazyBooleanArrayObjTags) tags).get(null, index, (TaintedBooleanWithObjTag) prealloc);
+            } else if(tags instanceof LazyByteArrayObjTags && prealloc instanceof TaintedByteWithObjTag) {
+                ((LazyByteArrayObjTags) tags).get(null, index, (TaintedByteWithObjTag) prealloc);
+            } else if(tags instanceof LazyCharArrayObjTags && prealloc instanceof TaintedCharWithObjTag) {
+                ((LazyCharArrayObjTags) tags).get(null, index, (TaintedCharWithObjTag) prealloc);
+            } else if(tags instanceof LazyDoubleArrayObjTags && prealloc instanceof TaintedDoubleWithObjTag) {
+                ((LazyDoubleArrayObjTags) tags).get(null, index, (TaintedDoubleWithObjTag) prealloc);
+            } else if(tags instanceof LazyFloatArrayObjTags && prealloc instanceof TaintedFloatWithObjTag) {
+                ((LazyFloatArrayObjTags) tags).get(null, index, (TaintedFloatWithObjTag) prealloc);
+            } else if(tags instanceof LazyIntArrayObjTags && prealloc instanceof TaintedIntWithObjTag) {
+                ((LazyIntArrayObjTags) tags).get(null, index, (TaintedIntWithObjTag) prealloc);
+            } else if(tags instanceof LazyLongArrayObjTags && prealloc instanceof TaintedLongWithObjTag) {
+                ((LazyLongArrayObjTags) tags).get(null, index, (TaintedLongWithObjTag) prealloc);
+            } else if(tags instanceof LazyShortArrayObjTags && prealloc instanceof TaintedShortWithObjTag) {
+                ((LazyShortArrayObjTags) tags).get(null, index, (TaintedShortWithObjTag)prealloc);
+            } else {
+                return false;
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     private static void put(Unsafe unsafe, Object obj, long offset, Object value, SpecialAccessPolicy policy) {
+        if(obj instanceof LazyArrayObjTags && value instanceof TaintedPrimitiveWithObjTag) {
+            // Offset is into a primitive array, set the taint tag and value for the element
+            if(putArrayElement(unsafe, (LazyArrayObjTags) obj, offset, (TaintedPrimitiveWithObjTag) value)) {
+                return;
+            }
+        }
         if(value instanceof TaintedPrimitiveWithObjTag || value instanceof TaintedPrimitiveWithIntTag) {
             obj = MultiDTaintedArray.unbox1D(obj);
         }
@@ -391,6 +443,12 @@ public class RuntimeUnsafePropagator {
     }
 
     private static Object get(Unsafe unsafe, Object obj, long offset, Object prealloc, SpecialAccessPolicy policy) {
+        if(obj instanceof LazyArrayObjTags && prealloc instanceof TaintedPrimitiveWithObjTag) {
+            // Offset is into a primitive array, get the taint tag and value for the element
+            if(getArrayElement(unsafe, (LazyArrayObjTags) obj, offset, (TaintedPrimitiveWithObjTag) prealloc)) {
+                return prealloc;
+            }
+        }
         if(prealloc instanceof TaintedPrimitiveWithObjTag || prealloc instanceof TaintedPrimitiveWithIntTag) {
             obj = MultiDTaintedArray.unbox1D(obj);
         }
@@ -435,6 +493,75 @@ public class RuntimeUnsafePropagator {
     @SuppressWarnings("unused")
     public static Object getVolatile(Unsafe unsafe, Object obj, long offset, Object prealloc) {
         return get(unsafe, obj, offset, prealloc, SpecialAccessPolicy.VOLATILE);
+    }
+
+    /* If the specified TaintedPrimitiveWithObjTag and LazyArrayObjTags's component types match sets a tag
+     * in the specified LazyArrayObjTags at a calculated index.
+     * type's match. */
+    private static void swapArrayElementTag(Unsafe unsafe, LazyArrayObjTags tags, long offset, TaintedPrimitiveWithObjTag value) {
+        if(tags.getVal() != null && tags.getVal().getClass().isArray()) {
+            Class<?> clazz = tags.getVal().getClass();
+            long baseOffset = unsafe.arrayBaseOffset(clazz);
+            long scale = unsafe.arrayIndexScale(clazz);
+            // Calculate the index based off the offset
+            int index = (int) ((offset - baseOffset) / scale);
+            if (tags instanceof LazyIntArrayObjTags && value instanceof TaintedIntWithObjTag) {
+                LazyIntArrayObjTags intTags = (LazyIntArrayObjTags) tags;
+                if(intTags.taints == null && value.taint != null) {
+                    intTags.taints = new Taint[intTags.getLength()];
+                }
+                if(intTags.taints != null) {
+                    intTags.taints[index] = value.taint;
+                }
+            } else if (tags instanceof LazyLongArrayObjTags && value instanceof TaintedLongWithObjTag) {
+                LazyLongArrayObjTags longTags = (LazyLongArrayObjTags) tags;
+                if(longTags.taints == null && value.taint != null) {
+                    longTags.taints = new Taint[longTags.getLength()];
+                }
+                if(longTags.taints != null) {
+                    longTags.taints[index] = value.taint;
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public static boolean compareAndSwap(Unsafe unsafe, Object obj, long offset, Object expected, Object value) {
+        boolean result;
+        LazyArrayObjTags lazyArr = null;
+        if(obj instanceof LazyArrayObjTags && value instanceof TaintedPrimitiveWithObjTag) {
+            lazyArr = (LazyArrayObjTags)obj;
+        }
+        if(value instanceof TaintedPrimitiveWithObjTag || value instanceof TaintedPrimitiveWithIntTag) {
+            obj = MultiDTaintedArray.unbox1D(obj);
+        }
+        OffsetPair pair = null;
+        if(obj != null && (value == null || value instanceof TaintedPrimitiveWithObjTag || value instanceof TaintedPrimitiveWithIntTag ||
+                value instanceof LazyArrayObjTags || value instanceof LazyArrayIntTags)) {
+            pair = getOffsetPair(unsafe, obj, offset);
+        }
+        if(pair == null && (value instanceof LazyArrayObjTags || value instanceof LazyArrayIntTags)) {
+            // Don't unwrap the primitive array
+            result = unsafe.compareAndSwapObject(obj, offset, expected, value);
+        } else if(expected instanceof TaintedIntWithObjTag && value instanceof TaintedIntWithObjTag) {
+            result = unsafe.compareAndSwapInt(MultiDTaintedArray.unbox1D(obj), offset, ((TaintedIntWithObjTag) expected).val, ((TaintedIntWithObjTag) value).val);
+        } else if(expected instanceof TaintedIntWithIntTag && value instanceof TaintedIntWithIntTag) {
+            result = unsafe.compareAndSwapInt(MultiDTaintedArray.unbox1D(obj), offset, ((TaintedIntWithIntTag) expected).val, ((TaintedIntWithIntTag) value).val);
+        } else if(expected instanceof TaintedLongWithObjTag && value instanceof TaintedLongWithObjTag) {
+            result = unsafe.compareAndSwapLong(MultiDTaintedArray.unbox1D(obj), offset, ((TaintedLongWithObjTag) expected).val, ((TaintedLongWithObjTag) value).val);
+        } else if(expected instanceof TaintedLongWithIntTag && value instanceof TaintedLongWithIntTag) {
+            result = unsafe.compareAndSwapLong(MultiDTaintedArray.unbox1D(obj), offset, ((TaintedLongWithIntTag) expected).val, ((TaintedLongWithIntTag) value).val);
+        } else {
+            result = unsafe.compareAndSwapObject(obj, offset, MultiDTaintedArray.unbox1D(expected), MultiDTaintedArray.unbox1D(value));
+        }
+        if(result && pair != null && pair.tagFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+            // If an associated tag was found and the swap was successful, set the tag
+            putTag(unsafe, obj, pair.tagFieldOffset, value, SpecialAccessPolicy.VOLATILE);
+        } else if(result && lazyArr != null) {
+            // Offset is into a primitive array, set the taint tag for the element if swap was successful
+            swapArrayElementTag(unsafe, lazyArr, offset, (TaintedPrimitiveWithObjTag) value);
+        }
+        return result;
     }
 
     public static class OffsetPair {
