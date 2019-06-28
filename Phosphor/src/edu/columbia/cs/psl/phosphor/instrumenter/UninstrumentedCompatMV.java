@@ -79,6 +79,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 		case Opcodes.PUTFIELD:
 		case Opcodes.PUTSTATIC:
 			if (t.getSort() == Type.ARRAY && t.getDimensions() == 1 && t.getElementType().getSort() != Type.OBJECT) {
+				String taintFieldType = TaintUtils.getShadowTaintType(desc);
 				//1d prim array - need to make sure that there is some taint here
 				FrameNode fn = getCurrentFrameNode();
 				fn.type = Opcodes.F_NEW;
@@ -91,12 +92,18 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 					//O A O A
 				} else
 					super.visitInsn(Opcodes.DUP);
-				super.visitInsn(Opcodes.ARRAYLENGTH);
-				if (!Configuration.MULTI_TAINTING)
-					super.visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
-				else
-					super.visitTypeInsn(Opcodes.ANEWARRAY, Configuration.TAINT_TAG_INTERNAL_NAME);
-				super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_ARRAYDESC);
+
+				//O A O A
+				super.visitTypeInsn(NEW, Type.getType(taintFieldType).getInternalName());
+				//O A O A W
+				super.visitInsn(DUP_X1);
+				//O A O W A W
+				super.visitInsn(DUP_X1);
+				//O A O W W A
+				super.visitInsn(POP);
+				super.visitMethodInsn(INVOKESPECIAL, Type.getType(taintFieldType).getInternalName(), "<init>","("+desc+")V", false);
+				// O A O W
+				super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, taintFieldType);
 				super.visitLabel(ok);
 				if (!skipFrames)
 					fn.accept(this);
@@ -355,13 +362,13 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 			Type[] args = Type.getArgumentTypes(desc);
 			int k = 0;
 			boolean hasArgsToBox = false;
-			for(int i = 0; i < args.length; i++){
-				int offset = k + 1;
+			int offset = 0;
+			for(int i = args.length - 1; i >= 0; i--){
+				offset += args[i].getSize();
 				Type onStack = TaintAdapter.getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - offset));
 				if(args[i].getDescriptor().equals("Ljava/lang/Object;") && (onStack.getDescriptor().equals("Ljava/lang/Object;") || TaintUtils.isPrimitiveArrayType(onStack) )){
 					hasArgsToBox = true;
 				}
-				offset += args[i].getSize();
 			}
 			if (hasArgsToBox){
 				//Calling an instrumented method possibly!
