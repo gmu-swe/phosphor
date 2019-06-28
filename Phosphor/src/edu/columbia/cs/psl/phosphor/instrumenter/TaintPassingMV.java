@@ -2953,7 +2953,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 					super.visitInsn(SWAP);
 				}
 
-				super.visitFieldInsn(PUTFIELD, returnType.getInternalName(),"value",t);
+				super.visitFieldInsn(PUTFIELD, returnType.getInternalName(),"val",t);
 				super.visitVarInsn(ALOAD,returnHolder);
 				super.visitInsn(DUP);
 				if(t.startsWith("[")) {

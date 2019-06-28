@@ -1153,7 +1153,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						String[] exceptions = new String[m.exceptions.size()];
 						exceptions = (String[]) m.exceptions.toArray(exceptions);
 
-						boolean useInvokeVirtual = (m.access & Opcodes.ACC_MODULE) != 0;
+						boolean useInvokeVirtual = (m.access & Opcodes.ACC_MODULE) != 0 || isLambda;
 						m.access = m.access & ~Opcodes.ACC_MODULE;
 						MethodVisitor mv = super.visitMethod(m.access, m.name, m.desc, m.signature, exceptions);
 						mv = new TaintTagFieldCastMV(mv, m.name);
