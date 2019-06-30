@@ -100,13 +100,13 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 			if(args[i].getDescriptor().equals(Type.getType(TaintSentinel.class)))
 				extraLVsInArg++;
 		}
-		if(returnType.getSort() != Type.VOID && (returnType.getSort() != Type.OBJECT || (returnType.getSort() == Type.ARRAY && returnType.getDimensions()==1 && returnType.getElementType().getSort() != Type.OBJECT)))
-			extraLVsInArg++;
+
 		lastArg--;
+		if(returnType.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted"))
+			preAllocedReturnTypes.put(returnType, lastArg);
 		end = new Label();
 //		System.out.println("New LVS");
 //		System.out.println("LVS thinks its at " + lastArg);
-		preAllocedReturnTypes.put(returnType,lastArg);
 		this.generateExtraDebug = generateExtraDebug;
 	}
 
