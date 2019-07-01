@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -401,6 +402,36 @@ public class MethodArgReindexer extends MethodVisitor {
 		super.visitFrame(type, nLocal, remappedLocals, nStack, stack2);
 		if (TaintUtils.DEBUG_FRAMES)
 			System.out.println("Post-visit Frame: " + Arrays.toString(remappedLocals) + ";" + Arrays.toString(stack2));
+	}
+
+	@Override
+	public AnnotationVisitor visitParameterAnnotation(int parameter, String descriptor, boolean visible) {
+		if(!isStatic)
+			parameter++;
+		int remappedVar = parameter;
+		if(parameter < originalLastArgIdx) {
+			remappedVar = oldArgMappings[parameter];
+		} else {
+			remappedVar += newArgOffset;
+		}
+		if(!isStatic)
+			remappedVar--;
+		return super.visitParameterAnnotation(remappedVar, descriptor, visible);
+	}
+
+	@Override
+	public void visitAnnotableParameterCount(int parameterCount, boolean visible) {
+		if(!isStatic)
+			parameterCount++;
+		int remappedVar = parameterCount;
+		if(parameterCount < originalLastArgIdx) {
+			remappedVar = oldArgMappings[parameterCount];
+		} else {
+			remappedVar += newArgOffset;
+		}
+		if(!isStatic)
+			remappedVar--;
+		super.visitAnnotableParameterCount(remappedVar, visible);
 	}
 
 	@Override
