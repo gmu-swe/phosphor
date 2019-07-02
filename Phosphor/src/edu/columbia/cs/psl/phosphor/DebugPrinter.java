@@ -56,7 +56,7 @@ public class DebugPrinter {
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 				// TODO Auto-generated method stub
 				MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-				mv = new PrimitiveArrayAnalyzer(cr.getClassName(), access, name, desc, signature, exceptions, mv);
+				mv = new PrimitiveArrayAnalyzer(cr.getClassName(), access, name, desc, signature, exceptions, mv, false);
 				NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(cr.getClassName(), access, name, desc, mv);
 				((PrimitiveArrayAnalyzer) mv).setAnalyzer(an);
 				mv = an;

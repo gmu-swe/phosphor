@@ -25,6 +25,10 @@ import java.lang.reflect.Array;
  */
 public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
+	public boolean shouldInstrumentMethodForImplicitLightTracking(String className, String methodName, String methodDescriptor){
+		return className.equals("edu/columbia/cs/psl/test/phosphor/SelectiveLightImplicitObjTagITCase") && methodName.equals("hasImplicitTracking");
+	}
+
 	/* For multi-tainting/object tags. */
 	@SuppressWarnings({"unchecked", "unused"})
 	public void combineTaintsOnArray(Object inputArray, Taint tag) {

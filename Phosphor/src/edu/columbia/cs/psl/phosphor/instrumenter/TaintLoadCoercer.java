@@ -30,12 +30,14 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 	private boolean ignoreExistingFrames;
 	private InstOrUninstChoosingMV instOrUninstChoosingMV;
 	private boolean aggressivelyReduceMethodSize;
-	public TaintLoadCoercer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, boolean ignoreExistingFrames, final InstOrUninstChoosingMV instOrUninstChoosingMV, boolean aggressivelyReduceMethodSize) {
+	private boolean isImplicitLightTracking;
+	public TaintLoadCoercer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, boolean ignoreExistingFrames, final InstOrUninstChoosingMV instOrUninstChoosingMV, boolean aggressivelyReduceMethodSize, final boolean isImplicitLightTracking) {
 		super(Configuration.ASM_VERSION);
 		this.mv = new UninstTaintLoadCoercerMN(className, access, name, desc, signature, exceptions, cmv);
 		this.ignoreExistingFrames = ignoreExistingFrames;
 		this.instOrUninstChoosingMV = instOrUninstChoosingMV;
 		this.aggressivelyReduceMethodSize = aggressivelyReduceMethodSize;
+		this.isImplicitLightTracking = isImplicitLightTracking;
 	}
 
 	@Override
@@ -268,7 +270,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						break;
 					case AbstractInsnNode.TABLESWITCH_INSN:
 					case AbstractInsnNode.LOOKUPSWITCH_INSN:
-						if(Configuration.WITH_TAGS_FOR_JUMPS)
+						if(Configuration.WITH_TAGS_FOR_JUMPS || isImplicitLightTracking)
 						{
 							BasicValue value = (BasicValue) f.getStack(f.getStackSize() - 1);
 							if (value instanceof SinkableArrayValue
@@ -278,7 +280,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						}
 						break;
 					case AbstractInsnNode.IINC_INSN:
-						if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING || Configuration.WITH_TAGS_FOR_JUMPS)
+						if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking || Configuration.WITH_TAGS_FOR_JUMPS)
 						{
 							IincInsnNode iinc = (IincInsnNode) insn;
 							BasicValue value = (BasicValue) f.getLocal(iinc.var);
@@ -289,7 +291,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 						}
 						break;
 					case AbstractInsnNode.JUMP_INSN:
-						if(Configuration.WITH_TAGS_FOR_JUMPS)
+						if(Configuration.WITH_TAGS_FOR_JUMPS || isImplicitLightTracking)
 						{
 							switch(insn.getOpcode())
 							{
@@ -741,10 +743,10 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 				};
 //				mv = new SpecialOpcodeRemovingMV(mv,false,className,false);
 //				NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, className, desc, mv);
-				mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true, null, false);
+				mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true, null, false, false);
 //				LocalVariableManager lvs = new LocalVariableManager(access, desc, mv, analyzer, mv, false);
 //				mv = lvs;
-				PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className,access,name,desc,signature,exceptions,mv);
+				PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className,access,name,desc,signature,exceptions,mv, false);
 				NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, access, name, desc, paa);
 				paa.setAnalyzer(an);
 //				((PrimitiveArrayAnalyzer) mv).setAnalyzer(an);

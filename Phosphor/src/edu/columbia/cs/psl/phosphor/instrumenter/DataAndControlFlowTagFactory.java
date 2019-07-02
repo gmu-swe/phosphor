@@ -516,7 +516,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
 	public void jumpOp(int opcode, int branchStarting, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-		if ((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !Configuration.WITHOUT_PROPOGATION) {
+		if ((Configuration.IMPLICIT_TRACKING || ta.isImplicitLightTracking) && !Configuration.WITHOUT_PROPOGATION) {
 			switch (opcode) {
 			case Opcodes.IFEQ:
 			case Opcodes.IFNE:
@@ -664,7 +664,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
 	public void iincOp(int var, int increment, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-		if ((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) && !Configuration.WITHOUT_PROPOGATION) {
+		if ((Configuration.IMPLICIT_TRACKING || ta.isImplicitLightTracking) && !Configuration.WITHOUT_PROPOGATION) {
 			if (ta.isIgnoreAllInstrumenting || ta.isRawInsns) {
 				mv.visitIincInsn(var, increment);
 				return;

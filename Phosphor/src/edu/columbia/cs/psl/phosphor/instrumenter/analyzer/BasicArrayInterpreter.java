@@ -50,9 +50,11 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 		}
 	}
 	private boolean isStaticMethod;
-	public BasicArrayInterpreter(boolean isStaticMethod){
+	private boolean isImplicitLightTracking;
+	public BasicArrayInterpreter(boolean isStaticMethod, boolean isImplicitLightTracking){
 		super(Configuration.ASM_VERSION);
 		this.isStaticMethod = isStaticMethod;
+		this.isImplicitLightTracking = isImplicitLightTracking;
 	}
 
 	@Override
@@ -61,7 +63,7 @@ public class BasicArrayInterpreter extends BasicInterpreter{
 		{
 			return BasicArrayValue.NULL_VALUE;
 		}
-		if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING){
+		if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking){
 			String t = null;
 			if(insn.getOpcode() == Opcodes.NEW){
 				t = ((TypeInsnNode)insn).desc;

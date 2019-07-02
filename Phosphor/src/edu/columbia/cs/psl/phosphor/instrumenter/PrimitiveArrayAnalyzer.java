@@ -223,7 +223,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			final HashSet<Integer> insertACHECKCASTBEFORE = new HashSet<Integer>();
 			final HashSet<Integer> insertACONSTNULLBEFORE = new HashSet<Integer>();
 			@SuppressWarnings("unchecked")
-			Analyzer a = new Analyzer(new BasicArrayInterpreter((this.access & Opcodes.ACC_STATIC) != 0)) {
+			Analyzer a = new Analyzer(new BasicArrayInterpreter((this.access & Opcodes.ACC_STATIC) != 0, isImplicitLightTracking)) {
 			    protected int[] insnToLabel;
 
 				int getLabel(int insn) {
@@ -749,7 +749,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 				GraphBasedAnalyzer.doGraphAnalysis(this, implicitAnalysisblocks);
 			}
 
-			if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
+			if (Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
 				boolean hasJumps = false;
 				HashSet<BasicBlock> tryCatchHandlers = new HashSet<>();
 				if(shouldTrackExceptions && nTryCatch > 0)
@@ -1267,7 +1267,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								}
 							}
 						}
-						if(b.successors.isEmpty() && !Configuration.IMPLICIT_LIGHT_TRACKING) //in light tracking mode no need to POP off of control at RETURN/THROW, becasue we don't reuse the obj
+						if(b.successors.isEmpty() && !isImplicitLightTracking) //in light tracking mode no need to POP off of control at RETURN/THROW, becasue we don't reuse the obj
 						{
 							instructions.insertBefore(b.insn, new InsnNode(TaintUtils.FORCE_CTRL_STORE));
 //							if (b.insn.getOpcode() != Opcodes.ATHROW) {
@@ -1548,10 +1548,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	}
 
 	public MethodNode mn;
-	public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv) {
+	private boolean isImplicitLightTracking;
+	public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, final boolean isImplicitLightTracking) {
 		super(Configuration.ASM_VERSION);
 		this.mn = new PrimitiveArrayAnalyzerMN(access, name, desc, signature, exceptions, className, cmv);
 		this.mv = mn;
+		this.isImplicitLightTracking = isImplicitLightTracking;
 	}
 
 	public PrimitiveArrayAnalyzer(Type singleWrapperTypeToAdd) {
