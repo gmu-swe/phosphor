@@ -47,8 +47,9 @@ public class SinkTaintingMV extends AdviceAdapter {
     /* Adds code to make a call to enteringSink. */
     private void callEnteringSink() {
         super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+        super.visitLdcInsn(baseSink);
         super.visitLdcInsn(actualSink);
-        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "enteringSink", "(Ljava/lang/String;)V", false);
+        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "enteringSink", "(Ljava/lang/String;Ljava/lang/String;)V", false);
     }
 
     /* Adds code to add a non-taint tag object to the object array. */
@@ -166,8 +167,9 @@ public class SinkTaintingMV extends AdviceAdapter {
     /* Adds code that makes a call to exitingSink at the end of a sink method. */
     private void callExitingSink() {
         super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
+        super.visitLdcInsn(baseSink);
         super.visitLdcInsn(actualSink);
-        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "exitingSink", "(Ljava/lang/String;)V", false);
+        super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "exitingSink", "(Ljava/lang/String;Ljava/lang/String;)V", false);
     }
 
     @Override
