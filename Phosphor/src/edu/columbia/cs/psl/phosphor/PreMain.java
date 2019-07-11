@@ -542,6 +542,18 @@ public class PreMain {
 				}
 			}
 		}
+		if(System.getProperty("phosphorCacheDirectory") != null)
+		{
+			Configuration.CACHE_DIR = System.getProperty("phosphorCacheDirectory");
+			File f = new File(Configuration.CACHE_DIR);
+			if (!f.exists()) {
+				if(!f.mkdir()) {
+					// The cache directory did not exist and the attempt to create it failed
+					System.err.printf("Failed to create cache directory: %s. Generated files are not being cached.\n", Configuration.CACHE_DIR);
+					Configuration.CACHE_DIR = null;
+				}
+			}
+		}
 		if (Instrumenter.loader == null)
 			Instrumenter.loader = bigLoader;
 		// Ensure that BasicSourceSinkManager & anything needed to call isSourceOrSinkOrTaintThrough gets initialized
