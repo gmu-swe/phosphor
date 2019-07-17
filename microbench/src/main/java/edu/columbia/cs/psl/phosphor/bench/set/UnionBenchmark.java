@@ -1,4 +1,4 @@
-package edu.columbia.cs.psl.phosphor.bench;
+package edu.columbia.cs.psl.phosphor.bench.set;
 
 import edu.columbia.cs.psl.phosphor.struct.BitSet;
 import edu.columbia.cs.psl.phosphor.struct.IntPowerSetTree;
