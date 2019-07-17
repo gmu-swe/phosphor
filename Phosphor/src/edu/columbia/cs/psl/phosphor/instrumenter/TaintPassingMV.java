@@ -519,6 +519,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 							if (shadowVar == analyzer.locals.size())
 								analyzer.locals.add(Opcodes.NULL);
 						}
+					} else if(analyzer.locals.size() > var && analyzer.locals.get(var) == Opcodes.NULL){
+						super.visitInsn(Opcodes.ACONST_NULL);
+						super.visitVarInsn(opcode, var);
+						analyzer.setTopOfStackTagged();
+						return;
 					}
 				} else if (opcode == ASTORE) {
 					if (topCarriesTaint()) {
