@@ -519,6 +519,14 @@ public class PreMain {
 					} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
 						e.printStackTrace();
 					}
+				} else if(s.startsWith("taintTagFactory=")) {
+					Class c;
+					try {
+						c = Class.forName(s.substring(16));
+						Configuration.taintTagFactory = (TaintTagFactory) c.newInstance();
+					} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+						e.printStackTrace();
+					}
 				} else if(s.startsWith("serialization")) {
 					Configuration.TAINT_THROUGH_SERIALIZATION = true;
 				} else if(s.startsWith("implicitExceptions")){
