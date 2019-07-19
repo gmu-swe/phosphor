@@ -1,4 +1,4 @@
-package edu.columbia.cs.psl.phosphor.bench;
+package edu.columbia.cs.psl.phosphor.bench.set;
 
 import edu.columbia.cs.psl.phosphor.struct.BitSet;
 import edu.columbia.cs.psl.phosphor.struct.IntPowerSetTree;
@@ -116,7 +116,7 @@ public class AddBenchmark {
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
-                .include(".*Benchmark")
+                .include("edu\\.columbia\\.cs\\.psl\\.phosphor\\.bench\\.set\\..*Benchmark")
                 .verbosity(VerboseMode.NORMAL)
                 .shouldFailOnError(true)
                 .shouldDoGC(true)
