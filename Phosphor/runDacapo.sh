@@ -17,13 +17,13 @@ wget --quiet https://www.jonbell.net/dacapo-9.12-MR1-bach.jar
 unzip dacapo-9.12-MR1-bach.jar;
 cd ..;
 fi
-    echo "Ensuring instrumented dacapo exist for tests... to refresh, do mvn clean\n";
-    if [ ! -d "target/dacapo-inst-int" ]; then
-    echo "Creating int tag instrumented dacapo";
-    java -Xmx6g -XX:MaxPermSize=512m -jar $PHOSPHOR_JAR -forceUnboxAcmpEq -withEnumsByValue $DACAPO_DIR target/dacapo-inst-int;
-    else
-    echo "Not regenerating int tag instrumented dacapo";
-    fi
+#    echo "Ensuring instrumented dacapo exist for tests... to refresh, do mvn clean\n";
+#    if [ ! -d "target/dacapo-inst-int" ]; then
+#    echo "Creating int tag instrumented dacapo";
+#    java -Xmx6g -XX:MaxPermSize=512m -jar $PHOSPHOR_JAR -forceUnboxAcmpEq -withEnumsByValue $DACAPO_DIR target/dacapo-inst-int;
+#    else
+#    echo "Not regenerating int tag instrumented dacapo";
+#    fi
     if [ ! -d "target/dacapo-inst-obj" ]; then
     echo "Creating obj tag instrumented dacapo";
     java -Xmx6g -XX:MaxPermSize=512m  -jar $PHOSPHOR_JAR -multiTaint -forceUnboxAcmpEq -withEnumsByValue $DACAPO_DIR target/dacapo-inst-obj;
@@ -40,9 +40,9 @@ echo "Trying int tag benchmarks. Note: these numbers will not be super accurate 
 for bm in "${BENCHMARKS[@]}"
 do
 echo "$JAVA_HOME/bin/java -cp $DACAPO_DIR Harness $bm"
-$JAVA_HOME/bin/java -Xmx1g -cp $DACAPO_DIR Harness $bm
-echo "target/jre-inst-int/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness $bm"
-target/jre-inst-int/bin/java -Xmx1g -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness $bm
+#$JAVA_HOME/bin/java -Xmx1g -cp $DACAPO_DIR Harness $bm
+#echo "target/jre-inst-int/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness $bm"
+#target/jre-inst-int/bin/java -Xmx1g -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-int/ -Declipse.java.home=$JAVA_HOME Harness $bm
 echo "target/jre-inst-obj/bin/java -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness $bm"
 target/jre-inst-obj/bin/java -Xmx1g -Xbootclasspath/p:$PHOSPHOR_JAR -javaagent:$PHOSPHOR_JAR -cp target/dacapo-inst-obj/ -Declipse.java.home=$JAVA_HOME Harness $bm
 if [ $? -ne 0 ]; then
