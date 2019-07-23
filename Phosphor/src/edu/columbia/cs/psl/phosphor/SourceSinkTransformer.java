@@ -2,7 +2,9 @@ package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.SourceSinkTaintingClassVisitor;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
-import org.objectweb.asm.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.util.CheckClassAdapter;
 
 import java.io.File;
@@ -61,39 +63,43 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
 
 	/* Retransforms the specified class modifying the code for sink, source, and taintThrough methods. Called by <clinit>. Stores
 	 * classes until the VM is initialized at which point all stored classes are retransformed. */
-	public static synchronized void retransform(Class<?> clazz) {
-		try {
-			int isBusyTransforming;
-			synchronized(PhosphorBaseTransformer.class) {
-				isBusyTransforming = PhosphorBaseTransformer.isBusyTransforming;
-			}
-			// Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
-			// been called to initialize the configuration
-			if(isBusyTransforming == 0 && !isBusyRetransforming && INITED && PreMain.getInstrumentation() != null) {
-				isBusyRetransforming = true;
-				retransformQueue.add(clazz);
-				// Retransform clazz and any classes that were initialized before retransformation could occur.
-				while(!retransformQueue.isEmpty()) {
-					Class<?> poppedClazz = retransformQueue.pop();
-					BasicSourceSinkManager.recordClass(poppedClazz);
-					if(poppedClazz.getName() != null && BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(poppedClazz)) {
-						// poppedClazz represents a class or interface that is or is a subtype of a class or interface with
-						// at least one method labeled as being a sink or source or taintThrough method
-						if(!poppedClazz.equals(PrintStream.class)) {
-							PreMain.getInstrumentation().retransformClasses(poppedClazz);
-						}
+	public static void retransform(Class<?> clazz) {
+		synchronized (BasicSourceSinkManager.class) {
+			synchronized (SourceSinkTransformer.class) {
+				try {
+					int isBusyTransforming;
+					synchronized (PhosphorBaseTransformer.class) {
+						isBusyTransforming = PhosphorBaseTransformer.isBusyTransforming;
 					}
+					// Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
+					// been called to initialize the configuration
+					if (isBusyTransforming == 0 && !isBusyRetransforming && INITED && PreMain.getInstrumentation() != null) {
+						isBusyRetransforming = true;
+						retransformQueue.add(clazz);
+						// Retransform clazz and any classes that were initialized before retransformation could occur.
+						while (!retransformQueue.isEmpty()) {
+							Class<?> poppedClazz = retransformQueue.pop();
+							BasicSourceSinkManager.recordClass(poppedClazz);
+							if (poppedClazz.getName() != null && BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(poppedClazz)) {
+								// poppedClazz represents a class or interface that is or is a subtype of a class or interface with
+								// at least one method labeled as being a sink or source or taintThrough method
+								if (!poppedClazz.equals(PrintStream.class)) {
+									PreMain.getInstrumentation().retransformClasses(poppedClazz);
+								}
+							}
+						}
+						isBusyRetransforming = false;
+					} else {
+						retransformQueue.add(clazz);
+					}
+				} catch (UnmodifiableClassException e) {
+					//
+				} catch (Throwable e) {
+					// for anything else, we probably want to make sure that it gets printed
+					e.printStackTrace();
+					throw e;
 				}
-				isBusyRetransforming = false;
-			} else {
-				retransformQueue.add(clazz);
 			}
-		} catch(UnmodifiableClassException e) {
-			//
-		} catch (Throwable e) {
-			// for anything else, we probably want to make sure that it gets printed
-			e.printStackTrace();
-			throw e;
 		}
 	}
 }
