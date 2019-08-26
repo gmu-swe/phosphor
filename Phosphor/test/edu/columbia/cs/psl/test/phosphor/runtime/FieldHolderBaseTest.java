@@ -56,7 +56,7 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
 
         /* Returns an int that is tainted if taint is true. */
         public int getInt(boolean taint) {
-            return taint ? MultiTainter.taintedInt(7, "int") : 7;
+            return taint ? MultiTainter.taintedInt(i, "int") : i;
         }
 
         /* Returns a long that is tainted if taint is true. */
