@@ -1,3 +1,4 @@
+dist: trusty
 language: java
 script: jdk_switcher use oraclejdk8; cd Phosphor; export INST_HOME=$JAVA_HOME/jre;
   mvn  -Ddacapo.skip=false install
