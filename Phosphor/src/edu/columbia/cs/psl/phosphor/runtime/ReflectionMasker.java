@@ -626,43 +626,41 @@ public class ReflectionMasker {
     }
 
     public static Method getDeclaredMethod(Class<?> czz, String name, Class<?>[] params, boolean isObjTags) throws NoSuchMethodException {
-        return czz.getDeclaredMethod(name, params);
+        return checkForSyntheticObjectMethod(czz.getDeclaredMethod(name, params), true);
     }
 
     public static Method getDeclaredMethod$$PHOSPHORTAGGED(Class<?> czz, String name, Class<?>[] params, ControlTaintTagStack ctrl) throws NoSuchMethodException {
-        return czz.getDeclaredMethod(name, params);
+        return checkForSyntheticObjectMethod(czz.getDeclaredMethod(name, params), true);
     }
 
     public static Method getMethod$$PHOSPHORTAGGED(Class<?> czz, String name, Class<?>[] params, ControlTaintTagStack ctrl) throws NoSuchMethodException {
-        return getMethod(czz, name, params, true, true);
+        return checkForSyntheticObjectMethod(czz.getMethod(name, params), false);
     }
 
     public static Method getMethod(Class<?> czz, String name, Class<?>[] params, boolean isObjTags) throws NoSuchMethodException {
-        return getMethod(czz, name, params, isObjTags, false);
+        return checkForSyntheticObjectMethod(czz.getMethod(name, params), false);
     }
 
-    private static Method getMethod(Class<?> clazz, String name, Class<?>[] params, boolean isObjTags, boolean implicitTracking) throws NoSuchMethodException {
-        if(clazz.isAnnotation() || isIgnoredClass(clazz)) {
-            return clazz.getMethod(name, params);
-        } else if(name.equals("wait") && (params.length == 0 || (params.length == 1 && params[0] == Long.TYPE) ||
-                (params.length == 2 && params[0] == Long.TYPE && params[1] == Integer.TYPE))) {
-            // Return original method if we are calling wait()
-            return clazz.getMethod(name, params);
-        } else {
-            try {
-                Method m = clazz.getMethod(name, params);
-                if(declaredInIgnoredClass(m)) {
-                    // Check if "this" class is not ignored, but super, which implements the method is ignored
-                    return clazz.getMethod(name, params);
+    /* If the specified method is a synthetic hashCode or equals method added by Phosphor and declaredOnly is true,
+     * finds and returns a suitable replacement for the method. If the specified method is a synthetic hashCode or
+     * equals method added by Phosphor and declaredOnly is false, throws a NoSuchMethodException. */
+    private static Method checkForSyntheticObjectMethod(Method m, boolean declaredOnly) throws NoSuchMethodException {
+        if(m.isSynthetic()) {
+            if("equals".equals(m.getName())) {
+                if(declaredOnly) {
+                    throw new NoSuchMethodException();
+                } else {
+                    return ObjectMethods.EQUALS.method;
                 }
-                return implicitTracking ? getTaintMethodControlTrack(m) : getTaintMethod(m, isObjTags);
-            } catch(SecurityException e1) {
-                e1.printStackTrace();
-                System.err.println("Bailing just in case.");
-                System.exit(-1);
-                return null;
+            } else if("hashCode".equals(m.getName())) {
+                if(declaredOnly) {
+                    throw new NoSuchMethodException();
+                } else {
+                    return ObjectMethods.HASH_CODE.method;
+                }
             }
         }
+        return m;
     }
 
     /* Returns whether the specified member was declared in a class ignored by Phosphor. */
