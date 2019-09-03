@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.struct.Field;
+import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -882,53 +883,23 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 
 					//Add in markings for where jumps are resolved
-					for(BasicBlock j : implicitAnalysisblocks.values())
-					{
+					for(BasicBlock j : implicitAnalysisblocks.values()) {
 						if(j.isJump || j.isTryBlockStart)
 						{
-//							System.out.println(j + " " +j.postDominators);
+//							System.out.println(j + " " + j.postDominators);
 							j.postDominators.remove(j);
-							BasicBlock min = null;
-							//Do a traversal of ALL of our successors in order to find the closest postDominator
-							stack.add(j);
-							HashMap<BasicBlock,Integer> distances = new HashMap<>();
-							distances.put(j,0);
 							HashSet<BasicBlock> visited = new HashSet<>();
-							while (!stack.isEmpty()) {
-								BasicBlock b = stack.pop();
-								if (!visited.add(b))
-									continue;
-								int myDist = distances.get(b);
-								for (BasicBlock s : b.successors) {
-									Integer cur = distances.get(s);
-									if (cur == null)
-										distances.put(s, myDist + 1);
-									else {
-										if (myDist + 1 < cur) {
-											distances.put(s, myDist + 1);
-											visited.remove(s);
-										}
-									}
-									stack.add(s);
-								}
-							}
-							for(BasicBlock d : j.postDominators)
-							{
-								if(min == null || distances.get(min) > distances.get(d))//Might be a back edge outside of a loop though!
-									min = d;
-							}
+							BasicBlock min = findImmediatePostDominator(j, visited);
 //							System.out.println(j + " resolved at " + min +", of " + j.postDominators);
 							if (min != null) {
 								min.resolvedBlocks.add(j);
 								min.resolvedHereBlocks.add(j);
-							}
-							else
-							{
-								//There are no post-dominators of this branch. That means that one leg of the
-								//branch goes to a return. So, we'll say that this gets resolved at each return that is a successor
-								for(BasicBlock b : visited)
-								{
-									if(b.insn.getOpcode() >= Opcodes.IRETURN && b.insn.getOpcode() < Opcodes.RETURN){
+							} else {
+								// There are no post-dominators of this branch. That means that one leg of the
+								// branch goes to a return. So, we'll say that this gets resolved at each return that
+								// is a successor
+								for(BasicBlock b : visited) {
+									if(b.insn.getOpcode() >= Opcodes.IRETURN && b.insn.getOpcode() < Opcodes.RETURN) {
 										b.resolvedHereBlocks.add(j);
 									}
 								}
@@ -1304,6 +1275,31 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		}
 		HashMap<Integer,BasicBlock> implicitAnalysisblocks = new HashMap<Integer,PrimitiveArrayAnalyzer.BasicBlock>();
 
+	}
+
+	/**
+	 * Returns the immediate post-dominator of the specified block if one the specified block's post-dominators can be
+	 * reached from the block along successor edges. If such a post-dominator cannot be found, returns null and
+	 * ensures that the specified visited set contains all of the blocks reachable from the specified block using
+	 * successor edges.
+	 */
+	private BasicBlock findImmediatePostDominator(BasicBlock block, HashSet<BasicBlock> visited) {
+		SinglyLinkedList<BasicBlock> queue = new SinglyLinkedList<>();
+		queue.enqueue(block);
+		visited.add(block);
+		while(!queue.isEmpty()) {
+			BasicBlock cur = queue.dequeue();
+			if(!cur.equals(block) && block.postDominators.contains(cur)) {
+				return cur; // Found a post-dominator, first one found using BFS has shortest path
+			} else {
+				for(BasicBlock successor : cur.successors) {
+					if(visited.add(successor)) {
+						queue.enqueue(successor);
+					}
+				}
+			}
+		}
+		return null;
 	}
 
 	private boolean mightEndBlock(AbstractInsnNode insn) {

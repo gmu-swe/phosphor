@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.test.phosphor;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNull;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
@@ -159,7 +160,6 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
         testA(xt, yt, bt);
 	}
 
-
 	@Test
 	public void testStringContains() {
 		resetState();
@@ -198,5 +198,43 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	@After
 	public void resetState() {
 		MultiTainter.getControlFlow().reset();
+	}
+
+	private static char[] createDigitArray() {
+		char[] c = "0123456789".toCharArray();
+		for(int i = 0; i < c.length; i++) {
+			c[i] = MultiTainter.taintedChar(c[i], i);
+		}
+		return c;
+	}
+
+	private static void checkDigitArray(char[] c) {
+		for(int i = 0; i < c.length; i++) {
+			Object[] labels = MultiTainter.getTaint(c[i]).getLabels();
+			assertArrayEquals(new Object[]{i}, labels);
+		}
+	}
+
+	@Test
+	public void testForLoopWithBreak() {
+		char[] c = createDigitArray();
+		for(int i = 0; i < c.length; i++) {
+			if(c[i] == '0') {
+				c[i] = '!';
+				break;
+			}
+		}
+		checkDigitArray(c);
+	}
+
+	@Test
+	public void testForLoopWithoutBreak() {
+		char[] c = createDigitArray();
+		for(int i = 0; i < c.length; i++) {
+			if(c[i] == '0') {
+				c[i] = '!';
+			}
+		}
+		checkDigitArray(c);
 	}
 }
