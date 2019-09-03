@@ -1303,7 +1303,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 	}
 
 
-	/* Returns whether the specified instruction triggers a method to exit. */
+	/* Returns whether the specified instruction triggers a method exit. */
 	private boolean isExitInstruction(AbstractInsnNode instruction) {
 		switch(instruction.getOpcode()) {
 			case Opcodes.IRETURN:
