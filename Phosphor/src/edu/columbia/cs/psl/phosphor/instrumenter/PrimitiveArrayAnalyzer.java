@@ -899,7 +899,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 								// branch goes to a return. So, we'll say that this gets resolved at each return that
 								// is a successor
 								for(BasicBlock b : visited) {
-									if(b.insn.getOpcode() >= Opcodes.IRETURN && b.insn.getOpcode() < Opcodes.RETURN) {
+									if(isExitInstruction(b.insn)) {
 										b.resolvedHereBlocks.add(j);
 									}
 								}
@@ -1302,20 +1302,24 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		return null;
 	}
 
-	private boolean mightEndBlock(AbstractInsnNode insn) {
-		if(insn.getType() == AbstractInsnNode.LABEL)
-			return true;
-		switch(insn.getOpcode()){
-			case Opcodes.GOTO:
-			case Opcodes.RETURN:
+
+	/* Returns whether the specified instruction triggers a method to exit. */
+	private boolean isExitInstruction(AbstractInsnNode instruction) {
+		switch(instruction.getOpcode()) {
 			case Opcodes.IRETURN:
 			case Opcodes.LRETURN:
+			case Opcodes.FRETURN:
 			case Opcodes.DRETURN:
 			case Opcodes.ARETURN:
+			case Opcodes.RETURN:
 			case Opcodes.ATHROW:
 				return true;
+			default:
+				return false;
 		}
-		return false;
+	}
+	private boolean mightEndBlock(AbstractInsnNode insn) {
+		return insn.getType() == AbstractInsnNode.LABEL || isExitInstruction(insn) || insn.getOpcode() == Opcodes.GOTO;
 	}
 
 	static void debug(AbstractInsnNode insn){
