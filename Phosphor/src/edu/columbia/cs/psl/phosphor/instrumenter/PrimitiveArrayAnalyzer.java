@@ -845,8 +845,16 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						}
 					}
 					//Post dominator analysis
+                    HashSet<BasicBlock> interestingBlocks = new HashSet<>();
 					for(BasicBlock b : implicitAnalysisblocks.values())
-						b.postDominators.add(b);
+						if(b.isInteresting())
+							interestingBlocks.add(b);
+					for(BasicBlock b : implicitAnalysisblocks.values()) {
+						if (b.successorsCompact.size() == 0)
+							b.postDominators.add(b);
+						else
+							b.postDominators.addAll(interestingBlocks);
+					}
 					changed = true;
 					while(changed)
 					{
@@ -855,25 +863,19 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 						{
 							if(b.successorsCompact.size() > 0 && b.isInteresting())
 							{
-//								System.out.println(b.idx +  " " + b.postDominators + " ... " + b.successorsCompact);
 								HashSet<BasicBlock> intersectionOfPredecessors = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
 								Iterator<BasicBlock> iter = b.successorsCompact.iterator();
 								BasicBlock successor = iter.next();
 								intersectionOfPredecessors.addAll(successor.postDominators);
-									while (iter.hasNext()) {
-										BasicBlock lastSuc = successor;
-										successor = iter.next();
-										if (lastSuc.postDominators.contains(b)) {
-											intersectionOfPredecessors.clear();
-											intersectionOfPredecessors.addAll(successor.postDominators);
-										}
-										else if (successor.postDominators.contains(b)) {
-											// = successor.postDominators
-
-										} else
-											intersectionOfPredecessors.retainAll(successor.postDominators);
-									}
-								changed |= b.postDominators.addAll(intersectionOfPredecessors);
+								while (iter.hasNext()) {
+									successor = iter.next();
+									intersectionOfPredecessors.retainAll(successor.postDominators);
+								}
+								intersectionOfPredecessors.add(b);
+								if (!b.postDominators.equals(intersectionOfPredecessors)) {
+									changed = true;
+									b.postDominators = intersectionOfPredecessors;
+								}
 							}
 						}
 					}
