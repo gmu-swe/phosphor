@@ -29,7 +29,7 @@ public class BoxedPrimitiveStoreWithObjTags {
 	public static TaintedShortWithObjTag shortValue(Short z) {
 		TaintedShortWithObjTag ret = new TaintedShortWithObjTag();
 		ret.val = z;
-		if (tags.containsKey(z))
+		if (z.valueOf && tags.containsKey(z))
 			ret.taint = tags.get(z);
 		return ret;
 	}
@@ -37,7 +37,7 @@ public class BoxedPrimitiveStoreWithObjTags {
 	public static TaintedCharWithObjTag charValue(Character z) {
 		TaintedCharWithObjTag ret = new TaintedCharWithObjTag();
 		ret.val = z.charValue();
-		if (tags.containsKey(z))
+		if (z.valueOf && tags.containsKey(z))
 			ret.taint = tags.get(z);
 		return ret;
 	}
