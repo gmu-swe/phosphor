@@ -9,6 +9,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
+import sun.security.krb5.Config;
 
 import java.io.*;
 import java.lang.instrument.ClassFileTransformer;
@@ -250,6 +251,9 @@ public class Instrumenter {
 			.hasArg()
 			.desc("Specify the class name for a ClassVisitor class to be added to Phosphor's visitor chain before taint tracking is added to the class.")
 			.build();
+	static Option opt_implicitHeadersNoTracking = Option.builder("implicitHeadersNoTracking")
+			.desc("Add method headers for doing implicit tracking, but don't actually propogate them")
+			.build();
 	static Option help = Option.builder("help")
 		.desc("print this message")
 		.build();
@@ -286,6 +290,7 @@ public class Instrumenter {
 		options.addOption(opt_disableLocalsInfo);
 		options.addOption(opt_alwaysCheckForFrames);
 		options.addOption(opt_priorClassVisitor);
+		options.addOption(opt_implicitHeadersNoTracking);
 
 		CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
@@ -328,6 +333,7 @@ public class Instrumenter {
 		Configuration.WITHOUT_BRANCH_NOT_TAKEN = line.hasOption("withoutBranchNotTaken");
 		Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption("skipLocals");
 		Configuration.ALWAYS_CHECK_FOR_FRAMES = line.hasOption("alwaysCheckForFrames");
+		Configuration.IMPLICIT_HEADERS_NO_TRACKING = line.hasOption("implicitHeadersNoTracking");
 
 		String priorClassVisitorName = line.getOptionValue(opt_priorClassVisitor.getOpt());
 		if(priorClassVisitorName != null) {
