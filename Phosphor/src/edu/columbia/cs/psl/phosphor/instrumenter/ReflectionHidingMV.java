@@ -429,7 +429,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 						super.visitInsn(DUP_X1);
 						super.visitInsn(SWAP);
 					}
-					super.visitInsn((Configuration.IMPLICIT_TRACKING ? ICONST_1 : ICONST_0));
+					super.visitInsn((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING ? ICONST_1 : ICONST_0));
 					super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
 					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "addTypeParams", "(Ljava/lang/Class;[Ljava/lang/Class;ZZ)[Ljava/lang/Class;", false);
 					if(Configuration.IMPLICIT_TRACKING) {
