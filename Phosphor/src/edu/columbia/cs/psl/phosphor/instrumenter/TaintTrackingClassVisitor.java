@@ -1177,9 +1177,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 						Type[] argTypes = Type.getArgumentTypes(m.desc);
 						int idx = 0;
-						if(m.name.equals("get$Lambda")){
-							System.out.println("Here");
-						}
 						if ((m.access & Opcodes.ACC_STATIC) == 0) {
 							ga.visitVarInsn(Opcodes.ALOAD, 0);
 							idx++;
