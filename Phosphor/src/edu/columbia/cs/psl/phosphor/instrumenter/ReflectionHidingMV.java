@@ -415,7 +415,10 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					}
 				} else if(nameWithoutSuffix.equals("getConstructor") || nameWithoutSuffix.equals("getDeclaredConstructor")) {
 					// Constructor<T> getDeclaredConstructor(Class<?>... parameterTypes)
-					if(Configuration.IMPLICIT_TRACKING) {
+					if(Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+					    super.visitInsn(POP);
+					}
+					else if(Configuration.IMPLICIT_TRACKING) {
 						super.visitInsn(DUP_X2);
 						super.visitInsn(POP);
 						super.visitInsn(SWAP);
@@ -431,6 +434,9 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "addTypeParams", "(Ljava/lang/Class;[Ljava/lang/Class;ZZ)[Ljava/lang/Class;", false);
 					if(Configuration.IMPLICIT_TRACKING) {
 						super.visitInsn(SWAP);
+					}
+					else if(Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+						super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 					}
 				}
 			}
