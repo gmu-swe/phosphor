@@ -418,7 +418,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 					if(Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
 					    super.visitInsn(POP);
 					}
-					else if(Configuration.IMPLICIT_TRACKING) {
+					if(Configuration.IMPLICIT_TRACKING) {
 						super.visitInsn(DUP_X2);
 						super.visitInsn(POP);
 						super.visitInsn(SWAP);
