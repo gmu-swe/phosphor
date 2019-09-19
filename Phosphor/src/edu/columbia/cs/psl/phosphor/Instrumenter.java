@@ -88,6 +88,7 @@ public class Instrumenter {
 				//																|| StringUtils.startsWith(owner, "java/awt/image/BufferedImage")
 				//																|| owner.equals("java/awt/Image")
 				|| (StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
+				|| (StringUtils.startsWith(owner, "edu/gmu/swe/phosphor/ignored"))
 				||StringUtils.startsWith(owner, "sun/awt/image/codec/")
 								|| (StringUtils.startsWith(owner, "sun/reflect/Reflection")) //was on last
 				|| owner.equals("java/lang/reflect/Proxy") //was on last
