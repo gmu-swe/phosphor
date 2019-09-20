@@ -2200,7 +2200,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	static final boolean isInternalTaintingMethod(String owner)
 	{
 		return owner.startsWith("edu/columbia/cs/psl/phosphor/runtime/")
-				|| Configuration.taintTagFactory.isInternalTaintingClass(owner);
+				|| Configuration.taintTagFactory.isInternalTaintingClass(owner)
+				|| owner.startsWith("edu/gmu/swe/phosphor/ignored/runtime/");
 	}
 	
 	static final String BYTE_NAME = "java/lang/Byte";
