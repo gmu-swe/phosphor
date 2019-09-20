@@ -255,6 +255,9 @@ public class Instrumenter {
 	static Option opt_implicitHeadersNoTracking = Option.builder("implicitHeadersNoTracking")
 			.desc("Add method headers for doing implicit tracking, but don't actually propogate them")
 			.build();
+    static Option opt_reenable_caches = Option.builder("reenableCaches")
+            .desc("Prevent Phosphor from disabling caches.")
+            .build();
 	static Option help = Option.builder("help")
 		.desc("print this message")
 		.build();
@@ -335,7 +338,7 @@ public class Instrumenter {
 		Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption("skipLocals");
 		Configuration.ALWAYS_CHECK_FOR_FRAMES = line.hasOption("alwaysCheckForFrames");
 		Configuration.IMPLICIT_HEADERS_NO_TRACKING = line.hasOption("implicitHeadersNoTracking");
-
+        Configuration.REENABLE_CACHES = line.hasOption(opt_reenable_caches.getOpt());
 		String priorClassVisitorName = line.getOptionValue(opt_priorClassVisitor.getOpt());
 		if(priorClassVisitorName != null) {
 			try {

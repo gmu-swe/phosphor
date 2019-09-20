@@ -285,7 +285,7 @@ public class PreMain {
 					if(EclipseCompilerCV.isEclipseCompilerClass(className)) {
 						_cv = new EclipseCompilerCV(_cv);
 					}
-					if(OgnlUtilCV.isOgnlUtilClass(className)) {
+					if(OgnlUtilCV.isOgnlUtilClass(className) && !Configuration.REENABLE_CACHES) {
 						_cv = new OgnlUtilCV(_cv);
 					}
 					if(JettyBufferUtilCV.isApplicable(className)) {
