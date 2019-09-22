@@ -1,13 +1,16 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	String labelA = "a";
@@ -210,7 +213,9 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 
 	private static void checkDigitArray(char[] c) {
 		for(int i = 0; i < c.length; i++) {
-			Object[] labels = MultiTainter.getTaint(c[i]).getLabels();
+			Taint t = MultiTainter.getTaint(c[i]);
+			assertNotNull(t);
+			Object[] labels = t.getLabels();
 			assertArrayEquals(new Object[]{i}, labels);
 		}
 	}
@@ -237,4 +242,30 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 		}
 		checkDigitArray(c);
 	}
+
+	private char[] copyDigits(char[] c) {
+        char[] copy = new char[c.length];
+        for(int i = 0; i < c.length; i++) {
+            if(c[i] == 'a') {
+                throw new IllegalArgumentException();
+            } else {
+                copy[i] = c[i];
+            }
+        }
+        return copy;
+    }
+
+	@Test
+	@Ignore
+    public void testForLoopMultipleReturns() {
+	    char[] c = createDigitArray();
+	    char[] copy = copyDigits(c);
+        for(int i = 0; i < copy.length; i++) {
+            List<Object> labels = Arrays.asList(MultiTainter.getTaint(copy[i]).getLabels());
+            assertEquals(i + 1, labels.size());
+            for(int j = 0; j <= i; j++) {
+                assertTrue(labels.contains(j));
+            }
+        }
+    }
 }

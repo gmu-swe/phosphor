@@ -116,7 +116,7 @@ public final class ControlTaintTagStack {
 			for(MaybeThrownException mte : unthrownExceptionStack) {
 				if(mte != null && mte.clazz == t) {
 					found = true;
-					mte.tag = Taint.combineTags(mte.tag, taints.taint);
+					mte.tag = Taint.combineTags(mte.tag, taints.taint).copy();
 					break;
 				}
 			}
@@ -128,8 +128,9 @@ public final class ControlTaintTagStack {
 	}
 
 	public final int[] push(Taint tag, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData curMethod) {
-		if(tag == null) //|| tag == taint) TODO: is this safe to optimize (commented out)?
+		if(tag == null) {
 			return invocationCountPerBranch;
+		}
 		return _push(tag, invocationCountPerBranch, indexOfBranchInMethod, maxSize, curMethod);
 	}
 
@@ -138,8 +139,11 @@ public final class ControlTaintTagStack {
 	}
 
 	public final int[] push(Object obj, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData curMethod) {
-		Taint tag = (obj instanceof TaintedWithObjTag) ? (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG() : null;
-		return push(tag, invocationCountPerBranch, indexOfBranchInMethod, maxSize, curMethod);
+		if(obj instanceof TaintedWithObjTag) {
+			return push((Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG(), invocationCountPerBranch, indexOfBranchInMethod, maxSize, curMethod);
+		} else {
+			return invocationCountPerBranch;
+		}
 	}
 
 	public final int[] push(Object obj, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize) {
@@ -150,16 +154,6 @@ public final class ControlTaintTagStack {
 		if(isDisabled) {
 			return invocationCountPerBranch;
 		}
-		//Try a deeper check
-//		if(this.taint != null && (tag.lbl == null || tag.lbl == this.taint.lbl || this.taint.dependencies.contains(tag.lbl))) {
-//			boolean ok = true;
-//			for(Object lbl : tag.dependencies) {
-//				if(!this.taint.dependencies.contains(lbl))
-//					ok = false;
-//			}
-//			if(ok)
-//				return prev;
-//		}
 		if(invocationCountPerBranch == null) {
 			invocationCountPerBranch = new int[maxSize];
 		}
@@ -195,7 +189,6 @@ public final class ControlTaintTagStack {
 			Taint prevTaint = this.taint;
 			this.taint = prevTaint.copy();
 			this.taint.addDependency(tag);
-
 		}
 		return ret;
 	}
@@ -227,7 +220,7 @@ public final class ControlTaintTagStack {
 			for(int i = 0; i < enq.length; i++) {
 				if(enq[i] != 0) {
 					curMethod.pop(enq[i]);
-					while(enq[i]> 0) {
+					while(enq[i] > 0) {
 						this.taint = prevTaints.pop();
 						enq[i]--;
 					}
@@ -279,17 +272,17 @@ public final class ControlTaintTagStack {
 		return ret;
 	}
 
-    public Taint copyTag() {
-        return isEmpty() ? null : taint.copy();
-    }
+	public Taint copyTag() {
+		return isEmpty() ? null : taint.copy();
+	}
 
 	public Taint getTag() {
 		return isEmpty() ? null : taint;
 	}
 
-    public final boolean isEmpty() {
-        return this.isDisabled || taint == null || taint.isEmpty();
-    }
+	public final boolean isEmpty() {
+		return this.isDisabled || taint == null || taint.isEmpty();
+	}
 
 	public void reset() {
 		prevTaints.clear();
