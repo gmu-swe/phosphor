@@ -67,22 +67,22 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 		assertNull(MultiTainter.getTaint(r));
 
 		switch (f) {
-		case 0:
-			r = 5;
-			break;
-		case 1:
-			r = 6;
-			break;
-		case 2:
-			r = 7;
-			break;
-		default:
-			assertNull(MultiTainter.getTaint(r));
+			case 0:
+				r = 5;
+				break;
+			case 1:
+				r = 6;
+				break;
+			case 2:
+				r = 7;
+				break;
+			default:
+				assertNull(MultiTainter.getTaint(r));
 
-			foo(r);
-			r = 111;
+				foo(r);
+				r = 111;
 //			System.out.println(MultiTainter.getTaint(r));
-			assertTaintHasOnlyLabel(MultiTainter.getTaint(r), labelFoo);
+				assertTaintHasOnlyLabel(MultiTainter.getTaint(r), labelFoo);
 		}
 		assertTaintHasOnlyLabel(MultiTainter.getTaint(i), labelA);
 		assertTaintHasOnlyLabel(MultiTainter.getTaint(f), labelFoo);
@@ -97,70 +97,70 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 			return 10;
 		return 12;
 	}
-	
-	public static void testA(int x, int y, boolean b) {  
-       
-    }
 
-    @Test
-    public void testLoops() throws Exception{
-	    boolean A = MultiTainter.taintedBoolean(true, "A");
+	public static void testA(int x, int y, boolean b) {
 
-	    boolean x = false;
-	    int i = MultiTainter.taintedInt(5, "I");
+	}
 
-	    boolean z = false;
-	    boolean y = false;
-	    int j = MultiTainter.taintedInt(10, "J");
-	    while (i != 0) {
-		    i--;
-		    y = true;
-		    while(j != 0)
-		    {
-		    	x = true;
-			    j--;
-		    }
-		    j++;
-	    }
+	@Test
+	public void testLoops() throws Exception{
+		boolean A = MultiTainter.taintedBoolean(true, "A");
 
-	    x = true;
+		boolean x = false;
+		int i = MultiTainter.taintedInt(5, "I");
 
-	    assertTaintHasOnlyLabels(MultiTainter.getTaint(j), "J", "I");
-	    assertTaintHasOnlyLabel(MultiTainter.getTaint(i), "I");
-	    assertTaintHasOnlyLabel(MultiTainter.getTaint(y), "I");
-	    assertNull(MultiTainter.getTaint(x));
-    }
+		boolean z = false;
+		boolean y = false;
+		int j = MultiTainter.taintedInt(10, "J");
+		while (i != 0) {
+			i--;
+			y = true;
+			while(j != 0)
+			{
+				x = true;
+				j--;
+			}
+			j++;
+		}
+
+		x = true;
+
+		assertTaintHasOnlyLabels(MultiTainter.getTaint(j), "J", "I");
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(i), "I");
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(y), "I");
+		assertNull(MultiTainter.getTaint(x));
+	}
 
 	@Test
 	public void testRelationalConditional() throws Exception {
 		int x = -1;
-        int y = -1;
-        boolean b = true;
+		int y = -1;
+		boolean b = true;
 
-        Object labelX = "x";
-        Object labelY = "y";
-        Object labelB = "b";
-        int xt = MultiTainter.taintedInt(x, labelX);
-        int yt = MultiTainter.taintedInt(y, labelY);
-        boolean bt = MultiTainter.taintedBoolean(b, labelB);
+		Object labelX = "x";
+		Object labelY = "y";
+		Object labelB = "b";
+		int xt = MultiTainter.taintedInt(x, labelX);
+		int yt = MultiTainter.taintedInt(y, labelY);
+		boolean bt = MultiTainter.taintedBoolean(b, labelB);
 
-        int e = xt + 1;
-        int f = yt + 2;
-        assertTaintHasOnlyLabel(MultiTainter.getTaint(e), labelX);
-        assertTaintHasOnlyLabel(MultiTainter.getTaint(f), labelY);
+		int e = xt + 1;
+		int f = yt + 2;
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(e), labelX);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(f), labelY);
 
-        boolean b1 = e > 0;
-        boolean b2 = f > -1;
-        boolean b3 = e > -1 && bt;
-        System.out.println(MultiTainter.getTaint(e));
+		boolean b1 = e > 0;
+		boolean b2 = f > -1;
+		boolean b3 = e > -1 && bt;
+		System.out.println(MultiTainter.getTaint(e));
 
-        System.out.println(MultiTainter.getTaint(b1));
-        assertTaintHasOnlyLabel(MultiTainter.getTaint(b1), labelX);
-        assertTaintHasOnlyLabel(MultiTainter.getTaint(b2), labelY);
-        
-        assertTaintHasOnlyLabels(MultiTainter.getTaint(b3), labelX, labelB);
-        
-        testA(xt, yt, bt);
+		System.out.println(MultiTainter.getTaint(b1));
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(b1), labelX);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(b2), labelY);
+
+		assertTaintHasOnlyLabels(MultiTainter.getTaint(b3), labelX, labelB);
+
+		testA(xt, yt, bt);
 	}
 
 	@Test
@@ -244,28 +244,28 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	}
 
 	private char[] copyDigits(char[] c) {
-        char[] copy = new char[c.length];
-        for(int i = 0; i < c.length; i++) {
-            if(c[i] == 'a') {
-                throw new IllegalArgumentException();
-            } else {
-                copy[i] = c[i];
-            }
-        }
-        return copy;
-    }
+		char[] copy = new char[c.length];
+		for(int i = 0; i < c.length; i++) {
+			if(c[i] == 'a') {
+				throw new IllegalArgumentException();
+			} else {
+				copy[i] = c[i];
+			}
+		}
+		return copy;
+	}
 
 	@Test
 	@Ignore
-    public void testForLoopMultipleReturns() {
-	    char[] c = createDigitArray();
-	    char[] copy = copyDigits(c);
-        for(int i = 0; i < copy.length; i++) {
-            List<Object> labels = Arrays.asList(MultiTainter.getTaint(copy[i]).getLabels());
-            assertEquals(i + 1, labels.size());
-            for(int j = 0; j <= i; j++) {
-                assertTrue(labels.contains(j));
-            }
-        }
-    }
+	public void testForLoopMultipleReturns() {
+		char[] c = createDigitArray();
+		char[] copy = copyDigits(c);
+		for(int i = 0; i < copy.length; i++) {
+			List<Object> labels = Arrays.asList(MultiTainter.getTaint(copy[i]).getLabels());
+			assertEquals(i + 1, labels.size());
+			for(int j = 0; j <= i; j++) {
+				assertTrue(labels.contains(j));
+			}
+		}
+	}
 }
