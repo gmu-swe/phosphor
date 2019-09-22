@@ -152,8 +152,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 			if(this.isExcludedFromControlTrack) {
 				super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-				super.visitInsn(ICONST_1);
-				super.visitFieldInsn(PUTFIELD, Type.getInternalName(ControlTaintTagStack.class), "isDisabled", "Z");
+				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "disable", "()V");
 			}
 		}
 
@@ -2784,8 +2783,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 			if(this.isExcludedFromControlTrack) {
 				super.visitVarInsn(ALOAD,lvs.idxOfMasterControlLV);
-				super.visitInsn(ICONST_0);
-				super.visitFieldInsn(PUTFIELD,Type.getInternalName(ControlTaintTagStack.class),"isDisabled","Z");
+				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "enable", "()V");
 			}
 
 			int maxLV = lvs.idxOfMasterControlLV;
@@ -2922,8 +2920,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		}
 		if(this.isExcludedFromControlTrack && ((opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN) || opcode == Opcodes.ATHROW)) {
 			super.visitVarInsn(ALOAD,lvs.idxOfMasterControlLV);
-			super.visitInsn(ICONST_0);
-			super.visitFieldInsn(PUTFIELD,Type.getInternalName(ControlTaintTagStack.class),"isDisabled","Z");
+			super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "enable", "()V");
 		}
 		if(isLambda && opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN){
 			//Do we need to box?

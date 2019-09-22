@@ -428,12 +428,12 @@ public class Taint<T> implements Serializable {
 
 	@SuppressWarnings("unchecked")
 	public static <T>  Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags) {
-		if(t1 == null && tags.taint == null && (!Configuration.IMPLICIT_EXCEPTION_FLOW || (tags.influenceExceptions == null || tags.influenceExceptions.isEmpty()))) {
+		if(t1 == null && tags.isEmpty() && (!Configuration.IMPLICIT_EXCEPTION_FLOW || !tags.hasInfluenceExceptions())) {
 			return null;
 		}
 		Taint tagsTaint;
 		if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
-			if((tags.influenceExceptions == null || tags.influenceExceptions.isEmpty())) {
+			if(!tags.hasInfluenceExceptions()) {
 				//Can do a direct check of taint subsumption, no exception data to look at
 				if(tags.getTag() == null)
 					return t1;
@@ -463,7 +463,7 @@ public class Taint<T> implements Serializable {
 	}
 
 	public static <T>  Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags) {
-		if(t1 == null && tags.taint == null && (tags.influenceExceptions == null || tags.influenceExceptions.isEmpty())) {
+		if(t1 == null && tags.isEmpty() && !tags.hasInfluenceExceptions()) {
 			return null;
 		}
 		return _combineTagsInternal(t1,tags);
@@ -497,7 +497,7 @@ public class Taint<T> implements Serializable {
 
 	@SuppressWarnings("rawtypes")
 	public static void combineTagsOnObject(Object o, ControlTaintTagStack tags) {
-		if((tags.isEmpty() || IGNORE_TAINTING) && (!Configuration.IMPLICIT_EXCEPTION_FLOW || (tags.influenceExceptions == null || tags.influenceExceptions.isEmpty()))) {
+		if((tags.isEmpty() || IGNORE_TAINTING) && (!Configuration.IMPLICIT_EXCEPTION_FLOW || !tags.hasInfluenceExceptions())) {
 			return;
 		}
 		if(Configuration.derivedTaintListener != null) {

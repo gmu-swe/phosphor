@@ -5,16 +5,14 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class ControlTaintTagStack {
 
-	public boolean isDisabled;
-	public Taint taint;
-	LinkedList<MaybeThrownException> unThrownExceptionStack;// = new LinkedList<>();
-	static ControlTaintTagStack instance = new ControlTaintTagStack(true);
-	public LinkedList<MaybeThrownException> influenceExceptions;// = new LinkedList<>();
-	public LinkedList<Taint> prevTaints = new LinkedList<>();
+	private static ControlTaintTagStack instance = new ControlTaintTagStack(true);
 
-	public final boolean isEmpty() {
-		return taint == null || this.isDisabled || taint.isEmpty();
-	}
+	private boolean isDisabled = false;
+	private Taint taint = null;
+	private LinkedList<MaybeThrownException> unthrownExceptionStack = null;
+	private LinkedList<MaybeThrownException> influenceExceptions = null;
+	private LinkedList<Taint> prevTaints = new LinkedList<>();
+
 	public ControlTaintTagStack(int zz) {
 		this();
 	}
@@ -26,12 +24,9 @@ public final class ControlTaintTagStack {
 		this.isDisabled = isDisabled;
 	}
 
+	@SuppressWarnings("unused")
 	public static ControlTaintTagStack factory() {
 		return instance;
-	}
-
-	public Taint copyTag() {
-		return (taint == null || getTag() == null) ? null : taint.copy();
 	}
 
 	/**
@@ -96,15 +91,15 @@ public final class ControlTaintTagStack {
 	 * is currently effecting the current flow (at least until the end of the catch block)
 	 */
 	public final void applyPossiblyUnthrownExceptionToTaint(Class<? extends Throwable> t) {
-		if(unThrownExceptionStack == null) {
+		if(unthrownExceptionStack == null) {
 			return;
 		}
-		LinkedList.Node<MaybeThrownException> n = unThrownExceptionStack.getFirst();
+		LinkedList.Node<MaybeThrownException> n = unthrownExceptionStack.getFirst();
 		LinkedList.Node<MaybeThrownException> prev = null;
 		while(n != null) {
 			if(t.isAssignableFrom(n.entry.clazz)) {
 				if(prev == null) {
-					unThrownExceptionStack.pop();
+					unthrownExceptionStack.pop();
 				} else {
 					prev.next = n.next;
 				}
@@ -127,10 +122,10 @@ public final class ControlTaintTagStack {
 	 */
 	public final void addUnthrownException(ExceptionalTaintData taints, Class<? extends Throwable> t) {
 		if(taints != null && taints.taint != null) {
-			if(unThrownExceptionStack == null) {
-				unThrownExceptionStack = new LinkedList<>();
+			if(unthrownExceptionStack == null) {
+				unthrownExceptionStack = new LinkedList<>();
 			}
-			LinkedList.Node<MaybeThrownException> i = unThrownExceptionStack.getFirst();
+			LinkedList.Node<MaybeThrownException> i = unthrownExceptionStack.getFirst();
 			boolean found = false;
 			while(i != null) {
 				if(i.entry != null && i.entry.clazz == t) {
@@ -142,7 +137,7 @@ public final class ControlTaintTagStack {
 			}
 			if(!found) {
 				MaybeThrownException ex = new MaybeThrownException(t, taints.taint.copy());
-				unThrownExceptionStack.addFast(ex);
+				unthrownExceptionStack.addFast(ex);
 			}
 		}
 	}
@@ -283,11 +278,11 @@ public final class ControlTaintTagStack {
 	}
 
 	public Taint copyTagExceptions() {
-		if((taint == null || taint.isEmpty()) && (influenceExceptions == null || influenceExceptions.isEmpty())) {
+		if((taint == null || taint.isEmpty()) && !hasInfluenceExceptions()) {
 			return null;
 		}
 		Taint ret = taint == null ? new Taint() : taint.copy();
-		if(influenceExceptions == null || influenceExceptions.isEmpty()) {
+		if(!hasInfluenceExceptions()) {
 			return ret;
 		}
 		LinkedList.Node<MaybeThrownException> n = influenceExceptions.getFirst();
@@ -300,16 +295,38 @@ public final class ControlTaintTagStack {
 		return ret;
 	}
 
+    public Taint copyTag() {
+        return isEmpty() ? null : taint.copy();
+    }
+
 	public Taint getTag() {
-		return (taint == null || isDisabled || taint.isEmpty()) ? null : taint;
+		return isEmpty() ? null : taint;
 	}
+
+    public final boolean isEmpty() {
+        return this.isDisabled || taint == null || taint.isEmpty();
+    }
 
 	public void reset() {
 		prevTaints = new LinkedList<>();
 		taint = null;
 		if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
-			unThrownExceptionStack = new LinkedList<>();
+			unthrownExceptionStack = new LinkedList<>();
 			influenceExceptions = new LinkedList<>();
 		}
+	}
+
+	public boolean hasInfluenceExceptions() {
+		return influenceExceptions != null && !influenceExceptions.isEmpty();
+	}
+
+	@SuppressWarnings("unused")
+	public void enable() {
+		this.isDisabled = false;
+	}
+
+	@SuppressWarnings("unused")
+	public void disable() {
+		this.isDisabled = true;
 	}
 }

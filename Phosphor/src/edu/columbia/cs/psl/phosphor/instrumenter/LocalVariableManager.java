@@ -212,7 +212,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 			ctrlTagStartLbl = new Label();
 			super.visitLabel(ctrlTagStartLbl);
 		}
-		LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag", "[I", null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
+		LocalVariableNode newLVN = new LocalVariableNode("phosphorInvocationCountPerBranch", "[I", null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
 		createdLVs.add(newLVN);
 //		System.out.println("Create taint tag at " + idx);
 		analyzer.locals.add(idx, "[I");
