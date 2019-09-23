@@ -9,19 +9,22 @@ public final class ControlTaintTagStack {
 	private static ControlTaintTagStack instance = new ControlTaintTagStack(true);
 
 	private boolean isDisabled = false;
-	private Taint taint = null;
-	private SinglyLinkedList<MaybeThrownException> unthrownExceptionStack = null;
+	private SinglyLinkedList<MaybeThrownException> unthrownExceptions = null;
 	private SinglyLinkedList<MaybeThrownException> influenceExceptions = null;
-	private final SinglyLinkedList<Taint> prevTaints = new SinglyLinkedList<>();
+	private final SinglyLinkedList<Taint> taintHistory;
 
 	public ControlTaintTagStack(int zz) {
 		this();
 	}
 
 	public ControlTaintTagStack() {
+		this.taintHistory = new SinglyLinkedList<>();
+		taintHistory.push(null); // starting taint is null/empty
+
 	}
 
 	private ControlTaintTagStack(boolean isDisabled) {
+		this();
 		this.isDisabled = isDisabled;
 	}
 
@@ -35,6 +38,7 @@ public final class ControlTaintTagStack {
 	 * exception, and if there is one, we'll need to add it to the current ControlTaintTagStack and
 	 * return a pointer so it can later be removed
 	 */
+	@SuppressWarnings("unused")
 	public final EnqueuedTaint exceptionHandlerStart(Throwable exceptionCaught, EnqueuedTaint eq) {
 		if(exceptionCaught instanceof TaintedWithObjTag) {
 			Taint<?> t = (Taint) ((TaintedWithObjTag) exceptionCaught).getPHOSPHOR_TAG();
@@ -46,9 +50,10 @@ public final class ControlTaintTagStack {
 	}
 
 	/**
-	 * Called N times at the start of each exception handler to clear unthrown exceptions, one time
-	 * for each handled exception type
+	 * At the start of an exception handler, this method is called once for each exception type handled by the handler.
+	 * Removes elements from the unthrown exception list whose exception type either is or is a subtype of the specified type.
 	 */
+	@SuppressWarnings("unused")
 	public final void exceptionHandlerStart(Class<? extends Throwable> exTypeHandled) {
 		tryBlockEnd(exTypeHandled);
 	}
@@ -57,6 +62,7 @@ public final class ControlTaintTagStack {
 	 * Called ONCE at the end of each handler to remove an exception from influencing the control state
 	 * Passed the same MaybeThrownException from the start method
 	 */
+	@SuppressWarnings("unused")
 	public final void exceptionHandlerEnd(EnqueuedTaint ex) {
 		if(ex != null) {
 			pop(ex);
@@ -84,11 +90,12 @@ public final class ControlTaintTagStack {
 	 * follows that code in a "try" block, then that unthrown exception
 	 * is currently affecting the current flow (at least until the end of the catch block)
 	 */
+	@SuppressWarnings("unused")
 	public final void applyPossiblyUnthrownExceptionToTaint(Class<? extends Throwable> t) {
-		if(unthrownExceptionStack == null) {
+		if(unthrownExceptions == null) {
 			return;
 		}
-		Iterator<MaybeThrownException> itr = unthrownExceptionStack.iterator();
+		Iterator<MaybeThrownException> itr = unthrownExceptions.iterator();
 		while(itr.hasNext()) {
 			MaybeThrownException mte = itr.next();
 			if(t.isAssignableFrom(mte.clazz)) {
@@ -107,22 +114,23 @@ public final class ControlTaintTagStack {
 	 * 		an exception if we went down some branch differently, we note that, along with whatever taints
 	 * 		were applied in this method only
 	 */
+	@SuppressWarnings("unused")
 	public final void addUnthrownException(ExceptionalTaintData taints, Class<? extends Throwable> t) {
-		if(taints != null && taints.taint != null) {
-			if(unthrownExceptionStack == null) {
-				unthrownExceptionStack = new SinglyLinkedList<>();
+		if(taints != null && taints.getCurrentTaint() != null) {
+			if(unthrownExceptions == null) {
+				unthrownExceptions = new SinglyLinkedList<>();
 			}
 			boolean found = false;
-			for(MaybeThrownException mte : unthrownExceptionStack) {
+			for(MaybeThrownException mte : unthrownExceptions) {
 				if(mte != null && mte.clazz == t) {
 					found = true;
-					mte.tag = Taint.combineTags(mte.tag, taints.taint).copy();
+					mte.tag = Taint.combineTags(mte.tag, taints.getCurrentTaint().copy());
 					break;
 				}
 			}
 			if(!found) {
-				MaybeThrownException ex = new MaybeThrownException(t, taints.taint.copy());
-				unthrownExceptionStack.push(ex);
+				MaybeThrownException ex = new MaybeThrownException(t, taints.getCurrentTaint().copy());
+				unthrownExceptions.push(ex);
 			}
 		}
 	}
@@ -150,8 +158,9 @@ public final class ControlTaintTagStack {
 		return push(obj, invocationCountPerBranch, indexOfBranchInMethod, maxSize, null);
 	}
 
+	@SuppressWarnings("unchecked")
 	public final int[] _push(Taint tag, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData exceptionData) {
-		if(isDisabled) {
+		if(isDisabled || tag == null || tag.isEmpty()) {
 			return invocationCountPerBranch;
 		}
 		if(invocationCountPerBranch == null) {
@@ -159,97 +168,72 @@ public final class ControlTaintTagStack {
 		}
 		invocationCountPerBranch[indexOfBranchInMethod]++;
 		if(invocationCountPerBranch[indexOfBranchInMethod] == 1) {
-			prevTaints.push(this.taint);
+			// Adding a label for this branch for the first time
+			taintHistory.push(new Taint(tag, taintHistory.peek()));
 			if(exceptionData != null) {
 				exceptionData.push(tag);
 			}
-			if(this.taint == null) {
-				this.taint = new Taint(tag);
-			} else {
-				Taint prevTaint = this.taint;
-				this.taint = prevTaint.copy();
-				this.taint.addDependency(tag);
+		} else {
+			taintHistory.peek().addDependency(tag);
+			if(exceptionData != null) {
+				exceptionData.getCurrentTaint().addDependency(tag);
 			}
 		}
 		return invocationCountPerBranch;
 	}
 
+	@SuppressWarnings("unchecked")
 	public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
-		if(tag == null || tag == taint || isDisabled) {
+		if(tag == null || tag.isEmpty() || tag == taintHistory.peek() || isDisabled) {
 			return null;
 		}
-
 		EnqueuedTaint ret = prev == null ? new EnqueuedTaint() : prev;
-
 		ret.activeCount++;
-		prevTaints.push(this.taint);
-		if(this.taint == null) {
-			this.taint = new Taint(tag);
-		} else {
-			Taint prevTaint = this.taint;
-			this.taint = prevTaint.copy();
-			this.taint.addDependency(tag);
-		}
+		taintHistory.push(new Taint(tag, taintHistory.peek()));
 		return ret;
 	}
 
-	public final void pop(int[] enq, int i, ExceptionalTaintData curMethod) {
-		if(enq != null && enq[i] != 0) {
-			curMethod.pop(enq[i]);
-			pop(enq, i);
+	public final void pop(int[] invocationCountPerBranch, int indexOfBranchInMethod, ExceptionalTaintData curMethod) {
+		if(invocationCountPerBranch != null && invocationCountPerBranch[indexOfBranchInMethod] > 0) {
+			curMethod.pop();
+			taintHistory.pop();
+			invocationCountPerBranch[indexOfBranchInMethod] = 0;
 		}
 	}
 
-	public final void pop(int[] enq, int i) {
-		if(enq != null && enq[i] != 0) {
-			_pop(enq, i);
+	public final void pop(int[] invocationCountPerBranch, int indexOfBranchInMethod) {
+		if(invocationCountPerBranch != null) {
+			if(invocationCountPerBranch[indexOfBranchInMethod] > 0) {
+				taintHistory.pop();
+			}
+			invocationCountPerBranch[indexOfBranchInMethod] = 0;
 		}
 	}
 
-	private void _pop(int[] enq, int i) {
-		if(enq[i] > 0) {
-			this.taint = prevTaints.pop();
-		}
-		while(enq[i] > 0) {
-			enq[i]--;
-		}
-	}
-
-	public final void pop(int[] enq, ExceptionalTaintData curMethod) {
-		if(enq != null) {
-			for(int i = 0; i < enq.length; i++) {
-				if(enq[i] != 0) {
-					curMethod.pop(enq[i]);
-					while(enq[i] > 0) {
-						this.taint = prevTaints.pop();
-						enq[i]--;
-					}
-				}
+	public final void pop(int[] invocationCountPerBranch, ExceptionalTaintData curMethod) {
+		if(invocationCountPerBranch != null) {
+			pop(invocationCountPerBranch);
+			if(curMethod != null) {
+				curMethod.reset();
 			}
 		}
 	}
 
-	private void _pop(int[] enq) {
-		for(int i = 0; i < enq.length; i++) {
-			if(enq[i] > 0) {
-				this.taint = prevTaints.pop();
-				while(enq[i] > 0) {
-					enq[i]--;
+	public final void pop(int[] invocationCountPerBranch) {
+		if(invocationCountPerBranch != null) {
+			for(int i = 0; i < invocationCountPerBranch.length; i++) {
+				if(invocationCountPerBranch[i] > 0) {
+					taintHistory.pop();
+					invocationCountPerBranch[i] = 0;
 				}
 			}
-		}
-	}
-
-	public final void pop(int[] enq) {
-		if (enq != null) {
-			_pop(enq);
 		}
 	}
 
 	public final void pop(EnqueuedTaint enq) {
 		if(enq != null) {
 			while(enq.activeCount > 0) {
-				this.taint = prevTaints.pop();
+				taintHistory.pop();
 				enq.activeCount--;
 			}
 		}
@@ -259,7 +243,7 @@ public final class ControlTaintTagStack {
 		if(isEmpty() && lacksInfluenceExceptions()) {
 			return null;
 		}
-		Taint ret = taint == null ? new Taint() : taint.copy();
+		Taint ret = taintHistory.peek() == null ? new Taint() : taintHistory.peek().copy();
 		if(lacksInfluenceExceptions()) {
 			return ret;
 		}
@@ -273,25 +257,25 @@ public final class ControlTaintTagStack {
 	}
 
 	public Taint copyTag() {
-		return isEmpty() ? null : taint.copy();
+		return isEmpty() ? null : taintHistory.peek().copy();
 	}
 
 	public Taint getTag() {
-		return isEmpty() ? null : taint;
+		return isEmpty() ? null : taintHistory.peek();
 	}
 
 	public final boolean isEmpty() {
-		return this.isDisabled || taint == null || taint.isEmpty();
+		return this.isDisabled || taintHistory.peek() == null || taintHistory.peek().isEmpty();
 	}
 
 	public void reset() {
-		prevTaints.clear();
-		taint = null;
+		taintHistory.clear();
+		taintHistory.push(null);
 		if(influenceExceptions != null) {
 			influenceExceptions.clear();
 		}
-		if(unthrownExceptionStack != null) {
-			unthrownExceptionStack.clear();
+		if(unthrownExceptions != null) {
+			unthrownExceptions.clear();
 		}
 	}
 

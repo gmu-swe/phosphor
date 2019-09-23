@@ -256,7 +256,6 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	}
 
 	@Test
-	@Ignore
 	public void testForLoopMultipleReturns() {
 		char[] c = createDigitArray();
 		char[] copy = copyDigits(c);
