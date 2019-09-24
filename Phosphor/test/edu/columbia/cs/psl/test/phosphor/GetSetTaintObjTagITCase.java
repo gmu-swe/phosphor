@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.test.phosphor;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
@@ -11,19 +12,19 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
-	
+
 	@Test
 	public void testReferenceType() throws Exception {
 		String s = "def";
 		HashMap<Object, Object> m =  new HashMap<Object, Object>();
 		MultiTainter.taintedObject(s, new Taint<>("a"));;
 		MultiTainter.taintedObject(m, new Taint<>("a"));
-		
+
 		int[] x = new int[10];
 		//In its default mode, Phosphor tracks ONLY for the array ELEMENTS - not for the reference
 		//can do -withArrayLengthTags to track a tag for the length of the array
 		x = MultiTainter.taintedIntArray(x, "b");
-		
+
 		assertTrue(((TaintedWithObjTag)m).getPHOSPHOR_TAG() != null);
 		assertTrue(MultiTainter.getTaint(m) != null);
 		assertTrue(MultiTainter.getTaint(s) != null);
@@ -40,7 +41,7 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		Long l = MultiTainter.taintedLong((long) 5, "a");
 		Float f = MultiTainter.taintedFloat(4f, "a");
 		Double d = MultiTainter.taintedDouble(4d, "a");
-		
+
 
 		assertTrue(MultiTainter.getTaint(z.booleanValue()) != null);
 		assertTrue(MultiTainter.getTaint(b.byteValue()) != null);
@@ -70,7 +71,7 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		long l = MultiTainter.taintedLong((long) 5, "a");
 		float f = MultiTainter.taintedFloat(4f, "a");
 		double d = MultiTainter.taintedDouble(4d, "a");
-		
+
 
 		assertTrue(MultiTainter.getTaint(z) != null);
 		assertTrue(MultiTainter.getTaint(b) != null);
@@ -81,7 +82,7 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		assertTrue(MultiTainter.getTaint(f) != null);
 		assertTrue(MultiTainter.getTaint(d) != null);
 	}
-	
+
 	@Test
 	public void testToString()
 	{
@@ -101,8 +102,8 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		assertNonNullTaint(Float.toString(f));
 		assertNonNullTaint(Double.toString(d));
 		assertNonNullTaint(Integer.toString(i));
-	}	
-	
+	}
+
 	@Test
 	public void testValueOf()
 	{
@@ -157,8 +158,34 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		assertTaintHasOnlyLabel(MultiTainter.getTaint(l6), lbl);
 		assertTaintHasOnlyLabel(MultiTainter.getTaint(f), lbl);
 		assertTaintHasOnlyLabel(MultiTainter.getTaint(f2), lbl);
-		assertTaintHasOnlyLabel(MultiTainter.getTaint(d), lbl);		
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(d), lbl);
 		assertTaintHasOnlyLabel(MultiTainter.getTaint(d2), lbl);
 	}
 
+	@Test
+	public void testBoxedCharacterSameValue() {
+		int len = 10;
+		Character[] taintedChars1 = new Character[len];
+		for(int i = 0; i < taintedChars1.length; i++) {
+			taintedChars1[i] = MultiTainter.taintedChar('a', i);
+		}
+		Character[] nonTaintedChars = new Character[len];
+		for(int i = 0; i < nonTaintedChars.length; i++) {
+			nonTaintedChars[i] = 'a';
+		}
+		Character[] taintedChars2 = new Character[len];
+		for(int i = 0; i < taintedChars2.length; i++) {
+			taintedChars2[i] = MultiTainter.taintedChar('a', i);
+		}
+		for(int i = 0; i < len; i++) {
+			Taint t1 = MultiTainter.getTaint(taintedChars1[i]);
+			Taint t2 = MultiTainter.getTaint(taintedChars2[i]);
+			Taint t = MultiTainter.getTaint(nonTaintedChars[i]);
+			assertNonNullTaint(t1);
+			assertNonNullTaint(t2);
+			assertNullOrEmpty(t);
+			assertArrayEquals(new Object[]{i}, MultiTainter.getTaint(taintedChars1[i]).getLabels());
+			assertArrayEquals(new Object[]{i}, MultiTainter.getTaint(taintedChars2[i]).getLabels());
+		}
+	}
 }
