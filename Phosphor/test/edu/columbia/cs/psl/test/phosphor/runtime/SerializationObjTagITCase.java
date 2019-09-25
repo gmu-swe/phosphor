@@ -2,14 +2,12 @@ package edu.columbia.cs.psl.test.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.*;
-import java.lang.reflect.Array;
 import java.math.BigInteger;
 
 import static org.junit.Assert.*;
