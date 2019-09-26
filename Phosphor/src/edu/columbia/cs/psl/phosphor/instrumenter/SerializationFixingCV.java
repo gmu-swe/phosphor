@@ -4,8 +4,11 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.SerializationWrapper;
 import org.objectweb.asm.*;
+
+import static edu.columbia.cs.psl.phosphor.SourceSinkManager.remapMethodDescToRemoveTaints;
 
 public class SerializationFixingCV extends ClassVisitor implements Opcodes {
 
@@ -13,52 +16,100 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
     private static final String INPUT_STREAM_NAME = "java/io/ObjectInputStream";
     // ObjectOutputStream class name
     private static final String OUTPUT_STREAM_NAME = "java/io/ObjectOutputStream";
+    // ObjectStreamClass class name
+    private static final String STREAM_CLASS_NAME = "java/io/ObjectStreamClass";
+    // Header byte for serialized objects
     private final static byte TC_OBJECT = (byte)0x73;
+    // Header byte serialized null values
     private final static byte TC_NULL = (byte)0x70;
 
-    public SerializationFixingCV(ClassVisitor cv) {
+    // Name of class being visited
+    private final String className;
+
+    public SerializationFixingCV(ClassVisitor cv, String className) {
         super(Configuration.ASM_VERSION, cv);
+        this.className = className;
     }
 
     /* Returns whether this class visitor should be applied to the class with the specified name. */
     public static boolean isApplicable(String className) {
-        return Configuration.MULTI_TAINTING && (INPUT_STREAM_NAME.equals(className) || OUTPUT_STREAM_NAME.equals(className));
+        return Configuration.MULTI_TAINTING && (INPUT_STREAM_NAME.equals(className) || OUTPUT_STREAM_NAME.equals(className)
+                || STREAM_CLASS_NAME.equals(className));
     }
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-        switch(name) {
-            case "writeObject":
-            case "writeObject$$PHOSPHORTAGGED":
-            case "writeObject0$$PHOSPHORTAGGED":
-                return new ObjectWriteMV(mv);
-            case "readObject":
-            case "readObject$$PHOSPHORTAGGED":
-            case "readObject0$$PHOSPHORTAGGED":
-                return new ObjectReadMV(mv);
-            case "writeInt$$PHOSPHORTAGGED":
-            case "writeLong$$PHOSPHORTAGGED":
-            case "writeBoolean$$PHOSPHORTAGGED":
-            case "writeShort$$PHOSPHORTAGGED":
-            case "writeDouble$$PHOSPHORTAGGED":
-            case "writeByte$$PHOSPHORTAGGED":
-            case "writeChar$$PHOSPHORTAGGED":
-            case "writeFloat$$PHOSPHORTAGGED":
-                return new PrimitiveWriteMV(mv);
-            case "readInt$$PHOSPHORTAGGED":
-            case "readLong$$PHOSPHORTAGGED":
-            case "readBoolean$$PHOSPHORTAGGED":
-            case "readShort$$PHOSPHORTAGGED":
-            case "readDouble$$PHOSPHORTAGGED":
-            case "readByte$$PHOSPHORTAGGED":
-            case "readChar$$PHOSPHORTAGGED":
-            case "readFloat$$PHOSPHORTAGGED":
-            case "readUnsignedByte$$PHOSPHORTAGGED":
-            case "readUnsignedShort$$PHOSPHORTAGGED":
-                return new PrimitiveReadMV(mv, Type.getReturnType(desc));
-            default:
-                return mv;
+        if(STREAM_CLASS_NAME.equals(className)) {
+            return new StreamClassMV(mv);
+        } else {
+            switch(name) {
+                case "writeObject":
+                case "writeObject$$PHOSPHORTAGGED":
+                case "writeObject0$$PHOSPHORTAGGED":
+                    return new ObjectWriteMV(mv);
+                case "readObject":
+                case "readObject$$PHOSPHORTAGGED":
+                case "readObject0$$PHOSPHORTAGGED":
+                    return new ObjectReadMV(mv);
+                case "writeInt$$PHOSPHORTAGGED":
+                case "writeLong$$PHOSPHORTAGGED":
+                case "writeBoolean$$PHOSPHORTAGGED":
+                case "writeShort$$PHOSPHORTAGGED":
+                case "writeDouble$$PHOSPHORTAGGED":
+                case "writeByte$$PHOSPHORTAGGED":
+                case "writeChar$$PHOSPHORTAGGED":
+                case "writeFloat$$PHOSPHORTAGGED":
+                    return new PrimitiveWriteMV(mv);
+                case "readInt$$PHOSPHORTAGGED":
+                case "readLong$$PHOSPHORTAGGED":
+                case "readBoolean$$PHOSPHORTAGGED":
+                case "readShort$$PHOSPHORTAGGED":
+                case "readDouble$$PHOSPHORTAGGED":
+                case "readByte$$PHOSPHORTAGGED":
+                case "readChar$$PHOSPHORTAGGED":
+                case "readFloat$$PHOSPHORTAGGED":
+                case "readUnsignedByte$$PHOSPHORTAGGED":
+                case "readUnsignedShort$$PHOSPHORTAGGED":
+                    return new PrimitiveReadMV(mv, Type.getReturnType(desc));
+                default:
+                    return mv;
+            }
+        }
+    }
+
+    private static class StreamClassMV extends MethodVisitor {
+
+        StreamClassMV(MethodVisitor mv) {
+            super(Configuration.ASM_VERSION, mv);
+        }
+
+        @Override
+        public void visitMethodInsn(final int opcode, final String owner, final String name, final String desc, final boolean isInterface) {
+            if(OUTPUT_STREAM_NAME.equals(owner) && name.startsWith("write")) {
+                Type[] args = Type.getArgumentTypes(desc);
+                if(args.length > 0 && Type.getType(Configuration.TAINT_TAG_DESC).equals(args[0])) {
+                    String untaintedMethod = name.replace(TaintUtils.METHOD_SUFFIX, "");
+                    String untaintedDesc = remapMethodDescToRemoveTaints(desc);
+                    boolean widePrimitive = Type.DOUBLE_TYPE.equals(args[1]) || Type.LONG_TYPE.equals(args[1]);
+                    if(args.length == 2) {
+                        // stream, taint, primitive
+                        super.visitInsn(widePrimitive ? DUP2_X1 : DUP_X1);
+                        super.visitInsn(widePrimitive ? POP2 : POP);
+                        super.visitInsn(POP);
+                        super.visitMethodInsn(opcode, owner, untaintedMethod, untaintedDesc, isInterface);
+                        return;
+                    } else if(args.length == 3 && args[2].equals(Type.getType(ControlTaintTagStack.class))) {
+                        super.visitInsn(POP);
+                        super.visitInsn(widePrimitive ? DUP2_X1 : DUP_X1);
+                        super.visitInsn(widePrimitive ? POP2 : POP);
+                        super.visitInsn(POP);
+                        super.visitMethodInsn(opcode, owner, untaintedMethod, untaintedDesc, isInterface);
+                        return;
+                    }
+                }
+            }
+            super.visitMethodInsn(opcode, owner, name, desc, isInterface);
         }
     }
 

@@ -278,7 +278,7 @@ public class PreMain {
 					if (DEBUG || TaintUtils.VERIFY_CLASS_GENERATION)
 						_cv = new CheckClassAdapter(_cv, false);
 					if(SerializationFixingCV.isApplicable(className)) {
-						_cv = new SerializationFixingCV(_cv);
+						_cv = new SerializationFixingCV(_cv, className);
 					}
                     _cv = new ClinitRetransformClassVisitor(_cv);
 					if(isiFace)

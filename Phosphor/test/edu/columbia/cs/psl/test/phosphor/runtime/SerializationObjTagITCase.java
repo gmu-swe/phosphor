@@ -2,7 +2,8 @@ package edu.columbia.cs.psl.test.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.util.IgnoredTestUtil;
+import edu.columbia.cs.psl.phosphor.struct.PowerSetTree;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -17,6 +18,11 @@ public class SerializationObjTagITCase extends FieldHolderBaseTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+
+    @After
+    public void reset() {
+        PowerSetTree.getInstance().reset();
+    }
 
     public static class PrimitiveArrayHolderChild extends PrimitiveArrayHolder {
 
