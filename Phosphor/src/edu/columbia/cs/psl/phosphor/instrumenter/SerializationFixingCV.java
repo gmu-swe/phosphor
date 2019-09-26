@@ -14,6 +14,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
     // ObjectOutputStream class name
     private static final String OUTPUT_STREAM_NAME = "java/io/ObjectOutputStream";
     private final static byte TC_OBJECT = (byte)0x73;
+    private final static byte TC_NULL = (byte)0x70;
 
     public SerializationFixingCV(ClassVisitor cv) {
         super(Configuration.ASM_VERSION, cv);
@@ -70,9 +71,19 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
         @Override
         public void visitCode() {
             super.visitCode();
+            Label label1 = new Label();
+            // Check that taint is non-null
+            super.visitVarInsn(ALOAD, 1);
+            super.visitJumpInsn(IFNULL, label1);
+            // Check that taint is non-empty
+            super.visitVarInsn(ALOAD, 1);
+            super.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_INTERNAL_NAME, "isEmpty", "()Z", false);
+            super.visitJumpInsn(IFNE, label1);
+            // Write the taint if non-null and non-empty
             super.visitVarInsn(ALOAD, 0);
             super.visitVarInsn(ALOAD, 1); // Load taint onto stack
             super.visitMethodInsn(INVOKEVIRTUAL, OUTPUT_STREAM_NAME, "writeObject", "(Ljava/lang/Object;)V", false);
+            super.visitLabel(label1);
         }
     }
 
@@ -91,6 +102,8 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
             Label label1 = new Label();
             Label label2 = new Label();
             Label label3 = new Label();
+            Label label4 = new Label();
+            Label label5 = new Label();
             super.visitVarInsn(ALOAD, 0);
             super.visitFieldInsn(GETFIELD, INPUT_STREAM_NAME, "bin", "Ljava/io/ObjectInputStream$BlockDataInputStream;");
             super.visitMethodInsn(INVOKEVIRTUAL, "java/io/ObjectInputStream$BlockDataInputStream", "getBlockDataMode", "()Z", false);
@@ -122,12 +135,21 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
             super.visitMethodInsn(INVOKEVIRTUAL, "java/io/ObjectInputStream$BlockDataInputStream", "setBlockDataMode", "(Z)Z", false);
             super.visitInsn(POP);
             // Compare next byte to byte for objects
+            super.visitInsn(DUP); // Duplicate the "peeked" value
             super.visitIntInsn(BIPUSH, TC_OBJECT);
-            super.visitJumpInsn(IF_ICMPNE, label2);
+            super.visitJumpInsn(IF_ICMPEQ, label4);
+            super.visitIntInsn(BIPUSH, TC_NULL);
+            super.visitJumpInsn(IF_ICMPEQ, label5);
+            super.visitJumpInsn(GOTO, label2);
+            super.visitLabel(label4);
+            super.visitInsn(POP); // Remove unused "peeked" values
+            // Read the tag
+            super.visitLabel(label5);
             super.visitVarInsn(ALOAD, 0);
             super.visitMethodInsn(INVOKEVIRTUAL, INPUT_STREAM_NAME, "readObject", "()Ljava/lang/Object;", false);
             super.visitTypeInsn(CHECKCAST, Type.getType(Configuration.TAINT_TAG_DESC).getInternalName());
             super.visitJumpInsn(GOTO, label3);
+            // Push null onto stack
             super.visitLabel(label2);
             super.visitInsn(ACONST_NULL);
             super.visitLabel(label3);

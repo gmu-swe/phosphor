@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.test.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -271,7 +270,6 @@ public class SerializationObjTagITCase extends FieldHolderBaseTest {
     }
 
     /* Checks that when tainted primitives are serialized and then deserialized the deserialized primitives are tainted. */
-    @Ignore
     @Test
     public void testSerializeTaintedPrimitives() throws Exception {
         checkSerializePrimitives(true);
