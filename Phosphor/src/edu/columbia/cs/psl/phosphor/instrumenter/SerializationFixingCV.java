@@ -147,7 +147,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
             super.visitLabel(label5);
             super.visitVarInsn(ALOAD, 0);
             super.visitMethodInsn(INVOKEVIRTUAL, INPUT_STREAM_NAME, "readObject", "()Ljava/lang/Object;", false);
-            super.visitTypeInsn(CHECKCAST, Type.getType(Configuration.TAINT_TAG_DESC).getInternalName());
+            super.visitTypeInsn(CHECKCAST,  Configuration.TAINT_TAG_INTERNAL_NAME);
             super.visitJumpInsn(GOTO, label3);
             // Push null onto stack
             super.visitLabel(label2);
@@ -160,7 +160,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
             if(TaintUtils.isReturnOpcode(opcode)) {
                 super.visitInsn(DUP_X1);
                 super.visitInsn(SWAP);
-                super.visitFieldInsn(PUTFIELD, returnType.getInternalName(), "taint", "Ledu/columbia/cs/psl/phosphor/runtime/Taint;");
+                super.visitFieldInsn(PUTFIELD, returnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
             }
             super.visitInsn(opcode);
         }
