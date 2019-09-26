@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 import org.objectweb.asm.Type;
 
@@ -145,6 +146,14 @@ public abstract class MultiDTaintedArray {
 			return MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(internalName);
 		else
 			return MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(internalName);
+	}
 
+	@SuppressWarnings("unused")
+	public static Object unboxMethodReceiverIfNecessary(Method m, Object obj) {
+		if(LazyArrayObjTags.class.isAssignableFrom(m.getDeclaringClass()) || LazyArrayIntTags.class.isAssignableFrom(m.getDeclaringClass())) {
+			return obj; // No unboxing is necessary
+		} else {
+			return unboxRaw(obj);
+		}
 	}
 }

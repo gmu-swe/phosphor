@@ -1,9 +1,11 @@
 package edu.columbia.cs.psl.test.phosphor;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 
+import edu.columbia.cs.psl.phosphor.runtime.BoxedPrimitiveStoreWithObjTags;
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
@@ -11,27 +13,27 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
-	
+
 	@Test
 	public void testReferenceType() throws Exception {
 		String s = "def";
 		HashMap<Object, Object> m =  new HashMap<Object, Object>();
 		MultiTainter.taintedObject(s, new Taint<>("a"));;
 		MultiTainter.taintedObject(m, new Taint<>("a"));
-		
+
 		int[] x = new int[10];
 		//In its default mode, Phosphor tracks ONLY for the array ELEMENTS - not for the reference
 		//can do -withArrayLengthTags to track a tag for the length of the array
 		x = MultiTainter.taintedIntArray(x, "b");
-		
+
 		assertTrue(((TaintedWithObjTag)m).getPHOSPHOR_TAG() != null);
 		assertTrue(MultiTainter.getTaint(m) != null);
 		assertTrue(MultiTainter.getTaint(s) != null);
 		assertTrue(MultiTainter.getTaint(x[0]) != null);
 	}
+
 	@Test
-	public void testBoxing()
-	{
+	public void testBoxing() {
 		Boolean z = MultiTainter.taintedBoolean(false, "a");
 		Byte b = MultiTainter.taintedByte((byte) 4,"a");
 		Character c = MultiTainter.taintedChar('a', "a");
@@ -40,7 +42,7 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		Long l = MultiTainter.taintedLong((long) 5, "a");
 		Float f = MultiTainter.taintedFloat(4f, "a");
 		Double d = MultiTainter.taintedDouble(4d, "a");
-		
+
 
 		assertTrue(MultiTainter.getTaint(z.booleanValue()) != null);
 		assertTrue(MultiTainter.getTaint(b.byteValue()) != null);
@@ -53,15 +55,13 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 	}
 
 	@Test
-	public void testIntConstructorTaintsIntObject()
-	{
+	public void testIntConstructorTaintsIntObject() {
 		Integer i = new Integer(MultiTainter.taintedInt(5, "a"));
 		assertTrue(MultiTainter.getTaint(i)!=null);
-
 	}
+
 	@Test
-	public void testNotBoxing()
-	{
+	public void testNotBoxing() {
 		boolean z = MultiTainter.taintedBoolean(false, "a");
 		byte b = MultiTainter.taintedByte((byte) 4, "a");
 		char c = MultiTainter.taintedChar('a', "a");
@@ -70,7 +70,7 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		long l = MultiTainter.taintedLong((long) 5, "a");
 		float f = MultiTainter.taintedFloat(4f, "a");
 		double d = MultiTainter.taintedDouble(4d, "a");
-		
+
 
 		assertTrue(MultiTainter.getTaint(z) != null);
 		assertTrue(MultiTainter.getTaint(b) != null);
@@ -81,10 +81,9 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		assertTrue(MultiTainter.getTaint(f) != null);
 		assertTrue(MultiTainter.getTaint(d) != null);
 	}
-	
+
 	@Test
-	public void testToString()
-	{
+	public void testToString() {
 		boolean z = MultiTainter.taintedBoolean(false, "a");
 		byte b = MultiTainter.taintedByte((byte) 4, "a");
 		char c = MultiTainter.taintedChar('a', "a");
@@ -101,11 +100,10 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		assertNonNullTaint(Float.toString(f));
 		assertNonNullTaint(Double.toString(d));
 		assertNonNullTaint(Integer.toString(i));
-	}	
-	
+	}
+
 	@Test
-	public void testValueOf()
-	{
+	public void testValueOf() {
 		String hundred = new String(new char[]{'1','0','0'});
 		Integer lbl = 5;
 		String TRUE = new String(new char[]{'t','r','u','e'});
@@ -157,8 +155,75 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		assertTaintHasOnlyLabel(MultiTainter.getTaint(l6), lbl);
 		assertTaintHasOnlyLabel(MultiTainter.getTaint(f), lbl);
 		assertTaintHasOnlyLabel(MultiTainter.getTaint(f2), lbl);
-		assertTaintHasOnlyLabel(MultiTainter.getTaint(d), lbl);		
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(d), lbl);
 		assertTaintHasOnlyLabel(MultiTainter.getTaint(d2), lbl);
 	}
 
+	@Test
+	public void testBoxedBooleanSameValueDifferentTags() {
+		int len = 10;
+		Boolean[] taintedValues = new Boolean[len];
+		Boolean[] nonTaintedValues = new Boolean[len];
+		for(int i = 0; i < len; i++) {
+			taintedValues[i] = MultiTainter.taintedBoolean(true, i);
+			nonTaintedValues[i] = true;
+		}
+		for(int i = 0; i < len; i++) {
+			assertNullOrEmpty(MultiTainter.getTaint(nonTaintedValues[i]));
+			Taint tag = MultiTainter.getTaint(taintedValues[i]);
+			assertNonNullTaint(tag);
+			assertArrayEquals(new Object[]{i}, tag.getLabels());
+		}
+	}
+
+	@Test
+	public void testBoxedByteSameValueDifferentTags() {
+		int len = 10;
+		Byte[] taintedValues = new Byte[len];
+		Byte[] nonTaintedValues = new Byte[len];
+		for(int i = 0; i < len; i++) {
+			taintedValues[i] = MultiTainter.taintedByte((byte)5, i);
+			nonTaintedValues[i] = 5;
+		}
+		for(int i = 0; i < len; i++) {
+			assertNullOrEmpty(MultiTainter.getTaint(nonTaintedValues[i]));
+			Taint tag = MultiTainter.getTaint(taintedValues[i]);
+			assertNonNullTaint(tag);
+			assertArrayEquals(new Object[]{i}, tag.getLabels());
+		}
+	}
+	
+	@Test
+	public void testBoxedCharSameValueDifferentTags() {
+		int len = 10;
+		Character[] taintedValues = new Character[len];
+		Character[] nonTaintedValues = new Character[len];
+		for(int i = 0; i < len; i++) {
+			taintedValues[i] = MultiTainter.taintedChar('a', i);
+			nonTaintedValues[i] = 'a';
+		}
+		for(int i = 0; i < len; i++) {
+			assertNullOrEmpty(MultiTainter.getTaint(nonTaintedValues[i]));
+			Taint tag = MultiTainter.getTaint(taintedValues[i]);
+			assertNonNullTaint(tag);
+			assertArrayEquals(new Object[]{i}, tag.getLabels());
+		}
+	}
+
+	@Test
+	public void testBoxedShortSameValueDifferentTags() {
+		int len = 10;
+		Short[] taintedValues = new Short[len];
+		Short[] nonTaintedValues = new Short[len];
+		for(int i = 0; i < len; i++) {
+			taintedValues[i] = MultiTainter.taintedShort((short)7, i);
+			nonTaintedValues[i] = 7;
+		}
+		for(int i = 0; i < len; i++) {
+			assertNullOrEmpty(MultiTainter.getTaint(nonTaintedValues[i]));
+			Taint tag = MultiTainter.getTaint(taintedValues[i]);
+			assertNonNullTaint(tag);
+			assertArrayEquals(new Object[]{i}, tag.getLabels());
+		}
+	}
 }
