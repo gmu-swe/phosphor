@@ -249,16 +249,18 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
 
     @SuppressWarnings("unused")
     public static Object wrapIfNecessary(Object obj) {
-        Taint tag = MultiTainter.getTaint(obj);
-        if(tag != null && !tag.isEmpty()) {
-            if(obj instanceof Boolean) {
-                return SerializationWrapper.wrap((Boolean) obj);
-            } else if(obj instanceof Byte) {
-                return SerializationWrapper.wrap((Byte) obj);
-            } else if(obj instanceof Character) {
-                return SerializationWrapper.wrap((Character) obj);
-            } else if(obj instanceof Short) {
-                return SerializationWrapper.wrap((Short) obj);
+        if(obj instanceof Boolean || obj instanceof Byte || obj instanceof Character || obj instanceof Short) {
+            Taint tag = MultiTainter.getTaint(obj);
+            if(tag != null && !tag.isEmpty()) {
+                if(obj instanceof Boolean) {
+                    return SerializationWrapper.wrap((Boolean) obj);
+                } else if(obj instanceof Byte) {
+                    return SerializationWrapper.wrap((Byte) obj);
+                } else if(obj instanceof Character) {
+                    return SerializationWrapper.wrap((Character) obj);
+                } else {
+                    return SerializationWrapper.wrap((Short) obj);
+                }
             }
         }
         return obj;
