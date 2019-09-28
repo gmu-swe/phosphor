@@ -19,7 +19,7 @@ public class IgnoredTestUtil {
         TaintSourceWrapper.setStringValueTag(str, new LazyCharArrayObjTags(str.toCharArray(), tags));
     }
 
-    /* Replaces the taint tag for each character of the specified with a taint tag containing only the specified label. */
+    @SuppressWarnings("unused")
     public static void setStringCharTaints$$PHOSPHORTAGGED(String str, Object label, ControlTaintTagStack ctrl) {
         setStringCharTaints(str, label);
     }

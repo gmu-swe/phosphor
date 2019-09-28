@@ -1518,8 +1518,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					for(int i = 0; i < args.length; i++)
 					{
 						ga.loadArg(i);
-						if(args[i].getSort() == Type.ARRAY && args[i].getDimensions() >1&&args[i].getElementType().getSort() != Type.OBJECT)
-						{
+						if(args[i].getSort() == Type.ARRAY && args[i].getDimensions() >1&&args[i].getElementType().getSort() != Type.OBJECT) {
 							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;",false);
 							ga.visitTypeInsn(Opcodes.CHECKCAST, args[i].getInternalName());
 						}
@@ -1866,10 +1865,15 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						if (isUntaggedCall)
 							ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 						else {
-							if (className.equals("sun/misc/Unsafe"))
+							if(className.equals("sun/misc/Unsafe")) {
 								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRawOnly1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-							else
+							} else if(className.equals("sun/reflect/NativeMethodAccessorImpl") && "invoke0".equals(methodNameToCall) && Type.getType(Object.class).equals(t)) {
+								ga.loadArg(0);
+								ga.visitInsn(Opcodes.SWAP);
+								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxMethodReceiverIfNecessary", "(Ljava/lang/reflect/Method;Ljava/lang/Object;)Ljava/lang/Object;", false);
+							} else {
 								ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+							}
 						}
 						if (t.getSort() == Type.ARRAY)
 							ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());

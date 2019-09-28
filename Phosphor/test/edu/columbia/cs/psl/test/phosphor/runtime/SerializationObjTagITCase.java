@@ -2,14 +2,13 @@ package edu.columbia.cs.psl.test.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
-import org.junit.Ignore;
+import edu.columbia.cs.psl.phosphor.struct.PowerSetTree;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.*;
-import java.lang.reflect.Array;
 import java.math.BigInteger;
 
 import static org.junit.Assert.*;
@@ -19,6 +18,11 @@ public class SerializationObjTagITCase extends FieldHolderBaseTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+
+    @After
+    public void reset() {
+        PowerSetTree.getInstance().reset();
+    }
 
     public static class PrimitiveArrayHolderChild extends PrimitiveArrayHolder {
 
@@ -273,7 +277,6 @@ public class SerializationObjTagITCase extends FieldHolderBaseTest {
     }
 
     /* Checks that when tainted primitives are serialized and then deserialized the deserialized primitives are tainted. */
-    @Ignore
     @Test
     public void testSerializeTaintedPrimitives() throws Exception {
         checkSerializePrimitives(true);
