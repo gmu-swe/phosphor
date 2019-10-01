@@ -267,10 +267,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     static class AnnotatedInstruction {
         public AnnotatedInstruction handledAt;
         public HashSet<AnnotatedInstruction> postDominators = new HashSet<>();
-        protected int idxOrder;
         int idx;
         //		LinkedList<Integer> outEdges = new LinkedList<>();
-        HashSet<AnnotatedInstruction> successorsCompact = new HashSet<>();
+        HashSet<AnnotatedInstruction> basicBlockStartingSuccesors = new HashSet<>();
         HashSet<AnnotatedInstruction> successors = new HashSet<>();
         HashSet<AnnotatedInstruction> predecessors = new HashSet<>();
         AbstractInsnNode insn;
@@ -278,7 +277,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         boolean visited;
         boolean isTryBlockStart;
         boolean isJump;
-        boolean is2ArgJump;
+        boolean isTwoOperandJumpInstruction;
         int ex_count;
         HashSet<String> exceptionsHandled = new HashSet<>();
         HashSet<String> coveredByTryBlockFor = new HashSet<>();
@@ -831,7 +830,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                             case Opcodes.IF_ICMPLE:
                             case Opcodes.IF_ACMPEQ:
                             case Opcodes.IF_ACMPNE:
-                                fromBlock.is2ArgJump = true;
+                                fromBlock.isTwoOperandJumpInstruction = true;
                                 break;
                         }
                     }
@@ -1188,9 +1187,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     for (AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
                         for (AnnotatedInstruction s : b.successors) {
                             if (s.isInteresting()) {
-                                changed |= b.successorsCompact.add(s);
+                                changed |= b.basicBlockStartingSuccesors.add(s);
                             } else {
-                                changed |= b.successorsCompact.addAll(s.successorsCompact);
+                                changed |= b.basicBlockStartingSuccesors.addAll(s.basicBlockStartingSuccesors);
                             }
                         }
                     }
@@ -1201,7 +1200,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     if (b.isInteresting())
                         interestingBlocks.add(b);
                 for (AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                    if (b.successorsCompact.size() == 0)
+                    if (b.basicBlockStartingSuccesors.size() == 0)
                         b.postDominators.add(b);
                     else
                         b.postDominators.addAll(interestingBlocks);
@@ -1210,9 +1209,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 while (changed) {
                     changed = false;
                     for (AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                        if (b.successorsCompact.size() > 0 && b.isInteresting()) {
+                        if (b.basicBlockStartingSuccesors.size() > 0 && b.isInteresting()) {
                             HashSet<AnnotatedInstruction> intersectionOfPredecessors = new HashSet<AnnotatedInstruction>();
-                            Iterator<AnnotatedInstruction> iter = b.successorsCompact.iterator();
+                            Iterator<AnnotatedInstruction> iter = b.basicBlockStartingSuccesors.iterator();
                             AnnotatedInstruction successor = iter.next();
                             intersectionOfPredecessors.addAll(successor.postDominators);
                             while (iter.hasNext()) {
@@ -1458,7 +1457,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
                         instructions.insertBefore(r.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
                         jumpIDs.put(r, jumpID);
-                        if (r.is2ArgJump)
+                        if (r.isTwoOperandJumpInstruction)
                             jumpID++;
 
                         for (LVAccess i : diff)
@@ -1525,7 +1524,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                                 if (b.successors.size() > 0) {
                                     //for any return/athrow, we'll just bulk pop-all
                                     instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
-                                    if (r.is2ArgJump)
+                                    if (r.isTwoOperandJumpInstruction)
                                         instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r) + 1));
                                 }
                             }
