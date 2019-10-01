@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
-import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer.BasicBlock;
+import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer.AnnotatedInstruction;
 
 
 /**
@@ -12,14 +12,14 @@ import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer.BasicBlo
  * 
  */
 public class SCCAnalyzer {
-	BasicBlock[] graph;
+	AnnotatedInstruction[] graph;
 	boolean[] visited;
 	Stack<Integer> stack;
 	int time;
 	int[] lowlink;
-	List<List<BasicBlock>> components;
+	List<List<AnnotatedInstruction>> components;
 
-	public List<List<BasicBlock>> scc(BasicBlock[] graph) {
+	public List<List<AnnotatedInstruction>> scc(AnnotatedInstruction[] graph) {
 		int n = graph.length;
 		this.graph = graph;
 		visited = new boolean[n];
@@ -43,7 +43,7 @@ public class SCCAnalyzer {
 		stack.add(u);
 		boolean isComponentRoot = true;
 
-		for (BasicBlock v : graph[u].successors) {
+		for (AnnotatedInstruction v : graph[u].successors) {
 			if (!visited[v.idx])
 				dfs(v.idx);
 			if (lowlink[u] > lowlink[v.idx]) {
@@ -53,7 +53,7 @@ public class SCCAnalyzer {
 		}
 
 		if (isComponentRoot) {
-			List<BasicBlock> component = new ArrayList<>();
+			List<AnnotatedInstruction> component = new ArrayList<>();
 			while (true) {
 				int x = stack.pop();
 				component.add(graph[x]);
