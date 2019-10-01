@@ -19,14 +19,14 @@ import java.util.Map.Entry;
 public class PrimitiveArrayAnalyzer extends MethodVisitor {
     static final boolean DEBUG = false;
     public boolean isEmptyMethod = true;
-    public HashSet<Type> wrapperTypesToPreAlloc = new HashSet<Type>();
+    public HashSet<Type> wrapperTypesToPreAlloc = new HashSet<>();
     public int nJumps;
     public MethodNode mn;
     public boolean hasFinally;
     public int nTryCatch;
     public int nThrow;
-    NeverNullArgAnalyzerAdapter analyzer;
-    HashMap<Label, LinkedList<Label>> newLabels = new HashMap<>();
+    private NeverNullArgAnalyzerAdapter analyzer;
+    private HashMap<Label, LinkedList<Label>> newLabels = new HashMap<>();
     private boolean isImplicitLightTracking;
 
     public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, final boolean isImplicitLightTracking) {
@@ -39,8 +39,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     public PrimitiveArrayAnalyzer(Type singleWrapperTypeToAdd) {
         super(Configuration.ASM_VERSION);
         this.mv = new PrimitiveArrayAnalyzerMN(0, null, null, null, null, null, null);
-        if (singleWrapperTypeToAdd.getSort() == Type.OBJECT && singleWrapperTypeToAdd.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/Tainted"))
+        if(singleWrapperTypeToAdd.getSort() == Type.OBJECT && singleWrapperTypeToAdd.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/Tainted")) {
             this.wrapperTypesToPreAlloc.add(singleWrapperTypeToAdd);
+        }
     }
 
     static void debug(AbstractInsnNode insn) {
@@ -120,6 +121,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             case Opcodes.FSUB:
             case Opcodes.FMUL:
             case Opcodes.FDIV:
+            case Opcodes.I2F:
+            case Opcodes.L2F:
+            case Opcodes.D2F:
                 if (Configuration.PREALLOC_STACK_OPS)
                     wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("F"));
                 break;
@@ -128,6 +132,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             case Opcodes.DMUL:
             case Opcodes.DDIV:
             case Opcodes.DREM:
+            case Opcodes.DALOAD:
                 wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("D"));
                 break;
             case Opcodes.LSHL:
@@ -141,6 +146,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             case Opcodes.LAND:
             case Opcodes.LOR:
             case Opcodes.LXOR:
+            case Opcodes.LALOAD:
                 wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("J"));
                 break;
             case Opcodes.LCMP:
@@ -159,8 +165,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             case Opcodes.IOR:
             case Opcodes.IAND:
             case Opcodes.IXOR:
-                wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("I"));
-                break;
             case Opcodes.IALOAD:
                 wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("I"));
                 break;
@@ -170,12 +174,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 break;
             case Opcodes.CALOAD:
                 wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("C"));
-                break;
-            case Opcodes.DALOAD:
-                wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("D"));
-                break;
-            case Opcodes.LALOAD:
-                wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("J"));
                 break;
             case Opcodes.FALOAD:
                 wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("F"));
@@ -196,12 +194,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             case Opcodes.L2D:
                 if (Configuration.PREALLOC_STACK_OPS)
                     wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("D"));
-                break;
-            case Opcodes.I2F:
-            case Opcodes.L2F:
-            case Opcodes.D2F:
-                if (Configuration.PREALLOC_STACK_OPS)
-                    wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("F"));
                 break;
             case Opcodes.I2L:
             case Opcodes.F2L:
@@ -250,10 +242,11 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     @Override
     public void visitLabel(Label label) {
         super.visitLabel(label);
-        LinkedList<Label> lbls = this.newLabels.remove(label);
-        if (lbls != null) {
-            for (Label l : lbls)
+        LinkedList<Label> labels = this.newLabels.remove(label);
+        if(labels != null) {
+            for(Label l : labels) {
                 super.visitLabel(l);
+            }
         }
     }
 
@@ -264,25 +257,22 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
     @Override
     public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
-
-        super.visitTryCatchBlock(addUniqueLabelFor(start),
-                end,
-//				addUniqueLabelFor(end),
-                handler, type);
-        if (type == null)
+        super.visitTryCatchBlock(addUniqueLabelFor(start), end,/* addUniqueLabelFor(end),*/ handler, type);
+        if(type == null) {
             hasFinally = true;
+        }
         nTryCatch++;
     }
 
     static class BasicBlock {
         public BasicBlock handledAt;
-        public HashSet<BasicBlock> postDominators = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
+        public HashSet<BasicBlock> postDominators = new HashSet<>();
         protected int idxOrder;
         int idx;
-        //		LinkedList<Integer> outEdges = new LinkedList<Integer>();
-        HashSet<BasicBlock> successorsCompact = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-        HashSet<BasicBlock> successors = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-        HashSet<BasicBlock> predecessors = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
+        //		LinkedList<Integer> outEdges = new LinkedList<>();
+        HashSet<BasicBlock> successorsCompact = new HashSet<>();
+        HashSet<BasicBlock> successors = new HashSet<>();
+        HashSet<BasicBlock> predecessors = new HashSet<>();
         AbstractInsnNode insn;
         boolean covered;
         boolean visited;
@@ -295,17 +285,17 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         HashSet<BasicBlock> handlerForRegionStartingAt = new HashSet<>();
         BasicBlock tryBlockEnd;
 
-        HashSet<BasicBlock> resolvedHereBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-        HashSet<BasicBlock> resolvedBlocks = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-        HashSet<BasicBlock> onFalseSideOfJumpFrom = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-        HashSet<BasicBlock> onTrueSideOfJumpFrom = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
-        HashSet<LVAccess> varsWritten = new HashSet<LVAccess>();
+        HashSet<BasicBlock> resolvedHereBlocks = new HashSet<>();
+        HashSet<BasicBlock> resolvedBlocks = new HashSet<>();
+        HashSet<BasicBlock> onFalseSideOfJumpFrom = new HashSet<>();
+        HashSet<BasicBlock> onTrueSideOfJumpFrom = new HashSet<>();
+        HashSet<LVAccess> varsWritten = new HashSet<>();
         HashSet<Field> fieldsWritten = new HashSet<>();
         HashSet<String> exceptionsThrown = new HashSet<>();
         HashSet<String> exceptionsThrownTrueSide = new HashSet<>();
         HashSet<String> exceptionsThrownFalseSide = new HashSet<>();
-        HashSet<LVAccess> varsWrittenTrueSide = new HashSet<LVAccess>();
-        HashSet<LVAccess> varsWrittenFalseSide = new HashSet<LVAccess>();
+        HashSet<LVAccess> varsWrittenTrueSide = new HashSet<>();
+        HashSet<LVAccess> varsWrittenFalseSide = new HashSet<>();
         HashSet<Field> fieldsWrittenTrueSide = new HashSet<>();
         HashSet<Field> fieldsWrittenFalseSide = new HashSet<>();
         private boolean compactSuccessorsCalculated;
@@ -370,17 +360,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
         @Override
         public boolean equals(Object o) {
-
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             LVAccess lvAccess = (LVAccess) o;
-            return idx == lvAccess.idx &&
-                    Objects.equals(desc, lvAccess.desc);
+            return idx == lvAccess.idx && Objects.equals(desc, lvAccess.desc);
         }
 
         @Override
         public int hashCode() {
-
             return Objects.hash(idx, desc);
         }
 
@@ -397,10 +384,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         private final MethodVisitor cmv;
         boolean[] endsWithGOTO;
         int curLabel = 0;
-        HashMap<Integer, Boolean> lvsThatAreArrays = new HashMap<Integer, Boolean>();
-        ArrayList<FrameNode> inFrames = new ArrayList<FrameNode>();
-        ArrayList<FrameNode> outFrames = new ArrayList<FrameNode>();
-        HashMap<Integer, BasicBlock> implicitAnalysisblocks = new HashMap<Integer, PrimitiveArrayAnalyzer.BasicBlock>();
+        HashMap<Integer, Boolean> lvsThatAreArrays = new HashMap<>();
+        ArrayList<FrameNode> inFrames = new ArrayList<>();
+        ArrayList<FrameNode> outFrames = new ArrayList<>();
+        HashMap<Integer, BasicBlock> implicitAnalysisBlocks = new HashMap<>();
 
         public PrimitiveArrayAnalyzerMN(int access, String name, String desc, String signature, String[] exceptions, String className, MethodVisitor cmv) {
             super(Configuration.ASM_VERSION, access, name, desc, signature, exceptions);
@@ -411,9 +398,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
         @Override
         protected LabelNode getLabelNode(Label l) {
-            if (!Configuration.READ_AND_SAVE_BCI)
+            if(!Configuration.READ_AND_SAVE_BCI) {
                 return super.getLabelNode(l);
-            if (!(l.info instanceof LabelNode)) {
+            }
+            if(!(l.info instanceof LabelNode)) {
                 l.info = new LabelNode(l);
             }
             return (LabelNode) l.info;
@@ -445,12 +433,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         //				}
         //				super.visitVarInsn(opcode, var);
         //			}
-        private void visitFrameTypes(final int n, final Object[] types,
-                                     final List<Object> result) {
-            for (int i = 0; i < n; ++i) {
+
+        private void visitFrameTypes(final int n, final Object[] types, final List<Object> result) {
+            for(int i = 0; i < n; i++) {
                 Object type = types[i];
                 result.add(type);
-                if (type == Opcodes.LONG || type == Opcodes.DOUBLE) {
+                if(type == Opcodes.LONG || type == Opcodes.DOUBLE) {
                     result.add(Opcodes.TOP);
                 }
             }
@@ -458,8 +446,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
         FrameNode generateFrameNode(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
             FrameNode ret = new FrameNode(type, nLocal, local, nStack, stack);
-            ret.local = new ArrayList<Object>();
-            ret.stack = new ArrayList<Object>();
+            ret.local = new ArrayList<>();
+            ret.stack = new ArrayList<>();
             visitFrameTypes(nLocal, local, ret.local);
             visitFrameTypes(nStack, stack, ret.stack);
             return ret;
@@ -570,7 +558,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     throw new IllegalArgumentException();
             }
             //The analyzer won't have executed yet, so simulate it did :'(
-            List<Object> stack = new ArrayList<Object>(analyzer.stack);
+            List<Object> stack = new ArrayList<>(analyzer.stack);
             //				System.out.println("got to remove " + nToPop +  " from " + analyzer.stack + " in " + className + "."+name );
             while (nToPop > 0 && !stack.isEmpty()) {
                 stack.remove(stack.size() - 1);
@@ -587,17 +575,17 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
         @Override
         public void visitEnd() {
-            final HashMap<Integer, LinkedList<Integer>> neverAutoBoxByFrame = new HashMap<Integer, LinkedList<Integer>>();
-            final HashMap<Integer, LinkedList<Integer>> alwaysAutoBoxByFrame = new HashMap<Integer, LinkedList<Integer>>();
-            final HashMap<Integer, LinkedList<Integer>> outEdges = new HashMap<Integer, LinkedList<Integer>>();
-            final HashSet<Integer> insertACHECKCASTBEFORE = new HashSet<Integer>();
-            final HashSet<Integer> insertACONSTNULLBEFORE = new HashSet<Integer>();
+            final HashMap<Integer, LinkedList<Integer>> neverAutoBoxByFrame = new HashMap<>();
+            final HashMap<Integer, LinkedList<Integer>> alwaysAutoBoxByFrame = new HashMap<>();
+            final HashMap<Integer, LinkedList<Integer>> outEdges = new HashMap<>();
+            final HashSet<Integer> insertACHECKCASTBEFORE = new HashSet<>();
+            final HashSet<Integer> insertACONSTNULLBEFORE = new HashSet<>();
             @SuppressWarnings("unchecked")
             Analyzer a = new Analyzer(new BasicArrayInterpreter((this.access & Opcodes.ACC_STATIC) != 0, isImplicitLightTracking)) {
                 protected int[] insnToLabel;
-                HashMap<Integer, LinkedList<Integer>> edges = new HashMap<Integer, LinkedList<Integer>>();
-                LinkedList<Integer> varsStoredThisInsn = new LinkedList<Integer>();
-                HashSet<String> visited = new HashSet<String>();
+                HashMap<Integer, LinkedList<Integer>> edges = new HashMap<>();
+                LinkedList<Integer> varsStoredThisInsn = new LinkedList<>();
+                HashSet<String> visited = new HashSet<>();
                 int insnIdxOrderVisited = 0;
 
                 int getLabel(int insn) {
@@ -731,7 +719,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
                             for (Integer toMerge : edge.getValue()) {
                                 if (shouldTrackExceptions) {
-                                    BasicBlock b = implicitAnalysisblocks.get(toMerge);
+                                    BasicBlock b = implicitAnalysisBlocks.get(toMerge);
                                     if (b.insn.getOpcode() == Opcodes.ATHROW)
                                         continue;
                                 }
@@ -805,7 +793,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 @Override
                 protected void newControlFlowEdge(int insn, int successor) {
                     newControlFlowEdge(insn, successor, false);
-
                 }
 
                 protected void newControlFlowEdge(int insn, int successor, boolean isExceptionalEdge) {
@@ -822,14 +809,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         outEdges.get(insn).add(successor);
 
                     BasicBlock fromBlock;
-                    if (!implicitAnalysisblocks.containsKey(insn)) {
+                    if (!implicitAnalysisBlocks.containsKey(insn)) {
                         //insn not added yet
                         fromBlock = new BasicBlock();
                         fromBlock.idx = insn;
                         fromBlock.insn = instructions.get(insn);
-                        implicitAnalysisblocks.put(insn, fromBlock);
+                        implicitAnalysisBlocks.put(insn, fromBlock);
                     } else
-                        fromBlock = implicitAnalysisblocks.get(insn);
+                        fromBlock = implicitAnalysisBlocks.get(insn);
 
                     AbstractInsnNode insnN = instructions.get(insn);
                     fromBlock.isJump = (insnN.getType() == AbstractInsnNode.JUMP_INSN && insnN.getOpcode() != Opcodes.GOTO)
@@ -849,13 +836,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         }
                     }
                     BasicBlock succesorBlock;
-                    if (implicitAnalysisblocks.containsKey(successor))
-                        succesorBlock = implicitAnalysisblocks.get(successor);
+                    if (implicitAnalysisBlocks.containsKey(successor))
+                        succesorBlock = implicitAnalysisBlocks.get(successor);
                     else {
                         succesorBlock = new BasicBlock();
                         succesorBlock.idx = successor;
                         succesorBlock.insn = instructions.get(successor);
-                        implicitAnalysisblocks.put(successor, succesorBlock);
+                        implicitAnalysisBlocks.put(successor, succesorBlock);
                         if (succesorBlock.insn.getType() == AbstractInsnNode.IINC_INSN) {
                             succesorBlock.varsWritten.add(new LVAccess(((IincInsnNode) succesorBlock.insn).var, "I"));
                         } else if (succesorBlock.insn.getType() == AbstractInsnNode.VAR_INSN) {
@@ -1084,7 +1071,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 e.printStackTrace();
             }
             if (Configuration.ANNOTATE_LOOPS) {
-                GraphBasedAnalyzer.doGraphAnalysis(this, implicitAnalysisblocks);
+                GraphBasedAnalyzer.doGraphAnalysis(this, implicitAnalysisBlocks);
             }
 
             if (Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
@@ -1102,7 +1089,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         Integer endKey = null;
 
 
-                        for (Entry<Integer, BasicBlock> e : implicitAnalysisblocks.entrySet()) {
+                        for (Entry<Integer, BasicBlock> e : implicitAnalysisBlocks.entrySet()) {
                             BasicBlock b = e.getValue();
                             Integer i = e.getKey();
                             if (b.insn == t.handler) {
@@ -1125,8 +1112,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         //Identify all of the instructions in this try block
                         if (startBlock != null && endBlock != null) {
                             for (int i = startKey; i <= endKey; i++) {
-                                if (implicitAnalysisblocks.get(i) != null)
-                                    implicitAnalysisblocks.get(i).coveredByTryBlockFor.add(t.type);
+                                if (implicitAnalysisBlocks.get(i) != null)
+                                    implicitAnalysisBlocks.get(i).coveredByTryBlockFor.add(t.type);
                             }
                         }
                         handlerBlock.exceptionsHandled.add(t.type);
@@ -1153,19 +1140,19 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
                 }
 
-                for (BasicBlock b : implicitAnalysisblocks.values())
+                for (BasicBlock b : implicitAnalysisBlocks.values())
                     if (b.isJump) {
                         hasJumps = true;
                         break;
                     }
-                if (implicitAnalysisblocks.size() > 1 && hasJumps) {
+                if (implicitAnalysisBlocks.size() > 1 && hasJumps) {
                     Stack<BasicBlock> stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
 
                     //Fix successors to only point to jumps or labels
                     boolean changed = true;
                     while (changed) {
                         changed = false;
-                        for (BasicBlock b : implicitAnalysisblocks.values()) {
+                        for (BasicBlock b : implicitAnalysisBlocks.values()) {
                             for (BasicBlock s : b.successors) {
                                 if (s.isInteresting()) {
                                     changed |= b.successorsCompact.add(s);
@@ -1177,10 +1164,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     }
                     //Post dominator analysis
                     HashSet<BasicBlock> interestingBlocks = new HashSet<>();
-                    for (BasicBlock b : implicitAnalysisblocks.values())
+                    for (BasicBlock b : implicitAnalysisBlocks.values())
                         if (b.isInteresting())
                             interestingBlocks.add(b);
-                    for (BasicBlock b : implicitAnalysisblocks.values()) {
+                    for (BasicBlock b : implicitAnalysisBlocks.values()) {
                         if (b.successorsCompact.size() == 0)
                             b.postDominators.add(b);
                         else
@@ -1189,7 +1176,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     changed = true;
                     while (changed) {
                         changed = false;
-                        for (BasicBlock b : implicitAnalysisblocks.values()) {
+                        for (BasicBlock b : implicitAnalysisBlocks.values()) {
                             if (b.successorsCompact.size() > 0 && b.isInteresting()) {
                                 HashSet<BasicBlock> intersectionOfPredecessors = new HashSet<PrimitiveArrayAnalyzer.BasicBlock>();
                                 Iterator<BasicBlock> iter = b.successorsCompact.iterator();
@@ -1210,7 +1197,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
 
                     //Add in markings for where jumps are resolved
-                    for (BasicBlock j : implicitAnalysisblocks.values()) {
+                    for (BasicBlock j : implicitAnalysisBlocks.values()) {
                         if (j.isJump || j.isTryBlockStart) {
 //							System.out.println(j + " " + j.postDominators);
                             j.postDominators.remove(j);
@@ -1239,7 +1226,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //						this.instructions.insertBefore(j.insn,new InsnNode(Opcodes.POP));
 //					}
                     //Propogate forward true-side/false-side to determine which vars are written
-                    stack.add(implicitAnalysisblocks.get(0));
+                    stack.add(implicitAnalysisBlocks.get(0));
 //					stack.addAll(tryCatchHandlers);
                     while (!stack.isEmpty()) {
                         BasicBlock b = stack.pop();
@@ -1273,11 +1260,11 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //						this.instructions.insertBefore(j.insn, new LdcInsnNode(j.idx + " " + j.onTrueSideOfJumpFrom + " " + j.onFalseSideOfJumpFrom +" SUC:" + j.successors));
 //						this.instructions.insertBefore(j.insn,new InsnNode(Opcodes.POP));
 //					}
-                    for (BasicBlock j : implicitAnalysisblocks.values())
+                    for (BasicBlock j : implicitAnalysisBlocks.values())
                         j.visited = false;
 
 
-                    for (BasicBlock j : implicitAnalysisblocks.values()) {
+                    for (BasicBlock j : implicitAnalysisBlocks.values()) {
 //						System.out.println(j.idx + " " + j.postDominators);
                         if (j.isJump || j.isTryBlockStart) {
                             stack = new Stack<PrimitiveArrayAnalyzer.BasicBlock>();
@@ -1309,7 +1296,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     }
                     HashMap<BasicBlock, Integer> jumpIDs = new HashMap<PrimitiveArrayAnalyzer.BasicBlock, Integer>();
                     int jumpID = 0;
-                    for (BasicBlock r : implicitAnalysisblocks.values()) {
+                    for (BasicBlock r : implicitAnalysisBlocks.values()) {
                         if (r.isTryBlockStart) {
                             //Need to actually insert this code at every exit from the SCC that is this try-catch block.
 
@@ -1457,12 +1444,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                             //Return statement: check to see how we might have gotten here, and then find which exceptions we might have thrown if we came otherwise
                             HashSet<String> missedExceptions = new HashSet<>();
                             for (BasicBlock b : r.onFalseSideOfJumpFrom) {
-                                HashSet<String> tmp = new HashSet(b.exceptionsThrownTrueSide);
+                                HashSet<String> tmp = new HashSet<>(b.exceptionsThrownTrueSide);
                                 tmp.removeAll(b.exceptionsThrownFalseSide);
                                 missedExceptions.addAll(tmp);
                             }
                             for (BasicBlock b : r.onTrueSideOfJumpFrom) {
-                                HashSet<String> tmp = new HashSet(b.exceptionsThrownFalseSide);
+                                HashSet<String> tmp = new HashSet<>(b.exceptionsThrownFalseSide);
                                 tmp.removeAll(b.exceptionsThrownTrueSide);
                                 missedExceptions.addAll(tmp);
                             }
@@ -1488,7 +1475,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     }
 
 
-                    for (BasicBlock b : implicitAnalysisblocks.values()) {
+                    for (BasicBlock b : implicitAnalysisBlocks.values()) {
 //						System.out.println(b.idx + " -> " + b.successorsCompact);
 //						System.out.println(b.successors);
 //						System.out.println(b.resolvedBlocks);
