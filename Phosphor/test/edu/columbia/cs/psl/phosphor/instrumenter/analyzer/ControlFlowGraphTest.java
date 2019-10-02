@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.struct.IntObjectAMT;
 import edu.columbia.cs.psl.phosphor.struct.IntSinglyLinkedList;
-import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExternalResource;
@@ -90,29 +89,29 @@ public class ControlFlowGraphTest {
     }
 
     private void checkSwitchRpoSuccessors(IntObjectAMT<IntSinglyLinkedList> rpoSuccessors) {
-        // Check that the exit node has no successors
-        assertTrue(rpoSuccessors.get(0).isEmpty());
-        // Check that the node right before the exit (return y * 6;) is only succeeded by the exit
-        assertEquals(1, rpoSuccessors.get(1).size());
-        assertEquals(0, rpoSuccessors.get(1).peek());
-        // Check that the nodes for the 6 switch case are succeeded only by the (return y * 6;) node
-        for(int i = 2; i <= 7; i++) {
-            assertEquals(1, rpoSuccessors.get(i).size());
-            assertEquals(1, rpoSuccessors.get(i).peek());
-        }
+        // Check that the start node is succeeded ony by the switch start
+        assertEquals(1, rpoSuccessors.get(0).size());
+        assertEquals(1, rpoSuccessors.get(0).peek());
         // Check that the switch start is succeeded by all 6 case nodes
         Set<Integer> expected = new HashSet<>();
         for(int i = 2; i <=7; i++) {
             expected.add(i);
         }
         Set<Integer> actual = new HashSet<>();
-        for(int i : rpoSuccessors.get(8)) {
+        for(int i : rpoSuccessors.get(1)) {
             actual.add(i);
         }
         assertEquals(expected, actual);
-        // Check that the start node is succeeded ony by the switch start
-        assertEquals(1, rpoSuccessors.get(9).size());
-        assertEquals(8, rpoSuccessors.get(9).peek());
+        // Check that the nodes for the 6 switch case are succeeded only by the (return y * 6;) node
+        for(int i = 2; i <= 7; i++) {
+            assertEquals(1, rpoSuccessors.get(i).size());
+            assertEquals(8, rpoSuccessors.get(i).peek());
+        }
+        // Check that the node right before the exit (return y * 6;) is only succeeded by the exit
+        assertEquals(1, rpoSuccessors.get(8).size());
+        assertEquals(9, rpoSuccessors.get(8).peek());
+        // Check that the exit node has no successors
+        assertTrue(rpoSuccessors.get(9).isEmpty());
     }
 
     @Test

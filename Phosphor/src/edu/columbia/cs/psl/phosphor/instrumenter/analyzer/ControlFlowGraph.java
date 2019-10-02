@@ -41,28 +41,59 @@ public class ControlFlowGraph {
     /**
      * The nodes of this graph in reverse post-order with respect to this graph
      */
-    private final ControlFlowNode[] reversePostOrder;
+    private ControlFlowNode[] reversePostOrder;
 
     /**
      * The nodes of this graph in reverse post-order with respect to the traverse of this graph
      */
-    private final ControlFlowNode[] transverseReversePostOrder;
+    private ControlFlowNode[] transverseReversePostOrder;
 
     private ControlFlowGraph(EntryBlock entryBlock, ExitBlock exitBlock, BasicBlock[] basicBlocks) {
         this.basicBlocks = basicBlocks;
         this.entryBlock = entryBlock;
         this.exitBlock = exitBlock;
-        this.reversePostOrder = new ControlFlowNode[basicBlocks.length + 2];
-        this.transverseReversePostOrder = new ControlFlowNode[basicBlocks.length + 2];
         assignReversePostOrderNumbers();
-        reversePostOrder[entryBlock.reversePostOrderIndex] = entryBlock;
-        transverseReversePostOrder[entryBlock.transposeReversePostOrderIndex] = entryBlock;
-        reversePostOrder[exitBlock.reversePostOrderIndex] = exitBlock;
-        transverseReversePostOrder[exitBlock.transposeReversePostOrderIndex] = exitBlock;
-        for(BasicBlock node : basicBlocks) {
-            reversePostOrder[node.reversePostOrderIndex] = node;
-            transverseReversePostOrder[node.transposeReversePostOrderIndex] = node;
+    }
+
+    private int[] calculateDominators() {
+        int[] dominators = new int[reversePostOrder.length];
+        for(int i = 1; i < dominators.length; i++) {
+            dominators[i] = -1; // initialize the dominators as undefined, except for the start node which should be itself
         }
+        boolean changed = true;
+        while(changed) {
+            changed = false;
+            for(int i = 1; i < dominators.length; i++) {
+                int newImmediateDom = -1;
+                for(ControlFlowNode predecessor : reversePostOrder[i].predecessors) {
+                    if(dominators[predecessor.reversePostOrderIndex] != -1) {
+                        if(newImmediateDom == -1) {
+                            newImmediateDom = predecessor.reversePostOrderIndex;
+                        } else {
+                            newImmediateDom = intersect(dominators, predecessor.reversePostOrderIndex, newImmediateDom);
+                        }
+                    }
+                }
+                if(dominators[i] != newImmediateDom) {
+                    dominators[i] = newImmediateDom;
+                    changed = true;
+                }
+            }
+        }
+        return dominators;
+    }
+
+    /* Helper function for calculateDominators. */
+    private int intersect(int[] dominators, int node1, int node2) {
+        while(node1 != node2) {
+            while(node1 > node2) {
+                node1 = dominators[node1];
+            }
+            while(node2 > node1) {
+                node2 = dominators[node2];
+            }
+        }
+        return node1;
     }
 
     /**
@@ -73,33 +104,19 @@ public class ControlFlowGraph {
         SinglyLinkedList<ControlFlowNode> stack = new SinglyLinkedList<>();
         clearMarks(entryBlock, exitBlock, basicBlocks);
         dfs(entryBlock, stack, false);
-        for(BasicBlock node : basicBlocks) {
-            if(!node.marked) {
-                dfs(node, stack, false); // In case not every node is reachable from the start
-            }
-        }
-        if(!exitBlock.marked) {
-            dfs(exitBlock, stack, false);
-        }
-        int i = basicBlocks.length + 1;
+        int i = 0;
         for(ControlFlowNode node : stack) {
-            node.reversePostOrderIndex = i--;
+            node.reversePostOrderIndex = i++;
         }
+        this.reversePostOrder = stack.toArray(new ControlFlowNode[0]);
         stack.clear();
         clearMarks(entryBlock, exitBlock, basicBlocks);
         dfs(exitBlock, stack, true);
-        for(BasicBlock node : basicBlocks) {
-            if(!node.marked) {
-                dfs(node, stack, true); // In case not every node is reachable from the end
-            }
-        }
-        if(!entryBlock.marked) {
-            dfs(entryBlock, stack, true);
-        }
-        i = basicBlocks.length + 1;
+        i = 0;
         for(ControlFlowNode node : stack) {
-            node.transposeReversePostOrderIndex = i--;
+            node.transposeReversePostOrderIndex = i++;
         }
+        this.transverseReversePostOrder = stack.toArray(new ControlFlowNode[0]);
     }
 
     /* Helper method for numberNodes. Performs a depth first search of the graph . */
