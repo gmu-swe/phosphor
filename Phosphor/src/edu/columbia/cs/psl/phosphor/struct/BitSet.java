@@ -106,7 +106,7 @@ public class BitSet {
         }
     }
 
-    /* Returns a list containing the bit indices in this set that are set to one. */
+    /* Returns a list containing the bit indices in this set that are set to one in ascending order by value. */
     public SinglyLinkedList<Integer> toList() {
         SinglyLinkedList<Integer> list = new SinglyLinkedList<>();
         for(int i = 0; i < packets.length; i++) {

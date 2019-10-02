@@ -11,6 +11,9 @@ import org.objectweb.asm.tree.*;
 import java.util.*;
 
 /**
+ * A directed graph that represents the ways that program control can flow through a sequence of instructions.
+ *
+ *
  * Uses algorithms for calculating dominators, immediate dominators, and dominance frontiers from the following:
  * K.D. Cooper, T.J. Harvey, and K. Kennedy, “A Simple, Fast Dominance Algorithm,” Rice University,
  * Department of Computer Science Technical Report 06-33870, 2006.
@@ -20,19 +23,94 @@ public class ControlFlowGraph {
 
     private static final boolean TRACK_EXCEPTIONAL_CONTROL_FLOWS = Configuration.IMPLICIT_EXCEPTION_FLOW;
 
+    /**
+     * Special node used as the single entry point for this graph
+     */
     private final EntryBlock entryBlock;
+
+    /**
+     * Special node used as the single exit point for this graph
+     */
     private final ExitBlock exitBlock;
+
+    /**
+     * Nodes in this graph that contain instructions from the original sequence
+     */
     private final BasicBlock[] basicBlocks;
-    private final ControlFlowNode[] allNodes;
+
+    /**
+     * The nodes of this graph in reverse post-order with respect to this graph
+     */
+    private final ControlFlowNode[] reversePostOrder;
+
+    /**
+     * The nodes of this graph in reverse post-order with respect to the traverse of this graph
+     */
+    private final ControlFlowNode[] transverseReversePostOrder;
 
     private ControlFlowGraph(EntryBlock entryBlock, ExitBlock exitBlock, BasicBlock[] basicBlocks) {
         this.basicBlocks = basicBlocks;
         this.entryBlock = entryBlock;
         this.exitBlock = exitBlock;
-        this.allNodes = new ControlFlowNode[basicBlocks.length + 2];
-        allNodes[0] = entryBlock;
-        System.arraycopy(basicBlocks, 0, allNodes, 1, basicBlocks.length);
-        allNodes[allNodes.length - 1] = exitBlock;
+        this.reversePostOrder = new ControlFlowNode[basicBlocks.length + 2];
+        this.transverseReversePostOrder = new ControlFlowNode[basicBlocks.length + 2];
+        assignReversePostOrderNumbers();
+        reversePostOrder[entryBlock.reversePostOrderIndex] = entryBlock;
+        transverseReversePostOrder[entryBlock.transposeReversePostOrderIndex] = entryBlock;
+        reversePostOrder[exitBlock.reversePostOrderIndex] = exitBlock;
+        transverseReversePostOrder[exitBlock.transposeReversePostOrderIndex] = exitBlock;
+        for(BasicBlock node : basicBlocks) {
+            reversePostOrder[node.reversePostOrderIndex] = node;
+            transverseReversePostOrder[node.transposeReversePostOrderIndex] = node;
+        }
+    }
+
+    /**
+     * Calculates the reverse post-ordering of this graph's nodes for this graph and the transverse of this graph.
+     * Numbers this graph's nodes with their positions in the calculated orderings.
+     */
+    private void assignReversePostOrderNumbers() {
+        SinglyLinkedList<ControlFlowNode> stack = new SinglyLinkedList<>();
+        clearMarks(entryBlock, exitBlock, basicBlocks);
+        dfs(entryBlock, stack, false);
+        for(BasicBlock node : basicBlocks) {
+            if(!node.marked) {
+                dfs(node, stack, false); // In case not every node is reachable from the start
+            }
+        }
+        if(!exitBlock.marked) {
+            dfs(exitBlock, stack, false);
+        }
+        int i = basicBlocks.length + 1;
+        for(ControlFlowNode node : stack) {
+            node.reversePostOrderIndex = i--;
+        }
+        stack.clear();
+        clearMarks(entryBlock, exitBlock, basicBlocks);
+        dfs(exitBlock, stack, true);
+        for(BasicBlock node : basicBlocks) {
+            if(!node.marked) {
+                dfs(node, stack, true); // In case not every node is reachable from the end
+            }
+        }
+        if(!entryBlock.marked) {
+            dfs(entryBlock, stack, true);
+        }
+        i = basicBlocks.length + 1;
+        for(ControlFlowNode node : stack) {
+            node.transposeReversePostOrderIndex = i--;
+        }
+    }
+
+    /* Helper method for numberNodes. Performs a depth first search of the graph . */
+    private static void dfs(ControlFlowNode node, SinglyLinkedList<ControlFlowNode> stack, boolean reverseGraph) {
+        node.marked = true;
+        for(ControlFlowNode child : (reverseGraph ? node.predecessors : node.successors)) {
+            if(!child.marked) {
+                dfs(child, stack, reverseGraph);
+            }
+        }
+        stack.push(node);
     }
 
     /**
@@ -41,7 +119,7 @@ public class ControlFlowGraph {
      */
     public IntObjectAMT<IntSinglyLinkedList> getReversePostOrderSuccessorsMap() {
         IntObjectAMT<IntSinglyLinkedList> nodeSuccessorsMap = new IntObjectAMT<>();
-        for(ControlFlowNode node : allNodes) {
+        for(ControlFlowNode node : reversePostOrder) {
             IntSinglyLinkedList successors = new IntSinglyLinkedList();
             for(ControlFlowNode successor : node.successors) {
                 successors.enqueue(successor.reversePostOrderIndex);
@@ -64,7 +142,6 @@ public class ControlFlowGraph {
         EntryBlock entryBlock = new EntryBlock();
         ExitBlock exitBlock = new ExitBlock();
         addControlFlowEdges(labelBlockIndexMap, entryBlock, exitBlock, basicBlocks);
-        numberNodes(entryBlock, exitBlock, basicBlocks);
         return new ControlFlowGraph(entryBlock, exitBlock, basicBlocks);
     }
 
@@ -124,8 +201,8 @@ public class ControlFlowGraph {
 
     /**
      * @param instructions a sequence of instruction nodes
-     * @param leaders a list of the indices of instructions in the sequence that are the first instruction in some basic
-     *                block
+     * @param leaders a list of the indices in ascending order of instructions in the sequence that are the first
+     *                instruction in some basic block
      * @return a list of basic blocks for the sequence of instruction node
      */
     private static BasicBlock[] createBasicBlocks(AbstractInsnNode[] instructions, SinglyLinkedList<Integer> leaders) {
@@ -202,63 +279,6 @@ public class ControlFlowGraph {
     }
 
     /**
-     * Calculates the reverse post-ordering of the digraph containing the specified nodes and of the transverse of the
-     * digraph containing the specified nodes. Numbers the node in the digraph with their positions in the calculated
-     * orderings.
-     *
-     * @param entryBlock special node used to represent the single entry point of the graph
-     * @param exitBlock special node used to represent the single exit point of the graph
-     * @param basicBlocks other nodes in the graph
-     */
-    private static void numberNodes(EntryBlock entryBlock, ExitBlock exitBlock, BasicBlock[] basicBlocks) {
-        SinglyLinkedList<ControlFlowNode> stack = new SinglyLinkedList<>();
-        clearMarks(basicBlocks);
-        exitBlock.marked = false;
-        entryBlock.marked = false;
-        dfs(entryBlock, stack, false);
-        for(BasicBlock node : basicBlocks) {
-            if(!node.marked) {
-                dfs(node, stack, false);
-            }
-        }
-        if(!exitBlock.marked) {
-            dfs(exitBlock, stack, false);
-        }
-        int i = basicBlocks.length + 1;
-        for(ControlFlowNode node : stack) {
-            node.reversePostOrderIndex = i--;
-        }
-        stack.clear();
-        clearMarks(basicBlocks);
-        exitBlock.marked = false;
-        entryBlock.marked = false;
-        dfs(exitBlock, stack, true);
-        for(BasicBlock node : basicBlocks) {
-            if(!node.marked) {
-                dfs(node, stack, true);
-            }
-        }
-        if(!entryBlock.marked) {
-            dfs(entryBlock, stack, true);
-        }
-        i = basicBlocks.length + 1;
-        for(ControlFlowNode node : stack) {
-            node.transposeReversePostOrderIndex = i--;
-        }
-    }
-
-    /* Helper method for numberNodes. Performs a depth first search of the graph . */
-    private static void dfs(ControlFlowNode node, SinglyLinkedList<ControlFlowNode> stack, boolean reverseGraph) {
-        node.marked = true;
-        for(ControlFlowNode child : (reverseGraph ? node.predecessors : node.successors)) {
-            if(!child.marked) {
-                dfs(child, stack, reverseGraph);
-            }
-        }
-        stack.push(node);
-    }
-
-    /**
      * @param instruction an instruction to be checked
      * @return true if he specified instruction node triggers a method exit.
      */
@@ -279,9 +299,23 @@ public class ControlFlowGraph {
 
     /**
      * Sets the marked field of the specified nodes to false
-     * @param nodes the nodes whose marked fields are to be set to false
+     * @param first a non-null node whose marked field will be set to false
+     * @param second a non-null node whose marked field will be set to false
+     * @param nodes non-null nodes whose marked fields will be set to false
      */
-    private static void clearMarks(ControlFlowNode[] nodes) {
+    private static void clearMarks(ControlFlowNode first, ControlFlowNode second, ControlFlowNode... nodes) {
+        first.marked = false;
+        second.marked = false;
+        for(ControlFlowNode node : nodes) {
+            node.marked = false;
+        }
+    }
+
+    /**
+     * Sets the marked field of the specified nodes to false
+     * @param nodes non-null nodes whose marked fields are to be set to false
+     */
+    private static void clearMarks(ControlFlowNode... nodes) {
         for(ControlFlowNode node : nodes) {
             node.marked = false;
         }
@@ -304,7 +338,7 @@ public class ControlFlowGraph {
         /**
          * Tracks whether this node has been visited by an algorithm
          */
-        boolean marked;
+        boolean marked = false;
 
         /**
          * List of nodes to which there is an edge from this node in the control flow graph
