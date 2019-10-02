@@ -122,6 +122,15 @@ public class BitSet {
         return list;
     }
 
+    /* Returns the number of elements in this set. */
+    public int size() {
+        int count = 0;
+        for(long packet: packets) {
+            count += Long.bitCount(packet);
+        }
+        return count;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if(this == obj) {

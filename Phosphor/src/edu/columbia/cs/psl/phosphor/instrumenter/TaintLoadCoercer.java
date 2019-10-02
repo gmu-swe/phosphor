@@ -31,6 +31,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 	private InstOrUninstChoosingMV instOrUninstChoosingMV;
 	private boolean aggressivelyReduceMethodSize;
 	private boolean isImplicitLightTracking;
+
 	public TaintLoadCoercer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, boolean ignoreExistingFrames, final InstOrUninstChoosingMV instOrUninstChoosingMV, boolean aggressivelyReduceMethodSize, final boolean isImplicitLightTracking) {
 		super(Configuration.ASM_VERSION);
 		this.mv = new UninstTaintLoadCoercerMN(className, access, name, desc, signature, exceptions, cmv);

@@ -1573,6 +1573,5 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 nJumps = jumpID;
             }
         }
-
     }
 }
