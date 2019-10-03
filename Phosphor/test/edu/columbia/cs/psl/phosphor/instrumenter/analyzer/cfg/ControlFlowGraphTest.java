@@ -1,4 +1,4 @@
-package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
+package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
 
 import edu.columbia.cs.psl.phosphor.struct.IntObjectAMT;
 import edu.columbia.cs.psl.phosphor.struct.IntSinglyLinkedList;

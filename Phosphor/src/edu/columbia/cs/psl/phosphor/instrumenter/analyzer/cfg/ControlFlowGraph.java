@@ -1,17 +1,23 @@
-package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
+package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.struct.BitSet;
 import edu.columbia.cs.psl.phosphor.struct.IntObjectAMT;
 import edu.columbia.cs.psl.phosphor.struct.IntSinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowNode.addEdge;
 
 /**
- * A directed graph that represents the ways that program control can flow through a sequence of instructions.
+ * A directed graph that represents the ways that program control can flow through instructions.
  *
  *
  * Uses algorithms for calculating dominators, immediate dominators, and dominance frontiers from the following:
@@ -121,9 +127,9 @@ public class ControlFlowGraph {
 
     /* Helper method for numberNodes. Performs a depth first search of the graph . */
     private static void dfs(ControlFlowNode node, SinglyLinkedList<ControlFlowNode> stack, boolean reverseGraph) {
-        node.marked = true;
+        node.mark();
         for(ControlFlowNode child : (reverseGraph ? node.predecessors : node.successors)) {
-            if(!child.marked) {
+            if(!child.isMarked()) {
                 dfs(child, stack, reverseGraph);
             }
         }
@@ -152,82 +158,68 @@ public class ControlFlowGraph {
      */
     public static ControlFlowGraph analyze(final MethodNode methodNode) {
         AbstractInsnNode[] instructions = methodNode.instructions.toArray();
-        Map<LabelNode, Integer> labelInstructionIndexMap = createLabelInstructionIndexMapping(instructions);
-        SinglyLinkedList<Integer> leaders = calculateLeaders(instructions, labelInstructionIndexMap);
-        BasicBlock[] basicBlocks = createBasicBlocks(instructions, leaders);
-        Map<LabelNode, Integer> labelBlockIndexMap = createLabelBlockIndexMapping(basicBlocks);
+        int[] leaderIndices = calculateLeaders(methodNode.instructions);
+        BasicBlock[] basicBlocks = createBasicBlocks(instructions, leaderIndices);
+        Map<LabelNode, BasicBlock> labelBlockMap = createLabelBlockMapping(basicBlocks);
         EntryBlock entryBlock = new EntryBlock();
         ExitBlock exitBlock = new ExitBlock();
-        addControlFlowEdges(labelBlockIndexMap, entryBlock, exitBlock, basicBlocks);
+        addControlFlowEdges(labelBlockMap, entryBlock, exitBlock, basicBlocks);
         return new ControlFlowGraph(entryBlock, exitBlock, basicBlocks);
     }
 
-     /**
-     * @param instructions a sequence of instruction nodes
-     * @return a mapping from LabelNodes in the specified sequence of instruction nodes to their index in the sequence
-     * @throws NullPointerException if insnList is null
-     */
-    private static Map<LabelNode, Integer> createLabelInstructionIndexMapping(AbstractInsnNode[] instructions) {
-        HashMap<LabelNode, Integer> labelIndexMap = new HashMap<>();
-        for(int i = 0; i < instructions.length; i++) {
-            if(instructions[i] instanceof LabelNode) {
-                labelIndexMap.put((LabelNode) instructions[i], i);
-            }
-        }
-        return labelIndexMap;
-    }
-
     /**
-     * @param instructions a sequence of instruction nodes
-     * @param labelIndexMap a mapping from LabelNodes in the specified sequence of instruction nodes to their index in the sequence
-     * @return a list of the indices of instructions that are the first instruction in some basic block
+     * @param instructions a sequence of instructions
+     * @return a list in ascending order of the indices of instructions that are the first instruction of some basic
+     *              block
      */
-    private static SinglyLinkedList<Integer> calculateLeaders(AbstractInsnNode[] instructions, Map<LabelNode, Integer> labelIndexMap) {
-        BitSet leaders = new BitSet(instructions.length);
-        leaders.add(0); // First instruction is the leader for the first block
-        for(int i = 0; i < instructions.length; i++) {
-            AbstractInsnNode insn = instructions[i];
+    private static int[] calculateLeaders(InsnList instructions) {
+        Set<AbstractInsnNode> leaders = new HashSet<>();
+        leaders.add(instructions.getFirst()); // First instruction is the leader for the first block
+        Iterator<AbstractInsnNode> itr = instructions.iterator();
+        while(itr.hasNext()) {
+            AbstractInsnNode insn = itr.next();
             if(insn instanceof JumpInsnNode) {
-                // Mark the target of the jump as a leader
-                leaders.add(labelIndexMap.get(((JumpInsnNode) insn).label));
-                // Mark the instruction following the jump as a leader
-                leaders.add(i + 1);
+                leaders.add(((JumpInsnNode) insn).label); // Mark the target of the jump as a leader
+                leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
             } else if(insn instanceof TableSwitchInsnNode) {
                 // Mark the targets of the switch as leaders
-                leaders.add(labelIndexMap.get(((TableSwitchInsnNode) insn).dflt));
-                for(LabelNode label : ((TableSwitchInsnNode) insn).labels) {
-                    leaders.add(labelIndexMap.get(label));
+                leaders.add(((TableSwitchInsnNode) insn).dflt);
+                for(AbstractInsnNode node : ((TableSwitchInsnNode) insn).labels) {
+                    leaders.add(node);
                 }
-                // Mark the instruction following the jump as a leader
-                leaders.add(i + 1);
+                leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
             } else if(insn instanceof LookupSwitchInsnNode) {
                 // Mark the targets of the switch as leaders
-                leaders.add(labelIndexMap.get(((LookupSwitchInsnNode) insn).dflt));
-                for(LabelNode label : ((LookupSwitchInsnNode) insn).labels) {
-                    leaders.add(labelIndexMap.get(label));
+                leaders.add(((LookupSwitchInsnNode) insn).dflt);
+                for(AbstractInsnNode node : ((LookupSwitchInsnNode) insn).labels) {
+                    leaders.add(node);
                 }
-                // Mark the instruction following the jump as a leader
-                leaders.add(i + 1);
+                leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
             } else if(isExitInstruction(insn)) {
-                // Mark instruction following the return as a leader
-                leaders.add(i + 1);
+                leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
             }
         }
-        return leaders.toList();
+        int[] leaderIndices = new int[leaders.size()];
+        int i = 0;
+        for(AbstractInsnNode leader : leaders) {
+            leaderIndices[i++] = instructions.indexOf(leader);
+        }
+        Arrays.sort(leaderIndices);
+        return leaderIndices;
     }
 
     /**
-     * @param instructions a sequence of instruction nodes
-     * @param leaders a list of the indices in ascending order of instructions in the sequence that are the first
-     *                instruction in some basic block
-     * @return a list of basic blocks for the sequence of instruction node
+     * @param instructions a sequence of instructions
+     * @param leaderIndices a list of the indices in ascending order of instructions in the sequence that are the first
+     *                instruction of some basic block
+     * @return a list of basic blocks for the sequence of instructions
      */
-    private static BasicBlock[] createBasicBlocks(AbstractInsnNode[] instructions, SinglyLinkedList<Integer> leaders) {
-        BasicBlock[] blocks = new BasicBlock[leaders.size()];
-        Iterator<Integer> itr = leaders.iterator();
-        int start = itr.next();
+    private static BasicBlock[] createBasicBlocks(AbstractInsnNode[] instructions, int[] leaderIndices) {
+        BasicBlock[] blocks = new BasicBlock[leaderIndices.length];
+        int l = 0; // Current index into leaderIndices
+        int start = leaderIndices[l++];
         for(int i = 0; i < blocks.length; i++) {
-            int end = itr.hasNext() ? itr.next() : instructions.length;
+            int end = (l < leaderIndices.length) ? leaderIndices[l++] : instructions.length;
             blocks[i] = new BasicBlock(instructions, start, end);
             start = end;
         }
@@ -236,61 +228,52 @@ public class ControlFlowGraph {
 
     /**
      * @param blocks a list of basic blocks for an instruction sequence
-     * @return a mapping from LabelNodes to the index of the basic block that they start
+     * @return a mapping from LabelNodes to the basic block that they start
      */
-    private static Map<LabelNode, Integer> createLabelBlockIndexMapping(BasicBlock[] blocks) {
-        Map<LabelNode, Integer> labelBlockIndexMap = new HashMap<>();
-        for(int i = 0; i < blocks.length; i++) {
-            AbstractInsnNode insn = blocks[i].getFirstInsn();
+    private static Map<LabelNode, BasicBlock> createLabelBlockMapping(BasicBlock[] blocks) {
+        Map<LabelNode, BasicBlock> labelBlockMap = new HashMap<>();
+        for(BasicBlock block : blocks) {
+            AbstractInsnNode insn = block.getFirstInsn();
             if(insn instanceof LabelNode) {
-                labelBlockIndexMap.put((LabelNode) insn, i);
+                labelBlockMap.put((LabelNode) insn, block);
             }
         }
-        return labelBlockIndexMap;
+        return labelBlockMap;
     }
 
     /**
      * Calculates and sets the successors and predecessors of each of the specified basic blocks.
      *
-     * @param labelBlockIndexMap a mapping from LabelNodes to the index of the basic block that they start
+     * @param labelBlockMap a mapping from LabelNodes to the basic block that they start
      * @param entryBlock special node used to represent the single entry point of the instruction sequence
      * @param exitBlock special node used to represent the single exit point of the instruction sequence
      * @param basicBlocks a list of basic blocks for the instruction sequence whose successors and predecessors are empty
      *               before this method executes and set after this method executes
      */
-    private static void addControlFlowEdges(Map<LabelNode, Integer> labelBlockIndexMap, EntryBlock entryBlock,
-                                            ExitBlock exitBlock, BasicBlock[] basicBlocks) {
-        basicBlocks[0].addPredecessor(entryBlock);
-        entryBlock.addSuccessor(basicBlocks[0]);
+    private static void addControlFlowEdges(Map<LabelNode, BasicBlock> labelBlockMap, EntryBlock entryBlock, ExitBlock exitBlock,
+                                            BasicBlock[] basicBlocks) {
+        addEdge(entryBlock, basicBlocks[0]);
         for(int i = 0; i < basicBlocks.length; i++) {
-            BitSet successors = new BitSet(basicBlocks.length);
             AbstractInsnNode lastInsn = basicBlocks[i].getLastInsn();
             if(lastInsn instanceof JumpInsnNode) {
-                successors.add(labelBlockIndexMap.get(((JumpInsnNode) lastInsn).label));
-                if(lastInsn.getOpcode() != Opcodes.GOTO && lastInsn.getOpcode() != Opcodes.JSR) {
-                    successors.add(i + 1);
+                addEdge(basicBlocks[i], labelBlockMap.get(((JumpInsnNode) lastInsn).label));
+                if(lastInsn.getOpcode() != Opcodes.GOTO) {
+                    addEdge(basicBlocks[i], basicBlocks[i + 1]);
                 }
             } else if(lastInsn instanceof TableSwitchInsnNode) {
-                successors.add(labelBlockIndexMap.get(((TableSwitchInsnNode) lastInsn).dflt));
+                addEdge(basicBlocks[i], labelBlockMap.get(((TableSwitchInsnNode) lastInsn).dflt));
                 for(LabelNode label : ((TableSwitchInsnNode) lastInsn).labels) {
-                    successors.add(labelBlockIndexMap.get(label));
+                    addEdge(basicBlocks[i], labelBlockMap.get(label));
                 }
             } else if(lastInsn instanceof LookupSwitchInsnNode) {
-                successors.add(labelBlockIndexMap.get(((LookupSwitchInsnNode) lastInsn).dflt));
+                addEdge(basicBlocks[i], labelBlockMap.get(((LookupSwitchInsnNode) lastInsn).dflt));
                 for(LabelNode label : ((LookupSwitchInsnNode) lastInsn).labels) {
-                    successors.add(labelBlockIndexMap.get(label));
+                    addEdge(basicBlocks[i], labelBlockMap.get(label));
                 }
             } else if(isExitInstruction(lastInsn)) {
-                basicBlocks[i].addSuccessor(exitBlock);
-                exitBlock.addPredecessor(basicBlocks[i]);
-            } else {
-                successors.add(i + 1);
-            }
-            for(int j = 0; j < basicBlocks.length; j++) {
-                if(successors.contains(j)) {
-                    basicBlocks[i].addSuccessor(basicBlocks[j]);
-                    basicBlocks[j].addPredecessor(basicBlocks[i]);
-                }
+                addEdge(basicBlocks[i], exitBlock);
+            } else if(i < basicBlocks.length - 1) {
+                addEdge(basicBlocks[i], basicBlocks[i + 1]);
             }
         }
     }
@@ -300,7 +283,7 @@ public class ControlFlowGraph {
      * @return true if he specified instruction node triggers a method exit.
      */
     private static boolean isExitInstruction(AbstractInsnNode instruction) {
-        switch (instruction.getOpcode()) {
+        switch(instruction.getOpcode()) {
             case Opcodes.IRETURN:
             case Opcodes.LRETURN:
             case Opcodes.FRETURN:
@@ -321,102 +304,10 @@ public class ControlFlowGraph {
      * @param nodes non-null nodes whose marked fields will be set to false
      */
     private static void clearMarks(ControlFlowNode first, ControlFlowNode second, ControlFlowNode... nodes) {
-        first.marked = false;
-        second.marked = false;
+        first.unmark();
+        second.unmark();
         for(ControlFlowNode node : nodes) {
-            node.marked = false;
+            node.unmark();
         }
-    }
-
-    /**
-     * Sets the marked field of the specified nodes to false
-     * @param nodes non-null nodes whose marked fields are to be set to false
-     */
-    private static void clearMarks(ControlFlowNode... nodes) {
-        for(ControlFlowNode node : nodes) {
-            node.marked = false;
-        }
-    }
-
-    private static class ControlFlowNode {
-
-        /**
-         * The index of this node in the reverse post-order sequence for the graph or -1 if the index has not yet been
-         * calculated
-         */
-        int reversePostOrderIndex = -1;
-
-        /**
-         * The index of this node in the reverse post-order sequence for the transpose graph or -1 if the index has not
-         * yet been calculated
-         */
-        int transposeReversePostOrderIndex = -1;
-
-        /**
-         * Tracks whether this node has been visited by an algorithm
-         */
-        boolean marked = false;
-
-        /**
-         * List of nodes to which there is an edge from this node in the control flow graph
-         */
-        final SinglyLinkedList<ControlFlowNode> successors = new SinglyLinkedList<>();
-
-        /**
-         * List of nodes from which there is an edge to this node in the control flow graph
-         */
-        final SinglyLinkedList<ControlFlowNode> predecessors = new SinglyLinkedList<>();
-
-        void addSuccessor(ControlFlowNode successor) {
-            successors.enqueue(successor);
-        }
-
-        void addPredecessor(ControlFlowNode predecessor) {
-            predecessors.enqueue(predecessor);
-        }
-    }
-
-    private static final class BasicBlock extends ControlFlowNode {
-
-        /**
-         * Index in the original method sequence of the first instruction in this block
-         */
-        final int start;
-
-        /**
-         * Index in the original method sequence of the first instruction after this block or the total number of
-         * instruction in the method if this block is the last block in the sequence
-         */
-        final int end;
-
-        /**
-         * Sequence of instructions in this block
-         */
-        final AbstractInsnNode[] instructions;
-
-        BasicBlock(final AbstractInsnNode[] instructions, final int start, final int end) {
-            if(end <= start) {
-                throw new IllegalArgumentException("Invalid range for basic block");
-            }
-            this.start = start;
-            this.end = end;
-            this.instructions = Arrays.copyOfRange(instructions, start, end);
-        }
-
-        AbstractInsnNode getFirstInsn() {
-            return instructions[0];
-        }
-
-        AbstractInsnNode getLastInsn() {
-            return instructions[instructions.length - 1];
-        }
-    }
-
-    private static final class EntryBlock extends ControlFlowNode {
-
-    }
-
-    private static final class ExitBlock extends ControlFlowNode {
-
     }
 }
