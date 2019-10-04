@@ -9,7 +9,7 @@ class BasicBlock extends ControlFlowNode {
     /**
      * Sequence of instructions in this block
      */
-    private final AbstractInsnNode[] instructions;
+    final AbstractInsnNode[] instructions;
 
     BasicBlock(final AbstractInsnNode[] instructions, final int start, final int end) {
         if(end <= start) {

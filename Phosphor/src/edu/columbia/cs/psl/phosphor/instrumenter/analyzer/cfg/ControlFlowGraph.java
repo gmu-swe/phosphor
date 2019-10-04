@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.IntObjectAMT;
 import edu.columbia.cs.psl.phosphor.struct.IntSinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
@@ -13,6 +12,7 @@ import org.objectweb.asm.tree.*;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowNode.addEdge;
 
@@ -27,17 +27,20 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlow
  */
 public class ControlFlowGraph {
 
-    private static final boolean TRACK_EXCEPTIONAL_CONTROL_FLOWS = Configuration.IMPLICIT_EXCEPTION_FLOW;
-
     /**
      * Special node used as the single entry point for this graph
      */
-    private final EntryBlock entryBlock;
+    private final EntryPoint entryPoint;
+
+    /**
+     * Special nodes used as the entry points for any exception handlers
+     */
+    private final ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints;
 
     /**
      * Special node used as the single exit point for this graph
      */
-    private final ExitBlock exitBlock;
+    private final ExitPoint exitPoint;
 
     /**
      * Nodes in this graph that contain instructions from the original sequence
@@ -45,23 +48,83 @@ public class ControlFlowGraph {
     private final BasicBlock[] basicBlocks;
 
     /**
-     * The nodes of this graph in reverse post-order with respect to this graph
+     * The nodes of this graph in reverse post-order with respect to this graph or null if this value has not been
+     * calculated since the graph was last modified
      */
-    private ControlFlowNode[] reversePostOrder;
+    private ControlFlowNode[] reversePostOrder = null;
 
     /**
-     * The nodes of this graph in reverse post-order with respect to the traverse of this graph
+     * The nodes of this graph in reverse post-order with respect to the traverse of this graph or null if this value
+     * has not been calculated since the graph was last modified
      */
-    private ControlFlowNode[] transverseReversePostOrder;
+    private ControlFlowNode[] transverseReversePostOrder = null;
 
-    private ControlFlowGraph(EntryBlock entryBlock, ExitBlock exitBlock, BasicBlock[] basicBlocks) {
+    private ControlFlowGraph(EntryPoint entryPoint, ExitPoint exitPoint, BasicBlock[] basicBlocks, ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints) {
         this.basicBlocks = basicBlocks;
-        this.entryBlock = entryBlock;
-        this.exitBlock = exitBlock;
-        assignReversePostOrderNumbers();
+        this.entryPoint = entryPoint;
+        this.exitPoint = exitPoint;
+        this.exceptionHandlerEntryPoints = exceptionHandlerEntryPoints;
+    }
+
+    EntryPoint getEntryPoint() {
+        return entryPoint;
+    }
+
+    ExitPoint getExitPoint() {
+        return exitPoint;
+    }
+
+    BasicBlock[] getBasicBlocks() {
+        return basicBlocks.clone();
+    }
+
+    Map<ControlFlowNode, Set<ControlFlowNode>> calculateDominanceFrontiers() {
+        if(reversePostOrder == null) {
+            assignReversePostOrderNumbers();
+        }
+        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = new HashMap<>();
+        for(ControlFlowNode node : reversePostOrder) {
+            dominanceFrontiers.put(node, new HashSet<ControlFlowNode>());
+        }
+        int[] dominators = calculateDominators();
+        for(int i = 0; i < reversePostOrder.length; i++) {
+            if(reversePostOrder[i].predecessors.size() > 1) {
+                for(ControlFlowNode predecessor : reversePostOrder[i].predecessors) {
+                    ControlFlowNode runner = predecessor;
+                    while(runner.reversePostOrderIndex != dominators[i]) {
+                        dominanceFrontiers.get(runner).add(reversePostOrder[i]);
+                        runner = reversePostOrder[dominators[runner.reversePostOrderIndex]];
+                    }
+                }
+            }
+        }
+        return dominanceFrontiers;
+    }
+
+    /**
+     * @return a mapping from nodes to their immediate dominator in the graph or null if they do not have an immediate
+     *              dominator
+     */
+    Map<ControlFlowNode, ControlFlowNode> calculateImmediateDominators() {
+        if(reversePostOrder == null) {
+            assignReversePostOrderNumbers();
+        }
+        Map<ControlFlowNode, ControlFlowNode> immediateDominators = new HashMap<>();
+        int[] dominators = calculateDominators();
+        for(int i = 0; i < dominators.length; i++) {
+            if(dominators[i] == i) {
+                immediateDominators.put(reversePostOrder[i], null);
+            } else {
+                immediateDominators.put(reversePostOrder[i], reversePostOrder[dominators[i]]);
+            }
+        }
+        return immediateDominators;
     }
 
     private int[] calculateDominators() {
+        if(reversePostOrder == null) {
+            assignReversePostOrderNumbers();
+        }
         int[] dominators = new int[reversePostOrder.length];
         for(int i = 1; i < dominators.length; i++) {
             dominators[i] = -1; // initialize the dominators as undefined, except for the start node which should be itself
@@ -70,18 +133,18 @@ public class ControlFlowGraph {
         while(changed) {
             changed = false;
             for(int i = 1; i < dominators.length; i++) {
-                int newImmediateDom = -1;
+                int newImmediate = -1;
                 for(ControlFlowNode predecessor : reversePostOrder[i].predecessors) {
                     if(dominators[predecessor.reversePostOrderIndex] != -1) {
-                        if(newImmediateDom == -1) {
-                            newImmediateDom = predecessor.reversePostOrderIndex;
+                        if(newImmediate == -1) {
+                            newImmediate = predecessor.reversePostOrderIndex;
                         } else {
-                            newImmediateDom = intersect(dominators, predecessor.reversePostOrderIndex, newImmediateDom);
+                            newImmediate = intersect(dominators, predecessor.reversePostOrderIndex, newImmediate);
                         }
                     }
                 }
-                if(dominators[i] != newImmediateDom) {
-                    dominators[i] = newImmediateDom;
+                if(dominators[i] != newImmediate) {
+                    dominators[i] = newImmediate;
                     changed = true;
                 }
             }
@@ -89,8 +152,59 @@ public class ControlFlowGraph {
         return dominators;
     }
 
-    /* Helper function for calculateDominators. */
-    private int intersect(int[] dominators, int node1, int node2) {
+    /**
+     * @return a mapping from nodes to their immediate post-dominator in the graph or null if they do not have an
+     *              immediate post-dominator
+     */
+    Map<ControlFlowNode, ControlFlowNode> calculateImmediatePostDominators() {
+        if(transverseReversePostOrder == null) {
+            assignTransverseReversePostOrderNumbers();
+        }
+        Map<ControlFlowNode, ControlFlowNode> immediatePostDominators = new HashMap<>();
+        int[] postDominators = calculatePostDominators();
+        for(int i = 0; i < postDominators.length; i++) {
+            if(postDominators[i] == i) {
+                immediatePostDominators.put(transverseReversePostOrder[i], null);
+            } else {
+                immediatePostDominators.put(transverseReversePostOrder[i], transverseReversePostOrder[postDominators[i]]);
+            }
+        }
+        return immediatePostDominators;
+    }
+
+    private int[] calculatePostDominators() {
+        if(transverseReversePostOrder == null) {
+            assignTransverseReversePostOrderNumbers();
+        }
+        int[] postDominators = new int[transverseReversePostOrder.length];
+        for(int i = 1; i < postDominators.length; i++) {
+            postDominators[i] = -1; // initialize the post-dominators as undefined, except for the end node which should be itself
+        }
+        boolean changed = true;
+        while(changed) {
+            changed = false;
+            for(int i = 1; i < postDominators.length; i++) {
+                int newImmediate = -1;
+                for(ControlFlowNode successor : transverseReversePostOrder[i].successors) {
+                    if(postDominators[successor.transposeReversePostOrderIndex] != -1) {
+                        if(newImmediate == -1) {
+                            newImmediate = successor.transposeReversePostOrderIndex;
+                        } else {
+                            newImmediate = intersect(postDominators, successor.transposeReversePostOrderIndex, newImmediate);
+                        }
+                    }
+                }
+                if(postDominators[i] != newImmediate) {
+                    postDominators[i] = newImmediate;
+                    changed = true;
+                }
+            }
+        }
+        return postDominators;
+    }
+
+    /* Helper function for calculateDominators and calculatePostDominators. */
+    private static int intersect(int[] dominators, int node1, int node2) {
         while(node1 != node2) {
             while(node1 > node2) {
                 node1 = dominators[node1];
@@ -103,29 +217,40 @@ public class ControlFlowGraph {
     }
 
     /**
-     * Calculates the reverse post-ordering of this graph's nodes for this graph and the transverse of this graph.
-     * Numbers this graph's nodes with their positions in the calculated orderings.
+     * Calculates the reverse post-ordering of this graph's nodes for this graph. Numbers this graph's nodes with their
+     * positions in the calculated ordering.
      */
     private void assignReversePostOrderNumbers() {
         SinglyLinkedList<ControlFlowNode> stack = new SinglyLinkedList<>();
-        clearMarks(entryBlock, exitBlock, basicBlocks);
-        dfs(entryBlock, stack, false);
+        clearMarks(entryPoint, exitPoint, basicBlocks);
+        for(ControlFlowNode node : exceptionHandlerEntryPoints) {
+            dfs(node, stack, false);
+        }
+        dfs(entryPoint, stack, false);
         int i = 0;
         for(ControlFlowNode node : stack) {
             node.reversePostOrderIndex = i++;
         }
         this.reversePostOrder = stack.toArray(new ControlFlowNode[0]);
-        stack.clear();
-        clearMarks(entryBlock, exitBlock, basicBlocks);
-        dfs(exitBlock, stack, true);
-        i = 0;
+    }
+
+    /**
+     * Calculates the reverse post-ordering of this graph's nodes for the transverse of this graph. Numbers this graph's
+     * nodes with their positions in the calculated ordering.
+     */
+    private void assignTransverseReversePostOrderNumbers() {
+        SinglyLinkedList<ControlFlowNode> stack = new SinglyLinkedList<>();
+        clearMarks(entryPoint, exitPoint, basicBlocks);
+        dfs(exitPoint, stack, true);
+        int i = 0;
         for(ControlFlowNode node : stack) {
             node.transposeReversePostOrderIndex = i++;
         }
         this.transverseReversePostOrder = stack.toArray(new ControlFlowNode[0]);
     }
 
-    /* Helper method for numberNodes. Performs a depth first search of the graph . */
+    /* Helper function for assignReversePostOrderNumbers and assignTransverseReversePostOrderNumbers. Performs a depth
+     * first search of the graph or reverse graph. */
     private static void dfs(ControlFlowNode node, SinglyLinkedList<ControlFlowNode> stack, boolean reverseGraph) {
         node.mark();
         for(ControlFlowNode child : (reverseGraph ? node.predecessors : node.successors)) {
@@ -137,42 +262,41 @@ public class ControlFlowGraph {
     }
 
     /**
-     * @return a mapping from the reverse post-order index of nodes in this graph to lists of the reverse post-order
-     *              indices of the successors of each node
-     */
-    public IntObjectAMT<IntSinglyLinkedList> getReversePostOrderSuccessorsMap() {
-        IntObjectAMT<IntSinglyLinkedList> nodeSuccessorsMap = new IntObjectAMT<>();
-        for(ControlFlowNode node : reversePostOrder) {
-            IntSinglyLinkedList successors = new IntSinglyLinkedList();
-            for(ControlFlowNode successor : node.successors) {
-                successors.enqueue(successor.reversePostOrderIndex);
-            }
-            nodeSuccessorsMap.put(node.reversePostOrderIndex, successors);
-        }
-        return nodeSuccessorsMap;
-    }
-
-    /**
      * @param methodNode a method whose graph should be created
      * @return a control flow graph for the specified method
      */
     public static ControlFlowGraph analyze(final MethodNode methodNode) {
         AbstractInsnNode[] instructions = methodNode.instructions.toArray();
-        int[] leaderIndices = calculateLeaders(methodNode.instructions);
+        ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints = createExceptionHandlerEntryPoints(methodNode.tryCatchBlocks);
+        int[] leaderIndices = calculateLeaders(methodNode.instructions, exceptionHandlerEntryPoints);
         BasicBlock[] basicBlocks = createBasicBlocks(instructions, leaderIndices);
         Map<LabelNode, BasicBlock> labelBlockMap = createLabelBlockMapping(basicBlocks);
-        EntryBlock entryBlock = new EntryBlock();
-        ExitBlock exitBlock = new ExitBlock();
-        addControlFlowEdges(labelBlockMap, entryBlock, exitBlock, basicBlocks);
-        return new ControlFlowGraph(entryBlock, exitBlock, basicBlocks);
+        EntryPoint entryPoint = new EntryPoint();
+        ExitPoint exitPoint = new ExitPoint();
+        addControlFlowEdges(labelBlockMap, entryPoint, exitPoint, basicBlocks, exceptionHandlerEntryPoints);
+        return new ControlFlowGraph(entryPoint, exitPoint, basicBlocks, exceptionHandlerEntryPoints);
     }
 
     /**
-     * @param instructions a sequence of instructions
-     * @return a list in ascending order of the indices of instructions that are the first instruction of some basic
-     *              block
+     * @param tryCatchBlocks the try-catch blocks for a method
+     * @return exception handler entry points for the method
      */
-    private static int[] calculateLeaders(InsnList instructions) {
+    private static ExceptionHandlerEntryPoint[] createExceptionHandlerEntryPoints(List<TryCatchBlockNode> tryCatchBlocks) {
+        ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints = new ExceptionHandlerEntryPoint[tryCatchBlocks.size()];
+        Iterator<TryCatchBlockNode> itr = tryCatchBlocks.iterator();
+        for(int i = 0; i < exceptionHandlerEntryPoints.length; i++) {
+            exceptionHandlerEntryPoints[i] = new ExceptionHandlerEntryPoint(itr.next());
+        }
+        return exceptionHandlerEntryPoints;
+    }
+
+    /**
+     * @param instructions a sequence of instructions in a method
+     * @param exceptionHandlerEntryPoints exception handler entry points for the method
+     * @return a list in ascending order of the indices of instructions that are the first instruction of some basic
+     *              block for the method
+     */
+    private static int[] calculateLeaders(InsnList instructions, ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints) {
         Set<AbstractInsnNode> leaders = new HashSet<>();
         leaders.add(instructions.getFirst()); // First instruction is the leader for the first block
         Iterator<AbstractInsnNode> itr = instructions.iterator();
@@ -198,6 +322,10 @@ public class ControlFlowGraph {
             } else if(isExitInstruction(insn)) {
                 leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
             }
+        }
+        // Add the start labels for exception handlers as leaders
+        for(ExceptionHandlerEntryPoint handlerEntry : exceptionHandlerEntryPoints) {
+            leaders.add(handlerEntry.getHandlerStart());
         }
         int[] leaderIndices = new int[leaders.size()];
         int i = 0;
@@ -242,17 +370,18 @@ public class ControlFlowGraph {
     }
 
     /**
-     * Calculates and sets the successors and predecessors of each of the specified basic blocks.
+     * Calculates and sets the successors and predecessors of the specified nodes.
      *
      * @param labelBlockMap a mapping from LabelNodes to the basic block that they start
-     * @param entryBlock special node used to represent the single entry point of the instruction sequence
-     * @param exitBlock special node used to represent the single exit point of the instruction sequence
+     * @param entryPoint special node used to represent the single entry point of the instruction sequence
+     * @param exitPoint special node used to represent the single exit point of the instruction sequence
      * @param basicBlocks a list of basic blocks for the instruction sequence whose successors and predecessors are empty
      *               before this method executes and set after this method executes
+     * @param exceptionHandlerEntryPoints nodes that represent the entry points into exception handlers
      */
-    private static void addControlFlowEdges(Map<LabelNode, BasicBlock> labelBlockMap, EntryBlock entryBlock, ExitBlock exitBlock,
-                                            BasicBlock[] basicBlocks) {
-        addEdge(entryBlock, basicBlocks[0]);
+    private static void addControlFlowEdges(Map<LabelNode, BasicBlock> labelBlockMap, EntryPoint entryPoint, ExitPoint exitPoint,
+                                            BasicBlock[] basicBlocks, ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints) {
+        addEdge(entryPoint, basicBlocks[0]);
         for(int i = 0; i < basicBlocks.length; i++) {
             AbstractInsnNode lastInsn = basicBlocks[i].getLastInsn();
             if(lastInsn instanceof JumpInsnNode) {
@@ -271,10 +400,13 @@ public class ControlFlowGraph {
                     addEdge(basicBlocks[i], labelBlockMap.get(label));
                 }
             } else if(isExitInstruction(lastInsn)) {
-                addEdge(basicBlocks[i], exitBlock);
+                addEdge(basicBlocks[i], exitPoint);
             } else if(i < basicBlocks.length - 1) {
                 addEdge(basicBlocks[i], basicBlocks[i + 1]);
             }
+        }
+        for(ExceptionHandlerEntryPoint handlerEntryPoint : exceptionHandlerEntryPoints) {
+            addEdge(handlerEntryPoint, labelBlockMap.get(handlerEntryPoint.getHandlerStart()));
         }
     }
 

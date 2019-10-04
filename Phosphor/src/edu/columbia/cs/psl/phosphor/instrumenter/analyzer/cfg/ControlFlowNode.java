@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 
-class ControlFlowNode {
+abstract class ControlFlowNode {
 
     /**
      * The index of this node in the reverse post-order sequence for the graph or -1 if the index has not yet been
