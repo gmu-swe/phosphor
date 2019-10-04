@@ -123,4 +123,55 @@ public class ControlFlowGraphTest {
         expected.add(cfg.getExitPoint());
         assertEquals(expected, idBlockMap.get(3).successors);
     }
+
+    @Test
+    public void testMultipleReturnLoopSuccessors() throws Exception {
+        ControlFlowGraph cfg = ControlFlowGraph.analyze(getMethodNode("multipleReturnLoop"));
+        BasicBlock[] basicBlocks = cfg.getBasicBlocks();
+        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(basicBlocks);
+        for(BasicBlock basicBlock : basicBlocks) {
+            if(!idBlockMap.containsValue(basicBlock) && basicBlock.getLastInsn() instanceof JumpInsnNode) {
+                idBlockMap.put(1, basicBlock);
+                break;
+            }
+        }
+        HashSet<ControlFlowNode> expected = new HashSet<>();
+        expected.add(idBlockMap.get(1));
+        assertEquals(expected, idBlockMap.get(0).successors);
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(2));
+        expected.add(idBlockMap.get(8));
+        assertEquals(expected, idBlockMap.get(1).successors);
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(3));
+        expected.add(idBlockMap.get(6));
+        assertEquals(expected, idBlockMap.get(2).successors);
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(4));
+        expected.add(idBlockMap.get(5));
+        assertEquals(expected, idBlockMap.get(3).successors);
+        //
+        expected.clear();
+        expected.add(cfg.getExitPoint());
+        assertEquals(expected, idBlockMap.get(4).successors);
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(7));
+        assertEquals(expected, idBlockMap.get(5).successors);
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(7));
+        assertEquals(expected, idBlockMap.get(6).successors);
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(1));
+        assertEquals(expected, idBlockMap.get(7).successors);
+        //
+        expected.clear();
+        expected.add(cfg.getExitPoint());
+        assertEquals(expected, idBlockMap.get(8).successors);
+    }
 }

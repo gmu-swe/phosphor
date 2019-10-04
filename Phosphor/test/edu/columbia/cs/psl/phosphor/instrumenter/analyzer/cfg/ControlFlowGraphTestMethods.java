@@ -146,4 +146,30 @@ public class ControlFlowGraphTestMethods {
         blockID = 3;
         return 134;
     }
+
+    private boolean canConvert(int[] a, int i) {
+        return a[i+1] + a[i+2] == 77;
+    }
+
+    public void multipleReturnLoop(int[] a, int[] b) {
+        blockID = 0;
+        int x = 0;
+        for(int i = 0; i < a.length /*blockID = 1 */; i++) {
+            blockID = 2;
+            if(a[i] == '%') {
+                blockID = 3;
+                if(!canConvert(a, i)) {
+                    blockID = 4;
+                    return;
+                }
+                blockID = 5;
+                b[x++] = a[++i] + a[++i];
+            } else {
+                blockID = 6;
+                b[x++] = a[i];
+            }
+            blockID = 7;
+        }
+        blockID = 8;
+    }
 }
