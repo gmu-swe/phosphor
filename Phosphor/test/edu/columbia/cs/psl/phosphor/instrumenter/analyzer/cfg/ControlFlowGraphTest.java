@@ -124,9 +124,8 @@ public class ControlFlowGraphTest {
         assertEquals(expected, idBlockMap.get(3).successors);
     }
 
-    @Test
-    public void testMultipleReturnLoopSuccessors() throws Exception {
-        ControlFlowGraph cfg = ControlFlowGraph.analyze(getMethodNode("multipleReturnLoop"));
+
+    private Map<Integer, BasicBlock> getBlockIDMapForMultipleReturnLoopCFG(ControlFlowGraph cfg) {
         BasicBlock[] basicBlocks = cfg.getBasicBlocks();
         Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(basicBlocks);
         for(BasicBlock basicBlock : basicBlocks) {
@@ -135,6 +134,13 @@ public class ControlFlowGraphTest {
                 break;
             }
         }
+        return idBlockMap;
+    }
+
+    @Test
+    public void testMultipleReturnLoopSuccessors() throws Exception {
+        ControlFlowGraph cfg = ControlFlowGraph.analyze(getMethodNode("multipleReturnLoop"));
+        Map<Integer, BasicBlock> idBlockMap = getBlockIDMapForMultipleReturnLoopCFG(cfg);
         HashSet<ControlFlowNode> expected = new HashSet<>();
         expected.add(idBlockMap.get(1));
         assertEquals(expected, idBlockMap.get(0).successors);
@@ -173,5 +179,80 @@ public class ControlFlowGraphTest {
         expected.clear();
         expected.add(cfg.getExitPoint());
         assertEquals(expected, idBlockMap.get(8).successors);
+    }
+
+    @Test
+    public void testMultipleReturnLoopDominators() throws Exception {
+        ControlFlowGraph cfg = ControlFlowGraph.analyze(getMethodNode("multipleReturnLoop"));
+        Map<Integer, BasicBlock> idBlockMap = getBlockIDMapForMultipleReturnLoopCFG(cfg);
+        Map<ControlFlowNode, ControlFlowNode> immediateDominators = cfg.calculateImmediateDominators();
+        assertEquals(cfg.getEntryPoint(), immediateDominators.get(idBlockMap.get(0)));
+        assertEquals(idBlockMap.get(0), immediateDominators.get(idBlockMap.get(1)));
+        assertEquals(idBlockMap.get(1), immediateDominators.get(idBlockMap.get(2)));
+        assertEquals(idBlockMap.get(2), immediateDominators.get(idBlockMap.get(3)));
+        assertEquals(idBlockMap.get(3), immediateDominators.get(idBlockMap.get(4)));
+        assertEquals(idBlockMap.get(3), immediateDominators.get(idBlockMap.get(5)));
+        assertEquals(idBlockMap.get(2), immediateDominators.get(idBlockMap.get(6)));
+        assertEquals(idBlockMap.get(2), immediateDominators.get(idBlockMap.get(7)));
+        assertEquals(idBlockMap.get(1), immediateDominators.get(idBlockMap.get(8)));
+    }
+
+    @Test
+    public void testMultipleReturnLoopImmediatePostDominators() throws Exception {
+        ControlFlowGraph cfg = ControlFlowGraph.analyze(getMethodNode("multipleReturnLoop"));
+        Map<Integer, BasicBlock> idBlockMap = getBlockIDMapForMultipleReturnLoopCFG(cfg);
+        Map<ControlFlowNode, ControlFlowNode> immediatePostDominators = cfg.calculateImmediatePostDominators();
+        assertEquals(idBlockMap.get(1), immediatePostDominators.get(idBlockMap.get(0)));
+        assertEquals(cfg.getExitPoint(), immediatePostDominators.get(idBlockMap.get(1)));
+        assertEquals(cfg.getExitPoint(), immediatePostDominators.get(idBlockMap.get(2)));
+        assertEquals(cfg.getExitPoint(), immediatePostDominators.get(idBlockMap.get(3)));
+        assertEquals(cfg.getExitPoint(), immediatePostDominators.get(idBlockMap.get(4)));
+        assertEquals(idBlockMap.get(7), immediatePostDominators.get(idBlockMap.get(5)));
+        assertEquals(idBlockMap.get(7), immediatePostDominators.get(idBlockMap.get(6)));
+        assertEquals(idBlockMap.get(1), immediatePostDominators.get(idBlockMap.get(7)));
+        assertEquals(cfg.getExitPoint(), immediatePostDominators.get(idBlockMap.get(8)));
+    }
+
+    @Test
+    public void testMultipleReturnLoopDominanceFrontiers() throws Exception {
+        ControlFlowGraph cfg = ControlFlowGraph.analyze(getMethodNode("multipleReturnLoop"));
+        Map<Integer, BasicBlock> idBlockMap = getBlockIDMapForMultipleReturnLoopCFG(cfg);
+        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.calculateDominanceFrontiers();
+        Set<ControlFlowNode> expected = new HashSet<>();
+        assertTrue(dominanceFrontiers.get(idBlockMap.get(0)).isEmpty());
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(1));
+        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(1)));
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(1));
+        expected.add(cfg.getExitPoint());
+        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(2)));
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(7));
+        expected.add(cfg.getExitPoint());
+        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(3)));
+        //
+        expected.clear();
+        expected.add(cfg.getExitPoint());
+        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(4)));
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(7));
+        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(5)));
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(7));
+        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(6)));
+        //
+        expected.clear();
+        expected.add(idBlockMap.get(1));
+        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(7)));
+        //
+        expected.clear();
+        expected.add(cfg.getExitPoint());
+        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(8)));
     }
 }
