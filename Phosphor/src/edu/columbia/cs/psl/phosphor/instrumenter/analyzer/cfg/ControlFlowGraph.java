@@ -1,7 +1,5 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
 
-import edu.columbia.cs.psl.phosphor.struct.IntObjectAMT;
-import edu.columbia.cs.psl.phosphor.struct.IntSinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
@@ -45,7 +43,7 @@ public class ControlFlowGraph {
     /**
      * Nodes in this graph that contain instructions from the original sequence
      */
-    private final BasicBlock[] basicBlocks;
+    private final SinglyLinkedList<BasicBlock> basicBlocks;
 
     /**
      * The nodes of this graph in reverse post-order with respect to this graph or null if this value has not been
@@ -59,11 +57,20 @@ public class ControlFlowGraph {
      */
     private ControlFlowNode[] transverseReversePostOrder = null;
 
-    private ControlFlowGraph(EntryPoint entryPoint, ExitPoint exitPoint, BasicBlock[] basicBlocks, ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints) {
+    private ControlFlowGraph(EntryPoint entryPoint, ExitPoint exitPoint, SinglyLinkedList<BasicBlock> basicBlocks, ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints) {
         this.basicBlocks = basicBlocks;
         this.entryPoint = entryPoint;
         this.exitPoint = exitPoint;
         this.exceptionHandlerEntryPoints = exceptionHandlerEntryPoints;
+    }
+
+    /**
+     * Clears any values calculated on the current graph's structure that would need to be recalculated if the graph
+     * were modified.
+     */
+    void prepareForModification() {
+        this.reversePostOrder = null;
+        this.transverseReversePostOrder = null;
     }
 
     EntryPoint getEntryPoint() {
@@ -75,7 +82,7 @@ public class ControlFlowGraph {
     }
 
     BasicBlock[] getBasicBlocks() {
-        return basicBlocks.clone();
+        return basicBlocks.toArray(new BasicBlock[0]);
     }
 
     Map<ControlFlowNode, Set<ControlFlowNode>> calculateDominanceFrontiers() {
@@ -274,7 +281,11 @@ public class ControlFlowGraph {
         EntryPoint entryPoint = new EntryPoint();
         ExitPoint exitPoint = new ExitPoint();
         addControlFlowEdges(labelBlockMap, entryPoint, exitPoint, basicBlocks, exceptionHandlerEntryPoints);
-        return new ControlFlowGraph(entryPoint, exitPoint, basicBlocks, exceptionHandlerEntryPoints);
+        SinglyLinkedList<BasicBlock> basicBlockList = new SinglyLinkedList<>();
+        for(BasicBlock basicBlock : basicBlocks) {
+            basicBlockList.enqueue(basicBlock);
+        }
+        return new ControlFlowGraph(entryPoint, exitPoint, basicBlockList, exceptionHandlerEntryPoints);
     }
 
     /**
@@ -358,7 +369,7 @@ public class ControlFlowGraph {
      * @param blocks a list of basic blocks for an instruction sequence
      * @return a mapping from LabelNodes to the basic block that they start
      */
-    private static Map<LabelNode, BasicBlock> createLabelBlockMapping(BasicBlock[] blocks) {
+    static Map<LabelNode, BasicBlock> createLabelBlockMapping(BasicBlock[] blocks) {
         Map<LabelNode, BasicBlock> labelBlockMap = new HashMap<>();
         for(BasicBlock block : blocks) {
             AbstractInsnNode insn = block.getFirstInsn();
@@ -414,7 +425,7 @@ public class ControlFlowGraph {
      * @param instruction an instruction to be checked
      * @return true if he specified instruction node triggers a method exit.
      */
-    private static boolean isExitInstruction(AbstractInsnNode instruction) {
+    public static boolean isExitInstruction(AbstractInsnNode instruction) {
         switch(instruction.getOpcode()) {
             case Opcodes.IRETURN:
             case Opcodes.LRETURN:
@@ -435,7 +446,7 @@ public class ControlFlowGraph {
      * @param second a non-null node whose marked field will be set to false
      * @param nodes non-null nodes whose marked fields will be set to false
      */
-    private static void clearMarks(ControlFlowNode first, ControlFlowNode second, ControlFlowNode... nodes) {
+    private static void clearMarks(ControlFlowNode first, ControlFlowNode second, SinglyLinkedList<? extends ControlFlowNode> nodes) {
         first.unmark();
         second.unmark();
         for(ControlFlowNode node : nodes) {

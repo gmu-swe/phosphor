@@ -34,7 +34,7 @@ abstract class ControlFlowNode {
 
     /**
      * Makes the specified source node a predecessor of the specified destination node and the specified destination node
-     * a successor of the specified source node. In other words, adds the directed edge (source, destination) to the map.
+     * a successor of the specified source node. In other words, adds the directed edge (source, destination) to the graph.
      *
      * @param source the node at which the edge being added starts
      * @param destination the node at which the edge being added ends
@@ -42,6 +42,26 @@ abstract class ControlFlowNode {
     static void addEdge(ControlFlowNode source, ControlFlowNode destination) {
         source.successors.add(destination);
         destination.predecessors.add(source);
+    }
+
+    /**
+     * If the edge (source, destination) is part of the graph removes it.
+     *
+     * @param source the node at which the edge being removed starts
+     * @param destination the node at which the edge being removed ends
+     */
+    static void removeEdge(ControlFlowNode source, ControlFlowNode destination) {
+        source.successors.remove(destination);
+        destination.predecessors.remove(source);
+    }
+
+    /**
+     * @param source the start of the edge being checked for
+     * @param destination the end of the edge being checked for
+     * @return true is there is an edge from the specified source node to the specified destination node
+     */
+    public static boolean isConnected(ControlFlowNode source, ControlFlowNode destination) {
+        return destination.predecessors.contains(source) && source.successors.contains(destination);
     }
 
     public boolean mark() {

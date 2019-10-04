@@ -154,7 +154,7 @@ public class ControlFlowGraphTestMethods {
     public void multipleReturnLoop(int[] a, int[] b) {
         blockID = 0;
         int x = 0;
-        for(int i = 0; i < a.length /*blockID = 1 */; i++) {
+        for(int i = 0; i < a.length /* blockID = 1 */; i++) {
             blockID = 2;
             if(a[i] == '%') {
                 blockID = 3;
@@ -171,5 +171,17 @@ public class ControlFlowGraphTestMethods {
             blockID = 7;
         }
         blockID = 8;
+    }
+
+    public static Map<Integer, BasicBlock> getBlockIDMapForMultipleReturnLoopCFG(ControlFlowGraph cfg) {
+        BasicBlock[] basicBlocks = cfg.getBasicBlocks();
+        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(basicBlocks);
+        for(BasicBlock basicBlock : basicBlocks) {
+            if(!idBlockMap.containsValue(basicBlock) && basicBlock.getLastInsn() instanceof JumpInsnNode) {
+                idBlockMap.put(1, basicBlock);
+                break;
+            }
+        }
+        return idBlockMap;
     }
 }

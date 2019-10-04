@@ -4,10 +4,8 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.junit.Test;
-import org.objectweb.asm.tree.*;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraphTestMethods.getMethodNode;
-import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraphTestMethods.makeBlockIDBasicBlockMap;
+import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraphTestMethods.*;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
@@ -122,19 +120,6 @@ public class ControlFlowGraphTest {
         expected.clear();
         expected.add(cfg.getExitPoint());
         assertEquals(expected, idBlockMap.get(3).successors);
-    }
-
-
-    private Map<Integer, BasicBlock> getBlockIDMapForMultipleReturnLoopCFG(ControlFlowGraph cfg) {
-        BasicBlock[] basicBlocks = cfg.getBasicBlocks();
-        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(basicBlocks);
-        for(BasicBlock basicBlock : basicBlocks) {
-            if(!idBlockMap.containsValue(basicBlock) && basicBlock.getLastInsn() instanceof JumpInsnNode) {
-                idBlockMap.put(1, basicBlock);
-                break;
-            }
-        }
-        return idBlockMap;
     }
 
     @Test
