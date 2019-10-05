@@ -27,6 +27,9 @@ import java.util.LinkedList;
 @SuppressWarnings("ALL")
 public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
+	// Used to indicate that a call to push should not be made for a particular branch
+	public static final int DO_NOT_TRACK_BRANCH_STARTING = -1;
+
 	public int lastArg;
 	Type originalMethodReturnType;
 	Type newReturnType;
@@ -287,7 +290,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 	HashSet<Integer> boxAtNextJump = new HashSet<Integer>();
 
-	public int branchStarting;
+	public int branchStarting = DO_NOT_TRACK_BRANCH_STARTING;
 	HashSet<Integer> forceCtrlAdd = new HashSet<Integer>();
 
 	@SuppressWarnings("unused")
@@ -4900,6 +4903,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				Label origFalseLoc = new Label();
 
 				Configuration.taintTagFactory.jumpOp(opcode, branchStarting, newDest, mv, lvs, this);
+				branchStarting = DO_NOT_TRACK_BRANCH_STARTING;
 
 				FrameNode fn = getCurrentFrameNode();
 				super.visitJumpInsn(GOTO, origFalseLoc);
@@ -4914,9 +4918,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitLabel(origFalseLoc);
 				fn.accept(this);
 				boxAtNextJump.clear();
-			}
-			else
+			} else {
 				Configuration.taintTagFactory.jumpOp(opcode, branchStarting, label, mv, lvs, this);
+				branchStarting = DO_NOT_TRACK_BRANCH_STARTING;
+			}
 		}
 		else
 		{
@@ -4927,6 +4932,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				Label origFalseLoc = new Label();
 
 				Configuration.taintTagFactory.jumpOp(opcode, branchStarting, newDest, mv, lvs, this);
+				branchStarting = DO_NOT_TRACK_BRANCH_STARTING;
 				FrameNode fn = getCurrentFrameNode();
 				fn.type = F_NEW;
 				super.visitJumpInsn(GOTO, origFalseLoc);
@@ -4945,6 +4951,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				boxAtNextJump.clear();
 			} else {
 				Configuration.taintTagFactory.jumpOp(opcode, branchStarting, label, mv, lvs, this);
+				branchStarting = DO_NOT_TRACK_BRANCH_STARTING;
 			}
 		}
 	}
@@ -4958,12 +4965,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		//Need to remove taint
 		if (TaintUtils.DEBUG_FRAMES)
 			System.out.println("Table switch shows: " + analyzer.stack + ", " + analyzer.locals);
-		if (Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
+		if ((Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) && branchStarting != DO_NOT_TRACK_BRANCH_STARTING) {
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, controlTaintArray);
 			callPushControlTaint(branchStarting);
+			branchStarting = DO_NOT_TRACK_BRANCH_STARTING;
+		} else if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
+			super.visitInsn(SWAP);
+			super.visitInsn(POP); // Remove the taint tag
 		}
 		Configuration.taintTagFactory.tableSwitch(min, max, dflt, labels, mv, lvs, this);
 	}
@@ -4975,12 +4986,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			return;
 		}
 		//Need to remove taint
-		if (Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
+		if ((Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) && branchStarting != DO_NOT_TRACK_BRANCH_STARTING) {
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
 			super.visitInsn(SWAP);
 			super.visitVarInsn(ALOAD, controlTaintArray);
 			callPushControlTaint(branchStarting);
+			branchStarting = DO_NOT_TRACK_BRANCH_STARTING;
+		} else if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
+			super.visitInsn(SWAP);
+			super.visitInsn(POP); // Remove the taint tag
 		}
 		Configuration.taintTagFactory.lookupSwitch(dflt, keys, labels, mv, lvs, this);
 	}
@@ -4990,7 +5005,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 	public void setLVOffset(int newArgOffset) {
 		this.argOffset = newArgOffset;
 	}
-
 
 	int line;
 	@Override

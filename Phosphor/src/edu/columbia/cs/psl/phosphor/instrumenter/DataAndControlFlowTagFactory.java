@@ -8,6 +8,9 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintPassingMV.DO_NOT_TRACK_BRANCH_STARTING;
+
+
 public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 	@Override
@@ -468,25 +471,31 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				case Opcodes.IFGE:
 				case Opcodes.IFGT:
 				case Opcodes.IFLE:
-					mv.visitInsn(SWAP);
-					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-					mv.visitInsn(SWAP);
-					mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-					ta.callPushControlTaint(branchStarting);
-					ta.doForceCtrlStores();
+					if(branchStarting == DO_NOT_TRACK_BRANCH_STARTING) {
+						mv.visitInsn(SWAP);
+						mv.visitInsn(POP); // Remove the taint tag
+					} else {
+						mv.visitInsn(SWAP);
+						mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+						mv.visitInsn(SWAP);
+						mv.visitVarInsn(ALOAD, ta.controlTaintArray);
+						ta.callPushControlTaint(branchStarting);
+						ta.doForceCtrlStores();
+					}
 					mv.visitJumpInsn(opcode, label);
 					break;
 				case Opcodes.IFNULL:
 				case Opcodes.IFNONNULL:
-					if (Configuration.IMPLICIT_TRACKING) {
+					if (Configuration.IMPLICIT_TRACKING && branchStarting != DO_NOT_TRACK_BRANCH_STARTING) {
 						mv.visitInsn(DUP);
 						mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 						mv.visitInsn(SWAP);
 						mv.visitVarInsn(ALOAD, ta.controlTaintArray);
 						ta.callPushControlTaintObj(branchStarting);
 					}
-//				mv.visitJumpInsn(opcode, label);
-					ta.doForceCtrlStores();
+					if(branchStarting != DO_NOT_TRACK_BRANCH_STARTING) {
+						ta.doForceCtrlStores();
+					}
 					mv.visitJumpInsn(opcode, label);
 					break;
 				case Opcodes.IF_ICMPEQ:
@@ -495,33 +504,45 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 				case Opcodes.IF_ICMPGE:
 				case Opcodes.IF_ICMPGT:
 				case Opcodes.IF_ICMPLE:
-					//T V T V
-					int tmp = lvs.getTmpLV(Type.INT_TYPE);
-					//T V T V
-					mv.visitInsn(SWAP);
-					mv.visitInsn(TaintUtils.IS_TMP_STORE);
-					mv.visitVarInsn(Configuration.TAINT_STORE_OPCODE, tmp);
-					//T V V
-					mv.visitInsn(DUP2_X1);
-					mv.visitInsn(POP2);
-					//V V T
-					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-					mv.visitInsn(SWAP);
-					//V V C T
-					mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-					mv.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, tmp);
-					lvs.freeTmpLV(tmp);
-					//V V C T CT
-					mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-					ta.callPushControlTaint(branchStarting);
-					mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-					ta.callPushControlTaint(branchStarting+1);
-					ta.doForceCtrlStores();
+					if(branchStarting == DO_NOT_TRACK_BRANCH_STARTING) {
+						// Remove the taint tags
+						// T V T V
+						mv.visitInsn(SWAP);
+						mv.visitInsn(POP);
+						// T V V
+						mv.visitInsn(DUP2_X1);
+						// V V T V V
+						mv.visitInsn(POP2);
+						mv.visitInsn(POP);
+					} else {
+						//T V T V
+						int tmp = lvs.getTmpLV(Type.INT_TYPE);
+						//T V T V
+						mv.visitInsn(SWAP);
+						mv.visitInsn(TaintUtils.IS_TMP_STORE);
+						mv.visitVarInsn(Configuration.TAINT_STORE_OPCODE, tmp);
+						//T V V
+						mv.visitInsn(DUP2_X1);
+						mv.visitInsn(POP2);
+						//V V T
+						mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+						mv.visitInsn(SWAP);
+						//V V C T
+						mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+						mv.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, tmp);
+						lvs.freeTmpLV(tmp);
+						//V V C T C T
+						mv.visitVarInsn(ALOAD, ta.controlTaintArray);
+						ta.callPushControlTaint(branchStarting);
+						mv.visitVarInsn(ALOAD, ta.controlTaintArray);
+						ta.callPushControlTaint(Configuration.BINDING_CONTROL_FLOWS_ONLY ? branchStarting : branchStarting + 1);
+						ta.doForceCtrlStores();
+					}
 					mv.visitJumpInsn(opcode, label);
 					break;
 				case Opcodes.IF_ACMPNE:
 				case Opcodes.IF_ACMPEQ:
-					if (Configuration.IMPLICIT_TRACKING) {
+					if (Configuration.IMPLICIT_TRACKING && branchStarting != DO_NOT_TRACK_BRANCH_STARTING) {
 						//OBJ OBJ
 						mv.visitInsn(DUP2);
 						mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
@@ -532,7 +553,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 						mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
 						mv.visitInsn(SWAP);
 						mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-						ta.callPushControlTaintObj(branchStarting + 1);
+						ta.callPushControlTaintObj(Configuration.BINDING_CONTROL_FLOWS_ONLY ? branchStarting : branchStarting + 1);
 					}
 					if(!isIgnoreAcmp && Configuration.WITH_UNBOX_ACMPEQ) {
 						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
@@ -540,7 +561,9 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 						mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
 						mv.visitInsn(SWAP);
 					}
-					ta.doForceCtrlStores();
+					if(branchStarting != DO_NOT_TRACK_BRANCH_STARTING) {
+						ta.doForceCtrlStores();
+					}
 					mv.visitJumpInsn(opcode, label);
 					break;
 				case Opcodes.GOTO:

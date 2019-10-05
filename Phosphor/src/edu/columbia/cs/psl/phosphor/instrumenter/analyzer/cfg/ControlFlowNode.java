@@ -79,4 +79,9 @@ abstract class ControlFlowNode {
     public boolean isMarked() {
         return marked;
     }
+
+    @Override
+    public String toString() {
+        return super.toString() + " - index: " + reversePostOrderIndex;
+    }
 }

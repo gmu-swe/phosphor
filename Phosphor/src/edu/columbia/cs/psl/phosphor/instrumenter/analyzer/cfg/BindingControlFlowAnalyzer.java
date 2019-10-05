@@ -5,7 +5,10 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
+
 import org.objectweb.asm.tree.*;
+
+import java.util.List;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraph.createLabelBlockMapping;
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowNode.*;
@@ -13,13 +16,16 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class BindingControlFlowAnalyzer {
 
-    public static void analyze(MethodNode methodNode) {
+    public static int analyze(MethodNode methodNode) {
         InsnList instructions = methodNode.instructions;
+        if(instructions.size() == 0) {
+            return 0;
+        }
         ControlFlowGraph cfg = ControlFlowGraph.analyze(methodNode);
         Map<LabelNode, BasicBlock> labelBlockMap = createLabelBlockMapping(cfg.getBasicBlocks());
         Set<BasicBlock> targetedBranchBlocks = identifyTargetedBranchBlocks(cfg.getBasicBlocks());
         if(targetedBranchBlocks.isEmpty()) {
-            return; // There are no branches that potentially need to be propagated along
+            return -1; // There are no branches that potentially need to be propagated along
         }
         cfg.prepareForModification(); // Notify the graph that it's structure is about to be modified
         convertTargetedBranchEdges(targetedBranchBlocks, labelBlockMap);
@@ -33,7 +39,8 @@ public class BindingControlFlowAnalyzer {
             Set<BasicBlock> popPoints = getPopPoints(basicBlock, bindingEdgesMap.get(basicBlock), dominanceFrontiers);
             for(BasicBlock popPoint : popPoints) {
                 AbstractInsnNode insn = popPoint.getFirstInsn();
-                while(insn instanceof LabelNode) {
+                while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE
+                        || insn.getType() == AbstractInsnNode.LABEL || insn.getOpcode() > 200) {
                     insn  = insn .getNext();
                 }
                 instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, branchID));
@@ -48,6 +55,7 @@ public class BindingControlFlowAnalyzer {
                 }
             }
         }
+        return branchID - 1;
     }
     
     /**
@@ -91,13 +99,14 @@ public class BindingControlFlowAnalyzer {
             if(insn instanceof JumpInsnNode) {
                 boolean branchTaken = insn.getOpcode() == IFEQ || insn.getOpcode() == IF_ICMPEQ || insn.getOpcode() == IF_ACMPEQ;
                 convertEdgeToNode(basicBlock, getBinaryBranchSuccessor(basicBlock, labelBlockMap, branchTaken));
-            } else if(insn instanceof TableSwitchInsnNode) {
-                for(LabelNode label : ((TableSwitchInsnNode) insn).labels) {
-                    convertEdgeToNode(basicBlock, labelBlockMap.get(label));
-                }
-            } else if(insn instanceof LookupSwitchInsnNode) {
-                for(LabelNode label : ((LookupSwitchInsnNode) insn).labels) {
-                    convertEdgeToNode(basicBlock, labelBlockMap.get(label));
+            } else if(insn instanceof TableSwitchInsnNode || insn instanceof LookupSwitchInsnNode) {
+                List<LabelNode> labels = insn instanceof TableSwitchInsnNode ? ((TableSwitchInsnNode) insn).labels : ((LookupSwitchInsnNode) insn).labels;
+                // Make a set of labels to handle multiple cases going to the same branch
+                Set<LabelNode> visited = new HashSet<>();
+                for(LabelNode label : labels) {
+                    if(visited.add(label)) {
+                        convertEdgeToNode(basicBlock, labelBlockMap.get(label));
+                    }
                 }
             }
         }
@@ -136,14 +145,11 @@ public class BindingControlFlowAnalyzer {
      *
      * @param source the source node of the edge to be converted
      * @param destination the destination node of the edge to be converted
-     * @throws IllegalArgumentException if the specified source node is not originally connected to the specified
-     *              destination node
      */
     private static void convertEdgeToNode(ControlFlowNode source, ControlFlowNode destination) {
-        if(!isConnected(source, destination)) {
-            throw new IllegalArgumentException();
+        if(isConnected(source, destination)) {
+            removeEdge(source, destination);
         }
-        removeEdge(source, destination);
         ConvertedEdge convert = new ConvertedEdge(destination);
         addEdge(source, convert);
         addEdge(convert, destination);
@@ -179,7 +185,7 @@ public class BindingControlFlowAnalyzer {
      *              is "binding" for at least one statement in the original graph
      */
     private static boolean isBindingConvertedEdge(ControlFlowNode node, Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers) {
-        if(node instanceof ConvertedEdge) {
+        if(node instanceof ConvertedEdge && dominanceFrontiers.containsKey(node)) {
             ConvertedEdge convertedEdge = (ConvertedEdge) node;
             Set<ControlFlowNode> dominanceFrontier = dominanceFrontiers.get(convertedEdge);
             return !dominanceFrontier.contains(convertedEdge.destination);

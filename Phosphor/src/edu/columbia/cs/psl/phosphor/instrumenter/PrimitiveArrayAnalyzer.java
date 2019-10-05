@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.BindingControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import org.objectweb.asm.Label;
@@ -392,7 +393,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             super(Configuration.ASM_VERSION, access, name, desc, signature, exceptions);
             this.className = className;
             this.cmv = cmv;
-			shouldTrackExceptions = Configuration.IMPLICIT_EXCEPTION_FLOW;
+            shouldTrackExceptions = Configuration.IMPLICIT_EXCEPTION_FLOW;
         }
 
         @Override
@@ -1073,7 +1074,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 GraphBasedAnalyzer.doGraphAnalysis(this, implicitAnalysisBlocks);
             }
 
-            if (Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
+            if(Configuration.BINDING_CONTROL_FLOWS_ONLY) {
+                int maxBranchID = BindingControlFlowAnalyzer.analyze(this);
+                if(maxBranchID >= 0) {
+                    nJumps = maxBranchID + 1;
+                }
+                patchFrames(implicitAnalysisBlocks.values(), instructions);
+            } else if (Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
                 annotateCodeForControlFlow();
             }
 
@@ -1178,7 +1185,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     break;
                 }
             if (implicitAnalysisBlocks.size() > 1 && hasJumps) {
-                Stack<AnnotatedInstruction> stack = new Stack<AnnotatedInstruction>();
+                Stack<AnnotatedInstruction> stack = new Stack<>();
 
                 //Fix successors to only point to jumps or labels
                 boolean changed = true;
@@ -1194,7 +1201,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         }
                     }
                 }
-                //Post dominator analysis
+                // Post dominator analysis
                 HashSet<AnnotatedInstruction> interestingBlocks = new HashSet<>();
                 for (AnnotatedInstruction b : implicitAnalysisBlocks.values())
                     if (b.isInteresting())
@@ -1206,15 +1213,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         b.postDominators.addAll(interestingBlocks);
                 }
                 changed = true;
-                while (changed) {
+                while(changed) {
                     changed = false;
-                    for (AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                        if (b.basicBlockStartingSuccesors.size() > 0 && b.isInteresting()) {
-                            HashSet<AnnotatedInstruction> intersectionOfPredecessors = new HashSet<AnnotatedInstruction>();
+                    for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
+                        if(b.basicBlockStartingSuccesors.size() > 0 && b.isInteresting()) {
                             Iterator<AnnotatedInstruction> iter = b.basicBlockStartingSuccesors.iterator();
                             AnnotatedInstruction successor = iter.next();
-                            intersectionOfPredecessors.addAll(successor.postDominators);
-                            while (iter.hasNext()) {
+                            HashSet<AnnotatedInstruction> intersectionOfPredecessors = new HashSet<>(successor.postDominators);
+                            while(iter.hasNext()) {
                                 successor = iter.next();
                                 intersectionOfPredecessors.retainAll(successor.postDominators);
                             }
@@ -1228,14 +1234,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 }
 
 
-                //Add in markings for where jumps are resolved
+                // Add in markings for where jumps are resolved
                 for (AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
                     if (j.isJump || j.isTryBlockStart) {
-//							System.out.println(j + " " + j.postDominators);
                         j.postDominators.remove(j);
                         HashSet<AnnotatedInstruction> visited = new HashSet<>();
                         AnnotatedInstruction min = findImmediatePostDominator(j, visited);
-//							System.out.println(j + " resolved at " + min +", of " + j.postDominators);
                         if (min != null) {
                             min.resolvedBlocks.add(j);
                             min.resolvedHereBlocks.add(j);
@@ -1257,7 +1261,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //						this.instructions.insertBefore(j.insn, new LdcInsnNode(j.idx + " " + j.onTrueSideOfJumpFrom + " " + j.onFalseSideOfJumpFrom +" RH:" + j.resolvedHereBlocks + j.successorsCompact +" "+j.exceptionsThrown));
 //						this.instructions.insertBefore(j.insn,new InsnNode(Opcodes.POP));
 //					}
-                //Propogate forward true-side/false-side to determine which vars are written
+                // Propagate forward true-side/false-side to determine which vars are written
                 stack.add(implicitAnalysisBlocks.get(0));
 //					stack.addAll(tryCatchHandlers);
                 while (!stack.isEmpty()) {
@@ -1271,9 +1275,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     b.onTrueSideOfJumpFrom.removeAll(b.resolvedBlocks);
                     //Propogate markings to successors
                     for (AnnotatedInstruction s : b.successors) {
-                        boolean _changed = false;
-
-                        _changed |= s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
+                        boolean _changed = s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
                         _changed |= s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
 //							if(!s.visited)
                         _changed |= s.resolvedBlocks.addAll(b.resolvedBlocks);
@@ -1292,21 +1294,22 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //						this.instructions.insertBefore(j.insn, new LdcInsnNode(j.idx + " " + j.onTrueSideOfJumpFrom + " " + j.onFalseSideOfJumpFrom +" SUC:" + j.successors));
 //						this.instructions.insertBefore(j.insn,new InsnNode(Opcodes.POP));
 //					}
-                for (AnnotatedInstruction j : implicitAnalysisBlocks.values())
+                for(AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
                     j.visited = false;
 
-
-                for (AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
+                }
+                for(AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
 //						System.out.println(j.idx + " " + j.postDominators);
-                    if (j.isJump || j.isTryBlockStart) {
+                    if(j.isJump || j.isTryBlockStart) {
                         stack = new Stack<AnnotatedInstruction>();
                         stack.addAll(j.successors);
                         HashSet<AnnotatedInstruction> visited = new HashSet<>();
 //							System.out.println("START JUMP " + j.idx);
-                        while (!stack.isEmpty()) {
+                        while(!stack.isEmpty()) {
                             AnnotatedInstruction b = stack.pop();
-                            if (!visited.add(b))
+                            if(!visited.add(b)) {
                                 continue;
+                            }
                             if (b.onTrueSideOfJumpFrom.contains(j)) {
                                 j.varsWrittenTrueSide.addAll(b.varsWritten);
                                 j.fieldsWrittenTrueSide.addAll(b.fieldsWritten);
@@ -1319,10 +1322,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                                 stack.addAll(b.successors);
                             }
                         }
-//							System.out.println("Visited: " + visited);
                     }
                 }
-                HashMap<AnnotatedInstruction, Integer> jumpIDs = new HashMap<AnnotatedInstruction, Integer>();
+                HashMap<AnnotatedInstruction, Integer> jumpIDs = new HashMap<>();
                 int jumpID = 0;
                 for (AnnotatedInstruction r : implicitAnalysisBlocks.values()) {
                     if (r.isTryBlockStart) {
@@ -1491,9 +1493,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                             if (filtered.add(s))
                                 instructions.insertBefore(r.insn, new TypeInsnNode(TaintUtils.UNTHROWN_EXCEPTION, s));
                         }
-                    } else if (shouldTrackExceptions && (r.insn.getType() == AbstractInsnNode.METHOD_INSN || r.insn
-                            .getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN)) {
-                        //Are we in a try handler? If so, after this instruction, we should note that our execution may be contingent on some exception
+                    } else if (shouldTrackExceptions && (r.insn.getType() == AbstractInsnNode.METHOD_INSN
+                            || r.insn.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN)) {
+                        // Are we in a try handler? If so, after this instruction, we should note that our execution may be contingent on some exception
                         for (String s : r.coveredByTryBlockFor) {
                             if (s == null)
                                 s = "java/lang/Throwable";
@@ -1501,76 +1503,77 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         }
                     }
                 }
-
-
-                for (AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-//						System.out.println(b.idx + " -> " + b.successorsCompact);
-//						System.out.println(b.successors);
-//						System.out.println(b.resolvedBlocks);
+                for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
                     AbstractInsnNode insn = b.insn;
-                    while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
+                    while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL) {
                         insn = insn.getNext();
-
+                    }
                     if (b.resolvedHereBlocks.size() == jumpIDs.size()) {
                         //Everything is resolved
                         instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, -1));
-                    } else
-                        for (AnnotatedInstruction r : b.resolvedHereBlocks) {
-//							System.out.println("Resolved: " + jumpIDs.get(r) + " at " + b.idx);
-                            //								System.out.println("GOt" + jumpIDs);
-                            if (r.isTryBlockStart) {
-
-                            } else {
+                    } else {
+                        for(AnnotatedInstruction r : b.resolvedHereBlocks) {
+                            if(!r.isTryBlockStart) {
                                 if (b.successors.size() > 0) {
-                                    //for any return/athrow, we'll just bulk pop-all
+                                    // For any return or athrow, we'll just bulk pop-all
                                     instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
-                                    if (r.isTwoOperandJumpInstruction)
+                                    if(r.isTwoOperandJumpInstruction) {
                                         instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r) + 1));
-                                }
-                            }
-                        }
-                    if (b.resolvedHereBlocks.size() > 0) {
-                        insn = b.insn;
-                        while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL || insn.getOpcode() > 200)
-                            insn = insn.getNext();
-                        if (insn.getOpcode() == Opcodes.NEW) //maybe its a NEW
-                        {
-                            //Need to patch all frames to have the correct label in them :'(
-                            AbstractInsnNode i = insn;
-                            while (i != null && i.getType() != AbstractInsnNode.LABEL)
-                                i = i.getPrevious();
-
-                            LinkedList<LabelNode> oldLabels = new LinkedList<>();
-                            oldLabels.add(((LabelNode) i));
-                            if (i.getPrevious() != null && i.getPrevious().getType() == AbstractInsnNode.LABEL)
-                                oldLabels.add(((LabelNode) i.getPrevious()));
-
-                            LabelNode newLabel = new LabelNode(new Label());
-                            instructions.insertBefore(insn, newLabel);
-                            i = instructions.getFirst();
-                            while (i != null) {
-                                if (i instanceof FrameNode) {
-                                    FrameNode fr = (FrameNode) i;
-                                    for (int j = 0; j < fr.stack.size(); j++) {
-                                        if (oldLabels.contains(fr.stack.get(j))) {
-                                            fr.stack.set(j, newLabel.getLabel());
-                                        }
                                     }
                                 }
-                                i = i.getNext();
                             }
                         }
                     }
-                    if (b.successors.isEmpty() && !isImplicitLightTracking) //in light tracking mode no need to POP off of control at RETURN/THROW, becasue we don't reuse the obj
-                    {
-                        instructions.insertBefore(b.insn, new InsnNode(TaintUtils.FORCE_CTRL_STORE));
-//							if (b.insn.getOpcode() != Opcodes.ATHROW) {
-                        instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, -1));
-//							}
+                    if (b.resolvedHereBlocks.size() > 0) {
+                        patchFrames(b, instructions);
                     }
-                    //						System.out.println(b.insn + " - " + b.domBlocks + "-" + b.antiDomBlocks);
+                    // In light tracking mode no need to POP off of control at RETURN/THROW, because we don't reuse the obj
+                    if (b.successors.isEmpty() && !isImplicitLightTracking) {
+                        instructions.insertBefore(b.insn, new InsnNode(TaintUtils.FORCE_CTRL_STORE));
+                        instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, -1));
+                    }
                 }
                 nJumps = jumpID;
+            }
+        }
+    }
+
+    private static void patchFrames(Collection<AnnotatedInstruction> annotatedInstructions, InsnList instructions) {
+        for(AnnotatedInstruction annotatedInstruction : annotatedInstructions) {
+            patchFrames(annotatedInstruction, instructions);
+        }
+    }
+
+    private static void patchFrames(AnnotatedInstruction annotatedInstruction, InsnList instructions) {
+        AbstractInsnNode insn = annotatedInstruction.insn;
+        while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE
+                || insn.getType() == AbstractInsnNode.LABEL || insn.getOpcode() > 200) {
+            insn = insn.getNext();
+        }
+        if(insn.getOpcode() == Opcodes.NEW) {
+            // Need to patch all frames to have the correct label in them :'(
+            AbstractInsnNode i = insn;
+            while (i != null && i.getType() != AbstractInsnNode.LABEL) {
+                i = i.getPrevious();
+            }
+            LinkedList<LabelNode> oldLabels = new LinkedList<>();
+            oldLabels.add(((LabelNode) i));
+            if(i != null && i.getPrevious() != null && i.getPrevious().getType() == AbstractInsnNode.LABEL) {
+                oldLabels.add(((LabelNode) i.getPrevious()));
+            }
+            LabelNode newLabel = new LabelNode(new Label());
+            instructions.insertBefore(insn, newLabel);
+            i = instructions.getFirst();
+            while(i != null) {
+                if(i instanceof FrameNode) {
+                    FrameNode fr = (FrameNode) i;
+                    for(int j = 0; j < fr.stack.size(); j++) {
+                        if(oldLabels.contains(fr.stack.get(j))) {
+                            fr.stack.set(j, newLabel.getLabel());
+                        }
+                    }
+                }
+                i = i.getNext();
             }
         }
     }

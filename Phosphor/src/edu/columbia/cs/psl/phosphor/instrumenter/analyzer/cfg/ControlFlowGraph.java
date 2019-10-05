@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
+
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
@@ -33,7 +34,7 @@ public class ControlFlowGraph {
     /**
      * Special nodes used as the entry points for any exception handlers
      */
-    private final ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints;
+    private final SinglyLinkedList<ExceptionHandlerEntryPoint> exceptionHandlerEntryPoints;
 
     /**
      * Special node used as the single exit point for this graph
@@ -57,7 +58,7 @@ public class ControlFlowGraph {
      */
     private ControlFlowNode[] transverseReversePostOrder = null;
 
-    private ControlFlowGraph(EntryPoint entryPoint, ExitPoint exitPoint, SinglyLinkedList<BasicBlock> basicBlocks, ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints) {
+    private ControlFlowGraph(EntryPoint entryPoint, ExitPoint exitPoint, SinglyLinkedList<BasicBlock> basicBlocks, SinglyLinkedList<ExceptionHandlerEntryPoint> exceptionHandlerEntryPoints) {
         this.basicBlocks = basicBlocks;
         this.entryPoint = entryPoint;
         this.exitPoint = exitPoint;
@@ -97,10 +98,12 @@ public class ControlFlowGraph {
         for(int i = 0; i < reversePostOrder.length; i++) {
             if(reversePostOrder[i].predecessors.size() > 1) {
                 for(ControlFlowNode predecessor : reversePostOrder[i].predecessors) {
-                    ControlFlowNode runner = predecessor;
-                    while(runner.reversePostOrderIndex != dominators[i]) {
-                        dominanceFrontiers.get(runner).add(reversePostOrder[i]);
-                        runner = reversePostOrder[dominators[runner.reversePostOrderIndex]];
+                    if(predecessor.reversePostOrderIndex != -1) {
+                        ControlFlowNode runner = predecessor;
+                        while(runner.reversePostOrderIndex != dominators[i]) {
+                            dominanceFrontiers.get(runner).add(reversePostOrder[i]);
+                            runner = reversePostOrder[dominators[runner.reversePostOrderIndex]];
+                        }
                     }
                 }
             }
@@ -142,7 +145,7 @@ public class ControlFlowGraph {
             for(int i = 1; i < dominators.length; i++) {
                 int newImmediate = -1;
                 for(ControlFlowNode predecessor : reversePostOrder[i].predecessors) {
-                    if(dominators[predecessor.reversePostOrderIndex] != -1) {
+                    if(predecessor.reversePostOrderIndex != -1 && dominators[predecessor.reversePostOrderIndex] != -1) {
                         if(newImmediate == -1) {
                             newImmediate = predecessor.reversePostOrderIndex;
                         } else {
@@ -150,7 +153,7 @@ public class ControlFlowGraph {
                         }
                     }
                 }
-                if(dominators[i] != newImmediate) {
+                if(dominators[i] != newImmediate && newImmediate != -1) {
                     dominators[i] = newImmediate;
                     changed = true;
                 }
@@ -274,6 +277,9 @@ public class ControlFlowGraph {
      */
     public static ControlFlowGraph analyze(final MethodNode methodNode) {
         AbstractInsnNode[] instructions = methodNode.instructions.toArray();
+        if(instructions.length == 0) {
+            return new ControlFlowGraph(new EntryPoint(), new ExitPoint(), new SinglyLinkedList<BasicBlock>(), new SinglyLinkedList<ExceptionHandlerEntryPoint>());
+        }
         ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints = createExceptionHandlerEntryPoints(methodNode.tryCatchBlocks);
         int[] leaderIndices = calculateLeaders(methodNode.instructions, exceptionHandlerEntryPoints);
         BasicBlock[] basicBlocks = createBasicBlocks(instructions, leaderIndices);
@@ -285,7 +291,28 @@ public class ControlFlowGraph {
         for(BasicBlock basicBlock : basicBlocks) {
             basicBlockList.enqueue(basicBlock);
         }
-        return new ControlFlowGraph(entryPoint, exitPoint, basicBlockList, exceptionHandlerEntryPoints);
+        SinglyLinkedList<ExceptionHandlerEntryPoint> handlerEntryPoints = filterExceptionHandlerEntryPoints(exceptionHandlerEntryPoints, entryPoint);
+        return new ControlFlowGraph(entryPoint, exitPoint, basicBlockList, handlerEntryPoints);
+    }
+
+    /**
+     * Removes exception handler entry points to otherwise connected node. Connects the final exception handler entry
+     * points to the start node for the graph.
+     *
+     * @param exceptionHandlerEntryPoints exception handler entry points to be filtered
+     * @param entryPoint the standard entry point the graph
+     * @return a list of exception handler entry points whose successor is only preceded by one node, the exception
+     *              handler entry point
+     */
+    private static SinglyLinkedList<ExceptionHandlerEntryPoint> filterExceptionHandlerEntryPoints(ExceptionHandlerEntryPoint[] exceptionHandlerEntryPoints, EntryPoint entryPoint) {
+        SinglyLinkedList<ExceptionHandlerEntryPoint> handlerEntryPoints = new SinglyLinkedList<>();
+        for(ExceptionHandlerEntryPoint point : exceptionHandlerEntryPoints) {
+            if(point.successors.toArray(new ControlFlowNode[0])[0].predecessors.size() == 1) {
+                handlerEntryPoints.enqueue(point);
+                addEdge(entryPoint, point); // Maybe not a great idea...
+            }
+        }
+        return handlerEntryPoints;
     }
 
     /**
@@ -330,7 +357,7 @@ public class ControlFlowGraph {
                     leaders.add(node);
                 }
                 leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
-            } else if(isExitInstruction(insn)) {
+            } else if(isExitInstruction(insn) && insn.getNext() != null) {
                 leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
             }
         }
