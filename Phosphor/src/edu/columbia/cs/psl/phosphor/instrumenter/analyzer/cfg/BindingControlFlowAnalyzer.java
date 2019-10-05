@@ -1,63 +1,47 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
-
-import java.util.List;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraph.createLabelBlockMapping;
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowNode.*;
+import static org.objectweb.asm.Opcodes.*;
 
 public class BindingControlFlowAnalyzer {
 
     public static void analyze(MethodNode methodNode) {
         InsnList instructions = methodNode.instructions;
         ControlFlowGraph cfg = ControlFlowGraph.analyze(methodNode);
-        cfg.prepareForModification();
-        Set<ConvertedEdge> convertedEdges = convertTargetedEdges(cfg);
-        if(convertedEdges.isEmpty()) {
-            return;
+        Map<LabelNode, BasicBlock> labelBlockMap = createLabelBlockMapping(cfg.getBasicBlocks());
+        Set<BasicBlock> targetedBranchBlocks = identifyTargetedBranchBlocks(cfg.getBasicBlocks());
+        if(targetedBranchBlocks.isEmpty()) {
+            return; // There are no branches that potentially need to be propagated along
         }
+        cfg.prepareForModification(); // Notify the graph that it's structure is about to be modified
+        convertTargetedBranchEdges(targetedBranchBlocks, labelBlockMap);
         Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.calculateDominanceFrontiers();
-        Set<ConvertedEdge> bindingEdges = new HashSet<>();
-        for(ConvertedEdge convertedEdge : convertedEdges) {
-            Set<ControlFlowNode> dominanceFrontier = dominanceFrontiers.get(convertedEdge);
-            if(!dominanceFrontier.contains(convertedEdge.destination)) {
-                bindingEdges.add(convertedEdge);
-            }
-        }
-        for(ConvertedEdge bindingEdge : bindingEdges) {
-            Set<ControlFlowNode> dominanceFrontier = dominanceFrontiers.get(bindingEdge);
-            // Add a label and a push to the ControlTaintTagStack
-            AbstractInsnNode lastNode = new VarInsnNode(TaintUtils.BRANCH_START, bindingEdge.edgeID);
-            instructions.insertBefore(bindingEdge.destination.getFirstInsn(), lastNode);
-            if(edgeIsFromTwoOperandBranch(bindingEdge)) {
-                instructions.insertBefore(bindingEdge.destination.getFirstInsn(), new VarInsnNode(TaintUtils.BRANCH_START, bindingEdge.edgeID));
-            }
-            if(bindingEdge.targetLabel != null) {
-                LabelNode newLabel = new LabelNode(new Label());
-                instructions.insertBefore(lastNode, newLabel);
-                replaceLabel(bindingEdge.source.getLastInsn(), bindingEdge.targetLabel, newLabel);
-            }
-            // Add pops along dominance frontier
-            for(ControlFlowNode node : dominanceFrontier) {
-                if(node instanceof BasicBlock) {
-                    AbstractInsnNode popPoint = ((BasicBlock) node).getFirstInsn();
-                    while(popPoint instanceof LabelNode) {
-                        popPoint = popPoint.getNext();
-                    }
-                    instructions.insertBefore(popPoint, new VarInsnNode(TaintUtils.BRANCH_END, bindingEdge.edgeID));
+        Map<BasicBlock, Set<ConvertedEdge>> bindingEdgesMap = getBindingEdgesMap(targetedBranchBlocks, dominanceFrontiers);
+        int branchID = 0;
+        for(BasicBlock basicBlock : bindingEdgesMap.keySet()) {
+            // Add branch start
+            instructions.insertBefore(basicBlock.getLastInsn(), new VarInsnNode(TaintUtils.BRANCH_START, branchID));
+            // Add branch ends
+            Set<BasicBlock> popPoints = getPopPoints(basicBlock, bindingEdgesMap.get(basicBlock), dominanceFrontiers);
+            for(BasicBlock popPoint : popPoints) {
+                AbstractInsnNode insn = popPoint.getFirstInsn();
+                while(insn instanceof LabelNode) {
+                    insn  = insn .getNext();
                 }
+                instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, branchID));
             }
+            branchID++;
         }
-
-        if(!bindingEdges.isEmpty()) {
-            // Add pop all before exiting
+        if(!bindingEdgesMap.isEmpty()) {
+            // Add pop all before exiting if there was at least one push added
             for(BasicBlock basicBlock : cfg.getBasicBlocks()) {
                 if(basicBlock.successors.contains(cfg.getExitPoint())) {
                     instructions.insertBefore(basicBlock.getLastInsn(), new VarInsnNode(TaintUtils.BRANCH_END, -1));
@@ -65,122 +49,182 @@ public class BindingControlFlowAnalyzer {
             }
         }
     }
-
-    private static void replaceLabel(AbstractInsnNode insn, LabelNode targetLabel, LabelNode replacementLabel) {
-        if(insn instanceof JumpInsnNode) {
-            JumpInsnNode jInsn = ((JumpInsnNode) insn);
-            if(jInsn.label.equals(targetLabel)) {
-                jInsn.label = replacementLabel;
-            } else {
-                throw new IllegalStateException();
-            }
-        } else if(insn instanceof TableSwitchInsnNode || insn instanceof LookupSwitchInsnNode) {
-            List<LabelNode> labels = insn instanceof LookupSwitchInsnNode ? ((LookupSwitchInsnNode) insn).labels : ((TableSwitchInsnNode) insn).labels;
-            int targetIndex = 0;
-            for(LabelNode label : labels) {
-                if(label.equals(targetLabel)) {
-                    break;
-                }
-                targetIndex++;
-            }
-            if(labels.get(targetIndex).equals(targetLabel)) {
-                labels.set(targetIndex, replacementLabel);
-            } else {
-                throw new IllegalStateException();
+    
+    /**
+     * @param basicBlocks blocks to be checked for targeted branch instructions
+     * @return set containing the basic blocks from the specified array which end with a targeted branch instruction
+     */
+    private static Set<BasicBlock> identifyTargetedBranchBlocks(BasicBlock[] basicBlocks) {
+        Set<BasicBlock> targetedBlocks = new HashSet<>();
+        for(BasicBlock basicBlock : basicBlocks) {
+            switch(basicBlock.getLastInsn().getOpcode()) {
+                case IFEQ:
+                case IF_ICMPEQ:
+                case IF_ACMPEQ:
+                case IFNE:
+                case IF_ICMPNE:
+                case IF_ACMPNE:
+                case TABLESWITCH:
+                case LOOKUPSWITCH:
+                    targetedBlocks.add(basicBlock);
             }
         }
-    }
-
-    private static boolean edgeIsFromTwoOperandBranch(ConvertedEdge edge) {
-        AbstractInsnNode node = edge.source.getLastInsn();
-        switch(node.getOpcode()) {
-            case Opcodes.IF_ICMPEQ:
-            case Opcodes.IF_ACMPEQ:
-            case Opcodes.IF_ICMPNE:
-            case Opcodes.IF_ACMPNE:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private static Set<ConvertedEdge> convertTargetedEdges(ControlFlowGraph cfg) {
-        Set<ConvertedEdge> convertedEdges = new HashSet<>();
-        int edgeID = 0;
-        Map<LabelNode, BasicBlock> labelBlockMap = createLabelBlockMapping(cfg.getBasicBlocks());
-        for(BasicBlock basicBlock : cfg.getBasicBlocks()) {
-            AbstractInsnNode insn = basicBlock.getLastInsn();
-            if(insn instanceof JumpInsnNode) {
-                LabelNode label = ((JumpInsnNode) insn).label;
-                switch(insn.getOpcode()) {
-                    case Opcodes.IFEQ:
-                    case Opcodes.IF_ICMPEQ:
-                    case Opcodes.IF_ACMPEQ:
-                        convertedEdges.add(convertEdgeToNode(basicBlock, labelBlockMap.get(label), edgeID++, label));
-                        break;
-                    case Opcodes.IFNE:
-                    case Opcodes.IF_ICMPNE:
-                    case Opcodes.IF_ACMPNE:
-                        BasicBlock falseBranch = null;
-                        for(ControlFlowNode successor : basicBlock.successors) {
-                            if(successor instanceof BasicBlock && successor != labelBlockMap.get(label)) {
-                                falseBranch = (BasicBlock) successor;
-                                break;
-                            }
-                        }
-                        if(falseBranch != null) {
-                            convertedEdges.add(convertEdgeToNode(basicBlock, falseBranch, edgeID++, null));
-                        }
-                }
-            } else if(insn instanceof TableSwitchInsnNode) {
-                for(LabelNode label : ((TableSwitchInsnNode) insn).labels) {
-                    convertedEdges.add(convertEdgeToNode(basicBlock, labelBlockMap.get(label), edgeID++, label));
-                }
-            } else if(insn instanceof LookupSwitchInsnNode) {
-                for(LabelNode label : ((LookupSwitchInsnNode) insn).labels) {
-                    convertedEdges.add(convertEdgeToNode(basicBlock, labelBlockMap.get(label), edgeID++, label));
-                }
-            }
-        }
-        return convertedEdges;
+        return targetedBlocks;
     }
 
     /**
-     * Replaces the edge from the specified source node to the specified destination node with a new node that connect
-     * edges to connect the new node to the source and destination nodes.
+     *  For each targeted block's branch instruction converted, determines which edges from the branch instruction are 
+     *  taken as a result of two values being equal. For IFEQ, IF_ICMPEQ, and IF_ACMPEQ this is the "true" edge. For
+     *  IFNE, IF_ICMPNE, and IF_ACMPNE this is the "false" edge. For TABLESWITCH and LOOKUPSWITCH this is every 
+     *  non-default edge.
+     *  
+     *  Each such edge (u, v) is converted into a node by removing the edge from the graph, creating a new node w, and 
+     *  adding the edges (u, w) and (w, v) to the graph. Sets of these new nodes are gathered for each of the specified
+     *  blocks and a mapping between the blocks and these sets is return.
+     * 
+     * @param targetedBranchBlocks set containing basic blocks in the graph which end with a targeted branch instruction
+     * @param labelBlockMap maps labels to the basic blocks that they start                            
+     */
+    private static void convertTargetedBranchEdges(Set<BasicBlock> targetedBranchBlocks, Map<LabelNode, BasicBlock> labelBlockMap ) {
+        for(BasicBlock basicBlock : targetedBranchBlocks) {
+            AbstractInsnNode insn = basicBlock.getLastInsn();
+            if(insn instanceof JumpInsnNode) {
+                boolean branchTaken = insn.getOpcode() == IFEQ || insn.getOpcode() == IF_ICMPEQ || insn.getOpcode() == IF_ACMPEQ;
+                convertEdgeToNode(basicBlock, getBinaryBranchSuccessor(basicBlock, labelBlockMap, branchTaken));
+            } else if(insn instanceof TableSwitchInsnNode) {
+                for(LabelNode label : ((TableSwitchInsnNode) insn).labels) {
+                    convertEdgeToNode(basicBlock, labelBlockMap.get(label));
+                }
+            } else if(insn instanceof LookupSwitchInsnNode) {
+                for(LabelNode label : ((LookupSwitchInsnNode) insn).labels) {
+                    convertEdgeToNode(basicBlock, labelBlockMap.get(label));
+                }
+            }
+        }
+    }
+
+    /**
+     * @param basicBlock basic block that ends with a binary branch instruction whose successor is to be returned
+     * @param labelBlockMap maps labels to the basic blocks that they start
+     * @param branchTaken whether the successor returns should be the one that follows the specified block if the branch is taken
+     * @return return a successor of the specified basic block with two successor, if branchTaken is true return the successor
+     *              that follows if the branch ending the specified block is taken otherwise returns the successor that
+     *              follows if the branch is not taken
+     */
+    private static ControlFlowNode getBinaryBranchSuccessor(BasicBlock basicBlock, Map<LabelNode, BasicBlock> labelBlockMap, boolean branchTaken) {
+        if(basicBlock.successors.size() != 2) {
+            throw new IllegalArgumentException("Cannot find binary branch target for basic block that does not have two successors");
+        } else {
+            AbstractInsnNode insn = basicBlock.getLastInsn();
+            if(insn instanceof JumpInsnNode) {
+                LabelNode label = ((JumpInsnNode) insn).label;
+                if(branchTaken) {
+                    return labelBlockMap.get(label);
+                } else {
+                    ControlFlowNode[] successors = basicBlock.successors.toArray(new ControlFlowNode[0]);
+                    return successors[0] == labelBlockMap.get(label) ? successors[1] : successors[0];
+                }
+            } else {
+                throw new IllegalArgumentException("Cannot get branch target for a basic block that does not end with a jump insn");
+            }
+        }
+    }
+
+    /**
+     * Removes the edge (source, destination) from the graph. Adds a new node w, the edge (source, w) and the edge
+     * (w, destination) to the graph.
+     *
      * @param source the source node of the edge to be converted
      * @param destination the destination node of the edge to be converted
-     * @param edgeID  the identification number assigned to the new node
-     * @param targetLabel if edge is from a jump, the jump target otherwise null
-     * @return the new node converted from the specified edge
+     * @throws IllegalArgumentException if the specified source node is not originally connected to the specified
+     *              destination node
      */
-    private static ConvertedEdge convertEdgeToNode(BasicBlock source, BasicBlock destination, int edgeID, LabelNode targetLabel) {
+    private static void convertEdgeToNode(ControlFlowNode source, ControlFlowNode destination) {
         if(!isConnected(source, destination)) {
             throw new IllegalArgumentException();
         }
-        ConvertedEdge convert = new ConvertedEdge(edgeID, source, destination, targetLabel);
+        removeEdge(source, destination);
+        ConvertedEdge convert = new ConvertedEdge(destination);
         addEdge(source, convert);
         addEdge(convert, destination);
-        removeEdge(source, destination);
-        return convert;
+    }
+
+    /**
+     * @param targetedBranchBlocks set containing basic blocks in the graph which end with a targeted branch instruction
+     * @param dominanceFrontiers maps nodes in the graph to their dominance frontiers
+     * @return a mapping from basic blocks that end with a targeted branch instruction to non-empty sets of converted
+     *              edges from the block that correspond to edges in the original graph which are "binding" for at least
+     *              one statement in the original graph.
+     */
+    private static Map<BasicBlock, Set<ConvertedEdge>> getBindingEdgesMap(Set<BasicBlock> targetedBranchBlocks, Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers) {
+        Map<BasicBlock, Set<ConvertedEdge>> bindingEdgesMap = new HashMap<>();
+        for(BasicBlock basicBlock : targetedBranchBlocks) {
+            Set<ConvertedEdge> bindingEdges = new HashSet<>();
+            for(ControlFlowNode successor : basicBlock.successors) {
+                if(isBindingConvertedEdge(successor, dominanceFrontiers)) {
+                    bindingEdges.add((ConvertedEdge) successor);
+                }
+            }
+            if(!bindingEdges.isEmpty()) {
+                bindingEdgesMap.put(basicBlock, bindingEdges);
+            }
+        }
+        return bindingEdgesMap;
+    }
+
+    /**
+     * @param node the node to be tested
+     * @param dominanceFrontiers maps nodes in the graph to their dominance frontiers
+     * @return true if the specified node is a converted edge that corresponds to an edge in the original graph which
+     *              is "binding" for at least one statement in the original graph
+     */
+    private static boolean isBindingConvertedEdge(ControlFlowNode node, Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers) {
+        if(node instanceof ConvertedEdge) {
+            ConvertedEdge convertedEdge = (ConvertedEdge) node;
+            Set<ControlFlowNode> dominanceFrontier = dominanceFrontiers.get(convertedEdge);
+            return !dominanceFrontier.contains(convertedEdge.destination);
+        }
+        return false;
+    }
+
+    /**
+     * @param bindingBranch a basic block that end with a target branch instruction that has at least one edge that is
+     *                      "binding" for at least one statement in the original graph
+     * @param bindingEdges non-empty set of converted edges that correspond to edges in the original graph which are
+     *                      "binding" for at least one statement in the original graph
+     * @param dominanceFrontiers maps nodes in the graph to their dominance frontiers
+     * @return a set of BasicBlocks that should have a pop instruction inserted at the beginning for pushes associated
+     *                      with the specified branch
+     */
+    private static Set<BasicBlock> getPopPoints(BasicBlock bindingBranch, Set<ConvertedEdge> bindingEdges, Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers) {
+        Set<BasicBlock> popPoints = new HashSet<>();
+        // Add pops along dominance frontiers of each of the binding branches for the branch
+        for(ConvertedEdge convertedEdge : bindingEdges) {
+            for(ControlFlowNode node : dominanceFrontiers.get(convertedEdge)) {
+                if(node instanceof BasicBlock) {
+                    popPoints.add((BasicBlock) node);
+                }
+            }
+        }
+        // Add pops before all of the non-binding routes out of the branch
+        for(ControlFlowNode node : bindingBranch.successors) {
+            if(node instanceof BasicBlock) {
+                popPoints.add((BasicBlock) node);
+            } else if(node instanceof ConvertedEdge && !bindingEdges.contains(node)) {
+                ControlFlowNode target = ((ConvertedEdge) node).destination;
+                if(target instanceof  BasicBlock) {
+                    popPoints.add((BasicBlock) target);
+                }
+            }
+        }
+        return popPoints;
     }
 
     private static class ConvertedEdge extends ControlFlowNode {
-        final int edgeID;
-        final BasicBlock source;
-        final BasicBlock destination;
-        final LabelNode targetLabel;
+        final ControlFlowNode destination;
 
-        ConvertedEdge(int edgeID, BasicBlock source, BasicBlock destination, LabelNode targetLabel) {
-            this.edgeID = edgeID;
-            this.source = source;
+        ConvertedEdge(ControlFlowNode destination) {
             this.destination = destination;
-            this.targetLabel = targetLabel;
-        }
-
-        @Override
-        public String toString() {
-            return "ConvertedEdge #" + edgeID;
         }
     }
 }
