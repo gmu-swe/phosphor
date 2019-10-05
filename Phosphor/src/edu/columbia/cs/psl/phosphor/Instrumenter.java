@@ -6,10 +6,8 @@ import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import org.apache.commons.cli.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
-import sun.security.krb5.Config;
 
 import java.io.*;
 import java.lang.instrument.ClassFileTransformer;
@@ -255,9 +253,12 @@ public class Instrumenter {
 	static Option opt_implicitHeadersNoTracking = Option.builder("implicitHeadersNoTracking")
 			.desc("Add method headers for doing implicit tracking, but don't actually propogate them")
 			.build();
-    static Option opt_reenable_caches = Option.builder("reenableCaches")
+    static Option opt_reenableCaches = Option.builder("reenableCaches")
             .desc("Prevent Phosphor from disabling caches.")
             .build();
+    static Option opt_bindingControl = Option.builder("bindingControlTracking")
+			.desc("Enable tag propagation due to certain control flows where values are bound to a particular.")
+			.build();
 	static Option help = Option.builder("help")
 		.desc("print this message")
 		.build();
@@ -295,6 +296,7 @@ public class Instrumenter {
 		options.addOption(opt_alwaysCheckForFrames);
 		options.addOption(opt_priorClassVisitor);
 		options.addOption(opt_implicitHeadersNoTracking);
+		options.addOption(opt_bindingControl);
 
 		CommandLineParser parser = new BasicParser();
 	    CommandLine line = null;
@@ -313,8 +315,8 @@ public class Instrumenter {
 			formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
 			return;
 		}
-		
-		Configuration.MULTI_TAINTING = line.hasOption("multiTaint");
+		Configuration.BINDING_CONTROL_FLOWS_ONLY = line.hasOption(opt_bindingControl.getOpt());
+		Configuration.MULTI_TAINTING = line.hasOption("multiTaint") || Configuration.BINDING_CONTROL_FLOWS_ONLY;
 		Configuration.IMPLICIT_TRACKING = line.hasOption("controlTrack");
 		Configuration.IMPLICIT_LIGHT_TRACKING = line.hasOption("lightControlTrack");
 		Configuration.IMPLICIT_EXCEPTION_FLOW = line.hasOption("controlTrackExceptions");
@@ -338,7 +340,7 @@ public class Instrumenter {
 		Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption("skipLocals");
 		Configuration.ALWAYS_CHECK_FOR_FRAMES = line.hasOption("alwaysCheckForFrames");
 		Configuration.IMPLICIT_HEADERS_NO_TRACKING = line.hasOption("implicitHeadersNoTracking");
-        Configuration.REENABLE_CACHES = line.hasOption(opt_reenable_caches.getOpt());
+        Configuration.REENABLE_CACHES = line.hasOption(opt_reenableCaches.getOpt());
 		String priorClassVisitorName = line.getOptionValue(opt_priorClassVisitor.getOpt());
 		if(priorClassVisitorName != null) {
 			try {

@@ -59,6 +59,8 @@ public class Configuration {
 
 	public static boolean REENABLE_CACHES = false;
 
+	public static boolean BINDING_CONTROL_FLOWS_ONLY = false;
+
 	public static Class<? extends ClassVisitor> PRIOR_CLASS_VISITOR = null;
 
 	public static SimpleHashSet<String> ignoredMethods = new SimpleHashSet<>();

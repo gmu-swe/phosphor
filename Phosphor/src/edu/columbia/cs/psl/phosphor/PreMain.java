@@ -550,6 +550,10 @@ public class PreMain {
 				} else if(s.startsWith("ignoredMethod=")) {
 					String methodName = s.substring(14);
 					Configuration.ignoredMethods.add(methodName);
+				} else if(s.equals(Instrumenter.opt_bindingControl.getOpt())) {
+					Configuration.BINDING_CONTROL_FLOWS_ONLY = true;
+					Configuration.MULTI_TAINTING = true;
+					Configuration.IMPLICIT_TRACKING = true;
 				}
 			}
 		}

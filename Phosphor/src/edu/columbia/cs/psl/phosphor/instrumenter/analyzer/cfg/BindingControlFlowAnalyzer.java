@@ -36,7 +36,7 @@ public class BindingControlFlowAnalyzer {
             // Add a label and a push to the ControlTaintTagStack
             AbstractInsnNode lastNode = new VarInsnNode(TaintUtils.BRANCH_START, bindingEdge.edgeID);
             instructions.insertBefore(bindingEdge.destination.getFirstInsn(), lastNode);
-            if(edgeIsFromTwoOpBranch(bindingEdge)) {
+            if(edgeIsFromTwoOperandBranch(bindingEdge)) {
                 instructions.insertBefore(bindingEdge.destination.getFirstInsn(), new VarInsnNode(TaintUtils.BRANCH_START, bindingEdge.edgeID));
             }
             if(bindingEdge.targetLabel != null) {
@@ -91,7 +91,7 @@ public class BindingControlFlowAnalyzer {
         }
     }
 
-    private static boolean edgeIsFromTwoOpBranch(ConvertedEdge edge) {
+    private static boolean edgeIsFromTwoOperandBranch(ConvertedEdge edge) {
         AbstractInsnNode node = edge.source.getLastInsn();
         switch(node.getOpcode()) {
             case Opcodes.IF_ICMPEQ:
