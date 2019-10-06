@@ -296,6 +296,7 @@ public class Instrumenter {
 		options.addOption(opt_alwaysCheckForFrames);
 		options.addOption(opt_priorClassVisitor);
 		options.addOption(opt_implicitHeadersNoTracking);
+		options.addOption(opt_reenableCaches);
 		options.addOption(opt_bindingControl);
 
 		CommandLineParser parser = new BasicParser();

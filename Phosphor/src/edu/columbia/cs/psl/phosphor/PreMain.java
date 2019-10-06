@@ -554,6 +554,8 @@ public class PreMain {
 					Configuration.BINDING_CONTROL_FLOWS_ONLY = true;
 					Configuration.MULTI_TAINTING = true;
 					Configuration.IMPLICIT_TRACKING = true;
+				} else if(s.equals(Instrumenter.opt_reenableCaches.getOpt())) {
+					Configuration.REENABLE_CACHES = true;
 				}
 			}
 		}
