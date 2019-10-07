@@ -24,8 +24,7 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.Vertex.ad
 public final class FlowGraph<V> {
 
     /**
-     * The vertices in this graph that are reachable from the entry point in reverse post order, the elements of
-     * vertices are unique
+     * The vertices in this graph that are reachable from the entry point in reverse post order
      */
     private final SinglyLinkedList<Vertex<V>> reachableVertices;
 
@@ -197,7 +196,7 @@ public final class FlowGraph<V> {
     }
 
     /**
-     * @return a set contains a pair for each back edge in this graph
+     * @return a set that contains a pair for each back edge in this graph
      */
     private Set<Pair<V, V>> identifyBackEdges() {
         // TODO
