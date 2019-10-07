@@ -1,6 +1,8 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
+import edu.columbia.cs.psl.phosphor.struct.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
@@ -10,26 +12,29 @@ import org.objectweb.asm.tree.*;
 
 import java.util.List;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraph.createLabelBlockMapping;
-import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowNode.*;
+import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraphCreator.getBasicBlocks;
 import static org.objectweb.asm.Opcodes.*;
 
 public class BindingControlFlowAnalyzer {
+
+    static FlowGraph<ControlFlowNode> cfg;
+    public BindingControlFlowAnalyzer() {
+        // TODO FIX
+    }
 
     public static int analyze(MethodNode methodNode) {
         InsnList instructions = methodNode.instructions;
         if(instructions.size() == 0) {
             return 0;
         }
-        ControlFlowGraph cfg = ControlFlowGraph.analyze(methodNode);
-        Map<LabelNode, BasicBlock> labelBlockMap = createLabelBlockMapping(cfg.getBasicBlocks());
-        Set<BasicBlock> targetedBranchBlocks = identifyTargetedBranchBlocks(cfg.getBasicBlocks());
+        cfg = ControlFlowGraphCreator.createControlFlowGraph(methodNode);
+        Map<LabelNode, BasicBlock> labelBlockMap = createLabelBlockMapping(getBasicBlocks(cfg));
+        Set<BasicBlock> targetedBranchBlocks = identifyTargetedBranchBlocks(getBasicBlocks(cfg));
         if(targetedBranchBlocks.isEmpty()) {
             return -1; // There are no branches that potentially need to be propagated along
         }
-        cfg.prepareForModification(); // Notify the graph that it's structure is about to be modified
         convertTargetedBranchEdges(targetedBranchBlocks, labelBlockMap);
-        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.calculateDominanceFrontiers();
+        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.getDominanceFrontiers();
         Map<BasicBlock, Set<ConvertedEdge>> bindingEdgesMap = getBindingEdgesMap(targetedBranchBlocks, dominanceFrontiers);
         int branchID = 0;
         for(BasicBlock basicBlock : bindingEdgesMap.keySet()) {
@@ -49,8 +54,8 @@ public class BindingControlFlowAnalyzer {
         }
         if(!bindingEdgesMap.isEmpty()) {
             // Add pop all before exiting if there was at least one push added
-            for(BasicBlock basicBlock : cfg.getBasicBlocks()) {
-                if(basicBlock.successors.contains(cfg.getExitPoint())) {
+            for(BasicBlock basicBlock : getBasicBlocks(cfg)) {
+                if(cfg.getSuccessors(basicBlock).contains(cfg.getExitPoint())) {
                     instructions.insertBefore(basicBlock.getLastInsn(), new VarInsnNode(TaintUtils.BRANCH_END, -1));
                 }
             }
@@ -62,7 +67,7 @@ public class BindingControlFlowAnalyzer {
      * @param basicBlocks blocks to be checked for targeted branch instructions
      * @return set containing the basic blocks from the specified array which end with a targeted branch instruction
      */
-    private static Set<BasicBlock> identifyTargetedBranchBlocks(BasicBlock[] basicBlocks) {
+    private static Set<BasicBlock> identifyTargetedBranchBlocks(ArrayList<BasicBlock> basicBlocks) {
         Set<BasicBlock> targetedBlocks = new HashSet<>();
         for(BasicBlock basicBlock : basicBlocks) {
             switch(basicBlock.getLastInsn().getOpcode()) {
@@ -121,7 +126,7 @@ public class BindingControlFlowAnalyzer {
      *              follows if the branch is not taken
      */
     private static ControlFlowNode getBinaryBranchSuccessor(BasicBlock basicBlock, Map<LabelNode, BasicBlock> labelBlockMap, boolean branchTaken) {
-        if(basicBlock.successors.size() != 2) {
+        if(cfg.getSuccessors(basicBlock).size() != 2) {
             throw new IllegalArgumentException("Cannot find binary branch target for basic block that does not have two successors");
         } else {
             AbstractInsnNode insn = basicBlock.getLastInsn();
@@ -130,7 +135,7 @@ public class BindingControlFlowAnalyzer {
                 if(branchTaken) {
                     return labelBlockMap.get(label);
                 } else {
-                    ControlFlowNode[] successors = basicBlock.successors.toArray(new ControlFlowNode[0]);
+                    ControlFlowNode[] successors = cfg.getSuccessors(basicBlock).toArray(new ControlFlowNode[0]);
                     return successors[0] == labelBlockMap.get(label) ? successors[1] : successors[0];
                 }
             } else {
@@ -147,12 +152,12 @@ public class BindingControlFlowAnalyzer {
      * @param destination the destination node of the edge to be converted
      */
     private static void convertEdgeToNode(ControlFlowNode source, ControlFlowNode destination) {
-        if(isConnected(source, destination)) {
-            removeEdge(source, destination);
-        }
-        ConvertedEdge convert = new ConvertedEdge(destination);
-        addEdge(source, convert);
-        addEdge(convert, destination);
+//        if(isConnected(source, destination)) {
+//            removeEdge(source, destination);
+//        }
+//        ConvertedEdge convert = new ConvertedEdge(destination);
+//        addEdge(source, convert);
+//        addEdge(convert, destination);
     }
 
     /**
@@ -162,11 +167,12 @@ public class BindingControlFlowAnalyzer {
      *              edges from the block that correspond to edges in the original graph which are "binding" for at least
      *              one statement in the original graph.
      */
-    private static Map<BasicBlock, Set<ConvertedEdge>> getBindingEdgesMap(Set<BasicBlock> targetedBranchBlocks, Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers) {
+    private static Map<BasicBlock, Set<ConvertedEdge>> getBindingEdgesMap(Set<BasicBlock> targetedBranchBlocks,
+                                                                          Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers) {
         Map<BasicBlock, Set<ConvertedEdge>> bindingEdgesMap = new HashMap<>();
         for(BasicBlock basicBlock : targetedBranchBlocks) {
             Set<ConvertedEdge> bindingEdges = new HashSet<>();
-            for(ControlFlowNode successor : basicBlock.successors) {
+            for(ControlFlowNode successor : cfg.getSuccessors(basicBlock)) {
                 if(isBindingConvertedEdge(successor, dominanceFrontiers)) {
                     bindingEdges.add((ConvertedEdge) successor);
                 }
@@ -213,7 +219,7 @@ public class BindingControlFlowAnalyzer {
             }
         }
         // Add pops before all of the non-binding routes out of the branch
-        for(ControlFlowNode node : bindingBranch.successors) {
+        for(ControlFlowNode node : cfg.getSuccessors(bindingBranch)) {
             if(node instanceof BasicBlock) {
                 popPoints.add((BasicBlock) node);
             } else if(node instanceof ConvertedEdge && !bindingEdges.contains(node)) {
@@ -224,6 +230,21 @@ public class BindingControlFlowAnalyzer {
             }
         }
         return popPoints;
+    }
+
+    /**
+     * @param blocks a list of basic blocks for an instruction sequence
+     * @return a mapping from LabelNodes to the basic block that they start
+     */
+    private static Map<LabelNode, BasicBlock> createLabelBlockMapping(ArrayList<BasicBlock> blocks) {
+        Map<LabelNode, BasicBlock> labelBlockMap = new HashMap<>();
+        for(BasicBlock block : blocks) {
+            AbstractInsnNode insn = block.getFirstInsn();
+            if(insn instanceof LabelNode) {
+                labelBlockMap.put((LabelNode) insn, block);
+            }
+        }
+        return labelBlockMap;
     }
 
     private static class ConvertedEdge extends ControlFlowNode {

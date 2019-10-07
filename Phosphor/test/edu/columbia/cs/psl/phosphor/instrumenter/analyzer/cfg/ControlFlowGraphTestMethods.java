@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import org.objectweb.asm.ClassReader;
@@ -7,6 +8,8 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
 import java.io.IOException;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraphCreator.getBasicBlocks;
 
 @SuppressWarnings("unused")
 public class ControlFlowGraphTestMethods {
@@ -26,7 +29,7 @@ public class ControlFlowGraphTestMethods {
         throw new NoSuchMethodException();
     }
 
-    public static Map<Integer, BasicBlock> makeBlockIDBasicBlockMap(BasicBlock[] basicBlocks) {
+    public static Map<Integer, BasicBlock> makeBlockIDBasicBlockMap(Iterable<BasicBlock> basicBlocks) {
         String owner = ControlFlowGraphTestMethods.class.getName().replaceAll("\\.", "/");
         Map<Integer, BasicBlock> blockIDMap = new HashMap<>();
         for(BasicBlock basicBlock : basicBlocks) {
@@ -173,8 +176,8 @@ public class ControlFlowGraphTestMethods {
         blockID = 8;
     }
 
-    public static Map<Integer, BasicBlock> getBlockIDMapForMultipleReturnLoopCFG(ControlFlowGraph cfg) {
-        BasicBlock[] basicBlocks = cfg.getBasicBlocks();
+    public static Map<Integer, BasicBlock> getBlockIDMapForMultipleReturnLoopCFG(FlowGraph<ControlFlowNode> cfg) {
+        Iterable<BasicBlock> basicBlocks = getBasicBlocks(cfg);
         Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(basicBlocks);
         for(BasicBlock basicBlock : basicBlocks) {
             if(!idBlockMap.containsValue(basicBlock) && basicBlock.getLastInsn() instanceof JumpInsnNode) {

@@ -1,55 +1,48 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.junit.Test;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraphCreator.getBasicBlocks;
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraphTestMethods.*;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
-public class ControlFlowGraphTest {
+public class ControlFlowGraphCreatorTest {
 
-    private void checkBasicSwitchSuccessors(ControlFlowGraph cfg) {
-        BasicBlock[] basicBlocks = cfg.getBasicBlocks();
+    private void checkBasicSwitchSuccessors(FlowGraph<ControlFlowNode> cfg) {
+        Iterable<BasicBlock> basicBlocks = getBasicBlocks(cfg);
         Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(basicBlocks);
         HashSet<ControlFlowNode> expected = new HashSet<>();
         for(int i = 1; i <= 6; i++) {
             expected.add(idBlockMap.get(i));
         }
-        assertEquals(expected, idBlockMap.get(0).successors); // Block 0 should be succeeded by all of the case blocks
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(0))); // Block 0 should be succeeded by all of the case blocks
         expected.clear();
         expected.add(idBlockMap.get(7));
         for(int i = 1; i <= 6; i++) {
-            assertEquals(expected, idBlockMap.get(i).successors); // Each case block is succeeded by block 7
+            assertEquals(expected, cfg.getSuccessors(idBlockMap.get(i))); // Each case block is succeeded by block 7
         }
         expected.clear();
         expected.add(cfg.getExitPoint());
-        assertEquals(expected, idBlockMap.get(7).successors); // Block 7 should be succeeded only by the exit
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(7))); // Block 7 should be succeeded only by the exit
     }
 
-    private void checkBasicSwitchImmediateDominators(ControlFlowGraph cfg) {
-        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(cfg.getBasicBlocks());
-        Map<ControlFlowNode, ControlFlowNode> immediateDominators = cfg.calculateImmediateDominators();
+    private void checkBasicSwitchImmediateDominators(FlowGraph<ControlFlowNode> cfg) {
+        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(getBasicBlocks(cfg));
+        Map<ControlFlowNode, ControlFlowNode> immediateDominators = cfg.getImmediateDominators();
         assertEquals(cfg.getEntryPoint(), immediateDominators.get(idBlockMap.get(0)));
         for(int i = 1; i <= 7; i++) {
             assertEquals(idBlockMap.get(0), immediateDominators.get(idBlockMap.get(i)));
         }
     }
-
-    private void checkBasicSwitchImmediatePostDominators(ControlFlowGraph cfg) {
-        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(cfg.getBasicBlocks());
-        Map<ControlFlowNode, ControlFlowNode> immediatePostDominators = cfg.calculateImmediatePostDominators();
-        assertEquals(cfg.getExitPoint(), immediatePostDominators.get(idBlockMap.get(7)));
-        for(int i = 0; i <= 6; i++) {
-            assertEquals(idBlockMap.get(7), immediatePostDominators.get(idBlockMap.get(i)));
-        }
-    }
-
-    private void checkBasicSwitchDominanceFrontiers(ControlFlowGraph cfg) {
-        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(cfg.getBasicBlocks());
-        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.calculateDominanceFrontiers();
+    
+    private void checkBasicSwitchDominanceFrontiers(FlowGraph<ControlFlowNode> cfg) {
+        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(getBasicBlocks(cfg));
+        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.getDominanceFrontiers();
         Set<ControlFlowNode> expected = new HashSet<>();
         assertTrue(dominanceFrontiers.get(idBlockMap.get(0)).isEmpty());
         expected.add(idBlockMap.get(7));
@@ -61,116 +54,106 @@ public class ControlFlowGraphTest {
 
     @Test
     public void testBasicTableSwitchSuccessors() throws Exception {
-        checkBasicSwitchSuccessors(ControlFlowGraph.analyze(getMethodNode("basicTableSwitch")));
+        checkBasicSwitchSuccessors(ControlFlowGraphCreator.createControlFlowGraph(getMethodNode("basicTableSwitch")));
     }
 
     @Test
     public void testBasicLookupSwitchSuccessors() throws Exception {
-        checkBasicSwitchSuccessors(ControlFlowGraph.analyze(getMethodNode("basicLookupSwitch")));
+        checkBasicSwitchSuccessors(ControlFlowGraphCreator.createControlFlowGraph(getMethodNode("basicLookupSwitch")));
     }
 
     @Test
     public void testBasicTableSwitchImmediateDominators() throws Exception {
-        checkBasicSwitchImmediateDominators(ControlFlowGraph.analyze(getMethodNode("basicTableSwitch")));
+        checkBasicSwitchImmediateDominators(ControlFlowGraphCreator.createControlFlowGraph(getMethodNode("basicTableSwitch")));
     }
 
     @Test
     public void testBasicLookupSwitchImmediateDominators() throws Exception {
-        checkBasicSwitchImmediateDominators(ControlFlowGraph.analyze(getMethodNode("basicLookupSwitch")));
+        checkBasicSwitchImmediateDominators(ControlFlowGraphCreator.createControlFlowGraph(getMethodNode("basicLookupSwitch")));
     }
-
-    @Test
-    public void testBasicTableSwitchImmediatePostDominators() throws Exception {
-        checkBasicSwitchImmediatePostDominators(ControlFlowGraph.analyze(getMethodNode("basicTableSwitch")));
-    }
-
-    @Test
-    public void testBasicLookupSwitchImmediatePostDominators() throws Exception {
-        checkBasicSwitchImmediatePostDominators(ControlFlowGraph.analyze(getMethodNode("basicLookupSwitch")));
-    }
-
+    
     @Test
     public void testBasicTableSwitchDominanceFrontiers() throws Exception {
-        checkBasicSwitchDominanceFrontiers(ControlFlowGraph.analyze(getMethodNode("basicTableSwitch")));
+        checkBasicSwitchDominanceFrontiers(ControlFlowGraphCreator.createControlFlowGraph(getMethodNode("basicTableSwitch")));
     }
 
     @Test
     public void testBasicLookupSwitchDominanceFrontiers() throws Exception {
-        checkBasicSwitchDominanceFrontiers(ControlFlowGraph.analyze(getMethodNode("basicLookupSwitch")));
+        checkBasicSwitchDominanceFrontiers(ControlFlowGraphCreator.createControlFlowGraph(getMethodNode("basicLookupSwitch")));
     }
 
     @Test
     public void testTryCatchWithIfSuccessors() throws Exception {
-        ControlFlowGraph cfg = ControlFlowGraph.analyze(getMethodNode("tryCatchWithIf"));
-        BasicBlock[] basicBlocks = cfg.getBasicBlocks();
+        FlowGraph<ControlFlowNode> cfg = ControlFlowGraphCreator.createControlFlowGraph(getMethodNode("tryCatchWithIf"));
+        Iterable<BasicBlock> basicBlocks = getBasicBlocks(cfg);
         Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(basicBlocks);
         HashSet<ControlFlowNode> expected = new HashSet<>();
         expected.add(idBlockMap.get(3));
-        assertEquals(expected, idBlockMap.get(0).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(0)));
         //
         expected.clear();
         expected.add(idBlockMap.get(2));
         expected.add(idBlockMap.get(3));
-        assertEquals(expected, idBlockMap.get(1).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(1)));
         //
         expected.clear();
         expected.add(cfg.getExitPoint());
-        assertEquals(expected, idBlockMap.get(2).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(2)));
         //
         expected.clear();
         expected.add(cfg.getExitPoint());
-        assertEquals(expected, idBlockMap.get(3).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(3)));
     }
 
     @Test
     public void testMultipleReturnLoopSuccessors() throws Exception {
-        ControlFlowGraph cfg = ControlFlowGraph.analyze(getMethodNode("multipleReturnLoop"));
+        FlowGraph<ControlFlowNode> cfg = ControlFlowGraphCreator.createControlFlowGraph(getMethodNode("multipleReturnLoop"));
         Map<Integer, BasicBlock> idBlockMap = getBlockIDMapForMultipleReturnLoopCFG(cfg);
         HashSet<ControlFlowNode> expected = new HashSet<>();
         expected.add(idBlockMap.get(1));
-        assertEquals(expected, idBlockMap.get(0).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(0)));
         //
         expected.clear();
         expected.add(idBlockMap.get(2));
         expected.add(idBlockMap.get(8));
-        assertEquals(expected, idBlockMap.get(1).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(1)));
         //
         expected.clear();
         expected.add(idBlockMap.get(3));
         expected.add(idBlockMap.get(6));
-        assertEquals(expected, idBlockMap.get(2).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(2)));
         //
         expected.clear();
         expected.add(idBlockMap.get(4));
         expected.add(idBlockMap.get(5));
-        assertEquals(expected, idBlockMap.get(3).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(3)));
         //
         expected.clear();
         expected.add(cfg.getExitPoint());
-        assertEquals(expected, idBlockMap.get(4).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(4)));
         //
         expected.clear();
         expected.add(idBlockMap.get(7));
-        assertEquals(expected, idBlockMap.get(5).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(5)));
         //
         expected.clear();
         expected.add(idBlockMap.get(7));
-        assertEquals(expected, idBlockMap.get(6).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(6)));
         //
         expected.clear();
         expected.add(idBlockMap.get(1));
-        assertEquals(expected, idBlockMap.get(7).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(7)));
         //
         expected.clear();
         expected.add(cfg.getExitPoint());
-        assertEquals(expected, idBlockMap.get(8).successors);
+        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(8)));
     }
 
     @Test
     public void testMultipleReturnLoopDominators() throws Exception {
-        ControlFlowGraph cfg = ControlFlowGraph.analyze(getMethodNode("multipleReturnLoop"));
+        FlowGraph<ControlFlowNode> cfg = ControlFlowGraphCreator.createControlFlowGraph(getMethodNode("multipleReturnLoop"));
         Map<Integer, BasicBlock> idBlockMap = getBlockIDMapForMultipleReturnLoopCFG(cfg);
-        Map<ControlFlowNode, ControlFlowNode> immediateDominators = cfg.calculateImmediateDominators();
+        Map<ControlFlowNode, ControlFlowNode> immediateDominators = cfg.getImmediateDominators();
         assertEquals(cfg.getEntryPoint(), immediateDominators.get(idBlockMap.get(0)));
         assertEquals(idBlockMap.get(0), immediateDominators.get(idBlockMap.get(1)));
         assertEquals(idBlockMap.get(1), immediateDominators.get(idBlockMap.get(2)));
@@ -181,28 +164,12 @@ public class ControlFlowGraphTest {
         assertEquals(idBlockMap.get(2), immediateDominators.get(idBlockMap.get(7)));
         assertEquals(idBlockMap.get(1), immediateDominators.get(idBlockMap.get(8)));
     }
-
-    @Test
-    public void testMultipleReturnLoopImmediatePostDominators() throws Exception {
-        ControlFlowGraph cfg = ControlFlowGraph.analyze(getMethodNode("multipleReturnLoop"));
-        Map<Integer, BasicBlock> idBlockMap = getBlockIDMapForMultipleReturnLoopCFG(cfg);
-        Map<ControlFlowNode, ControlFlowNode> immediatePostDominators = cfg.calculateImmediatePostDominators();
-        assertEquals(idBlockMap.get(1), immediatePostDominators.get(idBlockMap.get(0)));
-        assertEquals(cfg.getExitPoint(), immediatePostDominators.get(idBlockMap.get(1)));
-        assertEquals(cfg.getExitPoint(), immediatePostDominators.get(idBlockMap.get(2)));
-        assertEquals(cfg.getExitPoint(), immediatePostDominators.get(idBlockMap.get(3)));
-        assertEquals(cfg.getExitPoint(), immediatePostDominators.get(idBlockMap.get(4)));
-        assertEquals(idBlockMap.get(7), immediatePostDominators.get(idBlockMap.get(5)));
-        assertEquals(idBlockMap.get(7), immediatePostDominators.get(idBlockMap.get(6)));
-        assertEquals(idBlockMap.get(1), immediatePostDominators.get(idBlockMap.get(7)));
-        assertEquals(cfg.getExitPoint(), immediatePostDominators.get(idBlockMap.get(8)));
-    }
-
+    
     @Test
     public void testMultipleReturnLoopDominanceFrontiers() throws Exception {
-        ControlFlowGraph cfg = ControlFlowGraph.analyze(getMethodNode("multipleReturnLoop"));
+        FlowGraph<ControlFlowNode> cfg = ControlFlowGraphCreator.createControlFlowGraph(getMethodNode("multipleReturnLoop"));
         Map<Integer, BasicBlock> idBlockMap = getBlockIDMapForMultipleReturnLoopCFG(cfg);
-        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.calculateDominanceFrontiers();
+        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.getDominanceFrontiers();
         Set<ControlFlowNode> expected = new HashSet<>();
         assertTrue(dominanceFrontiers.get(idBlockMap.get(0)).isEmpty());
         //

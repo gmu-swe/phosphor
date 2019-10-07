@@ -24,7 +24,7 @@ final class Vertex<V> {
     /**
      * Set of vertices from which there is an edge to this vertex in the graph
      */
-    private final Set<Vertex<V>> predecessors = new HashSet<>();;
+    final Set<Vertex<V>> predecessors = new HashSet<>();;
 
     /**
      * Set of vertices to which there is an edge from this vertex in the graph
@@ -36,13 +36,19 @@ final class Vertex<V> {
         this.reversePostOrderIndex = reversePostOrderIndex;
     }
 
+    /**
+     * @return the value stored at this vertex
+     */
     public V getValue() {
         return value;
     }
 
-    @Override
-    public String toString() {
-        return String.format("<#%d %s>", reversePostOrderIndex, value);
+    /**
+     * @return the reverse post-order index of this vertex in the graph or -1 if this vertex is unreachable from the
+     *              root of the graph
+     */
+    public int getReversePostOrderIndex() {
+        return reversePostOrderIndex;
     }
 
     /**
@@ -65,6 +71,14 @@ final class Vertex<V> {
             predecessorValues.add(predecessor.value);
         }
         return  predecessorValues;
+    }
+
+    /**
+     * @return a string representation of this vertex
+     */
+    @Override
+    public String toString() {
+        return String.format("<#%d %s>", reversePostOrderIndex, value);
     }
 
     /**
