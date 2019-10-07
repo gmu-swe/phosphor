@@ -55,7 +55,7 @@ public final class FlowGraph<V> {
     FlowGraph(Map<V, Set<V>> edges, V entryPoint , V exitPoint) {
         this.reachableVertices = new SinglyLinkedList<>();
         this.unreachableVertices = new SinglyLinkedList<>();
-        Map<V, Vertex<V>> vertexMap = createVertices(edges, entryPoint, exitPoint);
+        Map<V, Vertex<V>> vertexMap = createVertices(edges, entryPoint);
         this.entryPoint = vertexMap.get(entryPoint);
         this.exitPoint = vertexMap.get(exitPoint);
         for(V source : edges.keySet()) {
@@ -74,10 +74,9 @@ public final class FlowGraph<V> {
      * @param edges a mapping from each vertex in the graph being constructed to a set containing all the successors of
      *              the vertex
      * @param entryPoint a vertex designated to be the single entry point for this graph
-     * @param exitPoint a vertex designated to be the single exit point for this graph
      * @return a mapping from vertex values to the vertex created for the value
      */
-    private Map<V, Vertex<V>>createVertices(Map<V, Set<V>> edges, V entryPoint , V exitPoint) {
+    private Map<V, Vertex<V>> createVertices(Map<V, Set<V>> edges, V entryPoint) {
         SinglyLinkedList<V> stack = new SinglyLinkedList<>();
         Set<V> marked = new HashSet<>(); // Vertices that have been visited
         depthFirstSearch(entryPoint, edges, stack, marked);
