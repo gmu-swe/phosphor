@@ -86,6 +86,9 @@ public class ControlFlowGraph {
         return basicBlocks.toArray(new BasicBlock[0]);
     }
 
+    /**
+     * @return a mapping from nodes in this graph to the set of nodes that dominate them
+     */
     Map<ControlFlowNode, Set<ControlFlowNode>> calculateDominanceFrontiers() {
         if(reversePostOrder == null) {
             assignReversePostOrderNumbers();
@@ -112,8 +115,8 @@ public class ControlFlowGraph {
     }
 
     /**
-     * @return a mapping from nodes to their immediate dominator in the graph or null if they do not have an immediate
-     *              dominator
+     * @return a mapping from nodes in this graph to their immediate dominator in the graph or null if they do not have
+     * an immediate  dominator
      */
     Map<ControlFlowNode, ControlFlowNode> calculateImmediateDominators() {
         if(reversePostOrder == null) {
@@ -129,6 +132,22 @@ public class ControlFlowGraph {
             }
         }
         return immediateDominators;
+    }
+
+    /**
+     * @return a mapping from nodes in this graph to the set of nodes that dominate them
+     */
+    Map<ControlFlowNode, Set<ControlFlowNode>> calculateDominatorSets() {
+        Map<ControlFlowNode, Set<ControlFlowNode>> dominatorSets = new HashMap<>();
+        Map<ControlFlowNode, ControlFlowNode> immediateDominators = calculateImmediateDominators();
+        for(ControlFlowNode key : immediateDominators.keySet()) {
+            Set<ControlFlowNode> dominators = new HashSet<>();
+            for(ControlFlowNode current = key; current != null; current = immediateDominators.get(current)) {
+                dominators.add(current);
+            }
+            dominatorSets.put(key, dominators);
+        }
+        return dominatorSets;
     }
 
     private int[] calculateDominators() {
@@ -196,7 +215,7 @@ public class ControlFlowGraph {
             for(int i = 1; i < postDominators.length; i++) {
                 int newImmediate = -1;
                 for(ControlFlowNode successor : transverseReversePostOrder[i].successors) {
-                    if(postDominators[successor.transposeReversePostOrderIndex] != -1) {
+                    if(successor.transposeReversePostOrderIndex != -1 && postDominators[successor.transposeReversePostOrderIndex] != -1) {
                         if(newImmediate == -1) {
                             newImmediate = successor.transposeReversePostOrderIndex;
                         } else {
@@ -204,7 +223,7 @@ public class ControlFlowGraph {
                         }
                     }
                 }
-                if(postDominators[i] != newImmediate) {
+                if(postDominators[i] != newImmediate && newImmediate != -1) {
                     postDominators[i] = newImmediate;
                     changed = true;
                 }

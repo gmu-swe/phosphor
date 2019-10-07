@@ -2,10 +2,12 @@ package edu.columbia.cs.psl.test.phosphor;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Set;
 
 import static junit.framework.TestCase.assertEquals;
@@ -105,5 +107,24 @@ public class GeneralBindingControlITCase extends BaseMultiTaintClass {
             c = 43;
         }
         checkContainsInAnyOrder(MultiTainter.getTaint(c).getLabels(), "a", "b");
+    }
+
+    @Test
+    @Ignore
+    public void TestLoopingVarConditionallyUpdated() {
+        char[] c = createDigitArray();
+        LinkedList<Character> digits = new LinkedList<>();
+        for(int i = 0; i < c.length; i++) {
+            digits.add(c[i]);
+            if(c[i] == '0') {
+                // Skip value after zero
+                i++;
+            }
+        }
+        for(char digit : digits) {
+            Taint tag = MultiTainter.getTaint(digit);
+            assertNonNullTaint(tag);
+            checkContainsInAnyOrder(tag.getLabels(), Integer.parseInt("" + digit));
+        }
     }
 }
