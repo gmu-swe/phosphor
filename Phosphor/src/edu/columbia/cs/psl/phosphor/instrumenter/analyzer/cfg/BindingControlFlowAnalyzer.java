@@ -1,8 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
-import edu.columbia.cs.psl.phosphor.struct.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
@@ -12,29 +10,24 @@ import org.objectweb.asm.tree.*;
 
 import java.util.List;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraphCreator.getBasicBlocks;
 import static org.objectweb.asm.Opcodes.*;
 
 public class BindingControlFlowAnalyzer {
 
-    static FlowGraph<ControlFlowNode> cfg;
-    public BindingControlFlowAnalyzer() {
-        // TODO FIX
-    }
-
+    static ControlFlowGraph cfg;
     public static int analyze(MethodNode methodNode) {
         InsnList instructions = methodNode.instructions;
         if(instructions.size() == 0) {
             return 0;
         }
-        cfg = ControlFlowGraphCreator.createControlFlowGraph(methodNode);
-        Map<LabelNode, BasicBlock> labelBlockMap = createLabelBlockMapping(getBasicBlocks(cfg));
-        Set<BasicBlock> targetedBranchBlocks = identifyTargetedBranchBlocks(getBasicBlocks(cfg));
+        cfg = new ControlFlowGraph(methodNode);
+        Map<LabelNode, BasicBlock> labelBlockMap = createLabelBlockMapping(cfg.getBasicBlocks());
+        Set<BasicBlock> targetedBranchBlocks = identifyTargetedBranchBlocks(cfg.getBasicBlocks());
         if(targetedBranchBlocks.isEmpty()) {
             return -1; // There are no branches that potentially need to be propagated along
         }
         convertTargetedBranchEdges(targetedBranchBlocks, labelBlockMap);
-        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.getDominanceFrontiers();
+        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.getFlowGraph().getDominanceFrontiers();
         Map<BasicBlock, Set<ConvertedEdge>> bindingEdgesMap = getBindingEdgesMap(targetedBranchBlocks, dominanceFrontiers);
         int branchID = 0;
         for(BasicBlock basicBlock : bindingEdgesMap.keySet()) {
@@ -54,7 +47,7 @@ public class BindingControlFlowAnalyzer {
         }
         if(!bindingEdgesMap.isEmpty()) {
             // Add pop all before exiting if there was at least one push added
-            for(BasicBlock basicBlock : getBasicBlocks(cfg)) {
+            for(BasicBlock basicBlock : cfg.getBasicBlocks()) {
                 if(cfg.getSuccessors(basicBlock).contains(cfg.getExitPoint())) {
                     instructions.insertBefore(basicBlock.getLastInsn(), new VarInsnNode(TaintUtils.BRANCH_END, -1));
                 }
@@ -67,7 +60,7 @@ public class BindingControlFlowAnalyzer {
      * @param basicBlocks blocks to be checked for targeted branch instructions
      * @return set containing the basic blocks from the specified array which end with a targeted branch instruction
      */
-    private static Set<BasicBlock> identifyTargetedBranchBlocks(ArrayList<BasicBlock> basicBlocks) {
+    private static Set<BasicBlock> identifyTargetedBranchBlocks(Iterable<BasicBlock> basicBlocks) {
         Set<BasicBlock> targetedBlocks = new HashSet<>();
         for(BasicBlock basicBlock : basicBlocks) {
             switch(basicBlock.getLastInsn().getOpcode()) {
@@ -98,7 +91,7 @@ public class BindingControlFlowAnalyzer {
      * @param targetedBranchBlocks set containing basic blocks in the graph which end with a targeted branch instruction
      * @param labelBlockMap maps labels to the basic blocks that they start                            
      */
-    private static void convertTargetedBranchEdges(Set<BasicBlock> targetedBranchBlocks, Map<LabelNode, BasicBlock> labelBlockMap ) {
+    private static void convertTargetedBranchEdges(Iterable<BasicBlock> targetedBranchBlocks, Map<LabelNode, BasicBlock> labelBlockMap ) {
         for(BasicBlock basicBlock : targetedBranchBlocks) {
             AbstractInsnNode insn = basicBlock.getLastInsn();
             if(insn instanceof JumpInsnNode) {
@@ -208,7 +201,8 @@ public class BindingControlFlowAnalyzer {
      * @return a set of BasicBlocks that should have a pop instruction inserted at the beginning for pushes associated
      *                      with the specified branch
      */
-    private static Set<BasicBlock> getPopPoints(BasicBlock bindingBranch, Set<ConvertedEdge> bindingEdges, Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers) {
+    private static Set<BasicBlock> getPopPoints(BasicBlock bindingBranch, Set<ConvertedEdge> bindingEdges,
+                                                Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers) {
         Set<BasicBlock> popPoints = new HashSet<>();
         // Add pops along dominance frontiers of each of the binding branches for the branch
         for(ConvertedEdge convertedEdge : bindingEdges) {
@@ -236,7 +230,7 @@ public class BindingControlFlowAnalyzer {
      * @param blocks a list of basic blocks for an instruction sequence
      * @return a mapping from LabelNodes to the basic block that they start
      */
-    private static Map<LabelNode, BasicBlock> createLabelBlockMapping(ArrayList<BasicBlock> blocks) {
+    private static Map<LabelNode, BasicBlock> createLabelBlockMapping(Iterable<BasicBlock> blocks) {
         Map<LabelNode, BasicBlock> labelBlockMap = new HashMap<>();
         for(BasicBlock block : blocks) {
             AbstractInsnNode insn = block.getFirstInsn();

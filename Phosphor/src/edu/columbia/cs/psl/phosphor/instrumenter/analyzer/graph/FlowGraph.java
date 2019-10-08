@@ -45,7 +45,7 @@ public final class FlowGraph<V> {
     private final ArrayList<Vertex<V>> unreachableVertices;
 
     /**
-     * Maps the value of vertices in this graph to the vertex created for the value
+     * Maps the values of vertices in this graph to the vertex created for the value
      */
     private final Map<V, Vertex<V>> vertexMap;
 
@@ -61,7 +61,7 @@ public final class FlowGraph<V> {
      * A mapping from each reachable vertex in this graph to the set of vertices in its dominance frontier or null if
      * the dominance frontiers for this graph have yet been calculated
      */
-    private  Map<Vertex<V>, Set<Vertex<V>>> dominanceFrontiers = null;
+    private Map<Vertex<V>, Set<Vertex<V>>> dominanceFrontiers = null;
 
     /**
      * Constructs a new flow graph with the specified entry point, exit point and edges.
