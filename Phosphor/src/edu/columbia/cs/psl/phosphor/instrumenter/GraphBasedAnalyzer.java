@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer.AnnotatedInstruction;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.cycle.CycleDetector;
 import org.jgrapht.graph.DefaultDirectedGraph;
@@ -13,32 +14,34 @@ import java.util.HashMap;
 import java.util.Set;
 
 public class GraphBasedAnalyzer {
-	public static void doGraphAnalysis(MethodNode mn, HashMap<Integer, PrimitiveArrayAnalyzer.AnnotatedInstruction> implicitAnalysisblocks){
-		Graph<PrimitiveArrayAnalyzer.AnnotatedInstruction, DefaultEdge> graph = new DefaultDirectedGraph<PrimitiveArrayAnalyzer.AnnotatedInstruction, DefaultEdge>(DefaultEdge.class);
+
+	public static void doGraphAnalysis(MethodNode mn, HashMap<Integer, AnnotatedInstruction> implicitAnalysisBlocks) {
+		Graph<AnnotatedInstruction, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
 		boolean hasJumps = false;
-		for(PrimitiveArrayAnalyzer.AnnotatedInstruction b : implicitAnalysisblocks.values())
-		{
-			if(b.insn instanceof JumpInsnNode)
+		for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
+			if(b.insn instanceof JumpInsnNode) {
 				hasJumps = true;
-			if(b.successors.size() > 0)
+			}
+			if(b.successors.size() > 0) {
 				graph.addVertex(b);
-			for(PrimitiveArrayAnalyzer.AnnotatedInstruction c : b.successors) {
+			}
+			for(AnnotatedInstruction c : b.successors) {
 				graph.addVertex(c);
 				graph.addEdge(b, c);
 			}
 		}
-		boolean hadChanges =hasJumps;
+		boolean hadChanges = hasJumps;
 		while(hadChanges) {
 			hadChanges = false;
-			CycleDetector<PrimitiveArrayAnalyzer.AnnotatedInstruction, DefaultEdge> detector = new CycleDetector<>(graph);
-			for (PrimitiveArrayAnalyzer.AnnotatedInstruction b : implicitAnalysisblocks.values()) {
-				if (!graph.containsVertex(b))
-					continue;
-				Set<PrimitiveArrayAnalyzer.AnnotatedInstruction> cycle = detector.findCyclesContainingVertex(b);
-				if (b.successors.size() > 1 && !cycle.containsAll(b.successors)) {
-					graph.removeVertex(b);
-					mn.instructions.insertBefore(b.insn, new InsnNode(TaintUtils.LOOP_HEADER));
-					hadChanges = true;
+			CycleDetector<AnnotatedInstruction, DefaultEdge> detector = new CycleDetector<>(graph);
+			for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
+				if(graph.containsVertex(b)) {
+					Set<AnnotatedInstruction> cycle = detector.findCyclesContainingVertex(b);
+					if(b.successors.size() > 1 && !cycle.containsAll(b.successors)) {
+						graph.removeVertex(b);
+						mn.instructions.insertBefore(b.insn, new InsnNode(TaintUtils.LOOP_HEADER));
+						hadChanges = true;
+					}
 				}
 			}
 		}

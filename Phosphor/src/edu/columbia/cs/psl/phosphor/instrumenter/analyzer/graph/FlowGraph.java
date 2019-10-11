@@ -13,6 +13,9 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
  *      Department of Computer Science Technical Report 06-33870, 2006.
  *      http://www.cs.rice.edu/~keith/EMBED/dom.pdf
  *
+ * Uses the algorithm for gathering the set of nodes in a natural loop from Compilers: Principles, Techniques, and
+ * Tools (2nd Edition) by Alfred V. Aho, Monica S. Lam, Ravi Sethi, and Jeffrey D. Ullman in section 9.6.6.
+ *
  * @param <V> the type of this graph's vertices
  */
 
@@ -27,11 +30,6 @@ public final class FlowGraph<V> {
      * Vertex designated to be the single exit point for this graph
      */
     private final V exitPoint;
-
-    /**
-     * Unmodifiable set containing all of the vertices in this graph
-     */
-    private final Set<V> vertices;
 
     /**
      * Unmodifiable mapping from each vertex in this graph to an unmodifiable set containing all of its immediate
@@ -67,23 +65,29 @@ public final class FlowGraph<V> {
 
     /**
      * A unmodifiable mapping from each reachable vertex in this graph to its immediate dominator null if the immediate
-     * dominators for this graph have not yet been calculated (this value is lazily calculated).
+     * dominators of this graph have not yet been calculated (this value is lazily calculated).
      */
     private Map<V, V> immediateDominators = null;
 
     /**
      * A unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set containing the vertices
-     * that it dominates or null if the dominator sets for this graph have not yet been calculated (this value is lazily
+     * that it dominates or null if the dominator sets of this graph have not yet been calculated (this value is lazily
      * calculated).
      */
     private Map<V, Set<V>> dominatorSets = null;
 
     /**
      * A unmodifiable mapping from each reachable vertex in this graph to a unmodifiable set containing the vertices in
-     * its dominance frontier or null if the dominance frontiers for this graph have not yet been calculated
+     * its dominance frontier or null if the dominance frontiers of this graph have not yet been calculated
      * (this value is lazily calculated).
      */
     private Map<V, Set<V>> dominanceFrontiers = null;
+
+    /**
+     * An unmodifiable set containing the natural loops associated with each back edge in this graph or null if the
+     * natural loops of this graph have not yet been calculated (this value is lazily calculated).
+     */
+    private Set<NaturalLoop<V>> naturalLoops = null;
 
     /**
      * Constructs a new flow graph with the specified entry point, exit point and edges.
@@ -96,7 +100,6 @@ public final class FlowGraph<V> {
     FlowGraph(Map<V, Set<V>> edges, V entryPoint, V exitPoint) {
         this.entryPoint = entryPoint;
         this.exitPoint = exitPoint;
-        this.vertices = Collections.unmodifiableSet(new HashSet<>(edges.keySet()));
         this.successors = createSuccessorsMap(edges);
         this.predecessors = createPredecessorsMap(edges);
     }
@@ -111,7 +114,6 @@ public final class FlowGraph<V> {
     private FlowGraph(FlowGraph<V> originalGraph) {
         this.entryPoint = originalGraph.exitPoint;
         this.exitPoint = originalGraph.entryPoint;
-        this.vertices = originalGraph.vertices;
         this.predecessors = originalGraph.successors;
         this.successors = originalGraph.predecessors;
         this.transverseGraph = originalGraph;
@@ -197,7 +199,7 @@ public final class FlowGraph<V> {
      * @return an unmodifiable set containing all of the vertices in this graph
      */
     public Set<V> getVertices() {
-        return vertices;
+        return Collections.unmodifiableSet(successors.keySet());
     }
 
     /**
@@ -407,27 +409,96 @@ public final class FlowGraph<V> {
                     }
                 }
             }
+            for(V key : dominanceFrontiers.keySet()) {
+                dominanceFrontiers.put(key, Collections.unmodifiableSet(dominanceFrontiers.get(key)));
+            }
+            dominanceFrontiers = Collections.unmodifiableMap(dominanceFrontiers);
         }
         return dominanceFrontiers;
     }
 
     /**
-     * @return a set that contains a pair for each back edge in this graph
+     * @return an unmodifiable mapping from each reachable vertex in this graph to its immediate post-dominator or null
+     *          if the vertex is the exit point
      */
-    private Set<Pair<V, V>> identifyBackEdges() {
-        // TODO
-        return null;
+    public Map<V, V> getImmediatePostDominators() {
+        return getTransverseGraph().getImmediateDominators();
     }
 
     /**
-     * @return a set of mappings from the loop header of each natural loop in this graph to the set of vertices
-     *              contained in the natural loop
+     * @return an unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set of the
+     *          vertices that post-dominate it
      */
-    public Set<Map<V, Set<V>>> calculateLoopSets() {
-        // TODO
-        return null;
+    public Map<V, Set<V>> getPostDominatorSets() {
+        return getTransverseGraph().getPostDominatorSets();
     }
 
+    /**
+     * @return an unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set of
+     *          the vertices in its post-dominance frontier
+     */
+    public Map<V, Set<V>> getPostDominanceFrontiers() {
+        return getTransverseGraph().getDominanceFrontiers();
+    }
+
+    /**
+     * @return an unmodifiable set containing the natural loops associated with each back edge in this graph
+     */
+    public Set<NaturalLoop<V>> getNaturalLoops() {
+        if(naturalLoops == null) {
+            naturalLoops = new HashSet<>();
+            ensureReachableVerticesListIsCalculated();
+            Map<V, Set<V>> dominatorSets = getDominatorSets();
+            // Add a natural loop to the set for each back edge
+            for(V source : dominatorSets.keySet()) {
+                for(V target : successors.get(source)) {
+                    if(dominatorSets.get(source).contains(target)) {
+                        // There is an edge from source to target and source is dominated by target
+                        naturalLoops.add(new NaturalLoop<V>(source, target));
+                    }
+                }
+            }
+            for(NaturalLoop<V> loop : naturalLoops) {
+                loop.vertices.add(loop.header); // Mark the loop's header as visited
+                transverseDepthFirstSearch(loop.tail, loop.vertices);
+            }
+            naturalLoops = Collections.unmodifiableSet(naturalLoops);
+        }
+        return naturalLoops;
+    }
+
+    /**
+     *  Recursively performs a depth first search on the transverse of this graph.
+     *
+     * @param vertex the vertex currently being visited
+     * @param marked set of vertices that have been visited
+     */
+    private void transverseDepthFirstSearch(V vertex, Set<V> marked ) {
+        marked.add(vertex);
+        for(V child : predecessors.get(vertex)) {
+            if(marked.add(child)) {
+                transverseDepthFirstSearch(child, marked);
+            }
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if(this == o) return true;
+        if(!(o instanceof FlowGraph)) return false;
+        FlowGraph<?> flowGraph = (FlowGraph<?>) o;
+        if(entryPoint != null ? !entryPoint.equals(flowGraph.entryPoint) : flowGraph.entryPoint != null) return false;
+        if(exitPoint != null ? !exitPoint.equals(flowGraph.exitPoint) : flowGraph.exitPoint != null) return false;
+        return successors.equals(flowGraph.successors);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = entryPoint != null ? entryPoint.hashCode() : 0;
+        result = 31 * result + (exitPoint != null ? exitPoint.hashCode() : 0);
+        result = 31 * result + successors.hashCode();
+        return result;
+    }
 
     /**
      * Stores a reachable vertex with its reverse post order index and the reverse post order indices of its
@@ -462,6 +533,94 @@ public final class FlowGraph<V> {
             this.reversePostOrderIndex = reversePostOrderIndex;
             this.successors = new IntSinglyLinkedList();
             this.predecessors = new IntSinglyLinkedList();
+        }
+
+        @Override
+        public String toString() {
+            return String.format("{Vertex #%d: value=%s, successors=%s}", reversePostOrderIndex, value, successors);
+        }
+    }
+
+    /**
+     * Represents a natural loop in a flow graph as described in Compilers: Principles, Techniques, and Tools (2nd Edition)
+     * by Alfred V. Aho, Monica S. Lam, Ravi Sethi, and Jeffrey D. Ullman. Specifically, a natural loop is defined with
+     * respect to some back edge (i.e., an edge in the flow graph whose target dominates its source). The natural loop for
+     * of a back edge n -> d contains the vertex n, the vertex d, and any vertex that can reach n without passing through d.
+     *
+     * @param <V> the type of the vertices of the flow graph in which this loop exists
+     */
+    public static final class NaturalLoop<V> {
+
+        /**
+         * The single point of entry into this loop i.e., the target of the back edge that defines this loop
+         */
+        private final V header;
+
+        /**
+         * The source of the back edge that defines this loop
+         */
+        private final V tail;
+
+        /**
+         * A set containing all of vertices that are considered to be part of this loop including this loop's
+         * tail and header
+         */
+        private final Set<V> vertices;
+
+        /**
+         * Constructs a new natural loop defined the back edge from the specified tail vertex to the specified header
+         * vertex.
+         *
+         * @param tail  the source of the back edge that defines the loop being constructed
+         * @param header the target of the back edge that defines the loop being constructed
+         */
+        NaturalLoop(V tail, V header) {
+            this.tail = tail;
+            this.header = header;
+            this.vertices = new HashSet<>();
+        }
+
+        /**
+         * @return single point of entry into this loop i.e., the target of the back edge that defines this loop
+         */
+        public V getHeader() {
+            return header;
+        }
+
+        /**
+         * @return the source of the back edge that defines this loop
+         */
+        public V getTail() {
+            return tail;
+        }
+
+        /**
+         * @return an unmodifiable set containing all of the vertices that considered to be part of this loop including
+         *          this loop's tail and header
+         */
+        public Set<V> getVertices() {
+            return Collections.unmodifiableSet(vertices);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if(!(o instanceof NaturalLoop)) return false;
+            NaturalLoop<?> that = (NaturalLoop<?>) o;
+            if (header != null ? !header.equals(that.header) : that.header != null) return false;
+            return tail != null ? tail.equals(that.tail) : that.tail == null;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = header != null ? header.hashCode() : 0;
+            result = 31 * result + (tail != null ? tail.hashCode() : 0);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%s -> %s: %s", tail, header, vertices);
         }
     }
 }

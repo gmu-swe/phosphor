@@ -1,8 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
 
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.junit.Test;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.ControlFlowGraphTestMethods.*;
@@ -11,198 +9,180 @@ import static junit.framework.TestCase.assertTrue;
 
 public class ControlFlowGraphTest {
 
-    private void checkBasicSwitchSuccessors(ControlFlowGraph cfg) {
-        Iterable<BasicBlock> basicBlocks = cfg.getBasicBlocks();
-        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(basicBlocks);
-        HashSet<ControlFlowNode> expected = new HashSet<>();
+    @Test
+    public void testBasicTableSwitch() throws Exception {
+        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("basicTableSwitch"));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(1, 2, 3, 4, 5, 6)));
         for(int i = 1; i <= 6; i++) {
-            expected.add(idBlockMap.get(i));
+            expected.put(i, new HashSet<>(Arrays.asList(7)));
         }
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(0))); // Block 0 should be succeeded by all of the case blocks
-        expected.clear();
-        expected.add(idBlockMap.get(7));
+        expected.put(7, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
+    }
+
+    @Test
+    public void testBasicLookupSwitch() throws Exception {
+        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("basicLookupSwitch"));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(1, 2, 3, 4, 5, 6)));
         for(int i = 1; i <= 6; i++) {
-            assertEquals(expected, cfg.getSuccessors(idBlockMap.get(i))); // Each case block is succeeded by block 7
+            expected.put(i, new HashSet<>(Arrays.asList(7)));
         }
-        expected.clear();
-        expected.add(cfg.getExitPoint());
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(7))); // Block 7 should be succeeded only by the exit
-    }
-
-    private void checkBasicSwitchImmediateDominators(ControlFlowGraph cfg) {
-        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(cfg.getBasicBlocks());
-        Map<ControlFlowNode, ControlFlowNode> immediateDominators = cfg.getFlowGraph().getImmediateDominators();
-        assertEquals(cfg.getEntryPoint(), immediateDominators.get(idBlockMap.get(0)));
-        for(int i = 1; i <= 7; i++) {
-            assertEquals(idBlockMap.get(0), immediateDominators.get(idBlockMap.get(i)));
-        }
-    }
-    
-    private void checkBasicSwitchDominanceFrontiers(ControlFlowGraph cfg) {
-        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(cfg.getBasicBlocks());
-        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.getFlowGraph().getDominanceFrontiers();
-        Set<ControlFlowNode> expected = new HashSet<>();
-        assertTrue(dominanceFrontiers.get(idBlockMap.get(0)).isEmpty());
-        expected.add(idBlockMap.get(7));
-        for(int i = 1; i <= 6; i++) {
-            assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(i)));
-        }
-        assertTrue(dominanceFrontiers.get(idBlockMap.get(7)).isEmpty());
+        expected.put(7, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
     }
 
     @Test
-    public void testBasicTableSwitchSuccessors() throws Exception {
-        checkBasicSwitchSuccessors(new ControlFlowGraph(getMethodNode("basicTableSwitch")));
-    }
-
-    @Test
-    public void testBasicLookupSwitchSuccessors() throws Exception {
-        checkBasicSwitchSuccessors(new ControlFlowGraph(getMethodNode("basicLookupSwitch")));
-    }
-
-    @Test
-    public void testBasicTableSwitchImmediateDominators() throws Exception {
-        checkBasicSwitchImmediateDominators(new ControlFlowGraph(getMethodNode("basicTableSwitch")));
-    }
-
-    @Test
-    public void testBasicLookupSwitchImmediateDominators() throws Exception {
-        checkBasicSwitchImmediateDominators(new ControlFlowGraph(getMethodNode("basicLookupSwitch")));
-    }
-    
-    @Test
-    public void testBasicTableSwitchDominanceFrontiers() throws Exception {
-        checkBasicSwitchDominanceFrontiers(new ControlFlowGraph(getMethodNode("basicTableSwitch")));
-    }
-
-    @Test
-    public void testBasicLookupSwitchDominanceFrontiers() throws Exception {
-        checkBasicSwitchDominanceFrontiers(new ControlFlowGraph(getMethodNode("basicLookupSwitch")));
-    }
-
-    @Test
-    public void testTryCatchWithIfSuccessors() throws Exception {
+    public void testTryCatchWithIf() throws Exception {
         ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("tryCatchWithIf"));
-        Iterable<BasicBlock> basicBlocks = cfg.getBasicBlocks();
-        Map<Integer, BasicBlock> idBlockMap = makeBlockIDBasicBlockMap(basicBlocks);
-        HashSet<ControlFlowNode> expected = new HashSet<>();
-        expected.add(idBlockMap.get(3));
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(0)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(2));
-        expected.add(idBlockMap.get(3));
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(1)));
-        //
-        expected.clear();
-        expected.add(cfg.getExitPoint());
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(2)));
-        //
-        expected.clear();
-        expected.add(cfg.getExitPoint());
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(3)));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(3)));
+        expected.put(1, new HashSet<>(Arrays.asList(2, 3)));
+        expected.put(2, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        expected.put(3, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
     }
 
     @Test
-    public void testMultipleReturnLoopSuccessors() throws Exception {
+    public void testMultipleReturnLoop() throws Exception {
         ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("multipleReturnLoop"));
-        Map<Integer, BasicBlock> idBlockMap = getBlockIDMapForMultipleReturnLoopCFG(cfg);
-        HashSet<ControlFlowNode> expected = new HashSet<>();
-        expected.add(idBlockMap.get(1));
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(0)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(2));
-        expected.add(idBlockMap.get(8));
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(1)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(3));
-        expected.add(idBlockMap.get(6));
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(2)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(4));
-        expected.add(idBlockMap.get(5));
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(3)));
-        //
-        expected.clear();
-        expected.add(cfg.getExitPoint());
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(4)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(7));
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(5)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(7));
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(6)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(1));
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(7)));
-        //
-        expected.clear();
-        expected.add(cfg.getExitPoint());
-        assertEquals(expected, cfg.getSuccessors(idBlockMap.get(8)));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(1)));
+        expected.put(1, new HashSet<>(Arrays.asList(2, 8)));
+        expected.put(2, new HashSet<>(Arrays.asList(3, 6)));
+        expected.put(3, new HashSet<>(Arrays.asList(4, 5)));
+        expected.put(4, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        expected.put(5, new HashSet<>(Arrays.asList(7)));
+        expected.put(6, new HashSet<>(Arrays.asList(7)));
+        expected.put(7, new HashSet<>(Arrays.asList(1)));
+        expected.put(8, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
     }
 
     @Test
-    public void testMultipleReturnLoopDominators() throws Exception {
-        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("multipleReturnLoop"));
-        Map<Integer, BasicBlock> idBlockMap = getBlockIDMapForMultipleReturnLoopCFG(cfg);
-        Map<ControlFlowNode, ControlFlowNode> immediateDominators = cfg.getFlowGraph().getImmediateDominators();
-        assertEquals(cfg.getEntryPoint(), immediateDominators.get(idBlockMap.get(0)));
-        assertEquals(idBlockMap.get(0), immediateDominators.get(idBlockMap.get(1)));
-        assertEquals(idBlockMap.get(1), immediateDominators.get(idBlockMap.get(2)));
-        assertEquals(idBlockMap.get(2), immediateDominators.get(idBlockMap.get(3)));
-        assertEquals(idBlockMap.get(3), immediateDominators.get(idBlockMap.get(4)));
-        assertEquals(idBlockMap.get(3), immediateDominators.get(idBlockMap.get(5)));
-        assertEquals(idBlockMap.get(2), immediateDominators.get(idBlockMap.get(6)));
-        assertEquals(idBlockMap.get(2), immediateDominators.get(idBlockMap.get(7)));
-        assertEquals(idBlockMap.get(1), immediateDominators.get(idBlockMap.get(8)));
+    public void testIfElseIntoWhileLoop() throws Exception {
+        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("ifElseIntoWhileLoop"));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(1, 2)));
+        expected.put(1, new HashSet<>(Arrays.asList(3)));
+        expected.put(2, new HashSet<>(Arrays.asList(3)));
+        expected.put(3, new HashSet<>(Arrays.asList(4, 5)));
+        expected.put(4, new HashSet<>(Arrays.asList(3)));
+        expected.put(5, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
     }
-    
+
     @Test
-    public void testMultipleReturnLoopDominanceFrontiers() throws Exception {
-        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("multipleReturnLoop"));
-        Map<Integer, BasicBlock> idBlockMap = getBlockIDMapForMultipleReturnLoopCFG(cfg);
-        Map<ControlFlowNode, Set<ControlFlowNode>> dominanceFrontiers = cfg.getFlowGraph().getDominanceFrontiers();
-        Set<ControlFlowNode> expected = new HashSet<>();
-        assertTrue(dominanceFrontiers.get(idBlockMap.get(0)).isEmpty());
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(1));
-        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(1)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(1));
-        expected.add(cfg.getExitPoint());
-        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(2)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(7));
-        expected.add(cfg.getExitPoint());
-        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(3)));
-        //
-        expected.clear();
-        expected.add(cfg.getExitPoint());
-        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(4)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(7));
-        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(5)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(7));
-        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(6)));
-        //
-        expected.clear();
-        expected.add(idBlockMap.get(1));
-        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(7)));
-        //
-        expected.clear();
-        expected.add(cfg.getExitPoint());
-        assertEquals(expected, dominanceFrontiers.get(idBlockMap.get(8)));
+    public void testForLoopWithReturn() throws Exception {
+        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("forLoopWithReturn"));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(1)));
+        expected.put(1, new HashSet<>(Arrays.asList(2, 5)));
+        expected.put(2, new HashSet<>(Arrays.asList(3, 4)));
+        expected.put(3, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        expected.put(4, new HashSet<>(Arrays.asList(1)));
+        expected.put(5, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
+    }
+
+    @Test
+    public void testForLoopWithBreak() throws Exception {
+        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("forLoopWithBreak"));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(1)));
+        expected.put(1, new HashSet<>(Arrays.asList(2, 5)));
+        expected.put(2, new HashSet<>(Arrays.asList(3, 4)));
+        expected.put(3, new HashSet<>(Arrays.asList(5)));
+        expected.put(4, new HashSet<>(Arrays.asList(1)));
+        expected.put(5, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
+    }
+
+    @Test
+    public void testForLoopWithOr() throws Exception {
+        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("forLoopWithOr"));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(1)));
+        expected.put(1, new HashSet<>(Arrays.asList(2, 3)));
+        expected.put(2, new HashSet<>(Arrays.asList(3, 4)));
+        expected.put(3, new HashSet<>(Arrays.asList(1)));
+        expected.put(4, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
+    }
+
+    @Test
+    public void testWhileTrue() throws Exception {
+        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("whileTrue"));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(1)));
+        expected.put(1, new HashSet<>(Arrays.asList(2, 4)));
+        expected.put(2, new HashSet<>(Arrays.asList(1)));
+        expected.put(3, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        expected.put(4, new HashSet<>(Arrays.asList(3)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
+    }
+
+    @Test
+    public void testNestedLoopsMultipleExits() throws Exception {
+        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("nestedLoopsMultipleExits"));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(1)));
+        expected.put(1, new HashSet<>(Arrays.asList(2, 10)));
+        expected.put(2, new HashSet<>(Arrays.asList(3, 4)));
+        expected.put(3, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        expected.put(4, new HashSet<>(Arrays.asList(5)));
+        expected.put(5, new HashSet<>(Arrays.asList(6, 9)));
+        expected.put(6, new HashSet<>(Arrays.asList(7, 8)));
+        expected.put(7, new HashSet<>(Arrays.asList(5)));
+        expected.put(8, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        expected.put(9, new HashSet<>(Arrays.asList(1)));
+        expected.put(10, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
+    }
+
+    @Test
+    public void multipleTryBlocks() throws Exception {
+        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("multipleTryBlocks"));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(1)));
+        expected.put(1, new HashSet<>(Arrays.asList(2, 6)));
+        expected.put(2, new HashSet<>(Arrays.asList(1)));
+        expected.put(3, new HashSet<>(Arrays.asList(7)));
+        expected.put(4, new HashSet<>(Arrays.asList(5, 7)));
+        expected.put(5, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        expected.put(6, new HashSet<>(Arrays.asList(7)));
+        expected.put(7, new HashSet<>(Arrays.asList(9)));
+        expected.put(8, new HashSet<>(Arrays.asList(9)));
+        expected.put(9, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
+    }
+
+    @Test
+    public void labeledBreak() throws Exception {
+        ControlFlowGraph cfg = new ControlFlowGraph(getMethodNode("labeledBreak"));
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(0, new HashSet<>(Arrays.asList(1)));
+        expected.put(1, new HashSet<>(Arrays.asList(2, 8)));
+        expected.put(2, new HashSet<>(Arrays.asList(3)));
+        expected.put(3, new HashSet<>(Arrays.asList(4, 7)));
+        expected.put(4, new HashSet<>(Arrays.asList(5, 6)));
+        expected.put(5, new HashSet<>(Arrays.asList(8)));
+        expected.put(6, new HashSet<>(Arrays.asList(3)));
+        expected.put(7, new HashSet<>(Arrays.asList(1)));
+        expected.put(8, new HashSet<>(Arrays.asList(EXIT_NODE_ID)));
+        Map<Integer, Set<Integer>> successors = createNumberedSuccessorsMap(cfg);
+        assertEquals(expected, successors);
     }
 }
