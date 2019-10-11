@@ -64,7 +64,7 @@ public final class FlowGraphBuilder<V> {
      */
     public FlowGraphBuilder(FlowGraph<V> graph) {
         this();
-        this.edges.putAll(graph.getEdges());
+        this.edges.putAll(graph.getSuccessors());
         this.entryPoint = graph.getEntryPoint();
         this.entryPointSet = true;
         this.exitPoint = graph.getExitPoint();

@@ -12,7 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * From Apache Harmony (http://harmony.apache.org/)
+ * Modification: package changed to one that is ignored (i.e., not instrumented) by Phosphor
  */
+
 package edu.columbia.cs.psl.phosphor.struct.harmony.util;
 
 import java.io.Closeable;
