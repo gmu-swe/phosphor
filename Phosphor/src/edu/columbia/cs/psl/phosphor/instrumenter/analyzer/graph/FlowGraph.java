@@ -8,12 +8,12 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
  * A flow graph composed of a set of vertices connected by directed edges. The graph is unweighted and has single point
  * of entry (source) and a single point of exit (sink).
  *
- *  Uses algorithms for calculating dominators, immediate dominators, and dominance frontiers from the following:
+ * <p>Uses algorithms for calculating dominators, immediate dominators, and dominance frontiers from the following:<br>
  *      K.D. Cooper, T.J. Harvey, and K. Kennedy, “A Simple, Fast Dominance Algorithm,” Rice University,
  *      Department of Computer Science Technical Report 06-33870, 2006.
  *      http://www.cs.rice.edu/~keith/EMBED/dom.pdf
  *
- * Uses the algorithm for gathering the set of nodes in a natural loop from Compilers: Principles, Techniques, and
+ * <p>Uses the algorithm for gathering the set of nodes in a natural loop from Compilers: Principles, Techniques, and
  * Tools (2nd Edition) by Alfred V. Aho, Monica S. Lam, Ravi Sethi, and Jeffrey D. Ullman in section 9.6.6.
  *
  * @param <V> the type of the graph's vertices
