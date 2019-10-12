@@ -187,6 +187,30 @@ public final class FlowGraphBuilder<V> {
     }
 
     /**
+     * @return the entry point for the graph being built
+     * @throws IllegalStateException if the entry point for the graph being built has not yet been set
+     */
+    public V getEntryPoint() {
+        if(!entryPointSet) {
+            throw new IllegalStateException("Entry point cannot be accessed before it is set");
+        } else {
+            return entryPoint;
+        }
+    }
+
+    /**
+     * @return exit point for the graph being built
+     * @throws IllegalStateException if the exit point for the graph being built has not yet been set
+     */
+    public V getExitPoint() {
+        if(!exitPointSet) {
+            throw new IllegalStateException("Exit point cannot be accessed before it is set");
+        } else {
+            return exitPoint;
+        }
+    }
+
+    /**
      * @return a FlowGraph created from this builder's vertices and edges
      * @throws IllegalStateException if an entry and exit point have not been set for this builder
      */

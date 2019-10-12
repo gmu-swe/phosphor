@@ -1,9 +1,6 @@
-package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg;
+package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph;
 
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
@@ -20,29 +17,29 @@ public class ControlFlowGraphTestMethods {
     // Used to identify which basic block a particular code chunk ended up in
     private int blockID = -1;
 
-    public static MethodNode getMethodNode(String methodName) throws NoSuchMethodException, IOException {
+    private static MethodNode getMethodNode(String methodName) throws NoSuchMethodException, IOException {
         ClassReader cr = new ClassReader(ControlFlowGraphTestMethods.class.getName());
         ClassNode classNode = new ClassNode();
         cr.accept(classNode, 0);
-        for (MethodNode mn : classNode.methods) {
-            if (mn.name.equals(methodName)) {
+        for(MethodNode mn : classNode.methods) {
+            if(mn.name.equals(methodName)) {
                 return mn;
             }
         }
         throw new NoSuchMethodException();
     }
 
-    private static Map<Integer, BasicBlock> createBlockIDBasicBlockMap(Iterable<BasicBlock> basicBlocks) {
+    private static Map<Integer, BasicBlock> createBlockIDBasicBlockMap(MethodNode mn, Iterable<BasicBlock> basicBlocks) {
         String owner = ControlFlowGraphTestMethods.class.getName().replaceAll("\\.", "/");
         Map<Integer, BasicBlock> blockIDMap = new HashMap<>();
-        for (BasicBlock basicBlock : basicBlocks) {
-            for (AbstractInsnNode node : basicBlock.instructions) {
-                if (node instanceof FieldInsnNode && owner.equals(((FieldInsnNode) node).owner)
+        for(BasicBlock basicBlock : basicBlocks) {
+            for(AbstractInsnNode node : getInstructions(mn, basicBlock)) {
+                if(node instanceof FieldInsnNode && owner.equals(((FieldInsnNode) node).owner)
                         && "blockID".equals(((FieldInsnNode) node).name)) {
-                    for (AbstractInsnNode prev = node.getPrevious(); prev != null; prev = prev.getPrevious()) {
+                    for(AbstractInsnNode prev = node.getPrevious(); prev != null; prev = prev.getPrevious()) {
                         int id = -1;
-                        if (prev instanceof InsnNode) {
-                            switch (prev.getOpcode()) {
+                        if(prev instanceof InsnNode) {
+                            switch(prev.getOpcode()) {
                                 case Opcodes.ICONST_0:
                                     id = 0;
                                     break;
@@ -62,10 +59,10 @@ public class ControlFlowGraphTestMethods {
                                     id = 5;
                                     break;
                             }
-                        } else if (prev instanceof IntInsnNode) {
-                            id = ((IntInsnNode) prev).operand;
+                        } else if(prev instanceof IntInsnNode) {
+                            id =((IntInsnNode) prev).operand;
                         }
-                        if (id != -1) {
+                        if(id != -1) {
                             blockIDMap.put(id, basicBlock);
                             break;
                         }
@@ -76,22 +73,39 @@ public class ControlFlowGraphTestMethods {
         return blockIDMap;
     }
 
-    public static Map<Integer, Set<Integer>> createNumberedSuccessorsMap(ControlFlowGraph cfg) {
-        Map<Integer, BasicBlock> idBlockMap = createBlockIDBasicBlockMap(cfg.getBasicBlocks());
+    private static List<AbstractInsnNode> getInstructions(MethodNode mn, BasicBlock basicBlock) {
+        List<AbstractInsnNode> instructions = new LinkedList<>();
+        AbstractInsnNode node = basicBlock.getFirstInsn();
+        if(mn.instructions.contains(node)) {
+            instructions.add(node);
+            do {
+                node = node.getNext();
+                if(node != null) {
+                    instructions.add(node);
+                }
+            } while(node != null && node != basicBlock.getLastInsn());
+        }
+        return instructions;
+    }
+
+    public static Map<Integer, Set<Integer>> createNumberedSuccessorsMap(String methodName) throws NoSuchMethodException, IOException {
+        MethodNode mn = getMethodNode(methodName);;
+        FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator().createControlFlowGraph(mn);
+        Map<Integer, BasicBlock> idBlockMap = createBlockIDBasicBlockMap(mn, cfg.getVertices());
         Map<BasicBlock, Integer> blockIdMap = new HashMap<>();
-        for (Integer key : idBlockMap.keySet()) {
+        for(Integer key : idBlockMap.keySet()) {
             blockIdMap.put(idBlockMap.get(key), key);
         }
         Map<Integer, Set<Integer>> successors = new HashMap<>();
-        for (BasicBlock basicBlock : cfg.getBasicBlocks()) {
-            if (blockIdMap.containsKey(basicBlock)) {
+        for(BasicBlock basicBlock : cfg.getVertices()) {
+            if(blockIdMap.containsKey(basicBlock)) {
                 Set<Integer> s = new HashSet<>();
-                for (ControlFlowNode node : cfg.getSuccessors(basicBlock)) {
-                    if (blockIdMap.containsKey(node)) {
+                for(BasicBlock node : cfg.getSuccessors(basicBlock)) {
+                    if(blockIdMap.containsKey(node)) {
                         s.add(blockIdMap.get(node));
-                    } else if (node instanceof EntryPoint) {
+                    } else if(node instanceof EntryPoint) {
                         s.add(ENTRY_NODE_ID);
-                    } else if (node instanceof ExitPoint) {
+                    } else if(node instanceof ExitPoint) {
                         s.add(EXIT_NODE_ID);
                     }
                 }
@@ -104,7 +118,7 @@ public class ControlFlowGraphTestMethods {
     public int basicTableSwitch(int value) {
         blockID = 0;
         int y;
-        switch (value) {
+        switch(value) {
             case 1:
                 blockID = 1;
                 y = 44;
@@ -136,7 +150,7 @@ public class ControlFlowGraphTestMethods {
     public int basicLookupSwitch(int value) {
         blockID = 0;
         int y;
-        switch (value) {
+        switch(value) {
             case 1:
                 blockID = 1;
                 y = 44;
@@ -169,9 +183,9 @@ public class ControlFlowGraphTestMethods {
         try {
             blockID = 0;
             a[0] = 7;
-        } catch (NullPointerException e) {
+        } catch(NullPointerException e) {
             blockID = 1;
-            if (b) {
+            if(b) {
                 blockID = 2;
                 return 22;
             }
@@ -183,11 +197,11 @@ public class ControlFlowGraphTestMethods {
     public void multipleReturnLoop(int[] a, int[] b) {
         blockID = 0;
         int x = 0;
-        for (int i = 0; i < (blockID = 1); i++) {
+        for(int i = 0; i <(blockID = 1); i++) {
             blockID = 2;
-            if (a[i] == '%') {
+            if(a[i] == '%') {
                 blockID = 3;
-                if (!Objects.equals(a.length, i)) {
+                if(!Objects.equals(a.length, i)) {
                     blockID = 4;
                     return;
                 }
@@ -205,14 +219,14 @@ public class ControlFlowGraphTestMethods {
     public void ifElseIntoWhileLoop(boolean b) {
         blockID = 0;
         int i;
-        if (b) {
+        if(b) {
             blockID = 1;
             i = 3;
         } else {
             blockID = 2;
             i = 7;
         }
-        while (i > (blockID = 3)) {
+        while(i >(blockID = 3)) {
             blockID = 4;
             System.out.println(i);
             i--;
@@ -223,9 +237,9 @@ public class ControlFlowGraphTestMethods {
     public int forLoopWithReturn(Integer[] a) {
         blockID = 0;
         int count = 0;
-        for (int i = 0; i < (blockID = 1); i++) {
+        for(int i = 0; i <(blockID = 1); i++) {
             blockID = 2;
-            if (a[i] == null) {
+            if(a[i] == null) {
                 blockID = 3;
                 count = -1;
                 return count;
@@ -240,9 +254,9 @@ public class ControlFlowGraphTestMethods {
     public int forLoopWithBreak(Integer[] a) {
         blockID = 0;
         int count = 0;
-        for (int i = 0; i < (blockID = 1); i++) {
+        for(int i = 0; i <(blockID = 1); i++) {
             blockID = 2;
-            if (a[i] == null) {
+            if(a[i] == null) {
                 blockID = 3;
                 break;
             }
@@ -257,7 +271,7 @@ public class ControlFlowGraphTestMethods {
         blockID = 0;
         int count = 0;
         int extra = 13;
-        for (int i = 0; i < (blockID = 1) || extra-- > (blockID = 2); i++) {
+        for(int i = 0; i <(blockID = 1) || extra-- >(blockID = 2); i++) {
             blockID = 3;
             count += a[i];
         }
@@ -268,9 +282,9 @@ public class ControlFlowGraphTestMethods {
     public int whileTrue(int a) {
         blockID = 0;
         int count = 0;
-        while (true) {
+        while(true) {
             count += a;
-            if (count > (blockID = 1)) {
+            if(count >(blockID = 1)) {
                 blockID = 4;
                 break;
             }
@@ -282,16 +296,16 @@ public class ControlFlowGraphTestMethods {
 
     public void nestedLoopsMultipleExits(Integer[] a) {
         blockID = 0;
-        for (int i = 0; i < (blockID = 1); i++) {
+        for(int i = 0; i <(blockID = 1); i++) {
             blockID = 2;
-            if (a[i] == null) {
+            if(a[i] == null) {
                 blockID = 3;
                 throw new IllegalArgumentException();
             }
             blockID = 4;
-            for (int j = 0; j < (blockID = 5); j++) {
+            for(int j = 0; j <(blockID = 5); j++) {
                 blockID = 6;
-                if (a[i] == j) {
+                if(a[i] == j) {
                     blockID = 8;
                     throw new RuntimeException();
                 }
@@ -306,7 +320,7 @@ public class ControlFlowGraphTestMethods {
         blockID = 0;
         int i = 0;
         try {
-            while(i < (blockID = 1)) {
+            while(i <(blockID = 1)) {
                 blockID = 2;
                 a[i++] = i;
             }
@@ -337,9 +351,9 @@ public class ControlFlowGraphTestMethods {
         boolean foundIt = false;
         int i, j;
         search:
-        for(i = 0; i < (blockID = 1); i++) {
+        for(i = 0; i <(blockID = 1); i++) {
             blockID = 2;
-            for(j = 0; j < (blockID = 3); j++) {
+            for(j = 0; j <(blockID = 3); j++) {
                 blockID = 4;
                 if(a[i][j] == 9) {
                     blockID = 5;

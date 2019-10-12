@@ -4,7 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.cfg.BindingControlFlowAnalyzer;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BindingControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import org.objectweb.asm.Label;
@@ -1075,10 +1075,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             }
 
             if(Configuration.BINDING_CONTROL_FLOWS_ONLY) {
-                int maxBranchID = BindingControlFlowAnalyzer.analyze(this);
-                if(maxBranchID >= 0) {
-                    nJumps = maxBranchID + 1;
-                }
+                nJumps  = BindingControlFlowAnalyzer.analyzeAndModify(this);
                 patchFrames(implicitAnalysisBlocks.values(), instructions);
             } else if (Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
                 annotateCodeForControlFlow();

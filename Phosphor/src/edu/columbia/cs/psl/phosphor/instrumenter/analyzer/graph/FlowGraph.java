@@ -16,9 +16,8 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
  * Uses the algorithm for gathering the set of nodes in a natural loop from Compilers: Principles, Techniques, and
  * Tools (2nd Edition) by Alfred V. Aho, Monica S. Lam, Ravi Sethi, and Jeffrey D. Ullman in section 9.6.6.
  *
- * @param <V> the type of this graph's vertices
+ * @param <V> the type of the graph's vertices
  */
-
 public final class FlowGraph<V> {
 
     /**
@@ -504,7 +503,7 @@ public final class FlowGraph<V> {
      * Stores a reachable vertex with its reverse post order index and the reverse post order indices of its
      * immediate successors
      *
-     * @param <T> the type of the vertex
+     * @param <T> the type of the vertex whose information is being stored
      */
     private static final class VertexInfo<T> {
 
