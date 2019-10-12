@@ -157,11 +157,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			}
 		}
 
+        Configuration.taintTagFactory.methodEntered(className, name, desc, passthruMV, lvs, this);
 		if(Configuration.IMPLICIT_TRACKING && !arrayAnalyzer.hasFinally && arrayAnalyzer.nTryCatch == 0 && !isSuperUninit){
 			super.visitTryCatchBlock(firstLabel,endLabel,popAllLabel,null);
 			super.visitLabel(firstLabel);
 		}
-		Configuration.taintTagFactory.methodEntered(className, name, desc, passthruMV, lvs, this);
 		//		if (arrayAnalyzer != null) {
 		//			this.bbsToAddACONST_NULLto = arrayAnalyzer.getbbsToAddACONST_NULLto();
 		//			this.bbsToAddChecktypeObjectto = arrayAnalyzer.getBbsToAddChecktypeObject();
