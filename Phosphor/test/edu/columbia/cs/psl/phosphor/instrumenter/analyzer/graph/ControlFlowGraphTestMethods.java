@@ -197,7 +197,7 @@ public class ControlFlowGraphTestMethods {
     public void multipleReturnLoop(int[] a, int[] b) {
         blockID = 0;
         int x = 0;
-        for(int i = 0; i <(blockID = 1); i++) {
+        for(int i = 0; i < (blockID = 1); i++) {
             blockID = 2;
             if(a[i] == '%') {
                 blockID = 3;
@@ -237,7 +237,7 @@ public class ControlFlowGraphTestMethods {
     public int forLoopWithReturn(Integer[] a) {
         blockID = 0;
         int count = 0;
-        for(int i = 0; i <(blockID = 1); i++) {
+        for(int i = 0; i < (blockID = 1); i++) {
             blockID = 2;
             if(a[i] == null) {
                 blockID = 3;
@@ -254,7 +254,7 @@ public class ControlFlowGraphTestMethods {
     public int forLoopWithBreak(Integer[] a) {
         blockID = 0;
         int count = 0;
-        for(int i = 0; i <(blockID = 1); i++) {
+        for(int i = 0; i < (blockID = 1); i++) {
             blockID = 2;
             if(a[i] == null) {
                 blockID = 3;
@@ -271,7 +271,7 @@ public class ControlFlowGraphTestMethods {
         blockID = 0;
         int count = 0;
         int extra = 13;
-        for(int i = 0; i <(blockID = 1) || extra-- >(blockID = 2); i++) {
+        for(int i = 0; i < (blockID = 1) || extra-- >(blockID = 2); i++) {
             blockID = 3;
             count += a[i];
         }
@@ -296,14 +296,14 @@ public class ControlFlowGraphTestMethods {
 
     public void nestedLoopsMultipleExits(Integer[] a) {
         blockID = 0;
-        for(int i = 0; i <(blockID = 1); i++) {
+        for(int i = 0; i < (blockID = 1); i++) {
             blockID = 2;
             if(a[i] == null) {
                 blockID = 3;
                 throw new IllegalArgumentException();
             }
             blockID = 4;
-            for(int j = 0; j <(blockID = 5); j++) {
+            for(int j = 0; j < (blockID = 5); j++) {
                 blockID = 6;
                 if(a[i] == j) {
                     blockID = 8;
@@ -320,7 +320,7 @@ public class ControlFlowGraphTestMethods {
         blockID = 0;
         int i = 0;
         try {
-            while(i <(blockID = 1)) {
+            while(i < (blockID = 1)) {
                 blockID = 2;
                 a[i++] = i;
             }
@@ -351,9 +351,9 @@ public class ControlFlowGraphTestMethods {
         boolean foundIt = false;
         int i, j;
         search:
-        for(i = 0; i <(blockID = 1); i++) {
+        for(i = 0; i < (blockID = 1); i++) {
             blockID = 2;
-            for(j = 0; j <(blockID = 3); j++) {
+            for(j = 0; j < (blockID = 3); j++) {
                 blockID = 4;
                 if(a[i][j] == 9) {
                     blockID = 5;

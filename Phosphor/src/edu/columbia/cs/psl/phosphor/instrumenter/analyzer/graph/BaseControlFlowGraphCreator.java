@@ -19,7 +19,7 @@ public class BaseControlFlowGraphCreator extends ControlFlowGraphCreator {
 
     @Override
     protected BasicBlock addBasicBlock(AbstractInsnNode[] instructions, int index) {
-        BasicBlock basicBlock = new SimpleBasicBlock(instructions);
+        BasicBlock basicBlock = new SimpleBasicBlock(instructions, index);
         builder.addVertex(basicBlock);
         return basicBlock;
     }

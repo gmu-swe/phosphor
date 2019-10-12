@@ -336,7 +336,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
         @Override
         public String toString() {
-//			return insn.toString();
             return "" + idx;
         }
     }

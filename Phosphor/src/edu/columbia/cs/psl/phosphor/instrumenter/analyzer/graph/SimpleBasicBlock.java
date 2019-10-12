@@ -16,13 +16,25 @@ public class SimpleBasicBlock implements BasicBlock {
      */
     private final AbstractInsnNode lastInsn;
 
-    SimpleBasicBlock(final AbstractInsnNode[] instructions) {
+    /**
+     * An identifying number for this basic block
+     */
+    private final int identifier;
+
+    /**
+     * Constructs a new basic block that represents the specified instruction sequence.
+     *
+     * @param instructions the sequence of instructions in the basic block being constructed
+     * @param identifier a number used to identify the basic block being constructed
+     */
+    SimpleBasicBlock(final AbstractInsnNode[] instructions, int identifier) {
         if(instructions.length == 0) {
             this.firstInsn = this.lastInsn = new InsnNode(Opcodes.NOP);
         } else {
             this.firstInsn = instructions[0];
             this.lastInsn = instructions[instructions.length - 1];
         }
+        this.identifier = identifier;
     }
 
     @Override
@@ -33,5 +45,10 @@ public class SimpleBasicBlock implements BasicBlock {
     @Override
     public AbstractInsnNode getLastInsn() {
         return lastInsn;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("SimpleBasicBlock{#%d: %s - %s}", identifier, firstInsn.getClass().getSimpleName(), lastInsn.getClass().getSimpleName());
     }
 }

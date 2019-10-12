@@ -142,7 +142,7 @@ public class ControlFlowGraphTest {
     }
 
     @Test
-    public void multipleTryBlocks() throws Exception {
+    public void testMultipleTryBlocks() throws Exception {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(0, new HashSet<>(Arrays.asList(1)));
         expected.put(1, new HashSet<>(Arrays.asList(2, 6)));
@@ -159,7 +159,7 @@ public class ControlFlowGraphTest {
     }
 
     @Test
-    public void labeledBreak() throws Exception {
+    public void testLabeledBreak() throws Exception {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(0, new HashSet<>(Arrays.asList(1)));
         expected.put(1, new HashSet<>(Arrays.asList(2, 8)));

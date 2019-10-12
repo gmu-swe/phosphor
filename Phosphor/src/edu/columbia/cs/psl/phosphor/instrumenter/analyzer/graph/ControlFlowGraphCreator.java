@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph;
 
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
@@ -215,26 +216,7 @@ public abstract class ControlFlowGraphCreator {
      * @return true if the specified instruction triggers a method exit
      */
     private static boolean isExitInstruction(AbstractInsnNode instruction) {
-        return instruction.getOpcode() == Opcodes.ATHROW || isReturnInstruction(instruction);
-    }
-
-    /**
-     * @param instruction the instruction to be checked
-     * @return true if the specified instruction is a return instruction
-     */
-    private static boolean isReturnInstruction(AbstractInsnNode instruction) {
-        switch (instruction.getOpcode()) {
-            case Opcodes.IRETURN:
-            case Opcodes.LRETURN:
-            case Opcodes.FRETURN:
-            case Opcodes.DRETURN:
-            case Opcodes.ARETURN:
-            case Opcodes.RETURN:
-            case Opcodes.ATHROW:
-                return true;
-            default:
-                return false;
-        }
+        return instruction.getOpcode() == Opcodes.ATHROW || TaintUtils.isReturnOpcode(instruction.getOpcode());
     }
 
     /**
@@ -266,7 +248,7 @@ public abstract class ControlFlowGraphCreator {
                 for(LabelNode label : ((LookupSwitchInsnNode) lastInsn).labels) {
                     addNonDefaultCaseSwitchEdge(currentBasicBlock, labelBlockMap.get(label));
                 }
-            } else if(isReturnInstruction(lastInsn)) {
+            } else if(TaintUtils.isReturnOpcode(lastInsn.getOpcode())) {
                 addStandardEdgeToExitPoint(currentBasicBlock);
             } else if(lastInsn.getOpcode() == Opcodes.ATHROW) {
                 addExceptionalEdgeToExitPoint(currentBasicBlock);
