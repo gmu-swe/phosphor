@@ -509,6 +509,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			primitiveArrayFixer.setAnalyzer(preAnalyzer);
 			boxFixer.setLocalVariableSorter(lvs);
 			tmv.setArrayAnalyzer(primitiveArrayFixer);
+			tmv.setLVOffset(mar.getNewArgOffset());
 			tmv.setLocalVariableSorter(lvs);
 			lvs.setPrimitiveArrayAnalyzer(primitiveArrayFixer); // i'm lazy. this guy will tell the LVS what return types to prealloc
 			reflectionMasker.setLvs(lvs);
