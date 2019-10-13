@@ -37,7 +37,7 @@ public class GraphBasedAnalyzer {
             for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
                 if(graph.containsVertex(b)) {
                     Set<AnnotatedInstruction> cycle = detector.findCyclesContainingVertex(b);
-                    if(b.successors.size() > 1 && !cycle.containsAll(b.successors)) {
+                    if(!cycle.isEmpty() && b.successors.size() > 1 && !cycle.containsAll(b.successors)) {
                         graph.removeVertex(b);
                         mn.instructions.insertBefore(b.insn, new InsnNode(TaintUtils.LOOP_HEADER));
                         hadChanges = true;

@@ -324,7 +324,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         public HashSet<AnnotatedInstruction> postDominators = new HashSet<>();
         int idx;
         //		LinkedList<Integer> outEdges = new LinkedList<>();
-        HashSet<AnnotatedInstruction> basicBlockStartingSuccesors = new HashSet<>();
+        HashSet<AnnotatedInstruction> basicBlockStartingSuccessors = new HashSet<>();
         HashSet<AnnotatedInstruction> successors = new HashSet<>();
         HashSet<AnnotatedInstruction> predecessors = new HashSet<>();
         AbstractInsnNode insn;
@@ -1302,9 +1302,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
                         for(AnnotatedInstruction s : b.successors) {
                             if(s.isInteresting()) {
-                                changed |= b.basicBlockStartingSuccesors.add(s);
+                                changed |= b.basicBlockStartingSuccessors.add(s);
                             } else {
-                                changed |= b.basicBlockStartingSuccesors.addAll(s.basicBlockStartingSuccesors);
+                                changed |= b.basicBlockStartingSuccessors.addAll(s.basicBlockStartingSuccessors);
                             }
                         }
                     }
@@ -1317,7 +1317,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     }
                 }
                 for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                    if(b.basicBlockStartingSuccesors.size() == 0) {
+                    if(b.basicBlockStartingSuccessors.size() == 0) {
                         b.postDominators.add(b);
                     } else {
                         b.postDominators.addAll(interestingBlocks);
@@ -1327,8 +1327,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 while(changed) {
                     changed = false;
                     for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                        if(b.basicBlockStartingSuccesors.size() > 0 && b.isInteresting()) {
-                            Iterator<AnnotatedInstruction> iter = b.basicBlockStartingSuccesors.iterator();
+                        if(b.basicBlockStartingSuccessors.size() > 0 && b.isInteresting()) {
+                            Iterator<AnnotatedInstruction> iter = b.basicBlockStartingSuccessors.iterator();
                             AnnotatedInstruction successor = iter.next();
                             HashSet<AnnotatedInstruction> intersectionOfPredecessors = new HashSet<>(successor.postDominators);
                             while(iter.hasNext()) {
@@ -1667,5 +1667,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 nJumps = jumpID;
             }
         }
+    }
+
+    private static void annotateLoops(MethodNode mn) {
+
     }
 }
