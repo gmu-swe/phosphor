@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
@@ -29,42 +30,45 @@ public class ControlFlowGraphTestMethods {
         throw new NoSuchMethodException();
     }
 
-    private static Map<Integer, BasicBlock> createBlockIDBasicBlockMap(MethodNode mn, Iterable<BasicBlock> basicBlocks) {
+    private static Map<BasicBlock, Integer> createBasicBlockIDMap(MethodNode mn, Iterable<BasicBlock> basicBlocks) {
         String owner = ControlFlowGraphTestMethods.class.getName().replaceAll("\\.", "/");
-        Map<Integer, BasicBlock> blockIDMap = new HashMap<>();
+        Map<BasicBlock, Integer> blockIDMap = new HashMap<>();
         for(BasicBlock basicBlock : basicBlocks) {
-            for(AbstractInsnNode node : getInstructions(mn, basicBlock)) {
-                if(node instanceof FieldInsnNode && owner.equals(((FieldInsnNode) node).owner)
-                        && "blockID".equals(((FieldInsnNode) node).name)) {
-                    for(AbstractInsnNode prev = node.getPrevious(); prev != null; prev = prev.getPrevious()) {
-                        int id = -1;
-                        if(prev instanceof InsnNode) {
-                            switch(prev.getOpcode()) {
-                                case Opcodes.ICONST_0:
-                                    id = 0;
-                                    break;
-                                case Opcodes.ICONST_1:
-                                    id = 1;
-                                    break;
-                                case Opcodes.ICONST_2:
-                                    id = 2;
-                                    break;
-                                case Opcodes.ICONST_3:
-                                    id = 3;
-                                    break;
-                                case Opcodes.ICONST_4:
-                                    id = 4;
-                                    break;
-                                case Opcodes.ICONST_5:
-                                    id = 5;
-                                    break;
+            if(basicBlock instanceof EntryPoint) {
+                blockIDMap.put(basicBlock, ENTRY_NODE_ID);
+            } else if(basicBlock instanceof ExitPoint) {
+                blockIDMap.put(basicBlock, EXIT_NODE_ID);
+            } else {
+                blockCheck:
+                for(AbstractInsnNode node : getInstructions(mn, basicBlock)) {
+                    if(node instanceof FieldInsnNode && owner.equals(((FieldInsnNode) node).owner)
+                            && "blockID".equals(((FieldInsnNode) node).name)) {
+                        for(AbstractInsnNode prev = node.getPrevious(); prev != null; prev = prev.getPrevious()) {
+                            if(prev instanceof InsnNode) {
+                                switch(prev.getOpcode()) {
+                                    case Opcodes.ICONST_0:
+                                        blockIDMap.put(basicBlock, 0);
+                                        break blockCheck;
+                                    case Opcodes.ICONST_1:
+                                        blockIDMap.put(basicBlock, 1);
+                                        break blockCheck;
+                                    case Opcodes.ICONST_2:
+                                        blockIDMap.put(basicBlock, 2);
+                                        break blockCheck;
+                                    case Opcodes.ICONST_3:
+                                        blockIDMap.put(basicBlock, 3);
+                                        break blockCheck;
+                                    case Opcodes.ICONST_4:
+                                        blockIDMap.put(basicBlock, 4);
+                                        break blockCheck;
+                                    case Opcodes.ICONST_5:
+                                        blockIDMap.put(basicBlock, 5);
+                                        break blockCheck;
+                                }
+                            } else if(prev instanceof IntInsnNode) {
+                                blockIDMap.put(basicBlock, ((IntInsnNode) prev).operand);
+                                break blockCheck;
                             }
-                        } else if(prev instanceof IntInsnNode) {
-                            id =((IntInsnNode) prev).operand;
-                        }
-                        if(id != -1) {
-                            blockIDMap.put(id, basicBlock);
-                            break;
                         }
                     }
                 }
@@ -88,31 +92,43 @@ public class ControlFlowGraphTestMethods {
         return instructions;
     }
 
-    public static Map<Integer, Set<Integer>> createNumberedSuccessorsMap(String methodName) throws NoSuchMethodException, IOException {
-        MethodNode mn = getMethodNode(methodName);;
-        FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator().createControlFlowGraph(mn);
-        Map<Integer, BasicBlock> idBlockMap = createBlockIDBasicBlockMap(mn, cfg.getVertices());
-        Map<BasicBlock, Integer> blockIdMap = new HashMap<>();
-        for(Integer key : idBlockMap.keySet()) {
-            blockIdMap.put(idBlockMap.get(key), key);
-        }
-        Map<Integer, Set<Integer>> successors = new HashMap<>();
-        for(BasicBlock basicBlock : cfg.getVertices()) {
-            if(blockIdMap.containsKey(basicBlock)) {
-                Set<Integer> s = new HashSet<>();
-                for(BasicBlock node : cfg.getSuccessors(basicBlock)) {
-                    if(blockIdMap.containsKey(node)) {
-                        s.add(blockIdMap.get(node));
-                    } else if(node instanceof EntryPoint) {
-                        s.add(ENTRY_NODE_ID);
-                    } else if(node instanceof ExitPoint) {
-                        s.add(EXIT_NODE_ID);
-                    }
-                }
-                successors.put(blockIdMap.get(basicBlock), s);
+    private static Set<Integer> convertBasicBlocksToIDs(Map<BasicBlock, Integer> blockIDMap, Set<BasicBlock> targetSet) {
+        Set<Integer> convertedSet = new HashSet<>();
+        for(BasicBlock el : targetSet) {
+            if(blockIDMap.containsKey(el)) {
+                convertedSet.add(blockIDMap.get(el));
             }
         }
-        return successors;
+        return  convertedSet;
+    }
+
+    private static Map<Integer, Set<Integer>> convertBasicBlocksToIDs(Map<BasicBlock, Integer> blockIDMap, Map<BasicBlock, Set<BasicBlock>> targetMap) {
+        Map<Integer, Set<Integer>> convertedMap = new HashMap<>();
+        for(BasicBlock key : targetMap.keySet()) {
+            if(blockIDMap.containsKey(key)) {
+                Set<Integer> convertedSet =
+                        convertedMap.put(blockIDMap.get(key), convertBasicBlocksToIDs(blockIDMap, targetMap.get(key)));
+            }
+        }
+        return convertedMap;
+    }
+
+    public static Map<Integer, Set<Integer>> calculateSuccessors(String methodName) throws NoSuchMethodException, IOException {
+        MethodNode mn = getMethodNode(methodName);
+        FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator().createControlFlowGraph(mn);
+        Map<BasicBlock, Integer> blockIDMap = createBasicBlockIDMap(mn, cfg.getVertices());
+        return convertBasicBlocksToIDs(blockIDMap, cfg.getSuccessors());
+    }
+
+    public static Map<Integer, Set<Integer>> calculateLoops(String methodName) throws NoSuchMethodException, IOException {
+        MethodNode mn = getMethodNode(methodName);
+        FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator().createControlFlowGraph(mn);
+        Map<BasicBlock, Integer> blockIDMap = createBasicBlockIDMap(mn, cfg.getVertices());
+        Map<BasicBlock, Set<BasicBlock>> loops = new HashMap<>();
+        for(NaturalLoop<BasicBlock> loop : cfg.getNaturalLoops()) {
+            loops.put(loop.getHeader(), loop.getVertices());
+        }
+        return convertBasicBlocksToIDs(blockIDMap, loops);
     }
 
     public int basicTableSwitch(int value) {
@@ -226,7 +242,7 @@ public class ControlFlowGraphTestMethods {
             blockID = 2;
             i = 7;
         }
-        while(i >(blockID = 3)) {
+        while(i > (blockID = 3)) {
             blockID = 4;
             System.out.println(i);
             i--;
@@ -271,7 +287,7 @@ public class ControlFlowGraphTestMethods {
         blockID = 0;
         int count = 0;
         int extra = 13;
-        for(int i = 0; i < (blockID = 1) || extra-- >(blockID = 2); i++) {
+        for(int i = 0; i < (blockID = 1) || extra-- > (blockID = 2); i++) {
             blockID = 3;
             count += a[i];
         }
@@ -284,7 +300,8 @@ public class ControlFlowGraphTestMethods {
         int count = 0;
         while(true) {
             count += a;
-            if(count >(blockID = 1)) {
+            blockID = 1;
+            if(count > 1) {
                 blockID = 4;
                 break;
             }
@@ -366,5 +383,14 @@ public class ControlFlowGraphTestMethods {
         }
         blockID = 8;
         return foundIt;
+    }
+
+    public void doWhile(int[] a) {
+        blockID = 0;
+        int i = 0;
+        do {
+            a[i++] = 7;
+        } while(a[i] != (blockID = 1));
+        blockID = 2;
     }
 }

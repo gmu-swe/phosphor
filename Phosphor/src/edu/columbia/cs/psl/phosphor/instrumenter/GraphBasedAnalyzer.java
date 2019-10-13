@@ -15,35 +15,35 @@ import java.util.Set;
 
 public class GraphBasedAnalyzer {
 
-	public static void doGraphAnalysis(MethodNode mn, HashMap<Integer, AnnotatedInstruction> implicitAnalysisBlocks) {
-		Graph<AnnotatedInstruction, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
-		boolean hasJumps = false;
-		for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-			if(b.insn instanceof JumpInsnNode) {
-				hasJumps = true;
-			}
-			if(b.successors.size() > 0) {
-				graph.addVertex(b);
-			}
-			for(AnnotatedInstruction c : b.successors) {
-				graph.addVertex(c);
-				graph.addEdge(b, c);
-			}
-		}
-		boolean hadChanges = hasJumps;
-		while(hadChanges) {
-			hadChanges = false;
-			CycleDetector<AnnotatedInstruction, DefaultEdge> detector = new CycleDetector<>(graph);
-			for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-				if(graph.containsVertex(b)) {
-					Set<AnnotatedInstruction> cycle = detector.findCyclesContainingVertex(b);
-					if(b.successors.size() > 1 && !cycle.containsAll(b.successors)) {
-						graph.removeVertex(b);
-						mn.instructions.insertBefore(b.insn, new InsnNode(TaintUtils.LOOP_HEADER));
-						hadChanges = true;
-					}
-				}
-			}
-		}
-	}
+    public static void doGraphAnalysis(MethodNode mn, HashMap<Integer, AnnotatedInstruction> implicitAnalysisBlocks) {
+        Graph<AnnotatedInstruction, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
+        boolean hasJumps = false;
+        for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
+            if(b.insn instanceof JumpInsnNode) {
+                hasJumps = true;
+            }
+            if(!b.successors.isEmpty()) {
+                graph.addVertex(b);
+            }
+            for(AnnotatedInstruction c : b.successors) {
+                graph.addVertex(c);
+                graph.addEdge(b, c);
+            }
+        }
+        boolean hadChanges = hasJumps;
+        while(hadChanges) {
+            hadChanges = false;
+            CycleDetector<AnnotatedInstruction, DefaultEdge> detector = new CycleDetector<>(graph);
+            for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
+                if(graph.containsVertex(b)) {
+                    Set<AnnotatedInstruction> cycle = detector.findCyclesContainingVertex(b);
+                    if(b.successors.size() > 1 && !cycle.containsAll(b.successors)) {
+                        graph.removeVertex(b);
+                        mn.instructions.insertBefore(b.insn, new InsnNode(TaintUtils.LOOP_HEADER));
+                        hadChanges = true;
+                    }
+                }
+            }
+        }
+    }
 }

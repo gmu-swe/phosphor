@@ -459,7 +459,9 @@ public final class FlowGraph<V> {
             }
             for(NaturalLoop<V> loop : naturalLoops) {
                 loop.vertices.add(loop.header); // Mark the loop's header as visited
-                transverseDepthFirstSearch(loop.tail, loop.vertices);
+                if(loop.tail != loop.header) {
+                    transverseDepthFirstSearch(loop.tail, loop.vertices);
+                }
             }
             naturalLoops = Collections.unmodifiableSet(naturalLoops);
         }
