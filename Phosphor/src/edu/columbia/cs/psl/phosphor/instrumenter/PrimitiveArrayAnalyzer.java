@@ -4,10 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BaseControlFlowGraphCreator;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BasicBlock;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BindingControlFlowAnalyzer;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.*;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
@@ -1676,7 +1673,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator().createControlFlowGraph(mn);
         for(NaturalLoop<BasicBlock> loop : cfg.getNaturalLoops()) {
             AbstractInsnNode header = loop.getHeader().getLastInsn();
-            if(mn.instructions.contains(header)) {
+            if(loop.getHeader() instanceof SimpleBasicBlock) {
                 mn.instructions.insertBefore(header, new InsnNode(TaintUtils.LOOP_HEADER));
             }
         }
