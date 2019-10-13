@@ -7,7 +7,7 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.ControlFl
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
-public class ControlFlowLoopsTest {
+public class ControlFlowGraphLoopsTest {
 
     @Test
     public void testBasicTableSwitch() throws Exception {

@@ -4,7 +4,11 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BaseControlFlowGraphCreator;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BasicBlock;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BindingControlFlowAnalyzer;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import org.objectweb.asm.Label;
@@ -1175,9 +1179,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 e.printStackTrace();
             }
             if(Configuration.ANNOTATE_LOOPS) {
-                GraphBasedAnalyzer.doGraphAnalysis(this, implicitAnalysisBlocks);
+                annotateLoops(this);
             }
-
             if(Configuration.BINDING_CONTROL_FLOWS_ONLY) {
                 nJumps = BindingControlFlowAnalyzer.analyzeAndModify(this);
                 patchFrames(implicitAnalysisBlocks.values(), instructions);
@@ -1670,6 +1673,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     }
 
     private static void annotateLoops(MethodNode mn) {
-
+        FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator().createControlFlowGraph(mn);
+        for(NaturalLoop<BasicBlock> loop : cfg.getNaturalLoops()) {
+            AbstractInsnNode header = loop.getHeader().getLastInsn();
+            if(mn.instructions.contains(header)) {
+                mn.instructions.insertBefore(header, new InsnNode(TaintUtils.LOOP_HEADER));
+            }
+        }
     }
 }

@@ -5,9 +5,8 @@ import org.junit.Test;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.ControlFlowGraphTestMethods.*;
 import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
 
-public class ControlFlowSuccessorsTest {
+public class ControlFlowGraphSuccessorsTest {
 
     @Test
     public void testBasicTableSwitch() throws Exception {
