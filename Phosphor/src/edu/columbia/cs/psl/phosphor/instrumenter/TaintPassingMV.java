@@ -86,23 +86,25 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     private boolean nextDupCopiesTaint3 = false;
 
     public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String signature,
-                          String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor passThroughMV, HashSet<MethodNode> wrapperMethodsToAdd, boolean isImplicitLightTracking) {
+                          String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,
+                          MethodVisitor passThroughMV, HashSet<MethodNode> wrapperMethodsToAdd, boolean isImplicitLightTracking) {
         super(access, className, name, desc, signature, exceptions, mv, analyzer);
         Configuration.taintTagFactory.instrumentationStarting(access, name, desc);
-        this.isLambda = className.contains("$Lambda$");
+        this.isLambda = this.isIgnoreAllInstrumenting = className.contains("$Lambda$");
         this.name = name;
         this.className = className;
         this.wrapperMethodsToAdd = wrapperMethodsToAdd;
         this.isImplicitLightTracking = isImplicitLightTracking;
-
+        this.rewriteLVDebug = className.equals("java/lang/invoke/MethodType");
+        this.isSuperUninitialized = name.equals("<init>");
+        this.passThroughMV = passThroughMV;
+        this.desc = desc;
+        this.isExcludedFromControlTrack = Configuration.IMPLICIT_TRACKING && Instrumenter.isIgnoredFromControlTrack(className, name);
+        this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
         Type[] newArgTypes = Type.getArgumentTypes(desc);
-        lastArg = 0;
+        lastArg = isStatic ? 0 : 1; // If non-static, then arg[0] = this
         for(Type t : newArgTypes) {
             lastArg += t.getSize();
-        }
-        if((access & Opcodes.ACC_STATIC) == 0) {
-            lastArg++; // If non-static, then arg[0] = this
-            isStatic = false;
         }
         originalMethodReturnType = Type.getReturnType(originalDesc);
         newReturnType = Type.getReturnType(desc);
@@ -121,23 +123,17 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             }
             n += newArgType.getSize();
         }
-        this.passThroughMV = passThroughMV;
-        this.desc = desc;
-        this.rewriteLVDebug = this.className.equals("java/lang/invoke/MethodType");
-        this.isSuperUninitialized = this.name.equals("<init>");
-
-        if(this.isLambda) {
-            this.isIgnoreAllInstrumenting = true;
-        }
-
-        if(Configuration.IMPLICIT_TRACKING) {
-            this.isExcludedFromControlTrack = Instrumenter.isIgnoredFromControlTrack(className, name);
-        }
     }
 
     /**
+     * Returns whether a class with the specified name is used by Phosphor for "internal" tainting. Calls to methods in
+     * internal tainting classes from instrumented classes are remapped to the appropriate "$$PHOSPHORTAGGED" version
+     * even if the internal tainting class is not instrumented by Phosphor. This requires internal tainting classes to
+     * provide instrumented versions of any method that may be invoked by a classes that is instrumented by Phosphor.
+     * @see MultiTainter
+     *
      * @param owner the name of class being checking
-     * @return true if a method belonging to a class with specified name
+     * @return true if a class with the specified name is used by Phosphor for internal tainting
      */
     private static boolean isInternalTaintingClass(String owner) {
         return owner.startsWith("edu/columbia/cs/psl/phosphor/runtime/")
@@ -272,7 +268,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             }
             if(this.isExcludedFromControlTrack) {
                 super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-                super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "disable", "()V");
+                super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "disable", "()V", false);
             }
         }
 
