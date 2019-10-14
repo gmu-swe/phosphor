@@ -176,7 +176,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         if(lvs.idxOfMasterExceptionLV >= 0) {
             super.visitVarInsn(ALOAD, lvs.idxOfMasterExceptionLV);
             super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "[III" + Type.getDescriptor(ExceptionalTaintData.class) + ")[I", false);
-
         } else {
             super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(ControlTaintTagStack.class), "push", "(" + Configuration.TAINT_TAG_DESC + "[III" + ")[I", false);
         }
@@ -2887,58 +2886,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
 
         if(Configuration.IMPLICIT_TRACKING && !Configuration.WITHOUT_PROPOGATION) {
-            switch(opcode) {
-//			case IRETURN:
-//			case IASTORE:
-//			case FRETURN:
-//			case RETURN:
-//			case ARETURN:
-//			case DRETURN:
-//			case LRETURN:
-                case ATHROW:
-                    if(controlTaintArray >= 0) {
-                        passThroughMV.visitInsn(DUP);
-                        passThroughMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-                        passThroughMV.visitMethodInsn(INVOKESTATIC, Type.getInternalName(Taint.class), "combineTagsOnObject", "(Ljava/lang/Object;" + Type.getDescriptor(ControlTaintTagStack.class) + ")V", false);
-
-                        passThroughMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-                        passThroughMV.visitVarInsn(ALOAD, controlTaintArray);
-                        callPopAllControlTaint(passThroughMV);
-                    }
-                    break;
-//			case FASTORE:
-//			case BASTORE:
-//			case CASTORE:
-//			case SASTORE:
-//				super.visitInsn(SWAP);
-//				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-//				if (!Configuration.MULTI_TAINTING)
-//					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
-//				else {
-//					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
-//							"("+Configuration.TAINT_TAG_DESC+"Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)"+Configuration.TAINT_TAG_DESC, false);
-//				}
-//				super.visitInsn(SWAP);
-//				break;
-//			case DASTORE:
-//			case LASTORE:
-//			case DRETURN:
-//			case LRETURN:
-//				super.visitInsn(DUP2_X1);
-//				super.visitInsn(POP2);
-//				super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-//				if (!Configuration.MULTI_TAINTING)
-//					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(ILedu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)I", false);
-//				else {
-//					super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags",
-//							"("+Configuration.TAINT_TAG_DESC+"Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)"+Configuration.TAINT_TAG_DESC, false);
-//				}
-//				super.visitInsn(DUP_X2);
-//				super.visitInsn(POP);
-//				break;
-//			case AASTORE:
-//			case ARETURN:
-//				break;
+            if(opcode == ATHROW) {
+                if(controlTaintArray >= 0) {
+                    passThroughMV.visitInsn(DUP);
+                    passThroughMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+                    passThroughMV.visitMethodInsn(INVOKESTATIC, Type.getInternalName(Taint.class), "combineTagsOnObject", "(Ljava/lang/Object;" + Type.getDescriptor(ControlTaintTagStack.class) + ")V", false);
+                    passThroughMV.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+                    passThroughMV.visitVarInsn(ALOAD, controlTaintArray);
+                    callPopAllControlTaint(passThroughMV);
+                }
             }
         }
 
@@ -2947,8 +2903,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitInsn(opcode);
                 break;
             case Opcodes.ACONST_NULL:
-                //			System.out.println("NULL at" + curLabel);
-                //			System.out.println("NULL IN " + curLabel);
                 super.visitInsn(opcode);
                 if(nextLoadIsTracked) {
                     nextLoadIsTracked = false;
@@ -3105,22 +3059,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 } else {
                     super.visitInsn(opcode);
                 }
-//			if(lvForIdxtaint >= 0)
-//			{
-//				super.visitInsn(DUP);
-//				super.visitVarInsn(taintType.getOpcode(ILOAD), lvForIdxtaint);
-//				super.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTagsInPlace", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-//				lvs.freeTmpLV(lvForIdxtaint);
-//			}
                 break;
             case Opcodes.AASTORE:
                 arrayType = analyzer.stack.get(analyzer.stack.size() - 1);
                 t = getTypeForStackType(arrayType);
-//			Type taintArrayType = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 2));
-//									System.out.println("AASTORE of " + arrayType + " ONTO ...");
-//									System.out.println(analyzer.stack);
-                //better look to see if we are storing a NULL into a multidemnsional array...
-
                 boolean idxTainted = Configuration.ARRAY_INDEX_TRACKING && analyzer.stackTagStatus.get(analyzer.stack.size() - (topCarriesTaint() ? 1 : 0) - 2) instanceof TaggedValue;
                 if(arrayType == Opcodes.NULL) {
                     Object theArray = analyzer.stack.get(analyzer.stack.size() - 3 - (idxTainted ? 1 : 0));
@@ -3131,8 +3073,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     }
                 }
                 if(t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
-//				if (TaintUtils.DEBUG_FRAMES)
-//					System.out.println("PRE-AASTORE w/ mutlid array " + t + ": " + analyzer.stack);
                     //this is a multi-d array. make it work, even if it's nasty.
                     if(!analyzer.isTopOfStackTagged()) {
                         super.visitTypeInsn(NEW, MultiDTaintedArray.getTypeForType(t).getInternalName());
