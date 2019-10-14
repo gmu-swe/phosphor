@@ -15,33 +15,49 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
 
 public interface TaintTagFactory {
 
-	public Taint<?> getAutoTaint(String source);
-	
-	public void instrumentationStarting(String className);
-	public void instrumentationStarting(int access, String methodName, String methodDesc);
+    Taint<?> getAutoTaint(String source);
 
-	public void instrumentationEnding(String className);
+    void instrumentationStarting(String className);
 
-	public boolean isInternalTaintingClass(String classname);
-	
-	public void insnIndexVisited(int offset);
-	public boolean isIgnoredClass(String classname);
-	public void generateEmptyTaint(MethodVisitor mv);
-	public void generateEmptyTaintArray(Object[] array, int dimensions);
-	
-	public void methodOp(int opcode, String owner, String name, String desc, boolean itfc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
-	public void stackOp(int opcode, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
-	public void jumpOp(int opcode, int branchStarting, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
-	public void typeOp(int opcode, String type, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
-	public void iincOp(int var, int increment, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
-	public void intOp(int opcode, int arg, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
-	public void signalOp(int signal, Object option);
-	public void fieldOp(int opcode, String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta, boolean trackedLoad);
-	public void methodEntered(String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
-	public void lineNumberVisited(int line);
-	public void lookupSwitch(Label dflt, int[] keys, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV);
-	public void tableSwitch(int min, int max, Label dflt, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV);
-	public void propogateTagNative(String className, int acc, String methodName, String newDesc, MethodVisitor mv);
+    void instrumentationStarting(int access, String methodName, String methodDesc);
 
-	public void generateSetTag(MethodVisitor mv, String className);
+    void instrumentationEnding(String className);
+
+    boolean isInternalTaintingClass(String className);
+
+    void insnIndexVisited(int offset);
+
+    boolean isIgnoredClass(String className);
+
+    void generateEmptyTaint(MethodVisitor mv);
+
+    void generateEmptyTaintArray(Object[] array, int dimensions);
+
+    void methodOp(int opcode, String owner, String name, String desc, boolean isInterface, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
+
+    void stackOp(int opcode, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
+
+    void jumpOp(int opcode, int branchStarting, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
+
+    void typeOp(int opcode, String type, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
+
+    void iincOp(int var, int increment, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
+
+    void intOp(int opcode, int arg, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
+
+    void signalOp(int signal, Object option);
+
+    void fieldOp(int opcode, String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta, boolean trackedLoad);
+
+    void methodEntered(String owner, String name, String desc, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
+
+    void lineNumberVisited(int line);
+
+    void lookupSwitch(Label defaultLabel, int[] keys, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV);
+
+    void tableSwitch(int min, int max, Label defaultLabel, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV);
+
+    void propogateTagNative(String className, int acc, String methodName, String newDesc, MethodVisitor mv);
+
+    void generateSetTag(MethodVisitor mv, String className);
 }
