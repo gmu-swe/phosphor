@@ -476,7 +476,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                         mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
                         mv.visitInsn(SWAP);
                         mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaint(branchStarting);
+                        ta.callPushControlTaint(branchStarting, true);
                         ta.doForceCtrlStores();
                     }
                     mv.visitJumpInsn(opcode, label);
@@ -488,7 +488,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                         mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
                         mv.visitInsn(SWAP);
                         mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaintObj(branchStarting);
+                        ta.callPushControlTaint(branchStarting, false);
                     }
                     if(branchStarting != DO_NOT_TRACK_BRANCH_STARTING) {
                         ta.doForceCtrlStores();
@@ -530,9 +530,9 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                         lvs.freeTmpLV(tmp);
                         //V V C T C T
                         mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaint(branchStarting);
+                        ta.callPushControlTaint(branchStarting, true);
                         mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaint(Configuration.BINDING_CONTROL_FLOWS_ONLY ? branchStarting : branchStarting + 1);
+                        ta.callPushControlTaint(Configuration.BINDING_CONTROL_FLOWS_ONLY ? branchStarting : branchStarting + 1, true);
                         ta.doForceCtrlStores();
                     }
                     mv.visitJumpInsn(opcode, label);
@@ -545,12 +545,12 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                         mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
                         mv.visitInsn(SWAP);
                         mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaintObj(branchStarting);
+                        ta.callPushControlTaint(branchStarting, false);
 
                         mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
                         mv.visitInsn(SWAP);
                         mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaintObj(Configuration.BINDING_CONTROL_FLOWS_ONLY ? branchStarting : branchStarting + 1);
+                        ta.callPushControlTaint(Configuration.BINDING_CONTROL_FLOWS_ONLY ? branchStarting : branchStarting + 1, false);
                     }
                     if(!isIgnoreAcmp && Configuration.WITH_UNBOX_ACMPEQ) {
                         mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
