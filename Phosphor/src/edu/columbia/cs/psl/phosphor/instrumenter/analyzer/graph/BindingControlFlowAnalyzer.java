@@ -5,8 +5,10 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
-
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -38,7 +40,7 @@ public class BindingControlFlowAnalyzer {
                 AbstractInsnNode insn = popPoint.getFirstInsn();
                 while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE
                         || insn.getType() == AbstractInsnNode.LABEL || insn.getOpcode() > 200) {
-                    insn  = insn .getNext();
+                    insn = insn.getNext();
                 }
                 instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, branchID));
             }
@@ -57,10 +59,10 @@ public class BindingControlFlowAnalyzer {
 
     /**
      * @param targetedBranchBlocks set containing basic blocks in the graph which end with a targeted branch instruction
-     * @param controlFlowGraph the control flow graph for an analyzed method
+     * @param controlFlowGraph     the control flow graph for an analyzed method
      * @return a mapping from basic blocks that end with a targeted branch instruction to non-empty sets of converted
-     *              edges from the block that correspond to edges in the original graph which are "binding" for at least
-     *              one statement in the original graph.
+     * edges from the block that correspond to edges in the original graph which are "binding" for at least
+     * one statement in the original graph.
      */
     private static Map<BasicBlock, Set<ConvertedEdge>> getBindingEdgesMap(Set<BasicBlock> targetedBranchBlocks, FlowGraph<BasicBlock> controlFlowGraph) {
         Map<BasicBlock, Set<ConvertedEdge>> bindingEdgesMap = new HashMap<>();
@@ -79,10 +81,10 @@ public class BindingControlFlowAnalyzer {
     }
 
     /**
-     * @param node the node to be tested
+     * @param node               the node to be tested
      * @param dominanceFrontiers maps nodes in the graph to their dominance frontiers
      * @return true if the specified node is a converted edge that corresponds to an edge in the original graph which
-     *              is "binding" for at least one statement in the original graph
+     * is "binding" for at least one statement in the original graph
      */
     private static boolean isBindingConvertedEdge(BasicBlock node, Map<BasicBlock, Set<BasicBlock>> dominanceFrontiers) {
         if(node instanceof ConvertedEdge && dominanceFrontiers.containsKey(node)) {
@@ -94,13 +96,13 @@ public class BindingControlFlowAnalyzer {
     }
 
     /**
-     * @param bindingBranch a basic block that end with a target branch instruction that has at least one edge that is
-     *                      "binding" for at least one statement in the original graph
-     * @param bindingEdges non-empty set of converted edges that correspond to edges in the original graph which are
-     *                      "binding" for at least one statement in the original graph
+     * @param bindingBranch    a basic block that end with a target branch instruction that has at least one edge that is
+     *                         "binding" for at least one statement in the original graph
+     * @param bindingEdges     non-empty set of converted edges that correspond to edges in the original graph which are
+     *                         "binding" for at least one statement in the original graph
      * @param controlFlowGraph the control flow graph for an analyzed method
      * @return a set of BasicBlocks that should have a pop instruction inserted at the beginning for pushes associated
-     *                      with the specified branch
+     * with the specified branch
      */
     private static Set<BasicBlock> getPopPoints(BasicBlock bindingBranch, Set<ConvertedEdge> bindingEdges, FlowGraph<BasicBlock> controlFlowGraph) {
         Set<BasicBlock> popPoints = new HashSet<>();
@@ -138,10 +140,12 @@ public class BindingControlFlowAnalyzer {
     /**
      * Builds a control flow graph with the following edges (u, v) replaced with a node w, an edge (u, w) and an edge
      * (w, v):
-     *      * Any edge from a TABLESWITCH or LOOKUPSWITCH instruction and any of its jump targets
-     *      * Any edge from a IFEQ, IF_ICMPEQ, or IF_ACMPEQ instruction and its jump target
-     *      * Any edge from a IFNE, IF_ICMPNE, or IF_ACMPNE instruction and the instruction that follows it in sequential
-     *          execution
+     * <ol>
+     *     <li>Any edge from a TABLESWITCH or LOOKUPSWITCH instruction and any of its jump targets</li>
+     *     <li>Any edge from a IFEQ, IF_ICMPEQ, or IF_ACMPEQ instruction and its jump target</li>
+     *     <li>Any edge from a IFNE, IF_ICMPNE, or IF_ACMPNE instruction and the instruction that follows it in
+     *     sequential execution</li>
+     * </ol>
      */
     private static class BindingControlFlowGraphCreator extends BaseControlFlowGraphCreator {
 

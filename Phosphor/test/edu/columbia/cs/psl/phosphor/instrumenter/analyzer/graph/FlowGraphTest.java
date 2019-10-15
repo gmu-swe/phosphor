@@ -6,7 +6,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.ExternalResource;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class FlowGraphTest {
 
@@ -18,7 +19,7 @@ public class FlowGraphTest {
     private static FlowGraph<Integer> loopingGraph;
 
     @ClassRule
-    public static ExternalResource resource= new ExternalResource() {
+    public static ExternalResource resource = new ExternalResource() {
         @Override
         protected void before() {
             initializeGraphs();

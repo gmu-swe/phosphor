@@ -9,9 +9,9 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
  * of entry (source) and a single point of exit (sink).
  *
  * <p>Uses algorithms for calculating dominators, immediate dominators, and dominance frontiers from the following:<br>
- *      K.D. Cooper, T.J. Harvey, and K. Kennedy, “A Simple, Fast Dominance Algorithm,” Rice University,
- *      Department of Computer Science Technical Report 06-33870, 2006.
- *      http://www.cs.rice.edu/~keith/EMBED/dom.pdf
+ * K.D. Cooper, T.J. Harvey, and K. Kennedy, “A Simple, Fast Dominance Algorithm,” Rice University,
+ * Department of Computer Science Technical Report 06-33870, 2006.
+ * http://www.cs.rice.edu/~keith/EMBED/dom.pdf
  *
  * <p>Uses the algorithm for gathering the set of nodes in a natural loop from Compilers: Principles, Techniques, and
  * Tools (2nd Edition) by Alfred V. Aho, Monica S. Lam, Ravi Sethi, and Jeffrey D. Ullman in section 9.6.6.
@@ -57,8 +57,8 @@ public final class FlowGraph<V> {
     /**
      * The "doms" array as described in Cooper et al. if it has been calculated, otherwise null (this value is lazily
      * calculated). If non-null, for all 0 <= i <= reachableVertices.size(): ((i = 0 -> dominators[i] = 0)
-     *          && (i != 0 -> dominators[i] = the reverse post order index of the immediate dominator of
-     *          reachableVertices.get(i)))
+     * && (i != 0 -> dominators[i] = the reverse post order index of the immediate dominator of
+     * reachableVertices.get(i)))
      */
     private int[] dominators = null;
 
@@ -91,10 +91,10 @@ public final class FlowGraph<V> {
     /**
      * Constructs a new flow graph with the specified entry point, exit point and edges.
      *
-     * @param edges a mapping from each vertex in the graph being constructed to a set containing all the immediate
-     *              successors of the vertex - every vertex must have an entry in the map including the entry point and the exit point
+     * @param edges      a mapping from each vertex in the graph being constructed to a set containing all the immediate
+     *                   successors of the vertex - every vertex must have an entry in the map including the entry point and the exit point
      * @param entryPoint a vertex designated to be the single entry point for the graph being constructed
-     * @param exitPoint a vertex designated to be the single exit point for the graph being constructed
+     * @param exitPoint  a vertex designated to be the single exit point for the graph being constructed
      */
     FlowGraph(Map<V, Set<V>> edges, V entryPoint, V exitPoint) {
         this.entryPoint = entryPoint;
@@ -121,10 +121,10 @@ public final class FlowGraph<V> {
     /**
      * @param edges a mapping from each vertex in an graph to a set containing all the immediate successors of the
      *              vertex - every vertex must have an entry in the map including the entry point and the exit point
-     * @param <V> the type of the vertices in the graph
+     * @param <V>   the type of the vertices in the graph
      * @return an unmodifiable mapping from each vertex in the graph defined by the specified edges to an unmodifiable
-     *          set containing all of its immediate successors (i.e., the vertices from which there is an edge to the
-     *          vertex in the graph).
+     * set containing all of its immediate successors (i.e., the vertices from which there is an edge to the
+     * vertex in the graph).
      */
     private static <V> Map<V, Set<V>> createSuccessorsMap(Map<V, Set<V>> edges) {
         Map<V, Set<V>> successors = new HashMap<>();
@@ -139,10 +139,10 @@ public final class FlowGraph<V> {
     /**
      * @param edges a mapping from each vertex in an graph to a set containing all the immediate successors of the
      *              vertex - every vertex must have an entry in the map including the entry point and the exit point
-     * @param <V> the type of the vertices in the graph
+     * @param <V>   the type of the vertices in the graph
      * @return an unmodifiable mapping from each vertex in the graph defined by the specified edges to an unmodifiable
-     *          set containing all of its immediate predecessors (i.e., the vertices to which there is an edge from the
-     *          vertex in the graph).
+     * set containing all of its immediate predecessors (i.e., the vertices to which there is an edge from the
+     * vertex in the graph).
      */
     private static <V> Map<V, Set<V>> createPredecessorsMap(Map<V, Set<V>> edges) {
         Map<V, Set<V>> predecessors = new HashMap<>();
@@ -165,6 +165,24 @@ public final class FlowGraph<V> {
     }
 
     /**
+     * Helper function for creating the dominators array return the intersection point for the two specified vertices
+     * when moving up the dominator tree.
+     *
+     * @return the reverse post-order index of intersection point of the two specified vertices
+     */
+    private static int intersect(int[] dominators, int vertex1, int vertex2) {
+        while(vertex1 != vertex2) {
+            while(vertex1 > vertex2) {
+                vertex1 = dominators[vertex1];
+            }
+            while(vertex2 > vertex1) {
+                vertex2 = dominators[vertex2];
+            }
+        }
+        return vertex1;
+    }
+
+    /**
      * @return the vertex designated to be the single entry point for this graph
      */
     public V getEntryPoint() {
@@ -180,7 +198,7 @@ public final class FlowGraph<V> {
 
     /**
      * @return an unmodifiable mapping from each vertex in this graph to an unmodifiable set containing all the
-     *          immediate successors of the vertex
+     * immediate successors of the vertex
      */
     public Map<V, Set<V>> getSuccessors() {
         return successors;
@@ -188,7 +206,7 @@ public final class FlowGraph<V> {
 
     /**
      * @return an unmodifiable mapping from each vertex in this graph to an unmodifiable set containing all the
-     *          immediate predecessors of the vertex
+     * immediate predecessors of the vertex
      */
     public Map<V, Set<V>> getPredecessors() {
         return predecessors;
@@ -229,7 +247,7 @@ public final class FlowGraph<V> {
 
     /**
      * @return the transverse of this graph, a directed graph with the same set of vertices as this one, but
-     *          with all of the edges reversed compared to their orientation in this graph.
+     * with all of the edges reversed compared to their orientation in this graph.
      */
     public FlowGraph<V> getTransverseGraph() {
         if(this.transverseGraph == null) {
@@ -272,14 +290,14 @@ public final class FlowGraph<V> {
     }
 
     /**
-     *  Recursively performs a depth first search of this graph. Creates a reverse post-ordering of the reachable edges
-     *  in the graph.
+     * Recursively performs a depth first search of this graph. Creates a reverse post-ordering of the reachable edges
+     * in the graph.
      *
      * @param vertex the vertex currently being visited
-     * @param stack used to track the reverse post-ordering
+     * @param stack  used to track the reverse post-ordering
      * @param marked set of vertices that have been visited
      */
-    private void depthFirstSearch(V vertex, SinglyLinkedList<V> stack, Set<V> marked ) {
+    private void depthFirstSearch(V vertex, SinglyLinkedList<V> stack, Set<V> marked) {
         marked.add(vertex);
         for(V child : successors.get(vertex)) {
             if(marked.add(child)) {
@@ -291,7 +309,7 @@ public final class FlowGraph<V> {
 
     /**
      * @return an unmodifiable mapping from each reachable vertex in this graph to its immediate dominator or null if
-     *          the vertex is the entry point
+     * the vertex is the entry point
      */
     public Map<V, V> getImmediateDominators() {
         if(immediateDominators == null) {
@@ -348,26 +366,8 @@ public final class FlowGraph<V> {
     }
 
     /**
-     *  Helper function for creating the dominators array return the intersection point for the two specified vertices
-     *  when moving up the dominator tree.
-     *
-     * @return the reverse post-order index of intersection point of the two specified vertices
-     */
-    private static int intersect(int[] dominators, int vertex1, int vertex2) {
-        while(vertex1 != vertex2) {
-            while(vertex1 > vertex2) {
-                vertex1 = dominators[vertex1];
-            }
-            while(vertex2 > vertex1) {
-                vertex2 = dominators[vertex2];
-            }
-        }
-        return vertex1;
-    }
-
-    /**
      * @return an unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set of the
-     *          vertices that dominate it
+     * vertices that dominate it
      */
     public Map<V, Set<V>> getDominatorSets() {
         if(dominatorSets == null) {
@@ -387,7 +387,7 @@ public final class FlowGraph<V> {
 
     /**
      * @return an unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set of
-     *          the vertices in its dominance frontier
+     * the vertices in its dominance frontier
      */
     public Map<V, Set<V>> getDominanceFrontiers() {
         if(dominanceFrontiers == null) {
@@ -418,7 +418,7 @@ public final class FlowGraph<V> {
 
     /**
      * @return an unmodifiable mapping from each reachable vertex in this graph to its immediate post-dominator or null
-     *          if the vertex is the exit point
+     * if the vertex is the exit point
      */
     public Map<V, V> getImmediatePostDominators() {
         return getTransverseGraph().getImmediateDominators();
@@ -426,7 +426,7 @@ public final class FlowGraph<V> {
 
     /**
      * @return an unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set of the
-     *          vertices that post-dominate it
+     * vertices that post-dominate it
      */
     public Map<V, Set<V>> getPostDominatorSets() {
         return getTransverseGraph().getPostDominatorSets();
@@ -434,7 +434,7 @@ public final class FlowGraph<V> {
 
     /**
      * @return an unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set of
-     *          the vertices in its post-dominance frontier
+     * the vertices in its post-dominance frontier
      */
     public Map<V, Set<V>> getPostDominanceFrontiers() {
         return getTransverseGraph().getDominanceFrontiers();
@@ -453,7 +453,7 @@ public final class FlowGraph<V> {
                 for(V target : successors.get(source)) {
                     if(dominatorSets.get(source).contains(target)) {
                         // There is an edge from source to target and source is dominated by target
-                        naturalLoops.add(new NaturalLoop<V>(source, target));
+                        naturalLoops.add(new NaturalLoop<>(source, target));
                     }
                 }
             }
@@ -469,12 +469,12 @@ public final class FlowGraph<V> {
     }
 
     /**
-     *  Recursively performs a depth first search on the transverse of this graph.
+     * Recursively performs a depth first search on the transverse of this graph.
      *
      * @param vertex the vertex currently being visited
      * @param marked set of vertices that have been visited
      */
-    private void transverseDepthFirstSearch(V vertex, Set<V> marked ) {
+    private void transverseDepthFirstSearch(V vertex, Set<V> marked) {
         marked.add(vertex);
         for(V child : predecessors.get(vertex)) {
             if(marked.add(child)) {
@@ -485,11 +485,19 @@ public final class FlowGraph<V> {
 
     @Override
     public boolean equals(Object o) {
-        if(this == o) return true;
-        if(!(o instanceof FlowGraph)) return false;
+        if(this == o) {
+            return true;
+        }
+        if(!(o instanceof FlowGraph)) {
+            return false;
+        }
         FlowGraph<?> flowGraph = (FlowGraph<?>) o;
-        if(entryPoint != null ? !entryPoint.equals(flowGraph.entryPoint) : flowGraph.entryPoint != null) return false;
-        if(exitPoint != null ? !exitPoint.equals(flowGraph.exitPoint) : flowGraph.exitPoint != null) return false;
+        if(entryPoint != null ? !entryPoint.equals(flowGraph.entryPoint) : flowGraph.entryPoint != null) {
+            return false;
+        }
+        if(exitPoint != null ? !exitPoint.equals(flowGraph.exitPoint) : flowGraph.exitPoint != null) {
+            return false;
+        }
         return successors.equals(flowGraph.successors);
     }
 
@@ -572,7 +580,7 @@ public final class FlowGraph<V> {
          * Constructs a new natural loop defined the back edge from the specified tail vertex to the specified header
          * vertex.
          *
-         * @param tail  the source of the back edge that defines the loop being constructed
+         * @param tail   the source of the back edge that defines the loop being constructed
          * @param header the target of the back edge that defines the loop being constructed
          */
         NaturalLoop(V tail, V header) {
@@ -597,7 +605,7 @@ public final class FlowGraph<V> {
 
         /**
          * @return an unmodifiable set containing all of the vertices that considered to be part of this loop including
-         *          this loop's tail and header
+         * this loop's tail and header
          */
         public Set<V> getVertices() {
             return Collections.unmodifiableSet(vertices);
@@ -605,10 +613,16 @@ public final class FlowGraph<V> {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if(!(o instanceof NaturalLoop)) return false;
+            if(this == o) {
+                return true;
+            }
+            if(!(o instanceof NaturalLoop)) {
+                return false;
+            }
             NaturalLoop<?> that = (NaturalLoop<?>) o;
-            if (header != null ? !header.equals(that.header) : that.header != null) return false;
+            if(header != null ? !header.equals(that.header) : that.header != null) {
+                return false;
+            }
             return tail != null ? tail.equals(that.tail) : that.tail == null;
         }
 

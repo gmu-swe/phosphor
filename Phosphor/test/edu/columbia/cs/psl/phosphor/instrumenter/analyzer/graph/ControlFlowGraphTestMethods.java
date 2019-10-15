@@ -99,7 +99,7 @@ public class ControlFlowGraphTestMethods {
                 convertedSet.add(blockIDMap.get(el));
             }
         }
-        return  convertedSet;
+        return convertedSet;
     }
 
     private static Map<Integer, Set<Integer>> convertBasicBlocksToIDs(Map<BasicBlock, Integer> blockIDMap, Map<BasicBlock, Set<BasicBlock>> targetMap) {

@@ -25,7 +25,7 @@ public class SimpleBasicBlock implements BasicBlock {
      * Constructs a new basic block that represents the specified instruction sequence.
      *
      * @param instructions the sequence of instructions in the basic block being constructed
-     * @param identifier a number used to identify the basic block being constructed
+     * @param identifier   a number used to identify the basic block being constructed
      */
     SimpleBasicBlock(final AbstractInsnNode[] instructions, int identifier) {
         if(instructions.length == 0) {

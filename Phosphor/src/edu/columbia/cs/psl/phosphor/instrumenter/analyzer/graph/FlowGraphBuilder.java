@@ -17,37 +17,37 @@ public final class FlowGraphBuilder<V> {
      * Maps from a vertex u to a set containing each vertex v such that there is an edge from u to v in the graph being
      * built. Contains a key for each of the vertices in the graph being built.
      * Invariant: (edges != null) &&
-     *            (for all s in edges.values(): (s != null && for all e in s: edges.containsKey(e)) &&
-     *            (entryPointSet -> edges.containsKey(entryPoint))
-     *            (exitPointSet -> edges.containsKey(exitPoint))
+     * (for all s in edges.values(): (s != null && for all e in s: edges.containsKey(e)) &&
+     * (entryPointSet -> edges.containsKey(entryPoint))
+     * (exitPointSet -> edges.containsKey(exitPoint))
      */
     private final Map<V, Set<V>> edges;
 
     /**
      * Vertex designated to be the entry point for the graph being built.
      * Invariant: (!entryPointSet -> entryPoint == null) &&
-     *            (entryPointSet -> edges.containsKey(entryPoint))
+     * (entryPointSet -> edges.containsKey(entryPoint))
      */
     private V entryPoint = null;
 
     /**
      * True only if a vertex has been designated to be the entry point for the graph being built.
      * Invariant: (!entryPointSet -> entryPoint == null) &&
-     *            (entryPointSet -> edges.containsKey(entryPoint))
+     * (entryPointSet -> edges.containsKey(entryPoint))
      */
     private boolean entryPointSet = false;
 
     /**
      * Vertex designated to be the exit point for the graph being built.
      * Invariant: (!exitPointSet -> exitPoint == null) &&
-     *            (exitPointSet -> edges.containsKey(exitPoint))
+     * (exitPointSet -> edges.containsKey(exitPoint))
      */
     private V exitPoint = null;
 
     /**
      * True only if a vertex has been designated to be the exit point for the graph being built.
      * Invariant: (!exitPointSet -> exitPoint == null) &&
-     *            (exitPointSet -> edges.containsKey(exitPoint))
+     * (exitPointSet -> edges.containsKey(exitPoint))
      */
     private boolean exitPointSet = false;
 
@@ -152,7 +152,7 @@ public final class FlowGraphBuilder<V> {
      * @param source the source vertex of the edge being checked for
      * @param target the target vertex of the edge being checked for
      * @return true if the graph contains the specified source and target vertices and an edge from the specified source
-     *          vertex to the specified target vertex
+     * vertex to the specified target vertex
      */
     public boolean containsEdge(V source, V target) {
         return edges.containsKey(source) && edges.get(source).contains(target);
