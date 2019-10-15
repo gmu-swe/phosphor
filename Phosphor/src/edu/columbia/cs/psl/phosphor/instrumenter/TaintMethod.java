@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;

@@ -41,11 +41,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     Type[] paramTypes;
     int controlTaintArray = -1;
     boolean isImplicitLightTracking;
+    boolean isIgnoreAllInstrumenting = false;
+    boolean isRawInsns = false;
+    HashSet<Integer> questionableShadows = new HashSet<>();
+    HashSet<Integer> varsAlwaysToForceBox = new HashSet<>();
+    HashSet<String> exceptionsToMaybeThrow = new HashSet<>();
     private int branchStarting = DO_NOT_TRACK_BRANCH_STARTING;
     private List<Field> forceCtrlStoreFields = new LinkedList<>();
     private boolean isTaintlessArrayStore = false;
-    boolean isIgnoreAllInstrumenting = false;
-    boolean isRawInsns = false;
     private boolean dontUnboxTaints;
     private boolean isIgnoreEverything = false;
     private Type originalMethodReturnType;
@@ -56,12 +59,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     private int curLabel = -1;
     private int idxOfPassedControlInfo = 0;
     private HashMap<Integer, Object> varTypes = new HashMap<>();
-    HashSet<Integer> questionableShadows = new HashSet<>();
     private HashSet<Integer> boxAtNextJump = new HashSet<>();
     private HashSet<Integer> forceCtrlAdd = new HashSet<>();
     private HashSet<Integer> varsNeverToForceBox = new HashSet<>();
-    HashSet<Integer> varsAlwaysToForceBox = new HashSet<>();
-    HashSet<String> exceptionsToMaybeThrow = new HashSet<>();
     private int argOffset;
     private int line;
     private String name;
@@ -2834,7 +2834,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         elType = "S";
                         break;
                 }
-
                 if(TaintUtils.DEBUG_FRAMES) {
                     System.out.println(name + desc + "PRE XALOAD " + elType + ": " + analyzer.stack + "; " + analyzer.locals);
                 }
@@ -3002,7 +3001,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                 elName = "Boolean";
                             }
                         }
-
                         valStoreOpcode = ISTORE;
                         valLoadOpcode = ILOAD;
                         break;
@@ -3080,9 +3078,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 }
                 return;
             case Opcodes.DUP:
-//			System.out.println("DUP " + nextLoadisTracked+ analyzer.stackTagStatus);
-//			System.out.println(analyzer.stack);
-
                 if(nextDupCopiesTaint0 && nextDupCopiesTaint1) {
                     super.visitInsn(Opcodes.DUP2);
                 } else if(!nextDupCopiesTaint0 && nextDupCopiesTaint1) {
@@ -3125,7 +3120,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                 freeLVs(lvs);
                                 return;
                             }
-
                             throw new IllegalStateException("Told to copy taint of second thing on stack but got " + secondOnStack);
                         }
                         if(getStackElementSize(secondOnStack) == 2) {
@@ -3140,7 +3134,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                     loadLV(2, lvs);
                                     loadLV(1, lvs);
                                     loadLV(0, lvs);
-
                                     loadLV(3, lvs);
                                     loadLV(2, lvs);
                                     loadLV(1, lvs);
@@ -3153,29 +3146,22 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                     loadLV(2, lvs);
                                     loadLV(1, lvs);
                                     loadLV(0, lvs);
-
                                     loadLV(3, lvs);
                                     loadLV(2, lvs);
-//								loadLV(1, lvs);
                                     loadLV(0, lvs);
                                     analyzer.clearTopOfStackTagged();
                                     freeLVs(lvs);
                                 }
                             } else {
-                                if(nextDupCopiesTaint3) {
-                                    //0, 1, !2, 3
-                                    throw new UnsupportedOperationException();
-                                } else {
-                                    //0,1,!2,!3
-                                    throw new UnsupportedOperationException();
-                                }
+                                //0, 1, !2, 3
+                                //0,1,!2,!3
+                                throw new UnsupportedOperationException();
                             }
                         } else {
                             if(nextDupCopiesTaint2) {
                                 if(nextDupCopiesTaint3) {
                                     //0, !1, 2, 3
                                     //AB CD -> A CD AB CD (Top)
-//								System.out.println(analyzer.stackTagStatus);
                                     LocalVariableNode[] lvs = storeToLocals(4);
                                     loadLV(3, lvs);
                                     loadLV(2, lvs);
@@ -3186,23 +3172,18 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                     loadLV(1, lvs);
                                     loadLV(0, lvs);
                                     freeLVs(lvs);
-//								System.out.println(analyzer.stackTagStatus);
                                 } else {
                                     //0, !1, 2, !3
                                     //TA ?B -> TA B TA B
-
-//								System.out.println("PRE " + analyzer.stack + analyzer.stackTagStatus);
                                     if(topOfStack instanceof TaggedValue) {
                                         super.visitInsn(SWAP);
                                         super.visitInsn(POP);
                                     }
                                     //TA B -> TA B TA B
-
                                     Type topType = getTypeForStackType(topOfStack);
                                     int top = lvs.getTmpLV();
                                     super.visitInsn(TaintUtils.IS_TMP_STORE);
                                     super.visitVarInsn(topType.getOpcode(ISTORE), top);
-
                                     // TA
                                     super.visitInsn(DUP2);
                                     //TA TA
@@ -3211,35 +3192,17 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                     super.visitInsn(DUP_X2);
                                     // AA BB AA BB
                                     lvs.freeTmpLV(top);
-//								analyzer.setTopOfStackTagged();
-//								analyzer.stackTagStatus.set(analyzer.stackTagStatus.size() - 3, new TaggedValue(secondOnStack));
-
-//								System.out.println("POST " + analyzer.stack + analyzer.stackTagStatus);
                                 }
                             } else {
-                                if(nextDupCopiesTaint3) {
-                                    //0, !1, !2, 3
-
-                                    throw new UnsupportedOperationException();
-
-                                } else// 0,!1,!2,!3
-                                {
-                                    throw new UnsupportedOperationException();
-                                }
+                                //0, !1, !2, 3
+                                // 0,!1,!2,!3
+                                throw new UnsupportedOperationException();
                             }
                         }
-                    } else//!0
-                    {
-                        if(nextDupCopiesTaint1) {
-                            if(nextDupCopiesTaint2) {
-                                if(nextDupCopiesTaint3) {
-                                    //!0, 1, 2, 3
-                                } else {
-                                    //!0, 1,2,!3
-                                }
-                            }
-                        } else//!0, !1
-                        {
+                    } else {
+                        //!0
+                        if(!nextDupCopiesTaint1) {
+                            //!0, !1
                             if(nextDupCopiesTaint2) {
                                 if(nextDupCopiesTaint3) {
                                     //!0, !1, 2, 3
@@ -3253,7 +3216,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                     super.visitVarInsn(ISTORE, v2);
                                     int t2 = lvs.getTmpLV();
                                     super.visitVarInsn(Configuration.TAINT_STORE_OPCODE, t2);
-
                                     super.visitVarInsn(ILOAD, v2);
                                     super.visitVarInsn(ILOAD, v1);
                                     super.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, t2);
@@ -3269,9 +3231,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                     //!0, !1, 2, !3
                                 }
                             } else {
-                                if(nextDupCopiesTaint3) {
-                                    //!0, !1, !2, 3
-                                } else {
+                                if(!nextDupCopiesTaint3) {
                                     //!0, !1, !2, !3
                                     if(getStackElementSize(getTopOfStackObject()) == 2) {
                                         if(analyzer.isTopOfStackTagged()) {
@@ -3290,17 +3250,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                         super.visitInsn(opcode);
                                         return;
                                     }
+                                } else {
+                                    //!0, !1, !2, 3
                                 }
                             }
                         }
                         throw new UnsupportedOperationException(Printer.OPCODES[opcode] + " " + analyzer.stackTagStatus + " - " + nextDupCopiesTaint0 + " " + nextDupCopiesTaint1 + " " + nextDupCopiesTaint2 + " " + nextDupCopiesTaint3);
                     }
-                } else //DUP2, top of stack is double
-                {
+                } else {
+                    // DUP2, top of stack is double
                     topOfStack = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 2);
-//				System.out.println("DUP2 " + analyzer.stackTagStatus +", " + nextDupCopiesTaint0+ nextDupCopiesTaint1+ nextDupCopiesTaint2+ nextDupCopiesTaint3);
-//				Object secondOnStack = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 3);
-//				System.out.println(topOfStack + ""+secondOnStack);
                     if(nextDupCopiesTaint0) {
                         if(nextDupCopiesTaint1) {
                             //TVV -> TVVTVV
@@ -3329,14 +3288,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                             analyzer.stackTagStatus.set(analyzer.stackTagStatus.size() - 5, analyzer.stack.get(analyzer.stack.size() - 5));
                         } else {
                             //VV -> VVVV
-                            if(topOfStack instanceof TaggedValue)//should not be possible
-                            {
+                            if(topOfStack instanceof TaggedValue) {
+                                // Should not be possible
                                 throw new UnsupportedOperationException();
                             }
                             super.visitInsn(DUP2);
                         }
                     }
-//				System.out.println("POST " + analyzer.stackTagStatus);
                 }
                 nextDupCopiesTaint0 = false;
                 nextDupCopiesTaint1 = false;
@@ -3344,14 +3302,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 nextDupCopiesTaint3 = false;
                 break;
             case Opcodes.DUP_X1:
-//			System.out.println("DUP_X1 " + nextDupCopiesTaint + nextDupLeavesTaintOnTop+ analyzer.stackTagStatus);
-//			System.out.println(analyzer.stack);
-//			new Exception().printStackTrace();
                 if(nextDupCopiesTaint0) {
                     if(!nextDupCopiesTaint1) {
                         throw new UnsupportedOperationException();
                     }
-//				System.out.println("DUP_X1 " + analyzer.stackTagStatus);
                     topOfStack = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 1);
                     if(topOfStack instanceof TaggedValue) {
                         //There is a 1 word element at the top of the stack, we want to dup
@@ -3387,18 +3341,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         if(o instanceof TaggedValue) {
                             o = ((TaggedValue) o).v;
                         }
-                        // need to make sure we clear the tag status on that dude!
+                        // Need to make sure we clear the tag status on that dude!
                         analyzer.stackTagStatus.set(analyzer.stack.size() - 4, o);
-                        // System.out.println(analyzer.stack);
-                        // System.out.println(analyzer.stackTagStatus);
                     }
                 } else if(topCarriesTaint()) {
-//				super.visitInsn(DUP_X2);
-//				Object o = analyzer.stack.get(analyzer.stack.size() - 4);
-//				if(o instanceof TaggedValue)
-//					o = ((TaggedValue) o).v;
-//				// need to make sure we clear the tag status on that dude!
-//				analyzer.stackTagStatus.set(analyzer.stack.size() - 4, o);
                     throw new UnsupportedOperationException();
                 } else if(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 2) instanceof TaggedValue) {
                     super.visitInsn(DUP_X2);
@@ -3409,35 +3355,29 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 nextDupCopiesTaint1 = false;
                 nextDupCopiesTaint2 = false;
                 nextDupCopiesTaint3 = false;
-//			System.out.println("PSOT " + analyzer.stack + "; " + analyzer.stackTagStatus);
                 break;
             case Opcodes.DUP_X2:
-//			System.out.println("DUP_X2" + analyzer.stackTagStatus + nextDupCopiesTaint0 + nextDupCopiesTaint1);
                 if(nextDupCopiesTaint0) {
                     if(!nextDupCopiesTaint1) {
                         //0, !1
                         //aka copythe taint under then delete it from top
-
                         System.out.println(analyzer.stackTagStatus);
                         throw new UnsupportedOperationException();
                     } else {
                         //0, 1
                         if(getStackElementSize(analyzer.stack.get(analyzer.stack.size() - 3)) == 2) {
                             // With long/double under
-                            if(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 4) instanceof TaggedValue)
-                            // Top 2 are tracked
-                            {
+                            if(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 4) instanceof TaggedValue) {
+                                // Top 2 are tracked
                                 DUPN_XU(2, 3);
-                            } else
-                            // 2nd is not tracked.
-                            {
+                            } else {
+                                // 2nd is not tracked.
                                 DUPN_XU(2, 2);
                             }
                         } else {
                             // With 1word under
                             if(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 3) instanceof TaggedValue) {
                                 // Top 2 are tracked
-
                                 if(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 5) instanceof TaggedValue) {
                                     DUPN_XU(2, 4);
                                 } else {
@@ -3474,7 +3414,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                     loadLV(0, lvs);
                                     freeLVs(lvs);
                                 } else {
-//								System.out.println("DUP_X2" + analyzer.stackTagStatus);
                                     LocalVariableNode[] lvs = storeToLocals(5);
                                     loadLV(0, lvs);
                                     analyzer.clearTopOfStackTagged();
@@ -3487,16 +3426,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
                                 }
                             } else {
-//							System.out.println(analyzer.stack);
                                 Object twoUnder = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 4);
                                 if(twoUnder instanceof TaggedValue) {
-                                    //
                                     DUPN_XU(1, 4);
-//								System.out.println(analyzer.stackTagStatus);
                                     int off = analyzer.stack.size() - 6;
                                     analyzer.stackTagStatus.set(off, analyzer.stack.get(off));
-
-//								throw new UnsupportedOperationException();
                                 } else {
                                     //TABTC -> CATB
                                     DUPN_XU(1, 3);
@@ -3506,19 +3440,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                             }
                         }
                     } else {
-                        //Dont want to copy any taint
+                        // Dont want to copy any taint
                         if(topCarriesTaint()) {
-//						System.out.println("DUP_X2" + analyzer.stackTagStatus);
                             //Top has a tag, but we don't want to keep it
                             if(getStackElementSize(analyzer.stack.get(analyzer.stack.size() - 2)) == 2) {
                                 //With long/double under
-                                if(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 3) instanceof TaggedValue)
-                                //Top 2 are tracked
-                                {
+                                if(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 3) instanceof TaggedValue) {
+                                    //Top 2 are tracked
                                     DUPN_XU(1, 4);
-                                } else
-                                //2nd is not tracked.
-                                {
+                                } else {
+                                    //2nd is not tracked.
                                     DUPN_XU(1, 3);
                                 }
                             } else {
@@ -3568,14 +3499,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         }
                     }
                 }
-//			System.out.println("post DUP_X2" + analyzer.stackTagStatus);
-                nextDupCopiesTaint0 = false;
-                nextDupCopiesTaint1 = false;
-                nextDupCopiesTaint2 = false;
-                nextDupCopiesTaint3 = false;
+                nextDupCopiesTaint0 = nextDupCopiesTaint1 = nextDupCopiesTaint2 = nextDupCopiesTaint3 = false;
                 break;
             case Opcodes.DUP2_X1:
-//			System.out.println("D2X1" + nextDupCopiesTaint0 + " "+nextDupCopiesTaint1 + " "+nextDupCopiesTaint2 + " "+nextDupCopiesTaint3);
                 //ABC -> BCABC (0 1 2 3 4)
                 if(nextDupCopiesTaint0) {
                     if(nextDupCopiesTaint1) {
@@ -3598,8 +3524,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                 topOfStack = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 1);
                                 if(getStackElementSize(topOfStack) == 2) {
                                     topOfStack = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 2);
-//								System.out.println("DUP2_X1 " + analyzer.stackTagStatus);
-
                                     if(!(topOfStack instanceof TaggedValue)) {
                                         throw new UnsupportedOperationException("Top must be tagged for this");
                                     }
@@ -3611,8 +3535,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                         //ATBB -> TBBATBB
                                         DUPN_XU(2, 1);
                                     }
-//								throw new UnsupportedOperationException();
-//								System.out.println(analyzer.stackTagStatus);
                                 } else {
                                     throw new UnsupportedOperationException();
                                 }
@@ -3631,29 +3553,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                             if(nextDupCopiesTaint3) {
                                 if(getTopOfStackType().getSize() == 2) {
                                     //0 !1 !2 3
-//								System.out.println(analyzer.stack);
                                     LocalVariableNode d[] = storeToLocals(3);
-//								 System.out.println(analyzer.stackTagStatus);
-
                                     loadLV(1, d);
                                     loadLV(0, d);
-//								loadLV(3, d);
                                     loadLV(2, d);
                                     loadLV(1, d);
                                     loadLV(0, d);
-
                                     freeLVs(d);
-
-                                    // System.out.println(nextDupCopiesTaint0
-                                    // +","+nextDupCopiesTaint1+","+nextDupCopiesTaint2+","+nextDupCopiesTaint3);
-//								System.out.println(analyzer.stackTagStatus);
-//								throw new UnsupportedOperationException();
                                 } else {
                                     // !0, !1, !2, 3
-//								System.out.println(analyzer.stackTagStatus);
                                     LocalVariableNode d[] = storeToLocals(4);
-                                    // System.out.println(analyzer.stackTagStatus);
-
                                     loadLV(2, d);
                                     loadLV(0, d);
                                     analyzer.clearTopOfStackTagged();
@@ -3661,28 +3570,18 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                     loadLV(2, d);
                                     loadLV(1, d);
                                     loadLV(0, d);
-
                                     freeLVs(d);
-
-                                    // System.out.println(nextDupCopiesTaint0
-                                    // +","+nextDupCopiesTaint1+","+nextDupCopiesTaint2+","+nextDupCopiesTaint3);
-//								System.out.println(analyzer.stackTagStatus);
-//								throw new UnsupportedOperationException();
                                 }
                             } else {
                                 //!0,!1,!2,!3
                                 //We don't want to keep the tags anywhere.
                                 //DUP2_X1
                                 if(topCarriesTaint()) {
-                                    if(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 3) instanceof TaggedValue) {
-
-                                    } else {
-//									System.out.println(analyzer.stackTagStatus);
+                                    if(!(analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 3) instanceof TaggedValue)) {
                                         super.visitInsn(SWAP);
                                         super.visitInsn(POP);
                                         analyzer.clearTopOfStackTagged();
                                         super.visitInsn(opcode);
-//									throw new UnsupportedOperationException();
                                         return;
                                     }
                                 }
@@ -3694,13 +3593,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 } else {
                     if(nextDupCopiesTaint1) {
                         if(nextDupCopiesTaint2) {
-                            if(nextDupCopiesTaint3) {
-                                //!0, 1, 2, 3
-                                throw new UnsupportedOperationException();
-                            } else {
-                                //!0, 1, 2, !3
-                                throw new UnsupportedOperationException();
-                            }
+                            //!0, 1, 2, 3
+                            //!0, 1, 2, !3
+                            throw new UnsupportedOperationException();
                         } else {
                             if(nextDupCopiesTaint3) {
                                 //!0, 1, !2, 3
@@ -3714,10 +3609,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                     int idx = analyzer.stack.size() - 6;
                                     analyzer.stackTagStatus.set(idx, analyzer.stack.get(idx));
                                 } else {
-//								System.out.println(analyzer.stackTagStatus);
                                     LocalVariableNode d[] = storeToLocals(4);
-//								System.out.println(analyzer.stackTagStatus);
-
                                     loadLV(2, d);
                                     loadLV(1, d);
                                     loadLV(0, d);
@@ -3725,12 +3617,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                     loadLV(2, d);
                                     loadLV(0, d);
                                     analyzer.clearTopOfStackTagged();
-
                                     freeLVs(d);
-
-//								System.out.println(nextDupCopiesTaint0 +","+nextDupCopiesTaint1+","+nextDupCopiesTaint2+","+nextDupCopiesTaint3);
-//								System.out.println(analyzer.stackTagStatus);
-//								throw new UnsupportedOperationException();
                                 }
                             }
                         }
@@ -3738,8 +3625,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         if(nextDupCopiesTaint2) {
                             if(nextDupCopiesTaint3) {
                                 //!0, !1, 2, 3
-                                throw new UnsupportedOperationException();
-                            } else {
                                 //!0, !1, 2, !3
                                 throw new UnsupportedOperationException();
                             }
@@ -3747,45 +3632,23 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                             if(nextDupCopiesTaint3) {
                                 // !0, !1, !2, 3
                                 if(getTopOfStackType().getSize() == 2) {
-//								System.out.println(analyzer.stackTagStatus);
-
                                     LocalVariableNode d[] = storeToLocals(3);
-
-//								loadLV(2, d);
                                     loadLV(0, d);
                                     analyzer.clearTopOfStackTagged();
-
-//								loadLV(3, d);
                                     loadLV(2, d);
                                     loadLV(1, d);
                                     loadLV(0, d);
-
                                     freeLVs(d);
-
-                                    // System.out.println(nextDupCopiesTaint0
-                                    // +","+nextDupCopiesTaint1+","+nextDupCopiesTaint2+","+nextDupCopiesTaint3);
-//								System.out.println(analyzer.stackTagStatus);
-//								throw new UnsupportedOperationException();
                                 } else {
-//								System.out.println(analyzer.stackTagStatus);
-
                                     LocalVariableNode d[] = storeToLocals(4);
-
                                     loadLV(2, d);
                                     loadLV(0, d);
                                     analyzer.clearTopOfStackTagged();
-
                                     loadLV(3, d);
                                     loadLV(2, d);
                                     loadLV(1, d);
                                     loadLV(0, d);
-
                                     freeLVs(d);
-
-                                    // System.out.println(nextDupCopiesTaint0
-                                    // +","+nextDupCopiesTaint1+","+nextDupCopiesTaint2+","+nextDupCopiesTaint3);
-//								System.out.println(analyzer.stackTagStatus);
-//								throw new UnsupportedOperationException();
                                 }
                             } else {
                                 //!0,!1,!2,!3
@@ -3811,24 +3674,18 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 if(nextDupCopiesTaint0) {
                     if(nextDupCopiesTaint1) {
                         if(nextDupCopiesTaint2) {
-                            if(nextDupCopiesTaint3) {
-                                //0, 1, 2, 3
-                                throw new UnsupportedOperationException();
-                            } else {
-                                //0, 1, 2, !3
-                                throw new UnsupportedOperationException();
-                            }
+                            //0, 1, 2, 3
+                            //0, 1, 2, !3
+                            throw new UnsupportedOperationException();
                         } else {
                             if(nextDupCopiesTaint3) {
                                 //0, 1, !2, 3
                                 throw new UnsupportedOperationException();
                             } else {
                                 //0,1,!2,!3
-//							System.out.println("DUP2_X2 "+ analyzer.stackTagStatus);
                                 if(getStackElementSize(getTopOfStackObject()) == 2) {
                                     //?A?BTC -> TC?A?BTC
                                     topOfStack = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 2);
-//								System.out.println(topOfStack);
                                     Object second = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 4);
                                     if(getStackElementSize(second) == 2) {
                                         //?AATC -> TC?AAC
@@ -3842,8 +3699,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                                 //ATBTC -> TCATBTC
                                                 DUPN_XU(2, 3);
                                             }
-//										System.out.println(analyzer.stackTagStatus);
-//										throw new UnsupportedOperationException();
                                         } else {
                                             Object third = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 5);
                                             if(third instanceof TaggedValue) {
@@ -3852,8 +3707,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                             } else {
                                                 throw new UnsupportedOperationException();
                                             }
-//										System.out.println(analyzer.stackTagStatus);
-//										throw new UnsupportedOperationException();
                                         }
                                     }
                                 } else {
@@ -3862,34 +3715,18 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                             }
                         }
                     } else {
-                        if(nextDupCopiesTaint2) {
-                            if(nextDupCopiesTaint3) {
-                                //!0, !1, 2, 3
-                                throw new UnsupportedOperationException();
-                            } else {
-                                //!0, !1, 2, !3
-                                throw new UnsupportedOperationException();
-                            }
-                        } else {
-                            if(nextDupCopiesTaint3) {
-                                //!0, !1, !2, 3
-                                throw new UnsupportedOperationException();
-                            } else {
-                                //!0,!1,!2,!3
-                                throw new UnsupportedOperationException();
-                            }
-                        }
+                        //!0, !1, 2, 3
+                        //!0, !1, 2, !3
+                        //!0, !1, !2, 3
+                        //!0,!1,!2,!3
+                        throw new UnsupportedOperationException();
                     }
                 } else {
                     if(nextDupCopiesTaint1) {
                         if(nextDupCopiesTaint2) {
-                            if(nextDupCopiesTaint3) {
-                                //!0, 1, 2, 3
-                                throw new UnsupportedOperationException();
-                            } else {
-                                //!0, 1, 2, !3
-                                throw new UnsupportedOperationException();
-                            }
+                            //!0, 1, 2, 3
+                            //!0, 1, 2, !3
+                            throw new UnsupportedOperationException();
                         } else {
                             if(nextDupCopiesTaint3) {
                                 //!0, 1, !2, 3
@@ -3905,24 +3742,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                             //ABTCC -> CCABTCC
                                             Object second = analyzer.stackTagStatus.get(analyzer.stack.size() - 4);
                                             if(second instanceof TaggedValue) {
-//											System.out.println("D2X2" + analyzer.stackTagStatus);
                                                 LocalVariableNode d[] = storeToLocals(6);
-
-
                                                 loadLV(0, d);
                                                 analyzer.clearTopOfStackTagged();
-
                                                 loadLV(5, d);
                                                 loadLV(4, d);
                                                 loadLV(3, d);
                                                 loadLV(2, d);
                                                 loadLV(1, d);
                                                 loadLV(0, d);
-
-
                                                 freeLVs(d);
-//											System.out.println("D2X2" + analyzer.stackTagStatus);
-//											throw new UnsupportedOperationException();
                                             } else {
                                                 Object third = analyzer.stackTagStatus.get(analyzer.stack.size() - 5);
                                                 if(third instanceof TaggedValue) {
@@ -3943,13 +3772,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         }
                     } else {
                         if(nextDupCopiesTaint2) {
-                            if(nextDupCopiesTaint3) {
-                                //!0, !1, 2, 3
-                                throw new UnsupportedOperationException();
-                            } else {
-                                //!0, !1, 2, !3
-                                throw new UnsupportedOperationException();
-                            }
+                            //!0, !1, 2, 3
+                            //!0, !1, 2, !3
+                            throw new UnsupportedOperationException();
                         } else {
                             if(nextDupCopiesTaint3) {
                                 //!0, !1, !2, 3
@@ -4023,7 +3848,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.IOR:
             case Opcodes.IAND:
             case Opcodes.IXOR:
-//			System.out.println(Printer.OPCODES[opcode] + " "+ analyzer.stackTagStatus);
                 if(!topCarriesTaint()) {
                     super.visitInsn(opcode);
                     break;
@@ -4100,7 +3924,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.DCMPG:
             case Opcodes.FCMPL:
             case Opcodes.FCMPG:
-//			System.out.println(Printer.OPCODES[opcode] + analyzer.stack + analyzer.stackTagStatus);
                 if(!topCarriesTaint()) {
                     super.visitInsn(opcode);
                     break;
@@ -4126,8 +3949,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 break;
             case Opcodes.IRETURN:
             case Opcodes.FRETURN:
-                //			super.visitMethodInsn(INVOKESTATIC, TaintUtils.getContainerReturnType(originalMethodReturnType).getInternalName(), "valueOf", "(I" + originalMethodReturnType.getDescriptor() + ")"
-                //					+ TaintUtils.getContainerReturnType(originalMethodReturnType).getDescriptor());
                 retIdx = lvs.getPreAllocedReturnTypeVar(newReturnType);
                 super.visitVarInsn(ALOAD, retIdx);
                 super.visitInsn(SWAP);
@@ -4197,11 +4018,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.MONITORENTER:
             case Opcodes.MONITOREXIT:
                 //You can have a monitor on an array type. If it's a primitive array type, pop the taint off!
-//			else if(getTopOfStackObject().equals("java/lang/Object"))
-//			{
-//				//never allow monitor to occur on a multid type
-//				super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-//			}
                 super.visitInsn(opcode);
                 break;
             case TaintUtils.FOLLOWED_BY_FRAME:
@@ -4209,7 +4025,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 break;
             default:
                 super.visitInsn(opcode);
-
                 throw new IllegalArgumentException();
         }
     }
@@ -4225,13 +4040,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 Label origDest = label;
                 Label newDest = new Label();
                 Label origFalseLoc = new Label();
-
                 Configuration.taintTagFactory.jumpOp(opcode, branchStarting, newDest, mv, lvs, this);
                 branchStarting = DO_NOT_TRACK_BRANCH_STARTING;
-
                 FrameNode fn = getCurrentFrameNode();
                 super.visitJumpInsn(GOTO, origFalseLoc);
-                //			System.out.println("taint passing mv monkeying with jump");
                 super.visitLabel(newDest);
                 fn.accept(this);
                 for(Integer var : boxAtNextJump) {
@@ -4252,13 +4064,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 Label origDest = label;
                 Label newDest = new Label();
                 Label origFalseLoc = new Label();
-
                 Configuration.taintTagFactory.jumpOp(opcode, branchStarting, newDest, mv, lvs, this);
                 branchStarting = DO_NOT_TRACK_BRANCH_STARTING;
                 FrameNode fn = getCurrentFrameNode();
                 fn.type = F_NEW;
                 super.visitJumpInsn(GOTO, origFalseLoc);
-                //			System.out.println("taint passing mv monkeying with jump");
                 super.visitLabel(newDest);
                 fn.accept(this);
                 for(Integer var : boxAtNextJump) {
