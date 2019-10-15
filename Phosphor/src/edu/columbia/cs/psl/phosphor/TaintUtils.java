@@ -71,41 +71,11 @@ public class TaintUtils {
 	public static final boolean DEBUG_LOCAL = DEBUG_ALL;
 	public static final boolean DEBUG_CALLS = DEBUG_ALL;
 	public static final boolean DEBUG_OPT = false;
-	public static final boolean DEBUG_PURE = false;
 	public static final boolean ADD_BASIC_ARRAY_CONSTRAINTS = true;
-	public static final boolean ADD_HEAVYWEIGHT_ARRAY_TAINTS = ADD_BASIC_ARRAY_CONSTRAINTS;
-	public static final int MAX_CONCURRENT_BRANCHES = 500;
-	public static final String STR_LDC_WRAPPER = "INVIVO_LDC_STR";
-	public static final int UNCONSTRAINED_NEW_STRING = 4;
 	public static boolean VERIFY_CLASS_GENERATION = false;
 	public static final String METHOD_SUFFIX_UNINST = "$$PHOSPHORUNTAGGED";
-	public static int nextTaint = 0;
-	public static int nextTaintPHOSPHOR_TAG = 0;
-	public static int nextMethodId = 0;
-	public static boolean OKtoDebug = false;
-	public static int OKtoDebugPHOSPHOR_TAG;
-	public static boolean weakHashMapInitialized = false;
-	static Object lock = new Object();
-	/*
-	 * Start: Conversion of method signature from doop format to bytecode format
-	 * This can't be here.
-	 */
 	private static Map<String, String> typeToSymbol = null;
 
-	/*
-	private static Map<String, String> typeToSymbol = new HashMap<String, String>();
-
-	static {
-		typeToSymbol.put("byte", "B");
-		typeToSymbol.put("char", "C");
-		typeToSymbol.put("double", "D");
-		typeToSymbol.put("float", "F");
-		typeToSymbol.put("int", "I");
-		typeToSymbol.put("long", "J");
-		typeToSymbol.put("short", "S");
-		typeToSymbol.put("void", "V");
-		typeToSymbol.put("boolean", "Z");
-	}	*/
 	private static final String processSingleType(String in) {
 		if (in.equals("byte"))
 			return "B";
