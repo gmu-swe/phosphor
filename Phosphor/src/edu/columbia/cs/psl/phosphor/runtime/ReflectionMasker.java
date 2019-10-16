@@ -994,29 +994,6 @@ public class ReflectionMasker {
                     targetArgs[targetParamIndex++] = MultiTainter.getTaint(providedArg);
                     // Add a boxed primitive to the args
                     targetArgs[targetParamIndex++] = providedArg;
-                } else if(targetParamClass.equals(Integer.TYPE)) {
-                    // Add an int taint to the args
-                    if(providedArg instanceof TaintedWithObjTag) {
-                        targetArgs[targetParamIndex++] = ((TaintedWithObjTag) providedArg).getPHOSPHOR_TAG();
-                    } else if(providedArg instanceof Boolean) {
-                        targetArgs[targetParamIndex++] = BoxedPrimitiveStoreWithIntTags.booleanValue((Boolean)providedArg).taint;
-                    } else if(providedArg instanceof Byte) {
-                        targetArgs[targetParamIndex++] = BoxedPrimitiveStoreWithIntTags.byteValue((Byte)providedArg).taint;
-                    } else if(providedArg instanceof Short) {
-                        targetArgs[targetParamIndex++] = BoxedPrimitiveStoreWithIntTags.shortValue((Short)providedArg).taint;
-                    } else if(providedArg instanceof Character) {
-                        targetArgs[targetParamIndex++]= BoxedPrimitiveStoreWithIntTags.charValue((Character)providedArg).taint;
-                    } else {
-                        targetArgs[targetParamIndex++] = 0;
-                    }
-                    // Add a boxed primitive to the args
-                    targetArgs[targetParamIndex++] = providedArg;
-                } else if(LazyArrayIntTags.class.isAssignableFrom(targetParamClass)) {
-                    // Add a LazyArray to the args
-                    LazyArrayIntTags arr = ((LazyArrayIntTags) providedArg);
-                    targetArgs[targetParamIndex++] = arr;
-                    // Add a primitive array to the args
-                    targetArgs[targetParamIndex++] = (arr == null) ? null : arr.getVal();
                 } else if(LazyArrayObjTags.class.isAssignableFrom(targetParamClass)) {
                     // Add a LazyArray to the args
                     LazyArrayObjTags arr = ((LazyArrayObjTags) providedArg);
