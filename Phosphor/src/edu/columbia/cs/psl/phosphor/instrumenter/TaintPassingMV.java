@@ -36,6 +36,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     static final String CHARACTER_NAME = "java/lang/Character";
     static final String DOUBLE_NAME = "java/lang/Double";
     static final String SHORT_NAME = "java/lang/Short";
+    private static final String BOOLEAN_DESC = Type.getDescriptor(Boolean.class);
+    private static final String BYTE_DESC = Type.getDescriptor(Byte.class);
+    private static final String CHARACTER_DESC = Type.getDescriptor(Character.class);
+    private static final String SHORT_DESC = Type.getDescriptor(Short.class);
     int lastArg;
     Type[] paramTypes;
     int controlTaintArray = -1;
@@ -208,13 +212,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 int tmpLV = lvs.createMasterControlTaintLV();
                 super.visitTypeInsn(NEW, Type.getInternalName(ControlTaintTagStack.class));
                 super.visitInsn(DUP);
-                if(arrayAnalyzer.nJumps > Byte.MAX_VALUE) {
-                    super.visitIntInsn(SIPUSH, arrayAnalyzer.nJumps);
-                } else {
-                    super.visitIntInsn(BIPUSH, arrayAnalyzer.nJumps);
-                }
                 if(name.equals("<clinit>") || isImplicitLightTracking) {
-                    super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "(I)V", false);
+                    super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "()V", false);
                 }
                 super.visitVarInsn(ASTORE, tmpLV);
             } else {
@@ -893,48 +892,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     }
 
     public void doForceCtrlStores() {
-
         if(Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
             forceCtrlStoreFields.clear();
             forceCtrlAdd.clear();
             return;
         }
-
         MethodVisitor ta = mv;
-
         for(Field f : forceCtrlStoreFields) {
-            Type descType = Type.getType(f.description);
-            if(!f.isStatic) {
-                ta.visitVarInsn(ALOAD, 0);
-                if(descType.getSort() == Type.OBJECT || descType.getSort() == Type.ARRAY) {
-                    if(descType.getSort() == Type.ARRAY && descType.getElementType().getSort() != Type.OBJECT && descType.getDimensions() > 1) {
-                        f.description = MultiDTaintedArray.getTypeForType(descType).getInternalName();
-                    }
-                    ta.visitFieldInsn(GETFIELD, f.owner, f.name, f.description);
-                    ta.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-                    visit(COMBINE_TAGS_ON_OBJECT);
-                } else {
-                    ta.visitInsn(DUP);
-                    ta.visitFieldInsn(GETFIELD, f.owner, f.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-                    ta.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-                    COMBINE_TAGS_STACK.delegateVisit(ta);
-                    ta.visitFieldInsn(PUTFIELD, f.owner, f.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-                }
-            } else {
-                if(descType.getSort() == Type.OBJECT || descType.getSort() == Type.ARRAY) {
-                    if(descType.getSort() == Type.ARRAY && descType.getElementType().getSort() != Type.OBJECT && descType.getDimensions() > 1) {
-                        f.description = MultiDTaintedArray.getTypeForType(descType).getInternalName();
-                    }
-                    ta.visitFieldInsn(GETSTATIC, f.owner, f.name, f.description);
-                    ta.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-                    visit(COMBINE_TAGS_ON_OBJECT);
-                } else {
-                    ta.visitFieldInsn(GETSTATIC, f.owner, f.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-                    ta.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-                    COMBINE_TAGS_STACK.delegateVisit(ta);
-                    ta.visitFieldInsn(PUTSTATIC, f.owner, f.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-                }
-            }
+            addControlTagsToOwnedField(ta, f);
         }
         forceCtrlStoreFields.clear();
         for(int var : forceCtrlAdd) {
@@ -975,6 +940,46 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             }
         }
         forceCtrlAdd.clear();
+    }
+
+    /**
+     * Visits instructions to add tags from the ControlTaintTagStack to the specified field. The specified field
+     * should be one that is owned by the class being visited.
+     *
+     * @param delegate the method visitor to which instruction visits are delegated
+     * @param field the field whose associated taint tag should be updated
+     */
+    private void addControlTagsToOwnedField(MethodVisitor delegate, Field field) {
+        int getFieldOpcode = field.isStatic ? GETSTATIC : GETFIELD;
+        int putFieldOpcode = field.isStatic ? PUTSTATIC : PUTFIELD;
+        if(field.description.equals(BOOLEAN_DESC) || field.description.equals(BYTE_DESC)
+                ||field.description.equals(CHARACTER_DESC) || field.description.equals(SHORT_DESC)) {
+            if(!field.isStatic) {
+                delegate.visitVarInsn(ALOAD, 0); // Load this onto the stack
+                delegate.visitInsn(DUP);
+            }
+            delegate.visitFieldInsn(getFieldOpcode, field.owner, field.name, field.description);
+            delegate.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+            delegate.visitMethodInsn(INVOKESTATIC, Type.getInternalName(BoxedPrimitiveStoreWithObjTags.class), "getTaintedBoxedPrimitive",
+                    String.format("(%s%s)%s", field.description, Type.getDescriptor(ControlTaintTagStack.class), field.description), false);
+            delegate.visitFieldInsn(putFieldOpcode, field.owner, field.name, field.description);
+        } else if(TaintUtils.isPrimitiveType(Type.getType(field.description))) {
+            if(!field.isStatic) {
+                delegate.visitVarInsn(ALOAD, 0); // Load this onto the stack
+                delegate.visitInsn(DUP);
+            }
+            delegate.visitFieldInsn(getFieldOpcode, field.owner, field.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+            delegate.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+            COMBINE_TAGS_STACK.delegateVisit(delegate);
+            delegate.visitFieldInsn(putFieldOpcode, field.owner, field.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+        } else if(Type.getType(field.description).getSort() == Type.OBJECT) {
+            if(!field.isStatic) {
+                delegate.visitVarInsn(ALOAD, 0); // Load this onto the stack
+            }
+            delegate.visitFieldInsn(getFieldOpcode, field.owner, field.name, field.description);
+            delegate.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
+            COMBINE_TAGS_ON_OBJECT.delegateVisit(delegate);
+        }
     }
 
     @Override
@@ -1153,7 +1158,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     super.visitVarInsn(ALOAD, this.idxOfCaughtExceptionTaint);
                     super.visitMethodInsn(INVOKEVIRTUAL, "edu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack", "exceptionHandlerStart", "(Ljava/lang/Throwable;" + Type.getDescriptor(EnqueuedTaint.class) + ")" + Type.getDescriptor(EnqueuedTaint.class), false);
                     super.visitVarInsn(ASTORE, this.idxOfCaughtExceptionTaint);
-
                     doForceCtrlStores();
                     return;
                 }

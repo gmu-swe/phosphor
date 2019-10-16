@@ -13,10 +13,6 @@ public final class ControlTaintTagStack {
 	private SinglyLinkedList<MaybeThrownException> influenceExceptions = null;
 	private final SinglyLinkedList<Taint> taintHistory;
 
-	public ControlTaintTagStack(int zz) {
-		this();
-	}
-
 	public ControlTaintTagStack() {
 		this.taintHistory = new SinglyLinkedList<>();
 		taintHistory.push(null); // starting taint is null/empty
