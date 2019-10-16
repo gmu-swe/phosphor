@@ -1,23 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.*;
 
 public class Tainter {
 	public static void taintedObject(Object obj, int tag)

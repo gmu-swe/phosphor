@@ -30,7 +30,6 @@ package edu.columbia.cs.psl.phosphor.org.objectweb.asm;
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.signature.SignatureVisitor;
 
 /**

@@ -29,20 +29,11 @@
  */
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import edu.columbia.cs.psl.phosphor.Configuration;
-import org.objectweb.asm.Handle;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import org.objectweb.asm.*;
+
+import java.util.*;
 
 /**
  * A {@link MethodVisitor} that keeps track of stack map frame changes between

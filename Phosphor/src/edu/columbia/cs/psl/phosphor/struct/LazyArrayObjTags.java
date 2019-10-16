@@ -1,9 +1,9 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-import java.io.Serializable;
-
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
+import java.io.Serializable;
 
 public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 

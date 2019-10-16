@@ -3,7 +3,6 @@ package edu.columbia.cs.psl.phosphor.struct;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
-import java.lang.ref.SoftReference;
 
 public class GarbageCollectedArrayList<T> {
 	T[] array;

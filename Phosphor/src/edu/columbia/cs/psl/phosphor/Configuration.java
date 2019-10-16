@@ -1,14 +1,5 @@
 package edu.columbia.cs.psl.phosphor;
 
-import java.io.IOException;
-import java.net.URL;
-import java.util.HashSet;
-import java.util.Properties;
-
-import edu.columbia.cs.psl.phosphor.struct.SimpleHashSet;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
-
 import edu.columbia.cs.psl.phosphor.instrumenter.DataAndControlFlowTagFactory;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTagFactory;
@@ -18,6 +9,13 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.SimpleHashSet;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.Properties;
 
 public class Configuration {
 	public static boolean SKIP_LOCAL_VARIABLE_TABLE = false;

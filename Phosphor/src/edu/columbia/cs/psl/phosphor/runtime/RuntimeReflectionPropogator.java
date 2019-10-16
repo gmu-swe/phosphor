@@ -1,53 +1,15 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import org.objectweb.asm.Type;
+import sun.misc.Unsafe;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.WeakHashMap;
-
-import org.objectweb.asm.Type;
-
-import sun.misc.Unsafe;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public class RuntimeReflectionPropogator {
 	
@@ -77,8 +39,8 @@ public class RuntimeReflectionPropogator {
 	{
 		return getType(f);
 	}
-	public static Class<?> getType(Field f)
-	{
+
+	public static Class<?> getType(Field f) {
 		String name = f.getName();
 		if(f.getName().endsWith("PHOSPHOR_TAG"))
 			return f.getType();
@@ -86,23 +48,7 @@ public class RuntimeReflectionPropogator {
 		Class<?> component = ret;
 		while(component.isArray())
 			component = component.getComponentType();
-		if(LazyArrayIntTags.class.isAssignableFrom(component))
-		{
-			String d = Type.getDescriptor(ret);
-			String newType = "[";
-
-			char[] c = d.toCharArray();
-			for(int i = 0; i < c.length && c[i]=='['; i++)
-				newType += "[";
-			newType += MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(component);
-			try {
-				ret = Class.forName(newType);
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		else if(LazyArrayObjTags.class.isAssignableFrom(component))
+		if(LazyArrayObjTags.class.isAssignableFrom(component))
 		{
 			String d = Type.getDescriptor(ret);
 
@@ -120,9 +66,11 @@ public class RuntimeReflectionPropogator {
 		}
 		return ret;
 	}
+
 	public static Object get$$PHOSPHORTAGGED(Field f, Object obj, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
 		return get(f, obj, true);
 	}
+
 	public static Object get(Field f, Object obj, boolean isObjTags) throws IllegalArgumentException, IllegalAccessException {
 		f.setAccessible(true);
 		Object ret;

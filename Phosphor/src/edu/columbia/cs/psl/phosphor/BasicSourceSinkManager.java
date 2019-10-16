@@ -2,18 +2,13 @@ package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.SimpleHashSet;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.lang.instrument.UnmodifiableClassException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BasicSourceSinkManager extends SourceSinkManager {
 

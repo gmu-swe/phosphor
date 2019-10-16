@@ -9,7 +9,8 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
 import static edu.columbia.cs.psl.phosphor.Configuration.TAINT_TAG_OBJ_CLASS;
-import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.Opcodes.INVOKESTATIC;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 /**
  * Represent some method that is used to ensure that taint tags are correctly propagated. Stores the information needed

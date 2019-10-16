@@ -1,13 +1,12 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.struct.CallGraph;
+import edu.columbia.cs.psl.phosphor.struct.MethodInformation;
+import edu.columbia.cs.psl.phosphor.struct.MiniClassNode;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.MethodNode;
-
-import edu.columbia.cs.psl.phosphor.struct.CallGraph;
-import edu.columbia.cs.psl.phosphor.struct.MethodInformation;
-import edu.columbia.cs.psl.phosphor.struct.MiniClassNode;
 
 public class CallGraphBuildingClassVisitor extends ClassVisitor {
 

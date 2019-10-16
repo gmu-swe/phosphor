@@ -1,12 +1,21 @@
 package edu.columbia.cs.psl.phosphor;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
+import edu.columbia.cs.psl.phosphor.instrumenter.*;
+import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurJSRInlinerAdapter;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUIDAdder;
+import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
+import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import org.objectweb.asm.*;
+import org.objectweb.asm.commons.SerialVersionUIDAdder;
+import org.objectweb.asm.tree.*;
+import org.objectweb.asm.util.CheckClassAdapter;
+import org.objectweb.asm.util.TraceClassVisitor;
+
+import java.io.*;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
@@ -14,22 +23,6 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.ProtectionDomain;
 import java.util.List;
-
-import edu.columbia.cs.psl.phosphor.instrumenter.*;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurJSRInlinerAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUIDAdder;
-import org.objectweb.asm.*;
-import org.objectweb.asm.commons.SerialVersionUIDAdder;
-import org.objectweb.asm.tree.*;
-
-import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
-import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
-import org.objectweb.asm.util.CheckClassAdapter;
-import org.objectweb.asm.util.TraceClassVisitor;
 
 public class PreMain {
 	private static Instrumentation instrumentation;

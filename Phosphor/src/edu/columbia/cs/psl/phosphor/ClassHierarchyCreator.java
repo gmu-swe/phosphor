@@ -1,12 +1,11 @@
 package edu.columbia.cs.psl.phosphor;
 
+import org.objectweb.asm.ClassVisitor;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
 
 public class ClassHierarchyCreator extends ClassVisitor {
 	

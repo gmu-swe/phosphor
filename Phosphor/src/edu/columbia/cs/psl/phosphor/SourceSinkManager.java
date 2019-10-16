@@ -1,42 +1,9 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodInsnNode;
-
-import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayIntTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedByteWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedCharWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedDoubleWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedFloatWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedLongWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedShortWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 
 public abstract class SourceSinkManager {
 	public abstract boolean isSourceOrSinkOrTaintThrough(Class<?> clazz);
@@ -74,7 +41,7 @@ public abstract class SourceSinkManager {
 					isSkipping = !isSkipping;
 				}
 			} else if (t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
-				r += MultiDTaintedArrayWithIntTag.getPrimitiveTypeForWrapper(t.getDescriptor()).getDescriptor();
+				r += MultiDTaintedArray.getPrimitiveTypeForWrapper(t.getDescriptor()).getDescriptor();
 			} else if (t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct") || TaintUtils.isTaintSentinel(t)) {
 				//ignore
 			} else if(t.getDescriptor().equals(Configuration.TAINT_TAG_DESC))

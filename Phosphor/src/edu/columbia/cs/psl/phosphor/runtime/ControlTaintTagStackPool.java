@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 
 public class ControlTaintTagStackPool {
 	private static final int POOL_SIZE = 100;

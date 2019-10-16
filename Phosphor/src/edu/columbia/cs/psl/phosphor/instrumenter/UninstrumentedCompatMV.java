@@ -1,23 +1,18 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import java.util.LinkedList;
-
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LocalVariableNode;
-
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
-import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public class UninstrumentedCompatMV extends TaintAdapter {
 	private NeverNullArgAnalyzerAdapter analyzer;
@@ -135,14 +130,12 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 			super.visitTypeInsn(ANEWARRAY, arrayType.getElementType().getInternalName());
 		} else
 			super.visitMultiANewArrayInsn(desc, dims);
-		if(needToHackDims)
-		{
+		if(needToHackDims) {
 			super.visitInsn(DUP);
 			super.visitVarInsn(ILOAD, tmp);
 			lvs.freeTmpLV(tmp);
 			super.visitIntInsn(BIPUSH, origType.getElementType().getSort());
-			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName((Configuration.MULTI_TAINTING ? MultiDTaintedArrayWithObjTag.class : MultiDTaintedArrayWithIntTag.class)), "initLastDim", "([Ljava/lang/Object;II)V",false);
-
+			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(MultiDTaintedArrayWithObjTag.class), "initLastDim", "([Ljava/lang/Object;II)V",false);
 		}
 	}
 	@Override

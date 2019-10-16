@@ -7,7 +7,6 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -62,7 +61,7 @@ public class TaintUtils {
 	public static final String MARK_FIELD = PHOSPHOR_ADDED_FIELD_PREFIX + "MARK";
 	public static final String ADDED_SVUID_SENTINEL = PHOSPHOR_ADDED_FIELD_PREFIX + "REMOVE_SVUID";
 	public static final String CLASS_OFFSET_CACHE_ADDED_FIELD = PHOSPHOR_ADDED_FIELD_PREFIX + "OFFSET_CACHE";
-//	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
+	//	public static final String HAS_TAINT_FIELD = "INVIVO_IS_TAINTED";
 //	public static final String IS_TAINT_SEATCHING_FIELD = "INVIVO_IS_TAINT_SEARCHING";
 	public static final boolean DEBUG_ALL = false;
 	public static final boolean DEBUG_DUPSWAP = DEBUG_ALL;
@@ -72,8 +71,8 @@ public class TaintUtils {
 	public static final boolean DEBUG_CALLS = DEBUG_ALL;
 	public static final boolean DEBUG_OPT = false;
 	public static final boolean ADD_BASIC_ARRAY_CONSTRAINTS = true;
-	public static boolean VERIFY_CLASS_GENERATION = false;
 	public static final String METHOD_SUFFIX_UNINST = "$$PHOSPHORUNTAGGED";
+	public static boolean VERIFY_CLASS_GENERATION = false;
 	private static Map<String, String> typeToSymbol = null;
 
 	private static final String processSingleType(String in) {
@@ -663,76 +662,39 @@ public class TaintUtils {
 	}
 
 	public static Type getContainerReturnType(Type originalReturnType) {
-		if (!Configuration.MULTI_TAINTING) {
-			switch (originalReturnType.getSort()) {
-				case Type.BYTE:
-					return Type.getType(TaintedByteWithIntTag.class);
-				case Type.BOOLEAN:
-					return Type.getType(TaintedBooleanWithIntTag.class);
-				case Type.CHAR:
-					return Type.getType(TaintedCharWithIntTag.class);
-				case Type.DOUBLE:
-					return Type.getType(TaintedDoubleWithIntTag.class);
-				case Type.FLOAT:
-					return Type.getType(TaintedFloatWithIntTag.class);
-				case Type.INT:
-					return Type.getType(TaintedIntWithIntTag.class);
-				case Type.LONG:
-					return Type.getType(TaintedLongWithIntTag.class);
-				case Type.SHORT:
-					return Type.getType(TaintedShortWithIntTag.class);
-				case Type.ARRAY:
-					switch (originalReturnType.getElementType().getSort()) {
-						case Type.BYTE:
-						case Type.BOOLEAN:
-						case Type.CHAR:
-						case Type.DOUBLE:
-						case Type.FLOAT:
-						case Type.INT:
-						case Type.LONG:
-						case Type.SHORT:
-							return MultiDTaintedArrayWithIntTag.getTypeForType(originalReturnType);
-						case Type.OBJECT:
-							return originalReturnType;
-					}
-				default:
-					return originalReturnType;
-			}
-		} else {
-			switch (originalReturnType.getSort()) {
-				case Type.BYTE:
-					return Type.getType(TaintedByteWithObjTag.class);
-				case Type.BOOLEAN:
-					return Type.getType(TaintedBooleanWithObjTag.class);
-				case Type.CHAR:
-					return Type.getType(TaintedCharWithObjTag.class);
-				case Type.DOUBLE:
-					return Type.getType(TaintedDoubleWithObjTag.class);
-				case Type.FLOAT:
-					return Type.getType(TaintedFloatWithObjTag.class);
-				case Type.INT:
-					return Type.getType(TaintedIntWithObjTag.class);
-				case Type.LONG:
-					return Type.getType(TaintedLongWithObjTag.class);
-				case Type.SHORT:
-					return Type.getType(TaintedShortWithObjTag.class);
-				case Type.ARRAY:
-					switch (originalReturnType.getElementType().getSort()) {
-						case Type.BYTE:
-						case Type.BOOLEAN:
-						case Type.CHAR:
-						case Type.DOUBLE:
-						case Type.FLOAT:
-						case Type.INT:
-						case Type.LONG:
-						case Type.SHORT:
-							return MultiDTaintedArrayWithObjTag.getTypeForType(originalReturnType);
-						case Type.OBJECT:
-							return originalReturnType;
-					}
-				default:
-					return originalReturnType;
-			}
+		switch (originalReturnType.getSort()) {
+			case Type.BYTE:
+				return Type.getType(TaintedByteWithObjTag.class);
+			case Type.BOOLEAN:
+				return Type.getType(TaintedBooleanWithObjTag.class);
+			case Type.CHAR:
+				return Type.getType(TaintedCharWithObjTag.class);
+			case Type.DOUBLE:
+				return Type.getType(TaintedDoubleWithObjTag.class);
+			case Type.FLOAT:
+				return Type.getType(TaintedFloatWithObjTag.class);
+			case Type.INT:
+				return Type.getType(TaintedIntWithObjTag.class);
+			case Type.LONG:
+				return Type.getType(TaintedLongWithObjTag.class);
+			case Type.SHORT:
+				return Type.getType(TaintedShortWithObjTag.class);
+			case Type.ARRAY:
+				switch (originalReturnType.getElementType().getSort()) {
+					case Type.BYTE:
+					case Type.BOOLEAN:
+					case Type.CHAR:
+					case Type.DOUBLE:
+					case Type.FLOAT:
+					case Type.INT:
+					case Type.LONG:
+					case Type.SHORT:
+						return MultiDTaintedArrayWithObjTag.getTypeForType(originalReturnType);
+					case Type.OBJECT:
+						return originalReturnType;
+				}
+			default:
+				return originalReturnType;
 		}
 	}
 
@@ -911,7 +873,7 @@ public class TaintUtils {
 		}
 		Type ret = Type.getReturnType(desc);
 		if (ret.getSort() == Type.ARRAY && ret.getDimensions() > 1 && ret.getElementType().getSort() != Type.OBJECT)
-			r += ")" + MultiDTaintedArrayWithIntTag.getTypeForType(ret).getDescriptor();
+			r += ")" + MultiDTaintedArray.getTypeForType(ret).getDescriptor();
 		else
 			r += ")" + ret.getDescriptor();
 		return r;

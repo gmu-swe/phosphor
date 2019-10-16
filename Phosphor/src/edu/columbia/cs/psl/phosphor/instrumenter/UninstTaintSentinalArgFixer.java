@@ -1,15 +1,14 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class UninstTaintSentinalArgFixer extends MethodVisitor {
 	int originalLastArgIdx;

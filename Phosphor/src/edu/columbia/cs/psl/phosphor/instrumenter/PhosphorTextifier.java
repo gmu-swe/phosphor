@@ -2,11 +2,10 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.Textifier;
-
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 
 
 public class PhosphorTextifier extends Textifier {

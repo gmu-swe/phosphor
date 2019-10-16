@@ -1,9 +1,9 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
 import java.io.IOException;
 import java.io.Serializable;
-
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 public final class TaintedFloatWithObjTag extends TaintedPrimitiveWithObjTag implements Serializable {
 

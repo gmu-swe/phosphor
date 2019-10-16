@@ -30,14 +30,8 @@ package edu.columbia.cs.psl.phosphor.instrumenter.asm;
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.objectweb.asm.ByteVector;
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
-import org.objectweb.asm.Opcodes;
 
 
 public class OffsetPreservingClassReader extends ClassReader {

@@ -1,17 +1,15 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.LineNumberNode;
-import org.objectweb.asm.tree.TypeInsnNode;
-import org.objectweb.asm.tree.VarInsnNode;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.util.Printer;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
 
 public class SinkableArrayValue extends BasicValue {
 	public static final BasicValue NULL_VALUE = new BasicArrayValue(Type.getType("Lnull;"));

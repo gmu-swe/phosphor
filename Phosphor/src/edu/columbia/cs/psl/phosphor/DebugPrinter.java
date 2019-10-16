@@ -1,20 +1,18 @@
 package edu.columbia.cs.psl.phosphor;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.PrintWriter;
-
+import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
-
-import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 
 public class DebugPrinter {
 	public static void main(String[] args) throws Exception {

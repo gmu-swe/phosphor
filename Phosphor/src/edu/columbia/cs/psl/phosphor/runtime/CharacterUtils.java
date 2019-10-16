@@ -2,8 +2,6 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.struct.*;
 
-import javax.naming.ldap.Control;
-
 public class CharacterUtils {
 
 	public static TaintedCharWithObjTag reverseBytes$$PHOSPHORTAGGED(Taint t, char c, TaintedCharWithObjTag ret) {

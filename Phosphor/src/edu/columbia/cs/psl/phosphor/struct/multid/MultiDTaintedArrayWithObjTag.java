@@ -1,21 +1,10 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
-import java.util.HashSet;
-
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.struct.*;
 import org.objectweb.asm.Type;
 
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyBooleanArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyDoubleArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyFloatArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyLongArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyShortArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedIntWithObjTag;
+import java.util.HashSet;
 
 import static org.objectweb.asm.Opcodes.*;
 
