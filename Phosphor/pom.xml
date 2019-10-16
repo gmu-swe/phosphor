@@ -5,7 +5,7 @@
     <groupId>edu.gmu.swe.phosphor</groupId>
     <artifactId>Phosphor</artifactId>
     <name>Phosphor</name>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.0.5-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <dacapo.skip>true</dacapo.skip>
@@ -212,44 +212,6 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <version>2.18.1</version>
                         <executions>
-                            <execution>
-                                <id>integration-test-int-tags-notagtest</id>
-                                <configuration>
-                                    <skipTests>${skipIntTagNoInstTests}</skipTests>
-                                    <jvm>${project.build.directory}/jre-inst-int-untaggedwrappers/bin/java</jvm>
-                                    <includes>
-                                        <include>**/*IntTagPartialInstITCase.java</include>
-                                    </includes>
-                                    <reuseForks>false</reuseForks>
-                                    <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-int-untaged,withSelectiveInst=${basedir}/resources/test-methods
-                                    </argLine>
-                                </configuration>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>integration-test-int-tags</id>
-                                <configuration>
-                                    <skipTests>${skipIntTagTests}</skipTests>
-                                    <jvm>${project.build.directory}/jre-inst-int/bin/java</jvm>
-                                    <includes>
-                                        <include>**/*IntTagITCase.java</include>
-                                    </includes>
-                                    <reuseForks>false</reuseForks>
-                                    <argLine>
-                                        -Dphosphor.verify=true
-                                        -Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-int
-                                    </argLine>
-                                </configuration>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
                             <execution>
                                 <id>integration-test-obj-tags</id>
                                 <configuration>
