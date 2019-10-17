@@ -28,9 +28,7 @@ public class RuntimeUnsafePropagator {
                         long tagOffset = Unsafe.INVALID_FIELD_OFFSET;
                         try {
                             Field taintField = clazz.getField(field.getName() + TaintUtils.TAINT_FIELD);
-                            if(Configuration.MULTI_TAINTING && taintField.getType().equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
-                                tagOffset = unsafe.objectFieldOffset(taintField);
-                            } else if(!Configuration.MULTI_TAINTING && taintField.getType().equals(int.class)) {
+                            if(taintField.getType().equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
                                 tagOffset = unsafe.objectFieldOffset(taintField);
                             }
                         } catch(Exception e) {

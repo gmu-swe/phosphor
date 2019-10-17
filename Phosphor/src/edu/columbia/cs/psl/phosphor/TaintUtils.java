@@ -896,12 +896,8 @@ public class TaintUtils {
                 }
                 if(isInParam) {
                     if(isInArray == 0) {
-						if(Configuration.MULTI_TAINTING) {
-							super.visitClassType(Configuration.TAINT_TAG_INTERNAL_NAME);
-							super.visitEnd();
-						} else {
-							super.visitBaseType('I');
-						}
+                        super.visitClassType(Configuration.TAINT_TAG_INTERNAL_NAME);
+                        super.visitEnd();
                         super.visitParameterType();
                         super.visitBaseType(descriptor);
                     } else if(isInArray == 1) {

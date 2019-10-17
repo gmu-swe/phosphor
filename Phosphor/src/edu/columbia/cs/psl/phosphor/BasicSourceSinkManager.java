@@ -67,7 +67,6 @@ public class BasicSourceSinkManager extends SourceSinkManager {
         try {
             if(src != null) {
                 s = new Scanner(src);
-                int i = 0;
                 while(s.hasNextLine()) {
                     String line = s.nextLine();
                     lastLine = line;
@@ -78,15 +77,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
                         }
                         baseMethods.get(parsed[0]).add(parsed[1]);
                         if(type.equals(AutoTaint.SOURCE)) {
-                            if(Configuration.MULTI_TAINTING) {
-                                sourceLabels.put(line, line);
-                            } else {
-                                if(i > 32) {
-                                    i = 0;
-                                }
-                                sourceLabels.put(line, 1 << i);
-                            }
-                            i++;
+                            sourceLabels.put(line, line);
                         }
                     }
                 }

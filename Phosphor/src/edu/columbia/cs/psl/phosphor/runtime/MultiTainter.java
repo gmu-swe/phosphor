@@ -315,9 +315,6 @@ public final class MultiTainter {
 	/* If multi-tainted and the specified object is a multi-dimensional array returns a Taint tag containing the taints of
 	 * all of its elements, otherwise returns the object's taint. */
 	public static Taint getMergedTaint(Object obj) {
-		if(!Configuration.MULTI_TAINTING) {
-			return getTaint(obj);
-		}
 		if(obj instanceof LazyArrayObjTags) {
 			return Taint.combineTaintArray(((LazyArrayObjTags) obj).taints);
 		}  else if(obj instanceof Object[]) {

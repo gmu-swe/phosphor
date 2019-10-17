@@ -86,21 +86,13 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 //T T V
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                if(Configuration.MULTI_TAINTING) {
-                    if(Configuration.WITHOUT_PROPOGATION) {
-                        mv.visitInsn(POP2);
-                        mv.visitInsn(ACONST_NULL);
-                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-                    } else {
-                        mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-                                + Configuration.TAINT_TAG_DESC, false);
-                    }
+                if(Configuration.WITHOUT_PROPOGATION) {
+                    mv.visitInsn(POP2);
+                    mv.visitInsn(ACONST_NULL);
+                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
                 } else {
-					if(Configuration.DATAFLOW_TRACKING) {
-						mv.visitInsn(Opcodes.IOR);
-					} else {
-						mv.visitInsn(Opcodes.POP2);
-					}
+                    mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+                            + Configuration.TAINT_TAG_DESC, false);
                 }
                 mv.visitInsn(SWAP);
                 lvs.freeTmpLV(tmp);
@@ -130,21 +122,13 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 //T T V
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                if(Configuration.MULTI_TAINTING) {
-                    if(Configuration.WITHOUT_PROPOGATION) {
-                        mv.visitInsn(POP2);
-                        mv.visitInsn(ACONST_NULL);
-                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-                    } else {
-                        mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-                                + Configuration.TAINT_TAG_DESC, false);
-                    }
+                if(Configuration.WITHOUT_PROPOGATION) {
+                    mv.visitInsn(POP2);
+                    mv.visitInsn(ACONST_NULL);
+                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
                 } else {
-					if(Configuration.DATAFLOW_TRACKING) {
-						mv.visitInsn(Opcodes.IOR);
-					} else {
-						mv.visitInsn(Opcodes.POP2);
-					}
+                    mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+                            + Configuration.TAINT_TAG_DESC, false);
                 }
                 mv.visitInsn(SWAP);
                 break;
@@ -172,21 +156,13 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                     mv.visitInsn(POP);
                 } else {
                     //T T
-                    if(Configuration.MULTI_TAINTING) {
-                        if(Configuration.WITHOUT_PROPOGATION) {
-                            mv.visitInsn(POP2);
-                            mv.visitInsn(ACONST_NULL);
-                            mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-                        } else {
-                            mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-                                    + Configuration.TAINT_TAG_DESC, false);
-                        }
+                    if(Configuration.WITHOUT_PROPOGATION) {
+                        mv.visitInsn(POP2);
+                        mv.visitInsn(ACONST_NULL);
+                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
                     } else {
-						if(Configuration.DATAFLOW_TRACKING) {
-							mv.visitInsn(Opcodes.IOR);
-						} else {
-							mv.visitInsn(Opcodes.POP2);
-						}
+                        mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+                                + Configuration.TAINT_TAG_DESC, false);
                     }
                 }
                 //T
@@ -214,21 +190,13 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 // T T VV
                 mv.visitInsn(DUP2_X2);
                 mv.visitInsn(POP2);
-                if(Configuration.MULTI_TAINTING) {
-                    if(Configuration.WITHOUT_PROPOGATION) {
-                        mv.visitInsn(POP2);
-                        mv.visitInsn(ACONST_NULL);
-                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-                    } else {
-                        mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-                                + Configuration.TAINT_TAG_DESC, false);
-                    }
+                if(Configuration.WITHOUT_PROPOGATION) {
+                    mv.visitInsn(POP2);
+                    mv.visitInsn(ACONST_NULL);
+                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
                 } else {
-					if(Configuration.DATAFLOW_TRACKING) {
-						mv.visitInsn(Opcodes.IOR);
-					} else {
-						mv.visitInsn(Opcodes.POP2);
-					}
+                    mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+                            + Configuration.TAINT_TAG_DESC, false);
                 }
                 // VV T
                 mv.visitInsn(DUP_X2);
@@ -257,21 +225,13 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 // T T VV
                 mv.visitInsn(DUP2_X2);
                 mv.visitInsn(POP2);
-                if(Configuration.MULTI_TAINTING) {
-                    if(Configuration.WITHOUT_PROPOGATION) {
-                        mv.visitInsn(POP2);
-                        mv.visitInsn(ACONST_NULL);
-                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-                    } else {
-                        mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-                                + Configuration.TAINT_TAG_DESC, false);
-                    }
+                if(Configuration.WITHOUT_PROPOGATION) {
+                    mv.visitInsn(POP2);
+                    mv.visitInsn(ACONST_NULL);
+                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
                 } else {
-					if(Configuration.DATAFLOW_TRACKING) {
-						mv.visitInsn(Opcodes.IOR);
-					} else {
-						mv.visitInsn(Opcodes.POP2);
-					}
+                    mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+                            + Configuration.TAINT_TAG_DESC, false);
                 }
                 // VV T
                 mv.visitInsn(DUP_X2);
@@ -314,21 +274,13 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 // T T V
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                if(Configuration.MULTI_TAINTING) {
-                    if(Configuration.WITHOUT_PROPOGATION) {
-                        mv.visitInsn(POP2);
-                        mv.visitInsn(ACONST_NULL);
-                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-                    } else {
-                        mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-                                + Configuration.TAINT_TAG_DESC, false);
-                    }
+                if(Configuration.WITHOUT_PROPOGATION) {
+                    mv.visitInsn(POP2);
+                    mv.visitInsn(ACONST_NULL);
+                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
                 } else {
-					if(Configuration.DATAFLOW_TRACKING) {
-						mv.visitInsn(Opcodes.IOR);
-					} else {
-						mv.visitInsn(Opcodes.POP2);
-					}
+                    mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+                            + Configuration.TAINT_TAG_DESC, false);
                 }
                 // V T
                 mv.visitInsn(SWAP);
@@ -351,21 +303,13 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 // T T V
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                if(Configuration.MULTI_TAINTING) {
-                    if(Configuration.WITHOUT_PROPOGATION) {
-                        mv.visitInsn(POP2);
-                        mv.visitInsn(ACONST_NULL);
-                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-                    } else {
-                        mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-                                + Configuration.TAINT_TAG_DESC, false);
-                    }
+                if(Configuration.WITHOUT_PROPOGATION) {
+                    mv.visitInsn(POP2);
+                    mv.visitInsn(ACONST_NULL);
+                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
                 } else {
-					if(Configuration.DATAFLOW_TRACKING) {
-						mv.visitInsn(Opcodes.IOR);
-					} else {
-						mv.visitInsn(Opcodes.POP2);
-					}
+                    mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+                            + Configuration.TAINT_TAG_DESC, false);
                 }
                 // V T
                 mv.visitInsn(SWAP);
@@ -388,21 +332,13 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 //T T V
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                if(Configuration.MULTI_TAINTING) {
-                    if(Configuration.WITHOUT_PROPOGATION) {
-                        mv.visitInsn(POP2);
-                        mv.visitInsn(ACONST_NULL);
-                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-                    } else {
-                        mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
-                                + Configuration.TAINT_TAG_DESC, false);
-                    }
+                if(Configuration.WITHOUT_PROPOGATION) {
+                    mv.visitInsn(POP2);
+                    mv.visitInsn(ACONST_NULL);
+                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
                 } else {
-					if(Configuration.DATAFLOW_TRACKING) {
-						mv.visitInsn(Opcodes.IOR);
-					} else {
-						mv.visitInsn(Opcodes.POP2);
-					}
+                    mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")"
+                            + Configuration.TAINT_TAG_DESC, false);
                 }
                 mv.visitInsn(SWAP);
             }
@@ -414,40 +350,25 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 if(arrType.getElementType().getSort() != Type.OBJECT) {
                     //TA A
                     loaded = true;
-//					if(Configuration.MULTI_TAINTING && (Configuration.IMPLICIT_TRACKING))
-//					{
-//						mv.visitInsn(SWAP);
-//						mv.visitInsn(POP);
-//						mv.visitInsn(DUP);
-//						mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)"+Configuration.TAINT_TAG_DESC, false);
-//						mv.visitInsn(SWAP);
-//					}
-//					else
-                    {
                         mv.visitInsn(SWAP);
                         if(Configuration.ARRAY_LENGTH_TRACKING) {
                             mv.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "getLengthTaint", "()" + Configuration.TAINT_TAG_DESC, false);
                         } else {
                             mv.visitInsn(POP);
                             mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
-							if(Configuration.MULTI_TAINTING) {
-								mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-							}
+                            mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
                         }
                         mv.visitInsn(SWAP);
-                    }
                     //A
                 }
                 if(!loaded) {
                     mv.visitInsn(DUP);
-                    if(Configuration.MULTI_TAINTING && (Configuration.IMPLICIT_TRACKING || Configuration.ARRAY_LENGTH_TRACKING)) {
+                    if((Configuration.IMPLICIT_TRACKING || Configuration.ARRAY_LENGTH_TRACKING)) {
                         mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintObj", "(Ljava/lang/Object;)" + Configuration.TAINT_TAG_DESC, false);
                     } else {
                         mv.visitInsn(POP);
                         mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
-						if(Configuration.MULTI_TAINTING) {
-							mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-						}
+                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
                     }
                     mv.visitInsn(SWAP);
                 }
@@ -626,9 +547,9 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
             if(var < ta.lastArg && TaintUtils.getShadowTaintType(ta.paramTypes[var].getDescriptor()) != null) {
                 //accessing an arg; remap it
                 Type localType = ta.paramTypes[var];
-				if(TaintUtils.getShadowTaintType(localType.getDescriptor()) != null) {
-					shadowVar = var - 1;
-				}
+                if(TaintUtils.getShadowTaintType(localType.getDescriptor()) != null) {
+                    shadowVar = var - 1;
+                }
             } else {
                 shadowVar = lvs.varToShadowVar.get(var);
             }
@@ -690,11 +611,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 }
             } else if(t.getSort() != Type.OBJECT) {
                 mv.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
-                if(Configuration.MULTI_TAINTING) {
-                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
-                } else {
-                    mv.visitInsn(Opcodes.IOR);
-                }
+                mv.visitMethodInsn(Opcodes.INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
                 idx++;
             }
             idx += t.getSize();
@@ -703,15 +620,9 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
     @Override
     public void generateSetTag(MethodVisitor mv, String className) {
-        if(Configuration.MULTI_TAINTING) {
-            mv.visitVarInsn(Opcodes.ALOAD, 0);
-            mv.visitVarInsn(Opcodes.ALOAD, 1);
-            mv.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-            mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-        } else {
-            mv.visitVarInsn(Opcodes.ALOAD, 0);
-            mv.visitVarInsn(Opcodes.ILOAD, 1);
-            mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-        }
+        mv.visitVarInsn(Opcodes.ALOAD, 0);
+        mv.visitVarInsn(Opcodes.ALOAD, 1);
+        mv.visitTypeInsn(Opcodes.CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+        mv.visitFieldInsn(Opcodes.PUTFIELD, className, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
     }
 }
