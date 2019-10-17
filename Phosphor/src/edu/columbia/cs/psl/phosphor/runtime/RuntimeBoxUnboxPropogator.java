@@ -40,7 +40,7 @@ public class RuntimeBoxUnboxPropogator {
 			}
 			if (ta.taints == null)
 				ta.taints = new int[ar.length];
-			for (int k = idx - nChars; k <= idx; k++)
+			for (int k = idx - nChars; k < idx; k++)
 				ta.taints[k] = lt;
 		}
 	}
@@ -62,29 +62,29 @@ public class RuntimeBoxUnboxPropogator {
 			}
 			if (ta.taints == null)
 				ta.taints = new int[ar.length];
-			for (int k = idx - nChars; k <= idx; k++)
+			for (int k = idx - nChars; k < idx; k++)
 				ta.taints[k] |= it;
 		}
+	}
+
+	static int stringSize(long x) {
+		long p = 10;
+		for (int i=1; i<19; i++) {
+			if (x < p)
+				return i;
+			p = 10*p;
+		}
+		return 19;
 	}
 
 	public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyCharArrayObjTags ta, char[] ar)
 	{
 		Long.getChars(l, idx, ar);
 		if (lt != null) {
-			int nChars = 0;
-			if (l < 0)
-				nChars++;
-			long q;
-			for (;;) {
-				q = (l * 52429) >>> (16 + 3);
-				nChars++;
-				l = q;
-				if (l == 0)
-					break;
-			}
+			int nChars = stringSize(l);
 			if(ta.taints == null)
 				ta.taints = new Taint[ar.length];
-			for (int k = idx - nChars; k <= idx; k++)
+			for (int k = idx - nChars; k < idx; k++)
 				ta.taints[k] = lt;
 		}
 	}
