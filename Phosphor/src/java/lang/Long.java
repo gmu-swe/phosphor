@@ -71,7 +71,6 @@ public final class Long extends Number implements Comparable<Long> {
      */
     public static final int SIZE = 64;
 
-
     /**
      * Constructs a new {@code Long} with the specified primitive long value.
      * 
@@ -82,10 +81,6 @@ public final class Long extends Number implements Comparable<Long> {
         this.value = value;
     }
 
-    public Long(int t, long value, TaintSentinel stl) {
-        this.value = value;
-    }
-    
     public Long(Taint t, long value, TaintSentinel stl) {
         this.value = value;
     }
@@ -93,8 +88,7 @@ public final class Long extends Number implements Comparable<Long> {
     public Long(Taint t, long value, ControlTaintTagStack ctrl, TaintSentinel stl ) {
         this.value = value;
     }
-    
-    
+
     /**
      * Constructs a new {@code Long} from the specified string.
      * 
@@ -107,10 +101,6 @@ public final class Long extends Number implements Comparable<Long> {
     public Long(String string) throws NumberFormatException {
         this(parseLong(string));
     }
-
-	public static Long valueOf$$PHOSPHORTAGGED(Taint o, long l, ControlTaintTagStack ctrl) {
-        return null;
-	}
 
 	@Override
     public byte byteValue() {
@@ -833,13 +823,12 @@ public final class Long extends Number implements Comparable<Long> {
 		return 0;
 	}
 
-	public static Long valueOf$$PHOSPHORTAGGED(int i, long l) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	public static Long valueOf$$PHOSPHORTAGGED(Taint object, long l) {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+    public static Long valueOf$$PHOSPHORTAGGED(Taint o, long l, ControlTaintTagStack ctrl) {
+        return null;
+    }
 }
