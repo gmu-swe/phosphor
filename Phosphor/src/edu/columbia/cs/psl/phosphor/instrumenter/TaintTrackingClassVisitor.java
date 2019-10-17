@@ -160,20 +160,19 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		if (isNormalClass && !Instrumenter.isIgnoredClass(name) && !FIELDS_ONLY) {
 			String[] newIntfcs = new String[interfaces.length + 1];
 			System.arraycopy(interfaces, 0, newIntfcs, 0, interfaces.length);
-			newIntfcs[interfaces.length] = Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedWithObjTag.class : TaintedWithIntTag.class));
+			newIntfcs[interfaces.length] = Type.getInternalName(TaintedWithObjTag.class);
 			interfaces = newIntfcs;
 			if (signature != null)
-				signature = signature + Type.getDescriptor((Configuration.MULTI_TAINTING ? TaintedWithObjTag.class : TaintedWithIntTag.class));
+				signature = signature + Type.getDescriptor(TaintedWithObjTag.class);
 			if (generateEquals && Configuration.WITH_HEAVY_OBJ_EQUALS_HASHCODE) {
 				newIntfcs = new String[interfaces.length + 1];
 				System.arraycopy(interfaces, 0, newIntfcs, 0, interfaces.length);
-				Class<?> iface = null;
-				if ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING))
+				Class<?> iface;
+				if ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
 					iface = TaintedObjectWithObjCtrlTag.class;
-				else if (Configuration.MULTI_TAINTING)
+				} else {
 					iface = TaintedObjectWithObjTag.class;
-				else
-					iface = TaintedObjectWithIntTag.class;
+				}
 				newIntfcs[interfaces.length] = Type.getInternalName(iface);
 				interfaces = newIntfcs;
 				if (signature != null)

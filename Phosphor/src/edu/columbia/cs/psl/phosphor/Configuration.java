@@ -18,9 +18,10 @@ import java.util.Properties;
 
 public class Configuration {
 
+    public static boolean MULTI_TAINTING = true;
+
     public static boolean SKIP_LOCAL_VARIABLE_TABLE = false;
     public static String ADDL_IGNORE = null;
-    public static boolean MULTI_TAINTING = true;
     public static boolean IMPLICIT_TRACKING = true; //must be set to TRUE for MULTI_TAINTING to work!
     public static boolean IMPLICIT_LIGHT_TRACKING;
     public static boolean IMPLICIT_HEADERS_NO_TRACKING = false;

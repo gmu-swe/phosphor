@@ -320,13 +320,6 @@ public class Taint<T> implements Serializable {
 	}
 
 	@SuppressWarnings("unused")
-	public TaintedBooleanWithIntTag contains$$PHOSPHORTAGGED(Taint<T> that, TaintedBooleanWithIntTag ret) {
-		ret.taint = 0;
-		ret.val = contains(that);
-		return ret;
-	}
-
-	@SuppressWarnings("unused")
 	public TaintedBooleanWithObjTag contains$$PHOSPHORTAGGED(Taint<T> that, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
 		ret.taint = null;
 		ret.val = contains(that);
@@ -354,13 +347,6 @@ public class Taint<T> implements Serializable {
 	}
 
 	@SuppressWarnings("unused")
-	public TaintedBooleanWithIntTag containsOnlyLabels$$PHOSPHORTAGGED(Object[] labels, TaintedBooleanWithIntTag ret) {
-		ret.taint = 0;
-		ret.val = containsOnlyLabels(labels);
-		return ret;
-	}
-
-	@SuppressWarnings("unused")
 	public TaintedBooleanWithObjTag containsOnlyLabels$$PHOSPHORTAGGED(Object[] labels, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
 		ret.taint = null;
 		ret.val = containsOnlyLabels(labels);
@@ -383,13 +369,6 @@ public class Taint<T> implements Serializable {
 	@SuppressWarnings("unused")
 	public TaintedBooleanWithObjTag containsLabel$$PHOSPHORTAGGED(Object label, TaintedBooleanWithObjTag ret) {
 		ret.taint = null;
-		ret.val = containsLabel(label);
-		return ret;
-	}
-
-	@SuppressWarnings("unused")
-	public TaintedBooleanWithIntTag containsLabel$$PHOSPHORTAGGED(Object label, TaintedBooleanWithIntTag ret) {
-		ret.taint = 0;
 		ret.val = containsLabel(label);
 		return ret;
 	}
@@ -549,7 +528,7 @@ public class Taint<T> implements Serializable {
 		} else if(labelBitSet != null) {
 			out.writeObject(labelBitSet.toList());
 		} else {
-			out.writeObject(new SimpleHashSet<Integer>());
+			out.writeObject(new SinglyLinkedList<>());
 		}
 	}
 
@@ -559,7 +538,7 @@ public class Taint<T> implements Serializable {
 		if(BIT_SET_CAPACITY > 0) {
 			// BitSet representation is being used
 			SinglyLinkedList<?> list = (SinglyLinkedList<?>)in.readObject();
-			if(list.size() > 0) {
+			if(!list.isEmpty()) {
 				this.labelBitSet = new BitSet(BIT_SET_CAPACITY);
 				for(Object obj : list) {
 					if(obj instanceof Integer) {
@@ -584,23 +563,6 @@ public class Taint<T> implements Serializable {
 		if(isEmpty())
 			return null;
 		return getLabels((T[]) new Object[0])[0];
-	}
-
-	/* Returns every label except the first label in the set. */
-	@Deprecated
-	@SuppressWarnings("unchecked")
-	public SimpleHashSet<T> getDependencies() {
-		SimpleHashSet<T> set = new SimpleHashSet<>();
-		T[] labels = getLabels((T[]) new Object[0]);
-		for(int i = 1; i < labels.length; i++) {
-			set.add(labels[i]);
-		}
-		return set;
-	}
-
-	@Deprecated
-	public SimpleHashSet<T> getDependencies$$PHOSPHORTAGGED() {
-		return getDependencies();
 	}
 
 	/* Returns whether the label set contains 0 or 1 elements. */

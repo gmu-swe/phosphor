@@ -265,7 +265,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         // Set the prealloc's val field to be the returned boolean, and taint field be null/0
         super.visitVarInsn(ALOAD, preallocLV);
 		super.visitInsn(SWAP);
-        String fieldOwner = Configuration.MULTI_TAINTING ? Type.getInternalName(TaintedBooleanWithObjTag.class) : Type.getInternalName(TaintedBooleanWithIntTag.class);
+        String fieldOwner = Type.getInternalName(TaintedBooleanWithObjTag.class);
         super.visitFieldInsn(PUTFIELD, fieldOwner, "val", "Z");
 		super.visitVarInsn(ALOAD, preallocLV);
 		lvs.freeTmpLV(preallocLV);
@@ -312,7 +312,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 	}
 
 	/* If the type at the top of the specified stack is a primitive type wraps that primitive into a
-	 * TaintedPrimitiveWithObjTag or TaintedPrimitiveWithIntTag instance. */
+	 * TaintedPrimitiveWithObjTag instance. */
 	private void wrapPrimitive(SinglyLinkedList<Type> argStack) {
 		int sort = argStack.peek().getSort();
 		if(sort != Type.ARRAY && sort != Type.OBJECT) {
@@ -502,13 +502,13 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 				FrameNode fn = TaintAdapter.getCurrentFrameNode(analyzer);
 				fn.type = F_NEW;
 				super.visitInsn(DUP);
-				super.visitTypeInsn(INSTANCEOF, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveWithObjTag.class : TaintedPrimitiveWithIntTag.class)));
+				super.visitTypeInsn(INSTANCEOF, Type.getInternalName(TaintedPrimitiveWithObjTag.class));
 				Label notPrimitive = new Label();
 				super.visitJumpInsn(IFEQ, notPrimitive);
 				FrameNode fn2 = TaintAdapter.getCurrentFrameNode(analyzer);
 				fn2.type = F_NEW;
-				super.visitTypeInsn(CHECKCAST, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveWithObjTag.class : TaintedPrimitiveWithIntTag.class)));
-				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName((Configuration.MULTI_TAINTING ? TaintedPrimitiveWithObjTag.class : TaintedPrimitiveWithIntTag.class)), "toPrimitiveType", "()Ljava/lang/Object;", false);
+				super.visitTypeInsn(CHECKCAST, Type.getInternalName(TaintedPrimitiveWithObjTag.class));
+				super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintedPrimitiveWithObjTag.class), "toPrimitiveType", "()Ljava/lang/Object;", false);
 				super.visitLabel(notPrimitive);
 				fn2.accept(this);
 			}

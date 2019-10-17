@@ -197,9 +197,6 @@ public class Instrumenter {
 	static Option opt_controlTrackExceptions = Option.builder("controlTrackExceptions")
 			.desc("Enable taint tracking through exceptional control flow")
 			.build();
-	static Option opt_multiTaint = Option.builder("multiTaint")
-		.desc("Support for 2^32 tags instead of just 32")
-		.build();
 	static Option opt_withoutBranchNotTaken = Option.builder("withoutBranchNotTaken")
 			.desc("Disable branch not taken analysis in control tracking")
 			.build();
@@ -273,7 +270,6 @@ public class Instrumenter {
 		START = System.currentTimeMillis();
 		Options options = new Options();
 		options.addOption(help);
-		options.addOption(opt_multiTaint);
 		options.addOption(opt_controlTrack);
 		options.addOption(opt_controlLightTrack);
 		options.addOption(opt_controlTrackExceptions);
@@ -315,13 +311,10 @@ public class Instrumenter {
 			return;
 		}
 		Configuration.BINDING_CONTROL_FLOWS_ONLY = line.hasOption(opt_bindingControl.getOpt());
-		Configuration.MULTI_TAINTING = line.hasOption("multiTaint") || Configuration.BINDING_CONTROL_FLOWS_ONLY;
 		Configuration.IMPLICIT_TRACKING = line.hasOption("controlTrack");
 		Configuration.IMPLICIT_LIGHT_TRACKING = line.hasOption("lightControlTrack");
 		Configuration.IMPLICIT_EXCEPTION_FLOW = line.hasOption("controlTrackExceptions");
 		Configuration.DATAFLOW_TRACKING = !line.hasOption("withoutDataTrack");
-		if (Configuration.IMPLICIT_TRACKING)
-			Configuration.MULTI_TAINTING = true;
 		Configuration.GENERATE_UNINST_STUBS = line.hasOption("generateUninstStubs");
 		Configuration.ARRAY_LENGTH_TRACKING = line.hasOption("withArrayLengthTags");
 		Configuration.WITHOUT_FIELD_HIDING = line.hasOption("withoutFieldHiding");
@@ -366,11 +359,6 @@ public class Instrumenter {
 			System.out.println("Control flow tracking: enabled");
 		else
 			System.out.println("Control flow tracking: disabled");
-		
-		if (Configuration.MULTI_TAINTING)
-			System.out.println("Multi taint: enabled");
-		else
-			System.out.println("Taints will be combined with logical-or.");
 
 		if (Configuration.WITH_SELECTIVE_INST) {
 			System.out.println("Loading selective instrumentation configuration");
@@ -495,10 +483,6 @@ public class Instrumenter {
 					}
 				} else if (f.isDirectory())
 					urls.add(f.toURI().toURL());
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			} catch (MalformedURLException e) {
-				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -512,9 +496,6 @@ public class Instrumenter {
 				if (f.isDirectory() && !f.getAbsolutePath().endsWith("/"))
 					f = new File(f.getAbsolutePath() + "/");
 				try {
-					if (f.isDirectory()) {
-
-					}
 					urls.add(f.getCanonicalFile().toURI().toURL());
 				} catch (Exception ex) {
 					ex.printStackTrace();
@@ -660,10 +641,11 @@ public class Instrumenter {
 	}
 
 	public static boolean isIgnoredFromControlTrack(String className, String name) {
-		if((className.equals("java/nio/charset/Charset")  || className.equals("java/lang/StringCoding") || className.equals("java/nio/charset/CharsetEncoder")|| className.equals("java/nio/charset/CharsetDecoder")) && !name.equals("<clinit>") && !name.equals("<init>")) {
-			return true;
-		}
-		return false;
+		return (className.equals("java/nio/charset/Charset")
+				|| className.equals("java/lang/StringCoding")
+				|| className.equals("java/nio/charset/CharsetEncoder")
+				|| className.equals("java/nio/charset/CharsetDecoder"))
+				&& !name.equals("<clinit>") && !name.equals("<init>");
 	}
 
 	private static class Result {
@@ -677,6 +659,7 @@ public class Instrumenter {
 	public static LinkedList<Future> processZip(final File f, File outputDir, ExecutorService executor) {
 		return _processZip(f, outputDir, executor, false);
 	}
+
 	private static LinkedList<Future> _processZip(final File f, File outputDir, ExecutorService executor, boolean unCompressed) {
 		try {
 			LinkedList<Future<Result>> ret = new LinkedList<>();
@@ -882,9 +865,7 @@ public class Instrumenter {
 	}
 
 	public static boolean shouldCallUninstAlways(String owner, String name, String desc) {
-		if (name.equals("writeArray") && owner.equals("java/io/ObjectOutputStream"))
-			return true;
-		return false;
+		return name.equals("writeArray") && owner.equals("java/io/ObjectOutputStream");
 	}
 
 	public static boolean isIgnoredMethodFromOurAnalysis(String owner, String name, String desc) {

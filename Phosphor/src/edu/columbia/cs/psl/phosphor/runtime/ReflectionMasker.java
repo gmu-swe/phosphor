@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.Type;
@@ -33,20 +34,18 @@ public class ReflectionMasker {
     static {
         System.setSecurityManager(null);
     }
-    //	static Method lastOrigMethod;
-    //	static Method lastMethod;
 
     @SuppressWarnings("unused")
-    public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset, ControlTaintTagStack ctrl) {
+    public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long offset, ControlTaintTagStack ctrl) {
         return getObject$$PHOSPHORTAGGED(u, obj, null, offset);
     }
 
     @SuppressWarnings("unused")
-    public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long offset) {
+    public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long offset) {
         return RuntimeUnsafePropagator.get(u, obj, offset, null);
     }
 
-    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint tag, long fieldOffset, Object val, ControlTaintTagStack ctrl) {
+    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val, ControlTaintTagStack ctrl) {
         putObject$$PHOSPHORTAGGED(u, obj, tag, fieldOffset, val);
     }
 
@@ -135,7 +134,7 @@ public class ReflectionMasker {
         }
         //		if (methodCache.containsKey(m))
         //			return methodCache.get(m);
-        ArrayList<Class> newArgs = new ArrayList<Class>();
+        ArrayList<Class> newArgs = new ArrayList<>();
         boolean madeChange = false;
         for(final Class c : m.getParameterTypes()) {
             if(c.isArray()) {
@@ -211,29 +210,17 @@ public class ReflectionMasker {
             Method ret = null;
             try {
                 ret = m.getDeclaringClass().getDeclaredMethod(m.getName() + "$$PHOSPHORTAGGED", args);
-            } catch(NoSuchMethodException e) {
-                e.printStackTrace();
-            } catch(SecurityException e) {
+            } catch(NoSuchMethodException | SecurityException e) {
                 e.printStackTrace();
             }
-            //			lastTaintMethodOrig = m;
-            //			lastTaintMethod = ret;
-            //			methodCache.put(m, ret);
-            //			ret.INVIVO_PC_TAINTmarked = true;
             return ret;
         } else {
-            //			lastTaintMethodOrig = m;
-            //			lastTaintMethod = m;
-            //			methodCache.put(m, m);
-            //			m.INVIVO_PC_TAINTmarked = true;
             return m;
         }
     }
 
     @SuppressWarnings("rawtypes")
     public static Method getTaintMethod(Method m, boolean isObjTags) {
-        //		if (m.INVIVO_PC_TAINTmarked)
-        //			return m;
         if(m.PHOSPHOR_TAGmarked && m.PHOSPHOR_TAGmethod != null) {
             return m;
         } else if(!m.PHOSPHOR_TAGmarked && m.PHOSPHOR_TAGmethod != null) {
@@ -305,11 +292,7 @@ public class ReflectionMasker {
                 }
             } else if(c.isPrimitive()) {
                 madeChange = true;
-                if(isObjTags) {
-                    newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
-                } else {
-                    newArgs.add(Integer.TYPE);
-                }
+                newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
                 newArgs.add(c);
             } else {
                 //anything else
@@ -382,7 +365,7 @@ public class ReflectionMasker {
                 return m;
             }
         }
-        ArrayList<Class> newArgs = new ArrayList<Class>();
+        ArrayList<Class> newArgs = new ArrayList<>();
         boolean madeChange = false;
         for(final Class c : m.getParameterTypes()) {
             if(c.isArray()) {
@@ -421,9 +404,7 @@ public class ReflectionMasker {
             Method ret = null;
             try {
                 ret = m.getDeclaringClass().getDeclaredMethod(m.getName() + "$$PHOSPHORUNTAGGED", args);
-            } catch(NoSuchMethodException e) {
-                e.printStackTrace();
-            } catch(SecurityException e) {
+            } catch(NoSuchMethodException | SecurityException e) {
                 e.printStackTrace();
             }
             //			lastTaintMethodOrig = m;
@@ -454,9 +435,7 @@ public class ReflectionMasker {
             String origName = m.getName().replace("$$PHOSPHORUNTAGGED", "");
             try {
                 return m.getDeclaringClass().getDeclaredMethod(origName, m.getParameterTypes());
-            } catch(NoSuchMethodException e) {
-                e.printStackTrace();
-            } catch(SecurityException e) {
+            } catch(NoSuchMethodException | SecurityException e) {
                 e.printStackTrace();
             }
         } else if(m.PHOSPHOR_TAGmethod != null && m.PHOSPHOR_TAGmarked) {
@@ -548,11 +527,7 @@ public class ReflectionMasker {
                         }
                     }
                 } else if(t.getSort() != Type.OBJECT) {
-                    if(isObjTags) {
-                        newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
-                    } else {
-                        newParams.add(Integer.TYPE);
-                    }
+                    newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
                 }
                 newParams.add(c);
             }
@@ -1108,83 +1083,14 @@ public class ReflectionMasker {
     }
 
     public static Method[] copyMethods(Method[] arg) {
-        //		if(arg == null || arg.length>0)
-        //			throw new IllegalStateException("this is disabled for testing");
-        //		ArrayList<Method> ret = new ArrayList<Method>();
-        //		ReflectionFactory fact = getReflectionFactory();
-        //		for (Method f : arg) {
-        //			final char[] chars = f.getName().toCharArray();
-        //			boolean match = false;
-        //			if (chars.length == SET_TAG_METHOD_LEN) {
-        //				match = true;
-        //				for (int i = 3; i < SET_TAG_METHOD_LEN; i++) {
-        //					if (chars[i] != SET_TAG_METHOD_CHARS[i]) {
-        //						match = false;
-        //						break;
-        //					}
-        //				}
-        //			}
-        //			if (!match && chars.length > METHOD_SUFFIX_LEN) {
-        //				int x = 0;
-        //				for (int i = chars.length - METHOD_SUFFIX_LEN; i < chars.length; i++) {
-        //					if (chars[i] != METHOD_SUFFIX_CHARS[x]) {
-        //						ret.add(fact.copyMethod(f));
-        //						break;
-        //					}
-        //					x++;
-        //				}
-        //			} else if (!match) {
-        //				ret.add(fact.copyMethod(f));
-        //			}
-        //		}
-        //		Method[] retz = new Method[ret.size()];
-        //		ret.toArray(retz);
-        //		return retz;
         return arg;
     }
 
     public static Constructor<?>[] copyConstructors(Constructor<?>[] arg) {
-        //		ArrayList<Constructor> ret = new ArrayList<Constructor>();
-        //		ReflectionFactory fact = getReflectionFactory();
-        //
-        //		for (Constructor f : arg) {
-        //			Class<?>[] params = f.getParameterTypes();
-        //			if (params.length > 0
-        //					&& (params[params.length - 1].getName().equals("edu.columbia.cs.psl.phosphor.runtime.TaintSentinel") || params[params.length - 1].getName().equals(
-        //							"edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel"))) {
-        //
-        //			} else
-        //				ret.add(fact.copyConstructor(f));
-        //		}
-        //		Constructor[] retz = new Constructor[ret.size()];
-        //		ret.toArray(retz);
-        //		return retz;
         return arg;
     }
 
     public static Field[] copyFields(Field[] arg) {
-        //		ArrayList<Field> ret = new ArrayList<Field>();
-        //		ReflectionFactory fact = getReflectionFactory();
-        //		//        System.out.println("Fields in : " +Arrays.toString(arg));
-        //		for (Field f : arg) {
-        //			final char[] chars = f.getName().toCharArray();
-        //			if (chars.length >= FIELD_METHOD_SUFFIX_LEN) {
-        //				int x = 0;
-        //				for (int i = chars.length - FIELD_METHOD_SUFFIX_LEN; i < chars.length; i++) {
-        //					if (chars[i] != FIELD_SUFFIX_CHARS[x]) {
-        //						ret.add(fact.copyField(f));
-        //						break;
-        //					}
-        //					x++;
-        //				}
-        //			} else if (!chars.equals("taint")) {
-        //				ret.add(fact.copyField(f));
-        //			}
-        //		}
-        //		Field[] retz = new Field[ret.size()];
-        //		ret.toArray(retz);
-        //		//        System.out.println("Fields out : " +Arrays.toString(retz));
-        //		return retz;
         return arg;
     }
 

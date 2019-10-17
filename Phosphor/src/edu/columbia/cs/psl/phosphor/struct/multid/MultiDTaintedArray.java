@@ -8,7 +8,6 @@ import sun.security.pkcs11.wrapper.CK_ATTRIBUTE;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-import static edu.columbia.cs.psl.phosphor.Configuration.MULTI_TAINTING;
 import static org.objectweb.asm.Opcodes.*;
 
 public abstract class MultiDTaintedArray {

@@ -18,7 +18,6 @@ public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
                                                           byte[] classfileBuffer) throws IllegalClassFormatException {
         if(!INITED) {
             Configuration.IMPLICIT_TRACKING = false;
-            Configuration.MULTI_TAINTING = true;
             Configuration.init();
             INITED = true;
         }
@@ -30,7 +29,6 @@ public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
                                                           byte[] classfileBuffer, ControlTaintTagStack ctrl) throws IllegalClassFormatException {
         if(!INITED) {
             Configuration.IMPLICIT_TRACKING = true;
-            Configuration.MULTI_TAINTING = true;
             Configuration.init();
             INITED = true;
         }

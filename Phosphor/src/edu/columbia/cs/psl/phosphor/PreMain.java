@@ -7,7 +7,6 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUI
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithIntTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.SerialVersionUIDAdder;
@@ -183,7 +182,7 @@ public class PreMain {
 					}
 				if (cn.interfaces != null)
 					for (Object s : cn.interfaces) {
-						if (s.equals(Type.getInternalName(TaintedWithObjTag.class)) || s.equals(Type.getInternalName(TaintedWithIntTag.class))) {
+						if (s.equals(Type.getInternalName(TaintedWithObjTag.class))) {
 							return classfileBuffer;
 						}
 					}
@@ -447,7 +446,6 @@ public class PreMain {
 
 	public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, ControlTaintTagStack ctrl) {
 		Configuration.IMPLICIT_TRACKING = true;
-		Configuration.MULTI_TAINTING = true;
 		Configuration.init();
 		premain(args, inst);
 	}
@@ -545,7 +543,6 @@ public class PreMain {
 					Configuration.ignoredMethods.add(methodName);
 				} else if(s.equals(Instrumenter.opt_bindingControl.getOpt())) {
 					Configuration.BINDING_CONTROL_FLOWS_ONLY = true;
-					Configuration.MULTI_TAINTING = true;
 					Configuration.IMPLICIT_TRACKING = true;
 				} else if(s.equals(Instrumenter.opt_reenableCaches.getOpt())) {
 					Configuration.REENABLE_CACHES = true;

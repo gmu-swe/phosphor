@@ -1,6 +1,8 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 
 import java.lang.reflect.Array;
 
@@ -193,7 +195,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         if(obj instanceof String) {
             Taint[] taints = getStringValueTaints((String) obj);
             if(taints != null) {
-                SimpleHashSet<String> reported = new SimpleHashSet<>();
+                Set<String> reported = new HashSet<>();
                 for(Taint t : taints) {
                     if(t != null) {
                         String _t = new String(t.toString().getBytes());

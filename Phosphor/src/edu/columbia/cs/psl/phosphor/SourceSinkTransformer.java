@@ -75,7 +75,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
 					// been called to initialize the configuration
 					if (isBusyTransforming == 0 && !isBusyRetransforming && INITED && PreMain.getInstrumentation() != null) {
 						isBusyRetransforming = true;
-						retransformQueue.add(clazz);
+						retransformQueue.addFast(clazz);
 						// Retransform clazz and any classes that were initialized before retransformation could occur.
 						while (!retransformQueue.isEmpty()) {
 							Class<?> poppedClazz = retransformQueue.pop();
@@ -90,7 +90,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
 						}
 						isBusyRetransforming = false;
 					} else {
-						retransformQueue.add(clazz);
+						retransformQueue.addFast(clazz);
 					}
 				} catch (UnmodifiableClassException e) {
 					//
