@@ -341,21 +341,6 @@ public class ReflectionMasker {
         }
     }
 
-    @SuppressWarnings("unused")
-    public static Method getOrigMethod(Method m, boolean isObjTracking) {
-        if(Configuration.GENERATE_UNINST_STUBS && m.getName().endsWith("$$PHOSPHORUNTAGGED")) {
-            String origName = m.getName().replace("$$PHOSPHORUNTAGGED", "");
-            try {
-                return m.getDeclaringClass().getDeclaredMethod(origName, m.getParameterTypes());
-            } catch(NoSuchMethodException | SecurityException e) {
-                e.printStackTrace();
-            }
-        } else if(m.PHOSPHOR_TAGmethod != null && m.PHOSPHOR_TAGmarked) {
-            return m.PHOSPHOR_TAGmethod;
-        }
-        return m;
-    }
-
     /* Returns the original list of the parameters for a method that would produce a phosphor-added method with the specified
      * tainted parameters. */
     private static SinglyLinkedList<Class<?>> getOriginalParamTypes(Class<?>[] taintedParamTypes) {
@@ -378,30 +363,6 @@ public class ReflectionMasker {
             }
         }
         return originalParamTypes;
-    }
-
-    @SuppressWarnings({"unused"})
-    public static Constructor<?> getOrigMethod(Constructor<?> cons, boolean isObjTags) {
-        if(declaredInIgnoredClass(cons)) {
-            return cons;
-        }
-        boolean hasSentinel = false;
-        for(Class<?> clazz : cons.getParameterTypes()) {
-            if(clazz.equals(TaintSentinel.class)) {
-                hasSentinel = true;
-                break;
-            }
-        }
-        if(hasSentinel) {
-            Class<?>[] origParams = getOriginalParamTypes(cons.getParameterTypes()).toArray(new Class<?>[0]);
-            try {
-                return cons.getDeclaringClass().getDeclaredConstructor(origParams);
-            } catch(NoSuchMethodException | SecurityException e) {
-                return cons;
-            }
-        } else {
-            return cons;
-        }
     }
 
     /* Called for Class.getConstructor and Class.getDeclaredConstructor to remap the parameter types. */
@@ -505,50 +466,6 @@ public class ReflectionMasker {
 
     static boolean isPrimitiveArray(Class<?> c) {
         return c.isArray() ? isPrimitiveArray(c.getComponentType()) : c.isPrimitive();
-    }
-
-    @SuppressWarnings("rawtypes")
-    public static Class[] removeTaintedInterface(Class[] in) {
-        if(in == null) {
-            return null;
-        }
-        boolean found = false;
-        for(int i = 0; i < in.length; i++) {
-            if(in[i].equals(TaintedWithObjTag.class)) {
-                found = true;
-            }
-        }
-        if(!found) {
-            return in;
-        }
-        Class[] ret = new Class[in.length - 1];
-        int idx = 0;
-        for(int i = 0; i < in.length; i++) {
-            if(!in[i].equals(TaintedWithObjTag.class)) {
-                ret[idx] = in[i];
-                idx++;
-            }
-        }
-        return ret;
-    }
-
-    @SuppressWarnings("rawtypes")
-    public static StackTraceElement[] removeExtraStackTraceElements(StackTraceElement[] in, Class clazz) {
-        int depthToCut = 0;
-        String toFind = clazz.getName();
-        if(in == null) {
-            return in;
-        }
-
-        for(int i = 0; i < in.length; i++) {
-            if(in[i].getClassName().equals(toFind) && !(i + 1 < in.length && in[i + 1].getClassName().equals(toFind))) {
-                depthToCut = i + 1;
-                break;
-            }
-        }
-        StackTraceElement[] ret = new StackTraceElement[in.length - depthToCut];
-        System.arraycopy(in, depthToCut, ret, 0, ret.length);
-        return ret;
     }
 
     public static Object[] fixAllArgs(Object[] in, Constructor<?> c, boolean isObjTags) {
@@ -681,7 +598,7 @@ public class ReflectionMasker {
         }
         if(Configuration.WITH_SELECTIVE_INST) {
 //			ret.m = getUnTaintMethod(m, isObjTags);
-            ret.m = getOrigMethod(m, isObjTags);
+            ret.m = getOriginalMethod(m);
             ret.o = owner;
             ret.a = in;
             if(ret.a != null && ret.a.getClass().isArray() && ret.a.getClass().getComponentType() == Object.class) {
@@ -705,7 +622,7 @@ public class ReflectionMasker {
             ret.m = m;
             return ret;
         }
-        ret.m = getOrigMethod(m, true);
+        ret.m = getOriginalMethod(m);
         ret.o = owner;
         ret.a = in;
         for(int i = 0; i < ret.a.length; i++) {
@@ -827,12 +744,72 @@ public class ReflectionMasker {
         return targetParamIndex;
     }
 
-    /* Called after calls to Object.getClass. */
-    public static Class<?> removeTaintClass(Class<?> clazz) {
+    /**
+     *  Masks calls to Object.getClass from ObjectOutputStream.
+     */
+    @SuppressWarnings("unused")
+    public static Class<?> getClassOOS(Object o) {
+        if(o instanceof LazyArrayObjTags && ((LazyArrayObjTags) o).taints != null) {
+            return o.getClass();
+        } else {
+            return getOriginalClass(o.getClass());
+        }
+    }
+
+    /**
+     * The instrumentation may add calls to this method.
+     */
+    @SuppressWarnings("unused")
+    public static Method getOriginalMethod(Method m) {
+        if(Configuration.GENERATE_UNINST_STUBS && m.getName().endsWith(TaintUtils.METHOD_SUFFIX_UNINST)) {
+            String origName = m.getName().replace(TaintUtils.METHOD_SUFFIX_UNINST, "");
+            try {
+                return m.getDeclaringClass().getDeclaredMethod(origName, m.getParameterTypes());
+            } catch(NoSuchMethodException | SecurityException e) {
+                e.printStackTrace();
+            }
+        } else if(m.PHOSPHOR_TAGmethod != null && m.PHOSPHOR_TAGmarked) {
+            return m.PHOSPHOR_TAGmethod;
+        }
+        return m;
+    }
+
+    /**
+     * The instrumentation may add calls to this method.
+     */
+    @SuppressWarnings({"unused"})
+    public static Constructor<?> getOriginalConstructor(Constructor<?> cons) {
+        if(declaredInIgnoredClass(cons)) {
+            return cons;
+        }
+        boolean hasSentinel = false;
+        for(Class<?> clazz : cons.getParameterTypes()) {
+            if(clazz.equals(TaintSentinel.class)) {
+                hasSentinel = true;
+                break;
+            }
+        }
+        if(hasSentinel) {
+            Class<?>[] origParams = getOriginalParamTypes(cons.getParameterTypes()).toArray(new Class<?>[0]);
+            try {
+                return cons.getDeclaringClass().getDeclaredConstructor(origParams);
+            } catch(NoSuchMethodException | SecurityException e) {
+                return cons;
+            }
+        } else {
+            return cons;
+        }
+    }
+
+    /**
+     * The instrumentation may add calls to this method.
+     */
+    @SuppressWarnings("unused")
+    public static Class<?> getOriginalClass(Class<?> clazz) {
         if(clazz.PHOSPHOR_TAGclass != null) {
             return clazz.PHOSPHOR_TAGclass;
         } else if(clazz.isArray()) {
-            String cmp = null;
+            String cmp;
             Class c = clazz.getComponentType();
             while(c.isArray()) {
                 c = c.getComponentType();
@@ -876,19 +853,13 @@ public class ReflectionMasker {
         }
     }
 
-    /* Masks calls to Object.getClass from ObjectOutputStream. */
+    /**
+     * Filters the fields returned by Class.getFields and Class.getDeclaredFields.
+     * <p>
+     * The instrumentation may add calls to this method.
+     */
     @SuppressWarnings("unused")
-    public static Class<?> getClassOOS(Object o) {
-        if(o instanceof LazyArrayObjTags && ((LazyArrayObjTags) o).taints != null) {
-            return o.getClass();
-        } else {
-            return removeTaintClass(o.getClass());
-        }
-    }
-
-    /* Filters the fields returned by Class.getFields and Class.getDeclaredFields. */
-    @SuppressWarnings("unused")
-    public static Field[] removeTaintFields(Field[] in) {
+    public static Field[] removeTaintedFields(Field[] in) {
         SinglyLinkedList<Field> ret = new SinglyLinkedList<>();
         boolean removeSVUIDField = containsSVUIDSentinelField(in);
         for(Field f : in) {
@@ -900,8 +871,9 @@ public class ReflectionMasker {
         return ret.toArray(new Field[ret.size()]);
     }
 
-    /* Returns whether the specified array of fields contains a sentinel field indicating that a SerialVersionUID was
-     * added to the class by phosphor. */
+    /** Returns whether the specified array of fields contains a sentinel field indicating that a SerialVersionUID was
+     * added to the class by phosphor.
+     */
     private static boolean containsSVUIDSentinelField(Field[] in) {
         for(Field f : in) {
             if(f.getName().equals(TaintUtils.ADDED_SVUID_SENTINEL)) {
@@ -911,11 +883,15 @@ public class ReflectionMasker {
         return false;
     }
 
-    /* Filters the methods returns by Class.getDeclaredMethods and Class.getMethods. If declaredOnly is true then
+    /**
+     * Filters the methods returns by Class.getDeclaredMethods and Class.getMethods. If declaredOnly is true then
      * synthetic equals and hashCode methods are fully removed from the specified array, otherwise they are replaced with
-     * Object.equals and Object.hashCode respectively. */
+     * Object.equals and Object.hashCode respectively.
+     * <p>
+     * The instrumentation may add calls to this method.
+     */
     @SuppressWarnings("unused")
-    public static Method[] removeTaintMethods(Method[] in, boolean declaredOnly) {
+    public static Method[] removeTaintedMethods(Method[] in, boolean declaredOnly) {
         SinglyLinkedList<Method> ret = new SinglyLinkedList<>();
         for(Method f : in) {
             final char[] chars = f.getName().toCharArray();
@@ -974,9 +950,13 @@ public class ReflectionMasker {
         return ret.toArray(new Method[ret.size()]);
     }
 
-    /* Filters the constructors returned by Class.getConstructors and Class.getDeclaredConstructors. */
-    @SuppressWarnings({"unused"})
-    public static Constructor<?>[] removeTaintConstructors(Constructor<?>[] in) {
+    /**
+     * Filters the constructors returned by Class.getConstructors and Class.getDeclaredConstructors.
+     * <p>
+     * The instrumentation may add calls to this method.
+     */
+    @SuppressWarnings("unused")
+    public static Constructor<?>[] removeTaintedConstructors(Constructor<?>[] in) {
         SinglyLinkedList<Constructor<?>> ret = new SinglyLinkedList<>();
         for(Constructor<?> f : in) {
             Class<?>[] params = f.getParameterTypes();
@@ -985,6 +965,57 @@ public class ReflectionMasker {
             }
         }
         return ret.toArray(new Constructor<?>[ret.size()]);
+    }
+
+    /**
+     * The instrumentation may add calls to this method.
+     */
+    @SuppressWarnings({"rawtypes", "unused"})
+    public static Class[] removeTaintedInterfaces(Class[] in) {
+        if(in == null) {
+            return null;
+        }
+        boolean found = false;
+        for(Class aClass : in) {
+            if(aClass.equals(TaintedWithObjTag.class)) {
+                found = true;
+                break;
+            }
+        }
+        if(!found) {
+            return in;
+        }
+        Class[] ret = new Class[in.length - 1];
+        int idx = 0;
+        for(Class aClass : in) {
+            if(!aClass.equals(TaintedWithObjTag.class)) {
+                ret[idx] = aClass;
+                idx++;
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * The instrumentation may add calls to this method.
+     */
+    @SuppressWarnings({"rawtypes", "unused"})
+    public static StackTraceElement[] removeExtraStackTraceElements(StackTraceElement[] in, Class<?> clazz) {
+        int depthToCut = 0;
+        String toFind = clazz.getName();
+        if(in == null) {
+            return null;
+        }
+
+        for(int i = 0; i < in.length; i++) {
+            if(in[i].getClassName().equals(toFind) && !(i + 1 < in.length && in[i + 1].getClassName().equals(toFind))) {
+                depthToCut = i + 1;
+                break;
+            }
+        }
+        StackTraceElement[] ret = new StackTraceElement[in.length - depthToCut];
+        System.arraycopy(in, depthToCut, ret, 0, ret.length);
+        return ret;
     }
 
     /* Used to create singleton references to Methods of the Object class. */
