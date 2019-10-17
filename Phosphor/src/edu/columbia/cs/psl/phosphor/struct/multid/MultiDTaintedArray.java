@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import org.objectweb.asm.Type;
 import sun.security.pkcs11.wrapper.CK_ATTRIBUTE;

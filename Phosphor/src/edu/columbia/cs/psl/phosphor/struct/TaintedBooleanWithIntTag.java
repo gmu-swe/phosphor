@@ -5,9 +5,7 @@ import java.io.Serializable;
 
 
 public final class TaintedBooleanWithIntTag extends TaintedPrimitiveWithIntTag implements Serializable{
-	/**
-	 * 
-	 */
+
 	private static final long serialVersionUID = 2665598564631615110L;
 
 	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {

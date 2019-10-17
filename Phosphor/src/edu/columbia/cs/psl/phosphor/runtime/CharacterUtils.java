@@ -305,116 +305,6 @@ public class CharacterUtils {
 		return ret;
 	}
 
-
-	public static TaintedCharWithIntTag reverseBytes$$PHOSPHORTAGGED(int t, char c, TaintedCharWithIntTag ret) {
-		ret.val = Character.reverseBytes(c);
-		ret.taint = t;
-		return ret;
-	}
-
-	public static TaintedCharWithIntTag toLowerCase$$PHOSPHORTAGGED(int t, char c, TaintedCharWithIntTag ret) {
-		ret.val = Character.toLowerCase(c);
-		ret.taint = t;
-		return ret;
-	}
-
-	public static TaintedIntWithIntTag toLowerCase$$PHOSPHORTAGGED(int t, int c, TaintedIntWithIntTag ret) {
-		ret.val = Character.toLowerCase(c);
-		ret.taint = t;
-		return ret;
-	}
-
-	public static TaintedCharWithIntTag toTitleCase$$PHOSPHORTAGGED(int t, char c, TaintedCharWithIntTag ret) {
-		ret.val = Character.toTitleCase(c);
-		ret.taint = t;
-		return ret;
-	}
-
-	public static TaintedIntWithIntTag toTitleCase$$PHOSPHORTAGGED(int t, int c, TaintedIntWithIntTag ret) {
-		ret.val = Character.toTitleCase(c);
-		ret.taint = t;
-		return ret;
-	}
-
-	public static TaintedCharWithIntTag toUpperCase$$PHOSPHORTAGGED(int t, char c, TaintedCharWithIntTag ret) {
-		ret.val = Character.toUpperCase(c);
-		ret.taint = t;
-		return ret;
-	}
-
-	public static TaintedIntWithIntTag toUpperCase$$PHOSPHORTAGGED(int t, int c, TaintedIntWithIntTag ret) {
-		ret.val = Character.toUpperCase(c);
-		ret.taint = t;
-		return ret;
-	}
-
-	public static TaintedIntWithIntTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayIntTags tags, char[] ar, int t, int i, TaintedIntWithIntTag ret) {
-		ret.val = Character.codePointAt(ar, i);
-		ret.taint = 0;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
-	}
-
-	public static TaintedIntWithIntTag codePointAt$$PHOSPHORTAGGED(CharSequence seq, int t, int i, TaintedIntWithIntTag ret) {
-		ret.val = Character.codePointAt(seq, i);
-		if (seq instanceof TaintedWithIntTag)
-			ret.taint = ((TaintedWithIntTag) seq).getPHOSPHOR_TAG();
-		return ret;
-	}
-
-	public static TaintedIntWithIntTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayIntTags tags, char[] ar, int t, int i, int t2, int i2, TaintedIntWithIntTag ret) {
-		ret.val = Character.codePointAt(ar, i, i2);
-		ret.taint = 0;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
-	}
-
-
-	public static TaintedIntWithIntTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayIntTags tags, char[] ar, int t, int i, TaintedIntWithIntTag ret) {
-		ret.val = Character.codePointBefore(ar, i);
-		ret.taint = 0;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
-	}
-
-	public static TaintedIntWithIntTag codePointBefore$$PHOSPHORTAGGED(CharSequence seq, int t, int i, TaintedIntWithIntTag ret) {
-		ret.val = Character.codePointBefore(seq, i);
-		if (seq instanceof TaintedWithIntTag)
-			ret.taint = ((TaintedWithIntTag) seq).getPHOSPHOR_TAG();
-		return ret;
-	}
-
-	public static TaintedIntWithIntTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayIntTags tags, char[] ar, int t, int i, int t2, int i2, TaintedIntWithIntTag ret) {
-		ret.val = Character.codePointBefore(ar, i, i2);
-		ret.taint = 0;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
-	}
-
-	//...
-
-
-
-	public static TaintedIntWithIntTag codePointAtImpl$$$PHOSPHORTAGGED(LazyCharArrayIntTags tags, char[] ar, int t, int i, int t2, int i2, TaintedIntWithIntTag ret) {
-		ret.val = Character.codePointAtImpl(ar, i, i2);
-		ret.taint = 0;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
-	}
-
-	public static TaintedIntWithIntTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayIntTags tags, char[] ar, int t, int i, int t2, int i2, TaintedIntWithIntTag ret) {
-		ret.val = Character.codePointBeforeImpl(ar, i, i2);
-		ret.taint = 0;
-		if (tags.taints != null)
-			ret.taint = tags.taints[i];
-		return ret;
-	}
-
 	public static TaintedIntWithObjTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
 		ret.val = Character.codePointBeforeImpl(ar, i, i2);
 		ret.taint = null;
@@ -428,27 +318,6 @@ public class CharacterUtils {
 		ret.taint = null;
 		if (tags.taints != null)
 			ret.taint = tags.taints[i];
-		return ret;
-	}
-
-	public static LazyCharArrayIntTags toChars$$PHOSPHORTAGGED(int idxTaint, int idx) {
-
-		char[] v = Character.toChars(idx);
-		LazyCharArrayIntTags ret = new LazyCharArrayIntTags(v);
-
-		if (idxTaint != 0) {
-			ret.taints = new int[v.length];
-			for (int i = 0; i < v.length; i++) {
-				ret.taints[i] = idxTaint;
-			}
-		} else
-			ret.taints = null;
-		return ret;
-	}
-
-	public static TaintedIntWithIntTag toChars$$PHOSPHORTAGGED(int idxTaint, int idx, LazyCharArrayIntTags artags, char[] ar, int t, int dstIdx, TaintedIntWithIntTag ret) {
-		ret.val = Character.toChars(idx, ar, dstIdx);
-		ret.taint = idxTaint;
 		return ret;
 	}
 
@@ -496,27 +365,6 @@ public class CharacterUtils {
 		return ret;
 	}
 
-	public static TaintedIntWithIntTag toUpperCaseEx$$PHOSPHORTAGGED(int t, int cp, TaintedIntWithIntTag ret) {
-		ret.val = Character.toUpperCaseEx(cp);
-		if (t != 0)
-			ret.taint = t;
-		else
-			ret.taint = 0;
-		return ret;
-	}
-
-	public static LazyCharArrayIntTags toUpperCaseCharArray$$PHOSPHORTAGGED(int t, int cp) {
-		LazyCharArrayIntTags ret = new LazyCharArrayIntTags(Character.toUpperCaseCharArray(cp));
-		if (t != 0) {
-			ret.taints = new int[ret.val.length];
-			for (int i = 0; i < ret.taints.length; i++) {
-				ret.taints[i] = t;
-			}
-		} else
-			ret.taints = null;
-		return ret;
-	}
-
 	public static TaintedIntWithObjTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags t, char[] a, Taint ti, int index, Taint tl, int limit, TaintedIntWithObjTag ret) {
 		ret.val = Character.codePointAtImpl(a, index, limit);
 		ret.taint = null;
@@ -531,15 +379,6 @@ public class CharacterUtils {
 		ret.taint = null;
 		if (t.taints != null && t.taints[index] != null) {
 			ret.taint = t.taints[index].copy();
-		}
-		return ret;
-	}
-
-	public static TaintedIntWithIntTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayIntTags t, char[] a, int ti, int index, int tl, int limit, TaintedIntWithIntTag ret) {
-		ret.val = Character.codePointAtImpl(a, index, limit);
-		ret.taint = 0;
-		if (t.taints != null) {
-			ret.taint = t.taints[index];
 		}
 		return ret;
 	}

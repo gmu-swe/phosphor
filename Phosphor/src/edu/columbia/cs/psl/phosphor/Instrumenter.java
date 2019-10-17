@@ -2,11 +2,9 @@ package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
-import edu.columbia.cs.psl.phosphor.runtime.Tainter;
 import org.apache.commons.cli.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.io.*;
@@ -85,7 +83,7 @@ public class Instrumenter {
 				|| StringUtils.startsWith(owner, "java/lang/Number") || StringUtils.startsWith(owner, "java/lang/Comparable") || StringUtils.startsWith(owner, "java/lang/ref/SoftReference") || StringUtils.startsWith(owner, "java/lang/ref/Reference")
 				//																|| StringUtils.startsWith(owner, "java/awt/image/BufferedImage")
 				//																|| owner.equals("java/awt/Image")
-				|| (StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor") && ! owner.equals(Type.getInternalName(Tainter.class)))
+				|| (StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor"))
 				|| (StringUtils.startsWith(owner, "edu/gmu/swe/phosphor/ignored"))
 				||StringUtils.startsWith(owner, "sun/awt/image/codec/")
 								|| (StringUtils.startsWith(owner, "sun/reflect/Reflection")) //was on last

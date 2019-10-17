@@ -946,18 +946,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     private void addControlTagsToOwnedField(MethodVisitor delegate, Field field) {
         int getFieldOpcode = field.isStatic ? GETSTATIC : GETFIELD;
         int putFieldOpcode = field.isStatic ? PUTSTATIC : PUTFIELD;
-        if(field.description.equals(BOOLEAN_DESC) || field.description.equals(BYTE_DESC)
-                ||field.description.equals(CHARACTER_DESC) || field.description.equals(SHORT_DESC)) {
-            if(!field.isStatic) {
-                delegate.visitVarInsn(ALOAD, 0); // Load this onto the stack
-                delegate.visitInsn(DUP);
-            }
-            delegate.visitFieldInsn(getFieldOpcode, field.owner, field.name, field.description);
-            delegate.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-            delegate.visitMethodInsn(INVOKESTATIC, Type.getInternalName(BoxedPrimitiveStoreWithObjTags.class), "getTaintedBoxedPrimitive",
-                    String.format("(%s%s)%s", field.description, Type.getDescriptor(ControlTaintTagStack.class), field.description), false);
-            delegate.visitFieldInsn(putFieldOpcode, field.owner, field.name, field.description);
-        } else if(TaintUtils.isPrimitiveType(Type.getType(field.description))) {
+        if(TaintUtils.isPrimitiveType(Type.getType(field.description))) {
             if(!field.isStatic) {
                 delegate.visitVarInsn(ALOAD, 0); // Load this onto the stack
                 delegate.visitInsn(DUP);
