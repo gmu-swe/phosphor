@@ -4,92 +4,61 @@ import edu.columbia.cs.psl.phosphor.struct.*;
 
 public class RuntimeBoxUnboxPropogator {
 
-	public static void getChars$$PHOSPHORTAGGED(int lt, long l, int idt, int idx, LazyCharArrayIntTags ta, char[] ar)
-	{
-		Long.getChars(l, idx, ar);
-		if (lt != 0) {
-			int nChars = 0;
-			if (l < 0)
-				nChars++;
-			long q;
-			for (;;) {
-				q = (l * 52429) >>> (16 + 3);
-				nChars++;
-				l = q;
-				if (l == 0)
-					break;
-			}
-			if (ta.taints == null)
-				ta.taints = new int[ar.length];
-			for (int k = idx - nChars; k < idx; k++)
-				ta.taints[k] = lt;
-		}
-	}
+    private final static int[] sizeTable = {9, 99, 999, 9999, 99999, 999999, 9999999,
+            99999999, 999999999, Integer.MAX_VALUE};
 
-	public static void getChars$$PHOSPHORTAGGED(int it, int i, int idt, int idx, LazyCharArrayIntTags ta, char[] ar)
-	{
-		Integer.getChars(i, idx, ar);
-		if (it != 0) {
-			int nChars = 0;
-			if (i < 0)
-				nChars++;
-			int q;
-			for (;;) {
-				q = (i * 52429) >>> (16 + 3);
-				nChars++;
-				i = q;
-				if (i == 0)
-					break;
-			}
-			if (ta.taints == null)
-				ta.taints = new int[ar.length];
-			for (int k = idx - nChars; k < idx; k++)
-				ta.taints[k] |= it;
-		}
-	}
+    private static int stringSize(int x) {
+        for(int i = 0; ; i++) {
+            if(x <= sizeTable[i]) {
+                return i + 1;
+            }
+        }
+    }
 
-	static int stringSize(long x) {
-		long p = 10;
-		for (int i=1; i<19; i++) {
-			if (x < p)
-				return i;
-			p = 10*p;
-		}
-		return 19;
-	}
+    private static int stringSize(long x) {
+        long p = 10;
+        for(int i = 1; i < 19; i++) {
+            if(x < p) {
+                return i;
+            }
+            p = 10 * p;
+        }
+        return 19;
+    }
 
-	public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyCharArrayObjTags ta, char[] ar)
-	{
-		Long.getChars(l, idx, ar);
-		if (lt != null) {
-			int nChars = stringSize(l);
-			if(ta.taints == null)
-				ta.taints = new Taint[ar.length];
-			for (int k = idx - nChars; k < idx; k++)
-				ta.taints[k] = lt;
-			}
+    public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyCharArrayObjTags ta, char[] ar) {
+        Long.getChars(l, idx, ar);
+        if(lt != null) {
+            int nChars;
+            if(l < 0) {
+                nChars = stringSize(-l) + 1;
+            } else {
+                nChars = stringSize(l);
+            }
+            if(ta.taints == null) {
+                ta.taints = new Taint[ar.length];
+            }
+            for(int k = idx - nChars; k < idx; k++) {
+                ta.taints[k] = lt;
+            }
         }
     }
 
     public static void getChars$$PHOSPHORTAGGED(Taint it, int i, Taint idt, int idx, LazyCharArrayObjTags ta, char[] ar) {
         Integer.getChars(i, idx, ar);
         if(it != null) {
-            int nChars = 0;
-			if(i < 0) {
-				nChars++;
-			}
-            int q;
-			do {
-				q = (i * 52429) >>> (16 + 3);
-				nChars++;
-				i = q;
-			} while(i != 0);
-			if(ta.taints == null) {
-				ta.taints = new Taint[ar.length];
-			}
-			for(int k = idx - nChars; k < Math.min(idx, ta.taints.length); k++) {
-				ta.taints[k] = it;
-			}
+            int nChars;
+            if(i < 0) {
+                nChars = stringSize(-i) + 1;
+            } else {
+                nChars = stringSize(i);
+            }
+            if(ta.taints == null) {
+                ta.taints = new Taint[ar.length];
+            }
+            for(int k = idx - nChars; k < Math.min(idx, ta.taints.length); k++) {
+                ta.taints[k] = it;
+            }
         }
     }
 
@@ -102,162 +71,162 @@ public class RuntimeBoxUnboxPropogator {
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, byte i) {
-		if(t == null) {
-			return Byte.toString(i);
-		}
+        if(t == null) {
+            return Byte.toString(i);
+        }
         String ret = new String(Byte.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, char i) {
-		if(t == null) {
-			return Character.toString(i);
-		}
+        if(t == null) {
+            return Character.toString(i);
+        }
         String ret = new String(Character.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, int i) {
-		if(t == null) {
-			return Integer.toString(i);
-		}
+        if(t == null) {
+            return Integer.toString(i);
+        }
         String ret = new String(Integer.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, int i, Taint t2, int r) {
-		if(t == null) {
-			return Integer.toString(i, r);
-		}
+        if(t == null) {
+            return Integer.toString(i, r);
+        }
         String ret = new String(Integer.toString(i, r).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, int i) {
-		if(t == null) {
-			return Integer.toUnsignedString(i);
-		}
+        if(t == null) {
+            return Integer.toUnsignedString(i);
+        }
         String ret = new String(Integer.toUnsignedString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, int i, Taint tr, int r) {
-		if(t == null) {
-			return Integer.toUnsignedString(i, r);
-		}
+        if(t == null) {
+            return Integer.toUnsignedString(i, r);
+        }
         String ret = new String(Integer.toUnsignedString(i, r).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toOctalString$$PHOSPHORTAGGED(Taint t, int i) {
-		if(t == null) {
-			return Integer.toOctalString(i);
-		}
+        if(t == null) {
+            return Integer.toOctalString(i);
+        }
         String ret = new String(Integer.toOctalString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toHexString$$PHOSPHORTAGGED(Taint t, int i) {
-		if(t == null) {
-			return Integer.toHexString(i);
-		}
+        if(t == null) {
+            return Integer.toHexString(i);
+        }
         String ret = new String(Integer.toHexString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, short i) {
-		if(t == null) {
-			return Short.toString(i);
-		}
+        if(t == null) {
+            return Short.toString(i);
+        }
         String ret = new String(Integer.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, boolean i) {
-		if(t == null) {
-			return Boolean.toString(i);
-		}
+        if(t == null) {
+            return Boolean.toString(i);
+        }
         String ret = new String(Boolean.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, float i) {
-		if(t == null) {
-			return Float.toString(i);
-		}
+        if(t == null) {
+            return Float.toString(i);
+        }
         String ret = new String(Float.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toHexString$$PHOSPHORTAGGED(Taint t, float i) {
-		if(t == null) {
-			return Float.toHexString(i);
-		}
+        if(t == null) {
+            return Float.toHexString(i);
+        }
         String ret = new String(Float.toHexString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, double i) {
-		if(t == null) {
-			return Double.toString(i);
-		}
+        if(t == null) {
+            return Double.toString(i);
+        }
         String ret = new String(Double.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toHexString$$PHOSPHORTAGGED(Taint t, double i) {
-		if(t == null) {
-			return Double.toHexString(i);
-		}
+        if(t == null) {
+            return Double.toHexString(i);
+        }
         String ret = new String(Double.toHexString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, long i) {
-		if(t == null) {
-			return Long.toString(i);
-		}
+        if(t == null) {
+            return Long.toString(i);
+        }
         String ret = new String(Long.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, long i, Taint t2, int r) {
-		if(t == null) {
-			return Long.toString(i, r);
-		}
+        if(t == null) {
+            return Long.toString(i, r);
+        }
         String ret = new String(Long.toString(i, r).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toBinaryString$$PHOSPHORTAGGED(Taint t, long i) {
-		if(t == null) {
-			return Long.toBinaryString(i);
-		}
+        if(t == null) {
+            return Long.toBinaryString(i);
+        }
         String ret = new String(Long.toBinaryString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toBinaryString$$PHOSPHORTAGGED(Taint t, int i) {
-		if(t == null) {
-			return Integer.toBinaryString(i);
-		}
+        if(t == null) {
+            return Integer.toBinaryString(i);
+        }
         String ret = new String(Integer.toBinaryString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
@@ -268,144 +237,144 @@ public class RuntimeBoxUnboxPropogator {
     }
 
     public static String toHexString$$PHOSPHORTAGGED(Taint t, long i) {
-		if(t == null) {
-			return Long.toHexString(i);
-		}
+        if(t == null) {
+            return Long.toHexString(i);
+        }
         String ret = new String(Long.toHexString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, long i) {
-		if(t == null) {
-			return Long.toUnsignedString(i);
-		}
+        if(t == null) {
+            return Long.toUnsignedString(i);
+        }
         String ret = new String(Long.toUnsignedString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, long i, Taint tr, int r) {
-		if(t == null) {
-			return Long.toUnsignedString(i, r);
-		}
+        if(t == null) {
+            return Long.toUnsignedString(i, r);
+        }
         String ret = new String(Long.toUnsignedString(i, r).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, long i, Taint tr, int r, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Long.toUnsignedString(i, r);
-		}
+        if(t == null) {
+            return Long.toUnsignedString(i, r);
+        }
         String ret = new String(Long.toUnsignedString(i, r).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toOctalString$$PHOSPHORTAGGED(Taint t, long i) {
-		if(t == null) {
-			return Long.toOctalString(i);
-		}
+        if(t == null) {
+            return Long.toOctalString(i);
+        }
         String ret = new String(Long.toOctalString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, byte i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Byte.toString(i);
-		}
+        if(t == null) {
+            return Byte.toString(i);
+        }
         String ret = new String(Byte.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, char i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Character.toString(i);
-		}
+        if(t == null) {
+            return Character.toString(i);
+        }
         String ret = new String(Character.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, int i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Integer.toString(i);
-		}
+        if(t == null) {
+            return Integer.toString(i);
+        }
         String ret = new String(Integer.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, int i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Integer.toUnsignedString(i);
-		}
+        if(t == null) {
+            return Integer.toUnsignedString(i);
+        }
         String ret = new String(Integer.toUnsignedString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, int i, Taint tr, int r, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Integer.toUnsignedString(i, r);
-		}
+        if(t == null) {
+            return Integer.toUnsignedString(i, r);
+        }
         String ret = new String(Integer.toUnsignedString(i, r).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toOctalString$$PHOSPHORTAGGED(Taint t, int i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Integer.toOctalString(i);
-		}
+        if(t == null) {
+            return Integer.toOctalString(i);
+        }
         String ret = new String(Integer.toOctalString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toHexString$$PHOSPHORTAGGED(Taint t, int i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Integer.toHexString(i);
-		}
+        if(t == null) {
+            return Integer.toHexString(i);
+        }
         String ret = new String(Integer.toHexString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, short i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Short.toString(i);
-		}
+        if(t == null) {
+            return Short.toString(i);
+        }
         String ret = new String(Integer.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, boolean i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Boolean.toString(i);
-		}
+        if(t == null) {
+            return Boolean.toString(i);
+        }
         String ret = new String(Boolean.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, float i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Float.toString(i);
-		}
+        if(t == null) {
+            return Float.toString(i);
+        }
         String ret = new String(Float.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toHexString$$PHOSPHORTAGGED(Taint t, float i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Float.toHexString(i);
-		}
+        if(t == null) {
+            return Float.toHexString(i);
+        }
         String ret = new String(Float.toHexString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
@@ -421,63 +390,63 @@ public class RuntimeBoxUnboxPropogator {
     }
 
     public static String toHexString$$PHOSPHORTAGGED(Taint t, double i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Double.toHexString(i);
-		}
+        if(t == null) {
+            return Double.toHexString(i);
+        }
         String ret = new String(Double.toHexString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, long i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Long.toString(i);
-		}
+        if(t == null) {
+            return Long.toString(i);
+        }
         String ret = new String(Long.toString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, long i, Taint t2, int r, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Long.toString(i, r);
-		}
+        if(t == null) {
+            return Long.toString(i, r);
+        }
         String ret = new String(Long.toString(i, r).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toBinaryString$$PHOSPHORTAGGED(Taint t, long i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Long.toBinaryString(i);
-		}
+        if(t == null) {
+            return Long.toBinaryString(i);
+        }
         String ret = new String(Long.toBinaryString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toHexString$$PHOSPHORTAGGED(Taint t, long i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Long.toHexString(i);
-		}
+        if(t == null) {
+            return Long.toHexString(i);
+        }
         String ret = new String(Long.toHexString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, long i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Long.toUnsignedString(i);
-		}
+        if(t == null) {
+            return Long.toUnsignedString(i);
+        }
         String ret = new String(Long.toUnsignedString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
     }
 
     public static String toOctalString$$PHOSPHORTAGGED(Taint t, long i, ControlTaintTagStack ctrl) {
-		if(t == null) {
-			return Long.toOctalString(i);
-		}
+        if(t == null) {
+            return Long.toOctalString(i);
+        }
         String ret = new String(Long.toOctalString(i).toCharArray());
         ret.setPHOSPHOR_TAG(t);
         return ret;
@@ -485,17 +454,17 @@ public class RuntimeBoxUnboxPropogator {
 
     public static TaintedIntWithObjTag digit$$PHOSPHORTAGGED(Taint cTaint, char c, Taint rTaint, int radix, TaintedIntWithObjTag ret) {
         ret.val = Character.digit(c, radix);
-		if(cTaint != null) {
-			ret.taint = cTaint;
-		}
+        if(cTaint != null) {
+            ret.taint = cTaint;
+        }
         return ret;
     }
 
     public static TaintedIntWithObjTag digit$$PHOSPHORTAGGED(Taint cTaint, int codePoint, Taint rTaint, int radix, TaintedIntWithObjTag ret) {
         ret.val = Character.digit(codePoint, radix);
-		if(cTaint != null) {
-			ret.taint = cTaint;
-		}
+        if(cTaint != null) {
+            ret.taint = cTaint;
+        }
         return ret;
     }
 
