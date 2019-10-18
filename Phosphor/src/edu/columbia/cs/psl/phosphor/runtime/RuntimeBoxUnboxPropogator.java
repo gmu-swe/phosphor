@@ -4,23 +4,68 @@ import edu.columbia.cs.psl.phosphor.struct.*;
 
 public class RuntimeBoxUnboxPropogator {
 
-    public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyCharArrayObjTags ta, char[] ar) {
-        Long.getChars(l, idx, ar);
-        if(lt != null) {
-            int nChars = 0;
-			if(l < 0) {
+	public static void getChars$$PHOSPHORTAGGED(int lt, long l, int idt, int idx, LazyCharArrayIntTags ta, char[] ar)
+	{
+		Long.getChars(l, idx, ar);
+		if (lt != 0) {
+			int nChars = 0;
+			if (l < 0)
 				nChars++;
-			}
-            long q;
-			do {
+			long q;
+			for (;;) {
 				q = (l * 52429) >>> (16 + 3);
 				nChars++;
 				l = q;
-			} while(l != 0);
-			if(ta.taints == null) {
-				ta.taints = new Taint[ar.length];
+				if (l == 0)
+					break;
 			}
-			for(int k = idx - nChars; k <= idx; k++) {
+			if (ta.taints == null)
+				ta.taints = new int[ar.length];
+			for (int k = idx - nChars; k < idx; k++)
+				ta.taints[k] = lt;
+		}
+	}
+
+	public static void getChars$$PHOSPHORTAGGED(int it, int i, int idt, int idx, LazyCharArrayIntTags ta, char[] ar)
+	{
+		Integer.getChars(i, idx, ar);
+		if (it != 0) {
+			int nChars = 0;
+			if (i < 0)
+				nChars++;
+			int q;
+			for (;;) {
+				q = (i * 52429) >>> (16 + 3);
+				nChars++;
+				i = q;
+				if (i == 0)
+					break;
+			}
+			if (ta.taints == null)
+				ta.taints = new int[ar.length];
+			for (int k = idx - nChars; k < idx; k++)
+				ta.taints[k] |= it;
+		}
+	}
+
+	static int stringSize(long x) {
+		long p = 10;
+		for (int i=1; i<19; i++) {
+			if (x < p)
+				return i;
+			p = 10*p;
+		}
+		return 19;
+	}
+
+	public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyCharArrayObjTags ta, char[] ar)
+	{
+		Long.getChars(l, idx, ar);
+		if (lt != null) {
+			int nChars = stringSize(l);
+			if(ta.taints == null)
+				ta.taints = new Taint[ar.length];
+			for (int k = idx - nChars; k < idx; k++)
 				ta.taints[k] = lt;
 			}
         }
