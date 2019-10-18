@@ -151,7 +151,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 					acceptFn(fn2);
 				}
 			} else if(argT.getSort() == Type.LONG) {
-				super.visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropogator", "valueOf", desc, false);
+				super.visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropagator", "valueOf", desc, false);
 				return;
 			} else {
 				if(Configuration.IMPLICIT_TRACKING) {

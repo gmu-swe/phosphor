@@ -86,7 +86,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 //T T V
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                if(Configuration.WITHOUT_PROPOGATION) {
+                if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
                     mv.visitInsn(ACONST_NULL);
                     mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
@@ -122,7 +122,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 //T T V
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                if(Configuration.WITHOUT_PROPOGATION) {
+                if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
                     mv.visitInsn(ACONST_NULL);
                     mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
@@ -156,7 +156,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                     mv.visitInsn(POP);
                 } else {
                     //T T
-                    if(Configuration.WITHOUT_PROPOGATION) {
+                    if(Configuration.WITHOUT_PROPAGATION) {
                         mv.visitInsn(POP2);
                         mv.visitInsn(ACONST_NULL);
                         mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
@@ -190,7 +190,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 // T T VV
                 mv.visitInsn(DUP2_X2);
                 mv.visitInsn(POP2);
-                if(Configuration.WITHOUT_PROPOGATION) {
+                if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
                     mv.visitInsn(ACONST_NULL);
                     mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
@@ -225,7 +225,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 // T T VV
                 mv.visitInsn(DUP2_X2);
                 mv.visitInsn(POP2);
-                if(Configuration.WITHOUT_PROPOGATION) {
+                if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
                     mv.visitInsn(ACONST_NULL);
                     mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
@@ -274,7 +274,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 // T T V
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                if(Configuration.WITHOUT_PROPOGATION) {
+                if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
                     mv.visitInsn(ACONST_NULL);
                     mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
@@ -303,7 +303,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 // T T V
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                if(Configuration.WITHOUT_PROPOGATION) {
+                if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
                     mv.visitInsn(ACONST_NULL);
                     mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
@@ -332,7 +332,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 //T T V
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                if(Configuration.WITHOUT_PROPOGATION) {
+                if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
                     mv.visitInsn(ACONST_NULL);
                     mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
@@ -381,7 +381,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
     @Override
     public void jumpOp(int opcode, int branchStarting, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-        if((Configuration.IMPLICIT_TRACKING || ta.isImplicitLightTracking) && !Configuration.WITHOUT_PROPOGATION) {
+        if((Configuration.IMPLICIT_TRACKING || ta.isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
             switch(opcode) {
                 case Opcodes.IFEQ:
                 case Opcodes.IFNE:
@@ -538,7 +538,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
     @Override
     public void iincOp(int var, int increment, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-        if((Configuration.IMPLICIT_TRACKING || ta.isImplicitLightTracking) && !Configuration.WITHOUT_PROPOGATION) {
+        if((Configuration.IMPLICIT_TRACKING || ta.isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
             if(ta.isIgnoreAllInstrumenting || ta.isRawInsns) {
                 mv.visitIincInsn(var, increment);
                 return;

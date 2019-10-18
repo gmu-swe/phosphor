@@ -2,6 +2,8 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
 import edu.columbia.cs.psl.phosphor.struct.*;
 
 import java.io.IOException;
@@ -9,6 +11,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.lang.reflect.Array;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public class Taint<T> implements Serializable {
 
@@ -401,6 +405,8 @@ public class Taint<T> implements Serializable {
 	}
 
 	/* Returns a copy of the specified taint object. */
+	@SuppressWarnings("unused")
+	@InvokedViaInstrumentation(record = COPY_TAINT)
 	public static <T> Taint<T> copyTaint(Taint<T> in) {
 		return (in == null) ? null : in.copy();
 	}
@@ -441,6 +447,7 @@ public class Taint<T> implements Serializable {
 		return tagsTaint;
 	}
 
+	@InvokedViaInstrumentation(record = COMBINE_TAGS_CONTROL)
 	public static <T>  Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags) {
 		if(t1 == null && tags.isEmpty() && tags.lacksInfluenceExceptions()) {
 			return null;
@@ -475,6 +482,7 @@ public class Taint<T> implements Serializable {
 	}
 
 	@SuppressWarnings("rawtypes")
+	@InvokedViaInstrumentation(record = COMBINE_TAGS_ON_OBJECT)
 	public static void combineTagsOnObject(Object o, ControlTaintTagStack tags) {
 		if((tags.isEmpty() || IGNORE_TAINTING) && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.lacksInfluenceExceptions())) {
 			return;

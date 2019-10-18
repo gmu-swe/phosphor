@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import org.objectweb.asm.Type;
@@ -8,6 +10,7 @@ import sun.security.pkcs11.wrapper.CK_ATTRIBUTE;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 import static org.objectweb.asm.Opcodes.*;
 
 public abstract class MultiDTaintedArray {
@@ -86,6 +89,8 @@ public abstract class MultiDTaintedArray {
         return MultiDTaintedArrayWithObjTag.getSort(c);
     }
 
+    @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = BOX_IF_NECESSARY)
     public static Object boxIfNecessary(final Object in) {
         return MultiDTaintedArrayWithObjTag.boxIfNecessary(in);
     }

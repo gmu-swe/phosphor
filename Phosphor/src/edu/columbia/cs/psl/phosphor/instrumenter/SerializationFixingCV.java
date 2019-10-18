@@ -33,8 +33,8 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
 
     /* Returns whether this class visitor should be applied to the class with the specified name. */
     public static boolean isApplicable(String className) {
-        return Configuration.MULTI_TAINTING && (INPUT_STREAM_NAME.equals(className) || OUTPUT_STREAM_NAME.equals(className)
-                || STREAM_CLASS_NAME.equals(className));
+        return  INPUT_STREAM_NAME.equals(className) || OUTPUT_STREAM_NAME.equals(className)
+                || STREAM_CLASS_NAME.equals(className);
     }
 
     @Override

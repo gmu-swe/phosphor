@@ -44,7 +44,7 @@ public class Configuration {
     public static boolean WITH_SELECTIVE_INST = false;
     public static String selective_inst_config;
 
-    public static boolean WITHOUT_PROPOGATION = false;
+    public static boolean WITHOUT_PROPAGATION = false;
     public static boolean WITHOUT_FIELD_HIDING = false;
 
     public static boolean GENERATE_UNINST_STUBS = false;

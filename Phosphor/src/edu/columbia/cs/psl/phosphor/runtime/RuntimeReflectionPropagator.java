@@ -11,7 +11,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.WeakHashMap;
 
-public class RuntimeReflectionPropogator {
+public class RuntimeReflectionPropagator {
 
     private static Unsafe unsafe;
     private static WeakHashMap<Field, Field> fieldToField = new WeakHashMap<>();

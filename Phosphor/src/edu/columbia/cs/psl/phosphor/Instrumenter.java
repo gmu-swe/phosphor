@@ -318,7 +318,7 @@ public class Instrumenter {
 		Configuration.GENERATE_UNINST_STUBS = line.hasOption("generateUninstStubs");
 		Configuration.ARRAY_LENGTH_TRACKING = line.hasOption("withArrayLengthTags");
 		Configuration.WITHOUT_FIELD_HIDING = line.hasOption("withoutFieldHiding");
-		Configuration.WITHOUT_PROPOGATION = line.hasOption("withoutPropogation");
+		Configuration.WITHOUT_PROPAGATION = line.hasOption("withoutPropogation");
 		Configuration.WITH_ENUM_BY_VAL = line.hasOption("withEnumsByValue");
 		Configuration.WITH_UNBOX_ACMPEQ = line.hasOption("forceUnboxAcmpEq");
 		Configuration.WITH_SELECTIVE_INST = line.hasOption("withSelectiveInst");

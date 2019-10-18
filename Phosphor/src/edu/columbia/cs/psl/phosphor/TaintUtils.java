@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.SignatureReWriter;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
@@ -24,6 +26,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.GET_TAINT_OBJECT;
 
 public class TaintUtils {
     public static final boolean OPT_PURE_METHODS = false;
@@ -252,12 +256,12 @@ public class TaintUtils {
 
     /* Returns whether the specified class is a taint sentinel type. */
     public static boolean isTaintSentinel(Class<?> clazz) {
-        return TaintSentinel.class.equals(clazz) || UninstrumentedTaintSentinel.class.equals(clazz);
+        return TaintSentinel.class.equals(clazz);
     }
 
     /* Returns whether the specified type is for a taint sentinel. */
     public static boolean isTaintSentinel(Type type) {
-        return type.equals(Type.getType(TaintSentinel.class)) || type.equals(Type.getType(UninstrumentedTaintSentinel.class));
+        return type.equals(Type.getType(TaintSentinel.class));
     }
 
     /* Returns whether the specified method description contains a taint sentinel. */
@@ -271,6 +275,7 @@ public class TaintUtils {
         return false;
     }
 
+    @InvokedViaInstrumentation(record = GET_TAINT_OBJECT)
     public static Taint getTaintObj(Object obj) {
 		if(obj == null || Taint.IGNORE_TAINTING) {
 			return null;
