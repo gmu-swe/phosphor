@@ -16,10 +16,11 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 	String labelA = "a";
 	String labelFoo = "Foo";
 
-	class Holder{
+	class Holder {
 		int x;
 		long j;
 	}
+
 	@Test
 	public void testTaintingOnFieldWrites() throws Exception {
 		int var = MultiTainter.taintedInt(1,"testTaintingOnFieldWrites");

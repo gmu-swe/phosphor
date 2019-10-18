@@ -226,9 +226,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     superMethodsToOverride.put(m.getName() + Type.getMethodDescriptor(m), m);
                 }
             } catch(ClassNotFoundException e) {
-                e.printStackTrace();
+                if(!superName.startsWith("sun/reflect/")) {
+                    e.printStackTrace();
+                }
             }
-
         }
         this.className = name;
         this.superName = superName;

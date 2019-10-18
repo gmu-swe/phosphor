@@ -2421,7 +2421,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
         if(this.isExcludedFromControlTrack && ((opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN) || opcode == Opcodes.ATHROW)) {
             super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-            visit(CONTROL_STACK_DISABLE);
+            visit(CONTROL_STACK_ENABLE);
         }
         if(isLambda && opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN) {
             //Do we need to box?
