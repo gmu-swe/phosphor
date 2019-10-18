@@ -40,7 +40,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     Type[] paramTypes;
     int controlTaintArray = -1;
     boolean isImplicitLightTracking;
-    boolean isIgnoreAllInstrumenting = false;
+    boolean isIgnoreAllInstrumenting;
     boolean isRawInsns = false;
     private int branchStarting = DO_NOT_TRACK_BRANCH_STARTING;
     private List<Field> forceCtrlStoreFields = new LinkedList<>();
@@ -1962,12 +1962,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             super.visitMethodInsn(opcode, owner, name, desc, isInterface);
             return;
         }
-        //Stupid workaround for eclipse benchmark
         if(name.equals("getProperty") && className.equals("org/eclipse/jdt/core/tests/util/Util")) {
+            // Workaround for eclipse benchmark
             owner = Type.getInternalName(ReflectionMasker.class);
             name = "getPropertyHideBootClasspath";
         }
-
         if(opcode == INVOKESTATIC && isBoxUnboxMethodToWrap(owner, name, desc)) {
             if(name.equals("valueOf") && desc.startsWith("(Ljava/lang/String;")) {
                 switch(owner) {

@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -14,6 +15,16 @@ public interface TaintTagFactory {
 
     void instrumentationEnding(String className);
 
+    /**
+     * Returns whether a class with the specified name is used by Phosphor for "internal" tainting. Calls to methods in
+     * internal tainting classes from instrumented classes are remapped to the appropriate "$$PHOSPHORTAGGED" version
+     * even if the internal tainting class is not instrumented by Phosphor. This requires internal tainting classes to
+     * provide instrumented versions of any method that may be invoked by a classes that is instrumented by Phosphor.
+     *
+     * @param className the name of class being checking
+     * @return true if a class with the specified name is used by Phosphor for internal tainting
+     * @see MultiTainter
+     */
     boolean isInternalTaintingClass(String className);
 
     void insnIndexVisited(int offset);
@@ -48,7 +59,7 @@ public interface TaintTagFactory {
 
     void tableSwitch(int min, int max, Label defaultLabel, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV);
 
-    void propogateTagNative(String className, int acc, String methodName, String newDesc, MethodVisitor mv);
+    void propagateTagNative(String className, int acc, String methodName, String newDesc, MethodVisitor mv);
 
     void generateSetTag(MethodVisitor mv, String className);
 }

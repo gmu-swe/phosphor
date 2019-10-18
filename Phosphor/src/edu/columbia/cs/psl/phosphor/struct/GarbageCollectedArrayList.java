@@ -7,9 +7,9 @@ import java.lang.ref.ReferenceQueue;
 public class GarbageCollectedArrayList<T> {
     private int max = 0;
     private T[] array;
-    private IntSinglyLinkedList free;
+    private final IntSinglyLinkedList free;
     private ArrayListReference[] referents;
-    private ReferenceQueue referenceQueue = new ReferenceQueue();
+    private final ReferenceQueue referenceQueue = new ReferenceQueue();
 
     @SuppressWarnings("unchecked")
     public GarbageCollectedArrayList() {
@@ -25,6 +25,7 @@ public class GarbageCollectedArrayList<T> {
         return array[i];
     }
 
+    @SuppressWarnings("unchecked")
     private void grow(int minCapacity) {
         int oldCapacity = array.length;
         int newCapacity = oldCapacity + (oldCapacity >> 1);
@@ -48,14 +49,18 @@ public class GarbageCollectedArrayList<T> {
         int ret = max;
         for(Reference ref; (ref = referenceQueue.poll()) != null; ) {
             int freed = ((ArrayListReference) ref).idx;
-            free.enqueue(freed);
+            synchronized(free) {
+                free.enqueue(freed);
+            }
             array[freed] = null;
         }
-        if(!free.isEmpty()) {
-            ret = free.pop();
-        } else {
-            grow(max + 1);
-            max++;
+        synchronized(free) {
+            if(!free.isEmpty()) {
+                ret = free.pop();
+            } else {
+                grow(max + 1);
+                max++;
+            }
         }
         if(referent != null) {
             referents[ret] = new ArrayListReference(referent, ret, referenceQueue);
@@ -65,16 +70,17 @@ public class GarbageCollectedArrayList<T> {
     }
 
     private int addSlow(Object referent, T obj) {
-        if(!free.isEmpty()) {
-            int ret = free.pop();
-            array[ret] = obj;
-            if(referent != null) {
-                referents[ret] = new ArrayListReference(referent, ret, referenceQueue);
+        synchronized(free) {
+            if(!free.isEmpty()) {
+                int ret = free.pop();
+                array[ret] = obj;
+                if(referent != null) {
+                    referents[ret] = new ArrayListReference(referent, ret, referenceQueue);
+                }
+                return ret;
             }
-            return ret;
-        } else {
-            return growOrGC(referent, obj);
         }
+        return growOrGC(referent, obj);
     }
 
     public int add(Object referent, T obj) {

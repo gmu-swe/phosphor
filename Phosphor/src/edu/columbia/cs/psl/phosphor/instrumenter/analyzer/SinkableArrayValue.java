@@ -23,13 +23,13 @@ public class SinkableArrayValue extends BasicValue {
 	public boolean isNewArray;
 	
 	public SinkableArrayValue copyOf;
-	public boolean dontPropogateToDeps;
+	public boolean doNotPropagateToDeps;
 	public boolean flowsToPrim;
-	public boolean okToPropogateToDeps;
+	public boolean okToPropagateToDeps;
 	
 	public boolean[] leaveDupOnAt = new boolean[4];
 	
-	public LinkedList<SinkableArrayValue> otherDups = new LinkedList<SinkableArrayValue>();
+	public LinkedList<SinkableArrayValue> otherDups = new LinkedList<>();
 	public boolean isBottomDup;
 	public boolean resolved;
 
@@ -57,27 +57,27 @@ public class SinkableArrayValue extends BasicValue {
 	}
 	public void addDepCopy(SinkableArrayValue d) {
 		if (d != null && deps == null)
-			deps = new HashSet<SinkableArrayValue>();
+			deps = new HashSet<>();
 		if(deps.add(d) && d.isNewArray)
 			isNewArray = true;
 		copyOf = d;
 		if(d.reverseDeps == null)
-			d.reverseDeps = new HashSet<SinkableArrayValue>();
+			d.reverseDeps = new HashSet<>();
 		d.reverseDeps.add(this);
 	}
 	
 	public void addDep(SinkableArrayValue d) {
 		if (d != null && deps == null)
-			deps = new HashSet<SinkableArrayValue>();
+			deps = new HashSet<>();
 		deps.add(d);
 		if(d.reverseDeps == null)
-			d.reverseDeps = new HashSet<SinkableArrayValue>();
+			d.reverseDeps = new HashSet<>();
 		d.reverseDeps.add(this);
 	}
 	
 	public HashSet<SinkableArrayValue> getAllDepsFlat()
 	{
-		HashSet<SinkableArrayValue> ret = new HashSet<SinkableArrayValue>();
+		HashSet<SinkableArrayValue> ret = new HashSet<>();
 		if(deps != null)
 		for(SinkableArrayValue r : deps)
 		{
@@ -149,7 +149,7 @@ public class SinkableArrayValue extends BasicValue {
 		if (this == NULL_VALUE)
 			return "N";
 		else
-			return (flowsToInstMethodCall ? "T" : "F") + "<"+ formatDesc() + "> "+ (dontPropogateToDeps ? "T" : "F")+ (src != null && src.getOpcode() > 0 ? Printer.OPCODES[src.getOpcode()] : "????") + (src != null ? "@"+getLine():"");
+			return (flowsToInstMethodCall ? "T" : "F") + "<"+ formatDesc() + "> "+ (doNotPropagateToDeps ? "T" : "F")+ (src != null && src.getOpcode() > 0 ? Printer.OPCODES[src.getOpcode()] : "????") + (src != null ? "@"+getLine():"");
 	}
 
 	private String formatDesc() {
@@ -169,9 +169,9 @@ public class SinkableArrayValue extends BasicValue {
 	
 	public Collection<SinkableArrayValue> tag(AbstractInsnNode sink) {
 
-		LinkedList<SinkableArrayValue> queue = new LinkedList<SinkableArrayValue>();
+		LinkedList<SinkableArrayValue> queue = new LinkedList<>();
 		queue.add(this);
-		LinkedList<SinkableArrayValue> ret = new LinkedList<SinkableArrayValue>();
+		LinkedList<SinkableArrayValue> ret = new LinkedList<>();
 		LinkedList<SinkableArrayValue> processed = new LinkedList<>();
 		if(this.getType() != null && this.getType().getSort() == Type.ARRAY && this.getType().getDimensions() > 1)
 			return ret;
@@ -190,7 +190,7 @@ public class SinkableArrayValue extends BasicValue {
 				v.sink = sink;
 //				if(src != null)
 //				System.out.println("TAG " + this + " " + Printer.OPCODES[src.getOpcode()] + (src.getOpcode() == Opcodes.ALOAD ? ((VarInsnNode)src).var : ""));
-				if (v.deps != null && !v.dontPropogateToDeps)
+				if (v.deps != null && !v.doNotPropagateToDeps)
 				{
 					queue.addAll(v.deps);
 				}
@@ -247,7 +247,7 @@ public class SinkableArrayValue extends BasicValue {
 		{
 			if((src != null && obj.src == null) || (src == null && obj.src != null))
 				return false;
-			if (dontPropogateToDeps == obj.dontPropogateToDeps && ((src == null && obj.src == null) || src.equals(obj.getSrc()))) {
+			if (doNotPropagateToDeps == obj.doNotPropagateToDeps && ((src == null && obj.src == null) || src.equals(obj.getSrc()))) {
 				if((deps != null && obj.deps == null) || (deps == null && obj.deps != null))
 					return false;
 				if((deps == null && obj.deps == null) || deps.equals(obj.deps))

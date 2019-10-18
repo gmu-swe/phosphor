@@ -530,7 +530,6 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
     public void typeOp(int opcode, String type, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
         switch(opcode) {
             case Opcodes.INSTANCEOF:
-                break;
             case Opcodes.CHECKCAST:
                 break;
         }
@@ -558,7 +557,6 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
             mv.visitMethodInsn(INVOKESTATIC, Configuration.MULTI_TAINT_HANDLER_CLASS, "combineTags", "(" + Configuration.TAINT_TAG_DESC + "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)"
                     + Configuration.TAINT_TAG_DESC, false);
             mv.visitVarInsn(ASTORE, shadowVar);
-
         }
     }
 
@@ -598,7 +596,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
     }
 
     @Override
-    public void propogateTagNative(String className, int acc, String methodName, String newDesc, MethodVisitor mv) {
+    public void propagateTagNative(String className, int acc, String methodName, String newDesc, MethodVisitor mv) {
         int idx = 0;
         Type[] argTypes = Type.getArgumentTypes(newDesc);
         if((acc & Opcodes.ACC_STATIC) == 0) {

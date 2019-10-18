@@ -47,7 +47,7 @@ public class Instrumenter {
             .desc("Enable taint tracking through control flow")
             .build();
     static Option opt_controlLightTrack = Option.builder("lightControlTrack")
-            .desc("Enable taint tracking through control flow, but does NOT propogate control dependencies between methods")
+            .desc("Enable taint tracking through control flow, but does NOT propagate control dependencies between methods")
             .build();
     static Option opt_controlTrackExceptions = Option.builder("controlTrackExceptions")
             .desc("Enable taint tracking through exceptional control flow")
@@ -64,11 +64,11 @@ public class Instrumenter {
     static Option opt_withoutFieldHiding = Option.builder("withoutFieldHiding")
             .desc("Disable hiding of taint fields via reflection")
             .build();
-    static Option opt_withoutPropogation = Option.builder("withoutPropogation")
-            .desc("Disable all tag propogation - still create method stubs and wrappers as per other options, but don't actually propogate tags")
+    static Option opt_withoutPropagation = Option.builder("withoutPropagation")
+            .desc("Disable all tag propagation - still create method stubs and wrappers as per other options, but don't actually propagate tags")
             .build();
-    static Option opt_enumPropogation = Option.builder("withEnumsByValue")
-            .desc("Propogate tags to enums as if each enum were a value (not a reference) through the Enum.valueOf method")
+    static Option opt_enumPropagation = Option.builder("withEnumsByValue")
+            .desc("Propagate tags to enums as if each enum were a value (not a reference) through the Enum.valueOf method")
             .build();
     static Option opt_unboxAcmpEq = Option.builder("forceUnboxAcmpEq")
             .desc("At each object equality comparison, ensure that all operands are unboxed (and not boxed types, which may not pass the test)")
@@ -93,7 +93,7 @@ public class Instrumenter {
             .desc("Specify the class name for a ClassVisitor class to be added to Phosphor's visitor chain before taint tracking is added to the class.")
             .build();
     static Option opt_implicitHeadersNoTracking = Option.builder("implicitHeadersNoTracking")
-            .desc("Add method headers for doing implicit tracking, but don't actually propogate them")
+            .desc("Add method headers for doing implicit tracking, but don't actually propagate them")
             .build();
     static Option opt_reenableCaches = Option.builder("reenableCaches")
             .desc("Prevent Phosphor from disabling caches.")
@@ -169,14 +169,12 @@ public class Instrumenter {
                 || StringUtils.startsWith(owner, "java/lang/invoke/LambdaMetafactory")
                 || StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor/struct/TaintedWith")
                 || StringUtils.startsWith(owner, "java/util/regex/HashDecompositions") //Huge constant array/hashmap
-
                 || StringUtils.startsWith(owner, "java/lang/invoke/MethodHandle")
                 || (StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle")
                 && !StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle$Factory"))
                 || StringUtils.startsWith(owner, "java/lang/invoke/DelegatingMethodHandle")
                 || owner.equals("java/lang/invoke/DirectMethodHandle")
                 || StringUtils.startsWith(owner, "java/util/function/Function")
-
                 ;
     }
 
@@ -250,8 +248,8 @@ public class Instrumenter {
         options.addOption(opt_trackArrayLengthTaints);
         options.addOption(opt_trackArrayIndexTaints);
         options.addOption(opt_withoutFieldHiding);
-        options.addOption(opt_withoutPropogation);
-        options.addOption(opt_enumPropogation);
+        options.addOption(opt_withoutPropagation);
+        options.addOption(opt_enumPropagation);
         options.addOption(opt_unboxAcmpEq);
         options.addOption(opt_disableJumpOptimizations);
         options.addOption(opt_readAndSaveBCI);
@@ -288,7 +286,7 @@ public class Instrumenter {
         Configuration.DATAFLOW_TRACKING = !line.hasOption("withoutDataTrack");
         Configuration.ARRAY_LENGTH_TRACKING = line.hasOption("withArrayLengthTags");
         Configuration.WITHOUT_FIELD_HIDING = line.hasOption("withoutFieldHiding");
-        Configuration.WITHOUT_PROPAGATION = line.hasOption("withoutPropogation");
+        Configuration.WITHOUT_PROPAGATION = line.hasOption(opt_withoutPropagation.getOpt());
         Configuration.WITH_ENUM_BY_VAL = line.hasOption("withEnumsByValue");
         Configuration.WITH_UNBOX_ACMPEQ = line.hasOption("forceUnboxAcmpEq");
         Configuration.WITH_TAGS_FOR_JUMPS = line.hasOption("disableJumpOptimizations");

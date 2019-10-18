@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map.Entry;
 
 /**
  * CV responsibilities: Add a field to classes to track each instance's taint
@@ -721,14 +720,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
                     mv.visitVarInsn(Opcodes.ALOAD, 1);
                     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-                } else if((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME) || className.equals(TaintPassingMV.FLOAT_NAME) || className
-                        .equals(TaintPassingMV.DOUBLE_NAME))) {
+                } else if((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME)
+                        || className.equals(TaintPassingMV.FLOAT_NAME) || className.equals(TaintPassingMV.DOUBLE_NAME))) {
                     //For primitive types, also set the "value" field
                     mv.visitVarInsn(Opcodes.ALOAD, 0);
                     mv.visitVarInsn(Opcodes.ALOAD, 1);
                     mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-
-
                 }
                 mv.visitInsn(Opcodes.RETURN);
                 mv.visitMaxs(0, 0);
@@ -742,8 +739,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 String[] exceptions = new String[m.exceptions.size()];
                 exceptions = (String[]) m.exceptions.toArray(exceptions);
 
-                MethodVisitor mv = super.visitMethod(m.access, m.name + "$$PHOSPHORTAGGED", m.desc, m.signature, exceptions);
-                GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name + "$$PHOSPHORTAGGED", m.desc);
+                MethodVisitor mv = super.visitMethod(m.access, m.name + TaintUtils.METHOD_SUFFIX, m.desc, m.signature, exceptions);
+                GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name + TaintUtils.METHOD_SUFFIX, m.desc);
 
                 m.accept(ga);
 
@@ -804,7 +801,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 newDesc += ")";
                 newDesc += t;
 
-                MethodNode z = new MethodNode(m.access | Opcodes.ACC_MODULE, m.name.replace("$$PHOSPHORTAGGED", ""), newDesc, m.signature, exceptions);
+                MethodNode z = new MethodNode(m.access | Opcodes.ACC_MODULE, m.name.replace(TaintUtils.METHOD_SUFFIX, ""), newDesc, m.signature, exceptions);
                 methodsToAddWrappersFor.add(z);
                 methodsToAddLambdaUnWrappersFor.add(z);
                 if(returnTypeToHackOnLambda != null) {
@@ -904,11 +901,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     LocalVariableNode n = (LocalVariableNode) o;
                     ga.visitLocalVariable(n.name, n.desc, n.signature, startLabel, endLabel, n.index);
                 }
-
                 ga.visitMaxs(0, 0);
                 ga.visitEnd();
             }
-
         }
 
         if(!goLightOnGeneratedStuff) {
@@ -1429,7 +1424,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
                         an.visitVarInsn(Opcodes.ALOAD, retIdx);
                         Configuration.taintTagFactory.generateEmptyTaint(ga);
-                        Configuration.taintTagFactory.propogateTagNative(className, m.access, m.name, m.desc, mv);
+                        Configuration.taintTagFactory.propagateTagNative(className, m.access, m.name, m.desc, mv);
                         ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
                         an.visitVarInsn(Opcodes.ALOAD, retIdx);
                     } else {
@@ -1440,7 +1435,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
                         an.visitVarInsn(Opcodes.ALOAD, retIdx);
                         Configuration.taintTagFactory.generateEmptyTaint(ga);
-                        Configuration.taintTagFactory.propogateTagNative(className, m.access, m.name, m.desc, mv);
+                        Configuration.taintTagFactory.propagateTagNative(className, m.access, m.name, m.desc, mv);
                         ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
                         an.visitVarInsn(Opcodes.ALOAD, retIdx);
                     }

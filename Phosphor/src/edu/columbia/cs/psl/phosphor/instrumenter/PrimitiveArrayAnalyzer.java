@@ -1385,7 +1385,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 //						System.out.println("\t"+b.onFalseSideOfJumpFrom+b.onTrueSideOfJumpFrom+ b.resolvedHereBlocks);
                     b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
                     b.onTrueSideOfJumpFrom.removeAll(b.resolvedBlocks);
-                    //Propogate markings to successors
+                    // Propagate markings to successors
                     for(AnnotatedInstruction s : b.successors) {
                         boolean _changed = s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
                         _changed |= s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
