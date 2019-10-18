@@ -5,14 +5,14 @@ import org.objectweb.asm.MethodVisitor;
 
 public class InstOrUninstChoosingMV extends MethodVisitor {
 
-	private UninstrumentedCompatMV umv;
-	public InstOrUninstChoosingMV(TaintPassingMV tmv, UninstrumentedCompatMV umv) {
-		super(Configuration.ASM_VERSION, tmv);
-		this.umv = umv;
-	}
+    private UninstrumentedCompatMV umv;
 
-	public void disableTainting(){
-		this.mv = umv;
-	}
+    public InstOrUninstChoosingMV(TaintPassingMV tmv, UninstrumentedCompatMV umv) {
+        super(Configuration.ASM_VERSION, tmv);
+        this.umv = umv;
+    }
 
+    public void disableTainting() {
+        this.mv = umv;
+    }
 }

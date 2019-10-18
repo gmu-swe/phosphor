@@ -45,22 +45,22 @@ public class RuntimeReflectionPropagator {
 
     public static Class<?> getType(Field f) {
         String name = f.getName();
-		if(f.getName().endsWith("PHOSPHOR_TAG")) {
-			return f.getType();
-		}
+        if(f.getName().endsWith("PHOSPHOR_TAG")) {
+            return f.getType();
+        }
         Class<?> ret = f.getType();
         Class<?> component = ret;
-		while(component.isArray()) {
-			component = component.getComponentType();
-		}
+        while(component.isArray()) {
+            component = component.getComponentType();
+        }
         if(LazyArrayObjTags.class.isAssignableFrom(component)) {
             String d = Type.getDescriptor(ret);
 
             String newType = "[";
             char[] c = d.toCharArray();
-			for(int i = 0; i < c.length && c[i] == '['; i++) {
-				newType += "[";
-			}
+            for(int i = 0; i < c.length && c[i] == '['; i++) {
+                newType += "[";
+            }
             newType += MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(component);
             try {
                 ret = Class.forName(newType);
@@ -72,35 +72,35 @@ public class RuntimeReflectionPropagator {
     }
 
     public static Object get$$PHOSPHORTAGGED(Field f, Object obj, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
-        return get(f, obj, true);
+        return get(f, obj);
     }
 
-    public static Object get(Field f, Object obj, boolean isObjTags) throws IllegalArgumentException, IllegalAccessException {
+    public static Object get(Field f, Object obj) throws IllegalArgumentException, IllegalAccessException {
         f.setAccessible(true);
         Object ret;
-		if(f.getType().isPrimitive()) {
-			if(f.getType() == Boolean.TYPE) {
-				ret = getBoolean$$PHOSPHORTAGGED(f, obj, new TaintedBooleanWithObjTag());
-			} else if(f.getType() == Byte.TYPE) {
-				ret = getByte$$PHOSPHORTAGGED(f, obj, new TaintedByteWithObjTag());
-			} else if(f.getType() == Character.TYPE) {
-				ret = getChar$$PHOSPHORTAGGED(f, obj, new TaintedCharWithObjTag());
-			} else if(f.getType() == Double.TYPE) {
-				ret = getDouble$$PHOSPHORTAGGED(f, obj, new TaintedDoubleWithObjTag());
-			} else if(f.getType() == Float.TYPE) {
-				ret = getFloat$$PHOSPHORTAGGED(f, obj, new TaintedFloatWithObjTag());
-			} else if(f.getType() == Long.TYPE) {
-				ret = getLong$$PHOSPHORTAGGED(f, obj, new TaintedLongWithObjTag());
-			} else if(f.getType() == Integer.TYPE) {
-				ret = getInt$$PHOSPHORTAGGED(f, obj, new TaintedIntWithObjTag());
-			} else if(f.getType() == Short.TYPE) {
-				ret = getShort$$PHOSPHORTAGGED(f, obj, new TaintedShortWithObjTag());
-			} else {
-				throw new IllegalArgumentException();
-			}
-		} else {
-			ret = f.get(obj);
-		}
+        if(f.getType().isPrimitive()) {
+            if(f.getType() == Boolean.TYPE) {
+                ret = getBoolean$$PHOSPHORTAGGED(f, obj, new TaintedBooleanWithObjTag());
+            } else if(f.getType() == Byte.TYPE) {
+                ret = getByte$$PHOSPHORTAGGED(f, obj, new TaintedByteWithObjTag());
+            } else if(f.getType() == Character.TYPE) {
+                ret = getChar$$PHOSPHORTAGGED(f, obj, new TaintedCharWithObjTag());
+            } else if(f.getType() == Double.TYPE) {
+                ret = getDouble$$PHOSPHORTAGGED(f, obj, new TaintedDoubleWithObjTag());
+            } else if(f.getType() == Float.TYPE) {
+                ret = getFloat$$PHOSPHORTAGGED(f, obj, new TaintedFloatWithObjTag());
+            } else if(f.getType() == Long.TYPE) {
+                ret = getLong$$PHOSPHORTAGGED(f, obj, new TaintedLongWithObjTag());
+            } else if(f.getType() == Integer.TYPE) {
+                ret = getInt$$PHOSPHORTAGGED(f, obj, new TaintedIntWithObjTag());
+            } else if(f.getType() == Short.TYPE) {
+                ret = getShort$$PHOSPHORTAGGED(f, obj, new TaintedShortWithObjTag());
+            } else {
+                throw new IllegalArgumentException();
+            }
+        } else {
+            ret = f.get(obj);
+        }
         if(f.getType().isArray() && f.getType().getComponentType().isPrimitive()) {
             Object taint = null;
 
@@ -110,13 +110,13 @@ public class RuntimeReflectionPropagator {
                         return ret;
                     } else {
                         Field taintField;
-						if(fieldToField.containsKey(f)) {
-							taintField = fieldToField.get(f);
-						} else {
-							taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-							taintField.setAccessible(true);
-							fieldToField.put(f, taintField);
-						}
+                        if(fieldToField.containsKey(f)) {
+                            taintField = fieldToField.get(f);
+                        } else {
+                            taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+                            taintField.setAccessible(true);
+                            fieldToField.put(f, taintField);
+                        }
                         taint = taintField.get(obj);
                         return taint;
                     }
@@ -170,20 +170,20 @@ public class RuntimeReflectionPropagator {
         ret.val = f.getBoolean(obj);
         try {
             Field taintField;
-			if(fieldToField.containsKey(f)) {
-				taintField = fieldToField.get(f);
-			} else {
-				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
-				taintField.setAccessible(true);
-				fieldToField.put(f, taintField);
-			}
+            if(fieldToField.containsKey(f)) {
+                taintField = fieldToField.get(f);
+            } else {
+                taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+                taintField.setAccessible(true);
+                fieldToField.put(f, taintField);
+            }
             Object t = taintField.get(obj);
-			if(t instanceof Taint) {
-				ret.taint = (Taint) t;
-			}
-			if(t instanceof Integer) {
-				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
-			}
+            if(t instanceof Taint) {
+                ret.taint = (Taint) t;
+            }
+            if(t instanceof Integer) {
+                ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
+            }
         } catch(NoSuchFieldException e) {
 //			e.printStackTrace();
         } catch(SecurityException e) {
@@ -197,20 +197,20 @@ public class RuntimeReflectionPropagator {
         ret.val = f.getByte(obj);
         try {
             Field taintField;
-			if(fieldToField.containsKey(f)) {
-				taintField = fieldToField.get(f);
-			} else {
-				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
-				taintField.setAccessible(true);
-				fieldToField.put(f, taintField);
-			}
+            if(fieldToField.containsKey(f)) {
+                taintField = fieldToField.get(f);
+            } else {
+                taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+                taintField.setAccessible(true);
+                fieldToField.put(f, taintField);
+            }
             Object t = taintField.get(obj);
-			if(t instanceof Taint) {
-				ret.taint = (Taint) t;
-			}
-			if(t instanceof Integer) {
-				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
-			}
+            if(t instanceof Taint) {
+                ret.taint = (Taint) t;
+            }
+            if(t instanceof Integer) {
+                ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
+            }
         } catch(NoSuchFieldException e) {
 //			e.printStackTrace();
         } catch(SecurityException e) {
@@ -224,20 +224,20 @@ public class RuntimeReflectionPropagator {
         ret.val = f.getChar(obj);
         try {
             Field taintField;
-			if(fieldToField.containsKey(f)) {
-				taintField = fieldToField.get(f);
-			} else {
-				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
-				taintField.setAccessible(true);
-				fieldToField.put(f, taintField);
-			}
+            if(fieldToField.containsKey(f)) {
+                taintField = fieldToField.get(f);
+            } else {
+                taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+                taintField.setAccessible(true);
+                fieldToField.put(f, taintField);
+            }
             Object t = taintField.get(obj);
-			if(t instanceof Taint) {
-				ret.taint = (Taint) t;
-			}
-			if(t instanceof Integer) {
-				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
-			}
+            if(t instanceof Taint) {
+                ret.taint = (Taint) t;
+            }
+            if(t instanceof Integer) {
+                ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
+            }
         } catch(NoSuchFieldException e) {
 //			e.printStackTrace();
         } catch(SecurityException e) {
@@ -251,20 +251,20 @@ public class RuntimeReflectionPropagator {
         ret.val = f.getDouble(obj);
         try {
             Field taintField;
-			if(fieldToField.containsKey(f)) {
-				taintField = fieldToField.get(f);
-			} else {
-				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
-				taintField.setAccessible(true);
-				fieldToField.put(f, taintField);
-			}
+            if(fieldToField.containsKey(f)) {
+                taintField = fieldToField.get(f);
+            } else {
+                taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+                taintField.setAccessible(true);
+                fieldToField.put(f, taintField);
+            }
             Object t = taintField.get(obj);
-			if(t instanceof Taint) {
-				ret.taint = (Taint) t;
-			}
-			if(t instanceof Integer) {
-				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
-			}
+            if(t instanceof Taint) {
+                ret.taint = (Taint) t;
+            }
+            if(t instanceof Integer) {
+                ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
+            }
         } catch(NoSuchFieldException e) {
 //			e.printStackTrace();
         } catch(SecurityException e) {
@@ -278,20 +278,20 @@ public class RuntimeReflectionPropagator {
         ret.val = f.getFloat(obj);
         try {
             Field taintField;
-			if(fieldToField.containsKey(f)) {
-				taintField = fieldToField.get(f);
-			} else {
-				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
-				taintField.setAccessible(true);
-				fieldToField.put(f, taintField);
-			}
+            if(fieldToField.containsKey(f)) {
+                taintField = fieldToField.get(f);
+            } else {
+                taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+                taintField.setAccessible(true);
+                fieldToField.put(f, taintField);
+            }
             Object t = taintField.get(obj);
-			if(t instanceof Taint) {
-				ret.taint = (Taint) t;
-			}
-			if(t instanceof Integer) {
-				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
-			}
+            if(t instanceof Taint) {
+                ret.taint = (Taint) t;
+            }
+            if(t instanceof Integer) {
+                ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
+            }
         } catch(NoSuchFieldException e) {
 //			e.printStackTrace();
         } catch(SecurityException e) {
@@ -305,20 +305,20 @@ public class RuntimeReflectionPropagator {
         ret.val = f.getInt(obj);
         try {
             Field taintField;
-			if(fieldToField.containsKey(f)) {
-				taintField = fieldToField.get(f);
-			} else {
-				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
-				taintField.setAccessible(true);
-				fieldToField.put(f, taintField);
-			}
+            if(fieldToField.containsKey(f)) {
+                taintField = fieldToField.get(f);
+            } else {
+                taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+                taintField.setAccessible(true);
+                fieldToField.put(f, taintField);
+            }
             Object t = taintField.get(obj);
-			if(t instanceof Taint) {
-				ret.taint = (Taint) t;
-			}
-			if(t instanceof Integer) {
-				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
-			}
+            if(t instanceof Taint) {
+                ret.taint = (Taint) t;
+            }
+            if(t instanceof Integer) {
+                ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
+            }
 
         } catch(SecurityException e) {
             e.printStackTrace();
@@ -333,20 +333,20 @@ public class RuntimeReflectionPropagator {
         ret.val = f.getLong(obj);
         try {
             Field taintField;
-			if(fieldToField.containsKey(f)) {
-				taintField = fieldToField.get(f);
-			} else {
-				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
-				taintField.setAccessible(true);
-				fieldToField.put(f, taintField);
-			}
+            if(fieldToField.containsKey(f)) {
+                taintField = fieldToField.get(f);
+            } else {
+                taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+                taintField.setAccessible(true);
+                fieldToField.put(f, taintField);
+            }
             Object t = taintField.get(obj);
-			if(t instanceof Taint) {
-				ret.taint = (Taint) t;
-			}
-			if(t instanceof Integer) {
-				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
-			}
+            if(t instanceof Taint) {
+                ret.taint = (Taint) t;
+            }
+            if(t instanceof Integer) {
+                ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
+            }
         } catch(NoSuchFieldException | SecurityException e) {
         }
         return ret;
@@ -357,20 +357,20 @@ public class RuntimeReflectionPropagator {
         ret.val = f.getShort(obj);
         try {
             Field taintField;
-			if(fieldToField.containsKey(f)) {
-				taintField = fieldToField.get(f);
-			} else {
-				taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
-				taintField.setAccessible(true);
-				fieldToField.put(f, taintField);
-			}
+            if(fieldToField.containsKey(f)) {
+                taintField = fieldToField.get(f);
+            } else {
+                taintField = f.getDeclaringClass().getField(f.getName() + TaintUtils.TAINT_FIELD);
+                taintField.setAccessible(true);
+                fieldToField.put(f, taintField);
+            }
             Object t = taintField.get(obj);
-			if(t instanceof Taint) {
-				ret.taint = (Taint) t;
-			}
-			if(t instanceof Integer) {
-				ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
-			}
+            if(t instanceof Taint) {
+                ret.taint = (Taint) t;
+            }
+            if(t instanceof Integer) {
+                ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
+            }
         } catch(NoSuchFieldException e) {
 //			e.printStackTrace();
         } catch(SecurityException e) {
@@ -685,9 +685,9 @@ public class RuntimeReflectionPropagator {
 
     private static Taint getTagObj(Object val) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
         Object ret = val.getClass().getField("value" + TaintUtils.TAINT_FIELD).get(val);
-		if(ret instanceof Integer) {
-			ret = HardcodedBypassStore.get(((Integer) ret).intValue());
-		}
+        if(ret instanceof Integer) {
+            ret = HardcodedBypassStore.get(((Integer) ret).intValue());
+        }
         return (Taint) ret;
     }
 
@@ -810,22 +810,16 @@ public class RuntimeReflectionPropagator {
         }
     }
 
-    public static void set(Field f, Object obj, Object val, boolean isObjTags) throws IllegalArgumentException, IllegalAccessException {
+    public static void set(Field f, Object obj, Object val) throws IllegalArgumentException, IllegalAccessException {
         if(f.getType().isPrimitive()) {
             if(val instanceof Integer && f.getType().equals(Integer.TYPE)) {
                 Integer i = (Integer) val;
                 f.setAccessible(true);
                 f.setInt(obj, i.intValue());
                 try {
-                    if(!isObjTags) {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.setInt(obj, getTag(val));
-                    } else {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.set(obj, getTagObj(val));
-                    }
+                    Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+                    tf.setAccessible(true);
+                    tf.set(obj, getTagObj(val));
                 } catch(NoSuchFieldException | SecurityException e) {
                     e.printStackTrace();
                 }
@@ -834,31 +828,15 @@ public class RuntimeReflectionPropagator {
                 Boolean i = (Boolean) val;
                 f.setAccessible(true);
                 f.setBoolean(obj, i.booleanValue());
-                try {
-//					if (!isObjTags)
-//						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setInt(obj, getTag(val));
-//					else
-//						f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).set(obj, getTagObj(val));
-//					} catch (NoSuchFieldException e) {
-//					e.printStackTrace();
-                } catch(SecurityException e) {
-                    e.printStackTrace();
-                }
                 return;
             } else if(val instanceof Byte && f.getType().equals(Byte.TYPE)) {
                 Byte i = (Byte) val;
                 f.setAccessible(true);
                 f.setByte(obj, i.byteValue());
                 try {
-                    if(!isObjTags) {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.setInt(obj, getTag(val));
-                    } else {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.set(obj, getTagObj(val));
-                    }
+                    Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+                    tf.setAccessible(true);
+                    tf.set(obj, getTagObj(val));
                 } catch(NoSuchFieldException | SecurityException e) {
                     e.printStackTrace();
                 }
@@ -868,15 +846,9 @@ public class RuntimeReflectionPropagator {
                 f.setAccessible(true);
                 f.setChar(obj, i.charValue());
                 try {
-                    if(!isObjTags) {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.setInt(obj, getTag(val));
-                    } else {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.set(obj, getTagObj(val));
-                    }
+                    Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+                    tf.setAccessible(true);
+                    tf.set(obj, getTagObj(val));
                 } catch(NoSuchFieldException | SecurityException e) {
                     e.printStackTrace();
                 }
@@ -886,15 +858,9 @@ public class RuntimeReflectionPropagator {
                 f.setAccessible(true);
                 f.setDouble(obj, i.doubleValue());
                 try {
-                    if(!isObjTags) {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.setInt(obj, getTag(val));
-                    } else {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.set(obj, getTagObj(val));
-                    }
+                    Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+                    tf.setAccessible(true);
+                    tf.set(obj, getTagObj(val));
                 } catch(NoSuchFieldException | SecurityException e) {
                     e.printStackTrace();
                 }
@@ -904,15 +870,9 @@ public class RuntimeReflectionPropagator {
                 f.setAccessible(true);
                 f.setFloat(obj, i.floatValue());
                 try {
-                    if(!isObjTags) {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.setInt(obj, getTag(val));
-                    } else {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.set(obj, getTagObj(val));
-                    }
+                    Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+                    tf.setAccessible(true);
+                    tf.set(obj, getTagObj(val));
                 } catch(NoSuchFieldException | SecurityException e) {
                     e.printStackTrace();
                 }
@@ -922,15 +882,9 @@ public class RuntimeReflectionPropagator {
                 f.setAccessible(true);
                 f.setLong(obj, i.longValue());
                 try {
-                    if(!isObjTags) {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.setInt(obj, getTag(val));
-                    } else {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.set(obj, getTagObj(val));
-                    }
+                    Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+                    tf.setAccessible(true);
+                    tf.set(obj, getTagObj(val));
                 } catch(NoSuchFieldException | SecurityException e) {
                     e.printStackTrace();
                 }
@@ -940,15 +894,9 @@ public class RuntimeReflectionPropagator {
                 f.setAccessible(true);
                 f.setShort(obj, i.shortValue());
                 try {
-                    if(!isObjTags) {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.setInt(obj, getTag(val));
-                    } else {
-                        Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                        tf.setAccessible(true);
-                        tf.set(obj, getTagObj(val));
-                    }
+                    Field tf = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+                    tf.setAccessible(true);
+                    tf.set(obj, getTagObj(val));
                 } catch(NoSuchFieldException | SecurityException e) {
                     e.printStackTrace();
                 }
@@ -961,28 +909,29 @@ public class RuntimeReflectionPropagator {
             try {
                 Field taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
                 Unsafe u = getUnsafe();
-				if(Modifier.isStatic(f.getModifiers())) {
-					u.putObject(u.staticFieldBase(taintField), u.staticFieldOffset(taintField), val);
-				} else {
-					u.putObject(obj, u.objectFieldOffset(taintField), val);
-				}
+                if(Modifier.isStatic(f.getModifiers())) {
+                    u.putObject(u.staticFieldBase(taintField), u.staticFieldOffset(taintField), val);
+                } else {
+                    u.putObject(obj, u.objectFieldOffset(taintField), val);
+                }
             } catch(NoSuchFieldException | SecurityException e) {
+                //
             }
         }
     }
 
-    static int getNumberOfDimensions(Class<?> clazz) {
+    private static int getNumberOfDimensions(Class<?> clazz) {
         String name = clazz.getName();
         return name.lastIndexOf('[') + 1;
     }
 
-    static boolean isPrimitiveOrPrimitiveArrayType(Class<?> clazz) {
-		if(clazz.isPrimitive()) {
-			return true;
-		}
-		if(clazz.isArray() && getNumberOfDimensions(clazz) == 1) {
-			return isPrimitiveOrPrimitiveArrayType(clazz.getComponentType());
-		}
+    private static boolean isPrimitiveOrPrimitiveArrayType(Class<?> clazz) {
+        if(clazz.isPrimitive()) {
+            return true;
+        }
+        if(clazz.isArray() && getNumberOfDimensions(clazz) == 1) {
+            return isPrimitiveOrPrimitiveArrayType(clazz.getComponentType());
+        }
         return false;
     }
 }

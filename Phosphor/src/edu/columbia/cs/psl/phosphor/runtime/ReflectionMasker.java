@@ -27,7 +27,6 @@ public class ReflectionMasker {
     private static final int SET_TAG_METHOD_LEN = SET_TAG_METHOD_CHARS.length;
     private static final char[] METHOD_SUFFIX_CHARS = TaintUtils.METHOD_SUFFIX.toCharArray();
     private static final int METHOD_SUFFIX_LEN = METHOD_SUFFIX_CHARS.length;
-    private static final char[] FIELD_SUFFIX_CHARS = TaintUtils.TAINT_FIELD.toCharArray();
 
     static {
         System.setSecurityManager(null);
@@ -69,12 +68,9 @@ public class ReflectionMasker {
         u.putObject(obj, fieldOffset, val);
     }
 
-    @SuppressWarnings("unused")
-    public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
-        return isInstance(c1, o, ret);
-    }
 
     @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = IS_INSTANCE)
     public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, TaintedBooleanWithObjTag ret) {
         ret.taint = null;
         if(o instanceof LazyArrayObjTags && !LazyArrayObjTags.class.isAssignableFrom(c1)) {
@@ -85,6 +81,7 @@ public class ReflectionMasker {
         return ret;
     }
 
+    @SuppressWarnings("unused")
     public static String getPropertyHideBootClasspath(String prop) {
         if(prop.equals("sun.boot.class.path")) {
             return null;
@@ -326,15 +323,18 @@ public class ReflectionMasker {
         return originalParamTypes;
     }
 
-    /* Called for Class.getConstructor and Class.getDeclaredConstructor to remap the parameter types. */
+    /**
+     *  Called for Class.getConstructor and Class.getDeclaredConstructor to remap the parameter types.
+     */
     @SuppressWarnings("unused")
-    public static Class<?>[] addTypeParams(Class<?> clazz, Class<?>[] params, boolean implicitTracking, boolean isObjTags) {
+    @InvokedViaInstrumentation(record = ADD_TYPE_PARAMS)
+    public static Class<?>[] addTypeParams(Class<?> clazz, Class<?>[] params, boolean implicitTracking) {
         if(isIgnoredClass(clazz) || params == null) {
             return params;
         }
         boolean needsChange = false;
         for(Class<?> c : params) {
-            if(c != null && (c.isPrimitive() || (c.isArray() && isPrimitiveArray(c)))) {
+            if(c != null && isPrimitiveOrPrimitiveArray(c)) {
                 needsChange = true;
             }
         }
@@ -376,19 +376,15 @@ public class ReflectionMasker {
         return params;
     }
 
-    public static Method getDeclaredMethod(Class<?> czz, String name, Class<?>[] params, boolean isObjTags) throws NoSuchMethodException {
+    @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = GET_DECLARED_METHOD)
+    public static Method getDeclaredMethod(Class<?> czz, String name, Class<?>[] params) throws NoSuchMethodException {
         return checkForSyntheticObjectMethod(czz.getDeclaredMethod(name, params), true);
     }
 
-    public static Method getDeclaredMethod$$PHOSPHORTAGGED(Class<?> czz, String name, Class<?>[] params, ControlTaintTagStack ctrl) throws NoSuchMethodException {
-        return checkForSyntheticObjectMethod(czz.getDeclaredMethod(name, params), true);
-    }
-
-    public static Method getMethod$$PHOSPHORTAGGED(Class<?> czz, String name, Class<?>[] params, ControlTaintTagStack ctrl) throws NoSuchMethodException {
-        return checkForSyntheticObjectMethod(czz.getMethod(name, params), false);
-    }
-
-    public static Method getMethod(Class<?> czz, String name, Class<?>[] params, boolean isObjTags) throws NoSuchMethodException {
+    @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = GET_METHOD)
+    public static Method getMethod(Class<?> czz, String name, Class<?>[] params) throws NoSuchMethodException {
         return checkForSyntheticObjectMethod(czz.getMethod(name, params), false);
     }
 
@@ -424,8 +420,8 @@ public class ReflectionMasker {
         return clazz != null && (Instrumenter.isIgnoredClass(clazz.getName().replace('.', '/')) || Object.class.equals(clazz));
     }
 
-    static boolean isPrimitiveArray(Class<?> c) {
-        return c.isArray() ? isPrimitiveArray(c.getComponentType()) : c.isPrimitive();
+    private static boolean isPrimitiveOrPrimitiveArray(Class<?> c) {
+        return c.isArray() ? isPrimitiveOrPrimitiveArray(c.getComponentType()) : c.isPrimitive();
     }
 
     @SuppressWarnings("unused")

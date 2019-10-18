@@ -6,6 +6,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
 import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
+import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -54,7 +55,11 @@ public enum TaintMethodRecord {
     FIX_ALL_ARGS_METHOD(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", MethodInvoke.class, false, Method.class, Object.class, Object[].class),
     FIX_ALL_ARGS_METHOD_CONTROL(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", MethodInvoke.class, false, Method.class, Object.class, Object[].class, ControlTaintTagStack.class),
     FIX_ALL_ARGS_CONSTRUCTOR(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", Object[].class, false, Object[].class, Constructor.class),
-    FIX_ALL_ARGS_CONSTRUCTOR_CONTROL(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", Object[].class, false, Object[].class, Constructor.class, ControlTaintTagStack.class);
+    FIX_ALL_ARGS_CONSTRUCTOR_CONTROL(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", Object[].class, false, Object[].class, Constructor.class, ControlTaintTagStack.class),
+    GET_DECLARED_METHOD(INVOKESTATIC, ReflectionMasker.class, "getDeclaredMethod", Method.class, false, Class.class, String.class, Class[].class),
+    GET_METHOD(INVOKESTATIC, ReflectionMasker.class, "getMethod", Method.class, false, Class.class, String.class, Class[].class),
+    ADD_TYPE_PARAMS(INVOKESTATIC, ReflectionMasker.class, "addTypeParams", Class[].class, false, Class.class, Class[].class, boolean.class),
+    IS_INSTANCE(INVOKESTATIC, ReflectionMasker.class, "isInstance", TaintedBooleanWithObjTag.class, false, Class.class, Object.class, TaintedBooleanWithObjTag.class);
 
     private final int opcode;
     private final String owner;

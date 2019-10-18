@@ -359,13 +359,10 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
             visit(GET_ORIGINAL_CLASS_OBJECT_OUTPUT_STREAM);
         } else if((disable || className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream")) && owner.equals("java/lang/Class") && !owner.equals(className) && name.startsWith("isInstance$$PHOSPHORTAGGED")) {
             // Even if we are ignoring other hiding here, we definitely need to do this.
-            String retDesc = "Ledu/columbia/cs/psl/phosphor/struct/TaintedBooleanWithObjTag;";
-            String newDesc = "(Ljava/lang/Class;Ljava/lang/Object;";
             if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
-                newDesc += Type.getDescriptor(ControlTaintTagStack.class);
+                super.visitInsn(POP);
             }
-            newDesc += (retDesc + ")" + retDesc);
-            super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "isInstance", newDesc, false);
+            visit(IS_INSTANCE);
         } else if(disable) {
             if(this.methodName.startsWith("setObjFieldValues") && owner.equals("sun/misc/Unsafe") && (name.startsWith("putObject") || name.startsWith("compareAndSwapObject"))) {
                 owner = Type.getInternalName(ReflectionMasker.class);
@@ -396,14 +393,18 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                     }
                     break;
                 case "java/lang/Class":
-                    if(nameWithoutSuffix.equals("getMethod") || nameWithoutSuffix.equals("getDeclaredMethod")) {
-                        opcode = INVOKESTATIC;
-                        owner = Type.getInternalName(ReflectionMasker.class);
-                        desc = "(Ljava/lang/Class;" + desc.substring(1);
-                        if(!Configuration.IMPLICIT_TRACKING && !Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
-                            desc = "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/Class;Z)Ljava/lang/reflect/Method;";
-                            super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+                    if(nameWithoutSuffix.equals("getMethod")) {
+                        if(Configuration.IMPLICIT_TRACKING && !Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+                            super.visitInsn(POP);
                         }
+                        visit(GET_METHOD);
+                        return;
+                    } else if(nameWithoutSuffix.equals("getDeclaredMethod")) {
+                        if(Configuration.IMPLICIT_TRACKING && !Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+                            super.visitInsn(POP);
+                        }
+                        visit(GET_DECLARED_METHOD);
+                        return;
                     } else if(nameWithoutSuffix.equals("getConstructor") || nameWithoutSuffix.equals("getDeclaredConstructor")) {
                         // Constructor<T> getDeclaredConstructor(Class<?>... parameterTypes)
                         if(Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
@@ -421,8 +422,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                             super.visitInsn(SWAP);
                         }
                         super.visitInsn((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING ? ICONST_1 : ICONST_0));
-                        super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
-                        super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(ReflectionMasker.class), "addTypeParams", "(Ljava/lang/Class;[Ljava/lang/Class;ZZ)[Ljava/lang/Class;", false);
+                        visit(ADD_TYPE_PARAMS);
                         if(Configuration.IMPLICIT_TRACKING) {
                             super.visitInsn(SWAP);
                         } else if(Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
@@ -445,11 +445,9 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 opcode = INVOKESTATIC;
                 desc = "(Ljava/lang/reflect/Field;" + desc.substring(1);
                 if(name.equals("get")) {
-                    desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Z)Ljava/lang/Object;";
-                    super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+                    desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;)Ljava/lang/Object;";
                 } else if(name.equals("set")) {
-                    desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;Z)V";
-                    super.visitInsn((Configuration.MULTI_TAINTING ? ICONST_1 : ICONST_0));
+                    desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;)V";
                 }
             }
             if(isUnsafeFieldGetter(opcode, owner, name, args, nameWithoutSuffix)) {

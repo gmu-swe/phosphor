@@ -2099,7 +2099,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
             if(callee.getSort() == Type.OBJECT) {
                 String calledOn = callee.getInternalName();
-
                 try {
                     Class in = Class.forName(calledOn.replace('/', '.'), false, TaintPassingMV.class.getClassLoader());
                     if(!in.isInterface() && !Instrumenter.isIgnoredClass(calledOn)) {
@@ -2111,11 +2110,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         owner = Type.getInternalName(TaintedWithObjTag.class);
                         opcode = INVOKEINTERFACE;
                         itfc = true;
-//						t.printStackTrace();
                     }
 
                 }
-
             }
         }
         if(opcode == INVOKEVIRTUAL && Configuration.WITH_HEAVY_OBJ_EQUALS_HASHCODE && (name.equals("equals") || name.equals("hashCode")) && owner.equals("java/lang/Object")) {
