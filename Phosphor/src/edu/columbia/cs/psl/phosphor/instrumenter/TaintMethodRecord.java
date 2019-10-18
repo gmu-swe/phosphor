@@ -27,6 +27,7 @@ public enum TaintMethodRecord {
 
     // Methods from Taint
     COMBINE_TAGS_ON_OBJECT(INVOKESTATIC, Taint.class, "combineTagsOnObject", Void.TYPE, false, Object.class, ControlTaintTagStack.class),
+    COMBINE_TAGS(INVOKESTATIC, Taint.class, "combineTags", TAINT_TAG_OBJ_CLASS, false, TAINT_TAG_OBJ_CLASS, TAINT_TAG_OBJ_CLASS),
     COMBINE_TAGS_CONTROL(INVOKESTATIC, Taint.class, "combineTags", TAINT_TAG_OBJ_CLASS, false, TAINT_TAG_OBJ_CLASS, ControlTaintTagStack.class),
     COPY_TAINT(INVOKESTATIC, Taint.class, "copyTaint", TAINT_TAG_OBJ_CLASS, false, TAINT_TAG_OBJ_CLASS),
     // Methods from TaintUtils

@@ -51,9 +51,9 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     public static final Type getTagType(String internalName) {
-		if(canRawTaintAccess(internalName)) {
-			return taintTagType;
-		}
+        if(canRawTaintAccess(internalName)) {
+            return taintTagType;
+        }
         return Type.INT_TYPE;
     }
 
@@ -62,25 +62,25 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 //				internalName.equals("java/lang/Boolean") ||
 //				internalName.equals("java/lang/Byte") ||
 //				internalName.equals("java/lang/Short") ||
-				internalName.equals("java/lang/Character") ||
-				internalName.equals("java/lang/Double") || internalName.equals("java/lang/Integer") ||
-				internalName.equals("java/lang/Long") || internalName.equals("java/lang/StackTraceElement")));
+                internalName.equals("java/lang/Character") ||
+                internalName.equals("java/lang/Double") || internalName.equals("java/lang/Integer") ||
+                internalName.equals("java/lang/Long") || internalName.equals("java/lang/StackTraceElement")));
     }
 
     public static Object[] removeLongsDoubleTopVal(List<Object> in) {
         ArrayList<Object> ret = new ArrayList<>();
         boolean lastWas2Word = false;
         for(Object n : in) {
-			if((n == Opcodes.TOP || (n instanceof TaggedValue && ((TaggedValue) n).v == Opcodes.TOP)) && lastWas2Word) {
-				//nop
-			} else {
-				ret.add(n);
-			}
-			if(n == Opcodes.DOUBLE || n == Opcodes.LONG || (n instanceof TaggedValue && (((TaggedValue) n).v == Opcodes.DOUBLE || ((TaggedValue) n).v == Opcodes.LONG))) {
-				lastWas2Word = true;
-			} else {
-				lastWas2Word = false;
-			}
+            if((n == Opcodes.TOP || (n instanceof TaggedValue && ((TaggedValue) n).v == Opcodes.TOP)) && lastWas2Word) {
+                //nop
+            } else {
+                ret.add(n);
+            }
+            if(n == Opcodes.DOUBLE || n == Opcodes.LONG || (n instanceof TaggedValue && (((TaggedValue) n).v == Opcodes.DOUBLE || ((TaggedValue) n).v == Opcodes.LONG))) {
+                lastWas2Word = true;
+            } else {
+                lastWas2Word = false;
+            }
         }
         return ret.toArray();
     }
@@ -123,9 +123,9 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             mv.visitInsn(DUP);
             mv.visitInsn(ARRAYLENGTH);
             Type toUse = MultiDTaintedArray.getTypeForType(arrayType);
-			if(toUse.getSort() == Type.ARRAY) {
-				toUse = toUse.getElementType();
-			}
+            if(toUse.getSort() == Type.ARRAY) {
+                toUse = toUse.getElementType();
+            }
             mv.visitMultiANewArrayInsn(toUse.getDescriptor(), 1);
             mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[Ljava/lang/Object;)[[Ljava/lang/Object;", false);
             mv.visitInsn(SWAP);
@@ -134,9 +134,9 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             mv.visitInsn(DUP);
             mv.visitInsn(ARRAYLENGTH);
             Type toUse = MultiDTaintedArray.getTypeForType(arrayType);
-			if(toUse.getSort() == Type.ARRAY) {
-				toUse = toUse.getElementType();
-			}
+            if(toUse.getSort() == Type.ARRAY) {
+                toUse = toUse.getElementType();
+            }
             mv.visitMultiANewArrayInsn("[" + toUse.getDescriptor(), 1);
             mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[Ljava/lang/Object;)[[[Ljava/lang/Object;", false);
             mv.visitInsn(SWAP);
@@ -184,30 +184,30 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     public static Type getTypeForStackType(Object obj) {
-		if(obj instanceof TaggedValue) {
-			obj = ((TaggedValue) obj).v;
-		}
-		if(obj == Opcodes.INTEGER) {
-			return Type.INT_TYPE;
-		}
-		if(obj == Opcodes.FLOAT) {
-			return Type.FLOAT_TYPE;
-		}
-		if(obj == Opcodes.DOUBLE) {
-			return Type.DOUBLE_TYPE;
-		}
-		if(obj == Opcodes.LONG) {
-			return Type.LONG_TYPE;
-		}
-		if(obj == Opcodes.NULL) {
-			return Type.getType("Ljava/lang/Object;");
-		}
-		if(obj instanceof String) {
-			return Type.getObjectType((String) obj);
-		}
-		if(obj instanceof Label || obj == Opcodes.UNINITIALIZED_THIS) {
-			return Type.getType("Luninitialized;");
-		}
+        if(obj instanceof TaggedValue) {
+            obj = ((TaggedValue) obj).v;
+        }
+        if(obj == Opcodes.INTEGER) {
+            return Type.INT_TYPE;
+        }
+        if(obj == Opcodes.FLOAT) {
+            return Type.FLOAT_TYPE;
+        }
+        if(obj == Opcodes.DOUBLE) {
+            return Type.DOUBLE_TYPE;
+        }
+        if(obj == Opcodes.LONG) {
+            return Type.LONG_TYPE;
+        }
+        if(obj == Opcodes.NULL) {
+            return Type.getType("Ljava/lang/Object;");
+        }
+        if(obj instanceof String) {
+            return Type.getObjectType((String) obj);
+        }
+        if(obj instanceof Label || obj == Opcodes.UNINITIALIZED_THIS) {
+            return Type.getType("Luninitialized;");
+        }
         throw new IllegalArgumentException("got " + obj + " zzz" + obj.getClass());
     }
 
@@ -215,9 +215,9 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
         if(obj instanceof String) {
             if(((String) obj).startsWith("[")) {
                 Type t = Type.getType((String) obj);
-				if(t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-					return true;
-				}
+                if(t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
+                    return true;
+                }
             }
             return false;
         }
@@ -225,9 +225,9 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     public static boolean isPrimitiveType(Type t) {
-		if(t == null) {
-			return false;
-		}
+        if(t == null) {
+            return false;
+        }
         switch(t.getSort()) {
             case Type.ARRAY:
                 return t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1;
@@ -240,12 +240,12 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     public static int getStackElementSize(Object obj) {
-		if(obj instanceof TaggedValue) {
-			obj = ((TaggedValue) obj).v;
-		}
-		if(obj == Opcodes.DOUBLE || obj == Opcodes.LONG || obj == Opcodes.TOP) {
-			return 2;
-		}
+        if(obj instanceof TaggedValue) {
+            obj = ((TaggedValue) obj).v;
+        }
+        if(obj == Opcodes.DOUBLE || obj == Opcodes.LONG || obj == Opcodes.TOP) {
+            return 2;
+        }
         return 1;
     }
 
@@ -285,9 +285,9 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     public static FrameNode getCurrentFrameNode(NeverNullArgAnalyzerAdapter a) {
-		if(a.locals == null || a.stack == null) {
-			throw new IllegalArgumentException();
-		}
+        if(a.locals == null || a.stack == null) {
+            throw new IllegalArgumentException();
+        }
         Object[] locals = removeLongsDoubleTopVal(a.locals);
         Object[] stack = removeLongsDoubleTopVal(a.stackTagStatus);
         FrameNode ret = new FrameNode(Opcodes.F_NEW, locals.length, locals, stack.length, stack);
@@ -343,21 +343,21 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     public boolean topHas0Taint() {
-		if(getTopOfStackObject() == Opcodes.TOP) {
-			return Integer.valueOf(0).equals(analyzer.stackConstantVals.get(analyzer.stackConstantVals.size() - 3));
-		} else {
-			return Integer.valueOf(0).equals(analyzer.stackConstantVals.get(analyzer.stackConstantVals.size() - 2));
-		}
+        if(getTopOfStackObject() == Opcodes.TOP) {
+            return Integer.valueOf(0).equals(analyzer.stackConstantVals.get(analyzer.stackConstantVals.size() - 3));
+        } else {
+            return Integer.valueOf(0).equals(analyzer.stackConstantVals.get(analyzer.stackConstantVals.size() - 2));
+        }
     }
 
     public boolean secondHas0Taint() {
         int offset = 2;
-		if(getTopOfStackObject() == Opcodes.TOP) {
-			offset++;
-		}
-		if(getStackElementSize(offset) == Opcodes.TOP) {
-			offset++;
-		}
+        if(getTopOfStackObject() == Opcodes.TOP) {
+            offset++;
+        }
+        if(getStackElementSize(offset) == Opcodes.TOP) {
+            offset++;
+        }
         offset++;
         return Integer.valueOf(0).equals(analyzer.stackConstantVals.get(analyzer.stackConstantVals.size() - offset));
     }
@@ -375,12 +375,12 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     public Type getTopOfStackType() {
-		if(analyzer.stack == null) {
-			throw new NullPointerException();
-		}
-		if(analyzer.stack.get(analyzer.stack.size() - 1) == Opcodes.TOP) {
-			return getStackTypeAtOffset(1);
-		}
+        if(analyzer.stack == null) {
+            throw new NullPointerException();
+        }
+        if(analyzer.stack.get(analyzer.stack.size() - 1) == Opcodes.TOP) {
+            return getStackTypeAtOffset(1);
+        }
         return getStackTypeAtOffset(0);
     }
 
@@ -391,9 +391,6 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     /**
      * Returns the type of the stack element n down from the top: n=0 -> top of
      * stack
-     *
-     * @param n
-     * @return
      */
     public Type getStackTypeAtOffset(int n) {
         return getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 1 - n));
@@ -413,17 +410,17 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     public void unconditionallyRetrieveTopOfStackTaintArray(boolean leaveOnStack) {
-		if(leaveOnStack) {
-			super.visitInsn(DUP);
-		}
+        if(leaveOnStack) {
+            super.visitInsn(DUP);
+        }
         super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaintArray", "(Ljava/lang/Object;)I", false);
     }
 
     public boolean topCarriesTaint() {
         Object t = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 1);
-		if(t == Opcodes.TOP) {
-			t = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 2);
-		}
+        if(t == Opcodes.TOP) {
+            t = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - 2);
+        }
         return t instanceof TaggedValue;
     }
 
@@ -454,12 +451,12 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
         //		nonInstrumentingMV.visitInsn(DUP);
         //		nonInstrumentingMV.visitTypeInsn(INSTANCEOF, Type.getInternalName(Tainted.class));
         //		nonInstrumentingMV.visitJumpInsn(IFNE, bail); //TODO handle numerics, other ignore classes for which we know the taint
-		if(className.equals("java/util/HashMap")) {
-			super.visitInsn(POP);
-			Configuration.taintTagFactory.generateEmptyTaint(mv);
-		} else {
-			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaint", "(Ljava/lang/Object;)I", false);
-		}
+        if(className.equals("java/util/HashMap")) {
+            super.visitInsn(POP);
+            Configuration.taintTagFactory.generateEmptyTaint(mv);
+        } else {
+            super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaint", "(Ljava/lang/Object;)I", false);
+        }
         //		nonInstrumentingMV.visitLabel(bail);
         //		super.visitInsn(POP);
         //		super.visitInsn(ICONST_0);
@@ -565,16 +562,16 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     protected void freeLVs(LocalVariableNode[] lvArray) {
-		for(LocalVariableNode n : lvArray) {
-			lvs.freeTmpLV(n.index);
-		}
+        for(LocalVariableNode n : lvArray) {
+            lvs.freeTmpLV(n.index);
+        }
     }
 
     protected void loadLV(int n, LocalVariableNode[] lvArray) {
         super.visitVarInsn(Type.getType(lvArray[n].desc).getOpcode(ILOAD), lvArray[n].index);
-		if(lvArray[n].signature != null && lvArray[n].signature.equals("true")) {
-			analyzer.setTopOfStackTagged();
-		}
+        if(lvArray[n].signature != null && lvArray[n].signature.equals("true")) {
+            analyzer.setTopOfStackTagged();
+        }
     }
 
     /**
@@ -842,9 +839,6 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     /**
      * Stores the top n stack elements as local variables. Returns an array of
      * all of the lv indices. return[0] is the top element.
-     *
-     * @param n
-     * @return
      */
     protected LocalVariableNode[] storeToLocals(int n) {
         LocalVariableNode[] ret = new LocalVariableNode[n];
@@ -852,11 +846,11 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
         //		System.out.println(analyzer.stack);
         for(int i = 0; i < n; i++) {
             Type elType = null;
-			if(analyzer.stack.get(analyzer.stack.size() - 1) == Opcodes.TOP) {
-				elType = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 2));
-			} else {
-				elType = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 1));
-			}
+            if(analyzer.stack.get(analyzer.stack.size() - 1) == Opcodes.TOP) {
+                elType = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 2));
+            } else {
+                elType = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 1));
+            }
             Boolean istagged = topCarriesTaint();
             ret[i] = new LocalVariableNode(null, elType.getDescriptor(), istagged.toString(), null, null, lvs.getTmpLV());
             super.visitVarInsn(elType.getOpcode(ISTORE), ret[i].index);
