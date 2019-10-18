@@ -270,7 +270,7 @@ public final class ControlTaintTagStack {
     }
 
     public final boolean isEmpty() {
-        return this.isDisabled || taintHistory.peek() == null || taintHistory.peek().isEmpty();
+        return isDisabled || taintHistory.peek() == null || taintHistory.peek().isEmpty();
     }
 
     public void reset() {

@@ -23,22 +23,6 @@ public class RuntimeReflectionPropagator {
         return unsafe;
     }
 
-    public static void setUNINST(Field f, Object obj, Object val) throws IllegalArgumentException, IllegalAccessException {
-        if(MultiDTaintedArray.class.isAssignableFrom(f.getType())) {
-            throw new UnsupportedOperationException();
-        }
-        f.setAccessible(true);
-        f.set(obj, val);
-    }
-
-    public static Object getUNINST(Field f, Object obj) throws IllegalArgumentException, IllegalAccessException {
-        if(MultiDTaintedArray.class.isAssignableFrom(f.getType())) {
-            throw new UnsupportedOperationException();
-        }
-        f.setAccessible(true);
-        return f.get(obj);
-    }
-
     public static Class<?> getType$$PHOSPHORTAGGED(Field f, ControlTaintTagStack ctrl) {
         return getType(f);
     }

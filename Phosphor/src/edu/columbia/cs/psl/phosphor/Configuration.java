@@ -9,6 +9,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -59,7 +60,7 @@ public class Configuration {
 
     public static Class<? extends ClassVisitor> PRIOR_CLASS_VISITOR = null;
 
-    public static HashSet<String> ignoredMethods = new HashSet<>();
+    public static Set<String> ignoredMethods = new HashSet<>();
     /*
      * Derived configuration values
      */

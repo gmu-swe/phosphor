@@ -360,6 +360,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         } else if((disable || className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream")) && owner.equals("java/lang/Class") && !owner.equals(className) && name.startsWith("isInstance$$PHOSPHORTAGGED")) {
             // Even if we are ignoring other hiding here, we definitely need to do this.
             if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+                super.visitInsn(SWAP);
                 super.visitInsn(POP);
             }
             visit(IS_INSTANCE);
