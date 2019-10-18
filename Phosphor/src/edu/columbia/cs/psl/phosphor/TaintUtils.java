@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.ENSURE_UNBOXED;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.GET_TAINT_OBJECT;
 
 public class TaintUtils {
@@ -851,6 +852,8 @@ public class TaintUtils {
         return ret;
     }
 
+    @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = ENSURE_UNBOXED)
     public static Object ensureUnboxed(Object o) {
 		if(o instanceof LazyArrayObjTags) {
 			return ((LazyArrayObjTags) o).getVal();

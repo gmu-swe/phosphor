@@ -289,11 +289,13 @@ public final class ControlTaintTagStack {
     }
 
     @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_ENABLE)
     public void enable() {
         this.isDisabled = false;
     }
 
     @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_DISABLE)
     public void disable() {
         this.isDisabled = true;
     }

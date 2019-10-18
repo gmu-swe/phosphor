@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
-import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import org.objectweb.asm.Type;
@@ -10,7 +9,7 @@ import sun.security.pkcs11.wrapper.CK_ATTRIBUTE;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.BOX_IF_NECESSARY;
 import static org.objectweb.asm.Opcodes.*;
 
 public abstract class MultiDTaintedArray {
@@ -58,11 +57,11 @@ public abstract class MultiDTaintedArray {
     }
 
     public static String isPrimitiveBoxClass(Class c) {
-    	return MultiDTaintedArrayWithObjTag.isPrimitiveBoxClass(c);
+        return MultiDTaintedArrayWithObjTag.isPrimitiveBoxClass(c);
     }
 
     public static String getPrimitiveTypeForWrapper(Class c) {
-    	return MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(c);
+        return MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(c);
     }
 
     public static Class getUnderlyingBoxClassForUnderlyingClass(Class c) {

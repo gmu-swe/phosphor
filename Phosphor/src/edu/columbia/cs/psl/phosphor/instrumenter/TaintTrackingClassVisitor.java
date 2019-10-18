@@ -615,9 +615,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             } else {
                 super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;" + Configuration.TAINTED_INT_DESC + ")" + Configuration.TAINTED_INT_DESC, null, null);
             }
-            if(Configuration.GENERATE_UNINST_STUBS) {
-                super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORUNTAGGED", "(Ljava/lang/Object;)I", null, null);
-            }
         }
 
         if(generateEquals && !goLightOnGeneratedStuff) {
@@ -1120,8 +1117,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         m.accept(mv);
                     }
                 } else {
-
-                    //generate wrapper for native method - a native wrapper
+                    // Generate wrapper for native method - a native wrapper
                     generateNativeWrapper(m, m.name, false);
                     if(className.equals("sun/misc/Unsafe")) {
                         generateNativeWrapper(m, m.name, true);
@@ -1150,92 +1146,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 acc = acc & ~Opcodes.ACC_ABSTRACT;
             }
             MethodNode mn = new MethodNode(Configuration.ASM_VERSION, acc, m.getName(), Type.getMethodDescriptor(m), null, null);
-
             generateNativeWrapper(mn, mn.name, false);
-
-            if(Configuration.GENERATE_UNINST_STUBS) {
-                MethodVisitor mv = super.visitMethod((isInterface ? mn.access : mn.access & ~Opcodes.ACC_ABSTRACT), mn.name + TaintUtils.METHOD_SUFFIX_UNINST, mn.desc, mn.signature,
-                        (String[]) mn.exceptions.toArray(new String[0]));
-                GeneratorAdapter ga = new GeneratorAdapter(mv, mn.access, mn.name, mn.desc);
-                visitAnnotations(mv, mn);
-                if(!isInterface) {
-                    mv.visitCode();
-                    int opcode;
-                    if((mn.access & Opcodes.ACC_STATIC) == 0) {
-                        ga.loadThis();
-                        opcode = Opcodes.INVOKESPECIAL;
-                    } else {
-                        opcode = Opcodes.INVOKESTATIC;
-                    }
-                    ga.loadArgs();
-
-                    ga.visitMethodInsn(opcode, className, mn.name, mn.desc, false);
-                    ga.returnValue();
-                    mv.visitMaxs(0, 0);
-                    mv.visitEnd();
-                }
-            }
-        }
-        if(Configuration.WITH_SELECTIVE_INST) {
-            //Make sure that there's a wrapper in place for each method
-            for(MethodNode m : methodsToMakeUninstWrappersAround) {
-                //these methods were previously renamed to be $$PHOSPHORUNTASGGED
-                //first, make one that has a descriptor WITH taint tags, that calls into the uninst one
-                generateNativeWrapper(m, m.name + TaintUtils.METHOD_SUFFIX_UNINST, false);
-                //next, make one WITHOUT taint tags, and WITHOUT the suffix
-                String mName = m.name;
-                String mToCall = m.name;
-                String descToCall = m.desc;
-                boolean isInit = false;
-                String mDesc = m.desc;
-                if((Opcodes.ACC_NATIVE & m.access) != 0) {
-                    mName += TaintUtils.METHOD_SUFFIX_UNINST;
-                    m.access = m.access & ~Opcodes.ACC_NATIVE;
-                    mDesc = TaintUtils.remapMethodDescForUninst(mDesc);
-                } else if(m.name.equals("<init>")) {
-                    isInit = true;
-                    descToCall = mDesc.substring(0, m.desc.indexOf(')')) + Type.getDescriptor(UninstrumentedTaintSentinel.class) + ")" + mDesc.substring(mDesc.indexOf(')') + 1);
-                    descToCall = TaintUtils.remapMethodDescForUninst(descToCall);
-                } else {
-                    mToCall += TaintUtils.METHOD_SUFFIX_UNINST;
-                    descToCall = TaintUtils.remapMethodDescForUninst(descToCall);
-                }
-                MethodVisitor mv = super.visitMethod(m.access, mName, mDesc, m.signature, (String[]) m.exceptions.toArray(new String[0]));
-                visitAnnotations(mv, m);
-
-                if(!isInterface) {
-                    GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name, mDesc);
-                    mv.visitCode();
-                    int opcode;
-                    if((m.access & Opcodes.ACC_STATIC) == 0) {
-                        ga.loadThis();
-                        opcode = Opcodes.INVOKESPECIAL;
-                    } else {
-                        opcode = Opcodes.INVOKESTATIC;
-                    }
-                    Type[] origArgs = Type.getArgumentTypes(m.desc);
-                    Type[] newArgs = Type.getArgumentTypes(descToCall);
-                    for(int i = 0; i < origArgs.length; i++) {
-                        ga.loadArg(i);
-                        if(origArgs[i].getSort() == Type.ARRAY && origArgs[i].getElementType().getSort() != Type.OBJECT && origArgs[i].getDimensions() > 1) {
-                            ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-                            ga.visitTypeInsn(Opcodes.CHECKCAST, newArgs[i].getInternalName());
-                        }
-                    }
-                    if(isInit) {
-                        ga.visitInsn(Opcodes.ACONST_NULL);
-                    }
-                    Type retType = Type.getReturnType(m.desc);
-                    ga.visitMethodInsn(opcode, className, mToCall, descToCall, false);
-                    if(retType.getSort() == Type.ARRAY && retType.getDimensions() > 1 && retType.getElementType().getSort() != Type.OBJECT) {
-                        ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArrayWithObjTag.class), "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-                        ga.checkCast(retType);
-                    }
-                    ga.returnValue();
-                    mv.visitMaxs(0, 0);
-                }
-                mv.visitEnd();
-            }
         }
         super.visitEnd();
     }

@@ -111,12 +111,6 @@ public class ReflectionMasker {
                 }
                 return m;
             }
-            x = 0;
-            if(Configuration.GENERATE_UNINST_STUBS && chars.length > METHOD_SUFFIX_LEN + 2) {
-                for(int i = chars.length - METHOD_SUFFIX_LEN - 2; i < chars.length; i++) {
-                    x++;
-                }
-            }
         }
         if(declaredInIgnoredClass(m)) {
             return m;
@@ -212,12 +206,6 @@ public class ReflectionMasker {
                     setMark(m, true);
                 }
                 return m;
-            }
-            x = 0;
-            if(Configuration.GENERATE_UNINST_STUBS && chars.length > METHOD_SUFFIX_LEN + 2) {
-                for(int i = chars.length - METHOD_SUFFIX_LEN - 2; i < chars.length; i++) {
-                    x++;
-                }
             }
         }
         ArrayList<Class> newArgs = new ArrayList<>();
@@ -350,7 +338,7 @@ public class ReflectionMasker {
                         if(t.getDimensions() == 1) {
                             newParams.add(MultiDTaintedArray.getUnderlyingBoxClassForUnderlyingClass(c));
                         } else {
-                            Type newType = null;
+                            Type newType;
                             newType = MultiDTaintedArrayWithObjTag.getTypeForType(t);
                             try {
                                 newParams.add(Class.forName(newType.getInternalName().replace("/", ".")));
@@ -622,14 +610,7 @@ public class ReflectionMasker {
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = GET_ORIGINAL_METHOD)
     public static Method getOriginalMethod(Method m) {
-        if(Configuration.GENERATE_UNINST_STUBS && m.getName().endsWith(TaintUtils.METHOD_SUFFIX_UNINST)) {
-            String origName = m.getName().replace(TaintUtils.METHOD_SUFFIX_UNINST, "");
-            try {
-                return m.getDeclaringClass().getDeclaredMethod(origName, m.getParameterTypes());
-            } catch(NoSuchMethodException | SecurityException e) {
-                e.printStackTrace();
-            }
-        } else if(getCachedMethod(m) != null && isMarked(m)) {
+        if(getCachedMethod(m) != null && isMarked(m)) {
             return getCachedMethod(m);
         }
         return m;
@@ -771,7 +752,6 @@ public class ReflectionMasker {
                     }
                     x++;
                 }
-                x = 0;
                 if(!matched) {
                     ret.enqueue(f);
                 }

@@ -8,12 +8,12 @@ import org.junit.Before;
 public class BasePhosphorTest {
     @Before
     public void clearErrorFlag() {
-        PreMain.INSTRUMENTATION_EXCEPTION_OCURRED = false;
+        PreMain.INSTRUMENTATION_EXCEPTION_OCCURRED = false;
     }
 
     @After
     public void checkForError() {
-		if(PreMain.INSTRUMENTATION_EXCEPTION_OCURRED) {
+		if(PreMain.INSTRUMENTATION_EXCEPTION_OCCURRED) {
 			Assert.fail("Instrumentation error occurred");
 		}
     }
