@@ -7,14 +7,13 @@ import java.lang.ref.ReferenceQueue;
 public class GarbageCollectedArrayList<T> {
     private int max = 0;
     private T[] array;
-    private final IntSinglyLinkedList free;
     private ArrayListReference[] referents;
-    private final ReferenceQueue referenceQueue = new ReferenceQueue();
+    private final IntSinglyLinkedList free = new IntSinglyLinkedList();
+    private final ReferenceQueue<Object> referenceQueue = new ReferenceQueue<>();
 
     @SuppressWarnings("unchecked")
     public GarbageCollectedArrayList() {
         array = (T[]) new Object[200];
-        free = new IntSinglyLinkedList();
         referents = new ArrayListReference[200];
     }
 
@@ -35,11 +34,9 @@ public class GarbageCollectedArrayList<T> {
         if(newCapacity - (Integer.MAX_VALUE - 8) > 0) {
             newCapacity = Integer.MAX_VALUE - 8;
         }
-
         T[] tmp = array;
         array = (T[]) new Object[newCapacity];
         System.arraycopy(tmp, 0, array, 0, tmp.length);
-
         ArrayListReference[] referencesTmp = referents;
         referents = new ArrayListReference[newCapacity];
         System.arraycopy(referencesTmp, 0, referents, 0, referencesTmp.length);
@@ -49,18 +46,14 @@ public class GarbageCollectedArrayList<T> {
         int ret = max;
         for(Reference ref; (ref = referenceQueue.poll()) != null; ) {
             int freed = ((ArrayListReference) ref).idx;
-            synchronized(free) {
-                free.enqueue(freed);
-            }
+            free.enqueue(freed);
             array[freed] = null;
         }
-        synchronized(free) {
-            if(!free.isEmpty()) {
-                ret = free.pop();
-            } else {
-                grow(max + 1);
-                max++;
-            }
+        if(!free.isEmpty()) {
+            ret = free.pop();
+        } else {
+            grow(max + 1);
+            max++;
         }
         if(referent != null) {
             referents[ret] = new ArrayListReference(referent, ret, referenceQueue);
@@ -70,15 +63,13 @@ public class GarbageCollectedArrayList<T> {
     }
 
     private int addSlow(Object referent, T obj) {
-        synchronized(free) {
-            if(!free.isEmpty()) {
-                int ret = free.pop();
-                array[ret] = obj;
-                if(referent != null) {
-                    referents[ret] = new ArrayListReference(referent, ret, referenceQueue);
-                }
-                return ret;
+        if(!free.isEmpty()) {
+            int ret = free.pop();
+            array[ret] = obj;
+            if(referent != null) {
+                referents[ret] = new ArrayListReference(referent, ret, referenceQueue);
             }
+            return ret;
         }
         return growOrGC(referent, obj);
     }
@@ -117,7 +108,7 @@ public class GarbageCollectedArrayList<T> {
          * @param referent the object the new phantom reference will refer to
          * @param q        the queue with which the reference is to be registered,
          */
-        public ArrayListReference(Object referent, int idx, ReferenceQueue q) {
+        ArrayListReference(Object referent, int idx, ReferenceQueue<Object> q) {
             super(referent, q);
             this.idx = idx;
         }

@@ -3,18 +3,21 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import edu.columbia.cs.psl.phosphor.struct.GarbageCollectedArrayList;
 
 public class HardcodedBypassStore {
-    private static final GarbageCollectedArrayList<Object> vals = new GarbageCollectedArrayList<>();
+
+    private static final GarbageCollectedArrayList<Object> values = new GarbageCollectedArrayList<>();
 
     static {
-        vals.add(null, null);
+        synchronized(values) {
+            values.add(null, null);
+        }
     }
 
     public static Object get(int i) {
 		if(i == -1 || i == 0) {
 			return null;
 		}
-        synchronized(vals) {
-            return vals.get(i);
+        synchronized(values) {
+            return values.get(i);
         }
     }
 
@@ -22,8 +25,8 @@ public class HardcodedBypassStore {
 		if(taintObjectToPointTo == null) {
 			return -1;
 		}
-        synchronized(vals) {
-            return vals.add(referent, taintObjectToPointTo);
+        synchronized(values) {
+            return values.add(referent, taintObjectToPointTo);
         }
     }
 }
