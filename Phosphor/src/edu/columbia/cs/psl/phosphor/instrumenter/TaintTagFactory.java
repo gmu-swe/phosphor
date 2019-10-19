@@ -39,7 +39,7 @@ public interface TaintTagFactory {
 
     void stackOp(int opcode, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
 
-    void jumpOp(int opcode, int branchStarting, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
+    void jumpOp(int opcode, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
 
     void typeOp(int opcode, String type, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta);
 

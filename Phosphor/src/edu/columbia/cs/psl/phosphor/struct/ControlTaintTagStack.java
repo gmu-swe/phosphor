@@ -1,10 +1,11 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
-import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 import java.util.Iterator;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public final class ControlTaintTagStack {
 
@@ -25,17 +26,13 @@ public final class ControlTaintTagStack {
         this.isDisabled = isDisabled;
     }
 
-    @SuppressWarnings("unused")
-    public static ControlTaintTagStack factory() {
-        return instance;
-    }
-
     /**
      * Called ONCE at the start of each exception handler. Should inspect the taint tag on the
      * exception, and if there is one, we'll need to add it to the current ControlTaintTagStack and
      * return a pointer so it can later be removed
      */
     @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = CONTROL_STACK_EXCEPTION_HANDLER_START)
     public final EnqueuedTaint exceptionHandlerStart(Throwable exceptionCaught, EnqueuedTaint eq) {
         if(exceptionCaught instanceof TaintedWithObjTag) {
             Taint<?> t = (Taint) ((TaintedWithObjTag) exceptionCaught).getPHOSPHOR_TAG();
@@ -51,6 +48,7 @@ public final class ControlTaintTagStack {
      * Removes elements from the unthrown exception list whose exception type either is or is a subtype of the specified type.
      */
     @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = CONTROL_STACK_EXCEPTION_HANDLER_START_VOID)
     public final void exceptionHandlerStart(Class<? extends Throwable> exTypeHandled) {
         tryBlockEnd(exTypeHandled);
     }
@@ -60,6 +58,7 @@ public final class ControlTaintTagStack {
      * Passed the same MaybeThrownException from the start method
      */
     @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = CONTROL_STACK_EXCEPTION_HANDLER_END)
     public final void exceptionHandlerEnd(EnqueuedTaint ex) {
         if(ex != null) {
             pop(ex);
@@ -69,6 +68,7 @@ public final class ControlTaintTagStack {
     /**
      * Called N times at the end of each try block to clear unthrown exceptions, one time for each handled exception type
      */
+    @InvokedViaInstrumentation(record = CONTROL_STACK_TRY_BLOCK_END)
     public final void tryBlockEnd(Class<? extends Throwable> exTypeHandled) {
         if(influenceExceptions == null) {
             return;
@@ -88,6 +88,7 @@ public final class ControlTaintTagStack {
      * is currently affecting the current flow (at least until the end of the catch block)
      */
     @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = CONTROL_STACK_APPLY_POSSIBLY_UNTHROWN_EXCEPTION)
     public final void applyPossiblyUnthrownExceptionToTaint(Class<? extends Throwable> t) {
         if(unthrownExceptions == null) {
             return;
@@ -112,6 +113,8 @@ public final class ControlTaintTagStack {
      * were applied in this method only
      */
     @SuppressWarnings("unused")
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_ADD_UNTHROWN_EXCEPTION)
     public final void addUnthrownException(ExceptionalTaintData taints, Class<? extends Throwable> t) {
         if(taints != null && taints.getCurrentTaint() != null) {
             if(unthrownExceptions == null) {
@@ -132,7 +135,7 @@ public final class ControlTaintTagStack {
         }
     }
 
-    @InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_PUSH_TAG_EXCEPTION)
+    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG_EXCEPTION)
     public final int[] push(Taint tag, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData curMethod) {
         if(tag == null) {
             return invocationCountPerBranch;
@@ -140,12 +143,12 @@ public final class ControlTaintTagStack {
         return _push(tag, invocationCountPerBranch, indexOfBranchInMethod, maxSize, curMethod);
     }
 
-    @InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_PUSH_TAG)
+    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG)
     public final int[] push(Taint tag, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize) {
         return push(tag, invocationCountPerBranch, indexOfBranchInMethod, maxSize, null);
     }
 
-    @InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_PUSH_OBJECT_EXCEPTION)
+    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_OBJECT_EXCEPTION)
     public final int[] push(Object obj, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData curMethod) {
         if(obj instanceof TaintedWithObjTag) {
             return push((Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG(), invocationCountPerBranch, indexOfBranchInMethod, maxSize, curMethod);
@@ -154,7 +157,7 @@ public final class ControlTaintTagStack {
         }
     }
 
-    @InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_PUSH_OBJECT)
+    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_OBJECT)
     public final int[] push(Object obj, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize) {
         return push(obj, invocationCountPerBranch, indexOfBranchInMethod, maxSize, null);
     }
@@ -194,8 +197,8 @@ public final class ControlTaintTagStack {
         return ret;
     }
 
-	@InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_POP_EXCEPTION)
-	public final void pop(int[] invocationCountPerBranch, int indexOfBranchInMethod, ExceptionalTaintData curMethod) {
+    @InvokedViaInstrumentation(record = CONTROL_STACK_POP_EXCEPTION)
+    public final void pop(int[] invocationCountPerBranch, int indexOfBranchInMethod, ExceptionalTaintData curMethod) {
         if(invocationCountPerBranch != null && invocationCountPerBranch[indexOfBranchInMethod] > 0) {
             curMethod.pop();
             taintHistory.pop();
@@ -203,8 +206,8 @@ public final class ControlTaintTagStack {
         }
     }
 
-	@InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_POP)
-	public final void pop(int[] invocationCountPerBranch, int indexOfBranchInMethod) {
+    @InvokedViaInstrumentation(record = CONTROL_STACK_POP)
+    public final void pop(int[] invocationCountPerBranch, int indexOfBranchInMethod) {
         if(invocationCountPerBranch != null) {
             if(invocationCountPerBranch[indexOfBranchInMethod] > 0) {
                 taintHistory.pop();
@@ -213,8 +216,8 @@ public final class ControlTaintTagStack {
         }
     }
 
-	@InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_POP_ALL_EXCEPTION)
-	public final void pop(int[] invocationCountPerBranch, ExceptionalTaintData curMethod) {
+    @InvokedViaInstrumentation(record = CONTROL_STACK_POP_ALL_EXCEPTION)
+    public final void pop(int[] invocationCountPerBranch, ExceptionalTaintData curMethod) {
         if(invocationCountPerBranch != null) {
             pop(invocationCountPerBranch);
             if(curMethod != null) {
@@ -223,8 +226,8 @@ public final class ControlTaintTagStack {
         }
     }
 
-	@InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_POP_ALL)
-	public final void pop(int[] invocationCountPerBranch) {
+    @InvokedViaInstrumentation(record = CONTROL_STACK_POP_ALL)
+    public final void pop(int[] invocationCountPerBranch) {
         if(invocationCountPerBranch != null) {
             for(int i = 0; i < invocationCountPerBranch.length; i++) {
                 if(invocationCountPerBranch[i] > 0) {
@@ -244,6 +247,7 @@ public final class ControlTaintTagStack {
         }
     }
 
+    @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_EXCEPTIONS)
     public Taint copyTagExceptions() {
         if(isEmpty() && lacksInfluenceExceptions()) {
             return null;
@@ -261,6 +265,7 @@ public final class ControlTaintTagStack {
         return ret;
     }
 
+    @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG)
     public Taint copyTag() {
         return isEmpty() ? null : taintHistory.peek().copy();
     }
@@ -289,14 +294,19 @@ public final class ControlTaintTagStack {
     }
 
     @SuppressWarnings("unused")
-    @InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_ENABLE)
+    @InvokedViaInstrumentation(record = CONTROL_STACK_ENABLE)
     public void enable() {
         this.isDisabled = false;
     }
 
     @SuppressWarnings("unused")
-    @InvokedViaInstrumentation(record = TaintMethodRecord.CONTROL_STACK_DISABLE)
+    @InvokedViaInstrumentation(record = CONTROL_STACK_DISABLE)
     public void disable() {
         this.isDisabled = true;
+    }
+
+    @SuppressWarnings("unused")
+    public static ControlTaintTagStack factory() {
+        return instance;
     }
 }

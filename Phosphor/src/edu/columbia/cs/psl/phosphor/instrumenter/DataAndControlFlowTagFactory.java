@@ -9,12 +9,9 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintPassingMV.DO_NOT_TRACK_BRANCH_STARTING;
 
 
 public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
-
-    private boolean isIgnoreAcmp;
 
     @Override
     public Taint<?> getAutoTaint(String source) {
@@ -338,20 +335,19 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
             break;
             case Opcodes.ARRAYLENGTH:
                 Type arrType = TaintAdapter.getTypeForStackType(adapter.analyzer.stack.get(adapter.analyzer.stack.size() - 1));
-            {
                 boolean loaded = false;
                 if(arrType.getElementType().getSort() != Type.OBJECT) {
                     //TA A
                     loaded = true;
-                        mv.visitInsn(SWAP);
-                        if(Configuration.ARRAY_LENGTH_TRACKING) {
-                            mv.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "getLengthTaint", "()" + Configuration.TAINT_TAG_DESC, false);
-                        } else {
-                            mv.visitInsn(POP);
-                            mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
-                            mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
-                        }
-                        mv.visitInsn(SWAP);
+                    mv.visitInsn(SWAP);
+                    if(Configuration.ARRAY_LENGTH_TRACKING) {
+                        mv.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "getLengthTaint", "()" + Configuration.TAINT_TAG_DESC, false);
+                    } else {
+                        mv.visitInsn(POP);
+                        mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+                    }
+                    mv.visitInsn(SWAP);
                     //A
                 }
                 if(!loaded) {
@@ -366,190 +362,23 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                     mv.visitInsn(SWAP);
                 }
                 mv.visitInsn(opcode);
-
-            }
-            break;
-        }
-    }
-
-    @Override
-    public void jumpOp(int opcode, int branchStarting, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-        if((Configuration.IMPLICIT_TRACKING || ta.isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
-            switch(opcode) {
-                case Opcodes.IFEQ:
-                case Opcodes.IFNE:
-                case Opcodes.IFLT:
-                case Opcodes.IFGE:
-                case Opcodes.IFGT:
-                case Opcodes.IFLE:
-                    if(branchStarting == DO_NOT_TRACK_BRANCH_STARTING) {
-                        mv.visitInsn(SWAP);
-                        mv.visitInsn(POP); // Remove the taint tag
-                    } else {
-                        mv.visitInsn(SWAP);
-                        mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-                        mv.visitInsn(SWAP);
-                        mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaint(branchStarting, true);
-                        ta.doForceCtrlStores();
-                    }
-                    mv.visitJumpInsn(opcode, label);
-                    break;
-                case Opcodes.IFNULL:
-                case Opcodes.IFNONNULL:
-                    if(Configuration.IMPLICIT_TRACKING && branchStarting != DO_NOT_TRACK_BRANCH_STARTING) {
-                        mv.visitInsn(DUP);
-                        mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-                        mv.visitInsn(SWAP);
-                        mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaint(branchStarting, false);
-                    }
-                    if(branchStarting != DO_NOT_TRACK_BRANCH_STARTING) {
-                        ta.doForceCtrlStores();
-                    }
-                    mv.visitJumpInsn(opcode, label);
-                    break;
-                case Opcodes.IF_ICMPEQ:
-                case Opcodes.IF_ICMPNE:
-                case Opcodes.IF_ICMPLT:
-                case Opcodes.IF_ICMPGE:
-                case Opcodes.IF_ICMPGT:
-                case Opcodes.IF_ICMPLE:
-                    if(branchStarting == DO_NOT_TRACK_BRANCH_STARTING) {
-                        // Remove the taint tags
-                        // T V T V
-                        mv.visitInsn(SWAP);
-                        mv.visitInsn(POP);
-                        // T V V
-                        mv.visitInsn(DUP2_X1);
-                        // V V T V V
-                        mv.visitInsn(POP2);
-                        mv.visitInsn(POP);
-                    } else {
-                        //T V T V
-                        int tmp = lvs.getTmpLV(Type.INT_TYPE);
-                        //T V T V
-                        mv.visitInsn(SWAP);
-                        mv.visitInsn(TaintUtils.IS_TMP_STORE);
-                        mv.visitVarInsn(Configuration.TAINT_STORE_OPCODE, tmp);
-                        //T V V
-                        mv.visitInsn(DUP2_X1);
-                        mv.visitInsn(POP2);
-                        //V V T
-                        mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-                        mv.visitInsn(SWAP);
-                        //V V C T
-                        mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-                        mv.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, tmp);
-                        lvs.freeTmpLV(tmp);
-                        //V V C T C T
-                        mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaint(branchStarting, true);
-                        mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaint(Configuration.BINDING_CONTROL_FLOWS_ONLY ? branchStarting : branchStarting + 1, true);
-                        ta.doForceCtrlStores();
-                    }
-                    mv.visitJumpInsn(opcode, label);
-                    break;
-                case Opcodes.IF_ACMPNE:
-                case Opcodes.IF_ACMPEQ:
-                    if(Configuration.IMPLICIT_TRACKING && branchStarting != DO_NOT_TRACK_BRANCH_STARTING) {
-                        //OBJ OBJ
-                        mv.visitInsn(DUP2);
-                        mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-                        mv.visitInsn(SWAP);
-                        mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaint(branchStarting, false);
-
-                        mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-                        mv.visitInsn(SWAP);
-                        mv.visitVarInsn(ALOAD, ta.controlTaintArray);
-                        ta.callPushControlTaint(Configuration.BINDING_CONTROL_FLOWS_ONLY ? branchStarting : branchStarting + 1, false);
-                    }
-                    if(!isIgnoreAcmp && Configuration.WITH_UNBOX_ACMPEQ) {
-                        mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-                        mv.visitInsn(SWAP);
-                        mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-                        mv.visitInsn(SWAP);
-                    }
-                    if(branchStarting != DO_NOT_TRACK_BRANCH_STARTING) {
-                        ta.doForceCtrlStores();
-                    }
-                    mv.visitJumpInsn(opcode, label);
-                    break;
-                case Opcodes.GOTO:
-                    mv.visitJumpInsn(opcode, label);
-                    break;
-                default:
-                    throw new IllegalStateException("Unimplemented: " + opcode);
-            }
-        } else {
-            switch(opcode) {
-                case Opcodes.IFEQ:
-                case Opcodes.IFNE:
-                case Opcodes.IFLT:
-                case Opcodes.IFGE:
-                case Opcodes.IFGT:
-                case Opcodes.IFLE:
-                case Opcodes.IF_ICMPEQ:
-                case Opcodes.IF_ICMPNE:
-                case Opcodes.IF_ICMPLT:
-                case Opcodes.IF_ICMPGE:
-                case Opcodes.IF_ICMPGT:
-                case Opcodes.IF_ICMPLE:
-                case Opcodes.GOTO:
-                case Opcodes.IFNULL:
-                case Opcodes.IFNONNULL:
-                    //we don't care about goto
-                    mv.visitJumpInsn(opcode, label);
-                    break;
-                case Opcodes.IF_ACMPEQ:
-                case Opcodes.IF_ACMPNE:
-                    if(!isIgnoreAcmp && Configuration.WITH_UNBOX_ACMPEQ) {
-                        mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-                        mv.visitInsn(SWAP);
-                        mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-                        mv.visitInsn(SWAP);
-                    }
-                    mv.visitJumpInsn(opcode, label);
-                    break;
-                default:
-                    throw new IllegalArgumentException();
-            }
-        }
-    }
-
-    @Override
-    public void typeOp(int opcode, String type, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-        switch(opcode) {
-            case Opcodes.INSTANCEOF:
-            case Opcodes.CHECKCAST:
                 break;
         }
     }
 
     @Override
+    public void jumpOp(int opcode, Label label, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
+
+    }
+
+    @Override
+    public void typeOp(int opcode, String type, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
+
+    }
+
+    @Override
     public void iincOp(int var, int increment, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV ta) {
-        if((Configuration.IMPLICIT_TRACKING || ta.isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
-            if(ta.isIgnoreAllInstrumenting || ta.isRawInsns) {
-                mv.visitIincInsn(var, increment);
-                return;
-            }
-            int shadowVar = 0;
-            if(var < ta.lastArg && TaintUtils.getShadowTaintType(ta.paramTypes[var].getDescriptor()) != null) {
-                //accessing an arg; remap it
-                Type localType = ta.paramTypes[var];
-                if(TaintUtils.getShadowTaintType(localType.getDescriptor()) != null) {
-                    shadowVar = var - 1;
-                }
-            } else {
-                shadowVar = lvs.varToShadowVar.get(var);
-            }
-            mv.visitVarInsn(ALOAD, shadowVar);
-            mv.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-            COMBINE_TAGS_CONTROL.delegateVisit(mv);
-            mv.visitVarInsn(ASTORE, shadowVar);
-        }
+
     }
 
     @Override
@@ -564,7 +393,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
     @Override
     public void instrumentationStarting(String className) {
-        isIgnoreAcmp = className.equals("java/io/ObjectOutputStream$HandleTable");
+
     }
 
     @Override
