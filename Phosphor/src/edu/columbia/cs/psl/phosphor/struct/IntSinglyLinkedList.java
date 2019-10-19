@@ -81,6 +81,12 @@ public class IntSinglyLinkedList implements Serializable, Iterable<Integer> {
         if(head == null) {
             // The list is empty
             throw new NoSuchElementException();
+        } else if(head == tail) {
+            // The list was of size one
+            int item = head.item;
+            head = tail = null;
+            size = 0;
+            return item;
         } else {
             int item = head.item;
             head = head.next;
@@ -164,7 +170,7 @@ public class IntSinglyLinkedList implements Serializable, Iterable<Integer> {
             if(this.size != otherList.size) {
                 return false;
             }
-            for(IntNode cur1 = this.head, cur2 = otherList.head; cur1 != null && cur2 != null; cur1 = cur1.next, cur2 =cur2.next) {
+            for(IntNode cur1 = this.head, cur2 = otherList.head; cur1 != null && cur2 != null; cur1 = cur1.next, cur2 = cur2.next) {
                 if(cur1.item != cur2.item) {
                     return false;
                 }
