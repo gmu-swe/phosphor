@@ -24,10 +24,11 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
 
 	@Override
 	public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-		//
 		if(classBeingRedefined == null) {
 			// The transform was triggered by a class load not a redefine or retransform then no transformations
 			// should be performed
+			return null;
+		} else if(Throwable.class.isAssignableFrom(classBeingRedefined)) {
 			return null;
 		}
 		try {

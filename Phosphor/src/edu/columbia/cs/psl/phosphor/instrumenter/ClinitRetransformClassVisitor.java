@@ -14,6 +14,8 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
     private String className;
     // Whether or not the version is at least the required version 1.5 for the ldc of a constant class
     private boolean fixLdcClass;
+    // Whether this class should be skipped
+    private boolean skip = false;
 
     public ClinitRetransformClassVisitor(ClassVisitor cv) {
         super(Configuration.ASM_VERSION, cv);
@@ -25,6 +27,10 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
         super.visit(version, access, name, signature, superName, interfaces);
         this.fixLdcClass = (version & 0xFFFF) < Opcodes.V1_5;
         this.className = name;
+        this.skip = className.contains("$$Lambda$")
+                || className.equals("java/lang/ClassCircularityError")
+                || className.equals("java/lang/LinkageError")
+                || className.equals("java/lang/Error");
     }
 
     @Override
@@ -32,7 +38,7 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
         if(name.equals("<clinit>")) {
             visitedClassInitializer = true;
-            if(!className.contains("$$Lambda$")) { // Do not add retransform code to  lambdas
+            if(!skip) {
                 mv = new ClinitRetransformMV(mv, className, fixLdcClass);
             }
         }
@@ -42,7 +48,7 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
     /* Checks if the <clinit> method was visited. If it was not visited, makes calls to visit it. */
     @Override
     public void visitEnd() {
-        if(!visitedClassInitializer) {
+        if(!visitedClassInitializer && !skip) {
             MethodVisitor mv = visitMethod(Opcodes.ACC_STATIC, "<clinit>", "()V", null, null);
             mv.visitCode();
             mv.visitInsn(Opcodes.RETURN);
