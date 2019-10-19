@@ -42,23 +42,9 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
         }
     }
 
-    /* Returns whether the list contains an item that is referentially equal to the specified item. */
-    public boolean identityContains(E item) {
-        if(head == null) {
-            return false;
-        } else {
-            for(Node<E> cur = head; cur != null; cur = cur.next) {
-                if(cur.item == item) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
     /* Adds the specified item to the tail of the list. */
     public void addLast(E item) {
-        Node<E> n = new Node<E>(item);
+        Node<E> n = new Node<>(item);
         size++;
         if(tail == null) {
             // The list was empty
@@ -71,35 +57,13 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
 
     /* Adds the specified item to the head of the list. */
     public void addFirst(E item) {
-        Node<E> n = new Node<E>(item, head);
+        Node<E> n = new Node<>(item, head);
         size++;
         if(head == null) {
             // The list was empty
             head = tail = n;
         } else {
             head = n;
-        }
-    }
-
-    /* If the list contains an item that is referentially equal to the specified item returns false. Otherwise, adds
-     * the specified item to the tail of the list and returns true. */
-    public boolean addIdentityUnique(E item) {
-        if(identityContains(item)) {
-            return false;
-        } else {
-            addLast(item);
-            return true;
-        }
-    }
-
-    /* If the list contains an item that is equal to the specified item returns false. Otherwise, adds
-     * the specified item to the tail of the list and returns true. */
-    public boolean addUnique(E item) {
-        if(contains(item)) {
-            return false;
-        } else {
-            addLast(item);
-            return true;
         }
     }
 

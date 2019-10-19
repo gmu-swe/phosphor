@@ -17,8 +17,7 @@ public class IntSinglyLinkedList implements Serializable, Iterable<Integer> {
 
     /* Constructs a new empty list. */
     public IntSinglyLinkedList() {
-        this.head = null;
-        this.tail = null;
+        this.head = this.tail = null;
         this.size = 0;
     }
 
