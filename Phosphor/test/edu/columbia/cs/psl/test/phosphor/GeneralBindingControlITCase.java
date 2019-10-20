@@ -111,7 +111,7 @@ public class GeneralBindingControlITCase extends BaseMultiTaintClass {
 
     @Test
     @Ignore
-    public void TestLoopingVarConditionallyUpdated() {
+    public void testLoopingVarConditionallyUpdated() {
         char[] c = createDigitArray();
         LinkedList<Character> digits = new LinkedList<>();
         for(int i = 0; i < c.length; i++) {
