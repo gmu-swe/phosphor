@@ -5,7 +5,6 @@ import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
 import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
@@ -399,7 +398,6 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
             delegate.visitVarInsn(ALOAD, localVariableManager.idxOfMasterControlLV);
             delegate.visitVarInsn(ALOAD, indexOfControlExceptionTaint);
             CONTROL_STACK_EXCEPTION_HANDLER_END.delegateVisit(delegate);
-            delegate.visitMethodInsn(INVOKEVIRTUAL, "edu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack", "exceptionHandlerEnd", "(" + Type.getDescriptor(EnqueuedTaint.class) + ")V", false);
         } else {
             // End of a try block
             executeForcedControlStores();

@@ -21,6 +21,7 @@ import org.objectweb.asm.util.Textifier;
 
 import java.util.*;
 
+import static edu.columbia.cs.psl.phosphor.TaintUtils.FORCE_CTRL_STORE;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public class TaintPassingMV extends TaintAdapter implements Opcodes {
@@ -181,7 +182,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             }
             return;
         } else if(isIgnoreAllInstrumenting) {
-            if(opcode != TaintUtils.FORCE_CTRL_STORE) {
+            if(opcode != FORCE_CTRL_STORE) {
                 super.visitVarInsn(opcode, var);
             }
             return;
@@ -192,8 +193,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case DSTORE:
             case LSTORE:
             case ASTORE:
-            case TaintUtils.FORCE_CTRL_STORE:
                 controlFlowDelegator.storingTaintedValue(opcode, var);
+                break;
+            case FORCE_CTRL_STORE:
+                controlFlowDelegator.storingTaintedValue(opcode, var);
+                return;
         }
         int shadowVar = -1;
         if(var == 0 && !isStatic) {
@@ -450,7 +454,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     @Override
     public void visitFieldInsn(int opcode, String owner, String name, String desc) {
         Type descType = Type.getType(desc);
-        if(opcode == TaintUtils.FORCE_CTRL_STORE || opcode == TaintUtils.FORCE_CTRL_STORE_SFIELD) {
+        if(opcode == FORCE_CTRL_STORE || opcode == TaintUtils.FORCE_CTRL_STORE_SFIELD) {
             controlFlowDelegator.visitingForceControlStoreField(new Field(opcode == TaintUtils.FORCE_CTRL_STORE_SFIELD, owner, name, desc));
             return;
         }
@@ -2038,7 +2042,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitInsn(opcode);
             }
             return;
-        } else if(opcode == TaintUtils.FORCE_CTRL_STORE) {
+        } else if(opcode == FORCE_CTRL_STORE) {
             if(!analyzer.stack.isEmpty() && !topOfStackIsNull()) {
                 // There is something on the stack right now
                 controlFlowDelegator.visitingForceControlStore(getTopOfStackType());

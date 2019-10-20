@@ -46,7 +46,7 @@ public enum TaintMethodRecord {
     CONTROL_STACK_EXCEPTION_HANDLER_START(INVOKEVIRTUAL, ControlTaintTagStack.class, "exceptionHandlerStart", EnqueuedTaint.class, false, Throwable.class, EnqueuedTaint.class),
     CONTROL_STACK_EXCEPTION_HANDLER_START_VOID(INVOKEVIRTUAL, ControlTaintTagStack.class, "exceptionHandlerStart", Void.TYPE, false, Class.class),
     CONTROL_STACK_EXCEPTION_HANDLER_END(INVOKEVIRTUAL, ControlTaintTagStack.class, "exceptionHandlerEnd", Void.TYPE, false, EnqueuedTaint.class),
-    CONTROL_STACK_TRY_BLOCK_END(INVOKEVIRTUAL, ControlTaintTagStack.class, "exceptionHandlerEnd", Void.TYPE, false, Class.class),
+    CONTROL_STACK_TRY_BLOCK_END(INVOKEVIRTUAL, ControlTaintTagStack.class, "tryBlockEnd", Void.TYPE, false, Class.class),
     CONTROL_STACK_APPLY_POSSIBLY_UNTHROWN_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "applyPossiblyUnthrownExceptionToTaint", Void.TYPE, false, Class.class),
     CONTROL_STACK_ADD_UNTHROWN_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "addUnthrownException", Void.TYPE, false, ExceptionalTaintData.class, Class.class),
 

@@ -30,7 +30,7 @@ else
 	fi
 	if [ ! -d "target/jre-inst-binding-control" ]; then
 		echo "Creating obj tag + binding control flow instrumented JRE\n";
-		java -Xmx6g -Dphosphor.verify=true -jar target/Phosphor-0.0.5-SNAPSHOT.jar -controlTrack -bindingControlTracking -forceUnboxAcmpEq -withEnumsByValue $INST_HOME target/jre-inst-binding-control;
+		java -Xmx6g -Dphosphor.verify=true -jar target/Phosphor-0.0.5-SNAPSHOT.jar -bindingControlTracking -forceUnboxAcmpEq -withEnumsByValue $INST_HOME target/jre-inst-binding-control;
 	else
 		echo "Not regenerating binding control flow instrumented JRE\n";
 	fi
