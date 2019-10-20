@@ -25,7 +25,6 @@ public class NoFlowControlFlowDelegator implements ControlFlowDelegator {
      */
     private final LocalVariableManager localVariableManager;
 
-
     /**
      * True if the method being visited is a class initialization method (i.e.,  {@code <clinit>}).
      */
@@ -148,10 +147,15 @@ public class NoFlowControlFlowDelegator implements ControlFlowDelegator {
 
     @Override
     public void visitingSwitch() {
-        if(Configuration.IMPLICIT_TRACKING ) {
+        if(Configuration.IMPLICIT_TRACKING) {
             // Remove the taint tag
             delegate.visitInsn(SWAP);
             delegate.visitInsn(POP);
         }
+    }
+
+    @Override
+    public void storingReferenceInArray() {
+
     }
 }

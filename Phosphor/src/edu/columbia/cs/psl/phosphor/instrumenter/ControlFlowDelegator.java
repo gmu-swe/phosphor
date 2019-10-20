@@ -147,4 +147,9 @@ interface ControlFlowDelegator {
      * otherwise stack_pre = taint val. stack_post = val
      */
     void visitingSwitch();
+
+    /**
+     * Called before an AASTORE instruction. Maintains the stack. stack_pre = objectref
+     */
+    void storingReferenceInArray();
 }

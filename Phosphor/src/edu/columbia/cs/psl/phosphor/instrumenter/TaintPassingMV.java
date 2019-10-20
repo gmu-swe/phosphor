@@ -34,7 +34,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     static final String CHARACTER_NAME = "java/lang/Character";
     static final String DOUBLE_NAME = "java/lang/Double";
     static final String SHORT_NAME = "java/lang/Short";
-    boolean isImplicitLightTracking;
+    private boolean isImplicitLightTracking;
     private int lastArg;
     private Type[] paramTypes;
     private boolean isIgnoreAllInstrumenting;
@@ -98,7 +98,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     @Override
     public void visitCode() {
         super.visitCode();
-        if((Configuration.IMPLICIT_TRACKING|| isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
+        if((Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
             controlFlowDelegator = new PropagatingControlFlowDelegator(mv, passThroughMV, analyzer, lvs, arrayAnalyzer,
                     className, name, lastArg, paramTypes);
         } else {
@@ -2250,11 +2250,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     }
                     super.visitInsn(opcode);
                 } else {
-                    if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
-                        super.visitInsn(DUP);
-                        super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
-                        COMBINE_TAGS_ON_OBJECT.delegateVisit(mv);
-                    }
+                    controlFlowDelegator.storingReferenceInArray();
                     if(idxTainted) {
                         //Not supported
                         //Array Taint Index Val
@@ -2825,13 +2821,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         }
                     } else {
                         if(nextDupCopiesTaint2) {
-                            if(nextDupCopiesTaint3) {
-                                // !0, !1, 2, 3
-                                throw new UnsupportedOperationException();
-                            } else {
-                                // !0, !1, 2, !3
-                                throw new UnsupportedOperationException();
-                            }
+                            // !0, !1, 2, 3 OR !0, !1, 2, !3
+                            throw new UnsupportedOperationException();
                         } else {
                             if(nextDupCopiesTaint3) {
                                 if(getTopOfStackType().getSize() == 2) {
@@ -3362,23 +3353,33 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     private static boolean isBoxUnboxMethodToWrap(String owner, String name, String desc) {
         if(name.equals("valueOf") && desc.startsWith("(Ljava/lang/String")) {
-            return Instrumenter.isIgnoredClass(owner);//All of these no matter what will get caught by parseXXX
+            // All of these no matter what will get caught by parseXXX
+            return Instrumenter.isIgnoredClass(owner);
+        } else if((owner.equals(INTEGER_NAME) || owner.equals(BYTE_NAME) || owner.equals(BOOLEAN_NAME) || owner.equals(CHARACTER_NAME)
+                || owner.equals(SHORT_NAME) || owner.equals(LONG_NAME) || owner.equals(FLOAT_NAME) || owner.equals(DOUBLE_NAME))
+                && (name.equals("toString") || name.equals("toHexString") || name.equals("toOctalString") || name.equals("toBinaryString")
+                || name.equals("toUnsignedString"))) {
+            return true;
         }
-        if((owner.equals(INTEGER_NAME) || owner.equals(BYTE_NAME) || owner.equals(BOOLEAN_NAME) || owner.equals(CHARACTER_NAME) || owner.equals(SHORT_NAME) || owner.equals(LONG_NAME) || owner.equals(FLOAT_NAME) || owner.equals(DOUBLE_NAME))
-                && (name.equals("toString") || name.equals("toHexString") || name.equals("toOctalString") || name.equals("toBinaryString") || name.equals("toUnsignedString"))) {
-            return true;
-        } else if((owner.equals(BOOLEAN_NAME) && (name.equals("parseBoolean")))
-                || (owner.equals(BYTE_NAME) && (name.equals("parseByte")))
-                || (owner.equals(INTEGER_NAME) && (name.equals("parseInt") || name.equals("parseUnsignedInt")))
-                || (owner.equals(SHORT_NAME) && (name.equals("parseShort")))
-                || (owner.equals(LONG_NAME) && (name.equals("parseLong") || name.equals("parseUnsignedLong")))
-                || (owner.equals(FLOAT_NAME) && (name.equals("parseFloat")))
-                || (owner.equals(DOUBLE_NAME) && (name.equals("parseDouble")))) {
-            return true;
-        } else if(name.equals("getChars") && (owner.equals(INTEGER_NAME) || owner.equals(LONG_NAME))) {
-            return true;
-        } else {
-            return owner.equals(CHARACTER_NAME) && (name.equals("digit"));
+        switch(owner) {
+            case BOOLEAN_NAME:
+                return name.equals("parseBoolean");
+            case BYTE_NAME:
+                return name.equals("parseByte");
+            case CHARACTER_NAME:
+                return name.equals("digit");
+            case DOUBLE_NAME:
+                return name.equals("parseDouble");
+            case FLOAT_NAME:
+                return name.equals("parseFloat");
+            case INTEGER_NAME:
+                return name.equals("getChars") || name.equals("parseInt") || name.equals("parseUnsignedInt");
+            case LONG_NAME:
+                return name.equals("getChars") || name.equals("parseLong") || name.equals("parseUnsignedLong");
+            case SHORT_NAME:
+                return name.equals("parseShort");
+            default:
+                return false;
         }
     }
 }

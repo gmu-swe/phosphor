@@ -114,6 +114,16 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     private final Set<Field> forceControlStoreFields = new HashSet<>();
 
     /**
+     * Index of the last parameter of the method being visited.
+     */
+    private final int lastParameterIndex;
+
+    /**
+     * The types of parameters of the method being visited.
+     */
+    private final Type[] paramTypes;
+
+    /**
      * The number of exception handlers for the method being visited that have not yet been visited
      */
     private int numberOfExceptionHandlersRemaining;
@@ -134,16 +144,6 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
      * The identifier of the next "branch" location encountered
      */
     private int nextBranchID = UNIDENTIFIED_BRANCH;
-
-    /**
-     * Index of the last parameter of the method being visited.
-     */
-    private final int lastParameterIndex;
-
-    /**
-     * The types of parameters of the method being visited.
-     */
-    private final Type[] paramTypes;
 
     public PropagatingControlFlowDelegator(MethodVisitor delegate, MethodVisitor passThroughDelegate, NeverNullArgAnalyzerAdapter analyzer,
                                            LocalVariableManager localVariableManager, PrimitiveArrayAnalyzer primitiveArrayAnalyzer,
@@ -617,6 +617,13 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
             delegate.visitInsn(SWAP);
             delegate.visitInsn(POP); // Remove the taint tag
         }
+    }
+
+    @Override
+    public void storingReferenceInArray() {
+        delegate.visitInsn(DUP);
+        delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
+        COMBINE_TAGS_ON_OBJECT.delegateVisit(delegate);
     }
 
     private void callPushControlTaint(int branchID, boolean isTag) {
