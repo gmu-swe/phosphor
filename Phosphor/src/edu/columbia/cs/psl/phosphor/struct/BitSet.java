@@ -35,16 +35,6 @@ public class BitSet {
         return new BitSet(this);
     }
 
-    /* Returns the index of the packet where the specified bit index is located. */
-    private static int getPacketIndex(int bitIndex) {
-        return bitIndex >>> SHIFT_AMOUNT;
-    }
-
-    /* Returns a bit mask where only the bit for the specified bit index is set to 1. */
-    private static long getBitMask(int bitIndex) {
-        return 1L << bitIndex;
-    }
-
     /* Adds the element represented by the bit at the specified index to the set.*/
     public void add(int bitIndex) {
         packets[getPacketIndex(bitIndex)] |= getBitMask(bitIndex);
@@ -125,7 +115,7 @@ public class BitSet {
     /* Returns the number of elements in this set. */
     public int size() {
         int count = 0;
-        for(long packet: packets) {
+        for(long packet : packets) {
             count += Long.bitCount(packet);
         }
         return count;
@@ -138,7 +128,7 @@ public class BitSet {
         } else if(!(obj instanceof BitSet)) {
             return false;
         } else {
-            BitSet bitSet = (BitSet)obj;
+            BitSet bitSet = (BitSet) obj;
             if(bitSet.packets.length != packets.length) {
                 return false;
             }
@@ -154,11 +144,21 @@ public class BitSet {
     @Override
     public int hashCode() {
         int result = 1;
-        for (long packet : packets) {
-            int packetHash = (int)(packet ^ (packet >>> 32));
+        for(long packet : packets) {
+            int packetHash = (int) (packet ^ (packet >>> 32));
             result = 31 * result + packetHash;
         }
         return result;
+    }
+
+    /* Returns the index of the packet where the specified bit index is located. */
+    private static int getPacketIndex(int bitIndex) {
+        return bitIndex >>> SHIFT_AMOUNT;
+    }
+
+    /* Returns a bit mask where only the bit for the specified bit index is set to 1. */
+    private static long getBitMask(int bitIndex) {
+        return 1L << bitIndex;
     }
 
     /* Returns a new BitSet that represents the union of the specified sets or null if both sets are null. */

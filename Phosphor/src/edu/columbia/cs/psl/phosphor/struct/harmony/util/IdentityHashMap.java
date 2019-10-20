@@ -95,8 +95,8 @@ public class IdentityHashMap<K, V> extends AbstractMap<K, V> implements
         final Object[] elementData;
 
         IdentityHashMapEntry(K theKey, V theValue, Object[] elementData) {
-            super((K) theKey == NULL_OBJECT ? null : theKey,
-                    (V) theValue == NULL_OBJECT ? null : theValue);
+            super(theKey == NULL_OBJECT ? null : theKey,
+                    theValue == NULL_OBJECT ? null : theValue);
             iKey = theKey;
             this.elementData = elementData;
         }

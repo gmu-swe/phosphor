@@ -179,7 +179,7 @@ public class StringTokenizer implements Enumeration<Object> {
         int count = 0;
         boolean inToken = false;
         for (int i = position, length = string.length(); i < length; i++) {
-            if (delimiters.indexOf(string.charAt(i), 0) >= 0) {
+            if (delimiters.indexOf(string.charAt(i)) >= 0) {
                 if (returnDelimiters)
                     count++;
                 if (inToken) {
@@ -222,7 +222,7 @@ public class StringTokenizer implements Enumeration<Object> {
 
             // otherwise find a character which is not a delimiter
             for (int i = position; i < length; i++)
-                if (delimiters.indexOf(string.charAt(i), 0) == -1)
+                if (delimiters.indexOf(string.charAt(i)) == -1)
                     return true;
         }
         return false;
@@ -256,20 +256,20 @@ public class StringTokenizer implements Enumeration<Object> {
 
         if (i < length) {
             if (returnDelimiters) {
-                if (delimiters.indexOf(string.charAt(position), 0) >= 0)
+                if (delimiters.indexOf(string.charAt(position)) >= 0)
                     return String.valueOf(string.charAt(position++));
                 for (position++; position < length; position++)
-                    if (delimiters.indexOf(string.charAt(position), 0) >= 0)
+                    if (delimiters.indexOf(string.charAt(position)) >= 0)
                         return string.substring(i, position);
                 return string.substring(i);
             }
 
-            while (i < length && delimiters.indexOf(string.charAt(i), 0) >= 0)
+            while (i < length && delimiters.indexOf(string.charAt(i)) >= 0)
                 i++;
             position = i;
             if (i < length) {
                 for (position++; position < length; position++)
-                    if (delimiters.indexOf(string.charAt(position), 0) >= 0)
+                    if (delimiters.indexOf(string.charAt(position)) >= 0)
                         return string.substring(i, position);
                 return string.substring(i);
             }

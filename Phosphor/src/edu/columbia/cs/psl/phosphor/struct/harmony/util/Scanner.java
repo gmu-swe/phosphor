@@ -148,7 +148,7 @@ public final class Scanner implements Iterator<String> {
         /*
          * Stands for Float
          */
-        FLOAT;
+        FLOAT
     }
 
     /**
@@ -1900,8 +1900,8 @@ public final class Scanner implements Iterator<String> {
         if (-1 != (exponentIndex = floatString.indexOf('e'))
                 || -1 != (exponentIndex = floatString.indexOf('E'))) {
             decimalNumeralString = floatString.substring(0, exponentIndex);
-            exponentString = floatString.substring(exponentIndex + 1,
-                    floatString.length());
+            exponentString = floatString.substring(exponentIndex + 1
+            );
             decimalNumeralString = removeLocaleInfo(decimalNumeralString,
                     DataType.FLOAT);
             return decimalNumeralString + "e" + exponentString; //$NON-NLS-1$ 
@@ -1927,7 +1927,7 @@ public final class Scanner implements Iterator<String> {
         String decimalSeparator = String.valueOf(decimalFormat
                 .getDecimalFormatSymbols().getDecimalSeparator());
         separatorIndex = tokenBuilder.indexOf(decimalSeparator);
-        StringBuilder result = new StringBuilder(""); //$NON-NLS-1$
+        StringBuilder result = new StringBuilder(); //$NON-NLS-1$
         if (DataType.INT == type) {
             for (int i = 0; i < tokenBuilder.length(); i++) {
                 if (-1 != Character.digit(tokenBuilder.charAt(i),
@@ -2115,11 +2115,8 @@ public final class Scanner implements Iterator<String> {
         boolean findComplete = false;
         while (!findComplete) {
             if (matcher.find()) {
-                findComplete = true;
-                if (matcher.start() == findStartIndex
-                        && matcher.start() == matcher.end()) {
-                    findComplete = false;
-                }
+                findComplete = matcher.start() != findStartIndex
+                        || matcher.start() != matcher.end();
             } else {
                 if (!inputExhausted) {
                     readMore();

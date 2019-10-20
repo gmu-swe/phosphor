@@ -231,7 +231,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
             case Opcodes.DRETURN:
             case Opcodes.FRETURN:
             case Opcodes.LRETURN:
-                int lv = lvs.getPreAllocedReturnTypeVar(returnType);
+                int lv = lvs.getPreAllocatedReturnTypeVar(returnType);
                 super.visitVarInsn(Opcodes.ALOAD, lv);
                 super.visitInsn(DUP);
                 super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);

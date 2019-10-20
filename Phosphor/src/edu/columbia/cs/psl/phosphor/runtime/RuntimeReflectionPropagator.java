@@ -2,14 +2,13 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.WeakHashMap;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.Type;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.WeakHashMap;
 
 public class RuntimeReflectionPropagator {
 
@@ -223,7 +222,7 @@ public class RuntimeReflectionPropagator {
                 ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
             }
         } catch(NoSuchFieldException e) {
-//			e.printStackTrace();
+            //
         } catch(SecurityException e) {
             e.printStackTrace();
         }
@@ -250,7 +249,7 @@ public class RuntimeReflectionPropagator {
                 ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
             }
         } catch(NoSuchFieldException e) {
-//			e.printStackTrace();
+            //
         } catch(SecurityException e) {
             e.printStackTrace();
         }
@@ -307,7 +306,7 @@ public class RuntimeReflectionPropagator {
         } catch(SecurityException e) {
             e.printStackTrace();
         } catch(NoSuchFieldException e) {
-//			e.printStackTrace();
+            //
         }
         return ret;
     }
@@ -356,7 +355,7 @@ public class RuntimeReflectionPropagator {
                 ret.taint = (Taint) HardcodedBypassStore.get(((Integer) t).intValue());
             }
         } catch(NoSuchFieldException e) {
-//			e.printStackTrace();
+            //
         } catch(SecurityException e) {
             e.printStackTrace();
         }
@@ -379,6 +378,7 @@ public class RuntimeReflectionPropagator {
             try {
                 f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setAccessible(flag);
             } catch(SecurityException | NoSuchFieldException e) {
+                //
             }
         }
     }
@@ -389,6 +389,7 @@ public class RuntimeReflectionPropagator {
             try {
                 f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setAccessible(flag);
             } catch(SecurityException | NoSuchFieldException e) {
+                //
             }
         }
     }
@@ -399,6 +400,7 @@ public class RuntimeReflectionPropagator {
             try {
                 f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD).setAccessible(flag);
             } catch(SecurityException | NoSuchFieldException e) {
+                //
             }
         }
     }
@@ -465,7 +467,7 @@ public class RuntimeReflectionPropagator {
             taintField.setAccessible(true);
             taintField.setInt(obj, tag);
         } catch(NoSuchFieldException e) {
-//			e.printStackTrace();
+            //
         } catch(SecurityException e) {
             e.printStackTrace();
         }
@@ -479,7 +481,7 @@ public class RuntimeReflectionPropagator {
             taintField.setAccessible(true);
             taintField.setInt(obj, tag);
         } catch(NoSuchFieldException e) {
-//			e.printStackTrace();
+            //
         } catch(SecurityException e) {
             e.printStackTrace();
         }
@@ -493,7 +495,7 @@ public class RuntimeReflectionPropagator {
             taintField.setAccessible(true);
             taintField.setInt(obj, tag);
         } catch(NoSuchFieldException e) {
-//			e.printStackTrace();
+            //
         } catch(SecurityException e) {
             e.printStackTrace();
         }

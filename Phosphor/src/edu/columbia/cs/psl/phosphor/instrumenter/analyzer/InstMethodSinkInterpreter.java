@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -12,54 +13,36 @@ import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Value;
 import org.objectweb.asm.util.Printer;
 
-import java.util.*;
-
 public class InstMethodSinkInterpreter extends BasicInterpreter {
-    LinkedList<SinkableArrayValue> relevant;
 
-    HashMap<AbstractInsnNode, SinkableArrayValue> executed = new HashMap<AbstractInsnNode, SinkableArrayValue>();
+    private Map<AbstractInsnNode, SinkableArrayValue> executed = new HashMap<>();
 
-    public InstMethodSinkInterpreter(LinkedList<SinkableArrayValue> relevantValues, HashMap<AbstractInsnNode, Value> liveValues) {
+    public InstMethodSinkInterpreter(List<SinkableArrayValue> relevantValues, Map<AbstractInsnNode, Value> liveValues) {
         super(Configuration.ASM_VERSION);
-        this.relevant = relevantValues;
-    }
-
-    private static String toStringSrcs(Collection<SinkableArrayValue> c) {
-        String r = "[";
-		if(c != null) {
-			for(SinkableArrayValue s : c) {
-				if(s.getSrc() != null) {
-					r += Printer.OPCODES[s.getSrc().getOpcode()] + ", ";
-				}
-			}
-		}
-        return r + "]";
     }
 
     @Override
     public BasicValue ternaryOperation(AbstractInsnNode insn, BasicValue value1, BasicValue value2, BasicValue value3) throws AnalyzerException {
         if(value1 instanceof SinkableArrayValue && value3 instanceof SinkableArrayValue) {
             SinkableArrayValue arr = (SinkableArrayValue) value1;
-            ((SinkableArrayValue) arr).addDep(((SinkableArrayValue) value3));
+            arr.addDep(((SinkableArrayValue) value3));
             if(((SinkableArrayValue) value1).isNewArray && !((SinkableArrayValue) value3).isConstant) {
                 //Need to clear this value1 to no longer be a new array, and anything that was derived from it
                 SinkableArrayValue v = (SinkableArrayValue) value1;
                 while(v != null && v.isNewArray) {
                     v.isNewArray = false;
-					if(v.reverseDeps != null) {
-						for(SinkableArrayValue x : v.reverseDeps
-						) {
-							if(x.isNewArray) {
-								x.isNewArray = false;
-								if(x.reverseDeps != null) {
-									for(SinkableArrayValue y : x.reverseDeps) {
-										y.isNewArray = false;
-									}
-								}
-							}
-
-						}
-					}
+                    if(v.reverseDeps != null) {
+                        for(SinkableArrayValue x : v.reverseDeps) {
+                            if(x.isNewArray) {
+                                x.isNewArray = false;
+                                if(x.reverseDeps != null) {
+                                    for(SinkableArrayValue y : x.reverseDeps) {
+                                        y.isNewArray = false;
+                                    }
+                                }
+                            }
+                        }
+                    }
                     v = v.copyOf;
                 }
             }
@@ -76,9 +59,9 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
             return ret;
         }
         SinkableArrayValue old = executed.put(insn, null);
-		if(old != null) {
-			old.disable();
-		}
+        if(old != null) {
+            old.disable();
+        }
         return super.copyOperation(insn, _v);
     }
 
@@ -144,13 +127,17 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
             case IFLE:
             case TABLESWITCH:
             case LOOKUPSWITCH:
-                return null;
             case IRETURN:
             case LRETURN:
             case FRETURN:
             case DRETURN:
             case ARETURN:
             case PUTSTATIC:
+            case ATHROW:
+            case MONITORENTER:
+            case MONITOREXIT:
+            case IFNULL:
+            case IFNONNULL:
                 return null;
             case GETFIELD:
                 return newValue(Type.getType(((FieldInsnNode) insn).desc));
@@ -184,9 +171,9 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
                     default:
                         throw new AnalyzerException(insn, "Invalid array type");
                 }
-				if(Configuration.ARRAY_LENGTH_TRACKING) {
-					ret.addDep((SinkableArrayValue) value);
-				}
+                if(Configuration.ARRAY_LENGTH_TRACKING) {
+                    ret.addDep((SinkableArrayValue) value);
+                }
                 ret.isNewArray = true;
                 return ret;
             case ANEWARRAY:
@@ -194,28 +181,21 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
                 return newValue(Type.getType("[" + Type.getObjectType(desc)));
             case ARRAYLENGTH:
                 ret = (SinkableArrayValue) newValue(Type.INT_TYPE);
-				if(value instanceof SinkableArrayValue && value.getType() != null && TaintUtils.isPrimitiveArrayType(value.getType())) {
-					ret.addDep((SinkableArrayValue) value);
-				}
+                if(value instanceof SinkableArrayValue && value.getType() != null && TaintUtils.isPrimitiveArrayType(value.getType())) {
+                    ret.addDep((SinkableArrayValue) value);
+                }
                 return ret;
-            case ATHROW:
-                return null;
             case CHECKCAST:
                 desc = ((TypeInsnNode) insn).desc;
                 BasicValue _ret = newValue(Type.getObjectType(desc));
                 if(value instanceof SinkableArrayValue) {
-					if((_ret instanceof SinkableArrayValue)) {
-						((SinkableArrayValue) _ret).addDep((SinkableArrayValue) value);
-					}
+                    if((_ret instanceof SinkableArrayValue)) {
+                        ((SinkableArrayValue) _ret).addDep((SinkableArrayValue) value);
+                    }
                 }
                 return _ret;
             case INSTANCEOF:
                 return newValue(Type.INT_TYPE);
-            case MONITORENTER:
-            case MONITOREXIT:
-            case IFNULL:
-            case IFNONNULL:
-                return null;
             default:
                 throw new Error("Internal error.");
         }
@@ -223,25 +203,16 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 
     @Override
     public BasicValue unaryOperation(AbstractInsnNode insn, BasicValue value) throws AnalyzerException {
-//		if (insn.getOpcode() == Opcodes.CHECKCAST) {
-//			// are we checkcasting from a prim array to a prim array?
-//			System.out.println(value);
-//			if (value instanceof SinkableArrayValue && TaintUtils.isPrimitiveArrayType(value.getType()))
-//				return value;
-//		}
         BasicValue v = _unaryOperation(insn, value);
-		if(v instanceof SinkableArrayValue) {
-			((SinkableArrayValue) v).setSrc(insn);
-		}
-//		if(insn.getOpcode() ==Opcodes.CHECKCAST)
-//			new Exception().printStackTrace();
+        if(v instanceof SinkableArrayValue) {
+            ((SinkableArrayValue) v).setSrc(insn);
+        }
         return v;
     }
 
     @Override
-    public BasicValue binaryOperation(AbstractInsnNode insn, BasicValue value1, BasicValue value2)
-            throws AnalyzerException {
-        SinkableArrayValue ret = null;
+    public BasicValue binaryOperation(AbstractInsnNode insn, BasicValue value1, BasicValue value2) throws AnalyzerException {
+        SinkableArrayValue ret;
         switch(insn.getOpcode()) {
             case IALOAD:
                 ret = (SinkableArrayValue) newValue(Type.INT_TYPE);
@@ -334,24 +305,22 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
                     return ret;
                 }
 
-				if(value1 == BasicValue.REFERENCE_VALUE) {
-					return super.binaryOperation(insn, value1, value2);
-				}
+                if(value1 == BasicValue.REFERENCE_VALUE) {
+                    return super.binaryOperation(insn, value1, value2);
+                }
 
                 Type t = Type.getType(value1.getType().getDescriptor().substring(1));
                 if(TaintUtils.isPrimitiveArrayType(t)) {
                     ret = new SinkableArrayValue(t);
                     ret.setSrc(insn);
-//				ret.addDep((SinkableArrayValue) value1);
                     return ret;
                 } else if(t.getSort() == Type.ARRAY) {
-					ret = new SinkableArrayValue(t);
-					ret.setSrc(insn);
-//				ret.addDep((SinkableArrayValue) value1);
-					return ret;
-				} else {
-					return super.binaryOperation(insn, value1, value2);
-				}
+                    ret = new SinkableArrayValue(t);
+                    ret.setSrc(insn);
+                    return ret;
+                } else {
+                    return super.binaryOperation(insn, value1, value2);
+                }
             case IF_ICMPEQ:
             case IF_ICMPNE:
             case IF_ICMPLT:
@@ -360,7 +329,6 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
             case IF_ICMPLE:
             case IF_ACMPEQ:
             case IF_ACMPNE:
-                return null;
             case PUTFIELD:
                 return null;
             default:
@@ -372,31 +340,25 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
     public BasicValue merge(BasicValue v, BasicValue w) {
         if(v == BasicValue.UNINITIALIZED_VALUE && w == BasicValue.UNINITIALIZED_VALUE) {
             return v;
-        }
-
-		if(!(v instanceof SinkableArrayValue || w instanceof SinkableArrayValue)) {
-			return super.merge(v, w);
-		}
-
-        if(v.equals(w)) {
+        } else if(!(v instanceof SinkableArrayValue || w instanceof SinkableArrayValue)) {
+            return super.merge(v, w);
+        } else if(v.equals(w)) {
             return v;
         }
-
         if(v instanceof SinkableArrayValue && w instanceof SinkableArrayValue) {
-            // System.out.println("Both sinkable");
             SinkableArrayValue sv = (SinkableArrayValue) v;
             SinkableArrayValue sw = (SinkableArrayValue) w;
             if(sv.deepEquals(sw)) {
-				if(sw.reverseDeps != null) {
-					for(SinkableArrayValue r : sw.reverseDeps) {
-						r.deps.remove(sw);
-						r.addDep(sv);
-					}
-				}
+                if(sw.reverseDeps != null) {
+                    for(SinkableArrayValue r : sw.reverseDeps) {
+                        r.deps.remove(sw);
+                        r.addDep(sv);
+                    }
+                }
                 if(sw.deps != null) {
-					if(sv.deps == null) {
-						sv.deps = new HashSet<>();
-					}
+                    if(sv.deps == null) {
+                        sv.deps = new HashSet<>();
+                    }
                     sv.deps.addAll(sw.deps);
                 }
                 sw.disable();
@@ -404,20 +366,20 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
             }
             if(sv.getSrc() != null && sw.getSrc() != null && sv.getSrc().equals(sw.getSrc()) && sv.getSrc().getOpcode() != Opcodes.CHECKCAST) {
                 if((sv.getType() == null && sw.getType() == null) || (sv.getType() != null && sw.getType() != null && sv.getType().equals(sw.getType()))) {
-					if(sv.reverseDeps == null && sw.reverseDeps != null) {
-						sv.reverseDeps = new HashSet<>();
-					}
-					if(sw.reverseDeps != null) {
-						for(SinkableArrayValue r : sw.reverseDeps) {
-							r.deps.remove(sw);
-							r.addDep(sv);
-							sv.reverseDeps.add(r);
-						}
-					}
+                    if(sv.reverseDeps == null && sw.reverseDeps != null) {
+                        sv.reverseDeps = new HashSet<>();
+                    }
+                    if(sw.reverseDeps != null) {
+                        for(SinkableArrayValue r : sw.reverseDeps) {
+                            r.deps.remove(sw);
+                            r.addDep(sv);
+                            sv.reverseDeps.add(r);
+                        }
+                    }
                     if(sw.deps != null) {
-						if(sv.deps == null) {
-							sv.deps = new HashSet<SinkableArrayValue>();
-						}
+                        if(sv.deps == null) {
+                            sv.deps = new HashSet<>();
+                        }
                         sv.deps.addAll(sw.deps);
                     }
                     sw.disable();
@@ -427,30 +389,30 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
 
             if((v.getType() == null || v.getType().getDescriptor().equals("Lnull;"))
                     && (w.getType() == null || w.getType().getDescriptor().equals("Lnull;"))) {
-                if(sv.getSrc() != null && sw.oldSrc != null && sv.getSrc().equals(sw.oldSrc)) {
+                if(sv.getSrc() != null && sv.getSrc().equals(sw.oldSrc)) {
                     return sv;
-                } else if((sw.getSrc() != null && sv.deps != null && sw != null && sv.deps.contains(sw))
-						|| (sw.getSrc() == null && sw.deps != null && sv.deps != null && sv.deps.containsAll(sw.deps))) {
-					return v;
-				} else if(sv.deps != null && sw != null && sv.deps.contains(sw)) {
-					return v;
-				} else if(sw.getSrc() != null && sv.oldSrc != null && sw.getSrc().equals(sv.oldSrc)) {
-					return sw;
-				} else if(sv.getSrc() == null && sw.getSrc() == null) {
-					sv.addDep(sw);
-					return v;
-				} else if(sw.deps != null && sv != null && sw.deps.contains(sv)) {
-					return w;
-				} else if(sv.getSrc() != null) {
-					sv.addDep(sw);
-					return v;
-				} else if(sw.getSrc() != null) {
-					sw.addDep(sv);
-					return w;
-				} else {
-					sv.addDep(sw);
-					return v;
-				}
+                } else if(sw.getSrc() != null && sv.deps != null && sv.deps.contains(sw)
+                        || sw.getSrc() == null && sw.deps != null && sv.deps != null && sv.deps.containsAll(sw.deps)) {
+                    return v;
+                } else if(sv.deps != null && sv.deps.contains(sw)) {
+                    return v;
+                } else if(sw.getSrc() != null && sw.getSrc().equals(sv.oldSrc)) {
+                    return sw;
+                } else if(sv.getSrc() == null && sw.getSrc() == null) {
+                    sv.addDep(sw);
+                    return v;
+                } else if(sw.deps != null && sw.deps.contains(sv)) {
+                    return w;
+                } else if(sv.getSrc() != null) {
+                    sv.addDep(sw);
+                    return v;
+                } else if(sw.getSrc() != null) {
+                    sw.addDep(sv);
+                    return w;
+                } else {
+                    sv.addDep(sw);
+                    return v;
+                }
             }
             if(v.getType() == null || v.getType().getDescriptor().equals("Lnull;")) {
                 if(w.getType().getSort() == Type.ARRAY) {
@@ -472,21 +434,17 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
                         sw.doNotPropagateToDeps = false;
                         sw.flowsToPrim = true;
                     }
-					if(sv.getSrc() != null && sv.getSrc().getOpcode() == Opcodes.CHECKCAST && sw.getSrc() != null && sw.getSrc().getOpcode() == Opcodes.ACONST_NULL) {
-						sv.okToPropagateToDeps = true;
-					}
+                    if(sv.getSrc() != null && sv.getSrc().getOpcode() == Opcodes.CHECKCAST && sw.getSrc() != null && sw.getSrc().getOpcode() == Opcodes.ACONST_NULL) {
+                        sv.okToPropagateToDeps = true;
+                    }
                 }
                 return v;
             } else if(TaintUtils.isPrimitiveOrPrimitiveArrayType(v.getType())
                     && TaintUtils.isPrimitiveOrPrimitiveArrayType(w.getType())) {
                 if(v.getType().equals(w.getType())) {
                     if(sv.flowsToInstMethodCall && !sw.flowsToInstMethodCall) {
-                        // relevant.addAll(sw.tag());
-                        // System.out.println("R1");
                         return v;
                     } else if(sw.flowsToInstMethodCall && !sv.flowsToInstMethodCall) {
-                        // relevant.addAll(sv.tag());
-                        // System.out.println("R2");
                         return v;
                     } else {
                         //At this point, we need to see if we are merging from 2 CHECKCAST.
@@ -495,21 +453,16 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
                         //then load double NULL's
                         //however, if one is prim array and other is NULL, then we MUST allow them to be marked as relevant
                         //so stacks will match
-
                         if(sw.getSrc() != null && sv.getSrc() != null && sw.getSrc().getOpcode() == Opcodes.CHECKCAST && sv.getSrc().getOpcode() == Opcodes.CHECKCAST) {
-//							System.out.println(sw + " " + sv);
-//							System.out.println(Printer.OPCODES[sw.getSrc().getOpcode()] + " " + Printer.OPCODES[sv.getSrc().getOpcode()]);
-//							System.out.println(sv.deps + " " +sw.deps);
-//							System.out.println(toStringSrcs(sv.deps) + " " + toStringSrcs(sw.deps));
                             if(sv.deps == null || sw.deps == null) {
                                 if(sv.deps != null && sv.deps.size() == 1 && sw.deps == null) {
-									if(!sv.okToPropagateToDeps) {
-										sv.doNotPropagateToDeps = true;
-									}
+                                    if(!sv.okToPropagateToDeps) {
+                                        sv.doNotPropagateToDeps = true;
+                                    }
                                 } else if(sw.deps != null && sw.deps.size() == 1 && sv.deps == null) {
-									if(!sv.okToPropagateToDeps) {
-										sv.doNotPropagateToDeps = true;
-									}
+                                    if(!sv.okToPropagateToDeps) {
+                                        sv.doNotPropagateToDeps = true;
+                                    }
                                 }
                             }
                         }
@@ -535,33 +488,24 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
             }
             return v;
         }
+        if(v.getType().getDescriptor().equals("Ljava/lang/Object;")) {
+            return v;
+        }
+        if(v.getType().getSort() == Type.ARRAY && v.getType().getDimensions() > 1) {
+            return v;
+        }
 
-		if(v.getType().getDescriptor().equals("Ljava/lang/Object;")) {
-			return v;
-		}
-		if(v.getType().getSort() == Type.ARRAY && v.getType().getDimensions() > 1) {
-			return v;
-		}
-
-        if(v.getType().equals(w.getType())
-                || (v.getType().getDescriptor().length() == 1 && w.getType().getDescriptor().length() == 1)) {
-
+        if(v.getType().equals(w.getType()) || (v.getType().getDescriptor().length() == 1
+                && w.getType().getDescriptor().length() == 1)) {
             SinkableArrayValue r = new SinkableArrayValue(v.getType());
             r.addDep((SinkableArrayValue) w);
             r.addDep((SinkableArrayValue) v);
-//			 System.out.println("Merge " + v + w);
-
             return r;
         }
-        BasicValue r = new BasicArrayValue(Type.getType(Object.class));
-
-//		 System.out.println("Super merge" + v.getType() + w.getType());
-        // BasicValue r = super.merge(v, w);
-        // System.out.println("Ret " + r);
-        return r;
+        return new BasicArrayValue(Type.getType(Object.class));
     }
 
-    private BasicValue _newOperation(AbstractInsnNode insn) throws AnalyzerException {
+    private BasicValue _newOperation(AbstractInsnNode insn) {
         switch(insn.getOpcode()) {
             case ACONST_NULL:
                 return newValue(Type.getObjectType("null"));
@@ -572,6 +516,8 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
             case ICONST_3:
             case ICONST_4:
             case ICONST_5:
+            case BIPUSH:
+            case SIPUSH:
                 return newValue(Type.INT_TYPE);
             case LCONST_0:
             case LCONST_1:
@@ -583,9 +529,6 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
             case DCONST_0:
             case DCONST_1:
                 return newValue(Type.DOUBLE_TYPE);
-            case BIPUSH:
-            case SIPUSH:
-                return newValue(Type.INT_TYPE);
             case LDC:
                 Object cst = ((LdcInsnNode) insn).cst;
                 if(cst instanceof Integer) {
@@ -624,12 +567,11 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
     }
 
     @Override
-    public BasicValue newOperation(AbstractInsnNode insn) throws AnalyzerException {
+    public BasicValue newOperation(AbstractInsnNode insn) {
         BasicValue ret = _newOperation(insn);
-
-		if(ret instanceof SinkableArrayValue) {
-			((SinkableArrayValue) ret).setSrc(insn);
-		}
+        if(ret instanceof SinkableArrayValue) {
+            ((SinkableArrayValue) ret).setSrc(insn);
+        }
         return ret;
     }
 
@@ -638,49 +580,34 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
         if(type == null) {
             return new SinkableArrayValue(null);
         }
-        // if(type.toString().equals("Lorg/apache/lucene/search/FieldCache$StringIndex;"))
-        // return new BasicValue(type);
-        // if(type.getDescriptor().equals("Lnull;"))
-        // new Exception().printStackTrace();
         if(TaintUtils.isPrimitiveOrPrimitiveArrayType(type)) {
-            SinkableArrayValue ret = new SinkableArrayValue(type);
-            return ret;
+            return new SinkableArrayValue(type);
         } else if(type.getSort() == Type.ARRAY && type.getElementType().getSort() != Type.OBJECT) {
-            BasicArrayValue ret = new BasicArrayValue(type);
-            return ret;
+            return new BasicArrayValue(type);
         } else if(type.getDescriptor().equals("Lnull;")) {
-			return new SinkableArrayValue(null);
-		} else {
-//			System.out.println("Passing through: " + type);
-			BasicValue ret = super.newValue(type);
-			// System.out.println("gets " + ret);
-			return ret;
-		}
+            return new SinkableArrayValue(null);
+        } else {
+            return super.newValue(type);
+        }
     }
 
     @Override
-    public BasicValue naryOperation(AbstractInsnNode insn, List values) throws AnalyzerException {
+    public BasicValue naryOperation(AbstractInsnNode insn, java.util.List<? extends BasicValue> values) throws AnalyzerException {
         if(insn instanceof MethodInsnNode) {
             MethodInsnNode min = (MethodInsnNode) insn;
-
-            // System.out.println(min.name+min.desc);
             Type retType = Type.getReturnType(min.desc);
             if(TaintUtils.isPrimitiveOrPrimitiveArrayType(retType)) {
                 SinkableArrayValue ret = new SinkableArrayValue(retType);
                 ret.setSrc(insn);
-//				 System.out.println(ret);
                 return ret;
             } else if(min.name.equals("clone") && min.desc.equals("()Ljava/lang/Object;") && values.get(0) instanceof SinkableArrayValue) {
                 SinkableArrayValue ret = new SinkableArrayValue(retType);
                 ret.setSrc(insn);
                 ret.addDep((SinkableArrayValue) values.get(0));
-//				 System.out.println(ret);
                 return ret;
             }
         } else if(insn instanceof InvokeDynamicInsnNode) {
             InvokeDynamicInsnNode min = (InvokeDynamicInsnNode) insn;
-
-            // System.out.println(min.name+min.desc);
             Type retType = Type.getReturnType(min.desc);
             if(TaintUtils.isPrimitiveOrPrimitiveArrayType(retType)) {
                 SinkableArrayValue ret = new SinkableArrayValue(retType);
@@ -692,4 +619,15 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
         return super.naryOperation(insn, values);
     }
 
+    private static String toStringSrcs(Collection<SinkableArrayValue> c) {
+        StringBuilder r = new StringBuilder("[");
+        if(c != null) {
+            for(SinkableArrayValue s : c) {
+                if(s.getSrc() != null) {
+                    r.append(Printer.OPCODES[s.getSrc().getOpcode()]).append(", ");
+                }
+            }
+        }
+        return r + "]";
+    }
 }

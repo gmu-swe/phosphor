@@ -10,6 +10,7 @@ import edu.columbia.cs.psl.phosphor.runtime.*;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.GeneratorAdapter;
@@ -18,8 +19,6 @@ import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.util.Printer;
 import org.objectweb.asm.util.Textifier;
-
-import java.util.*;
 
 import static edu.columbia.cs.psl.phosphor.TaintUtils.FORCE_CTRL_STORE;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
@@ -64,7 +63,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String signature,
                           String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,
-                          MethodVisitor passThroughMV, HashSet<MethodNode> wrapperMethodsToAdd, boolean isImplicitLightTracking) {
+                          MethodVisitor passThroughMV, Set<MethodNode> wrapperMethodsToAdd, boolean isImplicitLightTracking) {
         super(access, className, name, desc, signature, exceptions, mv, analyzer);
         Configuration.taintTagFactory.instrumentationStarting(access, name, desc);
         this.isLambda = this.isIgnoreAllInstrumenting = className.contains("$Lambda$");
@@ -1180,7 +1179,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         if(isPreAllocatedReturnType) {
             Type t = Type.getReturnType(newDesc);
             newDesc = newDesc.substring(0, newDesc.indexOf(")")) + t.getDescriptor() + ")" + t.getDescriptor();
-            super.visitVarInsn(ALOAD, lvs.getPreAllocedReturnTypeVar(t));
+            super.visitVarInsn(ALOAD, lvs.getPreAllocatedReturnTypeVar(t));
         }
         Type origReturnType = Type.getReturnType(desc);
         Type returnType = TaintUtils.getContainerReturnType(Type.getReturnType(desc));
@@ -1601,7 +1600,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             owner = "edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropagator";
         }
         boolean isPreAllocatedReturnType = TaintUtils.isPreAllocReturnType(desc);
-        if(Instrumenter.isClassWithHashmapTag(owner) && name.equals("valueOf")) {
+        if(Instrumenter.isClassWithHashMapTag(owner) && name.equals("valueOf")) {
             Type[] args = Type.getArgumentTypes(desc);
             if(args[0].getSort() != Type.OBJECT) {
                 owner = Type.getInternalName(BoxedPrimitiveStoreWithObjTags.class);
@@ -1609,7 +1608,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, owner, name, desc, false);
             }
             return;
-        } else if(Instrumenter.isClassWithHashmapTag(owner) && (name.equals("byteValue") || name.equals("booleanValue") || name.equals("charValue") || name.equals("shortValue"))) {
+        } else if(Instrumenter.isClassWithHashMapTag(owner) && (name.equals("byteValue") || name.equals("booleanValue") || name.equals("charValue") || name.equals("shortValue"))) {
             Type returnType = Type.getReturnType(desc);
             Type boxedReturn = TaintUtils.getContainerReturnType(returnType);
             desc = "(L" + owner + ";)" + boxedReturn.getDescriptor();
@@ -1813,7 +1812,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         if(isPreAllocatedReturnType) {
             Type t = Type.getReturnType(newDesc);
             newDesc = newDesc.substring(0, newDesc.indexOf(")")) + t.getDescriptor() + ")" + t.getDescriptor();
-            super.visitVarInsn(ALOAD, lvs.getPreAllocedReturnTypeVar(t));
+            super.visitVarInsn(ALOAD, lvs.getPreAllocatedReturnTypeVar(t));
         }
         Type origReturnType = Type.getReturnType(desc);
         Type returnType = TaintUtils.getContainerReturnType(Type.getReturnType(desc));
@@ -2167,7 +2166,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         elName = "Boolean";
                     }
                     Type retType = Type.getObjectType("edu/columbia/cs/psl/phosphor/struct/Tainted" + elName + "WithObjTag");
-                    int prealloc = lvs.getPreAllocedReturnTypeVar(retType);
+                    int prealloc = lvs.getPreAllocatedReturnTypeVar(retType);
                     super.visitVarInsn(ALOAD, prealloc);
                     String methodName = "get";
                     if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
@@ -3174,7 +3173,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 break;
             case Opcodes.DRETURN:
             case Opcodes.LRETURN:
-                int retIdx = lvs.getPreAllocedReturnTypeVar(newReturnType);
+                int retIdx = lvs.getPreAllocatedReturnTypeVar(newReturnType);
                 super.visitVarInsn(ALOAD, retIdx);
                 super.visitInsn(DUP_X2);
                 super.visitInsn(POP);
@@ -3188,7 +3187,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 break;
             case Opcodes.IRETURN:
             case Opcodes.FRETURN:
-                retIdx = lvs.getPreAllocedReturnTypeVar(newReturnType);
+                retIdx = lvs.getPreAllocatedReturnTypeVar(newReturnType);
                 super.visitVarInsn(ALOAD, retIdx);
                 super.visitInsn(SWAP);
                 super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());

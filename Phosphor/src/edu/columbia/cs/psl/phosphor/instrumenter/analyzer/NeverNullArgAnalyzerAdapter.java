@@ -31,10 +31,9 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.AnalyzerAdapter;
-
-import java.util.*;
 
 /**
  * A {@link MethodVisitor} that keeps track of stack map frame changes between
@@ -138,6 +137,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         this(Configuration.ASM_VERSION, owner, access, name, desc, mv);
         this.name = name;
     }
+
     /**
      * Creates a new {@link NeverNullArgAnalyzerAdapter}.
      *
@@ -155,13 +155,13 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
                                           final MethodVisitor mv) {
         super(api, mv);
         this.owner = owner;
-        locals = new ArrayList<Object>();
-        frameLocals = new ArrayList<Object>();
-        stack = new ArrayList<Object>();
-        stackTagStatus = new ArrayList<Object>();
-        stackConstantVals = new ArrayList<Object>();
-        uninitializedTypes = new HashMap<Object, Object>();
-        args = new ArrayList<Object>();
+        locals = new ArrayList<>();
+        frameLocals = new ArrayList<>();
+        stack = new ArrayList<>();
+        stackTagStatus = new ArrayList<>();
+        stackConstantVals = new ArrayList<>();
+        uninitializedTypes = new HashMap<>();
+        args = new ArrayList<>();
         argsFormattedForFrame = new ArrayList<>();
         if((access & Opcodes.ACC_STATIC) == 0) {
             if("<init>".equals(name)) {
@@ -173,8 +173,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             argsFormattedForFrame.add(owner);
         }
         Type[] types = Type.getArgumentTypes(desc);
-        for(int i = 0; i < types.length; ++i) {
-            Type type = types[i];
+        for(Type type : types) {
             switch(type.getSort()) {
                 case Type.BOOLEAN:
                 case Type.CHAR:
@@ -205,32 +204,15 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
                     argsFormattedForFrame.add(Opcodes.DOUBLE);
                     break;
                 case Type.ARRAY:
-                    locals.add(types[i].getDescriptor());
-                    args.add(types[i].getDescriptor());
-                    argsFormattedForFrame.add(types[i].getDescriptor());
+                    locals.add(type.getDescriptor());
+                    args.add(type.getDescriptor());
+                    argsFormattedForFrame.add(type.getDescriptor());
                     break;
                 // case Type.OBJECT:
                 default:
-                    locals.add(types[i].getInternalName());
-                    args.add(types[i].getInternalName());
-                    argsFormattedForFrame.add(types[i].getInternalName());
-            }
-        }
-    }
-
-    private static void visitFrameTypes(final int n, final Object[] types,
-                                        final List<Object> result) {
-        for(int i = 0; i < n; ++i) {
-            Object type = types[i];
-            if(type.equals("java/lang/Object;")) {
-                throw new IllegalArgumentException("Got " + type + " IN" + Arrays.toString(types));
-            }
-            result.add(type);
-            if(type instanceof TaggedValue) {
-                type = ((TaggedValue) type).v;
-            }
-            if(type == Opcodes.LONG || type == Opcodes.DOUBLE) {
-                result.add(Opcodes.TOP);
+                    locals.add(type.getInternalName());
+                    args.add(type.getInternalName());
+                    argsFormattedForFrame.add(type.getInternalName());
             }
         }
     }
@@ -268,11 +250,11 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             this.stackConstantVals.clear();
             this.stackTagStatus.clear();
         } else {
-            this.frameLocals = new ArrayList<Object>();
-            this.locals = new ArrayList<Object>();
-            this.stack = new ArrayList<Object>();
-            this.stackTagStatus = new ArrayList<Object>();
-            this.stackConstantVals = new ArrayList<Object>(nStack);
+            this.frameLocals = new ArrayList<>();
+            this.locals = new ArrayList<>();
+            this.stack = new ArrayList<>();
+            this.stackTagStatus = new ArrayList<>();
+            this.stackConstantVals = new ArrayList<>(nStack);
         }
         visitFrameTypes(nLocal, local, this.frameLocals);
         visitFrameTypes(nLocal, local, this.locals);
@@ -320,11 +302,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             mv.visitInsn(opcode);
         }
         noInsnsSinceListFrame = false;
-        if(opcode == TaintUtils.FOLLOWED_BY_FRAME) {
-            isFollowedByFrame = true;
-        } else {
-            isFollowedByFrame = false;
-        }
+        isFollowedByFrame = opcode == TaintUtils.FOLLOWED_BY_FRAME;
         if(opcode > 200) {
             return;
         }
@@ -358,7 +336,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if(opcode == Opcodes.NEW) {
             if(labels == null) {
                 Label l = new Label();
-                labels = new ArrayList<Label>(3);
+                labels = new ArrayList<>(3);
                 labels.add(l);
                 if(mv != null) {
                     mv.visitLabel(l);
@@ -475,7 +453,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             mv.visitLabel(label);
         }
         if(labels == null) {
-            labels = new ArrayList<Label>(3);
+            labels = new ArrayList<>(3);
         }
         labels.add(label);
     }
@@ -571,12 +549,12 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         }
     }
 
-    // ------------------------------------------------------------------------
-
     private Object get(final int local) {
         maxLocals = Math.max(maxLocals, local);
         return local < locals.size() ? locals.get(local) : Opcodes.TOP;
     }
+
+    // ------------------------------------------------------------------------
 
     private void set(final int local, final Object type) {
         if(type.equals("java/lang/Object;")) {
@@ -645,7 +623,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
                 if(index == 0) {
                     push(desc);
                 } else {
-                    push(desc.substring(index, desc.length()));
+                    push(desc.substring(index));
                 }
                 break;
             // case 'L':
@@ -1154,5 +1132,22 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
 
     public void clearLabels() {
         labels = null;
+    }
+
+    private static void visitFrameTypes(final int n, final Object[] types,
+                                        final List<Object> result) {
+        for(int i = 0; i < n; ++i) {
+            Object type = types[i];
+            if(type.equals("java/lang/Object;")) {
+                throw new IllegalArgumentException("Got " + type + " IN" + Arrays.toString(types));
+            }
+            result.add(type);
+            if(type instanceof TaggedValue) {
+                type = ((TaggedValue) type).v;
+            }
+            if(type == Opcodes.LONG || type == Opcodes.DOUBLE) {
+                result.add(Opcodes.TOP);
+            }
+        }
     }
 }

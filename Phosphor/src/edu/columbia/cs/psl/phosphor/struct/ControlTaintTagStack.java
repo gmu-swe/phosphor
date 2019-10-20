@@ -306,6 +306,7 @@ public final class ControlTaintTagStack {
     }
 
     @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = CONTROL_STACK_FACTORY)
     public static ControlTaintTagStack factory() {
         return instance;
     }

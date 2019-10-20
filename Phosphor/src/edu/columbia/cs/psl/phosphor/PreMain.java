@@ -8,6 +8,8 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.SerialVersionUIDAdder;
 import org.objectweb.asm.tree.*;
@@ -21,7 +23,6 @@ import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.ProtectionDomain;
-import java.util.List;
 
 public class PreMain {
 
@@ -165,22 +166,26 @@ public class PreMain {
             TaintUtils.VERIFY_CLASS_GENERATION = System.getProperty("phosphor.verify") != null;
         }
 
+        @Override
+        public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
+                throws IllegalClassFormatException {
+            return _transform(loader, className2, classBeingRedefined, protectionDomain, classfileBuffer);
+        }
+
         public static byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
                 throws IllegalClassFormatException {
             ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer) : new ClassReader(classfileBuffer));
             String className = cr.getClassName();
             innerException = false;
             curLoader = loader;
-//			bigLoader = loader;
-//			Instrumenter.loader = bigLoader;
             if(Instrumenter.isIgnoredClass(className)) {
-				switch(className) {
-					case "java/lang/Boolean":
-					case "java/lang/Byte":
-					case "java/lang/Character":
-					case "java/lang/Short":
-						return processBoolean(classfileBuffer);
-				}
+                switch(className) {
+                    case "java/lang/Boolean":
+                    case "java/lang/Byte":
+                    case "java/lang/Character":
+                    case "java/lang/Short":
+                        return processBoolean(classfileBuffer);
+                }
                 return classfileBuffer;
             }
 
@@ -272,7 +277,7 @@ public class PreMain {
                                 }
                             }
                             if(matches) {
-								return Files.readAllBytes(new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".class").toPath());
+                                return Files.readAllBytes(new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".class").toPath());
                             }
                         } catch(Throwable t) {
                             t.printStackTrace();
@@ -295,9 +300,12 @@ public class PreMain {
                 }
 
                 boolean isiFace = (cn.access & Opcodes.ACC_INTERFACE) != 0;
-                List<FieldNode> fields = cn.fields;
+                List<FieldNode> fields = new LinkedList<>();
+                for(FieldNode node : cn.fields) {
+                    fields.add(node);
+                }
                 if(skipFrames) {
-					// This class is old enough to not guarantee frames.
+                    // This class is old enough to not guarantee frames.
                     // Generate new frames for analysis reasons, then make sure
                     // to not emit ANY frames.
                     ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
@@ -392,7 +400,7 @@ public class PreMain {
                         String cacheKey = className.replace("/", ".");
                         File f = new File(Configuration.CACHE_DIR + File.separator + cacheKey + ".class");
                         FileOutputStream fos = new FileOutputStream(f);
-						fos.write(instrumentedBytes);
+                        fos.write(instrumentedBytes);
                         fos.close();
                         if(md5inst == null) {
                             md5inst = MessageDigest.getInstance("MD5");
@@ -423,15 +431,15 @@ public class PreMain {
                         _cv = new HidePhosphorFromASMCV(_cv, false);
                         cr.accept(_cv, ClassReader.EXPAND_FRAMES);
                     } catch(Throwable ex2) {
-                    	//
+                        //
                     }
                     ex.printStackTrace();
                     System.err.println("method so far:");
                     if(!innerException) {
                         try {
                             PrintWriter pw = new PrintWriter(new FileWriter("lastClass.txt"));
-							cv.p.print(pw);
-							pw.flush();
+                            cv.p.print(pw);
+                            pw.flush();
                         } catch(IOException e) {
                             e.printStackTrace();
                         }
@@ -439,16 +447,16 @@ public class PreMain {
                     System.out.println("Saving " + className);
                     File f = new File("debug/" + className.replace("/", ".") + ".class");
                     if(f.getParentFile().mkdirs()) {
-						try {
-							FileOutputStream fos = new FileOutputStream(f);
-							fos.write(classfileBuffer);
-							fos.close();
-						} catch(Exception ex2) {
-							ex.printStackTrace();
-						}
-					} else {
-                    	System.err.println("Failed to make debug directory: " + f);
-					}
+                        try {
+                            FileOutputStream fos = new FileOutputStream(f);
+                            fos.write(classfileBuffer);
+                            fos.close();
+                        } catch(Exception ex2) {
+                            ex.printStackTrace();
+                        }
+                    } else {
+                        System.err.println("Failed to make debug directory: " + f);
+                    }
                     return new byte[0];
                 }
             } finally {
@@ -463,10 +471,10 @@ public class PreMain {
             boolean addField = true;
             for(Object o : cn.fields) {
                 FieldNode fn = (FieldNode) o;
-				if(fn.name.equals("valueOf")) {
-					addField = false;
-					break;
-				}
+                if(fn.name.equals("valueOf")) {
+                    addField = false;
+                    break;
+                }
             }
             for(Object o : cn.methods) {
                 MethodNode mn = (MethodNode) o;
@@ -481,12 +489,6 @@ public class PreMain {
                 return cw.toByteArray();
             }
             return classFileBuffer;
-        }
-
-        @Override
-        public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
-                throws IllegalClassFormatException {
-			return _transform(loader, className2, classBeingRedefined, protectionDomain, classfileBuffer);
         }
 
         private static final class HackyClassWriter extends ClassWriter {
@@ -506,7 +508,7 @@ public class PreMain {
                 } catch(Throwable e) {
                     throw new ClassNotFoundException();
                 }
-			}
+            }
 
             protected String getCommonSuperClass(String type1, String type2) {
                 Class<?> c, d;
@@ -516,7 +518,7 @@ public class PreMain {
                 } catch(ClassNotFoundException | ClassCircularityError e) {
                     return "java/lang/Object";
                 }
-				if(c.isAssignableFrom(d)) {
+                if(c.isAssignableFrom(d)) {
                     return type1;
                 }
                 if(d.isAssignableFrom(c)) {

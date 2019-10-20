@@ -4,6 +4,8 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -14,18 +16,14 @@ import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class TaintAdapter extends MethodVisitor implements Opcodes {
 
-    static final Type taintTagType = Type.getType(Configuration.TAINT_TAG_DESC);
+    private static final Type taintTagType = Type.getType(Configuration.TAINT_TAG_DESC);
     public List<FieldNode> fields;
     protected LocalVariableManager lvs;
     protected NeverNullArgAnalyzerAdapter analyzer;
     protected String className;
-    protected String classSource;
-    protected String classDebug;
     protected String superName;
 
     private TaintAdapter(MethodVisitor mv) {
@@ -46,253 +44,6 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
         super(Configuration.ASM_VERSION, mv);
         this.analyzer = analyzer;
         this.className = className;
-        this.classSource = classSource;
-        this.classDebug = classDebug;
-    }
-
-    public static final Type getTagType(String internalName) {
-        if(canRawTaintAccess(internalName)) {
-            return taintTagType;
-        }
-        return Type.INT_TYPE;
-    }
-
-    public static final boolean canRawTaintAccess(String internalName) {
-        return (!(internalName.equals("java/lang/Float") ||
-//				internalName.equals("java/lang/Boolean") ||
-//				internalName.equals("java/lang/Byte") ||
-//				internalName.equals("java/lang/Short") ||
-                internalName.equals("java/lang/Character") ||
-                internalName.equals("java/lang/Double") || internalName.equals("java/lang/Integer") ||
-                internalName.equals("java/lang/Long") || internalName.equals("java/lang/StackTraceElement")));
-    }
-
-    public static Object[] removeLongsDoubleTopVal(List<Object> in) {
-        ArrayList<Object> ret = new ArrayList<>();
-        boolean lastWas2Word = false;
-        for(Object n : in) {
-            if((n == Opcodes.TOP || (n instanceof TaggedValue && ((TaggedValue) n).v == Opcodes.TOP)) && lastWas2Word) {
-                //nop
-            } else {
-                ret.add(n);
-            }
-            if(n == Opcodes.DOUBLE || n == Opcodes.LONG || (n instanceof TaggedValue && (((TaggedValue) n).v == Opcodes.DOUBLE || ((TaggedValue) n).v == Opcodes.LONG))) {
-                lastWas2Word = true;
-            } else {
-                lastWas2Word = false;
-            }
-        }
-        return ret.toArray();
-    }
-
-    static int[][][] foo(int[][][] in) {
-        int[][][] ret = new int[in.length][][];
-        for(int i = 0; i < ret.length; i++) {
-            ret[i] = new int[in[i].length][];
-            for(int j = 0; j < ret[i].length; j++) {
-                ret[i][j] = new int[in[i][j].length];
-            }
-        }
-        return ret;
-
-    }
-
-    static int[][] foo(int[][] in) {
-        int[][] ret = new int[in.length][];
-        for(int i = 0; i < ret.length; i++) {
-            ret[i] = new int[in[i].length];
-        }
-        return ret;
-    }
-
-    public static void createNewTaintArray(String arrayDesc, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor mv, LocalVariableManager lvs) {
-        Type arrayType = Type.getType(arrayDesc);
-        Label isNull = new Label();
-        Label done = new Label();
-        Object[] locals1 = removeLongsDoubleTopVal(analyzer.locals);
-        int localSize1 = locals1.length;
-
-        Object[] stack1 = removeLongsDoubleTopVal(analyzer.stack);
-        int stackSize1 = stack1.length;
-
-        mv.visitInsn(Opcodes.DUP);
-        mv.visitJumpInsn(Opcodes.IFNULL, isNull);
-
-        if(arrayType.getDimensions() == 2) {
-            mv.visitInsn(DUP);
-            mv.visitInsn(DUP);
-            mv.visitInsn(ARRAYLENGTH);
-            Type toUse = MultiDTaintedArray.getTypeForType(arrayType);
-            if(toUse.getSort() == Type.ARRAY) {
-                toUse = toUse.getElementType();
-            }
-            mv.visitMultiANewArrayInsn(toUse.getDescriptor(), 1);
-            mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[Ljava/lang/Object;)[[Ljava/lang/Object;", false);
-            mv.visitInsn(SWAP);
-        } else if(arrayType.getDimensions() == 3) {
-            mv.visitInsn(DUP);
-            mv.visitInsn(DUP);
-            mv.visitInsn(ARRAYLENGTH);
-            Type toUse = MultiDTaintedArray.getTypeForType(arrayType);
-            if(toUse.getSort() == Type.ARRAY) {
-                toUse = toUse.getElementType();
-            }
-            mv.visitMultiANewArrayInsn("[" + toUse.getDescriptor(), 1);
-            mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[Ljava/lang/Object;)[[[Ljava/lang/Object;", false);
-            mv.visitInsn(SWAP);
-        } else if(arrayType.getDimensions() > 1) {
-            int tmp = lvs.getTmpLV(arrayType);
-            mv.visitInsn(DUP);
-            mv.visitVarInsn(ASTORE, tmp);
-
-            for(int i = 0; i < arrayType.getDimensions(); i++) {
-                mv.visitVarInsn(ALOAD, tmp);
-
-                for(int j = 0; j < i; j++) {
-                    mv.visitInsn(ICONST_0);
-                    mv.visitInsn(AALOAD);
-                }
-                mv.visitInsn(Opcodes.ARRAYLENGTH);
-            }
-            mv.visitMultiANewArrayInsn(arrayDesc.substring(0, arrayDesc.length() - 1) + Configuration.TAINT_TAG_DESC, arrayType.getDimensions()); //TODO XXX this won't be properly initialized.
-
-        } else {
-            String shadowDesc = TaintUtils.getShadowTaintType(arrayDesc);
-            mv.visitInsn(DUP);
-            mv.visitTypeInsn(NEW, shadowDesc.substring(1, shadowDesc.length() - 1));
-            mv.visitInsn(DUP_X1);
-            mv.visitInsn(SWAP);
-            mv.visitMethodInsn(INVOKESPECIAL, shadowDesc.substring(1, shadowDesc.length() - 1), "<init>", "(" + arrayDesc + ")V", false);
-            mv.visitInsn(SWAP);
-        }
-
-        Object[] locals = removeLongsDoubleTopVal(analyzer.locals);
-        int localSize = locals.length;
-
-        Object[] stack = removeLongsDoubleTopVal(analyzer.stack);
-        int stackSize = stack.length;
-
-        mv.visitJumpInsn(Opcodes.GOTO, done);
-        mv.visitFrame(TaintUtils.RAW_INSN, localSize1, locals1, stackSize1, stack1);
-
-        mv.visitLabel(isNull);
-
-        mv.visitInsn(Opcodes.ACONST_NULL);
-        mv.visitInsn(Opcodes.SWAP);
-        mv.visitLabel(done);
-        mv.visitFrame(TaintUtils.RAW_INSN, localSize, locals, stackSize, stack);
-    }
-
-    public static Type getTypeForStackType(Object obj) {
-        if(obj instanceof TaggedValue) {
-            obj = ((TaggedValue) obj).v;
-        }
-        if(obj == Opcodes.INTEGER) {
-            return Type.INT_TYPE;
-        }
-        if(obj == Opcodes.FLOAT) {
-            return Type.FLOAT_TYPE;
-        }
-        if(obj == Opcodes.DOUBLE) {
-            return Type.DOUBLE_TYPE;
-        }
-        if(obj == Opcodes.LONG) {
-            return Type.LONG_TYPE;
-        }
-        if(obj == Opcodes.NULL) {
-            return Type.getType("Ljava/lang/Object;");
-        }
-        if(obj instanceof String) {
-            return Type.getObjectType((String) obj);
-        }
-        if(obj instanceof Label || obj == Opcodes.UNINITIALIZED_THIS) {
-            return Type.getType("Luninitialized;");
-        }
-        throw new IllegalArgumentException("got " + obj + " zzz" + obj.getClass());
-    }
-
-    public static boolean isPrimitiveStackType(Object obj) {
-        if(obj instanceof String) {
-            if(((String) obj).startsWith("[")) {
-                Type t = Type.getType((String) obj);
-                if(t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        return obj == Opcodes.INTEGER || obj == Opcodes.FLOAT || obj == Opcodes.DOUBLE || obj == Opcodes.LONG || obj == Opcodes.TOP;
-    }
-
-    public static boolean isPrimitiveType(Type t) {
-        if(t == null) {
-            return false;
-        }
-        switch(t.getSort()) {
-            case Type.ARRAY:
-                return t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1;
-            case Type.OBJECT:
-            case Type.VOID:
-                return false;
-            default:
-                return true;
-        }
-    }
-
-    public static int getStackElementSize(Object obj) {
-        if(obj instanceof TaggedValue) {
-            obj = ((TaggedValue) obj).v;
-        }
-        if(obj == Opcodes.DOUBLE || obj == Opcodes.LONG || obj == Opcodes.TOP) {
-            return 2;
-        }
-        return 1;
-    }
-
-    private static Object[] asArray(final List<Object> l) {
-        Object[] objs = new Object[l.size()];
-        for(int i = 0; i < objs.length; ++i) {
-            Object o = l.get(i);
-            if(o instanceof LabelNode) {
-                o = ((LabelNode) o).getLabel();
-            }
-            objs[i] = o;
-        }
-        return objs;
-    }
-
-    public static void acceptFn(FrameNode fn, MethodVisitor mv) {
-        switch(fn.type) {
-            case Opcodes.F_NEW:
-            case Opcodes.F_FULL:
-            case TaintUtils.RAW_INSN:
-                mv.visitFrame(fn.type, fn.local.size(), asArray(fn.local), fn.stack.size(),
-                        asArray(fn.stack));
-                break;
-            case Opcodes.F_APPEND:
-                mv.visitFrame(fn.type, fn.local.size(), asArray(fn.local), 0, null);
-                break;
-            case Opcodes.F_CHOP:
-                mv.visitFrame(fn.type, fn.local.size(), null, 0, null);
-                break;
-            case Opcodes.F_SAME:
-                mv.visitFrame(fn.type, 0, null, 0, null);
-                break;
-            case Opcodes.F_SAME1:
-                mv.visitFrame(fn.type, 0, null, 1, asArray(fn.stack));
-                break;
-        }
-    }
-
-    public static FrameNode getCurrentFrameNode(NeverNullArgAnalyzerAdapter a) {
-        if(a.locals == null || a.stack == null) {
-            throw new IllegalArgumentException();
-        }
-        Object[] locals = removeLongsDoubleTopVal(a.locals);
-        Object[] stack = removeLongsDoubleTopVal(a.stackTagStatus);
-        FrameNode ret = new FrameNode(Opcodes.F_NEW, locals.length, locals, stack.length, stack);
-        ret.type = TaintUtils.RAW_INSN;
-        return ret;
     }
 
     public LocalVariableManager getLvs() {
@@ -442,25 +193,13 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
      */
     protected void safelyFetchObjectTaint() {
         //Check for null first.
-        //		Check for common instanceof which are problematic
-        //		nonInstrumentingMV.visitInsn(DUP);
-        //		Label bail = new Label();
-        //		Label end = new Label();
-        //		nonInstrumentingMV.visitJumpInsn(IFNULL, bail);
-        //		//Not null.
-        //		nonInstrumentingMV.visitInsn(DUP);
-        //		nonInstrumentingMV.visitTypeInsn(INSTANCEOF, Type.getInternalName(Tainted.class));
-        //		nonInstrumentingMV.visitJumpInsn(IFNE, bail); //TODO handle numerics, other ignore classes for which we know the taint
+        //TODO handle numerics, other ignore classes for which we know the taint
         if(className.equals("java/util/HashMap")) {
             super.visitInsn(POP);
             Configuration.taintTagFactory.generateEmptyTaint(mv);
         } else {
             super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaint", "(Ljava/lang/Object;)I", false);
         }
-        //		nonInstrumentingMV.visitLabel(bail);
-        //		super.visitInsn(POP);
-        //		super.visitInsn(ICONST_0);
-        //		nonInstrumentingMV.visitLabel(end);
     }
 
     protected void generateUnconstrainedTaint(int reason) {
@@ -544,7 +283,6 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             super.visitInsn(DUP_X1);
             super.visitInsn(SWAP);
             super.visitMethodInsn(INVOKESPECIAL, wrapType.getInternalName(), "<init>", "(" + arrayType.getDescriptor() + ")V", false);
-//			super.visitInsn(SWAP);
             super.visitInsn(SWAP);
             FrameNode fn2 = getCurrentFrameNode();
 
@@ -577,9 +315,6 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     /**
      * Generates instructions equivalent to an instruction DUP{N}_X{U}, e.g.
      * DUP2_X1 will dup the top 2 elements under the 1 beneath them.
-     *
-     * @param n
-     * @param u
      */
     protected void DUPN_XU(int n, int u) {
         switch(n) {
@@ -593,7 +328,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
                         break;
                     case 3:
                         // A B C D -> D A B C D
-                        LocalVariableNode d[] = storeToLocals(4);
+                        LocalVariableNode[] d = storeToLocals(4);
                         loadLV(0, d);
                         loadLV(3, d);
                         loadLV(2, d);
@@ -824,8 +559,6 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             default:
                 throw new IllegalArgumentException("DUP" + n + "_" + u + " is unimp.");
         }
-        //		if (TaintUtils.DEBUG_DUPSWAP)
-        //			System.out.println("POST " + name + ": DUP" + n + "_X" + u + analyzer.stack);
     }
 
     public void acceptFn(FrameNode fn) {
@@ -842,17 +575,15 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
      */
     protected LocalVariableNode[] storeToLocals(int n) {
         LocalVariableNode[] ret = new LocalVariableNode[n];
-        //		System.out.println("Store to locals top " + n);
-        //		System.out.println(analyzer.stack);
         for(int i = 0; i < n; i++) {
-            Type elType = null;
+            Type elType;
             if(analyzer.stack.get(analyzer.stack.size() - 1) == Opcodes.TOP) {
                 elType = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 2));
             } else {
                 elType = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 1));
             }
-            Boolean istagged = topCarriesTaint();
-            ret[i] = new LocalVariableNode(null, elType.getDescriptor(), istagged.toString(), null, null, lvs.getTmpLV());
+            boolean isTagged = topCarriesTaint();
+            ret[i] = new LocalVariableNode(null, elType.getDescriptor(), Boolean.toString(isTagged), null, null, lvs.getTmpLV());
             super.visitVarInsn(elType.getOpcode(ISTORE), ret[i].index);
         }
         return ret;
@@ -875,5 +606,241 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
         } else {
             super.visitLdcInsn(value);
         }
+    }
+
+    public static final Type getTagType(String internalName) {
+        if(canRawTaintAccess(internalName)) {
+            return taintTagType;
+        }
+        return Type.INT_TYPE;
+    }
+
+    public static final boolean canRawTaintAccess(String internalName) {
+        return (!(internalName.equals("java/lang/Float") ||
+                internalName.equals("java/lang/Character") ||
+                internalName.equals("java/lang/Double") || internalName.equals("java/lang/Integer") ||
+                internalName.equals("java/lang/Long") || internalName.equals("java/lang/StackTraceElement")));
+    }
+
+    public static Object[] removeLongsDoubleTopVal(List<Object> in) {
+        List<Object> ret = new ArrayList<>();
+        boolean lastWas2Word = false;
+        for(Object n : in) {
+            if((n == Opcodes.TOP || (n instanceof TaggedValue && ((TaggedValue) n).v == Opcodes.TOP)) && lastWas2Word) {
+                //nop
+            } else {
+                ret.add(n);
+            }
+            lastWas2Word = n == Opcodes.DOUBLE || n == Opcodes.LONG || (n instanceof TaggedValue && (((TaggedValue) n).v == Opcodes.DOUBLE || ((TaggedValue) n).v == Opcodes.LONG));
+        }
+        return ret.toArray();
+    }
+
+    static int[][][] foo(int[][][] in) {
+        int[][][] ret = new int[in.length][][];
+        for(int i = 0; i < ret.length; i++) {
+            ret[i] = new int[in[i].length][];
+            for(int j = 0; j < ret[i].length; j++) {
+                ret[i][j] = new int[in[i][j].length];
+            }
+        }
+        return ret;
+
+    }
+
+    static int[][] foo(int[][] in) {
+        int[][] ret = new int[in.length][];
+        for(int i = 0; i < ret.length; i++) {
+            ret[i] = new int[in[i].length];
+        }
+        return ret;
+    }
+
+    public static void createNewTaintArray(String arrayDesc, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor mv, LocalVariableManager lvs) {
+        Type arrayType = Type.getType(arrayDesc);
+        Label isNull = new Label();
+        Label done = new Label();
+        Object[] locals1 = removeLongsDoubleTopVal(analyzer.locals);
+        int localSize1 = locals1.length;
+
+        Object[] stack1 = removeLongsDoubleTopVal(analyzer.stack);
+        int stackSize1 = stack1.length;
+
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitJumpInsn(Opcodes.IFNULL, isNull);
+
+        if(arrayType.getDimensions() == 2) {
+            mv.visitInsn(DUP);
+            mv.visitInsn(DUP);
+            mv.visitInsn(ARRAYLENGTH);
+            Type toUse = MultiDTaintedArray.getTypeForType(arrayType);
+            if(toUse.getSort() == Type.ARRAY) {
+                toUse = toUse.getElementType();
+            }
+            mv.visitMultiANewArrayInsn(toUse.getDescriptor(), 1);
+            mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[Ljava/lang/Object;)[[Ljava/lang/Object;", false);
+            mv.visitInsn(SWAP);
+        } else if(arrayType.getDimensions() == 3) {
+            mv.visitInsn(DUP);
+            mv.visitInsn(DUP);
+            mv.visitInsn(ARRAYLENGTH);
+            Type toUse = MultiDTaintedArray.getTypeForType(arrayType);
+            if(toUse.getSort() == Type.ARRAY) {
+                toUse = toUse.getElementType();
+            }
+            mv.visitMultiANewArrayInsn("[" + toUse.getDescriptor(), 1);
+            mv.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[Ljava/lang/Object;)[[[Ljava/lang/Object;", false);
+            mv.visitInsn(SWAP);
+        } else if(arrayType.getDimensions() > 1) {
+            int tmp = lvs.getTmpLV(arrayType);
+            mv.visitInsn(DUP);
+            mv.visitVarInsn(ASTORE, tmp);
+
+            for(int i = 0; i < arrayType.getDimensions(); i++) {
+                mv.visitVarInsn(ALOAD, tmp);
+
+                for(int j = 0; j < i; j++) {
+                    mv.visitInsn(ICONST_0);
+                    mv.visitInsn(AALOAD);
+                }
+                mv.visitInsn(Opcodes.ARRAYLENGTH);
+            }
+            mv.visitMultiANewArrayInsn(arrayDesc.substring(0, arrayDesc.length() - 1) + Configuration.TAINT_TAG_DESC, arrayType.getDimensions()); //TODO XXX this won't be properly initialized.
+
+        } else {
+            String shadowDesc = TaintUtils.getShadowTaintType(arrayDesc);
+            mv.visitInsn(DUP);
+            mv.visitTypeInsn(NEW, shadowDesc.substring(1, shadowDesc.length() - 1));
+            mv.visitInsn(DUP_X1);
+            mv.visitInsn(SWAP);
+            mv.visitMethodInsn(INVOKESPECIAL, shadowDesc.substring(1, shadowDesc.length() - 1), "<init>", "(" + arrayDesc + ")V", false);
+            mv.visitInsn(SWAP);
+        }
+
+        Object[] locals = removeLongsDoubleTopVal(analyzer.locals);
+        int localSize = locals.length;
+
+        Object[] stack = removeLongsDoubleTopVal(analyzer.stack);
+        int stackSize = stack.length;
+
+        mv.visitJumpInsn(Opcodes.GOTO, done);
+        mv.visitFrame(TaintUtils.RAW_INSN, localSize1, locals1, stackSize1, stack1);
+
+        mv.visitLabel(isNull);
+
+        mv.visitInsn(Opcodes.ACONST_NULL);
+        mv.visitInsn(Opcodes.SWAP);
+        mv.visitLabel(done);
+        mv.visitFrame(TaintUtils.RAW_INSN, localSize, locals, stackSize, stack);
+    }
+
+    public static Type getTypeForStackType(Object obj) {
+        if(obj instanceof TaggedValue) {
+            obj = ((TaggedValue) obj).v;
+        }
+        if(obj == Opcodes.INTEGER) {
+            return Type.INT_TYPE;
+        }
+        if(obj == Opcodes.FLOAT) {
+            return Type.FLOAT_TYPE;
+        }
+        if(obj == Opcodes.DOUBLE) {
+            return Type.DOUBLE_TYPE;
+        }
+        if(obj == Opcodes.LONG) {
+            return Type.LONG_TYPE;
+        }
+        if(obj == Opcodes.NULL) {
+            return Type.getType("Ljava/lang/Object;");
+        }
+        if(obj instanceof String) {
+            return Type.getObjectType((String) obj);
+        }
+        if(obj instanceof Label || obj == Opcodes.UNINITIALIZED_THIS) {
+            return Type.getType("Luninitialized;");
+        }
+        throw new IllegalArgumentException("got " + obj + " zzz" + obj.getClass());
+    }
+
+    public static boolean isPrimitiveStackType(Object obj) {
+        if(obj instanceof String) {
+            if(((String) obj).startsWith("[")) {
+                Type t = Type.getType((String) obj);
+                return t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1;
+            }
+            return false;
+        }
+        return obj == Opcodes.INTEGER || obj == Opcodes.FLOAT || obj == Opcodes.DOUBLE || obj == Opcodes.LONG || obj == Opcodes.TOP;
+    }
+
+    public static boolean isPrimitiveType(Type t) {
+        if(t == null) {
+            return false;
+        }
+        switch(t.getSort()) {
+            case Type.ARRAY:
+                return t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1;
+            case Type.OBJECT:
+            case Type.VOID:
+                return false;
+            default:
+                return true;
+        }
+    }
+
+    public static int getStackElementSize(Object obj) {
+        if(obj instanceof TaggedValue) {
+            obj = ((TaggedValue) obj).v;
+        }
+        if(obj == Opcodes.DOUBLE || obj == Opcodes.LONG || obj == Opcodes.TOP) {
+            return 2;
+        }
+        return 1;
+    }
+
+    private static Object[] asArray(final java.util.List<Object> l) {
+        Object[] objs = new Object[l.size()];
+        for(int i = 0; i < objs.length; ++i) {
+            Object o = l.get(i);
+            if(o instanceof LabelNode) {
+                o = ((LabelNode) o).getLabel();
+            }
+            objs[i] = o;
+        }
+        return objs;
+    }
+
+    public static void acceptFn(FrameNode fn, MethodVisitor mv) {
+        switch(fn.type) {
+            case Opcodes.F_NEW:
+            case Opcodes.F_FULL:
+            case TaintUtils.RAW_INSN:
+                mv.visitFrame(fn.type, fn.local.size(), asArray(fn.local), fn.stack.size(),
+                        asArray(fn.stack));
+                break;
+            case Opcodes.F_APPEND:
+                mv.visitFrame(fn.type, fn.local.size(), asArray(fn.local), 0, null);
+                break;
+            case Opcodes.F_CHOP:
+                mv.visitFrame(fn.type, fn.local.size(), null, 0, null);
+                break;
+            case Opcodes.F_SAME:
+                mv.visitFrame(fn.type, 0, null, 0, null);
+                break;
+            case Opcodes.F_SAME1:
+                mv.visitFrame(fn.type, 0, null, 1, asArray(fn.stack));
+                break;
+        }
+    }
+
+    public static FrameNode getCurrentFrameNode(NeverNullArgAnalyzerAdapter a) {
+        if(a.locals == null || a.stack == null) {
+            throw new IllegalArgumentException();
+        }
+        Object[] locals = removeLongsDoubleTopVal(a.locals);
+        Object[] stack = removeLongsDoubleTopVal(a.stackTagStatus);
+        FrameNode ret = new FrameNode(Opcodes.F_NEW, locals.length, locals, stack.length, stack);
+        ret.type = TaintUtils.RAW_INSN;
+        return ret;
     }
 }

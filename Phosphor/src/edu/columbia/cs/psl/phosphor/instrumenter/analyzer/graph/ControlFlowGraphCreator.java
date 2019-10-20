@@ -14,76 +14,6 @@ import java.util.Iterator;
 public abstract class ControlFlowGraphCreator {
 
     /**
-     * @param instructions   a sequence of instructions that form a method
-     * @param tryCatchBlocks the try catch blocks for the method
-     * @return a list in ascending order of the indices of instructions that are the first instruction of some basic
-     * block for the method
-     */
-    private static int[] calculateLeaders(InsnList instructions, java.util.List<TryCatchBlockNode> tryCatchBlocks) {
-        Set<AbstractInsnNode> leaders = new HashSet<>();
-        leaders.add(instructions.getFirst()); // First instruction is the leader for the first block
-        Iterator<AbstractInsnNode> itr = instructions.iterator();
-        while(itr.hasNext()) {
-            AbstractInsnNode insn = itr.next();
-            if(insn instanceof JumpInsnNode) {
-                leaders.add(((JumpInsnNode) insn).label); // Mark the target of the jump as a leader
-                leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
-            } else if(insn instanceof TableSwitchInsnNode) {
-                // Mark the targets of the switch as leaders
-                leaders.add(((TableSwitchInsnNode) insn).dflt);
-                for(AbstractInsnNode node : ((TableSwitchInsnNode) insn).labels) {
-                    leaders.add(node);
-                }
-                leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
-            } else if(insn instanceof LookupSwitchInsnNode) {
-                // Mark the targets of the switch as leaders
-                leaders.add(((LookupSwitchInsnNode) insn).dflt);
-                for(AbstractInsnNode node : ((LookupSwitchInsnNode) insn).labels) {
-                    leaders.add(node);
-                }
-                leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
-            } else if(isExitInstruction(insn) && insn.getNext() != null) {
-                leaders.add(insn.getNext()); // Mark the instruction following the return as a leader
-            }
-        }
-        // Add the start labels for exception handlers as leaders
-        for(TryCatchBlockNode tryCatch : tryCatchBlocks) {
-            leaders.add(tryCatch.handler);
-        }
-        int[] leaderIndices = new int[leaders.size()];
-        int i = 0;
-        for(AbstractInsnNode leader : leaders) {
-            leaderIndices[i++] = instructions.indexOf(leader);
-        }
-        Arrays.sort(leaderIndices);
-        return leaderIndices;
-    }
-
-    /**
-     * @param instruction the instruction to be checked
-     * @return true if the specified instruction triggers a method exit
-     */
-    private static boolean isExitInstruction(AbstractInsnNode instruction) {
-        return instruction.getOpcode() == Opcodes.ATHROW || TaintUtils.isReturnOpcode(instruction.getOpcode());
-    }
-
-    /**
-     * @param basicBlocks a list containing all of the basic blocks for a method in increasing order by the index of the
-     *                    first instruction in the block
-     * @return a mapping from LabelNodes to the basic block that they start
-     */
-    private static Map<LabelNode, BasicBlock> createLabelBlockMapping(List<BasicBlock> basicBlocks) {
-        Map<LabelNode, BasicBlock> labelBlockMap = new HashMap<>();
-        for(BasicBlock block : basicBlocks) {
-            AbstractInsnNode insn = block.getFirstInsn();
-            if(insn instanceof LabelNode) {
-                labelBlockMap.put((LabelNode) insn, block);
-            }
-        }
-        return Collections.unmodifiableMap(labelBlockMap);
-    }
-
-    /**
      * Returns a flow graph that represents all of the possible execution paths through the specified method.
      *
      * @param methodNode the method whose flow graph is being constructed
@@ -275,5 +205,75 @@ public abstract class ControlFlowGraphCreator {
         for(TryCatchBlockNode tryCatch : tryCatchBlocks) {
             addExceptionalEdgeFromEntryPoint(labelBlockMap.get(tryCatch.handler), tryCatch);
         }
+    }
+
+    /**
+     * @param instructions   a sequence of instructions that form a method
+     * @param tryCatchBlocks the try catch blocks for the method
+     * @return a list in ascending order of the indices of instructions that are the first instruction of some basic
+     * block for the method
+     */
+    private static int[] calculateLeaders(InsnList instructions, java.util.List<TryCatchBlockNode> tryCatchBlocks) {
+        Set<AbstractInsnNode> leaders = new HashSet<>();
+        leaders.add(instructions.getFirst()); // First instruction is the leader for the first block
+        Iterator<AbstractInsnNode> itr = instructions.iterator();
+        while(itr.hasNext()) {
+            AbstractInsnNode insn = itr.next();
+            if(insn instanceof JumpInsnNode) {
+                leaders.add(((JumpInsnNode) insn).label); // Mark the target of the jump as a leader
+                leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
+            } else if(insn instanceof TableSwitchInsnNode) {
+                // Mark the targets of the switch as leaders
+                leaders.add(((TableSwitchInsnNode) insn).dflt);
+                for(AbstractInsnNode node : ((TableSwitchInsnNode) insn).labels) {
+                    leaders.add(node);
+                }
+                leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
+            } else if(insn instanceof LookupSwitchInsnNode) {
+                // Mark the targets of the switch as leaders
+                leaders.add(((LookupSwitchInsnNode) insn).dflt);
+                for(AbstractInsnNode node : ((LookupSwitchInsnNode) insn).labels) {
+                    leaders.add(node);
+                }
+                leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
+            } else if(isExitInstruction(insn) && insn.getNext() != null) {
+                leaders.add(insn.getNext()); // Mark the instruction following the return as a leader
+            }
+        }
+        // Add the start labels for exception handlers as leaders
+        for(TryCatchBlockNode tryCatch : tryCatchBlocks) {
+            leaders.add(tryCatch.handler);
+        }
+        int[] leaderIndices = new int[leaders.size()];
+        int i = 0;
+        for(AbstractInsnNode leader : leaders) {
+            leaderIndices[i++] = instructions.indexOf(leader);
+        }
+        Arrays.sort(leaderIndices);
+        return leaderIndices;
+    }
+
+    /**
+     * @param instruction the instruction to be checked
+     * @return true if the specified instruction triggers a method exit
+     */
+    private static boolean isExitInstruction(AbstractInsnNode instruction) {
+        return instruction.getOpcode() == Opcodes.ATHROW || TaintUtils.isReturnOpcode(instruction.getOpcode());
+    }
+
+    /**
+     * @param basicBlocks a list containing all of the basic blocks for a method in increasing order by the index of the
+     *                    first instruction in the block
+     * @return a mapping from LabelNodes to the basic block that they start
+     */
+    private static Map<LabelNode, BasicBlock> createLabelBlockMapping(List<BasicBlock> basicBlocks) {
+        Map<LabelNode, BasicBlock> labelBlockMap = new HashMap<>();
+        for(BasicBlock block : basicBlocks) {
+            AbstractInsnNode insn = block.getFirstInsn();
+            if(insn instanceof LabelNode) {
+                labelBlockMap.put((LabelNode) insn, block);
+            }
+        }
+        return Collections.unmodifiableMap(labelBlockMap);
     }
 }

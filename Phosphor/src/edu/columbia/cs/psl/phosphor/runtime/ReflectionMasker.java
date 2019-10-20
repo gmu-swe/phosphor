@@ -188,7 +188,7 @@ public class ReflectionMasker {
             return m;
         } else if(!isMarked(m) && getCachedMethod(m) != null) {
             return getCachedMethod(m);
-        }else if(m.getDeclaringClass().isAnnotation()) {
+        } else if(m.getDeclaringClass().isAnnotation()) {
             return m;
         }
         final char[] chars = m.getName().toCharArray();
@@ -312,7 +312,7 @@ public class ReflectionMasker {
     }
 
     /**
-     *  Called for Class.getConstructor and Class.getDeclaredConstructor to remap the parameter types.
+     * Called for Class.getConstructor and Class.getDeclaredConstructor to remap the parameter types.
      */
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = ADD_TYPE_PARAMS)

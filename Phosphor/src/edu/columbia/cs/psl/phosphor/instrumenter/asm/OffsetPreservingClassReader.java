@@ -36,17 +36,18 @@ import org.objectweb.asm.Label;
 
 public class OffsetPreservingClassReader extends ClassReader {
 
-	public OffsetPreservingClassReader(byte[] b) {
-		super(b);
-	}
+    public OffsetPreservingClassReader(byte[] b) {
+        super(b);
+    }
 
-	@Override
-	protected Label readLabel(int offset, Label[] labels) {
-		if (labels[offset] == null) {
-			for(int i = 0; i < labels.length;i++)
+    @Override
+    protected Label readLabel(int offset, Label[] labels) {
+        if(labels[offset] == null) {
+			for(int i = 0; i < labels.length; i++) {
 				labels[i] = new OffsetPreservingLabel(i);
+			}
         }
         return labels[offset];
-	}
-	
+    }
+
 }

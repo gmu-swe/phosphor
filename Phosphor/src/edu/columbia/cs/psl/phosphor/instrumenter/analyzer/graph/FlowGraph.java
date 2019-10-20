@@ -119,70 +119,6 @@ public final class FlowGraph<V> {
     }
 
     /**
-     * @param edges a mapping from each vertex in an graph to a set containing all the immediate successors of the
-     *              vertex - every vertex must have an entry in the map including the entry point and the exit point
-     * @param <V>   the type of the vertices in the graph
-     * @return an unmodifiable mapping from each vertex in the graph defined by the specified edges to an unmodifiable
-     * set containing all of its immediate successors (i.e., the vertices from which there is an edge to the
-     * vertex in the graph).
-     */
-    private static <V> Map<V, Set<V>> createSuccessorsMap(Map<V, Set<V>> edges) {
-        Map<V, Set<V>> successors = new HashMap<>();
-        for(V key : edges.keySet()) {
-            // Make unmodifiable copies of all of the sets
-            successors.put(key, Collections.unmodifiableSet(new HashSet<>(edges.get(key))));
-        }
-        // Put an unmodifiable wrapper around the map
-        return Collections.unmodifiableMap(successors);
-    }
-
-    /**
-     * @param edges a mapping from each vertex in an graph to a set containing all the immediate successors of the
-     *              vertex - every vertex must have an entry in the map including the entry point and the exit point
-     * @param <V>   the type of the vertices in the graph
-     * @return an unmodifiable mapping from each vertex in the graph defined by the specified edges to an unmodifiable
-     * set containing all of its immediate predecessors (i.e., the vertices to which there is an edge from the
-     * vertex in the graph).
-     */
-    private static <V> Map<V, Set<V>> createPredecessorsMap(Map<V, Set<V>> edges) {
-        Map<V, Set<V>> predecessors = new HashMap<>();
-        for(V key : edges.keySet()) {
-            // Make empty sets for each vertex
-            predecessors.put(key, new HashSet<V>());
-        }
-        for(V key : edges.keySet()) {
-            for(V value : edges.get(key)) {
-                // For each directed edge (key, value) add key to the predecessors of value
-                predecessors.get(value).add(key);
-            }
-        }
-        for(V key : predecessors.keySet()) {
-            // Put an unmodifiable wrapper around all of the sets
-            predecessors.put(key, Collections.unmodifiableSet(predecessors.get(key)));
-        }
-        // Put an unmodifiable wrapper around the map
-        return Collections.unmodifiableMap(predecessors);
-    }
-
-    /**
-     * Helper function for creating the dominators array return the intersection point for the two specified vertices
-     * when moving up the dominator tree.
-     *
-     * @return the reverse post-order index of intersection point of the two specified vertices
-     */
-    private static int intersect(int[] dominators, int vertex1, int vertex2) {
-        while(vertex1 != vertex2) {
-            while(vertex1 > vertex2) {
-                vertex1 = dominators[vertex1];
-            }
-            while(vertex2 > vertex1) {
-                vertex2 = dominators[vertex2];
-            }
-        }
-        return vertex1;
-    }
-
-    /**
      * @return the vertex designated to be the single entry point for this graph
      */
     public V getEntryPoint() {
@@ -507,6 +443,70 @@ public final class FlowGraph<V> {
         result = 31 * result + (exitPoint != null ? exitPoint.hashCode() : 0);
         result = 31 * result + successors.hashCode();
         return result;
+    }
+
+    /**
+     * @param edges a mapping from each vertex in an graph to a set containing all the immediate successors of the
+     *              vertex - every vertex must have an entry in the map including the entry point and the exit point
+     * @param <V>   the type of the vertices in the graph
+     * @return an unmodifiable mapping from each vertex in the graph defined by the specified edges to an unmodifiable
+     * set containing all of its immediate successors (i.e., the vertices from which there is an edge to the
+     * vertex in the graph).
+     */
+    private static <V> Map<V, Set<V>> createSuccessorsMap(Map<V, Set<V>> edges) {
+        Map<V, Set<V>> successors = new HashMap<>();
+        for(V key : edges.keySet()) {
+            // Make unmodifiable copies of all of the sets
+            successors.put(key, Collections.unmodifiableSet(new HashSet<>(edges.get(key))));
+        }
+        // Put an unmodifiable wrapper around the map
+        return Collections.unmodifiableMap(successors);
+    }
+
+    /**
+     * @param edges a mapping from each vertex in an graph to a set containing all the immediate successors of the
+     *              vertex - every vertex must have an entry in the map including the entry point and the exit point
+     * @param <V>   the type of the vertices in the graph
+     * @return an unmodifiable mapping from each vertex in the graph defined by the specified edges to an unmodifiable
+     * set containing all of its immediate predecessors (i.e., the vertices to which there is an edge from the
+     * vertex in the graph).
+     */
+    private static <V> Map<V, Set<V>> createPredecessorsMap(Map<V, Set<V>> edges) {
+        Map<V, Set<V>> predecessors = new HashMap<>();
+        for(V key : edges.keySet()) {
+            // Make empty sets for each vertex
+            predecessors.put(key, new HashSet<V>());
+        }
+        for(V key : edges.keySet()) {
+            for(V value : edges.get(key)) {
+                // For each directed edge (key, value) add key to the predecessors of value
+                predecessors.get(value).add(key);
+            }
+        }
+        for(V key : predecessors.keySet()) {
+            // Put an unmodifiable wrapper around all of the sets
+            predecessors.put(key, Collections.unmodifiableSet(predecessors.get(key)));
+        }
+        // Put an unmodifiable wrapper around the map
+        return Collections.unmodifiableMap(predecessors);
+    }
+
+    /**
+     * Helper function for creating the dominators array return the intersection point for the two specified vertices
+     * when moving up the dominator tree.
+     *
+     * @return the reverse post-order index of intersection point of the two specified vertices
+     */
+    private static int intersect(int[] dominators, int vertex1, int vertex2) {
+        while(vertex1 != vertex2) {
+            while(vertex1 > vertex2) {
+                vertex1 = dominators[vertex1];
+            }
+            while(vertex2 > vertex1) {
+                vertex2 = dominators[vertex2];
+            }
+        }
+        return vertex1;
     }
 
     /**

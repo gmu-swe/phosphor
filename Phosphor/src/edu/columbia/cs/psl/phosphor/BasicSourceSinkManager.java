@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.ConcurrentHashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.ClassNode;
@@ -9,7 +10,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.lang.instrument.UnmodifiableClassException;
 import java.util.Scanner;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class BasicSourceSinkManager extends SourceSinkManager {
 
@@ -21,7 +21,6 @@ public class BasicSourceSinkManager extends SourceSinkManager {
     private static ConcurrentHashMap<String, Set<String>> sinks = new ConcurrentHashMap<>();
     // Maps class names to a set of all the  methods listed as taintThrough methods for the class
     private static ConcurrentHashMap<String, Set<String>> taintThrough = new ConcurrentHashMap<>();
-
     // Maps class names to a set of all methods listed as sources for the class or one of its supertypes or superinterfaces
     private static ConcurrentHashMap<String, Set<String>> inheritedSources = new ConcurrentHashMap<>();
     // Maps class names to a set of all methods listed as sinks for the class or one of its supertypes or superinterfaces
@@ -41,6 +40,72 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 
     /* Private constructor ensures that only one instance of BasicSourceSinkManager is ever created. */
     private BasicSourceSinkManager() {
+    }
+
+    @Override
+    public boolean isSourceOrSinkOrTaintThrough(Class<?> clazz) {
+        if(clazz.getName() == null) {
+            return false;
+        }
+        String className = clazz.getName().replace(".", "/");
+        // This class has a sink, source or taintThrough method
+        return !getAutoTaintMethods(className, sinks, inheritedSinks).isEmpty() ||
+                !getAutoTaintMethods(className, sources, inheritedSources).isEmpty() ||
+                !getAutoTaintMethods(className, taintThrough, inheritedTaintThrough).isEmpty();
+    }
+
+    @Override
+    public Object getLabel(String str) {
+        return sourceLabels.get(str);
+    }
+
+    @Override
+    public boolean isTaintThrough(String str) {
+        if(str.startsWith("[")) {
+            return false;
+        } else {
+            String[] parsed = str.split("\\.");
+            // Check if the set of taintThrough methods for the class name contains the method name
+            return getAutoTaintMethods(parsed[0], taintThrough, inheritedTaintThrough).contains(parsed[1]);
+        }
+    }
+
+    @Override
+    public boolean isSource(String str) {
+        if(str.startsWith("[")) {
+            return false;
+        } else {
+            String[] parsed = str.split("\\.");
+            // Check if the set of source methods for the class name contains the method name
+            if(getAutoTaintMethods(parsed[0], sources, inheritedSources).contains(parsed[1])) {
+                String baseSource = findSuperTypeAutoTaintProvider(parsed[0], parsed[1], sources, inheritedSources);
+                if(!sourceLabels.containsKey(str)) {
+                    sourceLabels.put(str, sourceLabels.get(String.format("%s.%s", baseSource, parsed[1])));
+                }
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    @Override
+    public boolean isSink(String str) {
+        if(str.startsWith("[")) {
+            return false;
+        } else {
+            String[] parsed = str.split("\\.");
+            // Check if the set of sink methods for the class name contains the method name
+            return getAutoTaintMethods(parsed[0], sinks, inheritedSinks).contains(parsed[1]);
+        }
+    }
+
+    /* Returns the name of sink method from which the specified method inherited its sink property or null if the specified
+     * method is not a sink. */
+    public String getBaseSink(String str) {
+        String[] parsed = str.split("\\.");
+        String baseSink = findSuperTypeAutoTaintProvider(parsed[0], parsed[1], sinks, inheritedSinks);
+        return baseSink == null ? null : String.format("%s.%s", baseSink, parsed[1]);
     }
 
     /* Provides access to the single instance of BasicSourceSinkManager */
@@ -239,72 +304,6 @@ public class BasicSourceSinkManager extends SourceSinkManager {
         // The specified method for the specified class is not the particular type of auto taint method corresponding to
         // the specified maps
         return null;
-    }
-
-    @Override
-    public boolean isSourceOrSinkOrTaintThrough(Class<?> clazz) {
-        if(clazz.getName() == null) {
-            return false;
-        }
-        String className = clazz.getName().replace(".", "/");
-        // This class has a sink, source or taintThrough method
-        return !getAutoTaintMethods(className, sinks, inheritedSinks).isEmpty() ||
-                !getAutoTaintMethods(className, sources, inheritedSources).isEmpty() ||
-                !getAutoTaintMethods(className, taintThrough, inheritedTaintThrough).isEmpty();
-    }
-
-    @Override
-    public Object getLabel(String str) {
-        return sourceLabels.get(str);
-    }
-
-    @Override
-    public boolean isTaintThrough(String str) {
-        if(str.startsWith("[")) {
-            return false;
-        } else {
-            String[] parsed = str.split("\\.");
-            // Check if the set of taintThrough methods for the class name contains the method name
-            return getAutoTaintMethods(parsed[0], taintThrough, inheritedTaintThrough).contains(parsed[1]);
-        }
-    }
-
-    @Override
-    public boolean isSource(String str) {
-        if(str.startsWith("[")) {
-            return false;
-        } else {
-            String[] parsed = str.split("\\.");
-            // Check if the set of source methods for the class name contains the method name
-            if(getAutoTaintMethods(parsed[0], sources, inheritedSources).contains(parsed[1])) {
-                String baseSource = findSuperTypeAutoTaintProvider(parsed[0], parsed[1], sources, inheritedSources);
-                if(!sourceLabels.containsKey(str)) {
-                    sourceLabels.put(str, sourceLabels.get(String.format("%s.%s", baseSource, parsed[1])));
-                }
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
-
-    @Override
-    public boolean isSink(String str) {
-        if(str.startsWith("[")) {
-            return false;
-        } else {
-            String[] parsed = str.split("\\.");
-            // Check if the set of sink methods for the class name contains the method name
-            return getAutoTaintMethods(parsed[0], sinks, inheritedSinks).contains(parsed[1]);
-        }
-    }
-
-    /* Returns the name of sink method from which the specified method inherited its sink property or null if the specified
-     * method is not a sink. */
-    public String getBaseSink(String str) {
-        String[] parsed = str.split("\\.");
-        String baseSink = findSuperTypeAutoTaintProvider(parsed[0], parsed[1], sinks, inheritedSinks);
-        return baseSink == null ? null : String.format("%s.%s", baseSink, parsed[1]);
     }
 
     /* Represents the different types of auto-taint methods: sources, sinks and taintThroughs. */

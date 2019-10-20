@@ -40,7 +40,7 @@ public interface SortedSet<E> extends Set<E> {
      * 
      * @return a comparator or null if the natural ordering is used.
      */
-    public Comparator<? super E> comparator();
+    Comparator<? super E> comparator();
 
     /**
      * Returns the first element in this {@code SortedSet}. The first element
@@ -50,7 +50,7 @@ public interface SortedSet<E> extends Set<E> {
      * @throws NoSuchElementException
      *             when this {@code SortedSet} is empty.
      */
-    public E first();
+    E first();
 
     /**
      * Returns a {@code SortedSet} of the specified portion of this
@@ -68,7 +68,7 @@ public interface SortedSet<E> extends Set<E> {
      *             when the end element is null and this {@code SortedSet} does
      *             not support null elements.
      */
-    public SortedSet<E> headSet(E end);
+    SortedSet<E> headSet(E end);
 
     /**
      * Returns the last element in this {@code SortedSet}. The last element is
@@ -78,7 +78,7 @@ public interface SortedSet<E> extends Set<E> {
      * @throws NoSuchElementException
      *             when this {@code SortedSet} is empty.
      */
-    public E last();
+    E last();
 
     /**
      * Returns a {@code SortedSet} of the specified portion of this
@@ -102,7 +102,7 @@ public interface SortedSet<E> extends Set<E> {
      * @throws IllegalArgumentException
      *             when the start element is greater than the end element.
      */
-    public SortedSet<E> subSet(E start, E end);
+    SortedSet<E> subSet(E start, E end);
 
     /**
      * Returns a {@code SortedSet} of the specified portion of this
@@ -120,5 +120,5 @@ public interface SortedSet<E> extends Set<E> {
      *             when the start element is null and this {@code SortedSet}
      *             does not support null elements.
      */
-    public SortedSet<E> tailSet(E start);
+    SortedSet<E> tailSet(E start);
 }

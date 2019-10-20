@@ -425,18 +425,13 @@ class MapEntry implements Map.Entry<K, V>, Cloneable {
                 if (hasStart && object.compareTo(startKey) < 0) {
                     return false;
                 }
-                if (hasEnd && object.compareTo(endKey) >= 0) {
-                    return false;
-                }
+                return !hasEnd || object.compareTo(endKey) < 0;
             } else {
                 if (hasStart && cmp.compare(key, startKey) < 0) {
                     return false;
                 }
-                if (hasEnd && cmp.compare(key, endKey) >= 0) {
-                    return false;
-                }
+                return !hasEnd || cmp.compare(key, endKey) < 0;
             }
-            return true;
         }
 
         private boolean checkUpperBound(K key) {
@@ -511,8 +506,8 @@ class MapEntry implements Map.Entry<K, V>, Cloneable {
                 return;
             }
             Comparable<K> object = backingMap.comparator == null ?
-                                   toComparable((K) startKey) : null;
-            K key = (K) startKey;
+                                   toComparable(startKey) : null;
+            K key = startKey;
             Node<K, V> node = backingMap.root;
             Node<K, V> foundNode = null;
             int foundIndex = -1;
@@ -630,8 +625,8 @@ class MapEntry implements Map.Entry<K, V>, Cloneable {
                 return;
             }
             Comparable<K> object = backingMap.comparator == null ?
-                                   toComparable((K) endKey) : null;
-            K key = (K) endKey;
+                                   toComparable(endKey) : null;
+            K key = endKey;
             Node<K, V> node = backingMap.root;
             Node<K, V> foundNode = null;
             int foundIndex = -1;
@@ -1458,8 +1453,8 @@ class MapEntry implements Map.Entry<K, V>, Cloneable {
             modCount++;
             return null;
         }
-        Comparable<K> object = comparator == null ? toComparable((K) key) : null;
-        K keyK = (K) key;
+        Comparable<K> object = comparator == null ? toComparable(key) : null;
+        K keyK = key;
         Node<K, V> node = root;
         Node<K, V> prevNode = null;
         int result = 0;

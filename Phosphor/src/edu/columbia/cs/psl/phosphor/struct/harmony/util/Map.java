@@ -36,7 +36,7 @@ public interface Map<K,V> {
     /**
      * {@code Map.Entry} is a key/value mapping contained in a {@code Map}.
      */
-    public static interface Entry<K,V> {
+    interface Entry<K,V> {
         /**
          * Compares the specified object to this {@code Map.Entry} and returns if they
          * are equal. To be equal, the object must be an instance of {@code Map.Entry} and have the
@@ -48,21 +48,21 @@ public interface Map<K,V> {
          *         {@code Map.Entry}, {@code false} otherwise.
          * @see #hashCode()
          */
-        public boolean equals(Object object);
+        boolean equals(Object object);
 
         /**
          * Returns the key.
          * 
          * @return the key
          */
-        public K getKey();
+        K getKey();
 
         /**
          * Returns the value.
          * 
          * @return the value
          */
-        public V getValue();
+        V getValue();
 
         /**
          * Returns an integer hash code for the receiver. {@code Object} which are
@@ -71,7 +71,7 @@ public interface Map<K,V> {
          * @return the receiver's hash code.
          * @see #equals(Object)
          */
-        public int hashCode();
+        int hashCode();
 
         /**
          * Sets the value of this entry to the specified value, replacing any
@@ -81,8 +81,8 @@ public interface Map<K,V> {
          *            the new value to set.
          * @return object the replaced value of this entry.
          */
-        public V setValue(V object);
-    };
+        V setValue(V object);
+    }
 
     /**
      * Removes all elements from this {@code Map}, leaving it empty.
@@ -92,7 +92,7 @@ public interface Map<K,V> {
      * @see #isEmpty()
      * @see #size()
      */
-    public void clear();
+    void clear();
 
     /**
      * Returns whether this {@code Map} contains the specified key.
@@ -102,7 +102,7 @@ public interface Map<K,V> {
      * @return {@code true} if this map contains the specified key,
      *         {@code false} otherwise.
      */
-    public boolean containsKey(Object key);
+    boolean containsKey(Object key);
 
     /**
      * Returns whether this {@code Map} contains the specified value.
@@ -112,7 +112,7 @@ public interface Map<K,V> {
      * @return {@code true} if this map contains the specified value,
      *         {@code false} otherwise.
      */
-    public boolean containsValue(Object value);
+    boolean containsValue(Object value);
 
     /**
      * Returns a {@code Set} containing all of the mappings in this {@code Map}. Each mapping is
@@ -121,7 +121,7 @@ public interface Map<K,V> {
      * 
      * @return a set of the mappings
      */
-    public Set<Map.Entry<K,V>> entrySet();
+    Set<Map.Entry<K,V>> entrySet();
 
     /**
      * Compares the argument to the receiver, and returns {@code true} if the
@@ -134,7 +134,7 @@ public interface Map<K,V> {
      * @see #hashCode()
      * @see #entrySet()
      */
-    public boolean equals(Object object);
+    boolean equals(Object object);
 
     /**
      * Returns the value of the mapping with the specified key.
@@ -144,7 +144,7 @@ public interface Map<K,V> {
      * @return the value of the mapping with the specified key, or {@code null}
      *         if no mapping for the specified key is found.
      */
-    public V get(Object key);
+    V get(Object key);
 
     /**
      * Returns an integer hash code for the receiver. {@code Object}s which are equal
@@ -153,7 +153,7 @@ public interface Map<K,V> {
      * @return the receiver's hash.
      * @see #equals(Object)
      */
-    public int hashCode();
+    int hashCode();
 
     /**
      * Returns whether this map is empty.
@@ -162,7 +162,7 @@ public interface Map<K,V> {
      *         otherwise.
      * @see #size()
      */
-    public boolean isEmpty();
+    boolean isEmpty();
 
     /**
      * Returns a set of the keys contained in this {@code Map}. The {@code Set} is backed by
@@ -171,7 +171,7 @@ public interface Map<K,V> {
      * 
      * @return a set of the keys.
      */
-    public Set<K> keySet();
+    Set<K> keySet();
 
     /**
      * Maps the specified key to the specified value.
@@ -193,7 +193,7 @@ public interface Map<K,V> {
      *                if the key or value is {@code null} and this {@code Map} does
      *                not support {@code null} keys or values.
      */
-    public V put(K key, V value);
+    V put(K key, V value);
 
     /**
      * Copies every mapping in the specified {@code Map} to this {@code Map}.
@@ -211,7 +211,7 @@ public interface Map<K,V> {
      *                if a key or value is {@code null} and this {@code Map} does not
      *                support {@code null} keys or values.
      */
-    public void putAll(Map<? extends K,? extends V> map);
+    void putAll(Map<? extends K, ? extends V> map);
 
     /**
      * Removes a mapping with the specified key from this {@code Map}.
@@ -223,14 +223,14 @@ public interface Map<K,V> {
      * @throws UnsupportedOperationException
      *                if removing from this {@code Map} is not supported.
      */
-    public V remove(Object key);
+    V remove(Object key);
 
     /**
      * Returns the number of mappings in this {@code Map}.
      * 
      * @return the number of mappings in this {@code Map}.
      */
-    public int size();
+    int size();
 
     /**
      * Returns a {@code Collection} of the values contained in this {@code Map}. The {@code Collection}
@@ -252,5 +252,5 @@ public interface Map<K,V> {
      * 
      * @return a collection of the values contained in this map.
      */
-    public Collection<V> values();
+    Collection<V> values();
 }

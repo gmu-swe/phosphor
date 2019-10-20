@@ -58,7 +58,7 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V> implements
         Entry(KT theKey, VT theValue, EnumMap<KT, VT> em) {
             super(theKey, theValue);
             enumMap = em;
-            ordinal = ((Enum) theKey).ordinal();
+            ordinal = theKey.ordinal();
         }
 
         @SuppressWarnings("unchecked")
@@ -731,10 +731,7 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V> implements
     }
 
     private boolean isValidKeyType(Object key) {
-        if (null != key && keyType.isInstance(key)) {
-            return true;
-        }
-        return false;
+        return null != key && keyType.isInstance(key);
     }
 
     @SuppressWarnings("unchecked")

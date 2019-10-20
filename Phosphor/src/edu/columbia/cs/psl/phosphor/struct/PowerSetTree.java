@@ -15,10 +15,10 @@ public class PowerSetTree {
 
     // Root of the tree, represents the empty set
     private final SetNode root;
-    // Maps hash codes to a list of pairs of containing an object with that hashcode and a unique rank for that object.
-    private IntObjectAMT<SinglyLinkedList<RankReference>> rankMap;
     // Used to lazily reused ranks after the object assigned the rank is garbage collected
     private final IntSinglyLinkedList rankQueue;
+    // Maps hash codes to a list of pairs of containing an object with that hashcode and a unique rank for that object.
+    private IntObjectAMT<SinglyLinkedList<RankReference>> rankMap;
     // The next new rank that should be assigned to an object
     private int nextRank;
 
@@ -104,6 +104,11 @@ public class PowerSetTree {
             return emptySet();
         }
         return root.addChild(getRankedObject(element));
+    }
+
+    /* Returns the singleton instance of PowerSetTree. */
+    public static PowerSetTree getInstance() {
+        return PowerSetTreeSingleton.INSTANCE;
     }
 
     /* Represents some set in the collection. The set represented by some node contains the objects associated with
@@ -300,7 +305,7 @@ public class PowerSetTree {
 
     /* Record type that associates an object with a unique integer. Used to maintain a consistent rank value for a
      * particular object. */
-    private class RankedObject {
+    private static class RankedObject {
 
         // The object itself
         private Object object;
@@ -336,11 +341,6 @@ public class PowerSetTree {
         public String toString() {
             return String.format("RankReference: rank: %d | referent: %s", rank, get());
         }
-    }
-
-    /* Returns the singleton instance of PowerSetTree. */
-    public static PowerSetTree getInstance() {
-        return PowerSetTreeSingleton.INSTANCE;
     }
 
     /* Inner class used to create the singleton instance of PowerSetTree. */

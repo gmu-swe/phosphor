@@ -8,6 +8,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.*;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -15,21 +16,21 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.*;
 
-import java.util.*;
-import java.util.Map.Entry;
+import java.util.Iterator;
+import java.util.Objects;
 
 public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
     static final boolean DEBUG = false;
-    public boolean isEmptyMethod = true;
-    public HashSet<Type> wrapperTypesToPreAlloc = new HashSet<>();
-    public int nJumps;
     public MethodNode mn;
-    public boolean hasFinally;
-    public int nTryCatch;
-    public int nThrow;
+    boolean isEmptyMethod = true;
+    Set<Type> wrapperTypesToPreAlloc = new HashSet<>();
+    int nJumps;
+    boolean hasFinally;
+    int nTryCatch;
+    int nThrow;
     private NeverNullArgAnalyzerAdapter analyzer;
-    private HashMap<Label, LinkedList<Label>> newLabels = new HashMap<>();
+    private Map<Label, List<Label>> newLabels = new HashMap<>();
     private boolean isImplicitLightTracking;
 
     public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, final boolean isImplicitLightTracking) {
@@ -44,73 +45,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         this.mv = new PrimitiveArrayAnalyzerMN(0, null, null, null, null, null, null);
         if(singleWrapperTypeToAdd.getSort() == Type.OBJECT && singleWrapperTypeToAdd.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/Tainted")) {
             this.wrapperTypesToPreAlloc.add(singleWrapperTypeToAdd);
-        }
-    }
-
-    static void debug(AbstractInsnNode insn) {
-        while(insn != null) {
-            if(insn.getType() == AbstractInsnNode.LABEL) {
-                System.out.println("LABEL " + ((LabelNode) insn).getLabel());
-            }
-            if(insn.getOpcode() > 0) {
-                if(insn.getOpcode() > PhosphorTextifier.OPCODES.length) {
-                    if(insn.getType() == AbstractInsnNode.TYPE_INSN) {
-                        System.out.println(PhosphorTextifier.TYPE_OR_INT_OPCODES[insn.getOpcode() - 200]);
-                    } else {
-                        System.out.println(PhosphorTextifier.MORE_OPCODES[insn.getOpcode() - 200]);
-                    }
-                } else {
-                    System.out.println(PhosphorTextifier.OPCODES[insn.getOpcode()]);
-                }
-            }
-            insn = insn.getNext();
-        }
-    }
-
-    private static boolean isPrimitiveArrayType(BasicValue v) {
-        if(v == null || v.getType() == null) {
-            return false;
-        }
-        return v.getType().getSort() == Type.ARRAY && v.getType().getElementType().getSort() != Type.OBJECT;
-    }
-
-    private static void patchFrames(Collection<AnnotatedInstruction> annotatedInstructions, InsnList instructions) {
-        for(AnnotatedInstruction annotatedInstruction : annotatedInstructions) {
-            patchFrames(annotatedInstruction, instructions);
-        }
-    }
-
-    private static void patchFrames(AnnotatedInstruction annotatedInstruction, InsnList instructions) {
-        AbstractInsnNode insn = annotatedInstruction.insn;
-        while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE
-                || insn.getType() == AbstractInsnNode.LABEL || insn.getOpcode() > 200) {
-            insn = insn.getNext();
-        }
-        if(insn.getOpcode() == Opcodes.NEW) {
-            // Need to patch all frames to have the correct label in them :'(
-            AbstractInsnNode i = insn;
-            while(i != null && i.getType() != AbstractInsnNode.LABEL) {
-                i = i.getPrevious();
-            }
-            LinkedList<LabelNode> oldLabels = new LinkedList<>();
-            oldLabels.add(((LabelNode) i));
-            if(i != null && i.getPrevious() != null && i.getPrevious().getType() == AbstractInsnNode.LABEL) {
-                oldLabels.add(((LabelNode) i.getPrevious()));
-            }
-            LabelNode newLabel = new LabelNode(new Label());
-            instructions.insertBefore(insn, newLabel);
-            i = instructions.getFirst();
-            while(i != null) {
-                if(i instanceof FrameNode) {
-                    FrameNode fr = (FrameNode) i;
-                    for(int j = 0; j < fr.stack.size(); j++) {
-                        if(oldLabels.contains(fr.stack.get(j))) {
-                            fr.stack.set(j, newLabel.getLabel());
-                        }
-                    }
-                }
-                i = i.getNext();
-            }
         }
     }
 
@@ -141,18 +75,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
     /* Returns whether the specified instruction triggers a method exit. */
     private boolean isExitInstruction(AbstractInsnNode instruction) {
-        switch(instruction.getOpcode()) {
-            case Opcodes.IRETURN:
-            case Opcodes.LRETURN:
-            case Opcodes.FRETURN:
-            case Opcodes.DRETURN:
-            case Opcodes.ARETURN:
-            case Opcodes.RETURN:
-            case Opcodes.ATHROW:
-                return true;
-            default:
-                return false;
-        }
+        int opcode = instruction.getOpcode();
+        return TaintUtils.isReturnOpcode(opcode) || opcode == Opcodes.ATHROW;
     }
 
     private boolean mightEndBlock(AbstractInsnNode insn) {
@@ -272,8 +196,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     }
 
     @Override
-    public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itfc) {
-        super.visitMethodInsn(opcode, owner, name, desc, itfc);
+    public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean isInterface) {
+        super.visitMethodInsn(opcode, owner, name, desc, isInterface);
         Type returnType = Type.getReturnType(desc);
         Type newReturnType = TaintUtils.getContainerReturnType(returnType);
         isEmptyMethod = false;
@@ -289,7 +213,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     private Label addUniqueLabelFor(Label existing) {
         Label ret = new Label();
         if(!newLabels.containsKey(existing)) {
-            newLabels.put(existing, new LinkedList<Label>());
+            newLabels.put(existing, new LinkedList<>());
         }
         newLabels.get(existing).add(ret);
         return ret;
@@ -298,7 +222,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     @Override
     public void visitLabel(Label label) {
         super.visitLabel(label);
-        LinkedList<Label> labels = this.newLabels.remove(label);
+        List<Label> labels = this.newLabels.remove(label);
         if(labels != null) {
             for(Label l : labels) {
                 super.visitLabel(l);
@@ -313,132 +237,60 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
     @Override
     public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
-        super.visitTryCatchBlock(addUniqueLabelFor(start), end,/* addUniqueLabelFor(end),*/ handler, type);
+        super.visitTryCatchBlock(addUniqueLabelFor(start), end, handler, type);
         if(type == null) {
             hasFinally = true;
         }
         nTryCatch++;
     }
 
-    static class AnnotatedInstruction {
-        public AnnotatedInstruction handledAt;
-        public HashSet<AnnotatedInstruction> postDominators = new HashSet<>();
-        int idx;
-        //		LinkedList<Integer> outEdges = new LinkedList<>();
-        HashSet<AnnotatedInstruction> basicBlockStartingSuccessors = new HashSet<>();
-        HashSet<AnnotatedInstruction> successors = new HashSet<>();
-        HashSet<AnnotatedInstruction> predecessors = new HashSet<>();
-        AbstractInsnNode insn;
-        boolean covered;
-        boolean visited;
-        boolean isTryBlockStart;
-        boolean isJump;
-        boolean isTwoOperandJumpInstruction;
-        int ex_count;
-        HashSet<String> exceptionsHandled = new HashSet<>();
-        HashSet<String> coveredByTryBlockFor = new HashSet<>();
-        HashSet<AnnotatedInstruction> handlerForRegionStartingAt = new HashSet<>();
-        AnnotatedInstruction tryBlockEnd;
-
-        HashSet<AnnotatedInstruction> resolvedHereBlocks = new HashSet<>();
-        HashSet<AnnotatedInstruction> resolvedBlocks = new HashSet<>();
-        HashSet<AnnotatedInstruction> onFalseSideOfJumpFrom = new HashSet<>();
-        HashSet<AnnotatedInstruction> onTrueSideOfJumpFrom = new HashSet<>();
-        HashSet<LVAccess> varsWritten = new HashSet<>();
-        HashSet<Field> fieldsWritten = new HashSet<>();
-        HashSet<String> exceptionsThrown = new HashSet<>();
-        HashSet<String> exceptionsThrownTrueSide = new HashSet<>();
-        HashSet<String> exceptionsThrownFalseSide = new HashSet<>();
-        HashSet<LVAccess> varsWrittenTrueSide = new HashSet<>();
-        HashSet<LVAccess> varsWrittenFalseSide = new HashSet<>();
-        HashSet<Field> fieldsWrittenTrueSide = new HashSet<>();
-        HashSet<Field> fieldsWrittenFalseSide = new HashSet<>();
-        private boolean compactSuccessorsCalculated;
-
-        public boolean isInteresting() {
-            return isJump || isTryBlockStart || insn instanceof LabelNode;
-        }
-
-        public Set<AnnotatedInstruction> getSuccessorsOutsideOfRegion(int s, int e, Set<AnnotatedInstruction> visited) {
-            if(visited.contains(this)) {
-                return Collections.emptySet();
-            }
-            visited.add(this);
-            if(idx < s || idx > e) {
-                return Collections.singleton(this);
-            }
-            Set<AnnotatedInstruction> ret = new HashSet<>();
-            for(AnnotatedInstruction suc : successors) {
-                ret.addAll(suc.getSuccessorsOutsideOfRegion(s, e, visited));
-            }
-            return ret;
-
-        }
-
-        public AbstractInsnNode getNextNormalBlockAfterGOTO() {
-            System.out.println(this + "," + successors + " " + this.insn);
-            if(this.insn instanceof LineNumberNode) {
-                System.out.println("(" + ((LineNumberNode) insn).line + ")");
-            }
-            if(this.insn.getOpcode() == Opcodes.GOTO) {
-                AnnotatedInstruction suc = successors.iterator().next();
-                AbstractInsnNode insn = suc.insn;
-                while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL) {
-                    insn = insn.getNext();
-                }
-                return insn;
-            }
-            if(successors.size() > 1) {
-                throw new IllegalStateException();
-            }
-            return successors.iterator().next().getNextNormalBlockAfterGOTO();
-        }
-
-        @Override
-        public String toString() {
-            return "" + idx;
+    private static void patchFrames(Collection<AnnotatedInstruction> annotatedInstructions, InsnList instructions) {
+        for(AnnotatedInstruction annotatedInstruction : annotatedInstructions) {
+            patchFrames(annotatedInstruction, instructions);
         }
     }
 
-    static class LVAccess {
-        int idx;
-        String desc;
-
-        public LVAccess(int idx, String desc) {
-            this.idx = idx;
-            this.desc = desc;
+    private static void patchFrames(AnnotatedInstruction annotatedInstruction, InsnList instructions) {
+        AbstractInsnNode insn = annotatedInstruction.insn;
+        while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE
+                || insn.getType() == AbstractInsnNode.LABEL || insn.getOpcode() > 200) {
+            insn = insn.getNext();
         }
-
-        @Override
-        public String toString() {
-            return "LVAccess{" +
-                    "idx=" + idx +
-                    ", desc='" + desc + '\'' +
-                    '}';
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if(this == o) {
-                return true;
+        if(insn.getOpcode() == Opcodes.NEW) {
+            // Need to patch all frames to have the correct label in them :'(
+            AbstractInsnNode i = insn;
+            while(i != null && i.getType() != AbstractInsnNode.LABEL) {
+                i = i.getPrevious();
             }
-            if(o == null || getClass() != o.getClass()) {
-                return false;
+            LinkedList<LabelNode> oldLabels = new LinkedList<>();
+            oldLabels.add(((LabelNode) i));
+            if(i != null && i.getPrevious() != null && i.getPrevious().getType() == AbstractInsnNode.LABEL) {
+                oldLabels.add(((LabelNode) i.getPrevious()));
             }
-            LVAccess lvAccess = (LVAccess) o;
-            return idx == lvAccess.idx && Objects.equals(desc, lvAccess.desc);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(idx, desc);
-        }
-
-        public VarInsnNode getNewForceCtrlStoreNode() {
-            if(this.desc.equals("J") || this.desc.equals("D")) {
-                return new VarInsnNode(TaintUtils.FORCE_CTRL_STORE_WIDE, idx);
+            LabelNode newLabel = new LabelNode(new Label());
+            instructions.insertBefore(insn, newLabel);
+            i = instructions.getFirst();
+            while(i != null) {
+                if(i instanceof FrameNode) {
+                    FrameNode fr = (FrameNode) i;
+                    for(int j = 0; j < fr.stack.size(); j++) {
+                        if(oldLabels.contains(fr.stack.get(j))) {
+                            fr.stack.set(j, newLabel.getLabel());
+                        }
+                    }
+                }
+                i = i.getNext();
             }
-            return new VarInsnNode(TaintUtils.FORCE_CTRL_STORE, idx);
+        }
+    }
+
+    private static void annotateLoops(MethodNode mn) {
+        FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator().createControlFlowGraph(mn);
+        for(NaturalLoop<BasicBlock> loop : cfg.getNaturalLoops()) {
+            AbstractInsnNode header = loop.getHeader().getLastInsn();
+            if(loop.getHeader() instanceof SimpleBasicBlock) {
+                mn.instructions.insertBefore(header, new InsnNode(TaintUtils.LOOP_HEADER));
+            }
         }
     }
 
@@ -446,14 +298,12 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         private final String className;
         private final boolean shouldTrackExceptions;
         private final MethodVisitor cmv;
-        boolean[] endsWithGOTO;
         int curLabel = 0;
-        HashMap<Integer, Boolean> lvsThatAreArrays = new HashMap<>();
-        ArrayList<FrameNode> inFrames = new ArrayList<>();
-        ArrayList<FrameNode> outFrames = new ArrayList<>();
-        HashMap<Integer, AnnotatedInstruction> implicitAnalysisBlocks = new HashMap<>();
+        List<FrameNode> inFrames = new ArrayList<>();
+        List<FrameNode> outFrames = new ArrayList<>();
+        Map<Integer, AnnotatedInstruction> implicitAnalysisBlocks = new HashMap<>();
 
-        public PrimitiveArrayAnalyzerMN(int access, String name, String desc, String signature, String[] exceptions, String className, MethodVisitor cmv) {
+        PrimitiveArrayAnalyzerMN(int access, String name, String desc, String signature, String[] exceptions, String className, MethodVisitor cmv) {
             super(Configuration.ASM_VERSION, access, name, desc, signature, exceptions);
             this.className = className;
             this.cmv = cmv;
@@ -499,7 +349,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         //				super.visitVarInsn(opcode, var);
         //			}
 
-        private void visitFrameTypes(final int n, final Object[] types, final List<Object> result) {
+        private void visitFrameTypes(final int n, final Object[] types, final java.util.List<Object> result) {
             for(int i = 0; i < n; i++) {
                 Object type = types[i];
                 result.add(type);
@@ -511,8 +361,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
         FrameNode generateFrameNode(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
             FrameNode ret = new FrameNode(type, nLocal, local, nStack, stack);
-            ret.local = new ArrayList<>();
-            ret.stack = new ArrayList<>();
+            ret.local = new java.util.ArrayList<>();
+            ret.stack = new java.util.ArrayList<>();
             visitFrameTypes(nLocal, local, ret.local);
             visitFrameTypes(nStack, stack, ret.stack);
             return ret;
@@ -532,14 +382,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             } else {
                 inFrames.set(curLabel - 1, generateFrameNode(type, nLocal, local, nStack, stack));
             }
-//							System.out.println(name+" " +Arrays.toString(local));
-            //				if (curLabel > 0) {
-            //				System.out.println("And resetting outframe " + (curLabel - 2));
-            //					if (outFrames.size() == curLabel - 1)
-            //						outFrames.add(new FrameNode(type, nLocal, local, nStack, stack));
-            //					 if(outFrames.get(curLabel -1) == null)
-            //						outFrames.set(curLabel - 1, new FrameNode(type, nLocal, local, nStack, stack));
-            //				}
         }
 
         @Override
@@ -600,8 +442,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         }
 
         public void visitJumpInsn(int opcode, Label label) {
-            //				System.out.println(opcode);
-            //				if (opcode == Opcodes.GOTO) {
             super.visitJumpInsn(opcode, label);
             int nToPop = 0;
             switch(opcode) {
@@ -635,7 +475,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             }
             //The analyzer won't have executed yet, so simulate it did :'(
             List<Object> stack = new ArrayList<>(analyzer.stack);
-            //				System.out.println("got to remove " + nToPop +  " from " + analyzer.stack + " in " + className + "."+name );
             while(nToPop > 0 && !stack.isEmpty()) {
                 stack.remove(stack.size() - 1);
                 nToPop--;
@@ -725,20 +564,16 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 public Frame[] analyze(String owner, MethodNode m) throws AnalyzerException {
                     Iterator<AbstractInsnNode> insns = m.instructions.iterator();
                     insnToLabel = new int[m.instructions.size()];
-//											System.out.println("PAAA"+ name);
                     int label = -1;
                     boolean isFirst = true;
                     while(insns.hasNext()) {
                         AbstractInsnNode insn = insns.next();
                         int idx = m.instructions.indexOf(insn);
-
                         if(insn instanceof LabelNode) {
                             label++;
                         }
-
                         insnToLabel[idx] = (isFirst ? 1 : label);
                         isFirst = false;
-                        //														System.out.println(idx + "->"+label);
                     }
                     Frame[] ret = super.analyze(owner, m);
                     if(shouldTrackExceptions) {
@@ -748,8 +583,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                             int idx = m.instructions.indexOf(insn);
                             if(insn.getOpcode() == Opcodes.ATHROW) {
                                 //Are we in a try/catch block that can catch this?
-
-
                                 for(TryCatchBlockNode each : m.tryCatchBlocks) {
                                     try {
                                         Class<?> caught = Class.forName((each.type == null ? "java.lang.Throwable" : each.type.replace('/', '.')), false, PrimitiveArrayAnalyzer.class.getClassLoader());
@@ -758,7 +591,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                                             newControlFlowEdge(idx, m.instructions.indexOf(each.handler));
                                             break;
                                         }
-                                        Class<?> thrown = null;
+                                        Class<?> thrown;
                                         try {
                                             String onStack = ret[idx].getStack(ret[idx].getStackSize() - 1).toString();
                                             if(!onStack.startsWith("L")) {
@@ -774,33 +607,22 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                                             break;
                                         }
                                     } catch(Throwable t) {
-                                    } //Maybe can't load exception type, that's ok
+                                        //Maybe can't load exception type, that's ok
+                                    }
                                 }
                             }
                         }
                     }
-
-//					if (DEBUG)
-//						for (int i = 0; i < inFrames.size(); i++) {
-//							System.out.println("IN: " + i + " " + inFrames.get(i).stack);
-//						}
-//					if (DEBUG)
-//						for (int i = 0; i < outFrames.size(); i++) {
-//							System.out.println("OUT: " + i + " " + (outFrames.get(i) == null ? "null" : outFrames.get(i).stack));
-//						}
-
-                    for(Entry<Integer, LinkedList<Integer>> edge : edges.entrySet()) {
+                    for(Map.Entry<Integer, LinkedList<Integer>> edge : edges.entrySet()) {
                         Integer successor = edge.getKey();
                         if(edge.getValue().size() > 1) {
                             int labelToSuccessor = getLabel(successor);
-
                             if(DEBUG) {
                                 System.out.println(name + " Must merge: " + edge.getValue() + " into " + successor + " AKA " + labelToSuccessor);
                             }
                             if(DEBUG) {
                                 System.out.println("Input to successor: " + inFrames.get(labelToSuccessor).stack);
                             }
-
                             for(Integer toMerge : edge.getValue()) {
                                 if(shouldTrackExceptions) {
                                     AnnotatedInstruction b = implicitAnalysisBlocks.get(toMerge);
@@ -815,8 +637,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                                 if(DEBUG) {
                                     System.out.println((outFrames.get(labelToMerge) == null ? "null" : outFrames.get(labelToMerge).stack));
                                 }
-                                if(inFrames.get(labelToSuccessor) == null || outFrames.get(labelToMerge) == null) //e.g. for an edge into the first instruction in an exception handler
-                                {
+                                if(inFrames.get(labelToSuccessor) == null || outFrames.get(labelToMerge) == null) {
+                                    //e.g. for an edge into the first instruction in an exception handler
                                     continue;
                                 }
                                 if(!outFrames.get(labelToMerge).stack.isEmpty() && !inFrames.get(labelToSuccessor).stack.isEmpty()) {
@@ -828,7 +650,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                                     if(inputTop == Opcodes.TOP) {
                                         inputTop = inFrames.get(labelToSuccessor).stack.get(inFrames.get(labelToSuccessor).stack.size() - 2);
                                     }
-//									System.out.println(className+"."+name+ " IN"+inputTop +" OUT " + output1Top);
                                     if(output1Top != null && output1Top != inputTop) {
                                         Type inputTopType = TaintAdapter.getTypeForStackType(inputTop);
                                         Type outputTopType = TaintAdapter.getTypeForStackType(output1Top);
@@ -845,20 +666,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                                     for(int i = 0; i < Math.min(outFrames.get(labelToMerge).local.size(), inFrames.get(labelToSuccessor).local.size()); i++) {
                                         Object out = outFrames.get(labelToMerge).local.get(i);
                                         Object in = inFrames.get(labelToSuccessor).local.get(i);
-//										System.out.println(name +" " +out + " out, " + in + " In" + " i "+i);
                                         if(out instanceof String && in instanceof String) {
                                             Type tout = Type.getObjectType((String) out);
                                             Type tin = Type.getObjectType((String) in);
                                             if(tout.getSort() == Type.ARRAY && tout.getElementType().getSort() != Type.OBJECT && tout.getDimensions() == 1 && tin.getSort() == Type.OBJECT) {
                                                 int insnN = getLastInsnByLabel(labelToMerge);
-//												System.out.println(name+desc);
-//																							System.out.println(outFrames.get(labelToMerge).local + " out, \n" + inFrames.get(labelToSuccessor).local + " In" + " i "+i);
-//												System.out.println("T1::"+tout + " to " + tin + " this may be unsupported but should be handled by the above! in label " + instructions.get(insnN));
-//												System.out.println("In insn is " + getFirstInsnByLabel(labelToSuccessor));
-//												System.out.println("insn after frame is " + insnN +", " + instructions.get(insnN) + "<"+Printer.OPCODES[instructions.get(insnN).getOpcode()]);
-//													System.out.println(inFrames.get(labelToSuccessor).local);
                                                 if(!alwaysAutoBoxByFrame.containsKey(insnN)) {
-                                                    alwaysAutoBoxByFrame.put(insnN, new LinkedList<Integer>());
+                                                    alwaysAutoBoxByFrame.put(insnN, new LinkedList<>());
                                                 }
                                                 alwaysAutoBoxByFrame.get(insnN).add(i);
                                             }
@@ -876,9 +690,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
                 @Override
                 protected boolean newControlFlowExceptionEdge(int insnIndex, int successorIndex) {
-//					if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
-//						this.newControlFlowEdge(insnIndex, successorIndex, true);
-//					}
                     return true;
                 }
 
@@ -887,19 +698,19 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     newControlFlowEdge(insn, successor, false);
                 }
 
-                protected void newControlFlowEdge(int insn, int successor, boolean isExceptionalEdge) {
+                void newControlFlowEdge(int insn, int successor, boolean isExceptionalEdge) {
                     if(visited.contains(insn + "-" + successor)) {
                         return;
                     }
                     visited.add(insn + "-" + successor);
                     if(!edges.containsKey(successor)) {
-                        edges.put(successor, new LinkedList<Integer>());
+                        edges.put(successor, new LinkedList<>());
                     }
                     if(!edges.get(successor).contains(insn)) {
                         edges.get(successor).add(insn);
                     }
                     if(!outEdges.containsKey(insn)) {
-                        outEdges.put(insn, new LinkedList<Integer>());
+                        outEdges.put(insn, new LinkedList<>());
                     }
                     if(!outEdges.get(insn).contains(successor)) {
                         outEdges.get(insn).add(successor);
@@ -933,71 +744,68 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                                 break;
                         }
                     }
-                    AnnotatedInstruction succesorBlock;
+                    AnnotatedInstruction successorBlock;
                     if(implicitAnalysisBlocks.containsKey(successor)) {
-                        succesorBlock = implicitAnalysisBlocks.get(successor);
+                        successorBlock = implicitAnalysisBlocks.get(successor);
                     } else {
-                        succesorBlock = new AnnotatedInstruction();
-                        succesorBlock.idx = successor;
-                        succesorBlock.insn = instructions.get(successor);
-                        implicitAnalysisBlocks.put(successor, succesorBlock);
-                        if(succesorBlock.insn.getType() == AbstractInsnNode.IINC_INSN) {
-                            succesorBlock.varsWritten.add(new LVAccess(((IincInsnNode) succesorBlock.insn).var, "I"));
-                        } else if(succesorBlock.insn.getType() == AbstractInsnNode.VAR_INSN) {
-                            switch(succesorBlock.insn.getOpcode()) {
+                        successorBlock = new AnnotatedInstruction();
+                        successorBlock.idx = successor;
+                        successorBlock.insn = instructions.get(successor);
+                        implicitAnalysisBlocks.put(successor, successorBlock);
+                        if(successorBlock.insn.getType() == AbstractInsnNode.IINC_INSN) {
+                            successorBlock.varsWritten.add(new LVAccess(((IincInsnNode) successorBlock.insn).var, "I"));
+                        } else if(successorBlock.insn.getType() == AbstractInsnNode.VAR_INSN) {
+                            switch(successorBlock.insn.getOpcode()) {
                                 case ISTORE:
-                                    succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode) succesorBlock.insn).var, "I"));
+                                    successorBlock.varsWritten.add(new LVAccess(((VarInsnNode) successorBlock.insn).var, "I"));
                                     break;
                                 case ASTORE:
-                                    succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode) succesorBlock.insn).var, "Ljava/lang/Object;"));
+                                    successorBlock.varsWritten.add(new LVAccess(((VarInsnNode) successorBlock.insn).var, "Ljava/lang/Object;"));
                                     break;
                                 case DSTORE:
-                                    succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode) succesorBlock.insn).var, "D"));
+                                    successorBlock.varsWritten.add(new LVAccess(((VarInsnNode) successorBlock.insn).var, "D"));
                                     break;
                                 case LSTORE:
-                                    succesorBlock.varsWritten.add(new LVAccess(((VarInsnNode) succesorBlock.insn).var, "J"));
+                                    successorBlock.varsWritten.add(new LVAccess(((VarInsnNode) successorBlock.insn).var, "J"));
                                     break;
                             }
-                        } else if(succesorBlock.insn.getType() == AbstractInsnNode.FIELD_INSN) {
-                            FieldInsnNode fin = (FieldInsnNode) succesorBlock.insn;
+                        } else if(successorBlock.insn.getType() == AbstractInsnNode.FIELD_INSN) {
+                            FieldInsnNode fin = (FieldInsnNode) successorBlock.insn;
                             if(fin.getOpcode() == Opcodes.PUTFIELD) {
                                 Frame fr = this.getFrames()[successor];
                                 if(fr != null && fr.getStack(fr.getStackSize() - 2) == BasicArrayInterpreter.THIS_VALUE) {
-                                    succesorBlock.fieldsWritten.add(new Field(false, fin.owner, fin.name, fin.desc));
+                                    successorBlock.fieldsWritten.add(new Field(false, fin.owner, fin.name, fin.desc));
                                 }
                             } else if(fin.getOpcode() == Opcodes.PUTSTATIC) {
-                                succesorBlock.fieldsWritten.add(new Field(true, fin.owner, fin.name, fin.desc));
+                                successorBlock.fieldsWritten.add(new Field(true, fin.owner, fin.name, fin.desc));
                             }
-                        } else if(succesorBlock.insn.getType() == AbstractInsnNode.METHOD_INSN) {
-                            MethodInsnNode min = (MethodInsnNode) succesorBlock.insn;
+                        } else if(successorBlock.insn.getType() == AbstractInsnNode.METHOD_INSN) {
+                            MethodInsnNode min = (MethodInsnNode) successorBlock.insn;
                             if(min.getOpcode() == INVOKEVIRTUAL || min.getOpcode() == INVOKESPECIAL) {
                                 Type[] desc = Type.getArgumentTypes(min.desc);
-                                if(
-                                        (desc.length == 1 && (Type.getReturnType(min.desc).getSort() == Type.VOID || min.desc.equals("Ljava/lang/StringBuilder;")))
-                                                ||
-                                                (desc.length == 2 && Type.getReturnType(min.desc).getSort() == Type.VOID && min.name.startsWith("set"))) {
+                                if((desc.length == 1 && (Type.getReturnType(min.desc).getSort() == Type.VOID || min.desc.equals("Ljava/lang/StringBuilder;")))
+                                        || (desc.length == 2 && Type.getReturnType(min.desc).getSort() == Type.VOID && min.name.startsWith("set"))) {
                                     Frame fr = this.getFrames()[successor];
                                     if(fr != null && fr.getStack(fr.getStackSize() - 2) instanceof BasicArrayInterpreter.BasicThisFieldValue) {
                                         BasicArrayInterpreter.BasicThisFieldValue vv = (BasicArrayInterpreter.BasicThisFieldValue) fr.getStack(fr.getStackSize() - 2);
-                                        succesorBlock.fieldsWritten.add(vv.getField());
+                                        successorBlock.fieldsWritten.add(vv.getField());
                                     }
                                 }
                             }
-                        } else if(succesorBlock.insn.getOpcode() == Opcodes.ATHROW) {
+                        } else if(successorBlock.insn.getOpcode() == Opcodes.ATHROW) {
                             BasicValue ex = (BasicValue) this.getFrames()[successor].getStack(0);
                             if(shouldTrackExceptions && ex != null && ex.getType() != null && (ex.getType().getDescriptor().contains("Exception") || ex.getType().getDescriptor().contains("Error"))) {
-                                succesorBlock.exceptionsThrown.add(ex.getType().getInternalName() + "#" + successor);
+                                successorBlock.exceptionsThrown.add(ex.getType().getInternalName() + "#" + successor);
                             }
                         }
                     }
-                    fromBlock.successors.add(succesorBlock);
-                    succesorBlock.predecessors.add(fromBlock);
-
+                    fromBlock.successors.add(successorBlock);
+                    successorBlock.predecessors.add(fromBlock);
                     if(fromBlock.isJump) {
                         if(fromBlock.covered) {
-                            succesorBlock.onTrueSideOfJumpFrom.add(fromBlock);
+                            successorBlock.onTrueSideOfJumpFrom.add(fromBlock);
                         } else {
-                            succesorBlock.onFalseSideOfJumpFrom.add(fromBlock);
+                            successorBlock.onFalseSideOfJumpFrom.add(fromBlock);
                             fromBlock.covered = true;
                         }
                     }
@@ -1005,7 +813,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 }
             };
             try {
-
                 Frame[] frames = a.analyze(className, this);
                 for(int i = 0; i < instructions.size(); i++) {
                     if(frames[i] == null) {
@@ -1020,140 +827,85 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                             break;
                         } else if(insn instanceof FrameNode) {
                             FrameNode fn = (FrameNode) insn;
-                            fn.local = Collections.EMPTY_LIST;
-                            fn.stack = Collections.singletonList((Object) "java/lang/Throwable");
+                            fn.local = java.util.Collections.emptyList();
+                            fn.stack = java.util.Collections.singletonList("java/lang/Throwable");
                         } else if(!(insn instanceof LineNumberNode) && !(insn instanceof LabelNode)) {
                             instructions.insertBefore(insn, new InsnNode(Opcodes.NOP));
                             instructions.remove(insn);
                         }
-                        //insn = insn.getNext();
-                        //	}
                     }
                 }
-//				HashMap<Integer,BasicBlock> cfg = new HashMap<Integer, BasicBlock>();
-//				for(Integer i : outEdges.keySet())
-//				{
-//					BasicBlock b = new BasicBlock();
-//					b.idx = i;
-//					b.outEdges = outEdges.get(i);
-//					int endIdx = this.instructions.size();
-//					for(Integer jj : outEdges.get(i))
-//						if(i < endIdx)
-//							endIdx = jj;
-//					for(int j =i; j < endIdx; j++)
-//					{
-//						if(instructions.get(i) instanceof VarInsnNode)
-//						{
-//							VarInsnNode n = ((VarInsnNode) instructions.get(i));
-//							b.varsAccessed.add(n.var);
-//						}
-//					}
-//					cfg.put(i, b);
-//				}
-//				for(Integer i : cfg.keySet())
-//				{
-//					computeVarsAccessed(i,cfg);
-//				}
-                ArrayList<Integer> toAddNullBefore = new ArrayList<Integer>();
-//				toAddNullBefore.addAll(insertACONSTNULLBEFORE);
-
+                List<Integer> toAddNullBefore = new ArrayList<>();
                 toAddNullBefore.addAll(insertACHECKCASTBEFORE);
                 toAddNullBefore.addAll(neverAutoBoxByFrame.keySet());
                 toAddNullBefore.addAll(alwaysAutoBoxByFrame.keySet());
                 Collections.sort(toAddNullBefore);
-
-                HashMap<LabelNode, LabelNode> problemLabels = new HashMap<LabelNode, LabelNode>();
-                HashMap<LabelNode, HashSet<Integer>> problemVars = new HashMap<LabelNode, HashSet<Integer>>();
                 int nNewNulls = 0;
                 for(Integer i : toAddNullBefore) {
                     AbstractInsnNode insertAfter = this.instructions.get(i + nNewNulls);
-
-                    if(insertACONSTNULLBEFORE.contains(i)) {
-//						if (DEBUG)
-//							System.out.println("Adding Null before: " + i);
-//						if (insertAfter.getOpcode() == Opcodes.GOTO)
-//							insertAfter = insertAfter.getPrevious();
-//						this.instructions.insert(insertAfter, new InsnNode(Opcodes.ACONST_NULL));
-//						nNewNulls++;
-                    } else if(insertACHECKCASTBEFORE.contains(i)) {
-                        if(DEBUG) {
-                            System.out.println("Adding checkcast before: " + i + " (plus " + nNewNulls + ")");
-                        }
-                        if(insertAfter.getOpcode() == Opcodes.GOTO) {
-                            insertAfter = insertAfter.getPrevious();
-                        }
-                        this.instructions.insert(insertAfter, new TypeInsnNode(Opcodes.CHECKCAST, Type.getInternalName(Object.class)));
-                        nNewNulls++;
-                    } else if(neverAutoBoxByFrame.containsKey(i)) {
-                        if(insertAfter.getOpcode() == Opcodes.GOTO) {
-                            insertAfter = insertAfter.getPrevious();
-                        }
-                        for(int j : neverAutoBoxByFrame.get(i)) {
-//							System.out.println("Adding nevefbox: before " + i + " (plus " + nNewNulls + ")");
-
-                            this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.NEVER_AUTOBOX, j));
-                            nNewNulls++;
-                        }
-                    } else if(alwaysAutoBoxByFrame.containsKey(i)) {
-                        for(int j : alwaysAutoBoxByFrame.get(i)) {
-//							System.out.println("Adding checkcast always: before " + i + " (plus " + nNewNulls + ")");
-//								while(insertAfter.getType() == AbstractInsnNode.LABEL ||
-//										insertAfter.getType() == AbstractInsnNode.LINE||
-//										insertAfter.getType() == AbstractInsnNode.FRAME)
-//									insertAfter = insertAfter.getNext();
-                            AbstractInsnNode query = insertAfter.getNext();
-                            while(query.getNext() != null && (query.getType() == AbstractInsnNode.LABEL ||
-                                    query.getType() == AbstractInsnNode.LINE ||
-                                    query.getType() == AbstractInsnNode.FRAME || query.getOpcode() > 200)) {
-                                query = query.getNext();
+                    if(!insertACONSTNULLBEFORE.contains(i)) {
+                        if(insertACHECKCASTBEFORE.contains(i)) {
+                            if(DEBUG) {
+                                System.out.println("Adding checkcast before: " + i + " (plus " + nNewNulls + ")");
                             }
-                            if(query.getOpcode() == Opcodes.ALOAD && query.getNext().getOpcode() == Opcodes.MONITOREXIT) {
-                                insertAfter = query.getNext();
-                            }
-                            if(query.getType() == AbstractInsnNode.JUMP_INSN) {
-                                insertAfter = query;
-                            }
-                            if(insertAfter.getType() == AbstractInsnNode.JUMP_INSN) {
+                            if(insertAfter.getOpcode() == Opcodes.GOTO) {
                                 insertAfter = insertAfter.getPrevious();
-//								System.out.println(Printer.OPCODES[insertAfter.getNext().getOpcode()]);
-//								System.out.println("insertbefore  : " + ((JumpInsnNode) insertAfter.getNext()).toString());
-                                if(insertAfter.getNext().getOpcode() != Opcodes.GOTO) {
-                                    this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_BOX_JUMP, j));
-                                } else {
-//									System.out.println("box immediately");
-                                    this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
-                                }
-                            } else {
-                                if(insertAfter.getOpcode() == Opcodes.ATHROW) {
-                                    this.instructions.insertBefore(query, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
-                                } else {
-                                    this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
-                                }
                             }
+                            this.instructions.insert(insertAfter, new TypeInsnNode(Opcodes.CHECKCAST, Type.getInternalName(Object.class)));
                             nNewNulls++;
+                        } else if(neverAutoBoxByFrame.containsKey(i)) {
+                            if(insertAfter.getOpcode() == Opcodes.GOTO) {
+                                insertAfter = insertAfter.getPrevious();
+                            }
+                            for(int j : neverAutoBoxByFrame.get(i)) {
+                                this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.NEVER_AUTOBOX, j));
+                                nNewNulls++;
+                            }
+                        } else if(alwaysAutoBoxByFrame.containsKey(i)) {
+                            for(int j : alwaysAutoBoxByFrame.get(i)) {
+                                AbstractInsnNode query = insertAfter.getNext();
+                                while(query.getNext() != null && (query.getType() == AbstractInsnNode.LABEL ||
+                                        query.getType() == AbstractInsnNode.LINE ||
+                                        query.getType() == AbstractInsnNode.FRAME || query.getOpcode() > 200)) {
+                                    query = query.getNext();
+                                }
+                                if(query.getOpcode() == Opcodes.ALOAD && query.getNext().getOpcode() == Opcodes.MONITOREXIT) {
+                                    insertAfter = query.getNext();
+                                }
+                                if(query.getType() == AbstractInsnNode.JUMP_INSN) {
+                                    insertAfter = query;
+                                }
+                                if(insertAfter.getType() == AbstractInsnNode.JUMP_INSN) {
+                                    insertAfter = insertAfter.getPrevious();
+                                    if(insertAfter.getNext().getOpcode() != Opcodes.GOTO) {
+                                        this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_BOX_JUMP, j));
+                                    } else {
+                                        this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
+                                    }
+                                } else {
+                                    if(insertAfter.getOpcode() == Opcodes.ATHROW) {
+                                        this.instructions.insertBefore(query, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
+                                    } else {
+                                        this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
+                                    }
+                                }
+                                nNewNulls++;
+                            }
                         }
                     }
                 }
-
-//				System.out.println(name+desc);
-                //fix LVs for android (sigh)
-//				for(LabelNode l : problemLabels.keySet())
-//				{
-//					System.out.println("Problem label: "+l);
-//				}
                 boolean hadChanges = true;
                 while(hadChanges) {
                     hadChanges = false;
-
-                    HashSet<LocalVariableNode> newLVNodes = new HashSet<LocalVariableNode>();
+                    java.util.Set<LocalVariableNode> newLVNodes = new java.util.HashSet<>();
                     if(this.localVariables != null) {
                         for(Object _lv : this.localVariables) {
                             LocalVariableNode lv = (LocalVariableNode) _lv;
                             AbstractInsnNode toCheck = lv.start;
                             LabelNode veryEnd = lv.end;
                             while(toCheck != null && toCheck != lv.end) {
-                                if((toCheck.getOpcode() == TaintUtils.ALWAYS_BOX_JUMP || toCheck.getOpcode() == TaintUtils.ALWAYS_AUTOBOX) && ((VarInsnNode) toCheck).var == lv.index) {
-//									System.out.println("LV " + lv.name + " will be a prob around " + toCheck);
+                                if((toCheck.getOpcode() == TaintUtils.ALWAYS_BOX_JUMP
+                                        || toCheck.getOpcode() == TaintUtils.ALWAYS_AUTOBOX) && ((VarInsnNode) toCheck).var == lv.index) {
                                     LabelNode beforeProblem = new LabelNode(new Label());
                                     LabelNode afterProblem = new LabelNode(new Label());
                                     this.instructions.insertBefore(toCheck, beforeProblem);
@@ -1231,7 +983,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     Integer endKey = null;
 
 
-                    for(Entry<Integer, AnnotatedInstruction> e : implicitAnalysisBlocks.entrySet()) {
+                    for(Map.Entry<Integer, AnnotatedInstruction> e : implicitAnalysisBlocks.entrySet()) {
                         AnnotatedInstruction b = e.getValue();
                         Integer i = e.getKey();
                         if(b.insn == t.handler) {
@@ -1254,7 +1006,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     }
 
                     //Identify all of the instructions in this try block
-                    if(startBlock != null && endBlock != null) {
+                    if(startBlock != null) {
                         for(int i = startKey; i <= endKey; i++) {
                             if(implicitAnalysisBlocks.get(i) != null) {
                                 implicitAnalysisBlocks.get(i).coveredByTryBlockFor.add(t.type);
@@ -1279,11 +1031,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                             suc.onTrueSideOfJumpFrom.add(startBlock);
                         }
                     }
-//						handlerBlock.onTrueSideOfJumpFrom.remove(startBlock);
-//						System.out.println(handlerBlock + " " + handlerBlock.onTrueSideOfJumpFrom + " " + handlerBlock.onFalseSideOfJumpFrom);
                 }
-//					debug(instructions.getFirst());
-
             }
 
             for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
@@ -1294,7 +1042,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             }
             if(implicitAnalysisBlocks.size() > 1 && hasJumps) {
                 Stack<AnnotatedInstruction> stack = new Stack<>();
-
                 //Fix successors to only point to jumps or labels
                 boolean changed = true;
                 while(changed) {
@@ -1317,7 +1064,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     }
                 }
                 for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                    if(b.basicBlockStartingSuccessors.size() == 0) {
+                    if(b.basicBlockStartingSuccessors.isEmpty()) {
                         b.postDominators.add(b);
                     } else {
                         b.postDominators.addAll(interestingBlocks);
@@ -1327,7 +1074,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 while(changed) {
                     changed = false;
                     for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                        if(b.basicBlockStartingSuccessors.size() > 0 && b.isInteresting()) {
+                        if(!b.basicBlockStartingSuccessors.isEmpty() && b.isInteresting()) {
                             Iterator<AnnotatedInstruction> iter = b.basicBlockStartingSuccessors.iterator();
                             AnnotatedInstruction successor = iter.next();
                             HashSet<AnnotatedInstruction> intersectionOfPredecessors = new HashSet<>(successor.postDominators);
@@ -1366,57 +1113,35 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         }
                     }
                 }
-
-//					for(BasicBlock j : implicitAnalysisblocks.values())
-//					{
-//						this.instructions.insertBefore(j.insn, new LdcInsnNode(j.idx + " " + j.onTrueSideOfJumpFrom + " " + j.onFalseSideOfJumpFrom +" RH:" + j.resolvedHereBlocks + j.successorsCompact +" "+j.exceptionsThrown));
-//						this.instructions.insertBefore(j.insn,new InsnNode(Opcodes.POP));
-//					}
                 // Propagate forward true-side/false-side to determine which vars are written
                 stack.add(implicitAnalysisBlocks.get(0));
-//					stack.addAll(tryCatchHandlers);
                 while(!stack.isEmpty()) {
                     AnnotatedInstruction b = stack.pop();
                     if(b.visited) {
                         continue;
                     }
                     b.visited = true;
-
-//						System.out.println("\t"+b.onFalseSideOfJumpFrom+b.onTrueSideOfJumpFrom+ b.resolvedHereBlocks);
                     b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
                     b.onTrueSideOfJumpFrom.removeAll(b.resolvedBlocks);
                     // Propagate markings to successors
                     for(AnnotatedInstruction s : b.successors) {
-                        boolean _changed = s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
-                        _changed |= s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
-//							if(!s.visited)
-                        _changed |= s.resolvedBlocks.addAll(b.resolvedBlocks);
-//							if(_changed)
-//								s.visited = false;
+                        s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
+                        s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
+                        s.resolvedBlocks.addAll(b.resolvedBlocks);
                         s.onFalseSideOfJumpFrom.remove(s);
                         s.onTrueSideOfJumpFrom.remove(s);
-//							if (!s.visited)
                         stack.add(s);
                     }
                 }
-
-//					for(BasicBlock j : implicitAnalysisblocks.values())
-//					{
-//						System.out.println(j.idx +  " " + j.onTrueSideOfJumpFrom + " "+j.onFalseSideOfJumpFrom);
-//						this.instructions.insertBefore(j.insn, new LdcInsnNode(j.idx + " " + j.onTrueSideOfJumpFrom + " " + j.onFalseSideOfJumpFrom +" SUC:" + j.successors));
-//						this.instructions.insertBefore(j.insn,new InsnNode(Opcodes.POP));
-//					}
                 for(AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
                     j.visited = false;
 
                 }
                 for(AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
-//						System.out.println(j.idx + " " + j.postDominators);
                     if(j.isJump || j.isTryBlockStart) {
-                        stack = new Stack<AnnotatedInstruction>();
+                        stack = new Stack<>();
                         stack.addAll(j.successors);
-                        HashSet<AnnotatedInstruction> visited = new HashSet<>();
-//							System.out.println("START JUMP " + j.idx);
+                        Set<AnnotatedInstruction> visited = new HashSet<>();
                         while(!stack.isEmpty()) {
                             AnnotatedInstruction b = stack.pop();
                             if(!visited.add(b)) {
@@ -1441,18 +1166,17 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 for(AnnotatedInstruction r : implicitAnalysisBlocks.values()) {
                     if(r.isTryBlockStart) {
                         //Need to actually insert this code at every exit from the SCC that is this try-catch block.
-
                         //Find the end of the handler
                         //this is any block that succeeds the handler and either: has no successors or has a successor in common with the start block
                         LinkedList<AnnotatedInstruction> handlerEndBlock = new LinkedList<>();
                         LinkedList<AnnotatedInstruction> toCheck = new LinkedList<>(r.handledAt.successors);
                         HashSet<AnnotatedInstruction> visited = new HashSet<>();
                         while(!toCheck.isEmpty()) {
-                            AnnotatedInstruction e = toCheck.pop();
+                            AnnotatedInstruction e = toCheck.poll();
                             if(!visited.add(e)) {
                                 continue;
                             }
-                            if(e.successors.size() == 0) {
+                            if(e.successors.isEmpty()) {
                                 handlerEndBlock.add(e);
                             } else if(r.postDominators.contains(e)) {
                                 handlerEndBlock.add(e);
@@ -1465,8 +1189,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         while(lastInstructionInTryBlock.getType() == AbstractInsnNode.FRAME || lastInstructionInTryBlock.getType() == AbstractInsnNode.LINE || lastInstructionInTryBlock.getType() == AbstractInsnNode.LABEL) {
                             lastInstructionInTryBlock = lastInstructionInTryBlock.getNext();
                         }
-
-
                         //Set up the force control store's at the bottom of the try block
                         HashSet<LVAccess> lvsOnlyInHandler = new HashSet<>(r.varsWrittenFalseSide);
                         lvsOnlyInHandler.removeAll(r.varsWrittenTrueSide);
@@ -1478,8 +1200,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         for(Field f : fieldsOnlyInHandler) {
                             this.instructions.insertBefore(lastInstructionInTryBlock, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
                         }
-
-
                         AbstractInsnNode handledAtInsn = r.handledAt.insn;
                         HashSet<String> handledHereAlready = new HashSet<>();
                         HashSet<Integer> forceStoreAlready = new HashSet<>();
@@ -1498,7 +1218,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
                         //Then do all of the force-ctr-stores
                         //In the exception handler, force a store of what was written
-                        HashSet<LVAccess> diff = new HashSet<LVAccess>();
+                        HashSet<LVAccess> diff = new HashSet<>();
 
                         diff.addAll(r.varsWrittenTrueSide);
                         diff.removeAll(r.varsWrittenFalseSide);
@@ -1506,7 +1226,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         HashSet<Field> diffFields = new HashSet<>();
                         diffFields.addAll(r.fieldsWrittenTrueSide);
                         diffFields.removeAll(r.fieldsWrittenFalseSide);
-
 
                         for(LVAccess i : diff) {
                             if(!forceStoreAlready.contains(i.idx)) {
@@ -1518,7 +1237,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         }
 
                         //At the START of the handler, note that it's the start...
-                        if(handledHereAlready.size() == 0) {
+                        if(handledHereAlready.isEmpty()) {
                             instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, null));
                         }
                         for(String ex : r.exceptionsHandled) {
@@ -1534,8 +1253,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         //At the END of the handler, remove this exception from the queue
                         for(AnnotatedInstruction b : handlerEndBlock) {
                             AbstractInsnNode insn = b.insn;
-//								while (insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL)
-//									insn = insn.getNext();
                             //Peek backwards to see if we are behind a GOTO
                             while(insn != null && insn.getPrevious() != null && mightEndBlock(insn.getPrevious())) {
                                 insn = insn.getPrevious();
@@ -1543,20 +1260,15 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                             if(insn.getType() == AbstractInsnNode.LABEL || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.FRAME) {
                                 insn = b.insn;
                             }
-//								System.out.println(b +"," + insn);
-
-
                             instructions.insertBefore(insn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_END, null));
                         }
-
-//							debug(instructions.getFirst());
                     } else if(r.isJump) {
                         jumpID++;
 
-                        HashSet<LVAccess> common = new HashSet<LVAccess>();
+                        HashSet<LVAccess> common = new HashSet<>();
                         common.addAll(r.varsWrittenFalseSide);
                         common.retainAll(r.varsWrittenTrueSide);
-                        HashSet<LVAccess> diff = new HashSet<LVAccess>();
+                        HashSet<LVAccess> diff = new HashSet<>();
                         diff.addAll(r.varsWrittenTrueSide);
                         diff.addAll(r.varsWrittenFalseSide);
                         diff.removeAll(common);
@@ -1569,7 +1281,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         diffFields.addAll(r.fieldsWrittenTrueSide);
                         diffFields.removeAll(common);
 
-
                         HashSet<String> commonExceptionsThrown = new HashSet<>();
                         commonExceptionsThrown.addAll(r.exceptionsThrownFalseSide);
                         commonExceptionsThrown.retainAll(r.exceptionsThrownTrueSide);
@@ -1577,9 +1288,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         diffExceptions.addAll(r.exceptionsThrownTrueSide);
                         diffExceptions.addAll(r.exceptionsThrownFalseSide);
                         diffExceptions.removeAll(commonExceptionsThrown);
-
-
-//							System.out.println(b.idx + " " + b.varsWrittenFalseSide +" "+b.varsWrittenTrueSide + " " + b.exceptionsThrownFalseSide +  b.exceptionsThrownTrueSide);
 
                         instructions.insertBefore(r.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
                         jumpIDs.put(r, jumpID);
@@ -1593,9 +1301,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         for(Field f : diffFields) {
                             instructions.insertBefore(r.insn, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
                         }
-//							for (String s : diffExceptions)
-//								instructions.insertBefore(r.insn, new TypeInsnNode(TaintUtils.FORCE_CTRL_STORE, s));
-
 
                     } else if(shouldTrackExceptions && r.insn.getOpcode() >= Opcodes.IRETURN && r.insn.getOpcode() <= Opcodes.RETURN) {
                         //Return statement: check to see how we might have gotten here, and then find which exceptions we might have thrown if we came otherwise
@@ -1611,7 +1316,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                             missedExceptions.addAll(tmp);
                         }
                         HashSet<String> filtered = new HashSet<>();
-//							System.out.println(name + ":"+r.idx+" " + missedExceptions);
                         for(String s : missedExceptions) {
                             if(s == null) {
                                 s = "java/lang/Throwable";
@@ -1645,7 +1349,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     } else {
                         for(AnnotatedInstruction r : b.resolvedHereBlocks) {
                             if(!r.isTryBlockStart) {
-                                if(b.successors.size() > 0) {
+                                if(!b.successors.isEmpty()) {
                                     // For any return or athrow, we'll just bulk pop-all
                                     instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
                                     if(r.isTwoOperandJumpInstruction) {
@@ -1655,7 +1359,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                             }
                         }
                     }
-                    if(b.resolvedHereBlocks.size() > 0) {
+                    if(!b.resolvedHereBlocks.isEmpty()) {
                         patchFrames(b, instructions);
                     }
                     // In light tracking mode no need to POP off of control at RETURN/THROW, because we don't reuse the obj
@@ -1669,13 +1373,122 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         }
     }
 
-    private static void annotateLoops(MethodNode mn) {
-        FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator().createControlFlowGraph(mn);
-        for(NaturalLoop<BasicBlock> loop : cfg.getNaturalLoops()) {
-            AbstractInsnNode header = loop.getHeader().getLastInsn();
-            if(loop.getHeader() instanceof SimpleBasicBlock) {
-                mn.instructions.insertBefore(header, new InsnNode(TaintUtils.LOOP_HEADER));
+    static class AnnotatedInstruction {
+        AnnotatedInstruction handledAt;
+        Set<AnnotatedInstruction> postDominators = new HashSet<>();
+        int idx;
+        Set<AnnotatedInstruction> basicBlockStartingSuccessors = new HashSet<>();
+        Set<AnnotatedInstruction> successors = new HashSet<>();
+        Set<AnnotatedInstruction> predecessors = new HashSet<>();
+        AbstractInsnNode insn;
+        boolean covered;
+        boolean visited;
+        boolean isTryBlockStart;
+        boolean isJump;
+        boolean isTwoOperandJumpInstruction;
+        int ex_count;
+        Set<String> exceptionsHandled = new HashSet<>();
+        Set<String> coveredByTryBlockFor = new HashSet<>();
+        Set<AnnotatedInstruction> handlerForRegionStartingAt = new HashSet<>();
+        AnnotatedInstruction tryBlockEnd;
+        Set<AnnotatedInstruction> resolvedHereBlocks = new HashSet<>();
+        Set<AnnotatedInstruction> resolvedBlocks = new HashSet<>();
+        Set<AnnotatedInstruction> onFalseSideOfJumpFrom = new HashSet<>();
+        Set<AnnotatedInstruction> onTrueSideOfJumpFrom = new HashSet<>();
+        Set<LVAccess> varsWritten = new HashSet<>();
+        Set<Field> fieldsWritten = new HashSet<>();
+        Set<String> exceptionsThrown = new HashSet<>();
+        Set<String> exceptionsThrownTrueSide = new HashSet<>();
+        Set<String> exceptionsThrownFalseSide = new HashSet<>();
+        Set<LVAccess> varsWrittenTrueSide = new HashSet<>();
+        Set<LVAccess> varsWrittenFalseSide = new HashSet<>();
+        Set<Field> fieldsWrittenTrueSide = new HashSet<>();
+        Set<Field> fieldsWrittenFalseSide = new HashSet<>();
+
+        boolean isInteresting() {
+            return isJump || isTryBlockStart || insn instanceof LabelNode;
+        }
+
+        Set<AnnotatedInstruction> getSuccessorsOutsideOfRegion(int s, int e, Set<AnnotatedInstruction> visited) {
+            if(visited.contains(this)) {
+                return Collections.emptySet();
             }
+            visited.add(this);
+            if(idx < s || idx > e) {
+                return Collections.singleton(this);
+            }
+            Set<AnnotatedInstruction> ret = new HashSet<>();
+            for(AnnotatedInstruction suc : successors) {
+                ret.addAll(suc.getSuccessorsOutsideOfRegion(s, e, visited));
+            }
+            return ret;
+
+        }
+
+        AbstractInsnNode getNextNormalBlockAfterGOTO() {
+            System.out.println(this + "," + successors + " " + this.insn);
+            if(this.insn instanceof LineNumberNode) {
+                System.out.println("(" + ((LineNumberNode) insn).line + ")");
+            }
+            if(this.insn.getOpcode() == Opcodes.GOTO) {
+                AnnotatedInstruction suc = successors.iterator().next();
+                AbstractInsnNode insn = suc.insn;
+                while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL) {
+                    insn = insn.getNext();
+                }
+                return insn;
+            }
+            if(successors.size() > 1) {
+                throw new IllegalStateException();
+            }
+            return successors.iterator().next().getNextNormalBlockAfterGOTO();
+        }
+
+        @Override
+        public String toString() {
+            return "" + idx;
+        }
+    }
+
+    static class LVAccess {
+        int idx;
+        String desc;
+
+        LVAccess(int idx, String desc) {
+            this.idx = idx;
+            this.desc = desc;
+        }
+
+        @Override
+        public String toString() {
+            return "LVAccess{" +
+                    "idx=" + idx +
+                    ", desc='" + desc + '\'' +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if(this == o) {
+                return true;
+            }
+            if(o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            LVAccess lvAccess = (LVAccess) o;
+            return idx == lvAccess.idx && Objects.equals(desc, lvAccess.desc);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(idx, desc);
+        }
+
+        VarInsnNode getNewForceCtrlStoreNode() {
+            if(this.desc.equals("J") || this.desc.equals("D")) {
+                return new VarInsnNode(TaintUtils.FORCE_CTRL_STORE_WIDE, idx);
+            }
+            return new VarInsnNode(TaintUtils.FORCE_CTRL_STORE, idx);
         }
     }
 }

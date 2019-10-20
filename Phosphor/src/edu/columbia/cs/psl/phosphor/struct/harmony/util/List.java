@@ -52,7 +52,7 @@ public interface List<E> extends Collection<E> {
      * @throws IndexOutOfBoundsException
      *                if {@code location < 0 || location > size()}
      */
-    public void add(int location, E object);
+    void add(int location, E object);
 
     /**
      * Adds the specified object at the end of this {@code List}.
@@ -68,7 +68,7 @@ public interface List<E> extends Collection<E> {
      * @throws IllegalArgumentException
      *                if the object cannot be added to this {@code List}.
      */
-    public boolean add(E object);
+    boolean add(E object);
 
     /**
      * Inserts the objects in the specified collection at the specified location
@@ -91,7 +91,7 @@ public interface List<E> extends Collection<E> {
      * @throws IndexOutOfBoundsException
      *                if {@code location < 0 || > size()}
      */
-    public boolean addAll(int location, Collection<? extends E> collection);
+    boolean addAll(int location, Collection<? extends E> collection);
 
     /**
      * Adds the objects in the specified collection to the end of this {@code List}. The
@@ -110,7 +110,7 @@ public interface List<E> extends Collection<E> {
      * @throws IllegalArgumentException
      *                if an object cannot be added to this {@code List}.
      */
-    public boolean addAll(Collection<? extends E> collection);
+    boolean addAll(Collection<? extends E> collection);
 
     /**
      * Removes all elements from this {@code List}, leaving it empty.
@@ -120,7 +120,7 @@ public interface List<E> extends Collection<E> {
      * @see #isEmpty
      * @see #size
      */
-    public void clear();
+    void clear();
 
     /**
      * Tests whether this {@code List} contains the specified object.
@@ -130,7 +130,7 @@ public interface List<E> extends Collection<E> {
      * @return {@code true} if object is an element of this {@code List}, {@code false}
      *         otherwise
      */
-    public boolean contains(Object object);
+    boolean contains(Object object);
 
     /**
      * Tests whether this {@code List} contains all objects contained in the
@@ -141,7 +141,7 @@ public interface List<E> extends Collection<E> {
      * @return {@code true} if all objects in the specified collection are
      *         elements of this {@code List}, {@code false} otherwise.
      */
-    public boolean containsAll(Collection<?> collection);
+    boolean containsAll(Collection<?> collection);
 
     /**
      * Compares the given object with the {@code List}, and returns true if they
@@ -155,7 +155,7 @@ public interface List<E> extends Collection<E> {
      *         and {@code false} if it is different from this object.
      * @see #hashCode
      */
-    public boolean equals(Object object);
+    boolean equals(Object object);
 
     /**
      * Returns the element at the specified location in this {@code List}.
@@ -166,7 +166,7 @@ public interface List<E> extends Collection<E> {
      * @throws IndexOutOfBoundsException
      *                if {@code location < 0 || >= size()}
      */
-    public E get(int location);
+    E get(int location);
 
     /**
      * Returns the hash code for this {@code List}. It is calculated by taking each
@@ -174,7 +174,7 @@ public interface List<E> extends Collection<E> {
      * 
      * @return the hash code of the {@code List}.
      */
-    public int hashCode();
+    int hashCode();
 
     /**
      * Searches this {@code List} for the specified object and returns the index of the
@@ -185,7 +185,7 @@ public interface List<E> extends Collection<E> {
      * @return the index of the first occurrence of the object or -1 if the
      *         object was not found.
      */
-    public int indexOf(Object object);
+    int indexOf(Object object);
 
     /**
      * Returns whether this {@code List} contains no elements.
@@ -194,7 +194,7 @@ public interface List<E> extends Collection<E> {
      *         otherwise.
      * @see #size
      */
-    public boolean isEmpty();
+    boolean isEmpty();
 
     /**
      * Returns an iterator on the elements of this {@code List}. The elements are
@@ -203,7 +203,7 @@ public interface List<E> extends Collection<E> {
      * @return an iterator on the elements of this {@code List}.
      * @see Iterator
      */
-    public Iterator<E> iterator();
+    Iterator<E> iterator();
 
     /**
      * Searches this {@code List} for the specified object and returns the index of the
@@ -214,7 +214,7 @@ public interface List<E> extends Collection<E> {
      * @return the index of the last occurrence of the object, or -1 if the
      *         object was not found.
      */
-    public int lastIndexOf(Object object);
+    int lastIndexOf(Object object);
 
     /**
      * Returns a {@code List} iterator on the elements of this {@code List}. The elements are
@@ -224,7 +224,7 @@ public interface List<E> extends Collection<E> {
      * 
      * @see ListIterator
      */
-    public ListIterator<E> listIterator();
+    ListIterator<E> listIterator();
 
     /**
      * Returns a list iterator on the elements of this {@code List}. The elements are
@@ -238,7 +238,7 @@ public interface List<E> extends Collection<E> {
      *                if {@code location < 0 || location > size()}
      * @see ListIterator
      */
-    public ListIterator<E> listIterator(int location);
+    ListIterator<E> listIterator(int location);
 
     /**
      * Removes the object at the specified location from this {@code List}.
@@ -251,7 +251,7 @@ public interface List<E> extends Collection<E> {
      * @throws IndexOutOfBoundsException
      *                if {@code location < 0 || >= size()}
      */
-    public E remove(int location);
+    E remove(int location);
 
     /**
      * Removes the first occurrence of the specified object from this {@code List}.
@@ -263,7 +263,7 @@ public interface List<E> extends Collection<E> {
      * @throws UnsupportedOperationException
      *                if removing from this {@code List} is not supported.
      */
-    public boolean remove(Object object);
+    boolean remove(Object object);
 
     /**
      * Removes all occurrences in this {@code List} of each object in the specified
@@ -275,7 +275,7 @@ public interface List<E> extends Collection<E> {
      * @throws UnsupportedOperationException
      *                if removing from this {@code List} is not supported.
      */
-    public boolean removeAll(Collection<?> collection);
+    boolean removeAll(Collection<?> collection);
 
     /**
      * Removes all objects from this {@code List} that are not contained in the
@@ -287,7 +287,7 @@ public interface List<E> extends Collection<E> {
      * @throws UnsupportedOperationException
      *                if removing from this {@code List} is not supported.
      */
-    public boolean retainAll(Collection<?> collection);
+    boolean retainAll(Collection<?> collection);
 
     /**
      * Replaces the element at the specified location in this {@code List} with the
@@ -308,14 +308,14 @@ public interface List<E> extends Collection<E> {
      * @throws IndexOutOfBoundsException
      *                if {@code location < 0 || >= size()}
      */
-    public E set(int location, E object);
+    E set(int location, E object);
 
     /**
      * Returns the number of elements in this {@code List}.
      * 
      * @return the number of elements in this {@code List}.
      */
-    public int size();
+    int size();
 
     /**
      * Returns a {@code List} of the specified portion of this {@code List} from the given start
@@ -331,14 +331,14 @@ public interface List<E> extends Collection<E> {
      *                if {@code start < 0, start > end} or {@code end >
      *                size()}
      */
-    public List<E> subList(int start, int end);
+    List<E> subList(int start, int end);
 
     /**
      * Returns an array containing all elements contained in this {@code List}.
      * 
      * @return an array of the elements from this {@code List}.
      */
-    public Object[] toArray();
+    Object[] toArray();
 
     /**
      * Returns an array containing all elements contained in this {@code List}. If the
@@ -354,5 +354,5 @@ public interface List<E> extends Collection<E> {
      *                if the type of an element in this {@code List} cannot be stored
      *                in the type of the specified array.
      */
-    public <T> T[] toArray(T[] array);
+    <T> T[] toArray(T[] array);
 }

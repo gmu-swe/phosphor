@@ -51,7 +51,7 @@ import java.util.Map;
  * <br>
  * (*) this is mandatory only for classes whose version is greater than or equal
  * to {@link Opcodes#V1_6 V1_6}.
- * 
+ *
  * @author Eric Bruneton
  */
 public class FrameNode extends AbstractInsnNode {
@@ -86,50 +86,45 @@ public class FrameNode extends AbstractInsnNode {
 
     /**
      * Constructs a new {@link FrameNode}.
-     * 
-     * @param type
-     *            the type of this frame. Must be {@link Opcodes#F_NEW} for
-     *            expanded frames, or {@link Opcodes#F_FULL},
-     *            {@link Opcodes#F_APPEND}, {@link Opcodes#F_CHOP},
-     *            {@link Opcodes#F_SAME} or {@link Opcodes#F_APPEND},
-     *            {@link Opcodes#F_SAME1} for compressed frames.
-     * @param nLocal
-     *            number of local variables of this stack map frame.
-     * @param local
-     *            the types of the local variables of this stack map frame.
-     *            Elements of this list can be Integer, String or LabelNode
-     *            objects (for primitive, reference and uninitialized types
-     *            respectively - see {@link MethodVisitor}).
-     * @param nStack
-     *            number of operand stack elements of this stack map frame.
-     * @param stack
-     *            the types of the operand stack elements of this stack map
-     *            frame. Elements of this list can be Integer, String or
-     *            LabelNode objects (for primitive, reference and uninitialized
-     *            types respectively - see {@link MethodVisitor}).
+     *
+     * @param type   the type of this frame. Must be {@link Opcodes#F_NEW} for
+     *               expanded frames, or {@link Opcodes#F_FULL},
+     *               {@link Opcodes#F_APPEND}, {@link Opcodes#F_CHOP},
+     *               {@link Opcodes#F_SAME} or {@link Opcodes#F_APPEND},
+     *               {@link Opcodes#F_SAME1} for compressed frames.
+     * @param nLocal number of local variables of this stack map frame.
+     * @param local  the types of the local variables of this stack map frame.
+     *               Elements of this list can be Integer, String or LabelNode
+     *               objects (for primitive, reference and uninitialized types
+     *               respectively - see {@link MethodVisitor}).
+     * @param nStack number of operand stack elements of this stack map frame.
+     * @param stack  the types of the operand stack elements of this stack map
+     *               frame. Elements of this list can be Integer, String or
+     *               LabelNode objects (for primitive, reference and uninitialized
+     *               types respectively - see {@link MethodVisitor}).
      */
     public FrameNode(final int type, final int nLocal, final Object[] local,
-            final int nStack, final Object[] stack) {
+                     final int nStack, final Object[] stack) {
         super(-1);
         this.type = type;
-        switch (type) {
-        case Opcodes.F_NEW:
-        case Opcodes.F_FULL:
-        case TaintUtils.RAW_INSN:
-            this.local = asList(nLocal, local);
-            this.stack = asList(nStack, stack);
-            break;
-        case Opcodes.F_APPEND:
-            this.local = asList(nLocal, local);
-            break;
-        case Opcodes.F_CHOP:
-            this.local = Arrays.asList(new Object[nLocal]);
-            break;
-        case Opcodes.F_SAME:
-            break;
-        case Opcodes.F_SAME1:
-            this.stack = asList(1, stack);
-            break;
+        switch(type) {
+            case Opcodes.F_NEW:
+            case Opcodes.F_FULL:
+            case TaintUtils.RAW_INSN:
+                this.local = asList(nLocal, local);
+                this.stack = asList(nStack, stack);
+                break;
+            case Opcodes.F_APPEND:
+                this.local = asList(nLocal, local);
+                break;
+            case Opcodes.F_CHOP:
+                this.local = Arrays.asList(new Object[nLocal]);
+                break;
+            case Opcodes.F_SAME:
+                break;
+            case Opcodes.F_SAME1:
+                this.stack = asList(1, stack);
+                break;
         }
     }
 
@@ -140,31 +135,30 @@ public class FrameNode extends AbstractInsnNode {
 
     /**
      * Makes the given visitor visit this stack map frame.
-     * 
-     * @param mv
-     *            a method visitor.
+     *
+     * @param mv a method visitor.
      */
     @Override
     public void accept(final MethodVisitor mv) {
-        switch (type) {
-        case Opcodes.F_NEW:
-        case Opcodes.F_FULL:
-        case TaintUtils.RAW_INSN: //PHOSPHOR
-            mv.visitFrame(type, local.size(), asArray(local), stack.size(),
-                    asArray(stack));
-            break;
-        case Opcodes.F_APPEND:
-            mv.visitFrame(type, local.size(), asArray(local), 0, null);
-            break;
-        case Opcodes.F_CHOP:
-            mv.visitFrame(type, local.size(), null, 0, null);
-            break;
-        case Opcodes.F_SAME:
-            mv.visitFrame(type, 0, null, 0, null);
-            break;
-        case Opcodes.F_SAME1:
-            mv.visitFrame(type, 0, null, 1, asArray(stack));
-            break;
+        switch(type) {
+            case Opcodes.F_NEW:
+            case Opcodes.F_FULL:
+            case TaintUtils.RAW_INSN: //PHOSPHOR
+                mv.visitFrame(type, local.size(), asArray(local), stack.size(),
+                        asArray(stack));
+                break;
+            case Opcodes.F_APPEND:
+                mv.visitFrame(type, local.size(), asArray(local), 0, null);
+                break;
+            case Opcodes.F_CHOP:
+                mv.visitFrame(type, local.size(), null, 0, null);
+                break;
+            case Opcodes.F_SAME:
+                mv.visitFrame(type, 0, null, 0, null);
+                break;
+            case Opcodes.F_SAME1:
+                mv.visitFrame(type, 0, null, 1, asArray(stack));
+                break;
         }
     }
 
@@ -172,21 +166,21 @@ public class FrameNode extends AbstractInsnNode {
     public AbstractInsnNode clone(final Map labels) {
         FrameNode clone = new FrameNode();
         clone.type = type;
-        if (local != null) {
+        if(local != null) {
             clone.local = new ArrayList<Object>();
-            for (int i = 0; i < local.size(); ++i) {
+            for(int i = 0; i < local.size(); ++i) {
                 Object l = local.get(i);
-                if (l instanceof LabelNode) {
+                if(l instanceof LabelNode) {
                     l = labels.get(l);
                 }
                 clone.local.add(l);
             }
         }
-        if (stack != null) {
+        if(stack != null) {
             clone.stack = new ArrayList<Object>();
-            for (int i = 0; i < stack.size(); ++i) {
+            for(int i = 0; i < stack.size(); ++i) {
                 Object s = stack.get(i);
-                if (s instanceof LabelNode) {
+                if(s instanceof LabelNode) {
                     s = labels.get(s);
                 }
                 clone.stack.add(s);
@@ -203,9 +197,9 @@ public class FrameNode extends AbstractInsnNode {
 
     private static Object[] asArray(final List<Object> l) {
         Object[] objs = new Object[l.size()];
-        for (int i = 0; i < objs.length; ++i) {
+        for(int i = 0; i < objs.length; ++i) {
             Object o = l.get(i);
-            if (o instanceof LabelNode) {
+            if(o instanceof LabelNode) {
                 o = ((LabelNode) o).getLabel();
             }
             objs[i] = o;

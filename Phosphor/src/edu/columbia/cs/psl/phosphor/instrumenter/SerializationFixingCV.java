@@ -19,9 +19,9 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
     // ObjectStreamClass class name
     private static final String STREAM_CLASS_NAME = "java/io/ObjectStreamClass";
     // Header byte for serialized objects
-    private final static byte TC_OBJECT = (byte)0x73;
+    private final static byte TC_OBJECT = (byte) 0x73;
     // Header byte serialized null values
-    private final static byte TC_NULL = (byte)0x70;
+    private final static byte TC_NULL = (byte) 0x70;
 
     // Name of class being visited
     private final String className;
@@ -29,12 +29,6 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
     public SerializationFixingCV(ClassVisitor cv, String className) {
         super(Configuration.ASM_VERSION, cv);
         this.className = className;
-    }
-
-    /* Returns whether this class visitor should be applied to the class with the specified name. */
-    public static boolean isApplicable(String className) {
-        return  INPUT_STREAM_NAME.equals(className) || OUTPUT_STREAM_NAME.equals(className)
-                || STREAM_CLASS_NAME.equals(className);
     }
 
     @Override
@@ -76,6 +70,39 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
                     return mv;
             }
         }
+    }
+
+    /* Returns whether this class visitor should be applied to the class with the specified name. */
+    public static boolean isApplicable(String className) {
+        return INPUT_STREAM_NAME.equals(className) || OUTPUT_STREAM_NAME.equals(className)
+                || STREAM_CLASS_NAME.equals(className);
+    }
+
+    @SuppressWarnings("unused")
+    public static Object wrapIfNecessary(Object obj) {
+        if(obj instanceof Boolean || obj instanceof Byte || obj instanceof Character || obj instanceof Short) {
+            Taint tag = MultiTainter.getTaint(obj);
+            if(tag != null && !tag.isEmpty()) {
+                if(obj instanceof Boolean) {
+                    return SerializationWrapper.wrap((Boolean) obj);
+                } else if(obj instanceof Byte) {
+                    return SerializationWrapper.wrap((Byte) obj);
+                } else if(obj instanceof Character) {
+                    return SerializationWrapper.wrap((Character) obj);
+                } else {
+                    return SerializationWrapper.wrap((Short) obj);
+                }
+            }
+        }
+        return obj;
+    }
+
+    @SuppressWarnings("unused")
+    public static Object unwrapIfNecessary(Object obj) {
+        if(obj instanceof SerializationWrapper) {
+            return ((SerializationWrapper) obj).unwrap();
+        }
+        return obj;
     }
 
     private static class StreamClassMV extends MethodVisitor {
@@ -198,7 +225,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
             super.visitLabel(label5);
             super.visitVarInsn(ALOAD, 0);
             super.visitMethodInsn(INVOKEVIRTUAL, INPUT_STREAM_NAME, "readObject", "()Ljava/lang/Object;", false);
-            super.visitTypeInsn(CHECKCAST,  Configuration.TAINT_TAG_INTERNAL_NAME);
+            super.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
             super.visitJumpInsn(GOTO, label3);
             // Push null onto stack
             super.visitLabel(label2);
@@ -245,32 +272,5 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
             }
             super.visitInsn(opcode);
         }
-    }
-
-    @SuppressWarnings("unused")
-    public static Object wrapIfNecessary(Object obj) {
-        if(obj instanceof Boolean || obj instanceof Byte || obj instanceof Character || obj instanceof Short) {
-            Taint tag = MultiTainter.getTaint(obj);
-            if(tag != null && !tag.isEmpty()) {
-                if(obj instanceof Boolean) {
-                    return SerializationWrapper.wrap((Boolean) obj);
-                } else if(obj instanceof Byte) {
-                    return SerializationWrapper.wrap((Byte) obj);
-                } else if(obj instanceof Character) {
-                    return SerializationWrapper.wrap((Character) obj);
-                } else {
-                    return SerializationWrapper.wrap((Short) obj);
-                }
-            }
-        }
-        return obj;
-    }
-
-    @SuppressWarnings("unused")
-    public static Object unwrapIfNecessary(Object obj) {
-        if(obj instanceof SerializationWrapper) {
-            return ((SerializationWrapper)obj).unwrap();
-        }
-        return obj;
     }
 }

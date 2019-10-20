@@ -44,7 +44,7 @@ public interface Set<E> extends Collection<E> {
      * @throws IllegalArgumentException
      *             when the object cannot be added to this set.
      */
-    public boolean add(E object);
+    boolean add(E object);
 
     /**
      * Adds the objects in the specified collection which do not exist yet in
@@ -60,7 +60,7 @@ public interface Set<E> extends Collection<E> {
      * @throws IllegalArgumentException
      *             when an object cannot be added to this set.
      */
-    public boolean addAll(Collection<? extends E> collection);
+    boolean addAll(Collection<? extends E> collection);
 
     /**
      * Removes all elements from this set, leaving it empty.
@@ -70,7 +70,7 @@ public interface Set<E> extends Collection<E> {
      * @see #isEmpty
      * @see #size
      */
-    public void clear();
+    void clear();
 
     /**
      * Searches this set for the specified object.
@@ -80,7 +80,7 @@ public interface Set<E> extends Collection<E> {
      * @return {@code true} if object is an element of this set, {@code false}
      *         otherwise.
      */
-    public boolean contains(Object object);
+    boolean contains(Object object);
 
     /**
      * Searches this set for all objects in the specified collection.
@@ -90,7 +90,7 @@ public interface Set<E> extends Collection<E> {
      * @return {@code true} if all objects in the specified collection are
      *         elements of this set, {@code false} otherwise.
      */
-    public boolean containsAll(Collection<?> collection);
+    boolean containsAll(Collection<?> collection);
 
     /**
      * Compares the specified object to this set, and returns true if they
@@ -104,7 +104,7 @@ public interface Set<E> extends Collection<E> {
      *         and {@code false} if it is different from this object.
      * @see #hashCode
      */
-    public boolean equals(Object object);
+    boolean equals(Object object);
 
     /**
      * Returns the hash code for this set. Two set which are equal must return
@@ -114,7 +114,7 @@ public interface Set<E> extends Collection<E> {
      * 
      * @see #equals
      */
-    public int hashCode();
+    int hashCode();
 
     /**
      * Returns true if this set has no elements.
@@ -123,7 +123,7 @@ public interface Set<E> extends Collection<E> {
      *         otherwise.
      * @see #size
      */
-    public boolean isEmpty();
+    boolean isEmpty();
 
     /**
      * Returns an iterator on the elements of this set. The elements are
@@ -132,7 +132,7 @@ public interface Set<E> extends Collection<E> {
      * @return an iterator on the elements of this set.
      * @see Iterator
      */
-    public Iterator<E> iterator();
+    Iterator<E> iterator();
 
     /**
      * Removes the specified object from this set.
@@ -143,7 +143,7 @@ public interface Set<E> extends Collection<E> {
      * @throws UnsupportedOperationException
      *             when removing from this set is not supported.
      */
-    public boolean remove(Object object);
+    boolean remove(Object object);
 
     /**
      * Removes all objects in the specified collection from this set.
@@ -154,7 +154,7 @@ public interface Set<E> extends Collection<E> {
      * @throws UnsupportedOperationException
      *             when removing from this set is not supported.
      */
-    public boolean removeAll(Collection<?> collection);
+    boolean removeAll(Collection<?> collection);
 
     /**
      * Removes all objects from this set that are not contained in the specified
@@ -166,21 +166,21 @@ public interface Set<E> extends Collection<E> {
      * @throws UnsupportedOperationException
      *             when removing from this set is not supported.
      */
-    public boolean retainAll(Collection<?> collection);
+    boolean retainAll(Collection<?> collection);
 
     /**
      * Returns the number of elements in this set.
      * 
      * @return the number of elements in this set.
      */
-    public int size();
+    int size();
 
     /**
      * Returns an array containing all elements contained in this set.
      * 
      * @return an array of the elements from this set.
      */
-    public Object[] toArray();
+    Object[] toArray();
 
     /**
      * Returns an array containing all elements contained in this set. If the
@@ -197,5 +197,5 @@ public interface Set<E> extends Collection<E> {
      *             the type of the specified array.
      * @see Collection#toArray(Object[])
      */
-    public <T> T[] toArray(T[] array);
+    <T> T[] toArray(T[] array);
 }

@@ -26,25 +26,6 @@ import java.lang.reflect.Array;
  */
 public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
-    public static void setStringValueTag(String str, LazyCharArrayObjTags tags) {
-        if(str != null) {
-            str.valuePHOSPHOR_TAG = tags;
-        }
-    }
-
-    public static LazyCharArrayObjTags getStringValueTag(String str) {
-        if(str == null) {
-            return null;
-        } else {
-            return str.valuePHOSPHOR_TAG;
-
-        }
-    }
-
-    public static Taint[] getStringValueTaints(String str) {
-        return getStringValueTag(str).taints;
-    }
-
     public boolean shouldInstrumentMethodForImplicitLightTracking(String className, String methodName, String methodDescriptor) {
         return className.equals("edu/columbia/cs/psl/test/phosphor/SelectiveLightImplicitObjTagITCase") && methodName.equals("hasImplicitTracking");
     }
@@ -158,11 +139,11 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         Taint[] taintArray = ret.taints;
         if(taintArray != null) {
             for(int i = 0; i < taintArray.length; i++) {
-				if(taintArray[i] == null) {
-					taintArray[i] = tag.copy();
-				} else {
-					taintArray[i].addDependency(tag);
-				}
+                if(taintArray[i] == null) {
+                    taintArray[i] = tag.copy();
+                } else {
+                    taintArray[i].addDependency(tag);
+                }
             }
         } else {
             ret.setTaints(tag);
@@ -172,11 +153,11 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
     @SuppressWarnings("unchecked")
     public TaintedPrimitiveWithObjTag autoTaint(TaintedPrimitiveWithObjTag ret, Taint<? extends AutoTaintLabel> tag) {
-		if(ret.taint != null) {
-			ret.taint.addDependency(tag);
-		} else {
-			ret.taint = tag;
-		}
+        if(ret.taint != null) {
+            ret.taint.addDependency(tag);
+        } else {
+            ret.taint = tag;
+        }
         return ret;
     }
 
@@ -199,9 +180,9 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
                 for(Taint t : taints) {
                     if(t != null) {
                         String _t = new String(t.toString().getBytes());
-						if(reported.add(_t)) {
-							taintViolation(t, obj, baseSink, actualSink);
-						}
+                        if(reported.add(_t)) {
+                            taintViolation(t, obj, baseSink, actualSink);
+                        }
                     }
                 }
             }
@@ -213,9 +194,9 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
             LazyArrayObjTags tags = ((LazyArrayObjTags) obj);
             if(tags.taints != null) {
                 for(Object i : tags.taints) {
-					if(i != null) {
-						taintViolation((Taint<T>) i, obj, baseSink, actualSink);
-					}
+                    if(i != null) {
+                        taintViolation((Taint<T>) i, obj, baseSink, actualSink);
+                    }
                 }
             }
         } else if(obj instanceof Object[]) {
@@ -240,9 +221,30 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
     /* Called just before a sink method returns. */
     public void exitingSink(String baseSink, String actualSink) {
-	}
+
+    }
 
     /* Called after a sink method makes its calls to checkTaint but before the rest of the method body executes. */
     public void enteringSink(String baseSink, String actualSink) {
-	}
+
+    }
+
+    public static void setStringValueTag(String str, LazyCharArrayObjTags tags) {
+        if(str != null) {
+            str.valuePHOSPHOR_TAG = tags;
+        }
+    }
+
+    public static LazyCharArrayObjTags getStringValueTag(String str) {
+        if(str == null) {
+            return null;
+        } else {
+            return str.valuePHOSPHOR_TAG;
+
+        }
+    }
+
+    public static Taint[] getStringValueTaints(String str) {
+        return getStringValueTag(str).taints;
+    }
 }

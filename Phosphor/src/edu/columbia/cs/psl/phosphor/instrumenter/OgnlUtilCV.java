@@ -21,6 +21,11 @@ public class OgnlUtilCV extends ClassVisitor {
         return new OgnlUtilMV(mv);
     }
 
+    /* Returns whether the class with the specified name is OgnlUtil. */
+    public static boolean isOgnlUtilClass(String className) {
+        return className != null && className.equals("com/opensymphony/xwork2/ognl/OgnlUtil");
+    }
+
     private static class OgnlUtilMV extends MethodVisitor {
 
         OgnlUtilMV(MethodVisitor mv) {
@@ -41,10 +46,5 @@ public class OgnlUtilCV extends ClassVisitor {
             }
         }
 
-    }
-
-    /* Returns whether the class with the specified name is OgnlUtil. */
-    public static boolean isOgnlUtilClass(String className) {
-        return className != null && className.equals("com/opensymphony/xwork2/ognl/OgnlUtil");
     }
 }

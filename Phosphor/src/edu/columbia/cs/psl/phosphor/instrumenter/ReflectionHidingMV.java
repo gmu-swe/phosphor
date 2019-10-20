@@ -35,15 +35,6 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 (className.equals("java/io/InputStream") && name.startsWith("defaultReadFields"));
     }
 
-    private static boolean shouldDisable(String className, String methodName) {
-        if(className.equals("org/codehaus/groovy/vmplugin/v5/Java5") && methodName.equals("makeInterfaceTypes")) {
-            return true;
-        } else {
-            return Configuration.TAINT_THROUGH_SERIALIZATION &&
-                    (className.startsWith("java/io/ObjectStreamClass") || className.equals("java/io/ObjectStreamField"));
-        }
-    }
-
     public void setLvs(LocalVariableManager lvs) {
         this.lvs = lvs;
     }
@@ -225,7 +216,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         if(!"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX) || className.equals("sun/misc/Unsafe")) {
             return false;
         } else {
-            return "compareAndSwapInt".equals(nameWithoutSuffix) || "compareAndSwapLong".equals(nameWithoutSuffix)
+            return "compareAndSwapInt".equals(nameWithoutSuffix)
+                    || "compareAndSwapLong".equals(nameWithoutSuffix)
                     || "compareAndSwapObject".equals(nameWithoutSuffix);
         }
     }
@@ -511,5 +503,14 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
      */
     private void visit(TaintMethodRecord method) {
         super.visitMethodInsn(method.getOpcode(), method.getOwner(), method.getName(), method.getDescriptor(), method.isInterface());
+    }
+
+    private static boolean shouldDisable(String className, String methodName) {
+        if(className.equals("org/codehaus/groovy/vmplugin/v5/Java5") && methodName.equals("makeInterfaceTypes")) {
+            return true;
+        } else {
+            return Configuration.TAINT_THROUGH_SERIALIZATION &&
+                    (className.startsWith("java/io/ObjectStreamClass") || className.equals("java/io/ObjectStreamField"));
+        }
     }
 }

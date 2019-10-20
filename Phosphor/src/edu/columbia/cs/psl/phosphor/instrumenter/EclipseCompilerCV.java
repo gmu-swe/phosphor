@@ -25,12 +25,17 @@ public class EclipseCompilerCV extends ClassVisitor {
         return mv;
     }
 
+    /* Returns whether the class with the specified name is ECJ's compiler class. */
+    public static boolean isEclipseCompilerClass(String className) {
+        return className != null && className.equals("org/eclipse/jdt/internal/compiler/Compiler");
+    }
+
     private static class ECJInitMV extends MethodVisitor {
         private final Type[] args;
 
         ECJInitMV(MethodVisitor mv, String desc) {
             super(Configuration.ASM_VERSION, mv);
-            this.args =  Type.getArgumentTypes(desc);
+            this.args = Type.getArgumentTypes(desc);
         }
 
         @Override
@@ -47,10 +52,5 @@ public class EclipseCompilerCV extends ClassVisitor {
                 idx += arg.getSize();
             }
         }
-    }
-
-    /* Returns whether the class with the specified name is ECJ's compiler class. */
-    public static boolean isEclipseCompilerClass(String className) {
-        return className != null && className.equals("org/eclipse/jdt/internal/compiler/Compiler");
     }
 }

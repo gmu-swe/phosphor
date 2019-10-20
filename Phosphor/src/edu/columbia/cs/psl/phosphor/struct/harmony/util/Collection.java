@@ -85,7 +85,7 @@ public interface Collection<E> extends Iterable<E> {
      * @throws NullPointerException
      *                if null elements cannot be added to the {@code Collection}.
      */
-    public boolean add(E object);
+    boolean add(E object);
 
     /**
      * Attempts to add all of the objects contained in {@code Collection}
@@ -109,7 +109,7 @@ public interface Collection<E> extends Iterable<E> {
      *                contains {@code null} elements and this {@code Collection} does
      *                not support such elements.
      */
-    public boolean addAll(Collection<? extends E> collection);
+    boolean addAll(Collection<? extends E> collection);
 
     /**
      * Removes all elements from this {@code Collection}, leaving it empty (optional).
@@ -120,7 +120,7 @@ public interface Collection<E> extends Iterable<E> {
      * @see #isEmpty
      * @see #size
      */
-    public void clear();
+    void clear();
 
     /**
      * Tests whether this {@code Collection} contains the specified object. Returns
@@ -139,7 +139,7 @@ public interface Collection<E> extends Iterable<E> {
      *                if the object to look for is {@code null} and this
      *                {@code Collection} doesn't support {@code null} elements.
      */
-    public boolean contains(Object object);
+    boolean contains(Object object);
 
     /**
      * Tests whether this {@code Collection} contains all objects contained in the
@@ -161,7 +161,7 @@ public interface Collection<E> extends Iterable<E> {
      * @throws NullPointerException
      *                if {@code collection} is {@code null}.
      */
-    public boolean containsAll(Collection<?> collection);
+    boolean containsAll(Collection<?> collection);
 
     /**
      * Compares the argument to the receiver, and returns true if they represent
@@ -173,7 +173,7 @@ public interface Collection<E> extends Iterable<E> {
      *         {@code false} if it is different from this object.
      * @see #hashCode
      */
-    public boolean equals(Object object);
+    boolean equals(Object object);
 
     /**
      * Returns an integer hash code for the receiver. Objects which are equal
@@ -183,7 +183,7 @@ public interface Collection<E> extends Iterable<E> {
      * 
      * @see #equals
      */
-    public int hashCode();
+    int hashCode();
 
     /**
      * Returns if this {@code Collection} contains no elements.
@@ -193,7 +193,7 @@ public interface Collection<E> extends Iterable<E> {
      * 
      * @see #size
      */
-    public boolean isEmpty();
+    boolean isEmpty();
 
     /**
      * Returns an instance of {@link Iterator} that may be used to access the
@@ -203,7 +203,7 @@ public interface Collection<E> extends Iterable<E> {
      * 
      * @return an iterator for accessing the {@code Collection} contents.
      */
-    public Iterator<E> iterator();
+    Iterator<E> iterator();
 
     /**
      * Removes one instance of the specified object from this {@code Collection} if one
@@ -222,7 +222,7 @@ public interface Collection<E> extends Iterable<E> {
      *                if {@code object} is {@code null} and this {@code Collection}
      *                doesn't support {@code null} elements.
      */
-    public boolean remove(Object object);
+    boolean remove(Object object);
 
     /**
      * Removes all occurrences in this {@code Collection} of each object in the
@@ -247,7 +247,7 @@ public interface Collection<E> extends Iterable<E> {
      * @throws NullPointerException
      *                if {@code collection} is {@code null}.
      */
-    public boolean removeAll(Collection<?> collection);
+    boolean removeAll(Collection<?> collection);
 
     /**
      * Removes all objects from this {@code Collection} that are not also found in the
@@ -271,7 +271,7 @@ public interface Collection<E> extends Iterable<E> {
      * @throws NullPointerException
      *                if {@code collection} is {@code null}.
      */
-    public boolean retainAll(Collection<?> collection);
+    boolean retainAll(Collection<?> collection);
 
     /**
      * Returns a count of how many objects this {@code Collection} contains.
@@ -280,7 +280,7 @@ public interface Collection<E> extends Iterable<E> {
      *         if there are more than Integer.MAX_VALUE elements in this
      *         {@code Collection}.
      */
-    public int size();
+    int size();
 
     /**
      * Returns a new array containing all elements contained in this {@code Collection}.
@@ -294,7 +294,7 @@ public interface Collection<E> extends Iterable<E> {
      * 
      * @return an array of the elements from this {@code Collection}.
      */
-    public Object[] toArray();
+    Object[] toArray();
 
     /**
      * Returns an array containing all elements contained in this {@code Collection}. If
@@ -317,5 +317,5 @@ public interface Collection<E> extends Iterable<E> {
      *                if the type of an element in this {@code Collection} cannot be
      *                stored in the type of the specified array.
      */
-    public <T> T[] toArray(T[] array);
+    <T> T[] toArray(T[] array);
 }

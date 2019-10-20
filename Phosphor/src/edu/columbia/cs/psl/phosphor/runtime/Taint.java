@@ -122,187 +122,6 @@ public class Taint<T> implements Serializable {
         }
     }
 
-    public static <T> void combineTagsOnArrayInPlace(Object[] ar, Taint<T>[] t1, int dims) {
-        combineTagsInPlace(ar, t1[dims - 1]);
-        if(dims == 1) {
-            for(Object o : ar) {
-                combineTagsInPlace(o, t1[dims - 1]);
-            }
-        } else {
-            for(Object o : ar) {
-                combineTagsOnArrayInPlace((Object[]) o, t1, dims - 1);
-            }
-        }
-    }
-
-    public static <T> void combineTagsInPlace(Object obj, Taint<T> t1) {
-        if(obj != null && t1 != null && !IGNORE_TAINTING) {
-            _combineTagsInPlace(obj, t1);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> void _combineTagsInPlace(Object obj, Taint<T> t1) {
-        Taint<T> t = (Taint<T>) TaintUtils.getTaintObj(obj);
-        if(t == null && t1 != null) {
-            MultiTainter.taintedObject(obj, t1.copy());
-        } else if(t != null && t1 != null) {
-            t.addDependency(t1);
-        }
-    }
-
-    @InvokedViaInstrumentation(record = COMBINE_TAGS)
-    public static <T> Taint<T> combineTags(Taint<T> t1, Taint<T> t2) {
-        if(t1 == null && t2 == null) {
-            return null;
-        } else if(t2 == null || t2.isEmpty()) {
-            return t1;
-        } else if(t1 == null || t1.isEmpty()) {
-            return t2;
-        } else if(t1.equals(t2) || IGNORE_TAINTING) {
-            return t1;
-        } else if(t1.contains(t2)) {
-            return t1;
-        } else if(t2.contains(t1)) {
-            return t2;
-        } else {
-            Taint<T> r = t1.copy();
-            r.addDependency(t2);
-            if(Configuration.derivedTaintListener != null) {
-                Configuration.derivedTaintListener.doubleDepCreated(t1, t2, r);
-            }
-            return r;
-        }
-    }
-
-    /* Returns a copy of the specified taint object. */
-    @SuppressWarnings("unused")
-    @InvokedViaInstrumentation(record = COPY_TAINT)
-    public static <T> Taint<T> copyTaint(Taint<T> in) {
-        return (in == null) ? null : in.copy();
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags) {
-        if(t1 == null && tags.isEmpty() && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.lacksInfluenceExceptions())) {
-            return null;
-        }
-        Taint tagsTaint;
-        if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
-            if(tags.lacksInfluenceExceptions()) {
-                //Can do a direct check of taint subsumption, no exception data to look at
-                if(tags.getTag() == null) {
-                    return t1;
-                }
-                if(t1 == null) {
-                    return tags.copyTag();
-                }
-                if(t1.contains(tags.getTag())) {
-                    return t1;
-                }
-                if(tags.getTag().contains(t1)) {
-                    return tags.copyTag();
-                }
-            }
-            tagsTaint = tags.copyTagExceptions();
-        } else {
-            tagsTaint = tags.copyTag();
-        }
-        if(t1 == null || t1.isEmpty()) {
-            return tagsTaint;
-        } else if(tagsTaint == null || tagsTaint.isEmpty()) {
-            return t1;
-        } else if(t1 == tagsTaint) {
-            return t1;
-        }
-        if(IGNORE_TAINTING) {
-            return t1;
-        }
-        tagsTaint.addDependency(t1);
-        return tagsTaint;
-    }
-
-    @InvokedViaInstrumentation(record = COMBINE_TAGS_CONTROL)
-    public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags) {
-        if(t1 == null && tags.isEmpty() && tags.lacksInfluenceExceptions()) {
-            return null;
-        }
-        return _combineTagsInternal(t1, tags);
-    }
-
-    /* Returns a new Taint with a label set that is the union of the label sets of the specified taints. */
-    public static <T> Taint<T> combineTaintArray(Taint<T>[] taints) {
-        if(taints == null) {
-            return null;
-        } else if(BIT_SET_CAPACITY > 0) {
-            // BitSet representation is being used
-            Taint<T> result = new Taint<>();
-            for(Taint<T> taint : taints) {
-                result.addDependency(taint);
-            }
-            return result;
-        } else {
-            // SetNode representation is being used
-            Taint<T> result = new Taint<>();
-            // The last label set unioned into result's label set
-            PowerSetTree.SetNode prevLabelSet = setTree.emptySet();
-            for(Taint taint : taints) {
-                if(taint != null && taint.labelSet != prevLabelSet) {
-                    result.labelSet = result.labelSet.union(taint.labelSet);
-                    prevLabelSet = taint.labelSet;
-                }
-            }
-            return result;
-        }
-    }
-
-    @SuppressWarnings("rawtypes")
-    @InvokedViaInstrumentation(record = COMBINE_TAGS_ON_OBJECT)
-    public static void combineTagsOnObject(Object o, ControlTaintTagStack tags) {
-        if((tags.isEmpty() || IGNORE_TAINTING) && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.lacksInfluenceExceptions())) {
-            return;
-        }
-        if(Configuration.derivedTaintListener != null) {
-            Configuration.derivedTaintListener.controlApplied(o, tags);
-        }
-        if(o instanceof String) {
-            combineTagsOnString((String) o, tags);
-        } else if(o instanceof TaintedWithObjTag) {
-            ((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags((Taint) ((TaintedWithObjTag) o).getPHOSPHOR_TAG(), tags));
-        }
-    }
-
-    private static void combineTagsOnString(String str, ControlTaintTagStack ctrl) {
-        Taint existing = str.PHOSPHOR_TAG;
-        str.PHOSPHOR_TAG = combineTags(existing, ctrl);
-
-        LazyCharArrayObjTags tags = str.valuePHOSPHOR_TAG;
-        if(tags == null) {
-            str.valuePHOSPHOR_TAG = new LazyCharArrayObjTags(str.value);
-            tags = str.valuePHOSPHOR_TAG;
-        }
-        if(tags.taints == null) {
-            tags.taints = new Taint[str.length()];
-        }
-        if(BIT_SET_CAPACITY > 0) {
-            // BitSet representation is being used
-            for(int i = 0; i < tags.taints.length; i++) {
-                tags.taints[i] = combineTags(tags.taints[i], ctrl);
-            }
-        } else {
-            // SetNode representation is being used
-            Taint originalPreviousTaint = null;
-            for(int i = 0; i < tags.taints.length; i++) {
-                if(originalPreviousTaint != null && originalPreviousTaint.equals(tags.taints[i])) {
-                    tags.taints[i].labelSet = tags.taints[i - 1].labelSet;
-                } else {
-                    originalPreviousTaint = tags.taints[i];
-                    tags.taints[i] = combineTags(tags.taints[i], ctrl);
-                }
-            }
-        }
-    }
-
     /* Returns a copy of this taint instance. */
     public Taint<T> copy() {
         if(IGNORE_TAINTING) {
@@ -649,5 +468,186 @@ public class Taint<T> implements Serializable {
     @Deprecated
     public LazyLongArrayObjTags getTags$$PHOSPHORTAGGED(ControlTaintTagStack ctrl) {
         return (labelBitSet == null) ? null : new LazyLongArrayObjTags(labelBitSet.getPackets());
+    }
+
+    public static <T> void combineTagsOnArrayInPlace(Object[] ar, Taint<T>[] t1, int dims) {
+        combineTagsInPlace(ar, t1[dims - 1]);
+        if(dims == 1) {
+            for(Object o : ar) {
+                combineTagsInPlace(o, t1[dims - 1]);
+            }
+        } else {
+            for(Object o : ar) {
+                combineTagsOnArrayInPlace((Object[]) o, t1, dims - 1);
+            }
+        }
+    }
+
+    public static <T> void combineTagsInPlace(Object obj, Taint<T> t1) {
+        if(obj != null && t1 != null && !IGNORE_TAINTING) {
+            _combineTagsInPlace(obj, t1);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> void _combineTagsInPlace(Object obj, Taint<T> t1) {
+        Taint<T> t = (Taint<T>) TaintUtils.getTaintObj(obj);
+        if(t == null && t1 != null) {
+            MultiTainter.taintedObject(obj, t1.copy());
+        } else if(t != null && t1 != null) {
+            t.addDependency(t1);
+        }
+    }
+
+    @InvokedViaInstrumentation(record = COMBINE_TAGS)
+    public static <T> Taint<T> combineTags(Taint<T> t1, Taint<T> t2) {
+        if(t1 == null && t2 == null) {
+            return null;
+        } else if(t2 == null || t2.isEmpty()) {
+            return t1;
+        } else if(t1 == null || t1.isEmpty()) {
+            return t2;
+        } else if(t1.equals(t2) || IGNORE_TAINTING) {
+            return t1;
+        } else if(t1.contains(t2)) {
+            return t1;
+        } else if(t2.contains(t1)) {
+            return t2;
+        } else {
+            Taint<T> r = t1.copy();
+            r.addDependency(t2);
+            if(Configuration.derivedTaintListener != null) {
+                Configuration.derivedTaintListener.doubleDepCreated(t1, t2, r);
+            }
+            return r;
+        }
+    }
+
+    /* Returns a copy of the specified taint object. */
+    @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = COPY_TAINT)
+    public static <T> Taint<T> copyTaint(Taint<T> in) {
+        return (in == null) ? null : in.copy();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags) {
+        if(t1 == null && tags.isEmpty() && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.lacksInfluenceExceptions())) {
+            return null;
+        }
+        Taint tagsTaint;
+        if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
+            if(tags.lacksInfluenceExceptions()) {
+                //Can do a direct check of taint subsumption, no exception data to look at
+                if(tags.getTag() == null) {
+                    return t1;
+                }
+                if(t1 == null) {
+                    return tags.copyTag();
+                }
+                if(t1.contains(tags.getTag())) {
+                    return t1;
+                }
+                if(tags.getTag().contains(t1)) {
+                    return tags.copyTag();
+                }
+            }
+            tagsTaint = tags.copyTagExceptions();
+        } else {
+            tagsTaint = tags.copyTag();
+        }
+        if(t1 == null || t1.isEmpty()) {
+            return tagsTaint;
+        } else if(tagsTaint == null || tagsTaint.isEmpty()) {
+            return t1;
+        } else if(t1 == tagsTaint) {
+            return t1;
+        }
+        if(IGNORE_TAINTING) {
+            return t1;
+        }
+        tagsTaint.addDependency(t1);
+        return tagsTaint;
+    }
+
+    @InvokedViaInstrumentation(record = COMBINE_TAGS_CONTROL)
+    public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags) {
+        if(t1 == null && tags.isEmpty() && tags.lacksInfluenceExceptions()) {
+            return null;
+        }
+        return _combineTagsInternal(t1, tags);
+    }
+
+    /* Returns a new Taint with a label set that is the union of the label sets of the specified taints. */
+    public static <T> Taint<T> combineTaintArray(Taint<T>[] taints) {
+        if(taints == null) {
+            return null;
+        } else if(BIT_SET_CAPACITY > 0) {
+            // BitSet representation is being used
+            Taint<T> result = new Taint<>();
+            for(Taint<T> taint : taints) {
+                result.addDependency(taint);
+            }
+            return result;
+        } else {
+            // SetNode representation is being used
+            Taint<T> result = new Taint<>();
+            // The last label set unioned into result's label set
+            PowerSetTree.SetNode prevLabelSet = setTree.emptySet();
+            for(Taint taint : taints) {
+                if(taint != null && taint.labelSet != prevLabelSet) {
+                    result.labelSet = result.labelSet.union(taint.labelSet);
+                    prevLabelSet = taint.labelSet;
+                }
+            }
+            return result;
+        }
+    }
+
+    @SuppressWarnings("rawtypes")
+    @InvokedViaInstrumentation(record = COMBINE_TAGS_ON_OBJECT)
+    public static void combineTagsOnObject(Object o, ControlTaintTagStack tags) {
+        if((tags.isEmpty() || IGNORE_TAINTING) && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.lacksInfluenceExceptions())) {
+            return;
+        }
+        if(Configuration.derivedTaintListener != null) {
+            Configuration.derivedTaintListener.controlApplied(o, tags);
+        }
+        if(o instanceof String) {
+            combineTagsOnString((String) o, tags);
+        } else if(o instanceof TaintedWithObjTag) {
+            ((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags((Taint) ((TaintedWithObjTag) o).getPHOSPHOR_TAG(), tags));
+        }
+    }
+
+    private static void combineTagsOnString(String str, ControlTaintTagStack ctrl) {
+        Taint existing = str.PHOSPHOR_TAG;
+        str.PHOSPHOR_TAG = combineTags(existing, ctrl);
+
+        LazyCharArrayObjTags tags = str.valuePHOSPHOR_TAG;
+        if(tags == null) {
+            str.valuePHOSPHOR_TAG = new LazyCharArrayObjTags(str.value);
+            tags = str.valuePHOSPHOR_TAG;
+        }
+        if(tags.taints == null) {
+            tags.taints = new Taint[str.length()];
+        }
+        if(BIT_SET_CAPACITY > 0) {
+            // BitSet representation is being used
+            for(int i = 0; i < tags.taints.length; i++) {
+                tags.taints[i] = combineTags(tags.taints[i], ctrl);
+            }
+        } else {
+            // SetNode representation is being used
+            Taint originalPreviousTaint = null;
+            for(int i = 0; i < tags.taints.length; i++) {
+                if(originalPreviousTaint != null && originalPreviousTaint.equals(tags.taints[i])) {
+                    tags.taints[i].labelSet = tags.taints[i - 1].labelSet;
+                } else {
+                    originalPreviousTaint = tags.taints[i];
+                    tags.taints[i] = combineTags(tags.taints[i], ctrl);
+                }
+            }
+        }
     }
 }

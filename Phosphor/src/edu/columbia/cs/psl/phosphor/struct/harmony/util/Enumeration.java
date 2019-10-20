@@ -41,7 +41,7 @@ public interface Enumeration<E> {
      * @return {@code true} if there are more elements, {@code false} otherwise.
      * @see #nextElement
      */
-    public boolean hasMoreElements();
+    boolean hasMoreElements();
 
     /**
      * Returns the next element in this {@code Enumeration}.
@@ -51,5 +51,5 @@ public interface Enumeration<E> {
      *             if there are no more elements.
      * @see #hasMoreElements
      */
-    public E nextElement();
+    E nextElement();
 }

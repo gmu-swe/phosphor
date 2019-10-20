@@ -474,7 +474,7 @@ public final class Double extends Number implements Comparable<Double> {
             hexString.append(hexSignificand);
             hexString.append('p');
             // remove exponent's 'bias' and convert to a string
-            hexString.append(Long.toString(exponent - 1023));
+            hexString.append((exponent - 1023));
         }
         return hexString.toString();
     }

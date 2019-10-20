@@ -20,9 +20,9 @@ public class LinkedList<T> implements Cloneable, Serializable {
     public synchronized boolean addUnique(T o) {
         Node<T> i = first.next;
         while(i != null) {
-			if(i.entry == o) {
-				return false;
-			}
+            if(i.entry == o) {
+                return false;
+            }
             i = i.next;
         }
         Node<T> n = new Node<T>();
@@ -45,9 +45,9 @@ public class LinkedList<T> implements Cloneable, Serializable {
     public synchronized boolean addUniqueObjEquals(T o) {
         Node<T> i = first.next;
         while(i != null) {
-			if(i.entry.equals(o)) {
-				return false;
-			}
+            if(i.entry.equals(o)) {
+                return false;
+            }
             i = i.next;
         }
         Node<T> n = new Node<T>();
@@ -61,9 +61,9 @@ public class LinkedList<T> implements Cloneable, Serializable {
         boolean added = false;
         Node<T> i = o.getFirst();
         while(i != null) {
-			if(i.entry != null) {
-				added |= addUnique(i.entry);
-			}
+            if(i.entry != null) {
+                added |= addUnique(i.entry);
+            }
             i = i.next;
         }
         return added;
@@ -96,13 +96,13 @@ public class LinkedList<T> implements Cloneable, Serializable {
 
     public T pop() {
         Node<T> f = first.next;
-		if(f == null) {
-			return null;
-		}
+        if(f == null) {
+            return null;
+        }
         first.next = f.next;
-		if(first.next == null) {
-			last = first;
-		}
+        if(first.next == null) {
+            last = first;
+        }
         return f.entry;
     }
 

@@ -97,8 +97,12 @@ public class WeakIdentityHashMap<K, V> implements Serializable {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if(this == o) {
+                return true;
+            }
+            if(o == null || getClass() != o.getClass()) {
+                return false;
+            }
             WeakReference that = (WeakReference) o;
             T referent = this.get();
             return referent != null && referent == that.get();

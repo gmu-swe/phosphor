@@ -5,11 +5,11 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 
 public class GarbageCollectedArrayList<T> {
+    private final IntSinglyLinkedList free = new IntSinglyLinkedList();
+    private final ReferenceQueue<Object> referenceQueue = new ReferenceQueue<>();
     private int max = 0;
     private T[] array;
     private ArrayListReference[] referents;
-    private final IntSinglyLinkedList free = new IntSinglyLinkedList();
-    private final ReferenceQueue<Object> referenceQueue = new ReferenceQueue<>();
 
     @SuppressWarnings("unchecked")
     public GarbageCollectedArrayList() {

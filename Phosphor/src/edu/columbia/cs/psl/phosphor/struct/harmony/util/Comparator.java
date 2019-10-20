@@ -55,7 +55,7 @@ public interface Comparator<T> {
      * @throws ClassCastException
      *                if objects are not of the correct type.
      */
-    public int compare(T object1, T object2);
+    int compare(T object1, T object2);
 
     /**
      * Compares this {@code Comparator} with the specified {@code Object} and indicates whether they
@@ -72,5 +72,5 @@ public interface Comparator<T> {
      * @see Object#hashCode
      * @see Object#equals
      */
-    public boolean equals(Object object);
+    boolean equals(Object object);
 }

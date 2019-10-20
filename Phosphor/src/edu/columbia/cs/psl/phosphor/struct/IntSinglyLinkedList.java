@@ -193,22 +193,6 @@ public class IntSinglyLinkedList implements Serializable, Iterable<Integer> {
         return new IntListIterator();
     }
 
-    /* Stores the in item in the list and a pointer to the next item. */
-    private static class IntNode implements Serializable {
-        private static final long serialVersionUID = -4640096704981960035L;
-        int item;
-        IntNode next;
-
-        IntNode(int item) {
-            this(item, null);
-        }
-
-        IntNode(int item, IntNode next) {
-            this.item = item;
-            this.next = next;
-        }
-    }
-
     public class IntListIterator implements Iterator<Integer>, Serializable {
 
         private static final long serialVersionUID = -3285172228359136604L;
@@ -267,6 +251,22 @@ public class IntSinglyLinkedList implements Serializable, Iterable<Integer> {
                 current = current.next;
                 return item;
             }
+        }
+    }
+
+    /* Stores the in item in the list and a pointer to the next item. */
+    private static class IntNode implements Serializable {
+        private static final long serialVersionUID = -4640096704981960035L;
+        int item;
+        IntNode next;
+
+        IntNode(int item) {
+            this(item, null);
+        }
+
+        IntNode(int item, IntNode next) {
+            this.item = item;
+            this.next = next;
         }
     }
 }

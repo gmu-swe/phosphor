@@ -34,7 +34,7 @@ public interface SortedMap<K,V> extends Map<K,V> {
      * 
      * @return the comparator or {@code null} if the natural order is used.
      */
-    public Comparator<? super K> comparator();
+    Comparator<? super K> comparator();
 
     /**
      * Returns the first key in this sorted map.
@@ -43,7 +43,7 @@ public interface SortedMap<K,V> extends Map<K,V> {
      * @throws NoSuchElementException
      *                if this sorted map is empty.
      */
-    public K firstKey();
+    K firstKey();
 
     /**
      * Returns a sorted map over a range of this sorted map with all keys that
@@ -66,7 +66,7 @@ public interface SortedMap<K,V> extends Map<K,V> {
      *             if this map is itself a sorted map over a range of another
      *             map and the specified key is outside of its range.
      */
-    public SortedMap<K,V> headMap(K endKey);
+    SortedMap<K,V> headMap(K endKey);
 
     /**
      * Returns the last key in this sorted map.
@@ -75,7 +75,7 @@ public interface SortedMap<K,V> extends Map<K,V> {
      * @throws NoSuchElementException
      *                if this sorted map is empty.
      */
-    public K lastKey();
+    K lastKey();
 
     /**
      * Returns a sorted map over a range of this sorted map with all keys
@@ -102,7 +102,7 @@ public interface SortedMap<K,V> extends Map<K,V> {
      *             is itself a sorted map over a range of another sorted map and
      *             the specified range is outside of its range.
      */
-    public SortedMap<K,V> subMap(K startKey, K endKey);
+    SortedMap<K,V> subMap(K startKey, K endKey);
 
     /**
      * Returns a sorted map over a range of this sorted map with all keys that
@@ -126,5 +126,5 @@ public interface SortedMap<K,V> extends Map<K,V> {
      *             if this map itself a sorted map over a range of another map
      *             and the specified key is outside of its range.
      */
-    public SortedMap<K,V> tailMap(K startKey);
+    SortedMap<K,V> tailMap(K startKey);
 }

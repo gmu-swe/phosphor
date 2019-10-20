@@ -184,7 +184,7 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
             if(this.size != otherList.size) {
                 return false;
             }
-            for(Node cur1 = this.head, cur2 = otherList.head; cur1 != null && cur2 != null; cur1 = cur1.next, cur2 =cur2.next) {
+            for(Node cur1 = this.head, cur2 = otherList.head; cur1 != null && cur2 != null; cur1 = cur1.next, cur2 = cur2.next) {
                 if((cur1.item != cur2.item) && (cur1.item == null || !cur1.item.equals(cur2.item))) {
                     return false;
                 }
@@ -205,23 +205,6 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
     @Override
     public Iterator<E> iterator() {
         return new SimpleListIterator();
-    }
-
-    /* Stores the value of a single item in the list and a pointer to the next item. */
-    private static class Node<E> implements Serializable {
-        private static final long serialVersionUID = -4640096704981960035L;
-        E item;
-        Node<E> next;
-
-
-        Node(E item) {
-            this(item, null);
-        }
-
-        Node(E item, Node<E> next) {
-            this.item = item;
-            this.next = next;
-        }
     }
 
     private class SimpleListIterator implements Iterator<E>, Serializable {
@@ -276,6 +259,23 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
                 prev.next = current;
                 size--;
             }
+        }
+    }
+
+    /* Stores the value of a single item in the list and a pointer to the next item. */
+    private static class Node<E> implements Serializable {
+        private static final long serialVersionUID = -4640096704981960035L;
+        E item;
+        Node<E> next;
+
+
+        Node(E item) {
+            this(item, null);
+        }
+
+        Node(E item, Node<E> next) {
+            this.item = item;
+            this.next = next;
         }
     }
 }

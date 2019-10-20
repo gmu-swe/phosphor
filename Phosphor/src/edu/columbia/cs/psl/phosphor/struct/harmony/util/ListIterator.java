@@ -51,7 +51,7 @@ public interface ListIterator<E> extends Iterator<E> {
      * @return {@code true} if there are more elements, {@code false} otherwise.
      * @see #next
      */
-    public boolean hasNext();
+    boolean hasNext();
 
     /**
      * Returns whether there are previous elements to iterate.
@@ -60,7 +60,7 @@ public interface ListIterator<E> extends Iterator<E> {
      *         otherwise.
      * @see #previous
      */
-    public boolean hasPrevious();
+    boolean hasPrevious();
 
     /**
      * Returns the next object in the iteration.
@@ -70,7 +70,7 @@ public interface ListIterator<E> extends Iterator<E> {
      *             if there are no more elements.
      * @see #hasNext
      */
-    public E next();
+    E next();
 
     /**
      * Returns the index of the next object in the iteration.
@@ -81,7 +81,7 @@ public interface ListIterator<E> extends Iterator<E> {
      *             if there are no more elements.
      * @see #next
      */
-    public int nextIndex();
+    int nextIndex();
 
     /**
      * Returns the previous object in the iteration.
@@ -91,7 +91,7 @@ public interface ListIterator<E> extends Iterator<E> {
      *             if there are no previous elements.
      * @see #hasPrevious
      */
-    public E previous();
+    E previous();
 
     /**
      * Returns the index of the previous object in the iteration.
@@ -102,7 +102,7 @@ public interface ListIterator<E> extends Iterator<E> {
      *             if there are no previous elements.
      * @see #previous
      */
-    public int previousIndex();
+    int previousIndex();
 
     /**
      * Removes the last object returned by {@code next} or {@code previous} from
@@ -115,7 +115,7 @@ public interface ListIterator<E> extends Iterator<E> {
      *             {@code remove} or {@code add} have already been called after
      *             the last call to {@code next} or {@code previous}.
      */
-    public void remove();
+    void remove();
 
     /**
      * Replaces the last object returned by {@code next} or {@code previous}

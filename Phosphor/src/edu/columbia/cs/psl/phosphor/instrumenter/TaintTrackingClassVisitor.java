@@ -6,6 +6,8 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.runtime.*;
 import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.*;
@@ -16,10 +18,9 @@ import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_FACTORY;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_POOL_INSTANCE;
 
 /**
  * CV responsibilities: Add a field to classes to track each instance's taint
@@ -32,7 +33,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
     private static final boolean NATIVE_BOX_UNBOX = true;
     public static boolean IS_RUNTIME_INST = true;
     private static boolean FIELDS_ONLY = false;
-    private static boolean GEN_HAS_TAINTS_METHOD = false;
     private static boolean DO_OPT = false;
 
     static {
@@ -44,18 +44,16 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
     private List<FieldNode> fields;
     private boolean generateHashCode = false;
     private boolean generateEquals = false;
-    private boolean isProxyClass = false;
-    private HashMap<MethodNode, MethodNode> forMore = new HashMap<>();
+    private Map<MethodNode, MethodNode> forMore = new HashMap<>();
     private boolean hasSerialUID = false;
     private boolean addTaintField = false;
     private boolean ignoreFrames;
     private boolean generateExtraLVDebug;
-    private LinkedList<MethodNode> methodsToMakeUninstWrappersAround = new LinkedList<>();
-    private HashMap<MethodNode, Type> methodsToAddWrappersForWithReturnType = new HashMap<>();
-    private LinkedList<MethodNode> methodsToAddWrappersFor = new LinkedList<>();
-    private LinkedList<MethodNode> methodsToAddNameOnlyWrappersFor = new LinkedList<>();
-    private LinkedList<MethodNode> methodsToAddUnWrappersFor = new LinkedList<>();
-    private HashSet<MethodNode> methodsToAddLambdaUnWrappersFor = new HashSet<>();
+    private Map<MethodNode, Type> methodsToAddWrappersForWithReturnType = new HashMap<>();
+    private List<MethodNode> methodsToAddWrappersFor = new LinkedList<>();
+    private List<MethodNode> methodsToAddNameOnlyWrappersFor = new LinkedList<>();
+    private List<MethodNode> methodsToAddUnWrappersFor = new LinkedList<>();
+    private Set<MethodNode> methodsToAddLambdaUnWrappersFor = new HashSet<>();
     private String className;
     private boolean isNormalClass;
     private boolean isInterface;
@@ -73,9 +71,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
     private boolean isLambda;
     private HashMap<String, Method> superMethodsToOverride = new HashMap<>();
     private HashSet<MethodNode> wrapperMethodsToAdd = new HashSet<>();
-    private LinkedList<FieldNode> extraFieldsToVisit = new LinkedList<>();
-    private LinkedList<FieldNode> myFields = new LinkedList<>();
-    private LinkedList<MethodNode> myMethods = new LinkedList<>();
+    private List<FieldNode> extraFieldsToVisit = new LinkedList<>();
+    private List<FieldNode> myFields = new LinkedList<>();
+    private List<MethodNode> myMethods = new LinkedList<>();
 
     public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields) {
         super(Configuration.ASM_VERSION, cv);
@@ -87,27 +85,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
     public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields, boolean aggressivelyReduceMethodSize) {
         this(cv, skipFrames, fields);
         this.aggressivelyReduceMethodSize = aggressivelyReduceMethodSize;
-    }
-
-    private static void acceptAnnotationRaw(final AnnotationVisitor av, final String name, final Object value) {
-        if(av != null) {
-            if(value instanceof String[]) {
-                String[] typeconst = (String[]) value;
-                av.visitEnum(name, typeconst[0], typeconst[1]);
-            } else if(value instanceof AnnotationNode) {
-                AnnotationNode an = (AnnotationNode) value;
-                an.accept(av.visitAnnotation(name, an.desc));
-            } else if(value instanceof List) {
-                AnnotationVisitor v = av.visitArray(name);
-                List<?> array = (List<?>) value;
-                for(int j = 0; j < array.size(); ++j) {
-                    acceptAnnotationRaw(v, null, array.get(j));
-                }
-                v.visitEnd();
-            } else {
-                av.visit(name, value);
-            }
-        }
     }
 
     @Override
@@ -204,9 +181,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 }
             }
         }
-
-
-        //		System.out.println("V " + version);
         for(String s : interfaces) {
             if(s.equals(Type.getInternalName(Comparable.class))) {
                 implementsComparable = true;
@@ -243,7 +217,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     ClassNode cn = Instrumenter.classes.get(superToCheck);
                     if(cn != null) {
                         String[] s = new String[cn.interfaces.size()];
-                        s = (String[]) cn.interfaces.toArray(s);
+                        s = cn.interfaces.toArray(s);
                         collectUninstrumentedInterfaceMethods(s);
                         continue;
                     }
@@ -285,7 +259,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         }
 
         if(name.equals("hasAnyTaints")) {
-            isProxyClass = true;
+            boolean isProxyClass = true;
         }
 
         boolean isImplicitLightTrackingMethod = Configuration.autoTainter.shouldInstrumentMethodForImplicitLightTracking(className, name, desc);
@@ -454,14 +428,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, tlc, isImplicitLightTrackingMethod);
             NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, primitiveArrayFixer);
 
-            MethodVisitor mvNext = preAnalyzer;
             primitiveArrayFixer.setAnalyzer(preAnalyzer);
             boxFixer.setLocalVariableSorter(lvs);
             tmv.setArrayAnalyzer(primitiveArrayFixer);
             tmv.setLocalVariableSorter(lvs);
             lvs.setPrimitiveArrayAnalyzer(primitiveArrayFixer); // i'm lazy. this guy will tell the LVS what return types to prealloc
             reflectionMasker.setLvs(lvs);
-            final MethodVisitor prev = mvNext;
+            final MethodVisitor prev = preAnalyzer;
             MethodNode rawMethod = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature, exceptions) {
                 @Override
                 protected LabelNode getLabelNode(Label l) {
@@ -678,6 +651,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         if(addTaintMethod) {
             if(isInterface) {
                 super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "get" + TaintUtils.TAINT_FIELD, "()Ljava/lang/Object;", null, null);
+                boolean GEN_HAS_TAINTS_METHOD = false;
                 if(GEN_HAS_TAINTS_METHOD) {
                     super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "hasAnyTaints", "()Z", null, null);
                 }
@@ -737,7 +711,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         for(MethodNode m : methodsToAddNameOnlyWrappersFor) {
             if((m.access & Opcodes.ACC_ABSTRACT) == 0 && !m.name.contains("<")) {
                 String[] exceptions = new String[m.exceptions.size()];
-                exceptions = (String[]) m.exceptions.toArray(exceptions);
+                exceptions = m.exceptions.toArray(exceptions);
 
                 MethodVisitor mv = super.visitMethod(m.access, m.name + TaintUtils.METHOD_SUFFIX, m.desc, m.signature, exceptions);
                 GeneratorAdapter ga = new GeneratorAdapter(mv, m.access, m.name + TaintUtils.METHOD_SUFFIX, m.desc);
@@ -750,7 +724,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         for(MethodNode m : methodsToAddUnWrappersFor) {
             if((m.access & Opcodes.ACC_ABSTRACT) == 0 && !m.name.contains("<")) {
                 String[] exceptions = new String[m.exceptions.size()];
-                exceptions = (String[]) m.exceptions.toArray(exceptions);
+                exceptions = m.exceptions.toArray(exceptions);
 
                 LinkedList<Type> newArgs = new LinkedList<>();
                 for(Type t : Type.getArgumentTypes(m.desc)) {
@@ -810,7 +784,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             }
             if((m.access & Opcodes.ACC_ABSTRACT) == 0 && !m.name.contains("<")) {
                 String[] exceptions = new String[m.exceptions.size()];
-                exceptions = (String[]) m.exceptions.toArray(exceptions);
+                exceptions = m.exceptions.toArray(exceptions);
 
                 LinkedList<Type> newArgs = new LinkedList<>();
                 for(Type t : Type.getArgumentTypes(m.desc)) {
@@ -927,7 +901,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         boolean needToPrealloc = TaintUtils.isPreAllocReturnType(m.desc) || returnTypeToHackOnLambda != null;
                         boolean useSuffixName = !TaintUtils.remapMethodDescAndIncludeReturnHolder(m.desc).equals(m.desc) || Type.getReturnType(m.desc).getDescriptor().equals("Ljava/lang/Object;") || methodsToAddLambdaUnWrappersFor.contains(m);
                         String[] exceptions = new String[m.exceptions.size()];
-                        exceptions = (String[]) m.exceptions.toArray(exceptions);
+                        exceptions = m.exceptions.toArray(exceptions);
 
                         boolean useInvokeVirtual = (m.access & Opcodes.ACC_MODULE) != 0 || (isLambda && (m.access & Opcodes.ACC_STATIC) == 0);
                         m.access = m.access & ~Opcodes.ACC_MODULE;
@@ -980,7 +954,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                                 ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
                             }
                             if(NATIVE_BOX_UNBOX && t.getSort() == Type.OBJECT && Instrumenter.isCollection(t.getInternalName())) {
-                                ////  public final static ensureIsBoxed(Ljava/util/Collection;)Ljava/util/Collection;
                                 ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsBoxedObjTags", "(Ljava/util/Collection;)Ljava/util/Collection;", false);
                                 ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
                             }
@@ -1010,10 +983,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         int tempControlFlowIdx = -1;
                         if(Configuration.IMPLICIT_TRACKING) {
                             newDesc += Type.getDescriptor(ControlTaintTagStack.class);
-                            ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ControlTaintTagStackPool.class), "instance", "()" + Type.getDescriptor(ControlTaintTagStack.class), false);
+                            CONTROL_STACK_POOL_INSTANCE.delegateVisit(ga);
                         } else if(Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                             newDesc += Type.getDescriptor(ControlTaintTagStack.class);
-                            ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(ControlTaintTagStack.class), "factory", "()" + Type.getDescriptor(ControlTaintTagStack.class), false);
+                            CONTROL_STACK_FACTORY.delegateVisit(ga);
                         }
                         if(m.name.equals("<init>")) {
                             newDesc += Type.getDescriptor(TaintSentinel.class);
@@ -1021,7 +994,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         }
                         if(needToPrealloc) {
                             newDesc += returnTypeToHackOnLambda == null ? newReturn.getDescriptor() : returnTypeToHackOnLambda.getDescriptor();
-                            an.visitVarInsn(Opcodes.ALOAD, lvs.getPreAllocedReturnTypeVar(returnTypeToHackOnLambda == null ? newReturn : returnTypeToHackOnLambda));
+                            an.visitVarInsn(Opcodes.ALOAD, lvs.getPreAllocatedReturnTypeVar(returnTypeToHackOnLambda == null ? newReturn : returnTypeToHackOnLambda));
                         }
                         newDesc += ")" + newReturn.getDescriptor();
 
@@ -1105,7 +1078,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         ga.visitEnd();
                     } else {
                         String[] exceptions = new String[m.exceptions.size()];
-                        exceptions = (String[]) m.exceptions.toArray(exceptions);
+                        exceptions = m.exceptions.toArray(exceptions);
                         MethodNode fullMethod = forMore.get(m);
 
                         MethodVisitor mv = super.visitMethod(m.access, m.name, m.desc, m.signature, exceptions);
@@ -1207,7 +1180,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
     private void generateNativeWrapper(MethodNode m, String methodNameToCall, boolean skipUnboxing) {
         String[] exceptions = new String[m.exceptions.size()];
-        exceptions = (String[]) m.exceptions.toArray(exceptions);
+        exceptions = m.exceptions.toArray(exceptions);
         Type[] argTypes = Type.getArgumentTypes(m.desc);
 
         boolean isPreAllocReturnType = TaintUtils.isPreAllocReturnType(m.desc);
@@ -1418,7 +1391,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 } else {
                     //TODO here's where we store to the pre-alloc'ed container
                     if(origReturn.getSize() == 1) {
-                        int retIdx = lvs.getPreAllocedReturnTypeVar(newReturn);
+                        int retIdx = lvs.getPreAllocatedReturnTypeVar(newReturn);
                         an.visitVarInsn(Opcodes.ALOAD, retIdx);
                         ga.visitInsn(Opcodes.SWAP);
                         ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
@@ -1428,7 +1401,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
                         an.visitVarInsn(Opcodes.ALOAD, retIdx);
                     } else {
-                        int retIdx = lvs.getPreAllocedReturnTypeVar(newReturn);
+                        int retIdx = lvs.getPreAllocatedReturnTypeVar(newReturn);
                         an.visitVarInsn(Opcodes.ALOAD, retIdx);
                         ga.visitInsn(Opcodes.DUP_X2);
                         ga.visitInsn(Opcodes.POP);
@@ -1454,12 +1427,33 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         ga.visitLabel(end.getLabel());
         ga.returnValue();
         if(isPreAllocReturnType) {
-            lvsToVisit.add(new LocalVariableNode("phosphorReturnHolder", newReturn.getDescriptor(), null, start, end, lvs.getPreAllocedReturnTypeVar(newReturn)));
+            lvsToVisit.add(new LocalVariableNode("phosphorReturnHolder", newReturn.getDescriptor(), null, start, end, lvs.getPreAllocatedReturnTypeVar(newReturn)));
         }
         for(LocalVariableNode n : lvsToVisit) {
             n.accept(ga);
         }
         ga.visitMaxs(0, 0);
         ga.visitEnd();
+    }
+
+    private static void acceptAnnotationRaw(final AnnotationVisitor av, final String name, final Object value) {
+        if(av != null) {
+            if(value instanceof String[]) {
+                String[] typeconst = (String[]) value;
+                av.visitEnum(name, typeconst[0], typeconst[1]);
+            } else if(value instanceof AnnotationNode) {
+                AnnotationNode an = (AnnotationNode) value;
+                an.accept(av.visitAnnotation(name, an.desc));
+            } else if(value instanceof List) {
+                AnnotationVisitor v = av.visitArray(name);
+                List<?> array = (List<?>) value;
+                for(int j = 0; j < array.size(); ++j) {
+                    acceptAnnotationRaw(v, null, array.get(j));
+                }
+                v.visitEnd();
+            } else {
+                av.visit(name, value);
+            }
+        }
     }
 }

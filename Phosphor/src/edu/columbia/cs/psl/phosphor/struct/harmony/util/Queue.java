@@ -54,7 +54,7 @@ public interface Queue<E> extends Collection<E> {
      * @return {@code true} if the operation succeeds and {@code false} if it
      *         fails.
      */
-    public boolean offer(E o);
+    boolean offer(E o);
 
     /**
      * Gets and removes the element at the head of the queue, or returns {@code
@@ -63,7 +63,7 @@ public interface Queue<E> extends Collection<E> {
      * @return the element at the head of the queue or {@code null} if there is
      *         no element in the queue.
      */
-    public E poll();
+    E poll();
 
     /**
      * Gets and removes the element at the head of the queue. Throws a
@@ -73,7 +73,7 @@ public interface Queue<E> extends Collection<E> {
      * @throws NoSuchElementException
      *             if there is no element in the queue.
      */
-    public E remove();
+    E remove();
 
     /**
      * Gets but does not remove the element at the head of the queue.
@@ -81,7 +81,7 @@ public interface Queue<E> extends Collection<E> {
      * @return the element at the head of the queue or {@code null} if there is
      *         no element in the queue.
      */
-    public E peek();
+    E peek();
 
     /**
      * Gets but does not remove the element at the head of the queue. Throws a
@@ -91,6 +91,6 @@ public interface Queue<E> extends Collection<E> {
      * @throws NoSuchElementException
      *             if there is no element in the queue.
      */
-    public E element();
+    E element();
 
 }

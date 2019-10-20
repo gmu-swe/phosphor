@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.apache.commons.cli.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -15,32 +16,24 @@ import java.net.URLClassLoader;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.Random;
 import java.util.concurrent.*;
 import java.util.zip.*;
 
 public class Instrumenter {
+
     public static ClassLoader loader;
-    public static ClassFileTransformer addlTransformer;
-
-    //	private static Logger logger = Logger.getLogger("Instrumenter");
-
-    public static int pass_number = 0;
-    public static int MAX_SANDBOXES = 2;
-    public static boolean IS_KAFFE_INST = Boolean.valueOf(System.getProperty("KAFFE", "false"));
-    public static boolean IS_HARMONY_INST = Boolean.valueOf(System.getProperty("HARMONY", "false"));
-    public static HashMap<String, ClassNode> classes = new HashMap<String, ClassNode>();
+    public static boolean IS_KAFFE_INST = Boolean.parseBoolean(System.getProperty("KAFFE", "false"));
+    public static boolean IS_HARMONY_INST = Boolean.parseBoolean(System.getProperty("HARMONY", "false"));
+    public static Map<String, ClassNode> classes = new HashMap<>();
     public static InputStream sourcesFile;
     public static InputStream sinksFile;
     public static InputStream taintThroughFile;
     public static boolean ANALYZE_ONLY;
-    static int nChanges = 0;
-    static boolean analysisInvalidated = false;
     static String curPath;
-    static HashMap<String, ClassNode> allClasses = new HashMap<String, ClassNode>();
     static int nTotal = 0;
     static int n = 0;
-    static Option opt_dataTrack = Option.builder("withoutDataTrack")
+    static Option opt_withoutDataTrack = Option.builder("withoutDataTrack")
             .desc("Disable taint tracking through data flow (on by default)")
             .build();
     static Option opt_controlTrack = Option.builder("controlTrack")
@@ -104,8 +97,8 @@ public class Instrumenter {
     static Option help = Option.builder("help")
             .desc("print this message")
             .build();
+    private static ClassFileTransformer addlTransformer;
     private static File rootOutputDir;
-    private static String lastInstrumentedClass;
     private static long START;
 
     public static void preAnalysis() {
@@ -128,16 +121,20 @@ public class Instrumenter {
             } else {
                 c = loader.loadClass(internalName.replace("/", "."));
             }
-            if(Collection.class.isAssignableFrom(c)) {
+            if(java.util.Collection.class.isAssignableFrom(c)) {
                 return true;
             }
         } catch(Throwable ex) {
+            //
         }
         return false;
     }
 
-    public static boolean isClassWithHashmapTag(String clazz) {
-        return clazz.startsWith("java/lang/Boolean") || clazz.startsWith("java/lang/Character") || clazz.startsWith("java/lang/Byte") || clazz.startsWith("java/lang/Short");
+    public static boolean isClassWithHashMapTag(String clazz) {
+        return clazz.startsWith("java/lang/Boolean")
+                || clazz.startsWith("java/lang/Character")
+                || clazz.startsWith("java/lang/Byte")
+                || clazz.startsWith("java/lang/Short");
     }
 
     public static boolean isIgnoredClass(String owner) {
@@ -148,7 +145,6 @@ public class Instrumenter {
                 || StringUtils.startsWith(owner, "java/lang/Byte")
                 || StringUtils.startsWith(owner, "java/lang/Short")
                 || StringUtils.startsWith(owner, "org/jikesrvm") || StringUtils.startsWith(owner, "com/ibm/tuningfork") || StringUtils.startsWith(owner, "org/mmtk") || StringUtils.startsWith(owner, "org/vmmagic")
-//				|| StringUtils.startsWith(owner, "edu/columbia/cs/psl/microbench")
                 || StringUtils.startsWith(owner, "java/lang/Number") || StringUtils.startsWith(owner, "java/lang/Comparable") || StringUtils.startsWith(owner, "java/lang/ref/SoftReference") || StringUtils.startsWith(owner, "java/lang/ref/Reference")
                 //																|| StringUtils.startsWith(owner, "java/awt/image/BufferedImage")
                 //																|| owner.equals("java/awt/Image")
@@ -162,16 +158,16 @@ public class Instrumenter {
                 || StringUtils.startsWith(owner, "org/apache/jasper/runtime/JspSourceDependent")
                 || StringUtils.startsWith(owner, "sun/reflect/ConstructorAccessor") //was on last
                 || StringUtils.startsWith(owner, "sun/reflect/SerializationConstructorAccessor")
-
-                || StringUtils.startsWith(owner, "sun/reflect/GeneratedMethodAccessor") || StringUtils.startsWith(owner, "sun/reflect/GeneratedConstructorAccessor")
-                || StringUtils.startsWith(owner, "sun/reflect/GeneratedSerializationConstructor") || StringUtils.startsWith(owner, "sun/awt/image/codec/")
+                || StringUtils.startsWith(owner, "sun/reflect/GeneratedMethodAccessor")
+                || StringUtils.startsWith(owner, "sun/reflect/GeneratedConstructorAccessor")
+                || StringUtils.startsWith(owner, "sun/reflect/GeneratedSerializationConstructor")
+                || StringUtils.startsWith(owner, "sun/awt/image/codec/")
                 || StringUtils.startsWith(owner, "java/lang/invoke/LambdaForm")
                 || StringUtils.startsWith(owner, "java/lang/invoke/LambdaMetafactory")
                 || StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor/struct/TaintedWith")
                 || StringUtils.startsWith(owner, "java/util/regex/HashDecompositions") //Huge constant array/hashmap
                 || StringUtils.startsWith(owner, "java/lang/invoke/MethodHandle")
-                || (StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle")
-                && !StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle$Factory"))
+                || (StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle") && !StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle$Factory"))
                 || StringUtils.startsWith(owner, "java/lang/invoke/DelegatingMethodHandle")
                 || owner.equals("java/lang/invoke/DirectMethodHandle")
                 || StringUtils.startsWith(owner, "java/util/function/Function")
@@ -190,7 +186,7 @@ public class Instrumenter {
                     ClassNode cn = new ClassNode();
                     cn.name = name;
                     cn.superName = superName;
-                    cn.interfaces = new ArrayList<>(Arrays.asList(interfaces));
+                    cn.interfaces = new java.util.ArrayList<>(java.util.Arrays.asList(interfaces));
                     Instrumenter.classes.put(name, cn);
                 }
             }, ClassReader.SKIP_CODE);
@@ -210,15 +206,12 @@ public class Instrumenter {
             }
             curPath = path;
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
             int nRead;
             byte[] data = new byte[16384];
-
             while((nRead = is.read(data, 0, data.length)) != -1) {
                 buffer.write(data, 0, nRead);
             }
             is.close();
-
             buffer.flush();
             PreMain.PCLoggingTransformer transformer = new PreMain.PCLoggingTransformer();
             byte[] ret = transformer.transform(Instrumenter.loader, path, null, null, buffer.toByteArray());
@@ -244,7 +237,7 @@ public class Instrumenter {
         options.addOption(opt_controlTrack);
         options.addOption(opt_controlLightTrack);
         options.addOption(opt_controlTrackExceptions);
-        options.addOption(opt_dataTrack);
+        options.addOption(opt_withoutDataTrack);
         options.addOption(opt_trackArrayLengthTaints);
         options.addOption(opt_trackArrayIndexTaints);
         options.addOption(opt_withoutFieldHiding);
@@ -261,45 +254,40 @@ public class Instrumenter {
         options.addOption(opt_implicitHeadersNoTracking);
         options.addOption(opt_reenableCaches);
         options.addOption(opt_bindingControl);
-
         CommandLineParser parser = new BasicParser();
-        CommandLine line = null;
+        CommandLine line;
         try {
             line = parser.parse(options, args);
         } catch(org.apache.commons.cli.ParseException exp) {
-
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
             System.err.println(exp.getMessage());
             return;
         }
-
         if(line.hasOption("help") || line.getArgs().length != 2) {
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
             return;
         }
-        Configuration.IMPLICIT_TRACKING = line.hasOption("controlTrack");
-        Configuration.IMPLICIT_LIGHT_TRACKING = line.hasOption("lightControlTrack");
-        Configuration.IMPLICIT_EXCEPTION_FLOW = line.hasOption("controlTrackExceptions");
-        Configuration.DATAFLOW_TRACKING = !line.hasOption("withoutDataTrack");
-        Configuration.ARRAY_LENGTH_TRACKING = line.hasOption("withArrayLengthTags");
-        Configuration.WITHOUT_FIELD_HIDING = line.hasOption("withoutFieldHiding");
+
+        Configuration.IMPLICIT_TRACKING = line.hasOption(opt_controlTrack.getOpt());
+        Configuration.IMPLICIT_LIGHT_TRACKING = line.hasOption(opt_controlLightTrack.getOpt());
+        Configuration.IMPLICIT_EXCEPTION_FLOW = line.hasOption(opt_controlTrackExceptions.getOpt());
+        Configuration.DATAFLOW_TRACKING = !line.hasOption(opt_withoutDataTrack.getOpt());
+        Configuration.ARRAY_LENGTH_TRACKING = line.hasOption(opt_trackArrayLengthTaints.getOpt());
+        Configuration.WITHOUT_FIELD_HIDING = line.hasOption(opt_withoutFieldHiding.getOpt());
         Configuration.WITHOUT_PROPAGATION = line.hasOption(opt_withoutPropagation.getOpt());
-        Configuration.WITH_ENUM_BY_VAL = line.hasOption("withEnumsByValue");
-        Configuration.WITH_UNBOX_ACMPEQ = line.hasOption("forceUnboxAcmpEq");
-        Configuration.WITH_TAGS_FOR_JUMPS = line.hasOption("disableJumpOptimizations");
-        Configuration.READ_AND_SAVE_BCI = line.hasOption("readAndSaveBCIs");
-//		Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption("serialization"); //Really needs to always be active
-
-        Configuration.ARRAY_INDEX_TRACKING = line.hasOption("withArrayIndexTags");
-        Configuration.WITHOUT_BRANCH_NOT_TAKEN = line.hasOption("withoutBranchNotTaken");
-        Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption("skipLocals");
-        Configuration.ALWAYS_CHECK_FOR_FRAMES = line.hasOption("alwaysCheckForFrames");
-        Configuration.IMPLICIT_HEADERS_NO_TRACKING = line.hasOption("implicitHeadersNoTracking");
-
+        Configuration.WITH_ENUM_BY_VAL = line.hasOption(opt_enumPropagation.getOpt());
+        Configuration.WITH_UNBOX_ACMPEQ = line.hasOption(opt_unboxAcmpEq.getOpt());
+        Configuration.WITH_TAGS_FOR_JUMPS = line.hasOption(opt_disableJumpOptimizations.getOpt());
+        Configuration.READ_AND_SAVE_BCI = line.hasOption(opt_readAndSaveBCI.getOpt());
+//		Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption(opt_serialization.getOpt()); //Really needs to always be active
+        Configuration.ARRAY_INDEX_TRACKING = line.hasOption(opt_trackArrayIndexTaints.getOpt());
+        Configuration.WITHOUT_BRANCH_NOT_TAKEN = line.hasOption(opt_withoutBranchNotTaken.getOpt());
+        Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption(opt_disableLocalsInfo.getOpt());
+        Configuration.ALWAYS_CHECK_FOR_FRAMES = line.hasOption(opt_alwaysCheckForFrames.getOpt());
+        Configuration.IMPLICIT_HEADERS_NO_TRACKING = line.hasOption(opt_implicitHeadersNoTracking.getOpt());
         Configuration.BINDING_CONTROL_FLOWS_ONLY = line.hasOption(opt_bindingControl.getOpt());
-
         Configuration.REENABLE_CACHES = line.hasOption(opt_reenableCaches.getOpt());
         String priorClassVisitorName = line.getOptionValue(opt_priorClassVisitor.getOpt());
         if(priorClassVisitorName != null) {
@@ -311,7 +299,6 @@ public class Instrumenter {
                 System.err.println("Failed to create specified prior class visitor: " + priorClassVisitorName);
             }
         }
-
         Configuration.init();
         if(Configuration.DATAFLOW_TRACKING) {
             System.out.println("Data flow tracking: enabled");
@@ -392,7 +379,6 @@ public class Instrumenter {
         } catch(MalformedURLException e1) {
             e1.printStackTrace();
         }
-//		System.out.println(urls);
         if(args.length == 3) {
             System.out.println("Using extra classpath file: " + args[2]);
             try {
@@ -455,7 +441,7 @@ public class Instrumenter {
             try {
                 toWait.addAll((Collection<? extends Future>) toWait.removeFirst().get());
             } catch(InterruptedException e) {
-                continue;
+                //
             } catch(ExecutionException e) {
                 throw new Error(e);
             }
@@ -466,25 +452,23 @@ public class Instrumenter {
             try {
                 executor.awaitTermination(1, TimeUnit.SECONDS);
             } catch(InterruptedException e) {
-                continue;
+                //
             }
         }
     }
 
-    private static LinkedList<Future> processClass(File f, final File outputDir, ExecutorService executor) {
-        LinkedList<Future> ret = new LinkedList<>();
+    private static List<Future<? extends Collection>> processClass(File f, final File outputDir, ExecutorService executor) {
+        List<Future<? extends Collection>> ret = new LinkedList<>();
         try {
             final String name = f.getName();
             final InputStream is = new FileInputStream(f);
-
             if(ANALYZE_ONLY) {
                 analyzeClass(is);
                 is.close();
             } else {
-                ret.add(executor.submit(new Callable<LinkedList>() {
+                ret.add(executor.submit(new Callable<List>() {
                     @Override
-                    public LinkedList call() throws Exception {
-                        lastInstrumentedClass = outputDir.getPath() + File.separator + name;
+                    public List call() throws Exception {
                         ByteArrayOutputStream bos = new ByteArrayOutputStream();
                         FileOutputStream fos = new FileOutputStream(outputDir.getPath() + File.separator + name);
                         byte[] c = instrumentClass(outputDir.getAbsolutePath(), is, true);
@@ -543,8 +527,6 @@ public class Instrumenter {
                 } catch(Exception ex) {
                     System.err.println("error copying file " + fi);
                     ex.printStackTrace();
-                    //					logger.log(Level.SEVERE, "Unable to copy file " + fi, ex);
-                    //					System.exit(-1);
                 } finally {
                     if(source != null) {
                         try {
@@ -586,12 +568,12 @@ public class Instrumenter {
         try {
             LinkedList<Future<Result>> ret = new LinkedList<>();
             final ZipFile zip = new ZipFile(f);
-            ZipOutputStream zos = null;
+            ZipOutputStream zos;
             zos = new ZipOutputStream(new FileOutputStream(outputDir.getPath() + File.separator + f.getName()));
             if(unCompressed) {
                 zos.setLevel(ZipOutputStream.STORED);
             }
-            Enumeration<? extends ZipEntry> entries = zip.entries();
+            java.util.Enumeration<? extends ZipEntry> entries = zip.entries();
             while(entries.hasMoreElements()) {
                 final ZipEntry e = entries.nextElement();
 
@@ -604,9 +586,7 @@ public class Instrumenter {
                             public Result call() throws Exception {
                                 Result ret = new Result();
                                 ret.e = e;
-                                byte[] clazz = instrumentClass(f.getAbsolutePath(), zip.getInputStream(e), true);
-                                ret.buf = clazz;
-
+                                ret.buf = instrumentClass(f.getAbsolutePath(), zip.getInputStream(e), true);
                                 return ret;
                             }
                         }));
@@ -622,7 +602,7 @@ public class Instrumenter {
                         tmp.delete();
                     }
                     FileOutputStream fos = new FileOutputStream(tmp);
-                    byte buf[] = new byte[1024];
+                    byte[] buf = new byte[1024];
                     int len;
                     InputStream is = zip.getInputStream(e);
                     while((len = is.read(buf)) > 0) {
@@ -753,10 +733,7 @@ public class Instrumenter {
                     ex.printStackTrace();
                 }
             }
-
-            if(zos != null) {
-                zos.close();
-            }
+            zos.close();
             zip.close();
         } catch(Exception e) {
             System.err.println("Unable to process zip/jar: " + f.getAbsolutePath());
@@ -764,7 +741,6 @@ public class Instrumenter {
             File dest = new File(outputDir.getPath() + File.separator + f.getName());
             FileChannel source = null;
             FileChannel destination = null;
-
             try {
                 source = new FileInputStream(f).getChannel();
                 destination = new FileOutputStream(dest).getChannel();
@@ -789,7 +765,6 @@ public class Instrumenter {
                 }
             }
         }
-
         return new LinkedList<>();
     }
 
@@ -836,7 +811,7 @@ public class Instrumenter {
                     ClassNode cn = new ClassNode();
                     cn.name = name;
                     cn.superName = superName;
-                    cn.interfaces = new ArrayList<>(Arrays.asList(interfaces));
+                    cn.interfaces = new java.util.ArrayList<>(java.util.Arrays.asList(interfaces));
                     classes.put(name, cn);
                 }
             }, ClassReader.SKIP_CODE);
