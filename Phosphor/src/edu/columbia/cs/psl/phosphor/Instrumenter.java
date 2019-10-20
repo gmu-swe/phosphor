@@ -279,7 +279,6 @@ public class Instrumenter {
             formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
             return;
         }
-        Configuration.BINDING_CONTROL_FLOWS_ONLY = line.hasOption(opt_bindingControl.getOpt());
         Configuration.IMPLICIT_TRACKING = line.hasOption("controlTrack");
         Configuration.IMPLICIT_LIGHT_TRACKING = line.hasOption("lightControlTrack");
         Configuration.IMPLICIT_EXCEPTION_FLOW = line.hasOption("controlTrackExceptions");
@@ -298,6 +297,9 @@ public class Instrumenter {
         Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption("skipLocals");
         Configuration.ALWAYS_CHECK_FOR_FRAMES = line.hasOption("alwaysCheckForFrames");
         Configuration.IMPLICIT_HEADERS_NO_TRACKING = line.hasOption("implicitHeadersNoTracking");
+
+        Configuration.BINDING_CONTROL_FLOWS_ONLY = line.hasOption(opt_bindingControl.getOpt());
+
         Configuration.REENABLE_CACHES = line.hasOption(opt_reenableCaches.getOpt());
         String priorClassVisitorName = line.getOptionValue(opt_priorClassVisitor.getOpt());
         if(priorClassVisitorName != null) {

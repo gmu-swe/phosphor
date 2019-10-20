@@ -79,6 +79,11 @@ public class Configuration {
     public static boolean TAINT_THROUGH_SERIALIZATION = true;
 
     public static void init() {
+        if(BINDING_CONTROL_FLOWS_ONLY) {
+            IMPLICIT_TRACKING = true;
+            IMPLICIT_EXCEPTION_FLOW = false;
+            WITHOUT_BRANCH_NOT_TAKEN = true;
+        }
         OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING && !IMPLICIT_LIGHT_TRACKING;
         if(IMPLICIT_TRACKING || IMPLICIT_LIGHT_TRACKING) {
             WITH_TAGS_FOR_JUMPS = true;
