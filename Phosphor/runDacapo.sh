@@ -1,6 +1,6 @@
 #!/bin/bash
 DACAPO_DIR=dacapo
-PHOSPHOR_JAR=`pwd`/target/Phosphor-0.0.4-SNAPSHOT.jar
+PHOSPHOR_JAR=`pwd`/target/Phosphor-0.0.4.jar
 BENCHMARKS=(avrora batik fop h2 jython luindex pmd sunflow xalan) #tradebeans tradesoap are disabled in this script because of the PITA with distributing the openjdk jce.jar file with everything, then switching it in...
 #tomcat started crashing on travis
 #if you want to run them, copy the jce.jar file from an openjdk distribution of the same version into your hotspot jvm that you are going to instrument before instrumenting it.
