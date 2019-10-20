@@ -1444,11 +1444,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             } else if(value instanceof AnnotationNode) {
                 AnnotationNode an = (AnnotationNode) value;
                 an.accept(av.visitAnnotation(name, an.desc));
-            } else if(value instanceof List) {
+            } else if(value instanceof java.util.List) {
                 AnnotationVisitor v = av.visitArray(name);
-                List<?> array = (List<?>) value;
-                for(int j = 0; j < array.size(); ++j) {
-                    acceptAnnotationRaw(v, null, array.get(j));
+                java.util.List<?> array = (java.util.List<?>) value;
+                for(Object o : array) {
+                    acceptAnnotationRaw(v, null, o);
                 }
                 v.visitEnd();
             } else {
