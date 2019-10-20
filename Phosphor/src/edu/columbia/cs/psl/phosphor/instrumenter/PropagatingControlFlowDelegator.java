@@ -251,8 +251,6 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     @Override
     public void visitingBranchEnd(int branchID) {
         if(indexOfBranchIDArray != -1) {
-            passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-            passThroughDelegate.visitVarInsn(ALOAD, indexOfBranchIDArray);
             callPopControlTaint(branchID);
         }
     }
@@ -333,13 +331,12 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
             }
         }
         if(type.getSort() == Type.OBJECT) {
-            // Object type
-            // val
+            // objectref
             delegate.visitInsn(DUP);
-            // val val
+            //objectref objectref
             delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
             COMBINE_TAGS_ON_OBJECT.delegateVisit(delegate);
-            // val
+            // objectref
         } else if(type.getSort() != Type.ARRAY) {
             // Primitive type
             if(type.getSize() == 1) {
@@ -370,7 +367,6 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
 
     @Override
     public void generateEmptyTaint() {
-        delegate.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
         delegate.visitVarInsn(ALOAD, localVariableManager.idxOfMasterControlLV);
         if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
             CONTROL_STACK_COPY_TAG_EXCEPTIONS.delegateVisit(delegate);
@@ -467,27 +463,24 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
             }
             delegate.visitFrame(F_NEW, baseLvs.length, baseLvs, 1, new Object[]{"java/lang/Throwable"});
             if(indexOfBranchIDArray >= 0) {
-                passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-                passThroughDelegate.visitVarInsn(ALOAD, indexOfBranchIDArray);
                 callPopAll();
             }
             delegate.visitInsn(ATHROW);
         }
-        delegate.visitMaxs(maxStack, maxLocals);
     }
 
     @Override
-    public void onMethodExit() {
+    public void onMethodExit(int opcode) {
         if(this.isExcludedFromControlTrack) {
             delegate.visitVarInsn(ALOAD, localVariableManager.idxOfMasterControlLV);
             CONTROL_STACK_ENABLE.delegateVisit(delegate);
         }
-        if(indexOfBranchIDArray >= 0) {
+        if(opcode == ATHROW) {
             passThroughDelegate.visitInsn(DUP);
             passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
             COMBINE_TAGS_ON_OBJECT.delegateVisit(passThroughDelegate);
-            passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-            passThroughDelegate.visitVarInsn(ALOAD, indexOfBranchIDArray);
+        }
+        if(indexOfBranchIDArray >= 0) {
             callPopAll();
         }
     }
@@ -652,6 +645,8 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
         if(branchID < 0) {
             callPopAll();
         } else {
+            passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
+            passThroughDelegate.visitVarInsn(ALOAD, indexOfBranchIDArray);
             push(passThroughDelegate, branchID);
             if(localVariableManager.idxOfMasterExceptionLV >= 0) {
                 passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.idxOfMasterExceptionLV);
@@ -667,6 +662,8 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
      * being visited.
      */
     private void callPopAll() {
+        passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
+        passThroughDelegate.visitVarInsn(ALOAD, indexOfBranchIDArray);
         if(localVariableManager.idxOfMasterExceptionLV >= 0) {
             passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.idxOfMasterExceptionLV);
             CONTROL_STACK_POP_ALL_EXCEPTION.delegateVisit(passThroughDelegate);

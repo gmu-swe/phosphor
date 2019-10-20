@@ -20,8 +20,8 @@ interface ControlFlowDelegator {
 
     /**
      * Called before an IINC instruction. Maintains the stack.
-     *  @param var           index of the local variable to be incremented
      *
+     * @param var index of the local variable to be incremented
      */
     void visitingIncrement(int var);
 
@@ -83,15 +83,15 @@ interface ControlFlowDelegator {
 
     /**
      * Called before an EXCEPTION_HANDLER_START instruction. Maintains the stack.
-     *  @param type          the operand of the instruction to being visited
      *
+     * @param type the operand of the instruction to being visited
      */
     void visitingExceptionHandlerStart(String type);
 
     /**
      * Called before an EXCEPTION_HANDLER_END instruction. Maintains the stack.
-     *  @param type          the operand of the instruction to being visited
      *
+     * @param type the operand of the instruction to being visited
      */
     void visitingExceptionHandlerEnd(String type);
 
@@ -122,8 +122,11 @@ interface ControlFlowDelegator {
 
     /**
      * Call before a return or exceptional return instruction. Maintains the stack.
+     *
+     * @param opcode the opcode of the type instruction to being visited. This opcode is either ATHROW, ARETURN, IRETURN,
+     *               RETURN, DRETURN, FRETURN, or LRETURN
      */
-    void onMethodExit();
+    void onMethodExit(int opcode);
 
     /**
      * Called before a FORCE_CTRL_STORE instruction. Maintains the stack.
@@ -133,7 +136,7 @@ interface ControlFlowDelegator {
     /**
      * Called before a jump operation.
      *
-     * @param opcode the opcode of the type instruction to be visited. This opcode is either IFEQ,
+     * @param opcode the opcode of the type instruction to being visited. This opcode is either IFEQ,
      *               IFNE, IFLT, IFGE, IFGT, IFLE, IF_ICMPEQ, IF_ICMPNE, IF_ICMPLT, IF_ICMPGE, IF_ICMPGT,
      *               IF_ICMPLE, IF_ACMPEQ, IF_ACMPNE, GOTO, JSR, IFNULL or IFNONNULL.
      */

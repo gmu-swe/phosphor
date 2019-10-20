@@ -97,7 +97,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     @Override
     public void visitCode() {
         super.visitCode();
-        if((Configuration.IMPLICIT_EXCEPTION_FLOW || isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
+        if((Configuration.IMPLICIT_TRACKING|| isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
             controlFlowDelegator = new PropagatingControlFlowDelegator(mv, passThroughMV, analyzer, lvs, arrayAnalyzer,
                     className, name, lastArg, paramTypes);
         } else {
@@ -1989,7 +1989,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             return;
         }
         if(TaintUtils.isReturnOpcode(opcode) || opcode == ATHROW) {
-            controlFlowDelegator.onMethodExit();
+            controlFlowDelegator.onMethodExit(opcode);
         }
         if(isLambda && opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN) {
             //Do we need to box?

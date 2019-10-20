@@ -132,7 +132,7 @@ public class NoFlowControlFlowDelegator implements ControlFlowDelegator {
     }
 
     @Override
-    public void onMethodExit() {
+    public void onMethodExit(int opcode) {
 
     }
 
