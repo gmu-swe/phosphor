@@ -483,6 +483,7 @@ public class Taint<T> implements Serializable {
         }
     }
 
+    @InvokedViaInstrumentation(record = COMBINE_TAGS_IN_PLACE)
     public static <T> void combineTagsInPlace(Object obj, Taint<T> t1) {
         if(obj != null && t1 != null && !IGNORE_TAINTING) {
             _combineTagsInPlace(obj, t1);
@@ -605,7 +606,7 @@ public class Taint<T> implements Serializable {
     }
 
     @SuppressWarnings("rawtypes")
-    @InvokedViaInstrumentation(record = COMBINE_TAGS_ON_OBJECT)
+    @InvokedViaInstrumentation(record = COMBINE_TAGS_ON_OBJECT_CONTROL)
     public static void combineTagsOnObject(Object o, ControlTaintTagStack tags) {
         if((tags.isEmpty() || IGNORE_TAINTING) && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.lacksInfluenceExceptions())) {
             return;

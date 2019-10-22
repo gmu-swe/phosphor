@@ -152,4 +152,11 @@ interface ControlFlowDelegator {
      * Called before an AASTORE instruction. Maintains the stack. stack_pre = objectref
      */
     void storingReferenceInArray();
+
+    /**
+     * Called before a EXCLUDE_BRANCH instruction. Maintains the stack.
+     *
+     * @param branchID the identifier of the "branch" location that is to be excluded
+     */
+    void visitingExcludeBranch(int branchID);
 }

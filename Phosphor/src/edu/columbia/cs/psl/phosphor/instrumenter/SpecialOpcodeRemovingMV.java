@@ -12,23 +12,23 @@ import org.objectweb.asm.Type;
 
 public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
-	private String clazz;
+    private String clazz;
     private boolean fixLdcClass;
     private LocalVariableManager lvs;
     private int localIdxOfControlTag;
 
     public SpecialOpcodeRemovingMV(MethodVisitor sup, boolean ignoreFrames, int acc, String clazz, String desc, boolean fixLdcClass) {
         super(Configuration.ASM_VERSION, sup);
-		this.clazz = clazz;
+        this.clazz = clazz;
         this.fixLdcClass = fixLdcClass;
         int n = 0;
-		if((acc & Opcodes.ACC_STATIC) == 0) {
-			n++;
-		}
+        if((acc & Opcodes.ACC_STATIC) == 0) {
+            n++;
+        }
         for(Type t : Type.getArgumentTypes(desc)) {
-			if(t.getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class))) {
-				this.localIdxOfControlTag = n;
-			}
+            if(t.getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class))) {
+                this.localIdxOfControlTag = n;
+            }
             n += t.getSize();
         }
     }
@@ -46,9 +46,9 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
      */
     @Override
     public void visitFieldInsn(int opcode, String owner, String name, String desc) {
-		if(opcode < 200) {
-			super.visitFieldInsn(opcode, owner, name, desc);
-		}
+        if(opcode < 200) {
+            super.visitFieldInsn(opcode, owner, name, desc);
+        }
     }
 
     public void setLVS(LocalVariableManager lvs) {
@@ -60,6 +60,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
         switch(opcode) {
             case TaintUtils.BRANCH_END:
             case TaintUtils.BRANCH_START:
+            case TaintUtils.EXCLUDE_BRANCH:
             case TaintUtils.FORCE_CTRL_STORE:
             case TaintUtils.ALWAYS_AUTOBOX:
             case TaintUtils.IGNORE_EVERYTHING:
@@ -81,65 +82,65 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
     @Override
     public void visitTypeInsn(int opcode, String type) {
-		if(opcode > 200) {
-			return;
-		}
+        if(opcode > 200) {
+            return;
+        }
         super.visitTypeInsn(opcode, type);
     }
 
     @Override
     public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-		if(type == TaintUtils.RAW_INSN) {
-			type = Opcodes.F_NEW;
-		}
+        if(type == TaintUtils.RAW_INSN) {
+            type = Opcodes.F_NEW;
+        }
         //At this point, make sure that there are no TaggedValue's sitting around.
         Object[] newLocal = new Object[local.length];
         Object[] newStack = new Object[stack.length];
-		for(int i = 0; i < local.length; i++) {
-			if(local[i] instanceof TaggedValue) {
-				newLocal[i] = ((TaggedValue) local[i]).v;
-			} else {
-				newLocal[i] = local[i];
-			}
-		}
-		for(int i = 0; i < stack.length; i++) {
-			if(stack[i] instanceof TaggedValue) {
-				newStack[i] = ((TaggedValue) stack[i]).v;
-			} else {
-				newStack[i] = stack[i];
-			}
-		}
+        for(int i = 0; i < local.length; i++) {
+            if(local[i] instanceof TaggedValue) {
+                newLocal[i] = ((TaggedValue) local[i]).v;
+            } else {
+                newLocal[i] = local[i];
+            }
+        }
+        for(int i = 0; i < stack.length; i++) {
+            if(stack[i] instanceof TaggedValue) {
+                newStack[i] = ((TaggedValue) stack[i]).v;
+            } else {
+                newStack[i] = stack[i];
+            }
+        }
         super.visitFrame(type, nLocal, newLocal, nStack, newStack);
     }
 
     @Override
     public void visitLdcInsn(Object cst) {
-		if(cst instanceof Type && fixLdcClass) {
-			super.visitLdcInsn(((Type) cst).getInternalName().replace("/", "."));
-			if(Configuration.IMPLICIT_TRACKING) {
-				super.visitInsn(Opcodes.ACONST_NULL);
-			}
-			super.visitInsn(Opcodes.ICONST_0);
-			super.visitLdcInsn(clazz.replace("/", "."));
-			if(Configuration.IMPLICIT_TRACKING) {
-				if(this.localIdxOfControlTag < 0) {
-					localIdxOfControlTag = lvs.idxOfMasterControlLV;
-				}
-				super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Class;", false);
-				super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
-				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader$$PHOSPHORTAGGED", "(Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/ClassLoader;", false);
-				super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + "ZLjava/lang/ClassLoader;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Class;", false);
+        if(cst instanceof Type && fixLdcClass) {
+            super.visitLdcInsn(((Type) cst).getInternalName().replace("/", "."));
+            if(Configuration.IMPLICIT_TRACKING) {
+                super.visitInsn(Opcodes.ACONST_NULL);
+            }
+            super.visitInsn(Opcodes.ICONST_0);
+            super.visitLdcInsn(clazz.replace("/", "."));
+            if(Configuration.IMPLICIT_TRACKING) {
+                if(this.localIdxOfControlTag < 0) {
+                    localIdxOfControlTag = lvs.idxOfMasterControlLV;
+                }
+                super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Class;", false);
+                super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
+                super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader$$PHOSPHORTAGGED", "(Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/ClassLoader;", false);
+                super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + "ZLjava/lang/ClassLoader;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Class;", false);
 
-			} else {
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
-				super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;", false);
-				super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", false);
-			}
-		} else {
-			super.visitLdcInsn(cst);
-		}
+            } else {
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
+                super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;", false);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", false);
+            }
+        } else {
+            super.visitLdcInsn(cst);
+        }
     }
 
     @Override

@@ -15,10 +15,48 @@ import static org.junit.Assert.*;
 
 public class GeneralBindingControlITCase extends BaseMultiTaintClass {
 
-    private static void checkContainsInAnyOrder(Object[] actual, Object... expected) {
+    public static void checkContainsInAnyOrder(Object[] actual, Object... expected) {
         Set<Object> actualSet = new HashSet<>(Arrays.asList(actual));
         Set<Object> expectedSet = new HashSet<>(Arrays.asList(expected));
         assertEquals(expectedSet, actualSet);
+    }
+
+    private static char[] copyDigits(char[] c, boolean noZeros) {
+        char[] copy = new char[c.length];
+        for(int i = 0; i < c.length; i++) {
+            if(c[i] == '0') {
+                if(noZeros) {
+                    throw new IllegalArgumentException();
+                }
+                copy[i] = '%';
+            } else {
+                copy[i] = c[i];
+            }
+        }
+        return copy;
+    }
+
+    public static char[] createDigitArray() {
+        char[] c = "0123456789".toCharArray();
+        for(int i = 0; i < c.length; i++) {
+            c[i] = MultiTainter.taintedChar(c[i], i);
+        }
+        return c;
+    }
+
+    public static void checkDigitArray(char[] c) {
+        for(int i = 0; i < c.length; i++) {
+            Taint t = MultiTainter.getTaint(c[i]);
+            assertNotNull(t);
+            Object[] labels = t.getLabels();
+            assertArrayEquals(new Object[]{i}, labels);
+        }
+    }
+
+    public static void taintWithIndices(int[] a) {
+        for(int i = 0; i < a.length; i++) {
+            a[i] = MultiTainter.taintedInt(a[i], i);
+        }
     }
 
     @Test
@@ -60,37 +98,6 @@ public class GeneralBindingControlITCase extends BaseMultiTaintClass {
         assertNullOrEmpty(MultiTainter.getTaint(d));
     }
 
-    private char[] copyDigits(char[] c, boolean noZeros) {
-        char[] copy = new char[c.length];
-        for(int i = 0; i < c.length; i++) {
-            if(c[i] == '0') {
-                if(noZeros) {
-                    throw new IllegalArgumentException();
-                }
-                copy[i] = '%';
-            } else {
-                copy[i] = c[i];
-            }
-        }
-        return copy;
-    }
-    private static char[] createDigitArray() {
-        char[] c = "0123456789".toCharArray();
-        for(int i = 0; i < c.length; i++) {
-            c[i] = MultiTainter.taintedChar(c[i], i);
-        }
-        return c;
-    }
-
-    private static void checkDigitArray(char[] c) {
-        for(int i = 0; i < c.length; i++) {
-            Taint t = MultiTainter.getTaint(c[i]);
-            assertNotNull(t);
-            Object[] labels = t.getLabels();
-            assertArrayEquals(new Object[]{i}, labels);
-        }
-    }
-
     @Test
     public void testForLoopMultipleReturns() {
         char[] c = createDigitArray();
@@ -107,24 +114,5 @@ public class GeneralBindingControlITCase extends BaseMultiTaintClass {
             c = 43;
         }
         checkContainsInAnyOrder(MultiTainter.getTaint(c).getLabels(), "a", "b");
-    }
-
-    @Test
-    @Ignore
-    public void testLoopingVarConditionallyUpdated() {
-        char[] c = createDigitArray();
-        LinkedList<Character> digits = new LinkedList<>();
-        for(int i = 0; i < c.length; i++) {
-            digits.add(c[i]);
-            if(c[i] == '0') {
-                // Skip value after zero
-                i++;
-            }
-        }
-        for(char digit : digits) {
-            Taint tag = MultiTainter.getTaint(digit);
-            assertNonNullTaint(tag);
-            checkContainsInAnyOrder(tag.getLabels(), Integer.parseInt("" + digit));
-        }
     }
 }

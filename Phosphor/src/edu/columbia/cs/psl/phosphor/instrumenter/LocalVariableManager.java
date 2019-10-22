@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
@@ -107,7 +108,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
     @Override
     public void visitVarInsn(int opcode, int var) {
-        if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START || isIgnoreEverything) {
+        if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START || opcode == TaintUtils.EXCLUDE_BRANCH
+                || isIgnoreEverything) {
             mv.visitVarInsn(opcode, var);
             return;
         }
@@ -202,14 +204,15 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     }
 
     int newControlTaintLV() {
-        int idx = super.newLocal(Type.getType("[I"));
+        Type type = Type.getType(Taint[].class);
+        int idx = super.newLocal(type);
         if(ctrlTagStartLbl == null) {
             ctrlTagStartLbl = new Label();
             super.visitLabel(ctrlTagStartLbl);
         }
-        LocalVariableNode newLVN = new LocalVariableNode("phosphorInvocationCountPerBranch", "[I", null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
+        LocalVariableNode newLVN = new LocalVariableNode("branchTags", type.getDescriptor(), null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
         createdLVs.add(newLVN);
-        analyzer.locals.add(idx, "[I");
+        analyzer.locals.add(idx, type.getDescriptor());
         jumpIdx++;
         return idx;
     }

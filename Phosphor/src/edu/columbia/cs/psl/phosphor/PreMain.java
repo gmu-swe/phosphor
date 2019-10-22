@@ -446,7 +446,9 @@ public class PreMain {
                     }
                     System.out.println("Saving " + className);
                     File f = new File("debug/" + className.replace("/", ".") + ".class");
-                    if(f.getParentFile().mkdirs()) {
+                    if(!f.getParentFile().isDirectory() && !f.getParentFile().mkdirs()) {
+                        System.err.println("Failed to make debug directory: " + f);
+                    } else {
                         try {
                             FileOutputStream fos = new FileOutputStream(f);
                             fos.write(classfileBuffer);
@@ -454,8 +456,6 @@ public class PreMain {
                         } catch(Exception ex2) {
                             ex.printStackTrace();
                         }
-                    } else {
-                        System.err.println("Failed to make debug directory: " + f);
                     }
                     return new byte[0];
                 }

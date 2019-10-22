@@ -51,6 +51,9 @@ public class TaintUtils {
     public static final int CUSTOM_SIGNAL_2 = 219;
     public static final int CUSTOM_SIGNAL_3 = 220;
     public static final int LOOP_HEADER = 221;
+    // Indicates that tags pushed onto the control taint tag stack for a particular branch should not to propagate
+    // to the next store insn
+    public static final int EXCLUDE_BRANCH = 222;
     public static final String TAINT_FIELD = "PHOSPHOR_TAG";
     public static final String METHOD_SUFFIX = "$$PHOSPHORTAGGED";
     public static final String PHOSPHOR_ADDED_FIELD_PREFIX = "$$PHOSPHOR_";

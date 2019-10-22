@@ -417,7 +417,7 @@ public class MethodArgReindexer extends MethodVisitor {
     }
 
     public void visitVarInsn(int opcode, int var) {
-        if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START) {
+        if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START || opcode == TaintUtils.EXCLUDE_BRANCH) {
             super.visitVarInsn(opcode, var);
             return;
         }

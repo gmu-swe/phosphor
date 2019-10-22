@@ -4,9 +4,11 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
 import edu.columbia.cs.psl.phosphor.struct.Field;
+import edu.columbia.cs.psl.phosphor.struct.IntSinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.Label;
@@ -122,24 +124,24 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
      * The types of parameters of the method being visited.
      */
     private final Type[] paramTypes;
-
+    /**
+     * Tracks the identifier of branches whose tags should not be propagated to the next instruction
+     */
+    private final IntSinglyLinkedList excludedBranchIDs = new IntSinglyLinkedList();
     /**
      * The number of exception handlers for the method being visited that have not yet been visited
      */
     private int numberOfExceptionHandlersRemaining;
-
     /**
      * If the method being visited has at least one "branch" location, the index of the array created to track pushes
      * for each location. Otherwise, -1.
      */
     private int indexOfBranchIDArray = -1;
-
     /**
      * If the method being visited has at least one exception handler location and exceptional flows are being tracked
      * the index of the EnqueuedTaint instance used for tracking exceptional flow information. Otherwise, -1.
      */
     private int indexOfControlExceptionTaint = -1;
-
     /**
      * The identifier of the next "branch" location encountered
      */
@@ -236,10 +238,39 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
         } else {
             shadowVar = localVariableManager.varToShadowVar.get(var);
         }
-        delegate.visitVarInsn(ALOAD, shadowVar);
+        if(excludedBranchIDs.isEmpty()) {
+            delegate.visitVarInsn(ALOAD, shadowVar);
+            delegate.visitVarInsn(ALOAD, localVariableManager.idxOfMasterControlLV);
+            COMBINE_TAGS_CONTROL.delegateVisit(delegate);
+            delegate.visitVarInsn(ASTORE, shadowVar);
+        } else {
+            delegate.visitVarInsn(ALOAD, shadowVar); // Current tag
+            getControlTagWithExclusions();
+            COMBINE_TAGS.delegateVisit(delegate);
+            delegate.visitVarInsn(ASTORE, shadowVar);
+            excludedBranchIDs.clear();
+        }
+    }
+
+    private void getControlTagWithExclusions() {
         delegate.visitVarInsn(ALOAD, localVariableManager.idxOfMasterControlLV);
-        COMBINE_TAGS_CONTROL.delegateVisit(delegate);
-        delegate.visitVarInsn(ASTORE, shadowVar);
+        delegate.visitVarInsn(ALOAD, indexOfBranchIDArray);
+        // ControlTaintTagStack Taint[]
+        // Make the exclusion array
+        push(delegate, excludedBranchIDs.size());
+        delegate.visitIntInsn(NEWARRAY, T_INT);
+        int i = 0;
+        for(int excludedBranchID : excludedBranchIDs) {
+            // Duplicate the array
+            delegate.visitInsn(DUP);
+            // Push the array index onto the stack
+            push(delegate, i++);
+            // Push the int onto the stack
+            push(delegate, excludedBranchID);
+            // Store the argument into the array
+            delegate.visitInsn(IASTORE);
+        }
+        CONTROL_STACK_COPY_TAG_WITH_EXCLUSIONS.delegateVisit(delegate);
     }
 
     @Override
@@ -256,30 +287,63 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
 
     @Override
     public void storingTaintedValue(int opcode, int var) {
-        switch(opcode) {
-            case ISTORE:
-            case FSTORE:
-                delegate.visitInsn(SWAP);
-                delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-                COMBINE_TAGS_CONTROL.delegateVisit(delegate);
-                delegate.visitInsn(SWAP);
-                break;
-            case DSTORE:
-            case LSTORE:
-                delegate.visitInsn(DUP2_X1);
-                delegate.visitInsn(POP2);
-                delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-                COMBINE_TAGS_CONTROL.delegateVisit(delegate);
-                delegate.visitInsn(DUP_X2);
-                delegate.visitInsn(POP);
-                break;
-            case ASTORE:
-                delegate.visitInsn(DUP);
-                delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-                COMBINE_TAGS_ON_OBJECT.delegateVisit(delegate);
-                break;
-            case TaintUtils.FORCE_CTRL_STORE:
-                forceControlStoreVariables.add(var);
+        if(opcode ==TaintUtils.FORCE_CTRL_STORE) {
+            forceControlStoreVariables.add(var);
+        } else if(excludedBranchIDs.isEmpty()) {
+            switch(opcode) {
+                case ISTORE:
+                case FSTORE:
+                    // taint value
+                    delegate.visitInsn(SWAP);
+                    delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
+                    COMBINE_TAGS_CONTROL.delegateVisit(delegate);
+                    delegate.visitInsn(SWAP);
+                    break;
+                case DSTORE:
+                case LSTORE:
+                    // taint value
+                    delegate.visitInsn(DUP2_X1);
+                    delegate.visitInsn(POP2);
+                    delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
+                    COMBINE_TAGS_CONTROL.delegateVisit(delegate);
+                    delegate.visitInsn(DUP_X2);
+                    delegate.visitInsn(POP);
+                    break;
+                case ASTORE:
+                    // objectref
+                    delegate.visitInsn(DUP);
+                    delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
+                    COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
+                    break;
+            }
+        } else {
+            switch(opcode) {
+                case ISTORE:
+                case FSTORE:
+                    // taint value
+                    delegate.visitInsn(SWAP);
+                    getControlTagWithExclusions();
+                    COMBINE_TAGS.delegateVisit(delegate);
+                    delegate.visitInsn(SWAP);
+                    break;
+                case DSTORE:
+                case LSTORE:
+                    // taint value
+                    delegate.visitInsn(DUP2_X1);
+                    delegate.visitInsn(POP2);
+                    getControlTagWithExclusions();
+                    COMBINE_TAGS.delegateVisit(delegate);
+                    delegate.visitInsn(DUP_X2);
+                    delegate.visitInsn(POP);
+                    break;
+                case ASTORE:
+                    // objectref
+                    delegate.visitInsn(DUP);
+                    getControlTagWithExclusions();
+                    COMBINE_TAGS_IN_PLACE.delegateVisit(delegate);
+                    break;
+            }
+            excludedBranchIDs.clear();
         }
     }
 
@@ -310,7 +374,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
                         // obj, val, obj
                     }
                     delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-                    COMBINE_TAGS_ON_OBJECT.delegateVisit(delegate);
+                    COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
                 } else {
                     // obj, taint, val-wide
                     int tmp = localVariableManager.getTmpLV(type);
@@ -321,7 +385,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
                     delegate.visitInsn(DUP_X1);
                     // obj, taint, obj
                     delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-                    COMBINE_TAGS_ON_OBJECT.delegateVisit(delegate);
+                    COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
                     // obj, taint
                     delegate.visitVarInsn(type.getSort() == Type.DOUBLE ? DLOAD : LLOAD, tmp);
                     // obj, taint, val-wide
@@ -334,7 +398,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
             delegate.visitInsn(DUP);
             //objectref objectref
             delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-            COMBINE_TAGS_ON_OBJECT.delegateVisit(delegate);
+            COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
             // objectref
         } else if(type.getSort() != Type.ARRAY) {
             // Primitive type
@@ -366,11 +430,16 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
 
     @Override
     public void generateEmptyTaint() {
-        delegate.visitVarInsn(ALOAD, localVariableManager.idxOfMasterControlLV);
-        if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
-            CONTROL_STACK_COPY_TAG_EXCEPTIONS.delegateVisit(delegate);
+        if(excludedBranchIDs.isEmpty()) {
+            delegate.visitVarInsn(ALOAD, localVariableManager.idxOfMasterControlLV);
+            if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
+                CONTROL_STACK_COPY_TAG_EXCEPTIONS.delegateVisit(delegate);
+            } else {
+                CONTROL_STACK_COPY_TAG.delegateVisit(delegate);
+            }
         } else {
-            CONTROL_STACK_COPY_TAG.delegateVisit(delegate);
+            getControlTagWithExclusions();
+            excludedBranchIDs.clear();
         }
     }
 
@@ -414,7 +483,6 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
         delegate.visitVarInsn(ALOAD, localVariableManager.idxOfMasterExceptionLV);
         delegate.visitLdcInsn(Type.getObjectType(type));
         CONTROL_STACK_ADD_UNTHROWN_EXCEPTION.delegateVisit(delegate);
-
     }
 
     @Override
@@ -457,7 +525,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
                 baseLvs[localVariableManager.idxOfMasterExceptionLV] = Type.getInternalName(ExceptionalTaintData.class);
             }
             if(indexOfBranchIDArray > 0) {
-                baseLvs[indexOfBranchIDArray] = "[I";
+                baseLvs[indexOfBranchIDArray] = Type.getDescriptor(Taint[].class);
             }
             delegate.visitFrame(F_NEW, baseLvs.length, baseLvs, 1, new Object[]{"java/lang/Throwable"});
             if(indexOfBranchIDArray >= 0) {
@@ -476,7 +544,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
         if(opcode == ATHROW) {
             passThroughDelegate.visitInsn(DUP);
             passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-            COMBINE_TAGS_ON_OBJECT.delegateVisit(passThroughDelegate);
+            COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(passThroughDelegate);
         }
         if(indexOfBranchIDArray >= 0) {
             callPopAll();
@@ -503,7 +571,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
             } else {
                 delegate.visitInsn(DUP);
                 delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-                COMBINE_TAGS_ON_OBJECT.delegateVisit(delegate);
+                COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
             }
         }
     }
@@ -605,6 +673,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
         nextBranchID = UNIDENTIFIED_BRANCH;
     }
 
+    @Override
     public void visitingSwitch() {
         if(nextBranchID != UNIDENTIFIED_BRANCH) {
             delegate.visitInsn(SWAP);
@@ -623,7 +692,12 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     public void storingReferenceInArray() {
         delegate.visitInsn(DUP);
         delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-        COMBINE_TAGS_ON_OBJECT.delegateVisit(delegate);
+        COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
+    }
+
+    @Override
+    public void visitingExcludeBranch(int branchID) {
+        excludedBranchIDs.enqueue(branchID);
     }
 
     private void callPushControlTaint(int branchID, boolean isTag) {
@@ -717,7 +791,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
                     if(!(analyzer.locals.get(var) instanceof Integer)) {
                         delegate.visitVarInsn(ALOAD, var);
                         delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-                        COMBINE_TAGS_ON_OBJECT.delegateVisit(delegate);
+                        COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
                     }
                 }
             }
@@ -750,7 +824,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
             }
             delegate.visitFieldInsn(getFieldOpcode, field.owner, field.name, field.description);
             delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
-            COMBINE_TAGS_ON_OBJECT.delegateVisit(delegate);
+            COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
         }
     }
 

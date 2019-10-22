@@ -140,6 +140,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             controlFlowDelegator.visitingBranchEnd(var);
             analyzer.clearLabels();
             return;
+        } else if(opcode == TaintUtils.EXCLUDE_BRANCH) {
+            controlFlowDelegator.visitingExcludeBranch(var);
+            return;
         } else if(opcode == TaintUtils.NEVER_AUTOBOX) {
             return;
         } else if(opcode == TaintUtils.ALWAYS_BOX_JUMP) {

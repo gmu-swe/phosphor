@@ -49,6 +49,6 @@ public class SimpleBasicBlock implements BasicBlock {
 
     @Override
     public String toString() {
-        return String.format("SimpleBasicBlock{#%d: %s - %s}", identifier, firstInsn.getClass().getSimpleName(), lastInsn.getClass().getSimpleName());
+        return String.format("BasicBlock{#%d: %s - %s}", identifier, firstInsn.getClass().getSimpleName(), lastInsn.getClass().getSimpleName());
     }
 }

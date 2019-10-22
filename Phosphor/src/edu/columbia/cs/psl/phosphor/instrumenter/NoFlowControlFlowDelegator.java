@@ -158,4 +158,9 @@ public class NoFlowControlFlowDelegator implements ControlFlowDelegator {
     public void storingReferenceInArray() {
 
     }
+
+    @Override
+    public void visitingExcludeBranch(int branchID) {
+
+    }
 }

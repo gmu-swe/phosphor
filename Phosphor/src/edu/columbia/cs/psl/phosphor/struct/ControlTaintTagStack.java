@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 import java.util.Iterator;
@@ -18,7 +19,6 @@ public final class ControlTaintTagStack {
     public ControlTaintTagStack() {
         this.taintHistory = new SinglyLinkedList<>();
         taintHistory.push(null); // starting taint is null/empty
-
     }
 
     private ControlTaintTagStack(boolean isDisabled) {
@@ -136,54 +136,55 @@ public final class ControlTaintTagStack {
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG_EXCEPTION)
-    public final int[] push(Taint tag, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData curMethod) {
+    public final Taint<?>[] push(Taint tag, Taint<?>[] branchTags, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData curMethod) {
         if(tag == null) {
-            return invocationCountPerBranch;
+            return branchTags;
         }
-        return _push(tag, invocationCountPerBranch, indexOfBranchInMethod, maxSize, curMethod);
+        return _push(tag, branchTags, indexOfBranchInMethod, maxSize, curMethod);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG)
-    public final int[] push(Taint tag, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize) {
-        return push(tag, invocationCountPerBranch, indexOfBranchInMethod, maxSize, null);
+    public final Taint<?>[] push(Taint tag, Taint<?>[] branchTags, int indexOfBranchInMethod, int maxSize) {
+        return push(tag, branchTags, indexOfBranchInMethod, maxSize, null);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_OBJECT_EXCEPTION)
-    public final int[] push(Object obj, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData curMethod) {
+    public final Taint<?>[] push(Object obj, Taint<?>[] branchTags, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData curMethod) {
         if(obj instanceof TaintedWithObjTag) {
-            return push((Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG(), invocationCountPerBranch, indexOfBranchInMethod, maxSize, curMethod);
+            return push((Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG(), branchTags, indexOfBranchInMethod, maxSize, curMethod);
         } else {
-            return invocationCountPerBranch;
+            return branchTags;
         }
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_OBJECT)
-    public final int[] push(Object obj, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize) {
-        return push(obj, invocationCountPerBranch, indexOfBranchInMethod, maxSize, null);
+    public final Taint<?>[] push(Object obj, Taint<?>[] branchTags, int indexOfBranchInMethod, int maxSize) {
+        return push(obj, branchTags, indexOfBranchInMethod, maxSize, null);
     }
 
     @SuppressWarnings("unchecked")
-    private int[] _push(Taint tag, int[] invocationCountPerBranch, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData exceptionData) {
+    private Taint<?>[] _push(Taint tag, Taint<?>[] branchTags, int indexOfBranchInMethod, int maxSize, ExceptionalTaintData exceptionData) {
         if(isDisabled || tag == null || tag.isEmpty()) {
-            return invocationCountPerBranch;
+            return branchTags;
         }
-        if(invocationCountPerBranch == null) {
-            invocationCountPerBranch = new int[maxSize];
+        if(branchTags == null) {
+            branchTags = new Taint[maxSize];
         }
-        invocationCountPerBranch[indexOfBranchInMethod]++;
-        if(invocationCountPerBranch[indexOfBranchInMethod] == 1) {
+        if(branchTags[indexOfBranchInMethod] == null) {
             // Adding a label for this branch for the first time
             taintHistory.push(new Taint(tag, taintHistory.peek()));
             if(exceptionData != null) {
-                exceptionData.push(tag);
+                exceptionData.push(new Taint(tag, taintHistory.peek()));
             }
+            branchTags[indexOfBranchInMethod] = tag.copy();
         } else {
             taintHistory.peek().addDependency(tag);
             if(exceptionData != null) {
                 exceptionData.getCurrentTaint().addDependency(tag);
             }
+            branchTags[indexOfBranchInMethod].addDependency(tag);
         }
-        return invocationCountPerBranch;
+        return branchTags;
     }
 
     @SuppressWarnings("unchecked")
@@ -198,28 +199,28 @@ public final class ControlTaintTagStack {
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_EXCEPTION)
-    public final void pop(int[] invocationCountPerBranch, int indexOfBranchInMethod, ExceptionalTaintData curMethod) {
-        if(invocationCountPerBranch != null && invocationCountPerBranch[indexOfBranchInMethod] > 0) {
+    public final void pop(Taint<?>[] branchTags, int indexOfBranchInMethod, ExceptionalTaintData curMethod) {
+        if(branchTags != null && branchTags[indexOfBranchInMethod] != null) {
             curMethod.pop();
             taintHistory.pop();
-            invocationCountPerBranch[indexOfBranchInMethod] = 0;
+            branchTags[indexOfBranchInMethod] = null;
         }
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP)
-    public final void pop(int[] invocationCountPerBranch, int indexOfBranchInMethod) {
-        if(invocationCountPerBranch != null) {
-            if(invocationCountPerBranch[indexOfBranchInMethod] > 0) {
+    public final void pop(Taint<?>[] branchTags, int indexOfBranchInMethod) {
+        if(branchTags != null) {
+            if(branchTags[indexOfBranchInMethod] != null) {
                 taintHistory.pop();
             }
-            invocationCountPerBranch[indexOfBranchInMethod] = 0;
+            branchTags[indexOfBranchInMethod] = null;
         }
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_ALL_EXCEPTION)
-    public final void pop(int[] invocationCountPerBranch, ExceptionalTaintData curMethod) {
-        if(invocationCountPerBranch != null) {
-            pop(invocationCountPerBranch);
+    public final void pop(Taint<?>[] branchTags, ExceptionalTaintData curMethod) {
+        if(branchTags != null) {
+            pop(branchTags);
             if(curMethod != null) {
                 curMethod.reset();
             }
@@ -227,12 +228,12 @@ public final class ControlTaintTagStack {
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_ALL)
-    public final void pop(int[] invocationCountPerBranch) {
-        if(invocationCountPerBranch != null) {
-            for(int i = 0; i < invocationCountPerBranch.length; i++) {
-                if(invocationCountPerBranch[i] > 0) {
+    public final void pop(Taint<?>[] branchTags) {
+        if(branchTags != null) {
+            for(int i = 0; i < branchTags.length; i++) {
+                if(branchTags[i] != null) {
                     taintHistory.pop();
-                    invocationCountPerBranch[i] = 0;
+                    branchTags[i] = null;
                 }
             }
         }
@@ -268,6 +269,58 @@ public final class ControlTaintTagStack {
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG)
     public Taint copyTag() {
         return isEmpty() ? null : taintHistory.peek().copy();
+    }
+
+    @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_WITH_EXCLUSIONS)
+    public Taint copyTagWithExclusions(Taint[] branchTags, int[] excludedBranchIDs) {
+        boolean currentStackIncludesExcludedBranch = false;
+        if(branchTags != null) {
+            for(int excludedBranchID : excludedBranchIDs) {
+                if(branchTags[excludedBranchID] != null) {
+                    currentStackIncludesExcludedBranch = true;
+                    break;
+                }
+            }
+        }
+        if(branchTags == null || !currentStackIncludesExcludedBranch) {
+            return getTag();
+        } else {
+            int pushesFromCurrentMethod = 0;
+            Taint<?> includedBranchesTag = getIncludedBranchesTag(branchTags, excludedBranchIDs);
+            for(Taint<?> branchTag : branchTags) {
+                if(branchTag != null) {
+                    pushesFromCurrentMethod++;
+                }
+            }
+            if(taintHistory.size() > pushesFromCurrentMethod + 1) {
+                Iterator<Taint> itr = taintHistory.iterator();
+                for(int i = 0; i < pushesFromCurrentMethod; i++) {
+                    itr.next();
+                }
+                return Taint.combineTags(includedBranchesTag, itr.next());
+            } else {
+                return includedBranchesTag;
+            }
+        }
+    }
+
+    private Taint<?> getIncludedBranchesTag(Taint[] branchTags, int[] excludedBranchIDs) {
+        if(branchTags == null) {
+            return null;
+        } else {
+            boolean[] exclude = new boolean[branchTags.length];
+            for(int excludedBranchID : excludedBranchIDs) {
+                exclude[excludedBranchID] = true;
+            }
+            Taint<?> includedBranchesTag = null;
+            for(int i = 0; i < branchTags.length; i++) {
+                if(!exclude[i] && branchTags[i] != null && !branchTags[i].isEmpty()) {
+                    includedBranchesTag = Taint.combineTags(includedBranchesTag, branchTags[i]);
+                }
+            }
+            return includedBranchesTag;
+        }
     }
 
     public Taint getTag() {
