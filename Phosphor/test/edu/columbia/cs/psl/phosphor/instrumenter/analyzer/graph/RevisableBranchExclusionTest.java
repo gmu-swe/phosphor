@@ -58,7 +58,6 @@ public class RevisableBranchExclusionTest {
         assertEquals(instructionsWithOpcodes(mn, ALWAYS_EXCLUDED_OPCODES), exclusions);
     }
 
-
     @Test
     public void testUnableToMergeConstants() throws NoSuchMethodException, IOException {
         String owner = Type.getInternalName(RevisableBranchExclusionTestMethods.class);

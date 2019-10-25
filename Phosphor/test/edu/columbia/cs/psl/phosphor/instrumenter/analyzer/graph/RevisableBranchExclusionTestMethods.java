@@ -73,7 +73,7 @@ public class RevisableBranchExclusionTestMethods {
     }
 
     public static void unableToMergeConstants(boolean condition) {
-        int a = 77; // excluded  x = C
+        int a = -88; // excluded  x = C
         int b;
         if(condition) {
             b = 77;  // excluded x = C

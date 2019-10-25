@@ -7,6 +7,7 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.*;
 
+import java.util.Iterator;
 import java.util.Objects;
 
 /**
@@ -25,8 +26,6 @@ import java.util.Objects;
 
 public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
 
-    private final Set<AbstractInsnNode> exclusions = new HashSet<>();
-
     public RevisableBranchExclusionInterpreter() {
         super(Configuration.ASM_VERSION);
     }
@@ -36,56 +35,39 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
         SourceValue result = super.newOperation(insn);
         switch(insn.getOpcode()) {
             case ACONST_NULL:
-                // Null load does not need to be marked as an exclusion
                 return new ObjectConstantSourceValue(result, null);
             case ICONST_M1:
-                exclusions.add(insn);
                 return new IntegerConstantSourceValue(result, -1);
             case ICONST_0:
-                exclusions.add(insn);
                 return new IntegerConstantSourceValue(result, 0);
             case ICONST_1:
-                exclusions.add(insn);
                 return new IntegerConstantSourceValue(result, 1);
             case ICONST_2:
-                exclusions.add(insn);
                 return new IntegerConstantSourceValue(result, 2);
             case ICONST_3:
-                exclusions.add(insn);
                 return new IntegerConstantSourceValue(result, 3);
             case ICONST_4:
-                exclusions.add(insn);
                 return new IntegerConstantSourceValue(result, 4);
             case ICONST_5:
-                exclusions.add(insn);
                 return new IntegerConstantSourceValue(result, 5);
             case DCONST_0:
-                exclusions.add(insn);
                 return new DoubleConstantSourceValue(result, 0);
             case DCONST_1:
-                exclusions.add(insn);
                 return new DoubleConstantSourceValue(result, 1);
             case FCONST_0:
-                exclusions.add(insn);
                 return new FloatConstantSourceValue(result, 0f);
             case FCONST_1:
-                exclusions.add(insn);
                 return new FloatConstantSourceValue(result, 1f);
             case FCONST_2:
-                exclusions.add(insn);
                 return new FloatConstantSourceValue(result, 2f);
             case LCONST_0:
-                exclusions.add(insn);
                 return new LongConstantSourceValue(result, 0L);
             case LCONST_1:
-                exclusions.add(insn);
                 return new LongConstantSourceValue(result, 1L);
             case BIPUSH:
             case SIPUSH:
-                exclusions.add(insn);
                 return new IntegerConstantSourceValue(result, ((IntInsnNode) insn).operand);
             case LDC:
-                exclusions.add(insn);
                 return new ObjectConstantSourceValue(result, ((LdcInsnNode) insn).cst);
             default:
                 return result;
@@ -94,16 +76,6 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
 
     @Override
     public SourceValue copyOperation(AbstractInsnNode insn, SourceValue value) {
-        switch(insn.getOpcode()) {
-            case ISTORE:
-            case LSTORE:
-            case FSTORE:
-            case DSTORE:
-            case ASTORE:
-                if(insn instanceof VarInsnNode && isExcludedLocalVariableStore((VarInsnNode) insn, value)) {
-                    exclusions.add(insn);
-                }
-        }
         SourceValue result = super.copyOperation(insn, value);
         if(value instanceof ConstantSourceValue) {
             return ((ConstantSourceValue) value).wrap(result);
@@ -120,7 +92,6 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
                 case INEG:
                     return ((IntegerConstantSourceValue) value).negate(result);
                 case IINC:
-                    exclusions.add(insn);
                     return ((IntegerConstantSourceValue) value).increment(result, ((IincInsnNode) insn).incr);
                 case I2L:
                     return ((IntegerConstantSourceValue) value).castToLong(result);
@@ -267,32 +238,77 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
 
     @Override
     public SourceValue merge(SourceValue value1, SourceValue value2) {
+        if(value1 == value2) {
+            return value1;
+        }
+        SourceValue merge = super.merge(value1, value2);
         if(value1 instanceof ConstantSourceValue && value2 instanceof ConstantSourceValue) {
             if(((ConstantSourceValue) value1).canMerge((ConstantSourceValue) value2)) {
-                return value1;
+                return merge instanceof ConstantSourceValue ? merge : ((ConstantSourceValue) value1).wrap(merge);
             } else if(((ConstantSourceValue) value2).canMerge((ConstantSourceValue) value1)) {
-                return value2;
+                return merge instanceof ConstantSourceValue ? merge : ((ConstantSourceValue) value2).wrap(merge);
             }
         }
-        return super.merge(value1, value2);
+        if(merge instanceof ConstantSourceValue) {
+            return new SourceValue(merge.size, merge.insns);
+        } else {
+            return merge;
+        }
     }
 
     public static Set<AbstractInsnNode> identifyRevisableBranchExclusions(String owner, MethodNode methodNode) {
         RevisableBranchExclusionInterpreter interpreter = new RevisableBranchExclusionInterpreter();
         Analyzer<SourceValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(interpreter);
         try {
-            analyzer.analyze(owner, methodNode);
-            return interpreter.exclusions;
+            Set<AbstractInsnNode> result = new HashSet<>();
+            Frame<SourceValue>[] frames = analyzer.analyze(owner, methodNode);
+            Iterator<AbstractInsnNode> itr = methodNode.instructions.iterator();
+            for(Frame<SourceValue> frame : frames) {
+                AbstractInsnNode insn = itr.next();
+                if(frame != null && shouldExclude(insn, frame)) {
+                    result.add(insn);
+                }
+            }
+            return result;
         } catch(AnalyzerException e) {
             return Collections.emptySet();
         }
     }
 
-    private static boolean isExcludedLocalVariableStore(VarInsnNode insn, SourceValue value) {
-        if(value instanceof ConstantSourceValue) {
-            return true; // form x = c;
-        } else {
-            return false;
+    private static boolean shouldExclude(AbstractInsnNode insn, Frame<SourceValue> frame) {
+        switch(insn.getOpcode()) {
+            case ICONST_M1:
+            case ICONST_0:
+            case ICONST_1:
+            case ICONST_2:
+            case ICONST_3:
+            case ICONST_4:
+            case ICONST_5:
+            case LCONST_0:
+            case LCONST_1:
+            case FCONST_0:
+            case FCONST_1:
+            case FCONST_2:
+            case DCONST_0:
+            case DCONST_1:
+            case BIPUSH:
+            case SIPUSH:
+            case LDC:
+            case IINC:
+                return true;
+            case ISTORE:
+            case LSTORE:
+            case FSTORE:
+            case DSTORE:
+            case ASTORE:
+                SourceValue top = frame.getStack(0);
+                if(top instanceof ConstantSourceValue) {
+                    return true;
+                } else {
+                    int var = ((VarInsnNode) insn).var;
+                }
+            default:
+                return false;
         }
     }
 
@@ -322,6 +338,28 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
         @Override
         boolean canMerge(ConstantSourceValue other) {
             return other instanceof ObjectConstantSourceValue && Objects.equals(constant, ((ObjectConstantSourceValue) other).constant);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if(this == o) {
+                return true;
+            }
+            if(o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if(!super.equals(o)) {
+                return false;
+            }
+            ObjectConstantSourceValue that = (ObjectConstantSourceValue) o;
+            return constant != null ? constant.equals(that.constant) : that.constant == null;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = super.hashCode();
+            result = 31 * result + (constant != null ? constant.hashCode() : 0);
+            return result;
         }
     }
 
@@ -422,6 +460,28 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
             }
             return false;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if(this == o) {
+                return true;
+            }
+            if(o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if(!super.equals(o)) {
+                return false;
+            }
+            IntegerConstantSourceValue that = (IntegerConstantSourceValue) o;
+            return constant == that.constant;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = super.hashCode();
+            result = 31 * result + constant;
+            return result;
+        }
     }
 
     private static class LongConstantSourceValue extends ConstantSourceValue {
@@ -510,6 +570,28 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
             }
             return false;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if(this == o) {
+                return true;
+            }
+            if(o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if(!super.equals(o)) {
+                return false;
+            }
+            LongConstantSourceValue that = (LongConstantSourceValue) o;
+            return constant == that.constant;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = super.hashCode();
+            result = 31 * result + (int) (constant ^ (constant >>> 32));
+            return result;
+        }
     }
 
     private static class FloatConstantSourceValue extends ConstantSourceValue {
@@ -556,7 +638,6 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
             return new FloatConstantSourceValue(value, constant % other.constant);
         }
 
-
         FloatConstantSourceValue compareG(SourceValue value, FloatConstantSourceValue other) {
             float result;
             if(Float.isNaN(constant) || Float.isNaN(other.constant)) {
@@ -592,6 +673,28 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
                 return constant == ((FloatConstantSourceValue) other).constant;
             }
             return false;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if(this == o) {
+                return true;
+            }
+            if(o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if(!super.equals(o)) {
+                return false;
+            }
+            FloatConstantSourceValue that = (FloatConstantSourceValue) o;
+            return Float.compare(that.constant, constant) == 0;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = super.hashCode();
+            result = 31 * result + (constant != +0.0f ? Float.floatToIntBits(constant) : 0);
+            return result;
         }
     }
 
@@ -676,6 +779,30 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
                 return constant == ((DoubleConstantSourceValue) other).constant;
             }
             return false;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if(this == o) {
+                return true;
+            }
+            if(o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if(!super.equals(o)) {
+                return false;
+            }
+            DoubleConstantSourceValue that = (DoubleConstantSourceValue) o;
+            return Double.compare(that.constant, constant) == 0;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = super.hashCode();
+            long temp;
+            temp = Double.doubleToLongBits(constant);
+            result = 31 * result + (int) (temp ^ (temp >>> 32));
+            return result;
         }
     }
 }
