@@ -931,7 +931,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 annotateLoops(this);
             }
             if(Configuration.BINDING_CONTROL_FLOWS_ONLY) {
-                nJumps = BindingControlFlowAnalyzer.analyzeAndModify(this);
+                nJumps = BindingControlFlowAnalyzer.analyzeAndModify(className, this);
                 patchFrames(implicitAnalysisBlocks.values(), instructions);
             } else if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
                 annotateCodeForControlFlow();

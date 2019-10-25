@@ -6,9 +6,10 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
-import org.objectweb.asm.tree.*;
-
-import java.util.Iterator;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -18,7 +19,7 @@ public class BindingControlFlowAnalyzer {
      * @param methodNode the method to be analyzed and possibly modified
      * @return the number of unique branch ids used in added instructions
      */
-    public static int analyzeAndModify(MethodNode methodNode) {
+    public static int analyzeAndModify(String owner, MethodNode methodNode) {
         InsnList instructions = methodNode.instructions;
         if(instructions.size() == 0) {
             return 0;
@@ -59,7 +60,7 @@ public class BindingControlFlowAnalyzer {
         Map<BasicBlock, Set<BasicBlock>> bindingControlDependencies = calculateBindingControlDependenciesMap(controlFlowGraph, bindingEdgesMap);
         Set<BasicBlock> loopExclusionBranches = calculateLoopExclusionBranches(controlFlowGraph, bindingEdgesMap);
         if(!loopExclusionBranches.isEmpty()) {
-            Set<AbstractInsnNode> exclusionCandidates = findLoopExclusionCandidates(instructions);
+            Set<AbstractInsnNode> exclusionCandidates = RevisableBranchExclusionInterpreter.identifyRevisableBranchExclusions(owner, methodNode);
             for(AbstractInsnNode exclusionCandidate : exclusionCandidates) {
                 for(BasicBlock loopExclusionBranch : loopExclusionBranches) {
                     for(BasicBlock dependency : bindingControlDependencies.get(loopExclusionBranch)) {
@@ -72,66 +73,6 @@ public class BindingControlFlowAnalyzer {
             }
         }
         return branchID;
-    }
-
-    /**
-     * @param instructions list of instruction in the method being analyzed
-     * @return set of assignment instructions that are considered for exclusion from certain binding control dependencies
-     */
-    private static Set<AbstractInsnNode> findLoopExclusionCandidates(InsnList instructions) {
-        Set<AbstractInsnNode> exclusionCandidates = new HashSet<>();
-        Iterator<AbstractInsnNode> itr = instructions.iterator();
-        AbstractInsnNode lastInsn = null;
-        while(itr.hasNext()) {
-            AbstractInsnNode curInsn = itr.next();
-            if(curInsn instanceof IincInsnNode) {
-                exclusionCandidates.add(curInsn);
-            } else if(lastInsn != null && pushesConstant(lastInsn) && storesLocalVariable(curInsn)) {
-                exclusionCandidates.add(lastInsn);
-                exclusionCandidates.add(curInsn);
-            }
-            lastInsn = curInsn;
-
-        }
-        return exclusionCandidates;
-    }
-
-    private static boolean storesLocalVariable(AbstractInsnNode insn) {
-        switch(insn.getOpcode()) {
-            case ISTORE:
-            case FSTORE:
-            case DSTORE:
-            case LSTORE:
-            case ASTORE:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private static boolean pushesConstant(AbstractInsnNode insn) {
-        switch(insn.getOpcode()) {
-            case ICONST_M1:
-            case ICONST_0:
-            case ICONST_1:
-            case ICONST_2:
-            case ICONST_3:
-            case ICONST_4:
-            case ICONST_5:
-            case LCONST_0:
-            case LCONST_1:
-            case FCONST_0:
-            case FCONST_1:
-            case FCONST_2:
-            case DCONST_0:
-            case DCONST_1:
-            case BIPUSH:
-            case SIPUSH:
-            case LDC:
-                return true;
-            default:
-                return false;
-        }
     }
 
     /**

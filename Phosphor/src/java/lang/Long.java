@@ -124,6 +124,10 @@ public final class Long extends Number implements Comparable<Long> {
         return value > object.value ? 1 : (value < object.value ? -1 : 0);
     }
 
+    public static int compare(long x, long y) {
+        return (x < y) ? -1 : ((x == y) ? 0 : 1);
+    }
+
     /**
      * Parses the specified string and returns a {@code Long} instance if the
      * string can be decoded into a long value. The string may be an optional

@@ -287,7 +287,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
 
     @Override
     public void storingTaintedValue(int opcode, int var) {
-        if(opcode ==TaintUtils.FORCE_CTRL_STORE) {
+        if(opcode == TaintUtils.FORCE_CTRL_STORE) {
             forceControlStoreVariables.add(var);
         } else if(excludedBranchIDs.isEmpty()) {
             switch(opcode) {
