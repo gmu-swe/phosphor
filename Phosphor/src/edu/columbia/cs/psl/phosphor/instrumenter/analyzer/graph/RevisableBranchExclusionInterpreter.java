@@ -4,11 +4,16 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Collections;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.*;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
+
+import static org.objectweb.asm.Opcodes.*;
 
 /**
  * Identifies instructions that should be marked as being excluded from control propagation due to revisable branch
@@ -24,248 +29,284 @@ import java.util.Objects;
  * </ul>
  */
 
-public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
+public class RevisableBranchExclusionInterpreter extends Interpreter<RevisableBranchExclusionInterpreter.SourceValueWrapper> {
+
+    private final SourceInterpreter interpreter;
 
     public RevisableBranchExclusionInterpreter() {
         super(Configuration.ASM_VERSION);
+        interpreter = new SourceInterpreter();
     }
 
     @Override
-    public SourceValue newOperation(AbstractInsnNode insn) {
-        SourceValue result = super.newOperation(insn);
+    public SourceValueWrapper newValue(Type type) {
+        SourceValue result = interpreter.newValue(type);
+        return result == null ? null : new BasicSourceValueWrapper(result);
+    }
+
+    @Override
+    public SourceValueWrapper newOperation(AbstractInsnNode insn) {
+        SourceValue result = interpreter.newOperation(insn);
         switch(insn.getOpcode()) {
             case ACONST_NULL:
-                return new ObjectConstantSourceValue(result, null);
+                return new ObjectConstantSourceValueWrapper(result, null);
             case ICONST_M1:
-                return new IntegerConstantSourceValue(result, -1);
+                return new IntegerConstantSourceValueWrapper(result, -1);
             case ICONST_0:
-                return new IntegerConstantSourceValue(result, 0);
+                return new IntegerConstantSourceValueWrapper(result, 0);
             case ICONST_1:
-                return new IntegerConstantSourceValue(result, 1);
+                return new IntegerConstantSourceValueWrapper(result, 1);
             case ICONST_2:
-                return new IntegerConstantSourceValue(result, 2);
+                return new IntegerConstantSourceValueWrapper(result, 2);
             case ICONST_3:
-                return new IntegerConstantSourceValue(result, 3);
+                return new IntegerConstantSourceValueWrapper(result, 3);
             case ICONST_4:
-                return new IntegerConstantSourceValue(result, 4);
+                return new IntegerConstantSourceValueWrapper(result, 4);
             case ICONST_5:
-                return new IntegerConstantSourceValue(result, 5);
+                return new IntegerConstantSourceValueWrapper(result, 5);
             case DCONST_0:
-                return new DoubleConstantSourceValue(result, 0);
+                return new DoubleConstantSourceValueWrapper(result, 0);
             case DCONST_1:
-                return new DoubleConstantSourceValue(result, 1);
+                return new DoubleConstantSourceValueWrapper(result, 1);
             case FCONST_0:
-                return new FloatConstantSourceValue(result, 0f);
+                return new FloatConstantSourceValueWrapper(result, 0f);
             case FCONST_1:
-                return new FloatConstantSourceValue(result, 1f);
+                return new FloatConstantSourceValueWrapper(result, 1f);
             case FCONST_2:
-                return new FloatConstantSourceValue(result, 2f);
+                return new FloatConstantSourceValueWrapper(result, 2f);
             case LCONST_0:
-                return new LongConstantSourceValue(result, 0L);
+                return new LongConstantSourceValueWrapper(result, 0L);
             case LCONST_1:
-                return new LongConstantSourceValue(result, 1L);
+                return new LongConstantSourceValueWrapper(result, 1L);
             case BIPUSH:
             case SIPUSH:
-                return new IntegerConstantSourceValue(result, ((IntInsnNode) insn).operand);
+                return new IntegerConstantSourceValueWrapper(result, ((IntInsnNode) insn).operand);
             case LDC:
-                return new ObjectConstantSourceValue(result, ((LdcInsnNode) insn).cst);
+                return new ObjectConstantSourceValueWrapper(result, ((LdcInsnNode) insn).cst);
             default:
-                return result;
+                return new BasicSourceValueWrapper(result);
         }
     }
 
     @Override
-    public SourceValue copyOperation(AbstractInsnNode insn, SourceValue value) {
-        SourceValue result = super.copyOperation(insn, value);
-        if(value instanceof ConstantSourceValue) {
-            return ((ConstantSourceValue) value).wrap(result);
-        } else {
-            return result;
+    public SourceValueWrapper copyOperation(AbstractInsnNode insn, SourceValueWrapper value) {
+        switch(insn.getOpcode()) {
+            case ILOAD:
+            case LLOAD:
+            case FLOAD:
+            case DLOAD:
+            case ALOAD:
+            case ISTORE:
+            case LSTORE:
+            case FSTORE:
+            case DSTORE:
+            case ASTORE:
+                SourceValue result = interpreter.copyOperation(insn, value.wrappedValue);
+                return value.wrap(result);
+            default:
+                return value;
         }
     }
 
     @Override
-    public SourceValue unaryOperation(AbstractInsnNode insn, SourceValue value) {
-        SourceValue result = super.unaryOperation(insn, value);
-        if(value instanceof IntegerConstantSourceValue) {
+    public SourceValueWrapper unaryOperation(AbstractInsnNode insn, SourceValueWrapper value) {
+        SourceValue result = interpreter.unaryOperation(insn, value.wrappedValue);
+        if(value instanceof IntegerConstantSourceValueWrapper) {
             switch(insn.getOpcode()) {
                 case INEG:
-                    return ((IntegerConstantSourceValue) value).negate(result);
+                    return ((IntegerConstantSourceValueWrapper) value).negate(result);
                 case IINC:
-                    return ((IntegerConstantSourceValue) value).increment(result, ((IincInsnNode) insn).incr);
+                    return ((IntegerConstantSourceValueWrapper) value).increment(result, ((IincInsnNode) insn).incr);
                 case I2L:
-                    return ((IntegerConstantSourceValue) value).castToLong(result);
+                    return ((IntegerConstantSourceValueWrapper) value).castToLong(result);
                 case I2F:
-                    return ((IntegerConstantSourceValue) value).castToFloat(result);
+                    return ((IntegerConstantSourceValueWrapper) value).castToFloat(result);
                 case I2D:
-                    return ((IntegerConstantSourceValue) value).castToDouble(result);
+                    return ((IntegerConstantSourceValueWrapper) value).castToDouble(result);
                 case I2B:
-                    return ((IntegerConstantSourceValue) value).castToByte(result);
+                    return ((IntegerConstantSourceValueWrapper) value).castToByte(result);
                 case I2C:
-                    return ((IntegerConstantSourceValue) value).castToChar(result);
+                    return ((IntegerConstantSourceValueWrapper) value).castToChar(result);
                 case I2S:
-                    return ((IntegerConstantSourceValue) value).castToShort(result);
+                    return ((IntegerConstantSourceValueWrapper) value).castToShort(result);
             }
-        } else if(value instanceof LongConstantSourceValue) {
+        } else if(value instanceof LongConstantSourceValueWrapper) {
             switch(insn.getOpcode()) {
                 case LNEG:
-                    return ((LongConstantSourceValue) value).negate(result);
+                    return ((LongConstantSourceValueWrapper) value).negate(result);
                 case L2I:
-                    return ((LongConstantSourceValue) value).castToInt(result);
+                    return ((LongConstantSourceValueWrapper) value).castToInt(result);
                 case L2F:
-                    return ((LongConstantSourceValue) value).castToFloat(result);
+                    return ((LongConstantSourceValueWrapper) value).castToFloat(result);
                 case L2D:
-                    return ((LongConstantSourceValue) value).castToDouble(result);
+                    return ((LongConstantSourceValueWrapper) value).castToDouble(result);
             }
-        } else if(value instanceof FloatConstantSourceValue) {
+        } else if(value instanceof FloatConstantSourceValueWrapper) {
             switch(insn.getOpcode()) {
                 case FNEG:
-                    return ((FloatConstantSourceValue) value).negate(result);
+                    return ((FloatConstantSourceValueWrapper) value).negate(result);
                 case F2I:
-                    return ((FloatConstantSourceValue) value).castToInt(result);
+                    return ((FloatConstantSourceValueWrapper) value).castToInt(result);
                 case F2L:
-                    return ((FloatConstantSourceValue) value).castToLong(result);
+                    return ((FloatConstantSourceValueWrapper) value).castToLong(result);
                 case F2D:
-                    return ((FloatConstantSourceValue) value).castToDouble(result);
+                    return ((FloatConstantSourceValueWrapper) value).castToDouble(result);
             }
-        } else if(value instanceof DoubleConstantSourceValue) {
+        } else if(value instanceof DoubleConstantSourceValueWrapper) {
             switch(insn.getOpcode()) {
                 case DNEG:
-                    return ((DoubleConstantSourceValue) value).negate(result);
+                    return ((DoubleConstantSourceValueWrapper) value).negate(result);
                 case D2I:
-                    return ((DoubleConstantSourceValue) value).castToInt(result);
+                    return ((DoubleConstantSourceValueWrapper) value).castToInt(result);
                 case D2L:
-                    return ((DoubleConstantSourceValue) value).castToLong(result);
+                    return ((DoubleConstantSourceValueWrapper) value).castToLong(result);
                 case D2F:
-                    return ((DoubleConstantSourceValue) value).castToFloat(result);
+                    return ((DoubleConstantSourceValueWrapper) value).castToFloat(result);
             }
         }
-        return result;
+        return new BasicSourceValueWrapper(result);
     }
 
     @Override
-    public SourceValue binaryOperation(AbstractInsnNode insn, SourceValue value1, SourceValue value2) {
-        SourceValue result = super.binaryOperation(insn, value1, value2);
-        if(value1 instanceof IntegerConstantSourceValue && value2 instanceof IntegerConstantSourceValue) {
+    public SourceValueWrapper binaryOperation(AbstractInsnNode insn, SourceValueWrapper value1, SourceValueWrapper value2) {
+        SourceValue result = interpreter.binaryOperation(insn, value1.wrappedValue, value2.wrappedValue);
+        if(value1 instanceof IntegerConstantSourceValueWrapper && value2 instanceof IntegerConstantSourceValueWrapper) {
             switch(insn.getOpcode()) {
                 case IADD:
-                    return ((IntegerConstantSourceValue) value1).add(result, (IntegerConstantSourceValue) value2);
+                    return ((IntegerConstantSourceValueWrapper) value1).add(result, (IntegerConstantSourceValueWrapper) value2);
                 case ISUB:
-                    return ((IntegerConstantSourceValue) value1).subtract(result, (IntegerConstantSourceValue) value2);
+                    return ((IntegerConstantSourceValueWrapper) value1).subtract(result, (IntegerConstantSourceValueWrapper) value2);
                 case IMUL:
-                    return ((IntegerConstantSourceValue) value1).multiply(result, (IntegerConstantSourceValue) value2);
+                    return ((IntegerConstantSourceValueWrapper) value1).multiply(result, (IntegerConstantSourceValueWrapper) value2);
                 case IDIV:
-                    return ((IntegerConstantSourceValue) value1).divide(result, (IntegerConstantSourceValue) value2);
+                    return ((IntegerConstantSourceValueWrapper) value1).divide(result, (IntegerConstantSourceValueWrapper) value2);
                 case IREM:
-                    return ((IntegerConstantSourceValue) value1).remainder(result, (IntegerConstantSourceValue) value2);
+                    return ((IntegerConstantSourceValueWrapper) value1).remainder(result, (IntegerConstantSourceValueWrapper) value2);
                 case ISHL:
-                    return ((IntegerConstantSourceValue) value1).shiftLeft(result, (IntegerConstantSourceValue) value2);
+                    return ((IntegerConstantSourceValueWrapper) value1).shiftLeft(result, (IntegerConstantSourceValueWrapper) value2);
                 case ISHR:
-                    return ((IntegerConstantSourceValue) value1).shiftRight(result, (IntegerConstantSourceValue) value2);
+                    return ((IntegerConstantSourceValueWrapper) value1).shiftRight(result, (IntegerConstantSourceValueWrapper) value2);
                 case IUSHR:
-                    return ((IntegerConstantSourceValue) value1).shiftRightUnsigned(result, (IntegerConstantSourceValue) value2);
+                    return ((IntegerConstantSourceValueWrapper) value1).shiftRightUnsigned(result, (IntegerConstantSourceValueWrapper) value2);
                 case IAND:
-                    return ((IntegerConstantSourceValue) value1).bitwiseAnd(result, (IntegerConstantSourceValue) value2);
+                    return ((IntegerConstantSourceValueWrapper) value1).bitwiseAnd(result, (IntegerConstantSourceValueWrapper) value2);
                 case IOR:
-                    return ((IntegerConstantSourceValue) value1).bitwiseOr(result, (IntegerConstantSourceValue) value2);
+                    return ((IntegerConstantSourceValueWrapper) value1).bitwiseOr(result, (IntegerConstantSourceValueWrapper) value2);
                 case IXOR:
-                    return ((IntegerConstantSourceValue) value1).bitwiseXor(result, (IntegerConstantSourceValue) value2);
+                    return ((IntegerConstantSourceValueWrapper) value1).bitwiseXor(result, (IntegerConstantSourceValueWrapper) value2);
             }
-        } else if(value1 instanceof LongConstantSourceValue && value2 instanceof LongConstantSourceValue) {
+        } else if(value1 instanceof LongConstantSourceValueWrapper && value2 instanceof LongConstantSourceValueWrapper) {
             switch(insn.getOpcode()) {
                 case LADD:
-                    return ((LongConstantSourceValue) value1).add(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).add(result, (LongConstantSourceValueWrapper) value2);
                 case LSUB:
-                    return ((LongConstantSourceValue) value1).subtract(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).subtract(result, (LongConstantSourceValueWrapper) value2);
                 case LMUL:
-                    return ((LongConstantSourceValue) value1).multiply(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).multiply(result, (LongConstantSourceValueWrapper) value2);
                 case LDIV:
-                    return ((LongConstantSourceValue) value1).divide(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).divide(result, (LongConstantSourceValueWrapper) value2);
                 case LREM:
-                    return ((LongConstantSourceValue) value1).remainder(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).remainder(result, (LongConstantSourceValueWrapper) value2);
                 case LSHL:
-                    return ((LongConstantSourceValue) value1).shiftLeft(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).shiftLeft(result, (LongConstantSourceValueWrapper) value2);
                 case LSHR:
-                    return ((LongConstantSourceValue) value1).shiftRight(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).shiftRight(result, (LongConstantSourceValueWrapper) value2);
                 case LUSHR:
-                    return ((LongConstantSourceValue) value1).shiftRightUnsigned(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).shiftRightUnsigned(result, (LongConstantSourceValueWrapper) value2);
                 case LAND:
-                    return ((LongConstantSourceValue) value1).bitwiseAnd(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).bitwiseAnd(result, (LongConstantSourceValueWrapper) value2);
                 case LOR:
-                    return ((LongConstantSourceValue) value1).bitwiseOr(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).bitwiseOr(result, (LongConstantSourceValueWrapper) value2);
                 case LXOR:
-                    return ((LongConstantSourceValue) value1).bitwiseXor(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).bitwiseXor(result, (LongConstantSourceValueWrapper) value2);
                 case LCMP:
-                    return ((LongConstantSourceValue) value1).compare(result, (LongConstantSourceValue) value2);
+                    return ((LongConstantSourceValueWrapper) value1).compare(result, (LongConstantSourceValueWrapper) value2);
             }
-        } else if(value1 instanceof FloatConstantSourceValue && value2 instanceof FloatConstantSourceValue) {
+        } else if(value1 instanceof FloatConstantSourceValueWrapper && value2 instanceof FloatConstantSourceValueWrapper) {
             switch(insn.getOpcode()) {
                 case FADD:
-                    return ((FloatConstantSourceValue) value1).add(result, (FloatConstantSourceValue) value2);
+                    return ((FloatConstantSourceValueWrapper) value1).add(result, (FloatConstantSourceValueWrapper) value2);
                 case FSUB:
-                    return ((FloatConstantSourceValue) value1).subtract(result, (FloatConstantSourceValue) value2);
+                    return ((FloatConstantSourceValueWrapper) value1).subtract(result, (FloatConstantSourceValueWrapper) value2);
                 case FMUL:
-                    return ((FloatConstantSourceValue) value1).multiply(result, (FloatConstantSourceValue) value2);
+                    return ((FloatConstantSourceValueWrapper) value1).multiply(result, (FloatConstantSourceValueWrapper) value2);
                 case FDIV:
-                    return ((FloatConstantSourceValue) value1).divide(result, (FloatConstantSourceValue) value2);
+                    return ((FloatConstantSourceValueWrapper) value1).divide(result, (FloatConstantSourceValueWrapper) value2);
                 case FREM:
-                    return ((FloatConstantSourceValue) value1).remainder(result, (FloatConstantSourceValue) value2);
+                    return ((FloatConstantSourceValueWrapper) value1).remainder(result, (FloatConstantSourceValueWrapper) value2);
                 case FCMPL:
-                    return ((FloatConstantSourceValue) value1).compareL(result, (FloatConstantSourceValue) value2);
+                    return ((FloatConstantSourceValueWrapper) value1).compareL(result, (FloatConstantSourceValueWrapper) value2);
                 case FCMPG:
-                    return ((FloatConstantSourceValue) value1).compareG(result, (FloatConstantSourceValue) value2);
+                    return ((FloatConstantSourceValueWrapper) value1).compareG(result, (FloatConstantSourceValueWrapper) value2);
             }
-        } else if(value1 instanceof DoubleConstantSourceValue && value2 instanceof DoubleConstantSourceValue) {
+        } else if(value1 instanceof DoubleConstantSourceValueWrapper && value2 instanceof DoubleConstantSourceValueWrapper) {
             switch(insn.getOpcode()) {
                 case DADD:
-                    return ((DoubleConstantSourceValue) value1).add(result, (DoubleConstantSourceValue) value2);
+                    return ((DoubleConstantSourceValueWrapper) value1).add(result, (DoubleConstantSourceValueWrapper) value2);
                 case DSUB:
-                    return ((DoubleConstantSourceValue) value1).subtract(result, (DoubleConstantSourceValue) value2);
+                    return ((DoubleConstantSourceValueWrapper) value1).subtract(result, (DoubleConstantSourceValueWrapper) value2);
                 case DMUL:
-                    return ((DoubleConstantSourceValue) value1).multiply(result, (DoubleConstantSourceValue) value2);
+                    return ((DoubleConstantSourceValueWrapper) value1).multiply(result, (DoubleConstantSourceValueWrapper) value2);
                 case DDIV:
-                    return ((DoubleConstantSourceValue) value1).divide(result, (DoubleConstantSourceValue) value2);
+                    return ((DoubleConstantSourceValueWrapper) value1).divide(result, (DoubleConstantSourceValueWrapper) value2);
                 case DREM:
-                    return ((DoubleConstantSourceValue) value1).remainder(result, (DoubleConstantSourceValue) value2);
+                    return ((DoubleConstantSourceValueWrapper) value1).remainder(result, (DoubleConstantSourceValueWrapper) value2);
                 case DCMPL:
-                    return ((DoubleConstantSourceValue) value1).compareL(result, (DoubleConstantSourceValue) value2);
+                    return ((DoubleConstantSourceValueWrapper) value1).compareL(result, (DoubleConstantSourceValueWrapper) value2);
                 case DCMPG:
-                    return ((DoubleConstantSourceValue) value1).compareG(result, (DoubleConstantSourceValue) value2);
+                    return ((DoubleConstantSourceValueWrapper) value1).compareG(result, (DoubleConstantSourceValueWrapper) value2);
             }
         }
-        return result;
+        return new BasicSourceValueWrapper(result);
     }
 
     @Override
-    public SourceValue merge(SourceValue value1, SourceValue value2) {
+    public SourceValueWrapper ternaryOperation(AbstractInsnNode insn, SourceValueWrapper value1, SourceValueWrapper value2, SourceValueWrapper value3) {
+        SourceValue result = interpreter.ternaryOperation(insn, value1.wrappedValue, value2.wrappedValue, value3.wrappedValue);
+        return result == null ? null : new BasicSourceValueWrapper(result);
+    }
+
+    @Override
+    public SourceValueWrapper naryOperation(AbstractInsnNode insn, List<? extends SourceValueWrapper> values) {
+        List<SourceValue> unwrappedValues = new ArrayList<>(values.size());
+        for(SourceValueWrapper value : values) {
+            unwrappedValues.add(value.wrappedValue);
+        }
+        SourceValue result = interpreter.naryOperation(insn, unwrappedValues);
+        return result == null ? null : new BasicSourceValueWrapper(result);
+    }
+
+    @Override
+    public void returnOperation(AbstractInsnNode insn, SourceValueWrapper value, SourceValueWrapper expected) {
+        interpreter.returnOperation(insn, value.wrappedValue, expected.wrappedValue);
+    }
+
+    @Override
+    public SourceValueWrapper merge(SourceValueWrapper value1, SourceValueWrapper value2) {
         if(value1 == value2) {
             return value1;
         }
-        SourceValue merge = super.merge(value1, value2);
-        if(value1 instanceof ConstantSourceValue && value2 instanceof ConstantSourceValue) {
-            if(((ConstantSourceValue) value1).canMerge((ConstantSourceValue) value2)) {
-                return merge instanceof ConstantSourceValue ? merge : ((ConstantSourceValue) value1).wrap(merge);
-            } else if(((ConstantSourceValue) value2).canMerge((ConstantSourceValue) value1)) {
-                return merge instanceof ConstantSourceValue ? merge : ((ConstantSourceValue) value2).wrap(merge);
+        SourceValue merge = interpreter.merge(value1.wrappedValue, value2.wrappedValue);
+        if(value1 instanceof ConstantSourceValueWrapper && value2 instanceof ConstantSourceValueWrapper) {
+            if(((ConstantSourceValueWrapper) value1).canMerge((ConstantSourceValueWrapper) value2)) {
+                return value1.wrap(merge);
+            } else if(((ConstantSourceValueWrapper) value2).canMerge((ConstantSourceValueWrapper) value1)) {
+                return value2.wrap(merge);
             }
         }
-        if(merge instanceof ConstantSourceValue) {
-            return new SourceValue(merge.size, merge.insns);
-        } else {
-            return merge;
-        }
+        return new BasicSourceValueWrapper(merge);
     }
 
     public static Set<AbstractInsnNode> identifyRevisableBranchExclusions(String owner, MethodNode methodNode) {
         RevisableBranchExclusionInterpreter interpreter = new RevisableBranchExclusionInterpreter();
-        Analyzer<SourceValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(interpreter);
+        Analyzer<SourceValueWrapper> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(interpreter);
         try {
             Set<AbstractInsnNode> result = new HashSet<>();
-            Frame<SourceValue>[] frames = analyzer.analyze(owner, methodNode);
+            Frame<SourceValueWrapper>[] frames = analyzer.analyze(owner, methodNode);
             Iterator<AbstractInsnNode> itr = methodNode.instructions.iterator();
-            for(Frame<SourceValue> frame : frames) {
+            for(Frame<SourceValueWrapper> frame : frames) {
                 AbstractInsnNode insn = itr.next();
-                if(frame != null && shouldExclude(insn, frame)) {
+                if(frame != null && shouldExclude(insn, frame, methodNode.instructions, frames)) {
                     result.add(insn);
                 }
             }
@@ -275,7 +316,7 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
         }
     }
 
-    private static boolean shouldExclude(AbstractInsnNode insn, Frame<SourceValue> frame) {
+    private static boolean shouldExclude(AbstractInsnNode insn, Frame<SourceValueWrapper> frame, InsnList insnList, Frame<SourceValueWrapper>[] allFrames) {
         switch(insn.getOpcode()) {
             case ICONST_M1:
             case ICONST_0:
@@ -301,43 +342,181 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
             case FSTORE:
             case DSTORE:
             case ASTORE:
-                SourceValue top = frame.getStack(0);
-                if(top instanceof ConstantSourceValue) {
+                SourceValueWrapper top = frame.getStack(0);
+                if(top instanceof ConstantSourceValueWrapper) {
                     return true;
                 } else {
                     int var = ((VarInsnNode) insn).var;
+                    java.util.Set<AbstractInsnNode> sources = top.wrappedValue.insns;
+                    if(sources.size() == 1) {
+                        AbstractInsnNode source = sources.iterator().next();
+                        Frame<SourceValueWrapper> sourceFrame = getPreviousFrame(insn, insnList, allFrames);
+                        return sourceFrame != null && checkSource(source, sourceFrame, var);
+                    }
                 }
             default:
                 return false;
         }
     }
 
-    private static abstract class ConstantSourceValue extends SourceValue {
-        ConstantSourceValue(SourceValue value) {
-            super(value.size, value.insns);
+    private static boolean checkSource(AbstractInsnNode source, Frame<SourceValueWrapper> sourceFrame, int var) {
+        switch(source.getOpcode()) {
+            case IADD:
+            case LADD:
+            case FADD:
+            case DADD:
+            case ISUB:
+            case LSUB:
+            case FSUB:
+            case DSUB:
+            case IMUL:
+            case LMUL:
+            case FMUL:
+            case DMUL:
+            case IDIV:
+            case LDIV:
+            case FDIV:
+            case DDIV:
+            case IREM:
+            case LREM:
+            case FREM:
+            case DREM:
+            case ISHL:
+            case LSHL:
+            case ISHR:
+            case LSHR:
+            case IUSHR:
+            case LUSHR:
+            case IAND:
+            case LAND:
+            case IOR:
+            case LOR:
+            case IXOR:
+            case LXOR:
+            case LCMP:
+            case FCMPL:
+            case FCMPG:
+            case DCMPL:
+            case DCMPG:
+                return checkStackValue(var, sourceFrame.getStack(0)) && checkStackValue(var, sourceFrame.getStack(1));
+            case INEG:
+            case LNEG:
+            case FNEG:
+            case DNEG:
+            case I2L:
+            case I2F:
+            case I2D:
+            case L2I:
+            case L2F:
+            case L2D:
+            case F2I:
+            case F2L:
+            case F2D:
+            case D2I:
+            case D2L:
+            case D2F:
+            case I2B:
+            case I2C:
+            case I2S:
+                return checkStackValue(var, sourceFrame.getStack(0));
         }
-
-        abstract ConstantSourceValue wrap(SourceValue result);
-
-        abstract boolean canMerge(ConstantSourceValue other);
+        return false;
     }
 
-    private static class ObjectConstantSourceValue extends ConstantSourceValue {
+    private static boolean checkStackValue(int var, SourceValueWrapper stackValue) {
+        if(stackValue instanceof ConstantSourceValueWrapper) {
+            return true;
+        } else if(stackValue.wrappedValue.insns.size() == 1) {
+            AbstractInsnNode insn = stackValue.wrappedValue.insns.iterator().next();
+            switch(insn.getOpcode()) {
+                case ILOAD:
+                case LLOAD:
+                case FLOAD:
+                case DLOAD:
+                case ALOAD:
+                    return ((VarInsnNode) insn).var == var;
+            }
+        }
+        return false;
+    }
+
+    private static Frame<SourceValueWrapper> getPreviousFrame(AbstractInsnNode insnNode, InsnList insnList, Frame<SourceValueWrapper>[] allFrames) {
+        int index = insnList.indexOf(insnNode) - 1;
+        if(index < 0 || index > allFrames.length) {
+            return null;
+        } else {
+            return allFrames[index];
+        }
+    }
+
+    public static abstract class SourceValueWrapper implements Value {
+        SourceValue wrappedValue;
+
+        SourceValueWrapper(SourceValue wrappedValue) {
+            this.wrappedValue = wrappedValue;
+        }
+
+        @Override
+        public int getSize() {
+            return wrappedValue.getSize();
+        }
+
+        abstract SourceValueWrapper wrap(SourceValue result);
+    }
+
+    private static class BasicSourceValueWrapper extends SourceValueWrapper {
+
+        BasicSourceValueWrapper(SourceValue wrappedValue) {
+            super(wrappedValue);
+        }
+
+        @Override
+        BasicSourceValueWrapper wrap(SourceValue value) {
+            return new BasicSourceValueWrapper((value));
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if(this == o) {
+                return true;
+            } else if(!(o instanceof BasicSourceValueWrapper)) {
+                return false;
+            } else {
+                return wrappedValue.equals(((SourceValueWrapper) o).wrappedValue);
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return wrappedValue.hashCode();
+        }
+
+    }
+
+    private static abstract class ConstantSourceValueWrapper extends SourceValueWrapper {
+        ConstantSourceValueWrapper(SourceValue value) {
+            super(value);
+        }
+
+        abstract boolean canMerge(ConstantSourceValueWrapper other);
+    }
+
+    private static class ObjectConstantSourceValueWrapper extends ConstantSourceValueWrapper {
         private final Object constant;
 
-        ObjectConstantSourceValue(SourceValue value, Object constant) {
+        ObjectConstantSourceValueWrapper(SourceValue value, Object constant) {
             super(value);
             this.constant = constant;
         }
 
         @Override
-        ConstantSourceValue wrap(SourceValue result) {
-            return new ObjectConstantSourceValue(result, constant);
+        ConstantSourceValueWrapper wrap(SourceValue value) {
+            return new ObjectConstantSourceValueWrapper(value, constant);
         }
 
         @Override
-        boolean canMerge(ConstantSourceValue other) {
-            return other instanceof ObjectConstantSourceValue && Objects.equals(constant, ((ObjectConstantSourceValue) other).constant);
+        boolean canMerge(ConstantSourceValueWrapper other) {
+            return other instanceof ObjectConstantSourceValueWrapper && Objects.equals(constant, ((ObjectConstantSourceValueWrapper) other).constant);
         }
 
         @Override
@@ -345,118 +524,118 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
             if(this == o) {
                 return true;
             }
-            if(o == null || getClass() != o.getClass()) {
+            if(!(o instanceof ObjectConstantSourceValueWrapper)) {
                 return false;
             }
-            if(!super.equals(o)) {
+            if(!wrappedValue.equals(((SourceValueWrapper) o).wrappedValue)) {
                 return false;
             }
-            ObjectConstantSourceValue that = (ObjectConstantSourceValue) o;
+            ObjectConstantSourceValueWrapper that = (ObjectConstantSourceValueWrapper) o;
             return constant != null ? constant.equals(that.constant) : that.constant == null;
         }
 
         @Override
         public int hashCode() {
-            int result = super.hashCode();
+            int result = wrappedValue.hashCode();
             result = 31 * result + (constant != null ? constant.hashCode() : 0);
             return result;
         }
     }
 
-    private static class IntegerConstantSourceValue extends ConstantSourceValue {
+    private static class IntegerConstantSourceValueWrapper extends ConstantSourceValueWrapper {
 
         private final int constant;
 
-        IntegerConstantSourceValue(SourceValue value, int constant) {
+        IntegerConstantSourceValueWrapper(SourceValue value, int constant) {
             super(value);
             this.constant = constant;
         }
 
-        IntegerConstantSourceValue increment(SourceValue value, int amount) {
-            return new IntegerConstantSourceValue(value, constant + amount);
+        IntegerConstantSourceValueWrapper increment(SourceValue value, int amount) {
+            return new IntegerConstantSourceValueWrapper(value, constant + amount);
         }
 
-        IntegerConstantSourceValue negate(SourceValue value) {
-            return new IntegerConstantSourceValue(value, -constant);
+        IntegerConstantSourceValueWrapper negate(SourceValue value) {
+            return new IntegerConstantSourceValueWrapper(value, -constant);
         }
 
-        FloatConstantSourceValue castToFloat(SourceValue value) {
-            return new FloatConstantSourceValue(value, constant);
+        FloatConstantSourceValueWrapper castToFloat(SourceValue value) {
+            return new FloatConstantSourceValueWrapper(value, constant);
         }
 
-        DoubleConstantSourceValue castToDouble(SourceValue value) {
-            return new DoubleConstantSourceValue(value, constant);
+        DoubleConstantSourceValueWrapper castToDouble(SourceValue value) {
+            return new DoubleConstantSourceValueWrapper(value, constant);
         }
 
-        LongConstantSourceValue castToLong(SourceValue value) {
-            return new LongConstantSourceValue(value, constant);
+        LongConstantSourceValueWrapper castToLong(SourceValue value) {
+            return new LongConstantSourceValueWrapper(value, constant);
         }
 
-        IntegerConstantSourceValue castToByte(SourceValue value) {
-            return new IntegerConstantSourceValue(value, (byte) constant);
+        IntegerConstantSourceValueWrapper castToByte(SourceValue value) {
+            return new IntegerConstantSourceValueWrapper(value, (byte) constant);
         }
 
-        IntegerConstantSourceValue castToShort(SourceValue value) {
-            return new IntegerConstantSourceValue(value, (short) constant);
+        IntegerConstantSourceValueWrapper castToShort(SourceValue value) {
+            return new IntegerConstantSourceValueWrapper(value, (short) constant);
         }
 
-        IntegerConstantSourceValue castToChar(SourceValue value) {
-            return new IntegerConstantSourceValue(value, (char) constant);
+        IntegerConstantSourceValueWrapper castToChar(SourceValue value) {
+            return new IntegerConstantSourceValueWrapper(value, (char) constant);
         }
 
-        IntegerConstantSourceValue add(SourceValue value, IntegerConstantSourceValue other) {
-            return new IntegerConstantSourceValue(value, constant + other.constant);
+        IntegerConstantSourceValueWrapper add(SourceValue value, IntegerConstantSourceValueWrapper other) {
+            return new IntegerConstantSourceValueWrapper(value, constant + other.constant);
         }
 
-        IntegerConstantSourceValue subtract(SourceValue value, IntegerConstantSourceValue other) {
-            return new IntegerConstantSourceValue(value, constant - other.constant);
+        IntegerConstantSourceValueWrapper subtract(SourceValue value, IntegerConstantSourceValueWrapper other) {
+            return new IntegerConstantSourceValueWrapper(value, constant - other.constant);
         }
 
-        IntegerConstantSourceValue divide(SourceValue value, IntegerConstantSourceValue other) {
-            return new IntegerConstantSourceValue(value, constant / other.constant);
+        IntegerConstantSourceValueWrapper divide(SourceValue value, IntegerConstantSourceValueWrapper other) {
+            return new IntegerConstantSourceValueWrapper(value, constant / other.constant);
         }
 
-        IntegerConstantSourceValue multiply(SourceValue value, IntegerConstantSourceValue other) {
-            return new IntegerConstantSourceValue(value, constant * other.constant);
+        IntegerConstantSourceValueWrapper multiply(SourceValue value, IntegerConstantSourceValueWrapper other) {
+            return new IntegerConstantSourceValueWrapper(value, constant * other.constant);
         }
 
-        IntegerConstantSourceValue remainder(SourceValue value, IntegerConstantSourceValue other) {
-            return new IntegerConstantSourceValue(value, constant % other.constant);
+        IntegerConstantSourceValueWrapper remainder(SourceValue value, IntegerConstantSourceValueWrapper other) {
+            return new IntegerConstantSourceValueWrapper(value, constant % other.constant);
         }
 
-        IntegerConstantSourceValue shiftLeft(SourceValue value, IntegerConstantSourceValue other) {
-            return new IntegerConstantSourceValue(value, constant << other.constant);
+        IntegerConstantSourceValueWrapper shiftLeft(SourceValue value, IntegerConstantSourceValueWrapper other) {
+            return new IntegerConstantSourceValueWrapper(value, constant << other.constant);
         }
 
-        IntegerConstantSourceValue shiftRight(SourceValue value, IntegerConstantSourceValue other) {
-            return new IntegerConstantSourceValue(value, constant >> other.constant);
+        IntegerConstantSourceValueWrapper shiftRight(SourceValue value, IntegerConstantSourceValueWrapper other) {
+            return new IntegerConstantSourceValueWrapper(value, constant >> other.constant);
         }
 
-        IntegerConstantSourceValue shiftRightUnsigned(SourceValue value, IntegerConstantSourceValue other) {
-            return new IntegerConstantSourceValue(value, constant >>> other.constant);
+        IntegerConstantSourceValueWrapper shiftRightUnsigned(SourceValue value, IntegerConstantSourceValueWrapper other) {
+            return new IntegerConstantSourceValueWrapper(value, constant >>> other.constant);
         }
 
-        IntegerConstantSourceValue bitwiseOr(SourceValue value, IntegerConstantSourceValue other) {
-            return new IntegerConstantSourceValue(value, constant | other.constant);
+        IntegerConstantSourceValueWrapper bitwiseOr(SourceValue value, IntegerConstantSourceValueWrapper other) {
+            return new IntegerConstantSourceValueWrapper(value, constant | other.constant);
         }
 
-        IntegerConstantSourceValue bitwiseAnd(SourceValue value, IntegerConstantSourceValue other) {
-            return new IntegerConstantSourceValue(value, constant & other.constant);
+        IntegerConstantSourceValueWrapper bitwiseAnd(SourceValue value, IntegerConstantSourceValueWrapper other) {
+            return new IntegerConstantSourceValueWrapper(value, constant & other.constant);
         }
 
-        IntegerConstantSourceValue bitwiseXor(SourceValue value, IntegerConstantSourceValue other) {
-            return new IntegerConstantSourceValue(value, constant ^ other.constant);
-        }
-
-        @Override
-        IntegerConstantSourceValue wrap(SourceValue result) {
-            return new IntegerConstantSourceValue(result, constant);
+        IntegerConstantSourceValueWrapper bitwiseXor(SourceValue value, IntegerConstantSourceValueWrapper other) {
+            return new IntegerConstantSourceValueWrapper(value, constant ^ other.constant);
         }
 
         @Override
-        boolean canMerge(ConstantSourceValue other) {
-            if(other instanceof IntegerConstantSourceValue) {
-                return constant == ((IntegerConstantSourceValue) other).constant;
+        IntegerConstantSourceValueWrapper wrap(SourceValue value) {
+            return new IntegerConstantSourceValueWrapper(value, constant);
+        }
+
+        @Override
+        boolean canMerge(ConstantSourceValueWrapper other) {
+            if(other instanceof IntegerConstantSourceValueWrapper) {
+                return constant == ((IntegerConstantSourceValueWrapper) other).constant;
             }
             return false;
         }
@@ -466,107 +645,107 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
             if(this == o) {
                 return true;
             }
-            if(o == null || getClass() != o.getClass()) {
+            if(!(o instanceof IntegerConstantSourceValueWrapper)) {
                 return false;
             }
-            if(!super.equals(o)) {
+            if(!wrappedValue.equals(((SourceValueWrapper) o).wrappedValue)) {
                 return false;
             }
-            IntegerConstantSourceValue that = (IntegerConstantSourceValue) o;
+            IntegerConstantSourceValueWrapper that = (IntegerConstantSourceValueWrapper) o;
             return constant == that.constant;
         }
 
         @Override
         public int hashCode() {
-            int result = super.hashCode();
+            int result = wrappedValue.hashCode();
             result = 31 * result + constant;
             return result;
         }
     }
 
-    private static class LongConstantSourceValue extends ConstantSourceValue {
+    private static class LongConstantSourceValueWrapper extends ConstantSourceValueWrapper {
         private final long constant;
 
-        LongConstantSourceValue(SourceValue value, long constant) {
+        LongConstantSourceValueWrapper(SourceValue value, long constant) {
             super(value);
             this.constant = constant;
         }
 
-        LongConstantSourceValue negate(SourceValue value) {
-            return new LongConstantSourceValue(value, -constant);
+        LongConstantSourceValueWrapper negate(SourceValue value) {
+            return new LongConstantSourceValueWrapper(value, -constant);
         }
 
-        FloatConstantSourceValue castToFloat(SourceValue value) {
-            return new FloatConstantSourceValue(value, constant);
+        FloatConstantSourceValueWrapper castToFloat(SourceValue value) {
+            return new FloatConstantSourceValueWrapper(value, constant);
         }
 
-        DoubleConstantSourceValue castToDouble(SourceValue value) {
-            return new DoubleConstantSourceValue(value, constant);
+        DoubleConstantSourceValueWrapper castToDouble(SourceValue value) {
+            return new DoubleConstantSourceValueWrapper(value, constant);
         }
 
-        IntegerConstantSourceValue castToInt(SourceValue value) {
-            return new IntegerConstantSourceValue(value, (int) constant);
+        IntegerConstantSourceValueWrapper castToInt(SourceValue value) {
+            return new IntegerConstantSourceValueWrapper(value, (int) constant);
         }
 
-        LongConstantSourceValue add(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, constant + other.constant);
+        LongConstantSourceValueWrapper add(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, constant + other.constant);
         }
 
-        LongConstantSourceValue subtract(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, constant - other.constant);
+        LongConstantSourceValueWrapper subtract(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, constant - other.constant);
         }
 
-        LongConstantSourceValue divide(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, constant / other.constant);
+        LongConstantSourceValueWrapper divide(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, constant / other.constant);
         }
 
-        LongConstantSourceValue multiply(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, constant * other.constant);
+        LongConstantSourceValueWrapper multiply(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, constant * other.constant);
         }
 
-        LongConstantSourceValue remainder(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, constant % other.constant);
+        LongConstantSourceValueWrapper remainder(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, constant % other.constant);
         }
 
-        LongConstantSourceValue shiftLeft(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, constant << other.constant);
+        LongConstantSourceValueWrapper shiftLeft(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, constant << other.constant);
         }
 
-        LongConstantSourceValue shiftRight(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, constant >> other.constant);
+        LongConstantSourceValueWrapper shiftRight(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, constant >> other.constant);
         }
 
-        LongConstantSourceValue shiftRightUnsigned(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, constant >>> other.constant);
+        LongConstantSourceValueWrapper shiftRightUnsigned(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, constant >>> other.constant);
         }
 
-        LongConstantSourceValue bitwiseOr(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, constant | other.constant);
+        LongConstantSourceValueWrapper bitwiseOr(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, constant | other.constant);
         }
 
-        LongConstantSourceValue bitwiseAnd(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, constant & other.constant);
+        LongConstantSourceValueWrapper bitwiseAnd(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, constant & other.constant);
         }
 
-        LongConstantSourceValue bitwiseXor(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, constant ^ other.constant);
+        LongConstantSourceValueWrapper bitwiseXor(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, constant ^ other.constant);
         }
 
-        LongConstantSourceValue compare(SourceValue value, LongConstantSourceValue other) {
-            return new LongConstantSourceValue(value, Long.compare(constant, other.constant));
-        }
-
-        @Override
-        LongConstantSourceValue wrap(SourceValue result) {
-            return new LongConstantSourceValue(result, constant);
+        LongConstantSourceValueWrapper compare(SourceValue value, LongConstantSourceValueWrapper other) {
+            return new LongConstantSourceValueWrapper(value, Long.compare(constant, other.constant));
         }
 
         @Override
-        boolean canMerge(ConstantSourceValue other) {
-            if(other instanceof IntegerConstantSourceValue) {
-                return constant == ((IntegerConstantSourceValue) other).constant;
-            } else if(other instanceof LongConstantSourceValue) {
-                return constant == ((LongConstantSourceValue) other).constant;
+        LongConstantSourceValueWrapper wrap(SourceValue value) {
+            return new LongConstantSourceValueWrapper(value, constant);
+        }
+
+        @Override
+        boolean canMerge(ConstantSourceValueWrapper other) {
+            if(other instanceof IntegerConstantSourceValueWrapper) {
+                return constant == ((IntegerConstantSourceValueWrapper) other).constant;
+            } else if(other instanceof LongConstantSourceValueWrapper) {
+                return constant == ((LongConstantSourceValueWrapper) other).constant;
             }
             return false;
         }
@@ -576,101 +755,101 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
             if(this == o) {
                 return true;
             }
-            if(o == null || getClass() != o.getClass()) {
+            if(!(o instanceof LongConstantSourceValueWrapper)) {
                 return false;
             }
-            if(!super.equals(o)) {
+            if(!wrappedValue.equals(((SourceValueWrapper) o).wrappedValue)) {
                 return false;
             }
-            LongConstantSourceValue that = (LongConstantSourceValue) o;
+            LongConstantSourceValueWrapper that = (LongConstantSourceValueWrapper) o;
             return constant == that.constant;
         }
 
         @Override
         public int hashCode() {
-            int result = super.hashCode();
+            int result = wrappedValue.hashCode();
             result = 31 * result + (int) (constant ^ (constant >>> 32));
             return result;
         }
     }
 
-    private static class FloatConstantSourceValue extends ConstantSourceValue {
+    private static class FloatConstantSourceValueWrapper extends ConstantSourceValueWrapper {
         private final float constant;
 
-        FloatConstantSourceValue(SourceValue value, float constant) {
+        FloatConstantSourceValueWrapper(SourceValue value, float constant) {
             super(value);
             this.constant = constant;
         }
 
-        FloatConstantSourceValue negate(SourceValue value) {
-            return new FloatConstantSourceValue(value, -constant);
+        FloatConstantSourceValueWrapper negate(SourceValue value) {
+            return new FloatConstantSourceValueWrapper(value, -constant);
         }
 
-        DoubleConstantSourceValue castToDouble(SourceValue value) {
-            return new DoubleConstantSourceValue(value, constant);
+        DoubleConstantSourceValueWrapper castToDouble(SourceValue value) {
+            return new DoubleConstantSourceValueWrapper(value, constant);
         }
 
-        IntegerConstantSourceValue castToInt(SourceValue value) {
-            return new IntegerConstantSourceValue(value, (int) constant);
+        IntegerConstantSourceValueWrapper castToInt(SourceValue value) {
+            return new IntegerConstantSourceValueWrapper(value, (int) constant);
         }
 
-        LongConstantSourceValue castToLong(SourceValue value) {
-            return new LongConstantSourceValue(value, (long) constant);
+        LongConstantSourceValueWrapper castToLong(SourceValue value) {
+            return new LongConstantSourceValueWrapper(value, (long) constant);
         }
 
-        FloatConstantSourceValue add(SourceValue value, FloatConstantSourceValue other) {
-            return new FloatConstantSourceValue(value, constant + other.constant);
+        FloatConstantSourceValueWrapper add(SourceValue value, FloatConstantSourceValueWrapper other) {
+            return new FloatConstantSourceValueWrapper(value, constant + other.constant);
         }
 
-        FloatConstantSourceValue subtract(SourceValue value, FloatConstantSourceValue other) {
-            return new FloatConstantSourceValue(value, constant - other.constant);
+        FloatConstantSourceValueWrapper subtract(SourceValue value, FloatConstantSourceValueWrapper other) {
+            return new FloatConstantSourceValueWrapper(value, constant - other.constant);
         }
 
-        FloatConstantSourceValue divide(SourceValue value, FloatConstantSourceValue other) {
-            return new FloatConstantSourceValue(value, constant / other.constant);
+        FloatConstantSourceValueWrapper divide(SourceValue value, FloatConstantSourceValueWrapper other) {
+            return new FloatConstantSourceValueWrapper(value, constant / other.constant);
         }
 
-        FloatConstantSourceValue multiply(SourceValue value, FloatConstantSourceValue other) {
-            return new FloatConstantSourceValue(value, constant * other.constant);
+        FloatConstantSourceValueWrapper multiply(SourceValue value, FloatConstantSourceValueWrapper other) {
+            return new FloatConstantSourceValueWrapper(value, constant * other.constant);
         }
 
-        FloatConstantSourceValue remainder(SourceValue value, FloatConstantSourceValue other) {
-            return new FloatConstantSourceValue(value, constant % other.constant);
+        FloatConstantSourceValueWrapper remainder(SourceValue value, FloatConstantSourceValueWrapper other) {
+            return new FloatConstantSourceValueWrapper(value, constant % other.constant);
         }
 
-        FloatConstantSourceValue compareG(SourceValue value, FloatConstantSourceValue other) {
+        FloatConstantSourceValueWrapper compareG(SourceValue value, FloatConstantSourceValueWrapper other) {
             float result;
             if(Float.isNaN(constant) || Float.isNaN(other.constant)) {
                 result = 1;
             } else {
                 result = Float.compare(constant, other.constant);
             }
-            return new FloatConstantSourceValue(value, result);
+            return new FloatConstantSourceValueWrapper(value, result);
         }
 
-        FloatConstantSourceValue compareL(SourceValue value, FloatConstantSourceValue other) {
+        FloatConstantSourceValueWrapper compareL(SourceValue value, FloatConstantSourceValueWrapper other) {
             float result;
             if(Float.isNaN(constant) || Float.isNaN(other.constant)) {
                 result = -1;
             } else {
                 result = Float.compare(constant, other.constant);
             }
-            return new FloatConstantSourceValue(value, result);
+            return new FloatConstantSourceValueWrapper(value, result);
         }
 
         @Override
-        FloatConstantSourceValue wrap(SourceValue result) {
-            return new FloatConstantSourceValue(result, constant);
+        FloatConstantSourceValueWrapper wrap(SourceValue value) {
+            return new FloatConstantSourceValueWrapper(value, constant);
         }
 
         @Override
-        boolean canMerge(ConstantSourceValue other) {
-            if(other instanceof IntegerConstantSourceValue) {
-                return constant == ((IntegerConstantSourceValue) other).constant;
-            } else if(other instanceof LongConstantSourceValue) {
-                return constant == ((LongConstantSourceValue) other).constant;
-            } else if(other instanceof FloatConstantSourceValue) {
-                return constant == ((FloatConstantSourceValue) other).constant;
+        boolean canMerge(ConstantSourceValueWrapper other) {
+            if(other instanceof IntegerConstantSourceValueWrapper) {
+                return constant == ((IntegerConstantSourceValueWrapper) other).constant;
+            } else if(other instanceof LongConstantSourceValueWrapper) {
+                return constant == ((LongConstantSourceValueWrapper) other).constant;
+            } else if(other instanceof FloatConstantSourceValueWrapper) {
+                return constant == ((FloatConstantSourceValueWrapper) other).constant;
             }
             return false;
         }
@@ -680,103 +859,103 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
             if(this == o) {
                 return true;
             }
-            if(o == null || getClass() != o.getClass()) {
+            if(!(o instanceof FloatConstantSourceValueWrapper)) {
                 return false;
             }
-            if(!super.equals(o)) {
+            if(!wrappedValue.equals(((SourceValueWrapper) o).wrappedValue)) {
                 return false;
             }
-            FloatConstantSourceValue that = (FloatConstantSourceValue) o;
+            FloatConstantSourceValueWrapper that = (FloatConstantSourceValueWrapper) o;
             return Float.compare(that.constant, constant) == 0;
         }
 
         @Override
         public int hashCode() {
-            int result = super.hashCode();
+            int result = wrappedValue.hashCode();
             result = 31 * result + (constant != +0.0f ? Float.floatToIntBits(constant) : 0);
             return result;
         }
     }
 
-    private static class DoubleConstantSourceValue extends ConstantSourceValue {
+    private static class DoubleConstantSourceValueWrapper extends ConstantSourceValueWrapper {
         private final double constant;
 
-        DoubleConstantSourceValue(SourceValue value, double constant) {
+        DoubleConstantSourceValueWrapper(SourceValue value, double constant) {
             super(value);
             this.constant = constant;
         }
 
-        DoubleConstantSourceValue negate(SourceValue value) {
-            return new DoubleConstantSourceValue(value, -constant);
+        DoubleConstantSourceValueWrapper negate(SourceValue value) {
+            return new DoubleConstantSourceValueWrapper(value, -constant);
         }
 
-        FloatConstantSourceValue castToFloat(SourceValue value) {
-            return new FloatConstantSourceValue(value, (float) constant);
+        FloatConstantSourceValueWrapper castToFloat(SourceValue value) {
+            return new FloatConstantSourceValueWrapper(value, (float) constant);
         }
 
-        IntegerConstantSourceValue castToInt(SourceValue value) {
-            return new IntegerConstantSourceValue(value, (int) constant);
+        IntegerConstantSourceValueWrapper castToInt(SourceValue value) {
+            return new IntegerConstantSourceValueWrapper(value, (int) constant);
         }
 
-        LongConstantSourceValue castToLong(SourceValue value) {
-            return new LongConstantSourceValue(value, (long) constant);
+        LongConstantSourceValueWrapper castToLong(SourceValue value) {
+            return new LongConstantSourceValueWrapper(value, (long) constant);
         }
 
-        DoubleConstantSourceValue add(SourceValue value, DoubleConstantSourceValue other) {
-            return new DoubleConstantSourceValue(value, constant + other.constant);
+        DoubleConstantSourceValueWrapper add(SourceValue value, DoubleConstantSourceValueWrapper other) {
+            return new DoubleConstantSourceValueWrapper(value, constant + other.constant);
         }
 
-        DoubleConstantSourceValue subtract(SourceValue value, DoubleConstantSourceValue other) {
-            return new DoubleConstantSourceValue(value, constant - other.constant);
+        DoubleConstantSourceValueWrapper subtract(SourceValue value, DoubleConstantSourceValueWrapper other) {
+            return new DoubleConstantSourceValueWrapper(value, constant - other.constant);
         }
 
-        DoubleConstantSourceValue divide(SourceValue value, DoubleConstantSourceValue other) {
-            return new DoubleConstantSourceValue(value, constant / other.constant);
+        DoubleConstantSourceValueWrapper divide(SourceValue value, DoubleConstantSourceValueWrapper other) {
+            return new DoubleConstantSourceValueWrapper(value, constant / other.constant);
         }
 
-        DoubleConstantSourceValue multiply(SourceValue value, DoubleConstantSourceValue other) {
-            return new DoubleConstantSourceValue(value, constant * other.constant);
+        DoubleConstantSourceValueWrapper multiply(SourceValue value, DoubleConstantSourceValueWrapper other) {
+            return new DoubleConstantSourceValueWrapper(value, constant * other.constant);
         }
 
-        DoubleConstantSourceValue remainder(SourceValue value, DoubleConstantSourceValue other) {
-            return new DoubleConstantSourceValue(value, constant % other.constant);
+        DoubleConstantSourceValueWrapper remainder(SourceValue value, DoubleConstantSourceValueWrapper other) {
+            return new DoubleConstantSourceValueWrapper(value, constant % other.constant);
         }
 
-        DoubleConstantSourceValue compareG(SourceValue value, DoubleConstantSourceValue other) {
+        DoubleConstantSourceValueWrapper compareG(SourceValue value, DoubleConstantSourceValueWrapper other) {
             double result;
             if(Double.isNaN(constant) || Double.isNaN(other.constant)) {
                 result = 1;
             } else {
                 result = Double.compare(constant, other.constant);
             }
-            return new DoubleConstantSourceValue(value, result);
+            return new DoubleConstantSourceValueWrapper(value, result);
         }
 
-        DoubleConstantSourceValue compareL(SourceValue value, DoubleConstantSourceValue other) {
+        DoubleConstantSourceValueWrapper compareL(SourceValue value, DoubleConstantSourceValueWrapper other) {
             double result;
             if(Double.isNaN(constant) || Double.isNaN(other.constant)) {
                 result = -1;
             } else {
                 result = Double.compare(constant, other.constant);
             }
-            return new DoubleConstantSourceValue(value, result);
+            return new DoubleConstantSourceValueWrapper(value, result);
         }
 
         @Override
-        DoubleConstantSourceValue wrap(SourceValue result) {
-            return new DoubleConstantSourceValue(result, constant);
+        DoubleConstantSourceValueWrapper wrap(SourceValue value) {
+            return new DoubleConstantSourceValueWrapper(value, constant);
         }
 
         @Override
-        boolean canMerge(ConstantSourceValue other) {
-            if(other instanceof IntegerConstantSourceValue) {
-                return constant == ((IntegerConstantSourceValue) other).constant;
-            } else if(other instanceof LongConstantSourceValue) {
-                return constant == ((LongConstantSourceValue) other).constant;
-            } else if(other instanceof FloatConstantSourceValue) {
-                return constant == ((FloatConstantSourceValue) other).constant;
-            } else if(other instanceof DoubleConstantSourceValue) {
-                return constant == ((DoubleConstantSourceValue) other).constant;
+        boolean canMerge(ConstantSourceValueWrapper other) {
+            if(other instanceof IntegerConstantSourceValueWrapper) {
+                return constant == ((IntegerConstantSourceValueWrapper) other).constant;
+            } else if(other instanceof LongConstantSourceValueWrapper) {
+                return constant == ((LongConstantSourceValueWrapper) other).constant;
+            } else if(other instanceof FloatConstantSourceValueWrapper) {
+                return constant == ((FloatConstantSourceValueWrapper) other).constant;
+            } else if(other instanceof DoubleConstantSourceValueWrapper) {
+                return constant == ((DoubleConstantSourceValueWrapper) other).constant;
             }
             return false;
         }
@@ -786,19 +965,19 @@ public class RevisableBranchExclusionInterpreter extends SourceInterpreter {
             if(this == o) {
                 return true;
             }
-            if(o == null || getClass() != o.getClass()) {
+            if(!(o instanceof DoubleConstantSourceValueWrapper)) {
                 return false;
             }
-            if(!super.equals(o)) {
+            if(!wrappedValue.equals(((SourceValueWrapper) o).wrappedValue)) {
                 return false;
             }
-            DoubleConstantSourceValue that = (DoubleConstantSourceValue) o;
+            DoubleConstantSourceValueWrapper that = (DoubleConstantSourceValueWrapper) o;
             return Double.compare(that.constant, constant) == 0;
         }
 
         @Override
         public int hashCode() {
-            int result = super.hashCode();
+            int result = wrappedValue.hashCode();
             long temp;
             temp = Double.doubleToLongBits(constant);
             result = 31 * result + (int) (temp ^ (temp >>> 32));

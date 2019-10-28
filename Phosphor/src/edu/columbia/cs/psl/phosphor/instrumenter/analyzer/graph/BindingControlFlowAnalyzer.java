@@ -57,48 +57,15 @@ public class BindingControlFlowAnalyzer {
                 }
             }
         }
-        Map<BasicBlock, Set<BasicBlock>> bindingControlDependencies = calculateBindingControlDependenciesMap(controlFlowGraph, bindingEdgesMap);
         Set<BasicBlock> loopExclusionBranches = calculateLoopExclusionBranches(controlFlowGraph, bindingEdgesMap);
         if(!loopExclusionBranches.isEmpty()) {
             Set<AbstractInsnNode> exclusionCandidates = RevisableBranchExclusionInterpreter.identifyRevisableBranchExclusions(owner, methodNode);
             for(AbstractInsnNode exclusionCandidate : exclusionCandidates) {
-                for(BasicBlock loopExclusionBranch : loopExclusionBranches) {
-                    for(BasicBlock dependency : bindingControlDependencies.get(loopExclusionBranch)) {
-                        if(dependency instanceof SimpleBasicBlock && ((SetBasicBlock) dependency).containsInstruction(exclusionCandidate)) {
-                            instructions.insertBefore(exclusionCandidate, new VarInsnNode(TaintUtils.EXCLUDE_BRANCH, branchIDMap.get(loopExclusionBranch)));
-                            break;
-                        }
-                    }
-                }
+                // TODO have on instruction mark the branches and a different on mark the instruction
+                instructions.insertBefore(exclusionCandidate, new VarInsnNode(TaintUtils.EXCLUDE_BRANCH, -1));
             }
         }
         return branchID;
-    }
-
-    /**
-     * @param controlFlowGraph the control flow graph for an analyzed method
-     * @param bindingEdgesMap  a mapping from basic blocks that end with a targeted branch instruction to non-empty
-     *                         sets of converted edges from the block that correspond to edges in the original graph
-     *                         which are "binding" for at least one statement in the original graph.
-     * @return a mapping from basic blocks to the basic blocks that are binding control dependent on them
-     */
-    private static Map<BasicBlock, Set<BasicBlock>> calculateBindingControlDependenciesMap(FlowGraph<BasicBlock> controlFlowGraph,
-                                                                                           Map<BasicBlock, Set<ConvertedEdge>> bindingEdgesMap) {
-        Map<BasicBlock, Set<BasicBlock>> bindingControlDependenceMap = new HashMap<>();
-        Map<BasicBlock, Set<BasicBlock>> dominatorSets = controlFlowGraph.getDominatorSets();
-        for(BasicBlock bindingSource : bindingEdgesMap.keySet()) {
-            for(ConvertedEdge edge : bindingEdgesMap.get(bindingSource)) {
-                for(BasicBlock basicBlock : dominatorSets.keySet()) {
-                    if(dominatorSets.get(basicBlock).contains(edge)) {
-                        if(!bindingControlDependenceMap.containsKey(edge.source)) {
-                            bindingControlDependenceMap.put(edge.source, new HashSet<>());
-                        }
-                        bindingControlDependenceMap.get(edge.source).add(basicBlock);
-                    }
-                }
-            }
-        }
-        return bindingControlDependenceMap;
     }
 
     /**
@@ -270,7 +237,7 @@ public class BindingControlFlowAnalyzer {
 
         @Override
         protected BasicBlock addBasicBlock(AbstractInsnNode[] instructions, int index) {
-            BasicBlock basicBlock = new SetBasicBlock(instructions, index);
+            BasicBlock basicBlock = new SimpleBasicBlock(instructions, index);
             builder.addVertex(basicBlock);
             return basicBlock;
         }
