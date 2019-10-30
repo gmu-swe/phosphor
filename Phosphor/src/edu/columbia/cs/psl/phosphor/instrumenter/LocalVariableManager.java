@@ -108,7 +108,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
     @Override
     public void visitVarInsn(int opcode, int var) {
-        if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START || opcode == TaintUtils.EXCLUDE_BRANCH
+        if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START || opcode == TaintUtils.REVISABLE_BRANCH_START
                 || isIgnoreEverything) {
             mv.visitVarInsn(opcode, var);
             return;
@@ -204,7 +204,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     }
 
     int newControlTaintLV() {
-        Type type = Type.getType(Taint[].class);
+        Type type = Type.getType(int[].class);
         int idx = super.newLocal(type);
         if(ctrlTagStartLbl == null) {
             ctrlTagStartLbl = new Label();

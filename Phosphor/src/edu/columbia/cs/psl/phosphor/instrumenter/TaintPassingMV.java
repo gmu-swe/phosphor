@@ -134,14 +134,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     @Override
     public void visitVarInsn(int opcode, int var) {
         if(opcode == TaintUtils.BRANCH_START) {
-            controlFlowDelegator.visitingBranchStart(var);
+            controlFlowDelegator.visitingBranchStart(var, false);
             return;
         } else if(opcode == TaintUtils.BRANCH_END) {
             controlFlowDelegator.visitingBranchEnd(var);
             analyzer.clearLabels();
             return;
-        } else if(opcode == TaintUtils.EXCLUDE_BRANCH) {
-            controlFlowDelegator.visitingExcludeBranch(var);
+        } else if(opcode == TaintUtils.REVISABLE_BRANCH_START) {
+            controlFlowDelegator.visitingBranchStart(var, true);
             return;
         } else if(opcode == TaintUtils.NEVER_AUTOBOX) {
             return;
@@ -1976,6 +1976,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 || opcode == TaintUtils.CUSTOM_SIGNAL_3 || opcode == TaintUtils.LOOP_HEADER) {
             Configuration.taintTagFactory.signalOp(opcode, null);
             super.visitInsn(opcode);
+            return;
+        } else if(opcode == TaintUtils.EXCLUDE_REVISABLE_BRANCHES) {
+            controlFlowDelegator.visitingExcludeRevisableBranches();
             return;
         } else if(opcode == TaintUtils.DUP_TAINT_AT_0) {
             nextDupCopiesTaint0 = true;

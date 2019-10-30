@@ -419,6 +419,33 @@ public final class FlowGraph<V> {
         }
     }
 
+    /**
+     * @param source the start vertex of the path being checked for
+     * @param target the end vertex of the path being checked for
+     * @return true if there is a path in this graph from the specified source vertex to the specified target vertex,
+     * if source.equals(target) only returns true if there is a path from source to itself
+     * @throws IllegalArgumentException if either of the specified vertices are not in this graph
+     */
+    public boolean containsPath(V source, V target) {
+        if(!successors.containsKey(source) || !successors.containsKey(target)) {
+            throw new IllegalArgumentException("At least one supplied vertex is not a vertex in the graph");
+        }
+        Set<V> visited = new HashSet<>();
+        SinglyLinkedList<V> queue = new SinglyLinkedList<>();
+        queue.enqueue(source);
+        visited.add(source);
+        while(!queue.isEmpty()) {
+            for(V successor : successors.get(queue.removeFirst())) {
+                if(successor.equals(target)) {
+                    return true;
+                } else if(visited.add(successor)) {
+                    queue.enqueue(successor);
+                }
+            }
+        }
+        return false;
+    }
+
     @Override
     public boolean equals(Object o) {
         if(this == o) {

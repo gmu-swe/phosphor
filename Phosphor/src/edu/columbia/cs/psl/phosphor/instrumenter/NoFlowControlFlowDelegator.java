@@ -70,7 +70,7 @@ public class NoFlowControlFlowDelegator implements ControlFlowDelegator {
     }
 
     @Override
-    public void visitingBranchStart(int branchID) {
+    public void visitingBranchStart(int branchID, boolean revisable) {
 
     }
 
@@ -160,7 +160,7 @@ public class NoFlowControlFlowDelegator implements ControlFlowDelegator {
     }
 
     @Override
-    public void visitingExcludeBranch(int branchID) {
+    public void visitingExcludeRevisableBranches() {
 
     }
 }

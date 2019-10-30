@@ -593,7 +593,7 @@ public class Taint<T> implements Serializable {
         } else {
             // SetNode representation is being used
             Taint<T> result = new Taint<>();
-            // The last label set unioned into result's label set
+            // The last label set union'd into result's label set
             PowerSetTree.SetNode prevLabelSet = setTree.emptySet();
             for(Taint taint : taints) {
                 if(taint != null && taint.labelSet != prevLabelSet) {

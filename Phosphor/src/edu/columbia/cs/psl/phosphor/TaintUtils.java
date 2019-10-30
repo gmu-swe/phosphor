@@ -19,8 +19,7 @@ import sun.misc.VM;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.ENSURE_UNBOXED;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.GET_TAINT_OBJECT;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public class TaintUtils {
 
@@ -51,9 +50,11 @@ public class TaintUtils {
     public static final int CUSTOM_SIGNAL_2 = 219;
     public static final int CUSTOM_SIGNAL_3 = 220;
     public static final int LOOP_HEADER = 221;
-    // Indicates that tags pushed onto the control taint tag stack for a particular branch should not to propagate
+    // Indicates that tags pushed onto the control taint tag stack for a revisable branch should not to propagate
     // to the next store insn
-    public static final int EXCLUDE_BRANCH = 222;
+    public static final int EXCLUDE_REVISABLE_BRANCHES = 222;
+    // Marks the start of the scope of a revisable branch edge
+    public static final int REVISABLE_BRANCH_START = 223;
     public static final String TAINT_FIELD = "PHOSPHOR_TAG";
     public static final String METHOD_SUFFIX = "$$PHOSPHORTAGGED";
     public static final String PHOSPHOR_ADDED_FIELD_PREFIX = "$$PHOSPHOR_";
@@ -124,6 +125,19 @@ public class TaintUtils {
             return ((LazyArrayObjTags) obj).lengthTaint;
         }
         return null;
+    }
+
+    @SuppressWarnings("unused")
+    @InvokedViaInstrumentation(record = GET_TAINT_COPY_SIMPLE)
+    public static Taint<?> getTaintCopySimple(Object obj) {
+        if(obj == null || Taint.IGNORE_TAINTING) {
+            return null;
+        } else if(obj instanceof TaintedWithObjTag) {
+            Taint<?> t = ((Taint<?>) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG());
+            return t == null ? null : t.copy();
+        } else {
+            return null;
+        }
     }
 
     public static int[][] create2DTaintArray(Object in, int[][] ar) {

@@ -1,18 +1,50 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.VarInsnNode;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
+import org.objectweb.asm.tree.*;
 
 import static org.objectweb.asm.Opcodes.*;
 
+/**
+ * Identifies and marks the scope of "binding" branch edges and indicates whether each marked edge is "revisable". Does
+ * not considered edges due to exceptional control flow.
+ *
+ * <p>For a control flow graph G = (V, E):
+ *
+ * <p>An edge (u, v) in E is said to be a branch edge if and only if there exits some edge (u, w) in E such that v != w.
+ * Branch edges are the result of conditional jump instructions (i.e., IF_ACMP<cond>, IF_ICMP<cond>, IF<cond>,
+ * TABLESWITCH, LOOKUPSWITCH, IFNULL, and IFNONNULL).
+ *
+ * <p>A branch edge (u, v) is to be binding if and only if:
+ * <ul>
+ *     <li>The basic block u ends with an IFEQ or IFNE instruction.</li>
+ *     <li>The basic block u ends with an ICMPEQ or IF_ACMEQ instruction that has a jump target t and t = v</li>
+ *     <li>The basic block u ends with an ICMPNE or IF_ACMPNE instruction that has a jump target t and t != v</li>
+ *     <li>The basic block u ends with a TABLESWITCH or LOOKUPSWITCH instruction that has a set of jump targets T and
+ *     v is an element of T.</li>
+ * </ul>
+ *
+ * <p>The scope of a binding branch edge is the range of instructions that are considered to have a binding control
+ * dependency on the edge. The scope of a binding branch edge (u, v) starts after the end of the basic block u and
+ * before the start of the basic block v. The scope of a binding branch edge (u, v) ends before each basic block w
+ * in V such that the exists a path from the distinguished start vertex of the control flow graph to w that does not
+ * contain the edge (u, v).
+ *
+ * <p> A branch edge (u, v) is said to be revisable if and only if there exits some edge (u, w) in E such that v != w
+ * and there exists a path from w to v.
+ *
+ * <p> An instruction is said to be revision-excluded if and only if:
+ * <ul>
+ *     <li>It is an ICONST_M1, ICONST_0, ICONST_1, ICONST_2, ICONST_3, ICONST_4, ICONST_5, LCONST_0, LCONST_1, FCONST_0,
+ *     FCONST_1, FCONST_2, DCONST_0, DCONST_1, BIPUSH, SIPUSH, or LDC instruction</li>
+ *     <li>It is an IINC instruction</li>
+ *     <li>It is an ISTORE, LSTORE, FSTORE, DSTORE, or ASTORE instruction that stores a value v into the local variable
+ *     x where v can be expressed as an arithmetic expression where each operand is either a constant value or the
+ *     definition of x prior to the execution of the store instruction being inspected
+ * </ul>
+ * A revision-excluded instruction is considered to be outside of the scope of all revisable branch edges.
+ */
 public class BindingControlFlowAnalyzer {
 
     /**
@@ -26,221 +58,122 @@ public class BindingControlFlowAnalyzer {
         }
         BindingControlFlowGraphCreator creator = new BindingControlFlowGraphCreator();
         FlowGraph<BasicBlock> controlFlowGraph = creator.createControlFlowGraph(methodNode);
-        Set<BasicBlock> targetedBranchBlocks = creator.getTargetedBranchBlocks();
-        if(targetedBranchBlocks.isEmpty()) {
-            return 0; // There are no branches that potentially need to be propagated along
-        }
-        Map<BasicBlock, Set<ConvertedEdge>> bindingEdgesMap = getBindingEdgesMap(targetedBranchBlocks, controlFlowGraph);
-        int branchID = 0;
-        Map<BasicBlock, Integer> branchIDMap = new HashMap<>();
-        for(BasicBlock basicBlock : bindingEdgesMap.keySet()) {
-            // Add branch start
-            instructions.insertBefore(basicBlock.getLastInsn(), new VarInsnNode(TaintUtils.BRANCH_START, branchID));
-            // Add branch ends
-            Set<BasicBlock> popPoints = getPopPoints(basicBlock, bindingEdgesMap.get(basicBlock), controlFlowGraph);
-            for(BasicBlock popPoint : popPoints) {
-                AbstractInsnNode insn = popPoint.getFirstInsn();
-                while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE
-                        || insn.getType() == AbstractInsnNode.LABEL || insn.getOpcode() > 200) {
-                    insn = insn.getNext();
+        Collection<BindingBranchEdge> edges = filterEdges(creator.bindingBranchEdges, controlFlowGraph);
+        Map<BasicBlock, Set<BindingBranchEdge>> groupedStartBlocks = groupEdgesBySource(edges);
+        int nextBranchIDAssigned = 0;
+        for(BasicBlock source : groupedStartBlocks.keySet()) {
+            // Assign two unique identifiers to each source
+            int branchID = nextBranchIDAssigned++;
+            int revisableBranchID = nextBranchIDAssigned++;
+            instructions.insertBefore(source.getLastInsn(), new VarInsnNode(TaintUtils.BRANCH_START, branchID));
+            instructions.insertBefore(source.getLastInsn(), new VarInsnNode(TaintUtils.REVISABLE_BRANCH_START, revisableBranchID));
+            Set<BasicBlock> successors = new HashSet<>(controlFlowGraph.getSuccessors(source));
+            // Add BRANCH_END instructions
+            for(BindingBranchEdge edge : groupedStartBlocks.get(source)) {
+                successors.remove(edge);
+                AbstractInsnNode nextInsn = findNextPrecedableInstruction(edge.target.getFirstInsn());
+                if(edge.isRevisable(controlFlowGraph)) {
+                    markBranchEnds(methodNode.instructions, edge, revisableBranchID, controlFlowGraph);
+                    instructions.insertBefore(nextInsn, new VarInsnNode(TaintUtils.BRANCH_END, branchID));
+                } else {
+                    markBranchEnds(methodNode.instructions, edge, branchID, controlFlowGraph);
+                    instructions.insertBefore(nextInsn, new VarInsnNode(TaintUtils.BRANCH_END, revisableBranchID));
                 }
-                instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, branchID));
             }
-            branchIDMap.put(basicBlock, branchID);
-            branchID++;
+            for(BasicBlock successor : successors) {
+                while(successor instanceof BindingBranchEdge) {
+                    successor = ((BindingBranchEdge) successor).target;
+                }
+                if(!(successor instanceof DummyBasicBlock)) {
+                    AbstractInsnNode nextInsn = findNextPrecedableInstruction(successor.getFirstInsn());
+                    instructions.insertBefore(nextInsn, new VarInsnNode(TaintUtils.BRANCH_END, branchID));
+                    instructions.insertBefore(nextInsn, new VarInsnNode(TaintUtils.BRANCH_END, revisableBranchID));
+                }
+            }
         }
-        if(!bindingEdgesMap.isEmpty()) {
-            // Add pop all before exiting if there was at least one push added
-            for(BasicBlock basicBlock : controlFlowGraph.getVertices()) {
-                if(controlFlowGraph.getSuccessors(basicBlock).contains(controlFlowGraph.getExitPoint())) {
+        // Add an instruction to signal the end of the scopes of all of the branch edges before every instruction which
+        // causes the method to return
+        if(nextBranchIDAssigned >= 0) {
+            for(BasicBlock basicBlock : controlFlowGraph.getPredecessors(controlFlowGraph.getExitPoint())) {
+                if(!(basicBlock instanceof DummyBasicBlock)) {
                     instructions.insertBefore(basicBlock.getLastInsn(), new VarInsnNode(TaintUtils.BRANCH_END, -1));
                 }
             }
         }
-        Set<BasicBlock> loopExclusionBranches = calculateLoopExclusionBranches(controlFlowGraph, bindingEdgesMap);
-        if(!loopExclusionBranches.isEmpty()) {
-            Set<AbstractInsnNode> exclusionCandidates = RevisableBranchExclusionInterpreter.identifyRevisableBranchExclusions(owner, methodNode);
-            for(AbstractInsnNode exclusionCandidate : exclusionCandidates) {
-                // TODO have on instruction mark the branches and a different on mark the instruction
-                instructions.insertBefore(exclusionCandidate, new VarInsnNode(TaintUtils.EXCLUDE_BRANCH, -1));
-            }
+        // Mark all revision-excluded instructions
+        Set<AbstractInsnNode> exclusionCandidates = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, methodNode);
+        for(AbstractInsnNode exclusionCandidate : exclusionCandidates) {
+            instructions.insertBefore(exclusionCandidate, new InsnNode(TaintUtils.EXCLUDE_REVISABLE_BRANCHES));
         }
-        return branchID;
+        return nextBranchIDAssigned;
     }
 
     /**
-     * @param controlFlowGraph the control flow graph for an analyzed method
-     * @param bindingEdgesMap  a mapping from basic blocks that end with a targeted branch instruction to non-empty
-     *                         sets of converted edges from the block that correspond to edges in the original graph
-     *                         which are "binding" for at least one statement in the original graph.
-     * @return a set of branching basic blocks potentially impacted by loop exclusion policies
-     */
-    private static Set<BasicBlock> calculateLoopExclusionBranches(FlowGraph<BasicBlock> controlFlowGraph,
-                                                                  Map<BasicBlock, Set<ConvertedEdge>> bindingEdgesMap) {
-        Set<BasicBlock> loopExclusionBranches = new HashSet<>();
-        Set<ConvertedEdge> edgesWithLoopContainedSister = getConvertedEdgesWithLoopContainedSister(controlFlowGraph, bindingEdgesMap);
-        for(ConvertedEdge edge : edgesWithLoopContainedSister) {
-            loopExclusionBranches.add(edge.source);
-        }
-        return loopExclusionBranches;
-    }
-
-    /**
-     * For each converted edge node from the original edge (u, v) its set of "sister" nodes is defined as the set
-     * containing any basic block w such that w != v and the edge (u, w) is in the specified control flow graph
-     * and any converted edge node from an original edge (u, x) where x != v.
-     * <p>
-     * The source of a edge node from the original edge (u, v) is defined as being the basic block u.
-     * <p>
-     * Returns the set of converted edges whose source is contained in some loop l and have at least one sister node
-     * that is also contained in l.
+     * Marks the ends of the scope for the specified edge by inserting BRANCH_END instructions.
      *
-     * @param controlFlowGraph the control flow graph for an analyzed method
-     * @param bindingEdgesMap  a mapping from basic blocks that end with a targeted branch instruction to non-empty
-     *                         sets of converted edges from the block that correspond to edges in the original graph
-     *                         which are "binding" for at least one statement in the original graph.
-     * @return the set of converted edges whose source is contained in some loop l and have at least one sister node
-     * that is also contained in l
+     * @param insnList         the instructions of a method
+     * @param edge             a vertex that represents a binding branch edge in the specified method
+     * @param id               the unique identifier assigned to the specified branch edge
+     * @param controlFlowGraph the control flow graph of the method
      */
-    private static Set<ConvertedEdge> getConvertedEdgesWithLoopContainedSister(FlowGraph<BasicBlock> controlFlowGraph,
-                                                                               Map<BasicBlock, Set<ConvertedEdge>> bindingEdgesMap) {
-        Set<ConvertedEdge> edgesWithLoopContainedSister = new HashSet<>();
-        for(NaturalLoop<BasicBlock> loop : controlFlowGraph.getNaturalLoops()) {
-            for(BasicBlock sourceBranch : bindingEdgesMap.keySet()) {
-                if(loop.getVertices().contains(sourceBranch)) {
-                    Set<BasicBlock> containedSuccessors = getLoopContainedSuccessors(controlFlowGraph, loop, sourceBranch);
-                    if(!containedSuccessors.isEmpty()) {
-                        for(ConvertedEdge bindingEdge : bindingEdgesMap.get(sourceBranch)) {
-                            if(containedSuccessors.size() > 1 || !containedSuccessors.contains(bindingEdge)) {
-                                edgesWithLoopContainedSister.add(bindingEdge);
-                            }
-                        }
-                    }
-                }
-            }
+    private static void markBranchEnds(InsnList insnList, BindingBranchEdge edge, int id, FlowGraph<BasicBlock> controlFlowGraph) {
+        Set<BasicBlock> scopeEnds = edge.getScopeEnds(controlFlowGraph);
+        for(BasicBlock scopeEnd : scopeEnds) {
+            AbstractInsnNode insn = findNextPrecedableInstruction(scopeEnd.getFirstInsn());
+            insnList.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, id));
         }
-        return edgesWithLoopContainedSister;
+    }
+
+    private static AbstractInsnNode findNextPrecedableInstruction(AbstractInsnNode insn) {
+        while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE
+                || insn.getType() == AbstractInsnNode.LABEL || insn.getOpcode() > 200) {
+            insn = insn.getNext();
+        }
+        return insn;
     }
 
     /**
-     * @param controlFlowGraph the control flow graph that defines successors of the specified basic block node
-     * @param loop             the loop for which membership is being checked
-     * @param sourceBlock      the basic block whose successors are checked for membership in the specified loop
-     * @return the set of successor nodes of the specified basic block source that are contained within the specified
-     * loop
+     * @param edges a set containing the egdes to be grouped
+     * @return a mapping between basic blocks and non-empty sets containing all of the edges for which the basic
+     * block is a source
      */
-    private static Set<BasicBlock> getLoopContainedSuccessors(FlowGraph<BasicBlock> controlFlowGraph, NaturalLoop<BasicBlock> loop, BasicBlock sourceBlock) {
-        Set<BasicBlock> containedSuccessors = new HashSet<>();
-        for(BasicBlock successor : controlFlowGraph.getSuccessors(sourceBlock)) {
-            if(loop.getVertices().contains(successor)) {
-                containedSuccessors.add(successor);
+    private static Map<BasicBlock, Set<BindingBranchEdge>> groupEdgesBySource(Collection<BindingBranchEdge> edges) {
+        Map<BasicBlock, Set<BindingBranchEdge>> groupedEdges = new HashMap<>();
+        for(BindingBranchEdge edge : edges) {
+            if(!groupedEdges.containsKey(edge.source)) {
+                groupedEdges.put(edge.source, new HashSet<>());
             }
+            groupedEdges.get(edge.source).add(edge);
         }
-        return containedSuccessors;
+        return groupedEdges;
     }
 
     /**
-     * @param targetedBranchBlocks set containing basic blocks in the graph which end with a targeted branch instruction
-     * @param controlFlowGraph     the control flow graph for an analyzed method
-     * @return a mapping from basic blocks that end with a targeted branch instruction to non-empty sets of converted
-     * edges from the block that correspond to edges in the original graph which are "binding" for at least
-     * one statement in the original graph.
+     * @param edges            a set containing the edges to be filtered
+     * @param controlFlowGraph the control flow graph containing the specified edges
+     * @return a subset of the specified of edges that contains only edges that have a non-empty scope
+     * in the specified graph
      */
-    private static Map<BasicBlock, Set<ConvertedEdge>> getBindingEdgesMap(Set<BasicBlock> targetedBranchBlocks, FlowGraph<BasicBlock> controlFlowGraph) {
-        Map<BasicBlock, Set<ConvertedEdge>> bindingEdgesMap = new HashMap<>();
-        for(BasicBlock basicBlock : targetedBranchBlocks) {
-            Set<ConvertedEdge> bindingEdges = new HashSet<>();
-            for(BasicBlock successor : controlFlowGraph.getSuccessors(basicBlock)) {
-                if(isBindingConvertedEdge(successor, controlFlowGraph.getDominanceFrontiers())) {
-                    bindingEdges.add((ConvertedEdge) successor);
-                }
-            }
-            if(!bindingEdges.isEmpty()) {
-                bindingEdgesMap.put(basicBlock, bindingEdges);
+    private static Set<BindingBranchEdge> filterEdges(Set<BindingBranchEdge> edges, FlowGraph<BasicBlock> controlFlowGraph) {
+        Set<BindingBranchEdge> result = new HashSet<>();
+        for(BindingBranchEdge edge : edges) {
+            if(edge.hasNonEmptyScope(controlFlowGraph)) {
+                result.add(edge);
             }
         }
-        return bindingEdgesMap;
+        return result;
     }
 
     /**
-     * @param node               the node to be tested
-     * @param dominanceFrontiers maps nodes in the graph to their dominance frontiers
-     * @return true if the specified node is a converted edge that corresponds to an edge in the original graph which
-     * is "binding" for at least one statement in the original graph
-     */
-    private static boolean isBindingConvertedEdge(BasicBlock node, Map<BasicBlock, Set<BasicBlock>> dominanceFrontiers) {
-        if(node instanceof ConvertedEdge && dominanceFrontiers.containsKey(node)) {
-            ConvertedEdge convertedEdge = (ConvertedEdge) node;
-            Set<BasicBlock> dominanceFrontier = dominanceFrontiers.get(convertedEdge);
-            return !dominanceFrontier.contains(convertedEdge.destination);
-        }
-        return false;
-    }
-
-    /**
-     * @param bindingBranch    a basic block that end with a target branch instruction that has at least one edge that is
-     *                         "binding" for at least one statement in the original graph
-     * @param bindingEdges     non-empty set of converted edges that correspond to edges in the original graph which are
-     *                         "binding" for at least one statement in the original graph
-     * @param controlFlowGraph the control flow graph for an analyzed method
-     * @return a set of BasicBlocks that should have a pop instruction inserted at the beginning for pushes associated
-     * with the specified branch
-     */
-    private static Set<BasicBlock> getPopPoints(BasicBlock bindingBranch, Set<ConvertedEdge> bindingEdges, FlowGraph<BasicBlock> controlFlowGraph) {
-        Set<BasicBlock> popPoints = new HashSet<>();
-        // Add pops along dominance frontiers of each of the binding branches for the branch
-        for(ConvertedEdge convertedEdge : bindingEdges) {
-            for(BasicBlock node : controlFlowGraph.getDominanceFrontiers().get(convertedEdge)) {
-                if(!(node instanceof DummyBasicBlock)) {
-                    popPoints.add(node);
-                }
-            }
-        }
-        // Add pops before all of the non-binding routes out of the branch
-        for(BasicBlock node : controlFlowGraph.getSuccessors(bindingBranch)) {
-            if(!(node instanceof DummyBasicBlock)) {
-                popPoints.add(node);
-            } else if(node instanceof ConvertedEdge && !bindingEdges.contains(node)) {
-                BasicBlock target = ((ConvertedEdge) node).destination;
-                if(!(target instanceof DummyBasicBlock)) {
-                    popPoints.add(target);
-                }
-            }
-        }
-        return popPoints;
-    }
-
-    private static class ConvertedEdge extends DummyBasicBlock {
-
-        final BasicBlock source;
-        final BasicBlock destination;
-
-        ConvertedEdge(BasicBlock source, BasicBlock destination) {
-            this.source = source;
-            this.destination = destination;
-        }
-    }
-
-    /**
-     * Builds a control flow graph with the following edges (u, v) replaced with a node w, an edge (u, w) and an edge
-     * (w, v):
-     * <ol>
-     *     <li>Any edge from a TABLESWITCH or LOOKUPSWITCH instruction and any of its jump targets</li>
-     *     <li>Any edge from an IFEQ, IFNE, IF_ICMPEQ, or IF_ACMPEQ instruction and its jump target</li>
-     *     <li>Any edge from an IFEQ, IFNE, IF_ICMPNE, or IF_ACMPNE instruction and the instruction that follows it in
-     *     sequential execution</li>
-     * </ol>
+     * Builds a control flow graph where each binding branch edge (u, v) is replaced with a vertex w, an edge (u, w)
+     * and an edge (w, v).
      */
     private static class BindingControlFlowGraphCreator extends BaseControlFlowGraphCreator {
 
-        Map<BasicBlock, Set<BasicBlock>> targetedBranchEdges = new HashMap<>();
-
-        @Override
-        protected BasicBlock addBasicBlock(AbstractInsnNode[] instructions, int index) {
-            BasicBlock basicBlock = new SimpleBasicBlock(instructions, index);
-            builder.addVertex(basicBlock);
-            return basicBlock;
-        }
+        /**
+         * A set containing the vertices used to represent binding branch edges in the control flow graph
+         */
+        Set<BindingBranchEdge> bindingBranchEdges = new HashSet<>();
 
         @Override
         protected void addBranchTakenEdge(BasicBlock source, BasicBlock target) {
@@ -249,9 +182,11 @@ public class BindingControlFlowAnalyzer {
                 case IFNE:
                 case IF_ICMPEQ:
                 case IF_ACMPEQ:
-                    addTargetedEdge(source, target);
+                    addBindingBranchEdge(source, target);
+                    break;
+                default:
+                    super.addBranchTakenEdge(source, target);
             }
-            super.addBranchTakenEdge(source, target);
         }
 
         @Override
@@ -261,60 +196,139 @@ public class BindingControlFlowAnalyzer {
                 case IFNE:
                 case IF_ICMPNE:
                 case IF_ACMPNE:
-                    addTargetedEdge(source, target);
+                    addBindingBranchEdge(source, target);
+                    break;
+                default:
+                    super.addBranchNotTakenEdge(source, target);
             }
-            super.addBranchNotTakenEdge(source, target);
         }
 
         @Override
         protected void addNonDefaultCaseSwitchEdge(BasicBlock source, BasicBlock target) {
-            addTargetedEdge(source, target);
-            super.addNonDefaultCaseSwitchEdge(source, target);
+            addBindingBranchEdge(source, target);
         }
 
         @Override
         protected void addDefaultCaseSwitchEdge(BasicBlock source, BasicBlock target) {
-            addTargetedEdge(source, target);
-            super.addDefaultCaseSwitchEdge(source, target);
+            addBindingBranchEdge(source, target);
         }
 
-        private void addTargetedEdge(BasicBlock source, BasicBlock target) {
-            if(!targetedBranchEdges.containsKey(source)) {
-                targetedBranchEdges.put(source, new HashSet<>());
+        /**
+         * If the specified (source, target) edge is not already represented in the graph adds a new vertex w to the graph
+         * and the edges (source, w) and (w, target).
+         *
+         * @param source the source vertex of the binding branch edge to be represented in the graph
+         * @param target the target vertex of the binding branch edge to be represented in the graph
+         */
+        private void addBindingBranchEdge(BasicBlock source, BasicBlock target) {
+            BindingBranchEdge bindingBranchEdge = new BindingBranchEdge(source, target);
+            if(bindingBranchEdges.add(bindingBranchEdge)) {
+                builder.addVertex(bindingBranchEdge);
+                builder.addEdge(source, bindingBranchEdge);
+                builder.addEdge(bindingBranchEdge, target);
             }
-            targetedBranchEdges.get(source).add(target);
+        }
+    }
+
+    /**
+     * A BindingBranchEdge w is used in conjunction with the edges (u, w) and (w, v) to represent some edge
+     * (u, v).
+     */
+    private static class BindingBranchEdge extends DummyBasicBlock {
+
+        /**
+         * The source vertex of this edge, the last instruction in the source block should be a conditional jump
+         * instruction
+         */
+        private final BasicBlock source;
+
+        /**
+         * The target vertex of this edge
+         */
+        private final BasicBlock target;
+
+        BindingBranchEdge(BasicBlock source, BasicBlock target) {
+            this.source = source;
+            this.target = target;
+        }
+
+        /**
+         * @param controlFlowGraph the control flow graph containing this edge
+         * @return true if there is at least one basic block in the scope of this edge
+         * @throws IllegalArgumentException if the specified control flow graph does not contain this edge
+         */
+        boolean hasNonEmptyScope(FlowGraph<BasicBlock> controlFlowGraph) {
+            if(!controlFlowGraph.getVertices().contains(this)) {
+                throw new IllegalArgumentException("Supplied control flow graph does contain this edge");
+            }
+            if(!controlFlowGraph.getDominanceFrontiers().containsKey(this)) {
+                // This edge is unreachable in the specified graph
+                return false;
+            }
+            return !controlFlowGraph.getDominanceFrontiers().get(this).contains(this.target);
+        }
+
+        /**
+         * @param controlFlowGraph a control flow graph
+         * @return the set of non-dummy basic blocks before which the scope of this edge ends or the empty set
+         * if this edge is unreachable in the specified graph
+         * @throws IllegalArgumentException if the specified control flow graph does not contain this edge or this edge
+         *                                  is unreachable in the specified control flow graph
+         */
+        Set<BasicBlock> getScopeEnds(FlowGraph<BasicBlock> controlFlowGraph) {
+            if(!controlFlowGraph.getVertices().contains(this)) {
+                throw new IllegalArgumentException("Supplied control flow graph does contain this edge");
+            }
+            if(!controlFlowGraph.getDominanceFrontiers().containsKey(this)) {
+                throw new IllegalArgumentException("Edge is unreachable in supplied control flow graph");
+            }
+            Set<BasicBlock> scopeEnds = new HashSet<>();
+            for(BasicBlock block : controlFlowGraph.getDominanceFrontiers().get(this)) {
+                if(!(block instanceof DummyBasicBlock)) {
+                    scopeEnds.add(block);
+                }
+            }
+            return scopeEnds;
+        }
+
+        /**
+         * @param controlFlowGraph a control flow graph
+         * @return true is this edge is revisable
+         * @throws IllegalArgumentException if the specified control flow graph does not contain this edge
+         */
+        boolean isRevisable(FlowGraph<BasicBlock> controlFlowGraph) {
+            if(!controlFlowGraph.getVertices().contains(this)) {
+                throw new IllegalArgumentException("Supplied control flow graph does contain this edge");
+            }
+            for(BasicBlock successor : controlFlowGraph.getSuccessors(source)) {
+                if(!successor.equals(this) && controlFlowGraph.containsPath(successor, this)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
-        protected FlowGraph<BasicBlock> buildGraph() {
-            // Replace targeted edges
-            for(BasicBlock source : targetedBranchEdges.keySet()) {
-                for(BasicBlock target : targetedBranchEdges.get(source)) {
-                    convertEdgeToNode(source, target);
-                }
+        public boolean equals(Object o) {
+            if(this == o) {
+                return true;
+            } else if(!(o instanceof BindingBranchEdge)) {
+                return false;
             }
-            return super.buildGraph();
+            BindingBranchEdge edge = (BindingBranchEdge) o;
+            return source.equals(edge.source) && target.equals(edge.target);
         }
 
-        /**
-         * Removes the edge (source, target) from the graph. Adds a new node w, the edge (source, w) and the edge
-         * (w, target) to the graph.
-         *
-         * @param source the source node of the edge to be converted
-         * @param target the target node of the edge to be converted
-         */
-        private void convertEdgeToNode(BasicBlock source, BasicBlock target) {
-            builder.removeEdge(source, target);
-            ConvertedEdge convert = new ConvertedEdge(source, target);
-            builder.addEdge(source, convert);
-            builder.addEdge(convert, target);
+        @Override
+        public int hashCode() {
+            int result = source.hashCode();
+            result = 31 * result + target.hashCode();
+            return result;
         }
 
-        /**
-         * @return set of basic blocks that were the source of an edge replaced by this creator
-         */
-        private Set<BasicBlock> getTargetedBranchBlocks() {
-            return targetedBranchEdges.keySet();
+        @Override
+        public String toString() {
+            return String.format("<DirectedEdge: %s -> %s>", source, target);
         }
     }
 }

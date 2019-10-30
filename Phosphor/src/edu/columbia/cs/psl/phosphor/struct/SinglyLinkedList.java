@@ -122,6 +122,11 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
         return peek();
     }
 
+    /* Removes and returns the first item in the list. Throws a NoSuchElementException if the list is empty. */
+    public E removeFirst() {
+        return pop();
+    }
+
     /* Adds the specified item to the tail of the list. */
     public void enqueue(E item) {
         addLast(item);

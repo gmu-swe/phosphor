@@ -31,16 +31,15 @@ public enum TaintMethodRecord {
     COPY_TAINT(INVOKESTATIC, Taint.class, "copyTaint", TAINT_TAG_OBJ_CLASS, false, TAINT_TAG_OBJ_CLASS),
     // Methods from TaintUtils
     GET_TAINT_OBJECT(INVOKESTATIC, TaintUtils.class, "getTaintObj", TAINT_TAG_OBJ_CLASS, false, Object.class),
+    GET_TAINT_COPY_SIMPLE(INVOKESTATIC, TaintUtils.class, "getTaintCopySimple", TAINT_TAG_OBJ_CLASS, false, Object.class),
     ENSURE_UNBOXED(INVOKESTATIC, TaintUtils.class, "ensureUnboxed", Object.class, false, Object.class),
     // Methods from ControlTaintTagStack
-    CONTROL_STACK_PUSH_TAG_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", Taint[].class, false, TAINT_TAG_OBJ_CLASS, Taint[].class, int.class, int.class, ExceptionalTaintData.class),
-    CONTROL_STACK_PUSH_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", Taint[].class, false, TAINT_TAG_OBJ_CLASS, Taint[].class, int.class, int.class),
-    CONTROL_STACK_PUSH_OBJECT_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", Taint[].class, false, Object.class, Taint[].class, int.class, int.class, ExceptionalTaintData.class),
-    CONTROL_STACK_PUSH_OBJECT(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", Taint[].class, false, Object.class, Taint[].class, int.class, int.class),
-    CONTROL_STACK_POP_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, Taint[].class, int.class, ExceptionalTaintData.class),
-    CONTROL_STACK_POP(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, Taint[].class, int.class),
-    CONTROL_STACK_POP_ALL_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, Taint[].class, ExceptionalTaintData.class),
-    CONTROL_STACK_POP_ALL(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, Taint[].class),
+    CONTROL_STACK_PUSH_TAG_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", int[].class, false, TAINT_TAG_OBJ_CLASS, int[].class, int.class, int.class, ExceptionalTaintData.class, boolean.class),
+    CONTROL_STACK_PUSH_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", int[].class, false, TAINT_TAG_OBJ_CLASS, int[].class, int.class, int.class, boolean.class),
+    CONTROL_STACK_POP_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int[].class, int.class, ExceptionalTaintData.class),
+    CONTROL_STACK_POP(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int[].class, int.class),
+    CONTROL_STACK_POP_ALL_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int[].class, ExceptionalTaintData.class),
+    CONTROL_STACK_POP_ALL(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int[].class),
     CONTROL_STACK_ENABLE(INVOKEVIRTUAL, ControlTaintTagStack.class, "enable", Void.TYPE, false),
     CONTROL_STACK_DISABLE(INVOKEVIRTUAL, ControlTaintTagStack.class, "disable", Void.TYPE, false),
     CONTROL_STACK_COPY_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyTag", TAINT_TAG_OBJ_CLASS, false),
@@ -52,7 +51,7 @@ public enum TaintMethodRecord {
     CONTROL_STACK_APPLY_POSSIBLY_UNTHROWN_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "applyPossiblyUnthrownExceptionToTaint", Void.TYPE, false, Class.class),
     CONTROL_STACK_ADD_UNTHROWN_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "addUnthrownException", Void.TYPE, false, ExceptionalTaintData.class, Class.class),
     CONTROL_STACK_FACTORY(INVOKESTATIC, ControlTaintTagStack.class, "factory", ControlTaintTagStack.class, false),
-    CONTROL_STACK_COPY_TAG_WITH_EXCLUSIONS(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyTagWithExclusions", Taint.class, false, Taint[].class, int[].class),
+    CONTROL_STACK_COPY_REVISION_EXCLUDED_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyRevisionExcludedTag", Taint.class, false),
     // Methods from ControlTaintTagStackPool
     CONTROL_STACK_POOL_INSTANCE(INVOKESTATIC, ControlTaintTagStackPool.class, "instance", ControlTaintTagStack.class, false),
     // Methods from MultiDTaintedArray

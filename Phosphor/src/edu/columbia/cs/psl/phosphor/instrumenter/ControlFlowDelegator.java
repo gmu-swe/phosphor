@@ -28,9 +28,10 @@ interface ControlFlowDelegator {
     /**
      * Called before a BRANCH_START instruction. Maintains the stack
      *
-     * @param branchID the identifier of the "branch" location that is starting
+     * @param branchID  the identifier of the "branch" location that is starting
+     * @param revisable whether the branch being visited is a revisable branch
      */
-    void visitingBranchStart(int branchID);
+    void visitingBranchStart(int branchID, boolean revisable);
 
     /**
      * Called before a BRANCH_END instruction. Maintains the stack.
@@ -154,9 +155,7 @@ interface ControlFlowDelegator {
     void storingReferenceInArray();
 
     /**
-     * Called before a EXCLUDE_BRANCH instruction. Maintains the stack.
-     *
-     * @param branchID the identifier of the "branch" location that is to be excluded
+     * Called before a EXCLUDE_REVISABLE_BRANCHES instruction. Maintains the stack.
      */
-    void visitingExcludeBranch(int branchID);
+    void visitingExcludeRevisableBranches();
 }

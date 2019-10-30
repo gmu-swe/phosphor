@@ -46,6 +46,79 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
         }
     }
 
+    public static void main(String[] args) throws Throwable {
+        Configuration.IMPLICIT_TRACKING = true;
+        Configuration.IMPLICIT_EXCEPTION_FLOW = true;
+//		Configuration.IMPLICIT_LIGHT_TRACKING = true;
+//		Configuration.ARRAY_LENGTH_TRACKING = true;
+//		Configuration.ARRAY_INDEX_TRACKING = true;
+//		Configuration.ANNOTATE_LOOPS = true;
+        ClassReader cr = new ClassReader(new FileInputStream("z.class"));
+        final String className = cr.getClassName();
+        PrintWriter pw = new PrintWriter("z.txt");
+        TraceClassVisitor tcv = new TraceClassVisitor(null, new PhosphorTextifier(), pw);
+        ClassWriter cw1 = new ClassWriter(ClassWriter.COMPUTE_FRAMES) {
+            @Override
+            protected String getCommonSuperClass(String arg0, String arg1) {
+                try {
+                    return super.getCommonSuperClass(arg0, arg1);
+                } catch(Throwable t) {
+                    return "java/lang/Object";
+                }
+            }
+        };
+        cr.accept(new ClassVisitor(Configuration.ASM_VERSION, cw1) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+                MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+                mv = new JSRInlinerAdapter(mv, access, name, desc, signature, exceptions);
+                return mv;
+            }
+        }, ClassReader.EXPAND_FRAMES);
+        cr = new ClassReader(cw1.toByteArray());
+        ClassVisitor cv = new ClassVisitor(Configuration.ASM_VERSION, tcv) {
+            String className;
+            Set<FieldNode> fields = new HashSet<>();
+
+            @Override
+            public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+                super.visit(version, access, name, signature, superName, interfaces);
+                this.className = name;
+            }
+
+            @Override
+            public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+                fields.add(new FieldNode(access, name, desc, signature, value));
+                return super.visitField(access, name, desc, signature, value);
+            }
+
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+                MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+                mv = new MethodVisitor(Configuration.ASM_VERSION, mv) {
+                    @Override
+                    public void visitInsn(int opcode) {
+                        super.visitInsn(opcode);
+                    }
+                };
+//				mv = new SpecialOpcodeRemovingMV(mv,false,className,false);
+//				NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, className, desc, mv);
+                mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true, null, false, false);
+//				LocalVariableManager lvs = new LocalVariableManager(access, desc, mv, analyzer, mv, false);
+//				mv = lvs;
+                PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, mv, false);
+                NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, access, name, desc, paa);
+                paa.setAnalyzer(an);
+//				((PrimitiveArrayAnalyzer) mv).setAnalyzer(an);
+                mv = an;
+                return mv;
+            }
+        };
+        cr.accept(cv, ClassReader.EXPAND_FRAMES);
+        pw.flush();
+
+    }
+
     class UninstTaintLoadCoercerMN extends MethodNode {
         String className;
         MethodVisitor cmv;
@@ -350,9 +423,14 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                             } else if(insn.getOpcode() == ARETURN) {
                                 Type origType = Type.getReturnType(this.desc);
                                 if(origType.getSort() == Type.ARRAY && (origType.getElementType().getSort() != Type.OBJECT || origType.getElementType().getInternalName().equals("java/lang/Object"))) {
-                                    Type wrappedType = MultiDTaintedArray.getTypeForType(origType);
-                                    this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
-                                    this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, wrappedType.getInternalName()));
+                                    if(origType.getElementType().getSort() != Type.OBJECT) {
+                                        Type wrappedType = MultiDTaintedArray.getTypeForType(origType);
+                                        this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
+                                        this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, wrappedType.getInternalName()));
+                                    } else {
+                                        this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
+                                        this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, origType.getInternalName()));
+                                    }
                                 }
                             }
                             insn = insn.getNext();
@@ -503,78 +581,5 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                 insn = next;
             }
         }
-    }
-
-    public static void main(String[] args) throws Throwable {
-        Configuration.IMPLICIT_TRACKING = true;
-        Configuration.IMPLICIT_EXCEPTION_FLOW = true;
-//		Configuration.IMPLICIT_LIGHT_TRACKING = true;
-//		Configuration.ARRAY_LENGTH_TRACKING = true;
-//		Configuration.ARRAY_INDEX_TRACKING = true;
-//		Configuration.ANNOTATE_LOOPS = true;
-        ClassReader cr = new ClassReader(new FileInputStream("z.class"));
-        final String className = cr.getClassName();
-        PrintWriter pw = new PrintWriter("z.txt");
-        TraceClassVisitor tcv = new TraceClassVisitor(null, new PhosphorTextifier(), pw);
-        ClassWriter cw1 = new ClassWriter(ClassWriter.COMPUTE_FRAMES) {
-            @Override
-            protected String getCommonSuperClass(String arg0, String arg1) {
-                try {
-                    return super.getCommonSuperClass(arg0, arg1);
-                } catch(Throwable t) {
-                    return "java/lang/Object";
-                }
-            }
-        };
-        cr.accept(new ClassVisitor(Configuration.ASM_VERSION, cw1) {
-            @Override
-            public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-                MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-                mv = new JSRInlinerAdapter(mv, access, name, desc, signature, exceptions);
-                return mv;
-            }
-        }, ClassReader.EXPAND_FRAMES);
-        cr = new ClassReader(cw1.toByteArray());
-        ClassVisitor cv = new ClassVisitor(Configuration.ASM_VERSION, tcv) {
-            String className;
-            Set<FieldNode> fields = new HashSet<>();
-
-            @Override
-            public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-                super.visit(version, access, name, signature, superName, interfaces);
-                this.className = name;
-            }
-
-            @Override
-            public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-                fields.add(new FieldNode(access, name, desc, signature, value));
-                return super.visitField(access, name, desc, signature, value);
-            }
-
-            @Override
-            public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-                MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-                mv = new MethodVisitor(Configuration.ASM_VERSION, mv) {
-                    @Override
-                    public void visitInsn(int opcode) {
-                        super.visitInsn(opcode);
-                    }
-                };
-//				mv = new SpecialOpcodeRemovingMV(mv,false,className,false);
-//				NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, className, desc, mv);
-                mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true, null, false, false);
-//				LocalVariableManager lvs = new LocalVariableManager(access, desc, mv, analyzer, mv, false);
-//				mv = lvs;
-                PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, mv, false);
-                NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, access, name, desc, paa);
-                paa.setAnalyzer(an);
-//				((PrimitiveArrayAnalyzer) mv).setAnalyzer(an);
-                mv = an;
-                return mv;
-            }
-        };
-        cr.accept(cv, ClassReader.EXPAND_FRAMES);
-        pw.flush();
-
     }
 }

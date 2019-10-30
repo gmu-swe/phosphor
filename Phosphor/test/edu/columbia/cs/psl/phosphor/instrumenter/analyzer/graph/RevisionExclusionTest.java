@@ -14,7 +14,7 @@ import java.io.IOException;
 import static junit.framework.TestCase.assertEquals;
 import static org.objectweb.asm.Opcodes.*;
 
-public class RevisableBranchExclusionTest {
+public class RevisionExclusionTest {
 
     private static final int[] POSSIBLE_EXCLUDED_OPCODES = new int[]{ICONST_M1, ICONST_0, ICONST_1, ICONST_2, ICONST_3,
             ICONST_4, ICONST_5, LCONST_0, LCONST_1, FCONST_0, FCONST_1, FCONST_2, DCONST_0, DCONST_1, BIPUSH, SIPUSH,
@@ -28,41 +28,41 @@ public class RevisableBranchExclusionTest {
 
     @Test
     public void testAllLocalAssignmentsConstant() throws NoSuchMethodException, IOException {
-        String owner = Type.getInternalName(RevisableBranchExclusionTestMethods.class);
-        MethodNode mn = RevisableBranchExclusionTestMethods.getMethodNode("allLocalAssignmentsConstant");
-        Set<AbstractInsnNode> exclusions = RevisableBranchExclusionInterpreter.identifyRevisableBranchExclusions(owner, mn);
+        String owner = Type.getInternalName(RevisionExclusionTestMethods.class);
+        MethodNode mn = RevisionExclusionTestMethods.getMethodNode("allLocalAssignmentsConstant");
+        Set<AbstractInsnNode> exclusions = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, mn);
         assertEquals(instructionsWithOpcodes(mn, POSSIBLE_EXCLUDED_OPCODES), exclusions);
     }
 
     @Test
     public void testAllLocalAssignmentsConstant2() throws NoSuchMethodException, IOException {
-        String owner = Type.getInternalName(RevisableBranchExclusionTestMethods.class);
-        MethodNode mn = RevisableBranchExclusionTestMethods.getMethodNode("allLocalAssignmentsConstant2");
-        Set<AbstractInsnNode> exclusions = RevisableBranchExclusionInterpreter.identifyRevisableBranchExclusions(owner, mn);
+        String owner = Type.getInternalName(RevisionExclusionTestMethods.class);
+        MethodNode mn = RevisionExclusionTestMethods.getMethodNode("allLocalAssignmentsConstant2");
+        Set<AbstractInsnNode> exclusions = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, mn);
         assertEquals(instructionsWithOpcodes(mn, POSSIBLE_EXCLUDED_OPCODES), exclusions);
     }
 
     @Test
     public void testAllLocalAssignmentsExcluded() throws NoSuchMethodException, IOException {
-        String owner = Type.getInternalName(RevisableBranchExclusionTestMethods.class);
-        MethodNode mn = RevisableBranchExclusionTestMethods.getMethodNode("allLocalAssignmentsExcluded");
-        Set<AbstractInsnNode> exclusions = RevisableBranchExclusionInterpreter.identifyRevisableBranchExclusions(owner, mn);
+        String owner = Type.getInternalName(RevisionExclusionTestMethods.class);
+        MethodNode mn = RevisionExclusionTestMethods.getMethodNode("allLocalAssignmentsExcluded");
+        Set<AbstractInsnNode> exclusions = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, mn);
         assertEquals(instructionsWithOpcodes(mn, POSSIBLE_EXCLUDED_OPCODES), exclusions);
     }
 
     @Test
     public void testNoLocalAssignmentsExcluded() throws NoSuchMethodException, IOException {
-        String owner = Type.getInternalName(RevisableBranchExclusionTestMethods.class);
-        MethodNode mn = RevisableBranchExclusionTestMethods.getMethodNode("noLocalAssignmentsExcluded");
-        Set<AbstractInsnNode> exclusions = RevisableBranchExclusionInterpreter.identifyRevisableBranchExclusions(owner, mn);
+        String owner = Type.getInternalName(RevisionExclusionTestMethods.class);
+        MethodNode mn = RevisionExclusionTestMethods.getMethodNode("noLocalAssignmentsExcluded");
+        Set<AbstractInsnNode> exclusions = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, mn);
         assertEquals(instructionsWithOpcodes(mn, ALWAYS_EXCLUDED_OPCODES), exclusions);
     }
 
     @Test
     public void testUnableToMergeConstants() throws NoSuchMethodException, IOException {
-        String owner = Type.getInternalName(RevisableBranchExclusionTestMethods.class);
-        MethodNode mn = RevisableBranchExclusionTestMethods.getMethodNode("unableToMergeConstants");
-        Set<AbstractInsnNode> exclusions = RevisableBranchExclusionInterpreter.identifyRevisableBranchExclusions(owner, mn);
+        String owner = Type.getInternalName(RevisionExclusionTestMethods.class);
+        MethodNode mn = RevisionExclusionTestMethods.getMethodNode("unableToMergeConstants");
+        Set<AbstractInsnNode> exclusions = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, mn);
         List<AbstractInsnNode> stores = getStoresInOrder(mn);
         boolean[] expected = new boolean[]{true, true, true, true, false, true, false};
         for(int i = 0; i < expected.length; i++) {

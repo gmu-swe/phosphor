@@ -6,10 +6,10 @@ import org.objectweb.asm.tree.MethodNode;
 
 import java.io.IOException;
 
-public class RevisableBranchExclusionTestMethods {
+public class RevisionExclusionTestMethods {
 
     public static MethodNode getMethodNode(String methodName) throws NoSuchMethodException, IOException {
-        ClassReader cr = new ClassReader(RevisableBranchExclusionTestMethods.class.getName());
+        ClassReader cr = new ClassReader(RevisionExclusionTestMethods.class.getName());
         ClassNode classNode = new ClassNode();
         cr.accept(classNode, 0);
         for(MethodNode mn : classNode.methods) {
