@@ -22,7 +22,7 @@ public class RevisionExclusionInterpreter extends Interpreter<RevisionExclusionI
 
     @Override
     public SourceValue newValue(Type type) {
-        if (type == Type.VOID_TYPE) {
+        if(type == Type.VOID_TYPE) {
             return null;
         }
         return new BasicSourceValue(type == null ? 1 : type.getSize(), new HashSet<>());
