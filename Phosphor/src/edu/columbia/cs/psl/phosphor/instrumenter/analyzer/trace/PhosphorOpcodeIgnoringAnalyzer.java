@@ -1,4 +1,4 @@
-package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph;
+package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import org.objectweb.asm.tree.AbstractInsnNode;

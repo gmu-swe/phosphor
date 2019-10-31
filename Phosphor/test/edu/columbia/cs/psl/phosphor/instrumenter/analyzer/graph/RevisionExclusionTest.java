@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace.TracingInterpreter;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
@@ -8,6 +9,7 @@ import org.junit.Test;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.analysis.AnalyzerException;
 
 import java.io.IOException;
 
@@ -27,42 +29,42 @@ public class RevisionExclusionTest {
     };
 
     @Test
-    public void testAllLocalAssignmentsConstant() throws NoSuchMethodException, IOException {
+    public void testAllLocalAssignmentsConstant() throws NoSuchMethodException, IOException, AnalyzerException {
         String owner = Type.getInternalName(RevisionExclusionTestMethods.class);
         MethodNode mn = RevisionExclusionTestMethods.getMethodNode("allLocalAssignmentsConstant");
-        Set<AbstractInsnNode> exclusions = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, mn);
+        Set<AbstractInsnNode> exclusions = calculateRevisionExcludedInstructions(owner, mn);
         assertEquals(instructionsWithOpcodes(mn, POSSIBLE_EXCLUDED_OPCODES), exclusions);
     }
 
     @Test
-    public void testAllLocalAssignmentsConstant2() throws NoSuchMethodException, IOException {
+    public void testAllLocalAssignmentsConstant2() throws NoSuchMethodException, IOException, AnalyzerException {
         String owner = Type.getInternalName(RevisionExclusionTestMethods.class);
         MethodNode mn = RevisionExclusionTestMethods.getMethodNode("allLocalAssignmentsConstant2");
-        Set<AbstractInsnNode> exclusions = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, mn);
+        Set<AbstractInsnNode> exclusions = calculateRevisionExcludedInstructions(owner, mn);
         assertEquals(instructionsWithOpcodes(mn, POSSIBLE_EXCLUDED_OPCODES), exclusions);
     }
 
     @Test
-    public void testAllLocalAssignmentsExcluded() throws NoSuchMethodException, IOException {
+    public void testAllLocalAssignmentsExcluded() throws NoSuchMethodException, IOException, AnalyzerException {
         String owner = Type.getInternalName(RevisionExclusionTestMethods.class);
         MethodNode mn = RevisionExclusionTestMethods.getMethodNode("allLocalAssignmentsExcluded");
-        Set<AbstractInsnNode> exclusions = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, mn);
+        Set<AbstractInsnNode> exclusions = calculateRevisionExcludedInstructions(owner, mn);
         assertEquals(instructionsWithOpcodes(mn, POSSIBLE_EXCLUDED_OPCODES), exclusions);
     }
 
     @Test
-    public void testNoLocalAssignmentsExcluded() throws NoSuchMethodException, IOException {
+    public void testNoLocalAssignmentsExcluded() throws NoSuchMethodException, IOException, AnalyzerException {
         String owner = Type.getInternalName(RevisionExclusionTestMethods.class);
         MethodNode mn = RevisionExclusionTestMethods.getMethodNode("noLocalAssignmentsExcluded");
-        Set<AbstractInsnNode> exclusions = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, mn);
+        Set<AbstractInsnNode> exclusions = calculateRevisionExcludedInstructions(owner, mn);
         assertEquals(instructionsWithOpcodes(mn, ALWAYS_EXCLUDED_OPCODES), exclusions);
     }
 
     @Test
-    public void testUnableToMergeConstants() throws NoSuchMethodException, IOException {
+    public void testUnableToMergeConstants() throws NoSuchMethodException, IOException, AnalyzerException {
         String owner = Type.getInternalName(RevisionExclusionTestMethods.class);
         MethodNode mn = RevisionExclusionTestMethods.getMethodNode("unableToMergeConstants");
-        Set<AbstractInsnNode> exclusions = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, mn);
+        Set<AbstractInsnNode> exclusions = calculateRevisionExcludedInstructions(owner, mn);
         List<AbstractInsnNode> stores = getStoresInOrder(mn);
         boolean[] expected = new boolean[]{true, true, true, true, false, true, false};
         for(int i = 0; i < expected.length; i++) {
@@ -97,5 +99,10 @@ public class RevisionExclusionTest {
             }
         }
         return instructions;
+    }
+
+    private static Set<AbstractInsnNode> calculateRevisionExcludedInstructions(String owner, MethodNode mn) throws AnalyzerException {
+        TracingInterpreter interpreter = new TracingInterpreter(owner, mn);
+        return interpreter.identifyRevisionExcludedInstructions();
     }
 }

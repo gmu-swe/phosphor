@@ -50,6 +50,7 @@ public class RevisionExclusionTestMethods {
 
     public static void allLocalAssignmentsExcluded(boolean condition) {
         int c = 7;
+        int v = 2;
         int w = 300;
         int x = -4;
         int y = 44;
@@ -57,6 +58,7 @@ public class RevisionExclusionTestMethods {
         for(int i = 0; i < 55; i++) {
             for(int j = 0; j < 10; j++) {
                 if(condition) {
+                    v = (v * v + v + 5 * 77 - 99)/(2 * v);
                     w = c;
                     x = c + x;
                     y = y / c;

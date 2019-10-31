@@ -1,8 +1,14 @@
-package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph;
+package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BaseControlFlowGraphCreator;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BasicBlock;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.DummyBasicBlock;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace.TracingInterpreter;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.analysis.AnalyzerException;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -16,7 +22,7 @@ import static org.objectweb.asm.Opcodes.*;
  * Branch edges are the result of conditional jump instructions (i.e., IF_ACMP<cond>, IF_ICMP<cond>, IF<cond>,
  * TABLESWITCH, LOOKUPSWITCH, IFNULL, and IFNONNULL).
  *
- * <p>A branch edge (u, v) is to be binding if and only if:
+ * <p>A branch edge (u, v) is to be binding if and only if one of the following conditions is true:
  * <ul>
  *     <li>The basic block u ends with an IFEQ or IFNE instruction.</li>
  *     <li>The basic block u ends with an ICMPEQ or IF_ACMEQ instruction that has a jump target t and t = v</li>
@@ -31,17 +37,20 @@ import static org.objectweb.asm.Opcodes.*;
  * in V such that the exists a path from the distinguished start vertex of the control flow graph to w that does not
  * contain the edge (u, v).
  *
- * <p> A branch edge (u, v) is said to be revisable if and only if there exits some edge (u, w) in E such that v != w
- * and there exists a path from w to v.
+ * <p> A branch edge (u, v) is said to be revisable if and only if all of the following conditions are true:
+ * <ul>
+ *     <li>The predicate of the conditional jump instruction that ends basic block u is not constant</li>
+ *     <li>There exits some edge (u, w) in E such that v != w and there exists a path from w to v</li>
+ * </ul>
  *
- * <p> An instruction is said to be revision-excluded if and only if:
+ * <p> An instruction is said to be revision-excluded if and only if one of the following conditions is true:
  * <ul>
  *     <li>It is an ICONST_M1, ICONST_0, ICONST_1, ICONST_2, ICONST_3, ICONST_4, ICONST_5, LCONST_0, LCONST_1, FCONST_0,
  *     FCONST_1, FCONST_2, DCONST_0, DCONST_1, BIPUSH, SIPUSH, or LDC instruction</li>
  *     <li>It is an IINC instruction</li>
  *     <li>It is an ISTORE, LSTORE, FSTORE, DSTORE, or ASTORE instruction that stores a value v into the local variable
- *     x where v can be expressed as an arithmetic expression where each operand is either a constant value or the
- *     definition of x prior to the execution of the store instruction being inspected
+ *     x where v can be expressed as an arithmetic expression where each operand is either a constant value or a single
+ *     definition of x.
  * </ul>
  * A revision-excluded instruction is considered to be outside of the scope of all revisable branch edges.
  */
@@ -58,6 +67,14 @@ public class BindingControlFlowAnalyzer {
         }
         BindingControlFlowGraphCreator creator = new BindingControlFlowGraphCreator();
         FlowGraph<BasicBlock> controlFlowGraph = creator.createControlFlowGraph(methodNode);
+        Set<AbstractInsnNode> exclusionCandidates = Collections.emptySet();
+        TracingInterpreter interpreter = null;
+        try {
+            interpreter = new TracingInterpreter(owner, methodNode);
+            exclusionCandidates = interpreter.identifyRevisionExcludedInstructions();
+        } catch(AnalyzerException e) {
+            //
+        }
         Collection<BindingBranchEdge> edges = filterEdges(creator.bindingBranchEdges, controlFlowGraph);
         Map<BasicBlock, Set<BindingBranchEdge>> groupedStartBlocks = groupEdgesBySource(edges);
         int nextBranchIDAssigned = 0;
@@ -72,7 +89,7 @@ public class BindingControlFlowAnalyzer {
             for(BindingBranchEdge edge : groupedStartBlocks.get(source)) {
                 successors.remove(edge);
                 AbstractInsnNode nextInsn = findNextPrecedableInstruction(edge.target.getFirstInsn());
-                if(edge.isRevisable(controlFlowGraph)) {
+                if(edge.isRevisable(controlFlowGraph, interpreter)) {
                     markBranchEnds(methodNode.instructions, edge, revisableBranchID, controlFlowGraph);
                     instructions.insertBefore(nextInsn, new VarInsnNode(TaintUtils.BRANCH_END, branchID));
                 } else {
@@ -101,7 +118,6 @@ public class BindingControlFlowAnalyzer {
             }
         }
         // Mark all revision-excluded instructions
-        Set<AbstractInsnNode> exclusionCandidates = RevisionExclusionInterpreter.identifyRevisionExcludedInstructions(owner, methodNode);
         for(AbstractInsnNode exclusionCandidate : exclusionCandidates) {
             instructions.insertBefore(exclusionCandidate, new InsnNode(TaintUtils.EXCLUDE_REVISABLE_BRANCHES));
         }
@@ -293,12 +309,17 @@ public class BindingControlFlowAnalyzer {
 
         /**
          * @param controlFlowGraph a control flow graph
+         * @param interpreter      interpreter used to identify constant predicate or null if constant predicates need not
+         *                         be identified
          * @return true is this edge is revisable
          * @throws IllegalArgumentException if the specified control flow graph does not contain this edge
          */
-        boolean isRevisable(FlowGraph<BasicBlock> controlFlowGraph) {
+        boolean isRevisable(FlowGraph<BasicBlock> controlFlowGraph, TracingInterpreter interpreter) {
             if(!controlFlowGraph.getVertices().contains(this)) {
                 throw new IllegalArgumentException("Supplied control flow graph does contain this edge");
+            }
+            if(interpreter != null && interpreter.hasConstantSources(source.getLastInsn())) {
+                return false;
             }
             for(BasicBlock successor : controlFlowGraph.getSuccessors(source)) {
                 if(!successor.equals(this) && controlFlowGraph.containsPath(successor, this)) {
