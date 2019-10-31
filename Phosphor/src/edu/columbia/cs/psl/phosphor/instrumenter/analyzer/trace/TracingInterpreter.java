@@ -1,7 +1,10 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.Analyzer;
@@ -574,13 +577,14 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
             case DSTORE:
             case ASTORE:
                 int var = ((VarInsnNode) insn).var;
-                return checkToSource(var, insn);
+                return checkSources(var, insn, new HashSet<>());
             default:
                 return false;
         }
     }
 
-    private boolean checkToSource(int var, AbstractInsnNode insn) {
+    private boolean checkSources(int var, AbstractInsnNode insn, Set<AbstractInsnNode> visited) {
+        visited.add(insn);
         if(insn.getOpcode() >= ILOAD && insn.getOpcode() <= ALOAD && ((VarInsnNode) insn).var == var) {
             return true;
         }
@@ -591,7 +595,11 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
             }
             for(TracedValue source : effect.sources) {
                 if(!(source instanceof ConstantTracedValue)) {
-                    if(source.getSources().size() != 1 || !checkToSource(var, source.getSources().iterator().next())) {
+                    if(source.getSources().size() != 1) {
+                        return false;
+                    }
+                    AbstractInsnNode sourceInsn = source.getSources().iterator().next();
+                    if(visited.contains(sourceInsn) || !checkSources(var, sourceInsn, visited)) {
                         return false;
                     }
                 }
