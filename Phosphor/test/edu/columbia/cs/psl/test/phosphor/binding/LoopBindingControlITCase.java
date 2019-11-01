@@ -1,12 +1,14 @@
-package edu.columbia.cs.psl.test.phosphor;
+package edu.columbia.cs.psl.test.phosphor.binding;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
 import org.junit.Test;
 
 import java.util.LinkedList;
 
-import static edu.columbia.cs.psl.test.phosphor.GeneralBindingControlITCase.*;
+import static edu.columbia.cs.psl.test.phosphor.binding.GeneralBindingControlITCase.createDigitArray;
+import static edu.columbia.cs.psl.test.phosphor.binding.GeneralBindingControlITCase.taintWithIndices;
 
 public class LoopBindingControlITCase extends BaseMultiTaintClass {
 
@@ -24,7 +26,7 @@ public class LoopBindingControlITCase extends BaseMultiTaintClass {
         for(char digit : digits) {
             Taint tag = MultiTainter.getTaint(digit);
             assertNonNullTaint(tag);
-            checkContainsInAnyOrder(tag.getLabels(), Integer.parseInt("" + digit));
+            assertTaintHasOnlyLabels(tag, Integer.parseInt("" + digit));
         }
     }
 
@@ -58,7 +60,7 @@ public class LoopBindingControlITCase extends BaseMultiTaintClass {
         }
         Taint<?> tag = MultiTainter.getTaint(z);
         assertNonNullTaint(tag);
-        checkContainsInAnyOrder(tag.getLabels(), 0, 1, 2, 3);
+        assertTaintHasOnlyLabels(tag, 0, 1, 2, 3);
     }
 
     @Test
@@ -73,7 +75,7 @@ public class LoopBindingControlITCase extends BaseMultiTaintClass {
         }
         Taint<?> tag = MultiTainter.getTaint(z);
         assertNonNullTaint(tag);
-        checkContainsInAnyOrder(tag.getLabels(), 4);
+        assertTaintHasOnlyLabels(tag, 4);
     }
 
     @Test
@@ -89,7 +91,7 @@ public class LoopBindingControlITCase extends BaseMultiTaintClass {
         }
         Taint<?> tag = MultiTainter.getTaint(z);
         assertNonNullTaint(tag);
-        checkContainsInAnyOrder(tag.getLabels(), 0);
+        assertTaintHasOnlyLabels(tag, 0);
     }
 
     @Test
@@ -143,7 +145,7 @@ public class LoopBindingControlITCase extends BaseMultiTaintClass {
         int result = partialControlExclusion(outerCondition, a);
         Taint<?> tag = MultiTainter.getTaint(result);
         assertNonNullTaint(tag);
-        checkContainsInAnyOrder(tag.getLabels(), "outerCondition");
+        assertTaintHasOnlyLabels(tag, "outerCondition");
     }
 
     @Test
@@ -157,6 +159,6 @@ public class LoopBindingControlITCase extends BaseMultiTaintClass {
         }
         Taint<?> tag = MultiTainter.getTaint(result);
         assertNonNullTaint(tag);
-        checkContainsInAnyOrder(tag.getLabels(), "outerCondition");
+        assertTaintHasOnlyLabels(tag, "outerCondition");
     }
 }
