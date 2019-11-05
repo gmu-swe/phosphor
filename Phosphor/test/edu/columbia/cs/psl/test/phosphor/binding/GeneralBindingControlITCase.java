@@ -87,6 +87,7 @@ public class GeneralBindingControlITCase extends BaseMultiTaintClass {
         assertNullOrEmpty(MultiTainter.getTaint(result));
     }
 
+    @Ignore(value = "Need different binding semantics")
     @Test
     public void testArrayEqualsMultipleExitTrue() {
         int[] a = new int[]{0, 1, 2, 3, 4};
@@ -114,6 +115,7 @@ public class GeneralBindingControlITCase extends BaseMultiTaintClass {
         assertTaintHasOnlyLabels(MultiTainter.getTaint(result), 0, 1, 2, 3, 4);
     }
 
+    @Ignore(value = "Loop formed via recursive call")
     @Test
     public void testRecursiveArrayEqualsFalse() {
         int[] a = new int[]{0, 1, 2, 3, 4};

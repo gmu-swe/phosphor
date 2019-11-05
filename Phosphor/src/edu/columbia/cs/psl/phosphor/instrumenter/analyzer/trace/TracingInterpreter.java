@@ -22,6 +22,7 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
     private final Map<AbstractInsnNode, InstructionEffect> effectMap = new HashMap<>();
     private final Frame<TracedValue>[] frames;
     private final InsnList instructions;
+    private final Map<TracedValue, ParamValue> paramMap = new HashMap<>();
 
     public TracingInterpreter(String owner, MethodNode methodNode) throws AnalyzerException {
         super(Configuration.ASM_VERSION);
@@ -36,6 +37,13 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
             return null;
         }
         return new BasicTracedValue(type == null ? 1 : type.getSize(), new HashSet<>());
+    }
+
+    @Override
+    public TracedValue newParameterValue(boolean isInstanceMethod, int local, Type type) {
+        TracedValue result = newValue(type);
+        paramMap.put(result, new ParamValue(isInstanceMethod, local, type));
+        return result;
     }
 
     @Override
@@ -521,7 +529,7 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
     }
 
     /**
-     * @param insn
+     * @param insn the instruction to be checked
      * @return true if the source of each operand or value used by the specified instruction is constant
      */
     public boolean hasConstantSources(AbstractInsnNode insn) {
@@ -546,6 +554,7 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
             if(shouldExclude(insn)) {
                 exclusions.add(insn);
             }
+            walkToLeaves(insn);
         }
         return exclusions;
     }
@@ -607,6 +616,113 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
             return true;
         } else {
             return false;
+        }
+    }
+
+    /**
+     * <p> An instruction is said to be revision-excluded if and only if one of the following conditions is true:
+     * <ul>
+     *     <li>ACONST_NULL, ICONST_M1, ICONST_0, ICONST_1, ICONST_2, ICONST_3, ICONST_4, ICONST_5, LCONST_0, LCONST_1,
+     *     FCONST_0, FCONST_1, FCONST_2, DCONST_0, DCONST_1, BIPUSH, SIPUSH, and LDC instructions</li>
+     *     <li>IINC instruction</li>
+     *     <li>ISTORE, LSTORE, FSTORE, DSTORE, and ASTORE instructions</li>
+     *     <li>PUTFIELD, and PUTSTATIC instructions</li>
+     *     <li>IASTORE, LASTORE, FASTORE, DASTORE, AASTORE, BASTORE, CASTORE, and SASTORE instructions</li>
+     *     <li>IRETURN, LRETURN, FRETURN, DRETURN, and ARETURN instructions</li>
+     *     <li>NEW, NEWARRAY, ANEWARRAY, and MULTIANEWARRAY instructions</li>
+     *     <li>IF_ACMP<cond>, IF_ICMP<cond>, IF<cond>, TABLESWITCH, LOOKUPSWITCH, IFNULL, and IFNONNULL</li>
+     * </ul>
+     */
+    public int[] calculateConstancyDependencies(AbstractInsnNode insn) {
+        switch(insn.getOpcode()) {
+            case ACONST_NULL:
+            case ICONST_M1:
+            case ICONST_0:
+            case ICONST_1:
+            case ICONST_2:
+            case ICONST_3:
+            case ICONST_4:
+            case ICONST_5:
+            case LCONST_0:
+            case LCONST_1:
+            case FCONST_0:
+            case FCONST_1:
+            case FCONST_2:
+            case DCONST_0:
+            case DCONST_1:
+            case BIPUSH:
+            case SIPUSH:
+            case LDC:
+            case IINC:
+                return new int[0];
+            case ISTORE:
+            case LSTORE:
+            case FSTORE:
+            case DSTORE:
+            case ASTORE:
+                //
+            case IASTORE:
+            case LASTORE:
+            case FASTORE:
+            case DASTORE:
+            case AASTORE:
+            case BASTORE:
+            case CASTORE:
+            case SASTORE:
+                //
+            case IFEQ:
+            case IFNE:
+            case IFLT:
+            case IFGE:
+            case IFGT:
+            case IFLE:
+            case IF_ICMPEQ:
+            case IF_ICMPNE:
+            case IF_ICMPLT:
+            case IF_ICMPGE:
+            case IF_ICMPGT:
+            case IF_ICMPLE:
+            case IF_ACMPEQ:
+            case IF_ACMPNE:
+            case TABLESWITCH:
+            case LOOKUPSWITCH:
+            case IFNULL:
+            case IFNONNULL:
+                //
+            case IRETURN:
+            case LRETURN:
+            case FRETURN:
+            case DRETURN:
+            case ARETURN:
+                //
+            case PUTSTATIC:
+            case PUTFIELD:
+            default:
+                return new int[]{-1};
+        }
+    }
+
+    private void walkToLeaves(AbstractInsnNode insn) {
+        Set<SourceLeaf> leaves = new HashSet<>();
+        gatherLeaves(insn, new HashSet<>(), leaves);
+        System.out.println(leaves);
+    }
+
+    private void gatherLeaves(AbstractInsnNode insn, Set<AbstractInsnNode> visited, Set<SourceLeaf> leaves) {
+        if(visited.add(insn)) {
+            InstructionEffect effect = effectMap.get(insn);
+            SourceLeaf l = SourceLeaf.newLeaf(insn, effect, paramMap);
+            if(l != null) {
+                leaves.add(l);
+            } else {
+                for(TracedValue val : effect.sources) {
+                    if(val.getSources().size() == 1) {
+                        gatherLeaves(val.getSources().iterator().next(), visited, leaves);
+                    } else {
+                        leaves.add(new SourceLeaf.SplitSource(val.getSources()));
+                    }
+                }
+            }
         }
     }
 }
