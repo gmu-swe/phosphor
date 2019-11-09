@@ -5,7 +5,7 @@
     <groupId>edu.gmu.swe.phosphor</groupId>
     <artifactId>Phosphor</artifactId>
     <name>Phosphor</name>
-    <version>0.0.4</version>
+    <version>0.0.5-SNAPSHOT</version>
     <properties>
         <dacapo.skip>true</dacapo.skip>
         <skipIntTagNoInstTests>true</skipIntTagNoInstTests>
