@@ -338,6 +338,10 @@ public class Instrumenter {
 		Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption("skipLocals");
 		Configuration.ALWAYS_CHECK_FOR_FRAMES = line.hasOption("alwaysCheckForFrames");
 		Configuration.IMPLICIT_HEADERS_NO_TRACKING = line.hasOption("implicitHeadersNoTracking");
+		if(Configuration.IMPLICIT_HEADERS_NO_TRACKING && Configuration.IMPLICIT_TRACKING)
+		{
+			throw new IllegalStateException("Can not use both -controlTrack and -implicitHeadersNoTracking at the same time");
+		}
         Configuration.REENABLE_CACHES = line.hasOption(opt_reenable_caches.getOpt());
 		String priorClassVisitorName = line.getOptionValue(opt_priorClassVisitor.getOpt());
 		if(priorClassVisitorName != null) {
