@@ -5,7 +5,6 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
@@ -25,7 +24,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     int idxOfMasterControlLV = -1;
     int idxOfMasterExceptionLV = -1;
     Label end;
-    Label start = new Label();
+    Label newStartLabel = new Label();
     private List<Type> oldArgTypes = new ArrayList<>();
     private boolean isIgnoreEverything = false;
     private Map<Integer, Integer> origLVMap = new HashMap<>();
@@ -50,6 +49,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     private int extraLVsInArg;
     private Label ctrlTagStartLbl;
     private boolean disabled = false;
+    private Label oldStartLabel;
 
     public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean generateExtraDebug) {
         super(Configuration.ASM_VERSION, access, desc, mv);
@@ -351,6 +351,9 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
     @Override
     public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
+        if(start == oldStartLabel) {
+            start = this.newStartLabel;
+        }
         super.visitLocalVariable(name, desc, signature, start, end, index);
         if(!createdLVs.isEmpty()) {
             if(!endVisited) {
@@ -375,11 +378,11 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         if(generateExtraDebug && !Configuration.SKIP_LOCAL_VARIABLE_TABLE) {
             int n = 0;
             if(!isStatic) {
-                super.visitLocalVariable("argidx" + n, "Ljava/lang/Object;", null, this.start, this.end, n);
+                super.visitLocalVariable("argidx" + n, "Ljava/lang/Object;", null, this.newStartLabel, this.end, n);
                 n++;
             }
             for(Type t : args) {
-                super.visitLocalVariable("argidx" + n, t.getDescriptor(), null, this.start, this.end, n);
+                super.visitLocalVariable("argidx" + n, t.getDescriptor(), null, this.newStartLabel, this.end, n);
                 n += t.getSize();
             }
         }
@@ -396,9 +399,17 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         }
     }
 
+    @Override
+    public void visitLabel(Label label) {
+        if(oldStartLabel == null) {
+            oldStartLabel = label;
+        }
+        super.visitLabel(label);
+    }
+
     public void visitCode() {
         super.visitCode();
-        super.visitLabel(start);
+        super.visitLabel(newStartLabel);
         if(primitiveArrayFixer != null) {
             for(Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
                 if(t.equals(returnType)) {

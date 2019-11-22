@@ -82,7 +82,7 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
         if(nextLoadIsTainted && opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && t.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_FIELD) && !name.equals("taint") &&
                 t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1 && !checkedThisFrame.contains(owner + "." + name)
                 && (owner.equals("java/lang/String") || implementsSerializable || owner.equals("java/io/BufferedInputStream")
-                || owner.startsWith("java/lang/reflect"))) {
+                || owner.startsWith("java/lang/reflect") || owner.equals("com/sun/security/auth/module/UnixSystem"))) {
             nextLoadIsTainted = false;
             //Tag Obj
             super.visitInsn(SWAP);

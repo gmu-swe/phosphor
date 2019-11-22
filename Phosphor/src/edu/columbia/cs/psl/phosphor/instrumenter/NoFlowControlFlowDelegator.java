@@ -50,7 +50,7 @@ public class NoFlowControlFlowDelegator implements ControlFlowDelegator {
             } else {
                 LocalVariableNode phosphorJumpControlTagIndex = new LocalVariableNode("phosphorJumpControlTag",
                         Type.getDescriptor(ControlTaintTagStack.class), null,
-                        new LabelNode(localVariableManager.start),
+                        new LabelNode(localVariableManager.newStartLabel),
                         new LabelNode(localVariableManager.end),
                         localVariableManager.idxOfMasterControlLV
                 );

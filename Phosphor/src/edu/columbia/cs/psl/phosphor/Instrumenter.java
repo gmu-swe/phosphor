@@ -97,6 +97,7 @@ public class Instrumenter {
     static Option help = Option.builder("help")
             .desc("print this message")
             .build();
+
     private static ClassFileTransformer addlTransformer;
     private static File rootOutputDir;
     private static long START;
@@ -234,8 +235,12 @@ public class Instrumenter {
         START = System.currentTimeMillis();
         Options options = new Options();
         options.addOption(help);
-        options.addOption(opt_controlTrack);
-        options.addOption(opt_controlLightTrack);
+        OptionGroup controlPropagationGroup = new OptionGroup()
+                .addOption(opt_controlTrack)
+                .addOption(opt_controlLightTrack)
+                .addOption(opt_implicitHeadersNoTracking)
+                .addOption(opt_bindingControl);
+        options.addOptionGroup(controlPropagationGroup);
         options.addOption(opt_controlTrackExceptions);
         options.addOption(opt_withoutDataTrack);
         options.addOption(opt_trackArrayLengthTaints);
@@ -251,10 +256,8 @@ public class Instrumenter {
         options.addOption(opt_disableLocalsInfo);
         options.addOption(opt_alwaysCheckForFrames);
         options.addOption(opt_priorClassVisitor);
-        options.addOption(opt_implicitHeadersNoTracking);
         options.addOption(opt_reenableCaches);
-        options.addOption(opt_bindingControl);
-        CommandLineParser parser = new BasicParser();
+        CommandLineParser parser = new DefaultParser();
         CommandLine line;
         try {
             line = parser.parse(options, args);
@@ -269,7 +272,6 @@ public class Instrumenter {
             formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
             return;
         }
-
         Configuration.IMPLICIT_TRACKING = line.hasOption(opt_controlTrack.getOpt());
         Configuration.IMPLICIT_LIGHT_TRACKING = line.hasOption(opt_controlLightTrack.getOpt());
         Configuration.IMPLICIT_EXCEPTION_FLOW = line.hasOption(opt_controlTrackExceptions.getOpt());
@@ -298,11 +300,6 @@ public class Instrumenter {
             } catch(Exception e) {
                 System.err.println("Failed to create specified prior class visitor: " + priorClassVisitorName);
             }
-        }
-        if(Configuration.IMPLICIT_HEADERS_NO_TRACKING && (Configuration.IMPLICIT_LIGHT_TRACKING ||
-                Configuration.IMPLICIT_TRACKING || Configuration.BINDING_CONTROL_FLOWS_ONLY)) {
-            String message = String.format("Cannot use both -%s and -%s", "", "");
-            throw new IllegalStateException(message);
         }
         Configuration.init();
         if(Configuration.DATAFLOW_TRACKING) {
@@ -349,12 +346,12 @@ public class Instrumenter {
         try {
             if(Files.isDirectory(input)) {
                 Files.walkFileTree(input, new FileVisitor<Path>() {
-                    //					@Override
-                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    @Override
+                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                         return FileVisitResult.CONTINUE;
                     }
 
-                    //					@Override
+                    @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                         if(file.getFileName().toString().endsWith(".jar")) {
                             urls.add(file.toUri().toURL());
@@ -362,13 +359,13 @@ public class Instrumenter {
                         return FileVisitResult.CONTINUE;
                     }
 
-                    //					@Override
-                    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                    @Override
+                    public FileVisitResult visitFileFailed(Path file, IOException exc) {
                         return FileVisitResult.CONTINUE;
                     }
 
-                    //					@Override
-                    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    @Override
+                    public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
                         return FileVisitResult.CONTINUE;
                     }
                 });

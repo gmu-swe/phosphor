@@ -5,8 +5,11 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BindingControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.*;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BaseControlFlowGraphCreator;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BasicBlock;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.SimpleBasicBlock;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
@@ -33,6 +36,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     private NeverNullArgAnalyzerAdapter analyzer;
     private Map<Label, List<Label>> newLabels = new HashMap<>();
     private boolean isImplicitLightTracking;
+    private Label newFirstLabel = new Label();
+    private Label oldFirstLabel;
 
     public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, final boolean isImplicitLightTracking) {
         super(Configuration.ASM_VERSION);
@@ -327,28 +332,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             if(DEBUG) {
                 System.out.println("Visiting: " + className + "." + name + desc);
             }
-            Label firstLabel = new Label();
             super.visitCode();
-            visitLabel(firstLabel);
+            visitLabel(newFirstLabel);
 
         }
-
-        //			@Override
-        //			public void visitVarInsn(int opcode, int var) {
-        //				if(opcode == Opcodes.ASTORE)
-        //				{
-        //					boolean isPrimArray = TaintAdapter.isPrimitiveStackType(analyzer.stack.get(analyzer.stack.size() - 1));
-        //					if(lvsThatAreArrays.containsKey(var))
-        //					{
-        //						if(lvsThatAreArrays.get(var) != isPrimArray)
-        //						{
-        //							throw new IllegalStateException("This analysis is currently too lazy to handle when you have 1 var slot take different kinds of arrays");
-        //						}
-        //					}
-        //					lvsThatAreArrays.put(var, isPrimArray);
-        //				}
-        //				super.visitVarInsn(opcode, var);
-        //			}
 
         private void visitFrameTypes(final int n, final Object[] types, final java.util.List<Object> result) {
             for(int i = 0; i < n; i++) {
@@ -386,27 +373,36 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         }
 
         @Override
+        public void visitLocalVariable(String name, String descriptor, String signature, Label start, Label end, int index) {
+            if(start == oldFirstLabel) {
+                start = newFirstLabel;
+            }
+            super.visitLocalVariable(name, descriptor, signature, start, end, index);
+        }
+
+        @Override
         public void visitLabel(Label label) {
-            //				if (curLabel >= 0)
+            if(oldFirstLabel == null && label != newFirstLabel) {
+                oldFirstLabel = label;
+            }
             if(DEBUG) {
-                System.out.println("Visit label: " + curLabel + " analyzer: " + analyzer.stack + " inframes size " + inFrames.size() + " " + outFrames.size());
+                System.out.println("Visit label: " + curLabel + " analyzer: " + analyzer.stack + " inframes size "
+                        + inFrames.size() + " " + outFrames.size());
             }
             if(analyzer.locals == null || analyzer.stack == null) {
                 inFrames.add(new FrameNode(0, 0, new Object[0], 0, new Object[0]));
             } else {
-                inFrames.add(new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
+                inFrames.add(new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(),
+                        analyzer.stack.size(), analyzer.stack.toArray()));
             }
-            //				if (outFrames.size() <= curLabel) {
-            //					if(analyzer.stack == null)
             outFrames.add(null);
             if(curLabel > 0 && outFrames.get(curLabel - 1) == null && analyzer.stack != null) {
-                outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
+                outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(),
+                        analyzer.stack.size(), analyzer.stack.toArray()));
             }
             if(DEBUG) {
-                System.out.println("Added outframe for " + (outFrames.size() - 1) + " : " + analyzer.stack);
+                System.out.println("Added out-frame for " + (outFrames.size() - 1) + " : " + analyzer.stack);
             }
-            //				}
-
             super.visitLabel(label);
             curLabel++;
         }
