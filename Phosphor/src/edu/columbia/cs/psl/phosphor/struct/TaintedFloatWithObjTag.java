@@ -1,44 +1,40 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
 import java.io.IOException;
 import java.io.Serializable;
 
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
-
 public final class TaintedFloatWithObjTag extends TaintedPrimitiveWithObjTag implements Serializable {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 4950080138821634577L;
+    private static final long serialVersionUID = 4950080138821634577L;
+    public float val;
 
-	private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
-		stream.writeFloat(val);
-		stream.writeObject(taint);
-	}
+    public TaintedFloatWithObjTag(Taint taint, float val) {
+        this.taint = taint;
+        this.val = val;
+    }
 
-	private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
-		val = stream.readFloat();
-		taint = (Taint) stream.readObject();
-	}
+    public TaintedFloatWithObjTag() {
 
-	@Override
-	public Object getValue() {
-		return val;
-	}
+    }
 
-	public float val;
+    private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
+        stream.writeFloat(val);
+        stream.writeObject(taint);
+    }
 
-	public static final TaintedFloatWithObjTag valueOf(Taint taint, float val) {
-		return new TaintedFloatWithObjTag(taint, val);
-	}
+    private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        val = stream.readFloat();
+        taint = (Taint) stream.readObject();
+    }
 
-	public TaintedFloatWithObjTag(Taint taint, float val) {
-		this.taint = taint;
-		this.val = val;
-	}
+    @Override
+    public Object getValue() {
+        return val;
+    }
 
-	public TaintedFloatWithObjTag() {
-
-	}
+    public static final TaintedFloatWithObjTag valueOf(Taint taint, float val) {
+        return new TaintedFloatWithObjTag(taint, val);
+    }
 }

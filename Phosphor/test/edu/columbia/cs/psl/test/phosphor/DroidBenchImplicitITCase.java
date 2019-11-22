@@ -428,7 +428,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 		resetState();
 		foo();
 		System.out.println("post foo: ");
-		System.out.println(MultiTainter.getControlFlow().taint);
+		System.out.println(MultiTainter.getControlFlow().getTag());
 	}
 	
 	void foo()

@@ -18,6 +18,11 @@ public class JettyBufferUtilCV extends ClassVisitor implements Opcodes {
         return new JettyBufferUtilMV(mv);
     }
 
+    /* Returns whether this class visitor should be applied to the class with the specified name. */
+    public static boolean isApplicable(String className) {
+        return className != null && className.equals("org/eclipse/jetty/util/BufferUtil");
+    }
+
     private static class JettyBufferUtilMV extends MethodVisitor {
 
         JettyBufferUtilMV(MethodVisitor mv) {
@@ -32,10 +37,5 @@ public class JettyBufferUtilCV extends ClassVisitor implements Opcodes {
                 super.visitMethodInsn(opcode, owner, name, desc, itf);
             }
         }
-    }
-
-    /* Returns whether this class visitor should be applied to the class with the specified name. */
-    public static boolean isApplicable(String className) {
-        return className != null && className.equals("org/eclipse/jetty/util/BufferUtil");
     }
 }

@@ -42,23 +42,9 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
         }
     }
 
-    /* Returns whether the list contains an item that is referentially equal to the specified item. */
-    public boolean identityContains(E item) {
-        if(head == null) {
-            return false;
-        } else {
-            for(Node<E> cur = head; cur != null; cur = cur.next) {
-                if(cur.item == item) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
     /* Adds the specified item to the tail of the list. */
     public void addLast(E item) {
-        Node<E> n = new Node<E>(item);
+        Node<E> n = new Node<>(item);
         size++;
         if(tail == null) {
             // The list was empty
@@ -71,35 +57,13 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
 
     /* Adds the specified item to the head of the list. */
     public void addFirst(E item) {
-        Node<E> n = new Node<E>(item, head);
+        Node<E> n = new Node<>(item, head);
         size++;
         if(head == null) {
             // The list was empty
             head = tail = n;
         } else {
             head = n;
-        }
-    }
-
-    /* If the list contains an item that is referentially equal to the specified item returns false. Otherwise, adds
-     * the specified item to the tail of the list and returns true. */
-    public boolean addIdentityUnique(E item) {
-        if(identityContains(item)) {
-            return false;
-        } else {
-            addLast(item);
-            return true;
-        }
-    }
-
-    /* If the list contains an item that is equal to the specified item returns false. Otherwise, adds
-     * the specified item to the tail of the list and returns true. */
-    public boolean addUnique(E item) {
-        if(contains(item)) {
-            return false;
-        } else {
-            addLast(item);
-            return true;
         }
     }
 
@@ -156,6 +120,11 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
     /* Returns the first item in the list or null if the list is empty. */
     public E getFirst() {
         return peek();
+    }
+
+    /* Removes and returns the first item in the list. Throws a NoSuchElementException if the list is empty. */
+    public E removeFirst() {
+        return pop();
     }
 
     /* Adds the specified item to the tail of the list. */
@@ -220,7 +189,7 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
             if(this.size != otherList.size) {
                 return false;
             }
-            for(Node cur1 = this.head, cur2 = otherList.head; cur1 != null && cur2 != null; cur1 = cur1.next, cur2 =cur2.next) {
+            for(Node cur1 = this.head, cur2 = otherList.head; cur1 != null && cur2 != null; cur1 = cur1.next, cur2 = cur2.next) {
                 if((cur1.item != cur2.item) && (cur1.item == null || !cur1.item.equals(cur2.item))) {
                     return false;
                 }
@@ -241,23 +210,6 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
     @Override
     public Iterator<E> iterator() {
         return new SimpleListIterator();
-    }
-
-    /* Stores the value of a single item in the list and a pointer to the next item. */
-    private static class Node<E> implements Serializable {
-        private static final long serialVersionUID = -4640096704981960035L;
-        E item;
-        Node<E> next;
-
-
-        Node(E item) {
-            this(item, null);
-        }
-
-        Node(E item, Node<E> next) {
-            this.item = item;
-            this.next = next;
-        }
     }
 
     private class SimpleListIterator implements Iterator<E>, Serializable {
@@ -312,6 +264,23 @@ public class SinglyLinkedList<E> implements Iterable<E>, Serializable {
                 prev.next = current;
                 size--;
             }
+        }
+    }
+
+    /* Stores the value of a single item in the list and a pointer to the next item. */
+    private static class Node<E> implements Serializable {
+        private static final long serialVersionUID = -4640096704981960035L;
+        E item;
+        Node<E> next;
+
+
+        Node(E item) {
+            this(item, null);
+        }
+
+        Node(E item, Node<E> next) {
+            this.item = item;
+            this.next = next;
         }
     }
 }

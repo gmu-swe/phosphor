@@ -1,10 +1,11 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
+
 import java.io.Serializable;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
-import java.util.*;
 
 public class WeakIdentityHashMap<K, V> implements Serializable {
 
@@ -96,8 +97,12 @@ public class WeakIdentityHashMap<K, V> implements Serializable {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if(this == o) {
+                return true;
+            }
+            if(o == null || getClass() != o.getClass()) {
+                return false;
+            }
             WeakReference that = (WeakReference) o;
             T referent = this.get();
             return referent != null && referent == that.get();

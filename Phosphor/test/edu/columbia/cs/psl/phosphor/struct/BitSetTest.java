@@ -175,4 +175,24 @@ public class BitSetTest {
         set2.add(1);
         assertNotEquals(set1, set2);
     }
+
+    /* Checks that the size of an empty BitSet is 0. */
+    @Test
+    public void testSizeOfEmptyBitSet() {
+        BitSet set = new BitSet(10);
+        assertEquals(0, set.size());
+    }
+
+    /* Checks that the size of a BitSet is the number of elements in the set. */
+    @Test
+    public void testSizeOfBitSet() {
+        BitSet set = new BitSet(1000);
+        int count = 0;
+        for(int i = 1; i < 1000; i+=10) {
+            set.add(i);
+            count++;
+        }
+        System.out.println(set.size());
+        assertEquals(count, set.size());
+    }
 }

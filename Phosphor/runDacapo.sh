@@ -26,13 +26,13 @@ fi
 #    fi
     if [ ! -d "target/dacapo-inst-obj" ]; then
     echo "Creating obj tag instrumented dacapo";
-    java -Xmx6g -XX:MaxPermSize=512m  -jar $PHOSPHOR_JAR -multiTaint -forceUnboxAcmpEq -withEnumsByValue $DACAPO_DIR target/dacapo-inst-obj;
+    java -Xmx6g -XX:MaxPermSize=512m  -jar $PHOSPHOR_JAR -forceUnboxAcmpEq -withEnumsByValue $DACAPO_DIR target/dacapo-inst-obj;
     else
     echo "Not regenerating obj tag instrumented dacapo";
     fi
 #    if [ ! -d "target/dacapo-inst-implicit" ]; then
 #    echo "Creating obj tag + implicit flow instrumented dacapo\n";
-#    java -Xmx6g -XX:MaxPermSize=512m -jar $PHOSPHOR_JAR -controlTrack -multiTaint $DACAPO_DIR target/dacapo-inst-implicit;
+#    java -Xmx6g -XX:MaxPermSize=512m -jar $PHOSPHOR_JAR -controlTrack $DACAPO_DIR target/dacapo-inst-implicit;
 #    else
 #    echo "Not regenerating implicit flow instrumented dacapo\n";
 #    fi

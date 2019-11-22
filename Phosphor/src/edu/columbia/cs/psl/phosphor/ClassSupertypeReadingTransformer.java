@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.phosphor;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.security.ProtectionDomain;

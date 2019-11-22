@@ -3,7 +3,6 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.BasicSourceSinkManager;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -51,7 +50,7 @@ public class SourceSinkTaintingClassVisitor extends ClassVisitor {
             }
             if(BasicSourceSinkManager.getInstance().isTaintThrough(className, name, desc)) {
                 // Method is a taintThrough method
-                if ((access & Opcodes.ACC_STATIC) == 0) {
+                if((access & Opcodes.ACC_STATIC) == 0) {
                     mv = new TaintThroughTaintingMV(mv, access, className, name, desc);
                 }
             }

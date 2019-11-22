@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayIntTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
 
 import java.lang.instrument.ClassFileTransformer;
@@ -15,53 +15,42 @@ public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
     protected static int isBusyTransforming = 0;
 
     @SuppressWarnings("unused")
-    public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
-                                                          byte[] classfileBuffer) throws IllegalClassFormatException {
+    public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined,
+                                                          ProtectionDomain protectionDomain, LazyByteArrayObjTags classTaint,
+                                                          byte[] classFileBuffer) throws IllegalClassFormatException {
         if(!INITED) {
             Configuration.IMPLICIT_TRACKING = false;
-            Configuration.MULTI_TAINTING = true;
             Configuration.init();
             INITED = true;
         }
-        return new LazyByteArrayObjTags(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
+        return new LazyByteArrayObjTags(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classFileBuffer));
     }
 
     @SuppressWarnings("unused")
-    public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayObjTags classtaint,
-                                                          byte[] classfileBuffer, ControlTaintTagStack ctrl) throws IllegalClassFormatException {
+    public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined,
+                                                          ProtectionDomain protectionDomain, LazyByteArrayObjTags classTaint,
+                                                          byte[] classFileBuffer, ControlTaintTagStack ctrl) throws IllegalClassFormatException {
         if(!INITED) {
             Configuration.IMPLICIT_TRACKING = true;
-            Configuration.MULTI_TAINTING = true;
             Configuration.init();
             INITED = true;
         }
-        return new LazyByteArrayObjTags(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
+        return new LazyByteArrayObjTags(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classFileBuffer));
     }
 
-    @SuppressWarnings("unused")
-    public LazyByteArrayIntTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, LazyByteArrayIntTags classtaint,
-                                                          byte[] classfileBuffer) throws IllegalClassFormatException {
-        if(!INITED) {
-            Configuration.IMPLICIT_TRACKING = false;
-            Configuration.MULTI_TAINTING = false;
-            Configuration.init();
-            INITED = true;
-        }
-        return new LazyByteArrayIntTags(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer));
-    }
-
-    private byte[] signalAndTransform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-        if(className != null && className.startsWith("sun") && !className.startsWith("sun/nio")) {
+    private byte[] signalAndTransform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
+                                      byte[] classFileBuffer) throws IllegalClassFormatException {
+        if(className != null && StringUtils.startsWith(className, "sun") && !StringUtils.startsWith(className, "sun/nio")) {
             // Avoid instrumenting dynamically generated accessors for reflection
-            return classfileBuffer;
+            return classFileBuffer;
         }
         try {
-            synchronized (PhosphorBaseTransformer.class) {
+            synchronized(PhosphorBaseTransformer.class) {
                 isBusyTransforming++;
             }
-            return transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+            return transform(loader, className, classBeingRedefined, protectionDomain, classFileBuffer);
         } finally {
-            synchronized (PhosphorBaseTransformer.class) {
+            synchronized(PhosphorBaseTransformer.class) {
                 isBusyTransforming--;
             }
         }
