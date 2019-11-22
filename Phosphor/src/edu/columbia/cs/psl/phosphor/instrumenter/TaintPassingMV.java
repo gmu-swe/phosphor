@@ -127,7 +127,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				super.visitVarInsn(ASTORE, tmpLV);
 			}
 			else{
-				LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag", Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(lvs.start), new LabelNode(lvs.end), lvs.idxOfMasterControlLV);
+				LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag", Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(lvs.newStartLabel), new LabelNode(lvs.end), lvs.idxOfMasterControlLV);
 				lvs.createdLVs.add(newLVN);
 			}
 			if(Configuration.IMPLICIT_EXCEPTION_FLOW && this.arrayAnalyzer.nTryCatch > 0)

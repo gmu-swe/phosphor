@@ -49,13 +49,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 			return (LabelNode) l.info;
 		}
 
+		Label newFirstLabel = new Label();
+		Label oldFirstLabel;
 		@Override
 		public void visitCode() {
 			if (DEBUG)
 				System.out.println("Visiting: " + className + "." + name + desc);
-			Label firstLabel = new Label();
 			super.visitCode();
-			visitLabel(firstLabel);
+			visitLabel(newFirstLabel);
 
 		}
 
@@ -118,7 +119,16 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 		}
 
 		@Override
+		public void visitLocalVariable(String name, String descriptor, String signature, Label start, Label end, int index) {
+			if(start == oldFirstLabel)
+				start = newFirstLabel;
+			super.visitLocalVariable(name, descriptor, signature, start, end, index);
+		}
+
+		@Override
 		public void visitLabel(Label label) {
+			if(oldFirstLabel == null && label != newFirstLabel)
+				oldFirstLabel = label;
 			//				if (curLabel >= 0)
 			if (DEBUG)
 				System.out.println("Visit label: " + curLabel + " analyzer: " + analyzer.stack + " inframes size " + inFrames.size() + " " + outFrames.size());

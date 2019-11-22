@@ -361,6 +361,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 	boolean endVisited = false;
 	@Override
 	public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
+		if(start == oldStartLabel)
+			start = this.newStartLabel;
 		super.visitLocalVariable(name, desc, signature, start, end, index);
 		if (!createdLVs.isEmpty()) {
 			if(!endVisited)
@@ -390,12 +392,12 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 			int n = 0;
 			if(!isStatic)
 			{
-				super.visitLocalVariable("argidx"+n, "Ljava/lang/Object;", null, this.start, this.end, n);
+				super.visitLocalVariable("argidx"+n, "Ljava/lang/Object;", null, this.newStartLabel, this.end, n);
 				n++;
 			}
 			for(Type t : args)
 			{
-				super.visitLocalVariable("argidx"+n, t.getDescriptor(), null, this.start, this.end, n);
+				super.visitLocalVariable("argidx"+n, t.getDescriptor(), null, this.newStartLabel, this.end, n);
 				n+=t.getSize();
 			}
 		}
@@ -422,10 +424,19 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 		}
 	}
 
-	Label start = new Label();;
+	Label newStartLabel = new Label();;
+	Label oldStartLabel;
+
+	@Override
+	public void visitLabel(Label label) {
+		if(oldStartLabel == null)
+			oldStartLabel = label;
+		super.visitLabel(label);
+	}
+
 	public void visitCode() {
 		super.visitCode();
-		super.visitLabel(start);
+		super.visitLabel(newStartLabel);
 		if (primitiveArrayFixer != null)
 			for (Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
 				if (t.equals(returnType)) {
