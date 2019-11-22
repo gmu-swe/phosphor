@@ -387,13 +387,13 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                     break;
                 case "java/lang/Class":
                     if(nameWithoutSuffix.equals("getMethod")) {
-                        if(Configuration.IMPLICIT_TRACKING && !Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+                        if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                             super.visitInsn(POP);
                         }
                         visit(GET_METHOD);
                         return;
                     } else if(nameWithoutSuffix.equals("getDeclaredMethod")) {
-                        if(Configuration.IMPLICIT_TRACKING && !Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+                        if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                             super.visitInsn(POP);
                         }
                         visit(GET_DECLARED_METHOD);
