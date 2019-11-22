@@ -266,7 +266,7 @@ public class Instrumenter {
             formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
             System.err.println(exp.getMessage());
             if(exp.getMessage().contains("-multiTaint"))
-                System.err.println("Note: -multiTaint options has been removed, and is now enabled by default (int tags no longer exist)");
+                System.err.println("Note: the -multiTaint option has been removed, and is now enabled by default (int tags no longer exist)");
             return;
         }
         if(line.hasOption("help") || line.getArgs().length != 2) {
