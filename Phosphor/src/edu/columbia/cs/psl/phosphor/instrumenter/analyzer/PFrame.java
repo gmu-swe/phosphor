@@ -60,7 +60,7 @@ public class PFrame extends Frame<BasicValue> {
                             push(((InstMethodSinkInterpreter) interpreter).copyOperation(insn, (SinkableArrayValue) value1, (SinkableArrayValue) v));
                         } else if(value1 instanceof SinkableArrayValue) {
                             push(interpreter.copyOperation(insn, value2));
-                            BasicValue v = ((InstMethodSinkInterpreter) interpreter).copyOperationIgnoreOld(insn, (BasicValue) value1);
+                            BasicValue v = ((InstMethodSinkInterpreter) interpreter).copyOperationIgnoreOld(insn, value1);
                             push(v);
                             push(value2);
                             push(((InstMethodSinkInterpreter) interpreter).copyOperation(insn, (SinkableArrayValue) value1, (SinkableArrayValue) v));

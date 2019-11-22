@@ -31,10 +31,8 @@ public class Configuration {
     public static final int TAINT_LOAD_OPCODE = Opcodes.ALOAD;
     public static final int TAINT_STORE_OPCODE = Opcodes.ASTORE;
     public static final Class TAINT_TAG_OBJ_CLASS = (Taint.class);
-
     public static boolean SKIP_LOCAL_VARIABLE_TABLE = false;
     public static String ADDL_IGNORE = null;
-
     public static boolean DATAFLOW_TRACKING = true; //default
     public static boolean ARRAY_LENGTH_TRACKING = false;
     public static boolean ARRAY_INDEX_TRACKING = false;
@@ -44,29 +42,23 @@ public class Configuration {
     public static boolean IMPLICIT_EXCEPTION_FLOW = false;
     public static boolean WITHOUT_BRANCH_NOT_TAKEN = false;
     public static boolean BINDING_CONTROL_FLOWS_ONLY = false;
-
     public static boolean SINGLE_TAINT_LABEL = false;
     public static boolean ANNOTATE_LOOPS = false;
-
     public static boolean WITH_ENUM_BY_VAL = false;
     public static boolean WITH_UNBOX_ACMPEQ = false;
     public static boolean PREALLOC_STACK_OPS = false;
     public static boolean WITH_TAGS_FOR_JUMPS = false;
-
     public static boolean WITHOUT_PROPAGATION = false;
     public static boolean WITHOUT_FIELD_HIDING = false;
     public static boolean READ_AND_SAVE_BCI = false;
     public static boolean ALWAYS_CHECK_FOR_FRAMES = false;
     public static boolean REENABLE_CACHES = false;
-
-
     public static Class<? extends ClassVisitor> PRIOR_CLASS_VISITOR = null;
 
     public static Set<String> ignoredMethods = new HashSet<>();
     /*
      * Derived configuration values
      */
-
     public static boolean OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING && !IMPLICIT_LIGHT_TRACKING;
 
     public static Class<? extends TaintAdapter> extensionMethodVisitor;
@@ -77,6 +69,10 @@ public class Configuration {
     public static boolean WITH_HEAVY_OBJ_EQUALS_HASHCODE = false;
     public static String CACHE_DIR = null;
     public static boolean TAINT_THROUGH_SERIALIZATION = true;
+
+    private Configuration() {
+        // Prevents this class from being instantiated
+    }
 
     public static void init() {
         if(BINDING_CONTROL_FLOWS_ONLY) {

@@ -71,6 +71,10 @@ public class TaintUtils {
     public static final String METHOD_SUFFIX_UNINST = "$$PHOSPHORUNTAGGED";
     public static boolean VERIFY_CLASS_GENERATION = false;
 
+    private TaintUtils() {
+        // Prevents this class from being instantiated
+    }
+
     public static boolean isPreAllocReturnType(String methodDescriptor) {
         Type retType = Type.getReturnType(methodDescriptor);
         if(retType.getSort() == Type.OBJECT || retType.getSort() == Type.VOID) {
@@ -230,18 +234,18 @@ public class TaintUtils {
             boolean srcTainted = (srcTaint != null && ((LazyArrayObjTags) srcTaint).taints != null);
             boolean dstTainted = (destTaint != null && ((LazyArrayObjTags) destTaint).taints != null);
 
-            if(!srcTainted && !dstTainted) // Fast path: No taints to copy to/from
-            {
+            if(!srcTainted && !dstTainted) {
+                // Fast path: No taints to copy to/from
                 return;
             }
 
-            if(!srcTainted && dstTainted) // Source not tainted, reset dest
-            {
+            if(!srcTainted && dstTainted) {
+                // Source not tainted, reset dest
                 for(int i = destPos; i < destPos + length; i++) {
                     ((LazyArrayObjTags) destTaint).taints[i] = null;
                 }
-            } else // Source tainted, copy taint over
-            {
+            } else {
+                // Source tainted, copy taint over
                 if(((LazyArrayObjTags) destTaint).taints == null) {
                     ((LazyArrayObjTags) destTaint).taints = new Taint[Array.getLength(dest)];
                 }
@@ -690,7 +694,6 @@ public class TaintUtils {
         if(sig == null) {
             return null;
         }
-//		System.out.println(sig);
         SignatureReWriter sw = new SignatureReWriter() {
             int isInArray = 0;
             boolean isInReturnType;
@@ -775,7 +778,6 @@ public class TaintUtils {
         SignatureReader sr = new SignatureReader(sig);
         sr.accept(sw);
         sig = sw.toString();
-//		System.out.println(">"+sig);
         return sig;
     }
 

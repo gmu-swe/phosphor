@@ -36,7 +36,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     private final MethodVisitor passThroughDelegate;
 
     /**
-     * Tracks the current stack and local variable bindings
+     * Tracks the current stack and local variable bindings.
      */
     private final NeverNullArgAnalyzerAdapter analyzer;
 
@@ -77,7 +77,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     private final int numberOfBranchIDs;
 
     /**
-     * True if a try-finally style exception handler should be added to the method being visited
+     * True if a try-finally style exception handler should be added to the method being visited.
      */
     private final boolean addHandler;
 
@@ -120,7 +120,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     private final Type[] paramTypes;
 
     /**
-     * The number of exception handlers for the method being visited that have not yet been visited
+     * The number of exception handlers for the method being visited that have not yet been visited.
      */
     private int numberOfExceptionHandlersRemaining;
 
@@ -137,12 +137,12 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     private int indexOfControlExceptionTaint = -1;
 
     /**
-     * Contains info about the next "branch" location encountered
+     * Contains info about the next "branch" location encountered.
      */
     private SinglyLinkedList<BranchInfo> nextBranch = new SinglyLinkedList<>();
 
     /**
-     * Indicates that the next instruction visited should be excluded from the scope of all revisable branch edges
+     * Indicates that the next instruction visited should be excluded from the scope of all revisable branch edges.
      */
     private boolean excludeNext = false;
 
@@ -769,7 +769,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     }
 
     /**
-     * Loads the specified value onto the stack
+     * Loads the specified value onto the stack.
      *
      * @param delegate the method visitor that should be used to load the specified value onto the stack
      * @param value    the value to be pushed onto the stack

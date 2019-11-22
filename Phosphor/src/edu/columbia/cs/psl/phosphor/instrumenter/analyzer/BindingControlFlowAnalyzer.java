@@ -56,6 +56,10 @@ import static org.objectweb.asm.Opcodes.*;
  */
 public class BindingControlFlowAnalyzer {
 
+    private BindingControlFlowAnalyzer() {
+        // Prevents this class from being instantiated
+    }
+
     /**
      * @param methodNode the method to be analyzed and possibly modified
      * @return the number of unique branch ids used in added instructions

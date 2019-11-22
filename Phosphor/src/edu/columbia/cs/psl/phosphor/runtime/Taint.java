@@ -145,14 +145,14 @@ public class Taint<T> implements Serializable {
     }
 
     /*
-    Returns the single label (only to be used if using single taint label mode)
+     * Returns the single label (only to be used if using single taint label mode)
      */
     public T getSingleLabel() {
         return singleLabelModeLabel;
     }
 
     /*
-    Updates the single label of this taint (only to be used if using single taint label mode)
+     * Updates the single label of this taint (only to be used if using single taint label mode)
      */
     public void setSingleLabel(T singleLabelModeLabel) {
         this.singleLabelModeLabel = singleLabelModeLabel;
@@ -337,8 +337,8 @@ public class Taint<T> implements Serializable {
             return false;
         } else {
             Taint<?> taint = (Taint<?>) o;
-            return taint.labelSet == this.labelSet && ((this.labelBitSet == null && taint.labelBitSet == null) ||
-                    (this.labelBitSet != null && this.labelBitSet.equals(taint.labelBitSet)));
+            return taint.labelSet == this.labelSet && ((this.labelBitSet == null && taint.labelBitSet == null)
+                    || (this.labelBitSet != null && this.labelBitSet.equals(taint.labelBitSet)));
         }
     }
 

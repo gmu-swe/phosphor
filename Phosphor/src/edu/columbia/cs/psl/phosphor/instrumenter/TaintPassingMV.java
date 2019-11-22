@@ -493,8 +493,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     }
             }
         }
-        if((!nextLoadIsTracked && (opcode == GETSTATIC || opcode == GETFIELD)) ||
-                (opcode == PUTSTATIC && !analyzer.isTopOfStackTagged() && getTopOfStackType().getSort() == Type.ARRAY)) {
+        if((!nextLoadIsTracked && (opcode == GETSTATIC || opcode == GETFIELD))
+                || (opcode == PUTSTATIC && !analyzer.isTopOfStackTagged() && getTopOfStackType().getSort() == Type.ARRAY)) {
             Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this, nextLoadIsTracked);
             if(opcode == PUTSTATIC && owner.equals(className) && descType.getSort() == Type.ARRAY
                     && descType.getDimensions() == 1 && descType.getElementType().getSort() != Type.OBJECT) {
@@ -664,21 +664,21 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitIntInsn(opcode, operand);
                 if(nextLoadIsTracked) {
                     String arType = MultiDTaintedArray.getTaintArrayInternalName(operand);
-                    String desc = MultiDTaintedArray.getArrayDescriptor(operand);
+                    String arrayDescriptor = MultiDTaintedArray.getArrayDescriptor(operand);
                     if(Configuration.ARRAY_LENGTH_TRACKING) {
                         super.visitInsn(DUP_X1); // AR LT AR
                         super.visitTypeInsn(NEW, arType); // AR LT AR T
                         super.visitInsn(DUP_X2);// AR T LT AR T
                         super.visitInsn(DUP_X2);// AR T T LT AR T
                         super.visitInsn(POP);// AR T T LT AR
-                        super.visitMethodInsn(INVOKESPECIAL, arType, "<init>", "(" + Configuration.TAINT_TAG_DESC + desc + ")V", false);
+                        super.visitMethodInsn(INVOKESPECIAL, arType, "<init>", "(" + Configuration.TAINT_TAG_DESC + arrayDescriptor + ")V", false);
                         super.visitInsn(SWAP);
                     } else {
                         super.visitInsn(DUP); // AR AR
                         super.visitTypeInsn(NEW, arType); // AR AR T
                         super.visitInsn(DUP_X1);// AR T AR T
                         super.visitInsn(SWAP);
-                        super.visitMethodInsn(INVOKESPECIAL, arType, "<init>", "(" + desc + ")V", false);
+                        super.visitMethodInsn(INVOKESPECIAL, arType, "<init>", "(" + arrayDescriptor + ")V", false);
                         super.visitInsn(SWAP);
                     }
                     analyzer.setTopOfStackTagged();
@@ -1329,8 +1329,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                             if(j < extraArgs) {
                                 //Add as-is
                                 newWrapperArgs.add(implMethodArgs[j]);
-                            } else if(TaintUtils.isPrimitiveOrPrimitiveArrayType(implMethodArgs[j]) &&
-                                    samMethodArgs[j - extraArgs].getDescriptor().equals("Ljava/lang/Object;")) {
+                            } else if(TaintUtils.isPrimitiveOrPrimitiveArrayType(implMethodArgs[j])
+                                    && samMethodArgs[j - extraArgs].getDescriptor().equals("Ljava/lang/Object;")) {
                                 newWrapperArgs.add(samMethodArgs[j - extraArgs]);
                             } else {
                                 newWrapperArgs.add(implMethodArgs[j]);
@@ -1339,50 +1339,50 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
                         boolean boxPrimitiveReturn = false;
                         boolean unboxPrimitiveReturn = false;
-                        //Are we returning a primitive that needs to be autoboxed?
-                        Type newReturnType = TaintUtils.getContainerReturnType(wrapperDesc.getReturnType());
+                        // Are we returning a primitive that needs to be autoboxed?
+                        Type newContainerReturnType = TaintUtils.getContainerReturnType(wrapperDesc.getReturnType());
                         Type originalReturnType = wrapperDesc.getReturnType();
                         boolean addReturnWrapper = false;
                         if(TaintUtils.isPrimitiveType(wrapperDesc.getReturnType())) {
                             if(TaintUtils.isPrimitiveType(uninstSamMethodType.getReturnType())) {
                                 addReturnWrapper = true;
-                                newWrapperArgs.add(newReturnType);
+                                newWrapperArgs.add(newContainerReturnType);
                             } else {
                                 boxPrimitiveReturn = true;
                                 switch(wrapperDesc.getReturnType().getSort()) {
                                     case Type.CHAR:
-                                        newReturnType = Type.getType("Ljava/lang/Character;");
+                                        newContainerReturnType = Type.getType("Ljava/lang/Character;");
                                         break;
                                     case Type.BOOLEAN:
-                                        newReturnType = Type.getType("Ljava/lang/Boolean;");
+                                        newContainerReturnType = Type.getType("Ljava/lang/Boolean;");
                                         break;
                                     case Type.DOUBLE:
-                                        newReturnType = Type.getType("Ljava/lang/Double;");
+                                        newContainerReturnType = Type.getType("Ljava/lang/Double;");
                                         break;
                                     case Type.FLOAT:
-                                        newReturnType = Type.getType("Ljava/lang/Float;");
+                                        newContainerReturnType = Type.getType("Ljava/lang/Float;");
                                         break;
                                     case Type.LONG:
-                                        newReturnType = Type.getType("Ljava/lang/Long;");
+                                        newContainerReturnType = Type.getType("Ljava/lang/Long;");
                                         break;
                                     case Type.INT:
-                                        newReturnType = Type.getType("Ljava/lang/Integer;");
+                                        newContainerReturnType = Type.getType("Ljava/lang/Integer;");
                                         break;
                                     case Type.SHORT:
-                                        newReturnType = Type.getType("Ljava/lang/Short;");
+                                        newContainerReturnType = Type.getType("Ljava/lang/Short;");
                                         break;
                                     case Type.BYTE:
-                                        newReturnType = Type.getType("Ljava/lang/Byte;");
+                                        newContainerReturnType = Type.getType("Ljava/lang/Byte;");
                                 }
                             }
                         } else if(isNEW) {
-                            newReturnType = Type.getObjectType(implMethod.getOwner());
+                            newContainerReturnType = Type.getObjectType(implMethod.getOwner());
                         } else if(TaintUtils.isPrimitiveType(uninstSamMethodType.getReturnType()) && !TaintUtils.isPrimitiveType(wrapperDesc.getReturnType())) {
                             //IMPL method returns boxed type, SAM returns primitive
-                            newReturnType = uninstSamMethodType.getReturnType();
+                            newContainerReturnType = uninstSamMethodType.getReturnType();
                             unboxPrimitiveReturn = true;
                         }
-                        wrapperDesc = Type.getMethodType(newReturnType, newWrapperArgs.toArray(new Type[0]));
+                        wrapperDesc = Type.getMethodType(newContainerReturnType, newWrapperArgs.toArray(new Type[0]));
 
                         String wrapperName = "phosphorWrapInvokeDymnamic" + wrapperMethodsToAdd.size();
 
@@ -1473,7 +1473,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
                         Type instantiatedReturnType;
                         if(isNEW || unboxPrimitiveReturn || boxPrimitiveReturn) {
-                            instantiatedReturnType = newReturnType;
+                            instantiatedReturnType = newContainerReturnType;
                         } else {
                             instantiatedReturnType = originalReturnType;
                         }
@@ -2276,7 +2276,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.BASTORE:
             case Opcodes.CASTORE:
             case Opcodes.SASTORE:
-                //	public static void XASTORE(int[] TArray, int[] Array, int idxTaint, int idx, int valTaint, int val) {
                 Object beingStored = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - (opcode == LASTORE || opcode == DASTORE ? 2 : 1));
                 int offsetToArray = 4;
                 int ob = (opcode == LASTORE || opcode == DASTORE ? 2 : 1) + ((beingStored instanceof TaggedValue) ? 1 : 0) + 1;
@@ -3105,7 +3104,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.FREM:
             case Opcodes.FSUB:
             case Opcodes.FMUL:
-            case Opcodes.FDIV: {
+            case Opcodes.FDIV:
                 if(!topCarriesTaint()) {
                     super.visitInsn(opcode);
                     break;
@@ -3113,8 +3112,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
                     analyzer.setTopOfStackTagged();
                 }
-            }
-            break;
+                break;
             case Opcodes.IADD:
             case Opcodes.ISUB:
             case Opcodes.IMUL:

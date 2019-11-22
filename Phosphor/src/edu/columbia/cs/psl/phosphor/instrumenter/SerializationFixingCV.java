@@ -19,9 +19,9 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
     // ObjectStreamClass class name
     private static final String STREAM_CLASS_NAME = "java/io/ObjectStreamClass";
     // Header byte for serialized objects
-    private final static byte TC_OBJECT = (byte) 0x73;
+    private static final  byte TC_OBJECT = (byte) 0x73;
     // Header byte serialized null values
-    private final static byte TC_NULL = (byte) 0x70;
+    private static final byte TC_NULL = (byte) 0x70;
 
     // Name of class being visited
     private final String className;

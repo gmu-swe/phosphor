@@ -39,7 +39,7 @@ public class PhosphorTextifier extends Textifier {
         TYPE_OR_INT_OPCODES[TaintUtils.UNTHROWN_EXCEPTION - 200] = "UNTHROWN_EXCEPTION";
         TYPE_OR_INT_OPCODES[TaintUtils.UNTHROWN_EXCEPTION_CHECK - 200] = "UNTHROWN_EXCEPTION_CHECK";
         TYPE_OR_INT_OPCODES[TaintUtils.FORCE_CTRL_STORE_SFIELD - 200] = "FORCE_CTRL_STORE_SFIELD";
-//		MORE_OPCODES[22] = "LOOP_HEADER";
+        // MORE_OPCODES[22] = "LOOP_HEADER";
         /*
          *
          * public static final int RAW_INSN = 201; public static final int
@@ -67,17 +67,17 @@ public class PhosphorTextifier extends Textifier {
 
     @Override
     public void visitFieldInsn(int opcode, String owner, String name, String desc) {
-		if(opcode > 200) {
-			stringBuilder.setLength(0);
-			stringBuilder.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ');
-			appendDescriptor(INTERNAL_NAME, owner);
-			stringBuilder.append('.').append(name).append(" : ");
-			appendDescriptor(FIELD_DESCRIPTOR, desc);
-			stringBuilder.append('\n');
-			text.add(stringBuilder.toString());
-		} else {
-			super.visitFieldInsn(opcode, owner, name, desc);
-		}
+        if(opcode > 200) {
+            stringBuilder.setLength(0);
+            stringBuilder.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ');
+            appendDescriptor(INTERNAL_NAME, owner);
+            stringBuilder.append('.').append(name).append(" : ");
+            appendDescriptor(FIELD_DESCRIPTOR, desc);
+            stringBuilder.append('\n');
+            text.add(stringBuilder.toString());
+        } else {
+            super.visitFieldInsn(opcode, owner, name, desc);
+        }
     }
 
     @Override
@@ -87,24 +87,24 @@ public class PhosphorTextifier extends Textifier {
 
     @Override
     public void visitVarInsn(int opcode, int var) {
-		if(opcode > 200) {
-			stringBuilder.setLength(0);
-			stringBuilder.append(tab2).append(MORE_OPCODES[opcode - 200]).append(' ').append(var).append('\n');
-			text.add(stringBuilder.toString());
-		} else {
-			super.visitVarInsn(opcode, var);
-		}
+        if(opcode > 200) {
+            stringBuilder.setLength(0);
+            stringBuilder.append(tab2).append(MORE_OPCODES[opcode - 200]).append(' ').append(var).append('\n');
+            text.add(stringBuilder.toString());
+        } else {
+            super.visitVarInsn(opcode, var);
+        }
     }
 
     @Override
     public void visitInsn(int opcode) {
-		if(opcode > 200) {
-			stringBuilder.setLength(0);
-			stringBuilder.append(tab2).append(MORE_OPCODES[opcode - 200]).append('\n');
-			text.add(stringBuilder.toString());
-		} else {
-			super.visitInsn(opcode);
-		}
+        if(opcode > 200) {
+            stringBuilder.setLength(0);
+            stringBuilder.append(tab2).append(MORE_OPCODES[opcode - 200]).append('\n');
+            text.add(stringBuilder.toString());
+        } else {
+            super.visitInsn(opcode);
+        }
     }
 
     public void visitFrame(final int type, final int nLocal, final Object[] local, final int nStack, final Object[] stack) {
@@ -220,27 +220,27 @@ public class PhosphorTextifier extends Textifier {
 
     @Override
     public void visitIntInsn(int opcode, int operand) {
-		if(opcode > 200) {
-			stringBuilder.setLength(0);
-			stringBuilder.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ').append(Integer.toString(operand)).append('\n');
-			text.add(stringBuilder.toString());
-		} else {
-			super.visitIntInsn(opcode, operand);
-		}
+        if(opcode > 200) {
+            stringBuilder.setLength(0);
+            stringBuilder.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ').append(operand).append('\n');
+            text.add(stringBuilder.toString());
+        } else {
+            super.visitIntInsn(opcode, operand);
+        }
     }
 
 
     @Override
     public void visitTypeInsn(final int opcode, final String type) {
-		if(opcode > 200) {
-			stringBuilder.setLength(0);
-			stringBuilder.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ');
-			appendDescriptor(INTERNAL_NAME, type);
-			stringBuilder.append('\n');
-			text.add(stringBuilder.toString());
-		} else {
-			super.visitTypeInsn(opcode, type);
-		}
+        if(opcode > 200) {
+            stringBuilder.setLength(0);
+            stringBuilder.append(tab2).append(TYPE_OR_INT_OPCODES[opcode - 200]).append(' ');
+            appendDescriptor(INTERNAL_NAME, type);
+            stringBuilder.append('\n');
+            text.add(stringBuilder.toString());
+        } else {
+            super.visitTypeInsn(opcode, type);
+        }
     }
 
 }

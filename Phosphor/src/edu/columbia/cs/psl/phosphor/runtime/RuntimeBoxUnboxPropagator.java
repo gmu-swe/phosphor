@@ -4,8 +4,12 @@ import edu.columbia.cs.psl.phosphor.struct.*;
 
 public class RuntimeBoxUnboxPropagator {
 
-    private final static int[] sizeTable = {9, 99, 999, 9999, 99999, 999999, 9999999,
+    private static final int[] sizeTable = {9, 99, 999, 9999, 99999, 999999, 9999999,
             99999999, 999999999, Integer.MAX_VALUE};
+
+    private RuntimeBoxUnboxPropagator() {
+        // Prevents this class from being instantiated
+    }
 
     private static int stringSize(int x) {
         for(int i = 0; ; i++) {

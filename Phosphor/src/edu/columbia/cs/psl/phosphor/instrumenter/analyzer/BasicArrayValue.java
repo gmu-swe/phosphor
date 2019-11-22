@@ -20,10 +20,10 @@ public class BasicArrayValue extends BasicValue {
 
     @Override
     public String toString() {
-		if(this == NULL_VALUE) {
-			return "N";
-		} else {
-			return super.toString();
-		}
+        if(this == NULL_VALUE) {
+            return "N";
+        } else {
+            return super.toString();
+        }
     }
 }

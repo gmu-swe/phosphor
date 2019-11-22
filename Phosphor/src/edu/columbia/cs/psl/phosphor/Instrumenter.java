@@ -97,10 +97,13 @@ public class Instrumenter {
     static Option help = Option.builder("help")
             .desc("print this message")
             .build();
-
     private static ClassFileTransformer addlTransformer;
     private static File rootOutputDir;
     private static long START;
+
+    private Instrumenter() {
+        // Prevents this class from being instantiated
+    }
 
     public static void preAnalysis() {
 
@@ -147,8 +150,8 @@ public class Instrumenter {
                 || StringUtils.startsWith(owner, "java/lang/Short")
                 || StringUtils.startsWith(owner, "org/jikesrvm") || StringUtils.startsWith(owner, "com/ibm/tuningfork") || StringUtils.startsWith(owner, "org/mmtk") || StringUtils.startsWith(owner, "org/vmmagic")
                 || StringUtils.startsWith(owner, "java/lang/Number") || StringUtils.startsWith(owner, "java/lang/Comparable") || StringUtils.startsWith(owner, "java/lang/ref/SoftReference") || StringUtils.startsWith(owner, "java/lang/ref/Reference")
-                //																|| StringUtils.startsWith(owner, "java/awt/image/BufferedImage")
-                //																|| owner.equals("java/awt/Image")
+                // || StringUtils.startsWith(owner, "java/awt/image/BufferedImage")
+                // || owner.equals("java/awt/Image")
                 || (StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor"))
                 || (StringUtils.startsWith(owner, "edu/gmu/swe/phosphor/ignored"))
                 || StringUtils.startsWith(owner, "sun/awt/image/codec/")
@@ -171,8 +174,7 @@ public class Instrumenter {
                 || (StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle") && !StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle$Factory"))
                 || StringUtils.startsWith(owner, "java/lang/invoke/DelegatingMethodHandle")
                 || owner.equals("java/lang/invoke/DirectMethodHandle")
-                || StringUtils.startsWith(owner, "java/util/function/Function")
-                ;
+                || StringUtils.startsWith(owner, "java/util/function/Function");
     }
 
     public static void analyzeClass(InputStream is) {
@@ -283,7 +285,7 @@ public class Instrumenter {
         Configuration.WITH_UNBOX_ACMPEQ = line.hasOption(opt_unboxAcmpEq.getOpt());
         Configuration.WITH_TAGS_FOR_JUMPS = line.hasOption(opt_disableJumpOptimizations.getOpt());
         Configuration.READ_AND_SAVE_BCI = line.hasOption(opt_readAndSaveBCI.getOpt());
-//		Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption(opt_serialization.getOpt()); //Really needs to always be active
+        // Configuration.TAINT_THROUGH_SERIALIZATION = line.hasOption(opt_serialization.getOpt()); // Really needs to always be active
         Configuration.ARRAY_INDEX_TRACKING = line.hasOption(opt_trackArrayIndexTaints.getOpt());
         Configuration.WITHOUT_BRANCH_NOT_TAKEN = line.hasOption(opt_withoutBranchNotTaken.getOpt());
         Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption(opt_disableLocalsInfo.getOpt());
@@ -560,7 +562,7 @@ public class Instrumenter {
     }
 
     /**
-     * Handle Jar file, Zip file and War file
+     * Handles Jar files, Zip files and War files.
      */
     public static LinkedList<Future> processZip(final File f, File outputDir, ExecutorService executor) {
         return _processZip(f, outputDir, executor, false);
@@ -648,58 +650,56 @@ public class Instrumenter {
                         } catch(ZipException exxxx) {
                             System.out.println("Ignoring exception: " + exxxx.getMessage());
                         }
-                    } else if(e.getName().startsWith("META-INF")
-                            && (e.getName().endsWith(".SF")
-                            || e.getName().endsWith(".RSA"))) {
-                        // don't copy this
-                    } else if(e.getName().equals("META-INF/MANIFEST.MF")) {
-                        Scanner s = new Scanner(zip.getInputStream(e));
-                        zos.putNextEntry(outEntry);
-
-                        String curPair = "";
-                        while(s.hasNextLine()) {
-                            String line = s.nextLine();
-                            if(line.equals("")) {
-                                curPair += "\n";
-                                if(!curPair.contains("SHA1-Digest:")) {
-                                    zos.write(curPair.getBytes());
-                                }
-                                curPair = "";
-                            } else {
-                                curPair += line + "\n";
-                            }
-                        }
-                        s.close();
-                        // Jar file is different from Zip file. :)
-                        if(f.getName().endsWith(".zip")) {
-                            zos.write("\n".getBytes());
-                        }
-                        zos.closeEntry();
-                    } else {
-                        try {
-
+                    } else if(!e.getName().startsWith("META-INF")
+                            || (!e.getName().endsWith(".SF")
+                            && !e.getName().endsWith(".RSA"))) {
+                        if(e.getName().equals("META-INF/MANIFEST.MF")) {
+                            Scanner s = new Scanner(zip.getInputStream(e));
                             zos.putNextEntry(outEntry);
-                            InputStream is = zip.getInputStream(e);
-                            byte[] buffer = new byte[1024];
-                            while(true) {
-                                int count = is.read(buffer);
-                                if(count == -1) {
-                                    break;
+
+                            String curPair = "";
+                            while(s.hasNextLine()) {
+                                String line = s.nextLine();
+                                if(line.equals("")) {
+                                    curPair += "\n";
+                                    if(!curPair.contains("SHA1-Digest:")) {
+                                        zos.write(curPair.getBytes());
+                                    }
+                                    curPair = "";
+                                } else {
+                                    curPair += line + "\n";
                                 }
-                                zos.write(buffer, 0, count);
                             }
-                            is.close();
+                            s.close();
+                            // Jar file is different from Zip file. :)
+                            if(f.getName().endsWith(".zip")) {
+                                zos.write("\n".getBytes());
+                            }
                             zos.closeEntry();
-                        } catch(ZipException ex) {
-                            if(!ex.getMessage().contains("duplicate entry")) {
-                                ex.printStackTrace();
-                                System.out.println("Ignoring above warning from improper source zip...");
+                        } else {
+                            try {
+                                zos.putNextEntry(outEntry);
+                                InputStream is = zip.getInputStream(e);
+                                byte[] buffer = new byte[1024];
+                                while(true) {
+                                    int count = is.read(buffer);
+                                    if(count == -1) {
+                                        break;
+                                    }
+                                    zos.write(buffer, 0, count);
+                                }
+                                is.close();
+                                zos.closeEntry();
+                            } catch(ZipException ex) {
+                                if(!ex.getMessage().contains("duplicate entry")) {
+                                    ex.printStackTrace();
+                                    System.out.println("Ignoring above warning from improper source zip...");
+                                }
                             }
                         }
                     }
                 }
             }
-
             for(Future<Result> fr : ret) {
                 Result r;
                 while(true) {
@@ -777,8 +777,8 @@ public class Instrumenter {
         if(name.equals("wait") && desc.equals("(JI)V")) {
             return true;
         }
-        return Configuration.IMPLICIT_TRACKING && owner.equals("java/lang/invoke/MethodHandle") &&
-                ((name.equals("invoke") || name.equals("invokeBasic") || name.startsWith("linkTo")));
+        return Configuration.IMPLICIT_TRACKING && owner.equals("java/lang/invoke/MethodHandle")
+                && ((name.equals("invoke") || name.equals("invokeBasic") || name.startsWith("linkTo")));
     }
 
     public static boolean isUninstrumentedField(String owner, String name) {

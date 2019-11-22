@@ -49,9 +49,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
         }
         String className = clazz.getName().replace(".", "/");
         // This class has a sink, source or taintThrough method
-        return !getAutoTaintMethods(className, sinks, inheritedSinks).isEmpty() ||
-                !getAutoTaintMethods(className, sources, inheritedSources).isEmpty() ||
-                !getAutoTaintMethods(className, taintThrough, inheritedTaintThrough).isEmpty();
+        return !getAutoTaintMethods(className, sinks, inheritedSinks).isEmpty()
+                || !getAutoTaintMethods(className, sources, inheritedSources).isEmpty()
+                || !getAutoTaintMethods(className, taintThrough, inheritedTaintThrough).isEmpty();
     }
 
     @Override
@@ -190,19 +190,22 @@ public class BasicSourceSinkManager extends SourceSinkManager {
                 baseMethods = sources;
                 prevInheritedMethods = inheritedSources;
                 // Clear the map of inherited or derived autoTaint methods of the specified type
-                inheritedMethods = inheritedSources = new ConcurrentHashMap<>();
+                inheritedMethods = new ConcurrentHashMap<>();
+                inheritedSources = inheritedMethods;
                 break;
             case SINK:
                 baseMethods = sinks;
                 prevInheritedMethods = inheritedSinks;
                 // Clear the map of inherited or derived autoTaint methods of the specified type
-                inheritedMethods = inheritedSinks = new ConcurrentHashMap<>();
+                inheritedMethods = new ConcurrentHashMap<>();
+                inheritedSinks = inheritedMethods;
                 break;
             default:
                 baseMethods = taintThrough;
                 prevInheritedMethods = inheritedTaintThrough;
                 // Clear the map of inherited or derived autoTaint methods of the specified type
-                inheritedMethods = inheritedTaintThrough = new ConcurrentHashMap<>();
+                inheritedMethods = new ConcurrentHashMap<>();
+                inheritedTaintThrough = inheritedMethods;
         }
         // Reconstruct the original set of base methods
         java.util.LinkedList<String> prevBaseMethods = new java.util.LinkedList<>();

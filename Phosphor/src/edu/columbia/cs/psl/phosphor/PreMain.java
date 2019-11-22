@@ -37,6 +37,10 @@ public class PreMain {
     public static ClassLoader curLoader;
     private static Instrumentation instrumentation;
 
+    private PreMain() {
+        // Prevents this class from being instantiated
+    }
+
     public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, ControlTaintTagStack ctrl) {
         Configuration.IMPLICIT_TRACKING = true;
         Configuration.init();

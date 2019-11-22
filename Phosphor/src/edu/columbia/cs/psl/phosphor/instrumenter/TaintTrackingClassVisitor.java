@@ -307,17 +307,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         Type[] argTypes = Type.getArgumentTypes(desc);
         LinkedList<Type> newArgTypes = new LinkedList<>();
         boolean isRewrittenDesc = false;
-        boolean addSentinel = false;
         boolean addControlTaintTagStack = true;
         if(isLambda) {
             for(Type t : argTypes) {
-                if(t.getSort() == Type.ARRAY) {
-                    if(t.getElementType().getSort() != Type.OBJECT) {
-                        addSentinel = true;
-                    }
-                } else if(t.getSort() != Type.OBJECT) {
-                    addSentinel = true;
-                }
                 newArgTypes.add(t);
                 if(t.getDescriptor().contains("ControlTaintTagStack") || t.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct") || t.getDescriptor().contains("Ledu/columbia/cs/psl/phosphor/runtime/Taint") || TaintUtils.isPrimitiveType(t)) {
                     final MethodVisitor cmv = super.visitMethod(access, name, desc, signature, exceptions);
@@ -352,7 +344,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 newArgTypes.add(t);
             }
         }
-        if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>") && addControlTaintTagStack) {
+        if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")
+                && addControlTaintTagStack) {
             isRewrittenDesc = true;
             newArgTypes.add(Type.getType(ControlTaintTagStack.class));
         }
@@ -373,9 +366,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         if(!requiresNoChange && !name.equals("<clinit>") && !(name.equals("<init>") && !isRewrittenDesc)) {
             methodsToAddWrappersFor.add(wrapper);
         }
-
         String newDesc = Type.getMethodDescriptor(newReturnType, newArgs);
-        //		System.out.println("olddesc " + desc + " newdesc " + newDesc);
         if((access & Opcodes.ACC_NATIVE) == 0) {
             //not a native method
             LinkedList<String> addToSig = new LinkedList<>();
@@ -432,7 +423,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             boxFixer.setLocalVariableSorter(lvs);
             tmv.setArrayAnalyzer(primitiveArrayFixer);
             tmv.setLocalVariableSorter(lvs);
-            lvs.setPrimitiveArrayAnalyzer(primitiveArrayFixer); // i'm lazy. this guy will tell the LVS what return types to prealloc
+            lvs.setPrimitiveArrayAnalyzer(primitiveArrayFixer); // this guy will tell the LVS what return types to prealloc
             reflectionMasker.setLvs(lvs);
             final MethodVisitor prev = preAnalyzer;
             MethodNode rawMethod = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature, exceptions) {
@@ -479,7 +470,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             }
             return rawMethod;
         } else {
-            //this is a native method. we want here to make a $taint method that will call the original one.
+            // this is a native method. we want here to make a $taint method that will call the original one.
             final MethodVisitor prev = super.visitMethod(access, name, desc, signature, exceptions);
             MethodNode rawMethod = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature, exceptions) {
                 @Override
@@ -762,11 +753,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                             .replace("Boolean", "Z")
                             .replace("Float", "F")
                             .replace("Double", "D");
-                    origReturnType = Type.getType(t);
 
                 }
                 if(Configuration.IMPLICIT_TRACKING && newArgs.size() > 0) {
-                    newArgs.removeLast();//remove controltaint tag
+                    newArgs.removeLast(); //remove controltaint tag
                 }
                 String newDesc = "(";
                 for(Type _t : newArgs) {
@@ -964,7 +954,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                             if(!needToBoxMultiD) {
                                 newDesc += t.getDescriptor();
                             } else {
-//								Label isNull = new Label();
                                 Label isDone = new Label();
                                 ga.visitInsn(Opcodes.DUP);
                                 ga.visitJumpInsn(Opcodes.IFNULL, isDone);

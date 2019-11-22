@@ -1,6 +1,4 @@
-package edu.columbia.cs.psl.phosphor.instrumenter.asm;
-
-/***
+/*
  * ASM: a very small and fast Java bytecode manipulation framework
  * Copyright (c) 2000-2011 INRIA, France Telecom
  * All rights reserved.
@@ -29,10 +27,10 @@ package edu.columbia.cs.psl.phosphor.instrumenter.asm;
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
+package edu.columbia.cs.psl.phosphor.instrumenter.asm;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Label;
-
 
 public class OffsetPreservingClassReader extends ClassReader {
 
@@ -43,9 +41,9 @@ public class OffsetPreservingClassReader extends ClassReader {
     @Override
     protected Label readLabel(int offset, Label[] labels) {
         if(labels[offset] == null) {
-			for(int i = 0; i < labels.length; i++) {
-				labels[i] = new OffsetPreservingLabel(i);
-			}
+            for(int i = 0; i < labels.length; i++) {
+                labels[i] = new OffsetPreservingLabel(i);
+            }
         }
         return labels[offset];
     }

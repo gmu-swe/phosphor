@@ -12,6 +12,10 @@ public class HardcodedBypassStore {
         }
     }
 
+    private HardcodedBypassStore() {
+        // Prevents this class from being instantiated
+    }
+
     public static Object get(int i) {
         if(i == -1 || i == 0) {
             return null;

@@ -8,6 +8,11 @@ import edu.columbia.cs.psl.phosphor.PreMain;
  * Apache License v2.
  */
 public class StringUtils {
+
+    private StringUtils() {
+        // Prevents this class from being instantiated
+    }
+
     /**
      * Compares the specified string to this string and compares the specified
      * range of characters to determine if they are the same.
@@ -32,9 +37,8 @@ public class StringUtils {
         if(length <= 0) {
             return true;
         }
-        int o1 = thisStart, o2 = start;
         for(int i = 0; i < length; ++i) {
-            if(thisStr.value[o1 + i] != string.value[o2 + i]) {
+            if(thisStr.value[thisStart + i] != string.value[start + i]) {
                 return false;
             }
         }
@@ -54,9 +58,9 @@ public class StringUtils {
     }
 
     public static boolean startsWith(String str, String prefix) {
-		if(PreMain.RUNTIME_INST) {
-			return _startsWith(str, prefix);
-		}
+        if(PreMain.RUNTIME_INST) {
+            return _startsWith(str, prefix);
+        }
         return str.startsWith(prefix);
     }
 }

@@ -6,6 +6,10 @@ public class BoxedPrimitiveStoreWithObjTags {
 
     public static WeakIdentityHashMap<Object, Taint> tags = new WeakIdentityHashMap<>();
 
+    private BoxedPrimitiveStoreWithObjTags() {
+        // Prevents this class from being instantiated
+    }
+
     public static TaintedBooleanWithObjTag booleanValue(Boolean z) {
         TaintedBooleanWithObjTag ret = new TaintedBooleanWithObjTag();
         ret.val = z;
