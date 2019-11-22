@@ -299,6 +299,11 @@ public class Instrumenter {
                 System.err.println("Failed to create specified prior class visitor: " + priorClassVisitorName);
             }
         }
+        if(Configuration.IMPLICIT_HEADERS_NO_TRACKING && (Configuration.IMPLICIT_LIGHT_TRACKING ||
+                Configuration.IMPLICIT_TRACKING || Configuration.BINDING_CONTROL_FLOWS_ONLY)) {
+            String message = String.format("Cannot use both -%s and -%s", "", "");
+            throw new IllegalStateException(message);
+        }
         Configuration.init();
         if(Configuration.DATAFLOW_TRACKING) {
             System.out.println("Data flow tracking: enabled");
