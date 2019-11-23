@@ -63,13 +63,14 @@ public abstract class SourceSinkManager {
                 }
             } else if(t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
                 r += MultiDTaintedArray.getPrimitiveTypeForWrapper(t.getDescriptor()).getDescriptor();
-            } else if(t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct") || TaintUtils.isTaintSentinel(t)) {
-                //ignore
-            } else if(t.getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
-                isSkipping = true;
-            } else {
-                r += t;
+            } else if(!t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct") && !TaintUtils.isTaintSentinel(t)) {
+                if(t.getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
+                    isSkipping = true;
+                } else {
+                    r += t;
+                }
             }
+
         }
         r += ")" + remapReturnType(Type.getReturnType(desc));
         if(Type.getReturnType(desc).getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct")) {

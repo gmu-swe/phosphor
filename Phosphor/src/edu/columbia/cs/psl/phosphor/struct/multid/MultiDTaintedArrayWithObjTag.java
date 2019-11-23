@@ -39,6 +39,12 @@ public abstract class MultiDTaintedArrayWithObjTag {
 
     public abstract Object clone();
 
+    @Override
+    public final boolean equals(Object obj) {
+        return getVal().equals(obj);
+    }
+
+    @Override
     public final int hashCode() {
         return getVal().hashCode();
     }

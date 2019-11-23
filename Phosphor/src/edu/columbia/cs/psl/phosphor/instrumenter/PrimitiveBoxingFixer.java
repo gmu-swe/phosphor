@@ -98,17 +98,17 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
             super.visitMethodInsn(opcode, Type.getInternalName(TaintUtils.class), "enumValueOf", desc, itfc);
             return;
         } else if((owner.equals(Type.getInternalName(Integer.class))
-                //				|| owner.equals(Type.getInternalName(Byte.class))
-                //				|| owner.equals(Type.getInternalName(Character.class))
-                //				|| owner.equals(Type.getInternalName(Short.class)) ||  owner.equals(Type.getInternalName(Float.class))
-                || owner.equals(Type.getInternalName(Long.class)) || owner.equals(Type.getInternalName(Double.class))) && name.equals("valueOf$$PHOSPHORTAGGED") && nArgs == (Configuration.IMPLICIT_TRACKING ? 3 : 2) && !argIsStr) {
+                || owner.equals(Type.getInternalName(Long.class))
+                || owner.equals(Type.getInternalName(Double.class)))
+                && name.equals("valueOf$$PHOSPHORTAGGED")
+                && nArgs == (Configuration.IMPLICIT_TRACKING ? 3 : 2)
+                && !argIsStr) {
             Type argT = Type.getArgumentTypes(desc)[1];
             int argSize = argT.getSize();
             if(argSize == 1) {
                 if(Configuration.IMPLICIT_TRACKING) {
                     super.visitInsn(POP);
                 }
-//				System.out.println(analyzer.stack);
                 //stack is currently T I <top>
                 //we'll support (Integer) 1 == (Integer) 1 as long as there is no taint on it.
                 super.visitInsn(SWAP);

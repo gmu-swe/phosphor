@@ -16,19 +16,22 @@ import java.io.PrintWriter;
 
 public class DebugPrinter {
 
+    private DebugPrinter() {
+        // Prevents this class from being instantiated
+    }
+
     public static void main(String[] args) throws Exception {
-        //		Configuration.IMPLICIT_TRACKING = true;
+        // Configuration.IMPLICIT_TRACKING = true;
         File clazz = new File(args[0]);
         final ClassReader cr1 = new ClassReader(new FileInputStream(clazz));
         PrintWriter pw = new PrintWriter(new FileWriter("z.txt"));
-
         ClassWriter cw1 = new ClassWriter(ClassWriter.COMPUTE_FRAMES) {
             @Override
             protected String getCommonSuperClass(String type1, String type2) {
                 try {
                     return super.getCommonSuperClass(type1, type2);
                 } catch(Exception ex) {
-                    //					System.err.println("err btwn " + type1 + " " +type2);
+                    // System.err.println("err btwn " + type1 + " " +type2);
                     return "java/lang/Unknown";
                 }
             }
@@ -57,11 +60,6 @@ public class DebugPrinter {
                 NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(cr.getClassName(), access, name, desc, mv);
                 ((PrimitiveArrayAnalyzer) mv).setAnalyzer(an);
                 mv = an;
-                //				ConstantValueNullTaintGenerator ctvn = new ConstantValueNullTaintGenerator(className, access, name, desc, signature, exceptions, mv);
-                //				mv = ctvn;
-//				if (!Configuration.IMPLICIT_TRACKING)
-//					mv = new UnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, mv);
-//				mv = new ImplicitUnnecessaryTaintLoadRemover(className, access, name, desc, signature, exceptions, mv);
                 return mv;
             }
         }, pw);

@@ -13,6 +13,10 @@ import java.lang.reflect.Modifier;
  * retrieve both the original field and its associated taint field if it has one. */
 public class RuntimeUnsafePropagator {
 
+    private RuntimeUnsafePropagator() {
+        // Prevents this class from being instantiated
+    }
+
     /* Stores pairs containing the offset of an original, non-static primitive or primitive array field for the specified
      * class and the offset of the tag field associated with that original field. */
     private static SinglyLinkedList<OffsetPair> getOffsetPairs(Unsafe unsafe, Class<?> targetClazz) {

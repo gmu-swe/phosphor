@@ -198,7 +198,7 @@ public final class FlowGraph<V> {
      */
     private void ensureReachableVerticesListIsCalculated() {
         if(this.reachableVertices == null) {
-            List<VertexInfo<V>> reachableVertices = new ArrayList<>();
+            List<VertexInfo<V>> tempReachableVertices = new ArrayList<>();
             SinglyLinkedList<V> stack = new SinglyLinkedList<>();
             Set<V> marked = new HashSet<>(); // Set of vertices that have been visited
             depthFirstSearch(entryPoint, stack, marked);
@@ -206,10 +206,10 @@ public final class FlowGraph<V> {
             Map<V, VertexInfo<V>> vertexInfoMap = new HashMap<>();
             for(V value : stack) {
                 VertexInfo<V> info = new VertexInfo<>(value, i++);
-                reachableVertices.add(info);
+                tempReachableVertices.add(info);
                 vertexInfoMap.put(value, info);
             }
-            for(VertexInfo<V> vertexInfo : reachableVertices) {
+            for(VertexInfo<V> vertexInfo : tempReachableVertices) {
                 for(V successor : successors.get(vertexInfo.value)) {
                     if(vertexInfoMap.containsKey(successor)) {
                         vertexInfo.successors.enqueue(vertexInfoMap.get(successor).reversePostOrderIndex);
@@ -221,7 +221,7 @@ public final class FlowGraph<V> {
                     }
                 }
             }
-            this.reachableVertices = Collections.unmodifiableList(reachableVertices);
+            this.reachableVertices = Collections.unmodifiableList(tempReachableVertices);
         }
     }
 
@@ -308,13 +308,13 @@ public final class FlowGraph<V> {
     public Map<V, Set<V>> getDominatorSets() {
         if(dominatorSets == null) {
             dominatorSets = new HashMap<>();
-            Map<V, V> immediateDominators = getImmediateDominators();
-            for(V key : immediateDominators.keySet()) {
-                Set<V> dominators = new HashSet<>();
-                for(V current = key; current != null; current = immediateDominators.get(current)) {
-                    dominators.add(current);
+            Map<V, V> immediateDominatorsMap = getImmediateDominators();
+            for(V key : immediateDominatorsMap.keySet()) {
+                Set<V> tempDominators = new HashSet<>();
+                for(V current = key; current != null; current = immediateDominatorsMap.get(current)) {
+                    tempDominators.add(current);
                 }
-                dominatorSets.put(key, Collections.unmodifiableSet(dominators));
+                dominatorSets.put(key, Collections.unmodifiableSet(tempDominators));
             }
             dominatorSets = Collections.unmodifiableMap(dominatorSets);
         }
@@ -383,11 +383,11 @@ public final class FlowGraph<V> {
         if(naturalLoops == null) {
             naturalLoops = new HashSet<>();
             ensureReachableVerticesListIsCalculated();
-            Map<V, Set<V>> dominatorSets = getDominatorSets();
+            Map<V, Set<V>> tempDominatorSets = getDominatorSets();
             // Add a natural loop to the set for each back edge
-            for(V source : dominatorSets.keySet()) {
+            for(V source : tempDominatorSets.keySet()) {
                 for(V target : successors.get(source)) {
-                    if(dominatorSets.get(source).contains(target)) {
+                    if(tempDominatorSets.get(source).contains(target)) {
                         // There is an edge from source to target and source is dominated by target
                         naturalLoops.add(new NaturalLoop<>(source, target));
                     }

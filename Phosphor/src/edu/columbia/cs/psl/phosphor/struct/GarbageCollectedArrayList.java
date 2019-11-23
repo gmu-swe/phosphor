@@ -44,7 +44,7 @@ public class GarbageCollectedArrayList<T> {
 
     private int growOrGC(Object referent, T obj) {
         int ret = max;
-        for(Reference ref; (ref = referenceQueue.poll()) != null; ) {
+        for(Reference ref; (ref = referenceQueue.poll()) != null;) {
             int freed = ((ArrayListReference) ref).idx;
             free.enqueue(freed);
             array[freed] = null;

@@ -4,6 +4,10 @@ import edu.columbia.cs.psl.phosphor.struct.*;
 
 public class CharacterUtils {
 
+    private CharacterUtils() {
+        // Prevents this class from being instantiated
+    }
+
     public static TaintedCharWithObjTag reverseBytes$$PHOSPHORTAGGED(Taint t, char c, TaintedCharWithObjTag ret) {
         ret.val = Character.reverseBytes(c);
         if(t == null) {

@@ -14,6 +14,8 @@
         <skipObjTagTestsArrayLength>true</skipObjTagTestsArrayLength>
         <maven.compiler.testSource>1.8</maven.compiler.testSource>
         <maven.compiler.testTarget>1.8</maven.compiler.testTarget>
+        <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
+        <checkstyle.version>8.26</checkstyle.version>
     </properties>
     <licenses>
         <license>
@@ -114,7 +116,6 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -131,9 +132,37 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${maven.checkstyle.version}</version>
+                <configuration>
+                    <configLocation>checkstyle-configuration.xml</configLocation>
+                    <encoding>UTF-8</encoding>
+                    <consoleOutput>true</consoleOutput>
+                    <failsOnError>true</failsOnError>
+                    <excludes>
+                        **/java/lang/**/*.java,**/java/util/**/*.java,**/sun/misc/**/*.java,
+                        **/struct/harmony/**/*.java, **/org/objectweb/asm/**/*.java
+                    </excludes>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-
     <profiles>
         <profile>
             <id>release-sign-artifacts</id>
@@ -317,7 +346,6 @@
             </build>
         </profile>
     </profiles>
-
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -335,12 +363,12 @@
             <artifactId>asm</artifactId>
             <version>7.1</version>
         </dependency>
-         <dependency>
+        <dependency>
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm-util</artifactId>
             <version>7.1</version>
         </dependency>
-         <dependency>
+        <dependency>
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm-tree</artifactId>
             <version>7.1</version>
@@ -366,4 +394,5 @@
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
+
 </project>

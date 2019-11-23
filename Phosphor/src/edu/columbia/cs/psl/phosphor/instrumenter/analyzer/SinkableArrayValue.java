@@ -43,94 +43,94 @@ public class SinkableArrayValue extends BasicValue {
     public int getLine() {
         AbstractInsnNode aa = getSrc();
         while(aa != null) {
-			if(aa instanceof LineNumberNode) {
-				return ((LineNumberNode) aa).line;
-			}
+            if(aa instanceof LineNumberNode) {
+                return ((LineNumberNode) aa).line;
+            }
             aa = aa.getPrevious();
         }
         return -1;
     }
 
     public void addDepCopy(SinkableArrayValue d) {
-		if(d != null && deps == null) {
-			deps = new HashSet<>();
-		}
-		if(deps.add(d) && d.isNewArray) {
-			isNewArray = true;
-		}
+        if(d != null && deps == null) {
+            deps = new HashSet<>();
+        }
+        if(deps.add(d) && d.isNewArray) {
+            isNewArray = true;
+        }
         copyOf = d;
-		if(d.reverseDeps == null) {
-			d.reverseDeps = new HashSet<>();
-		}
+        if(d.reverseDeps == null) {
+            d.reverseDeps = new HashSet<>();
+        }
         d.reverseDeps.add(this);
     }
 
     public void addDep(SinkableArrayValue d) {
-		if(d != null && deps == null) {
-			deps = new HashSet<>();
-		}
+        if(d != null && deps == null) {
+            deps = new HashSet<>();
+        }
         deps.add(d);
-		if(d.reverseDeps == null) {
-			d.reverseDeps = new HashSet<>();
-		}
+        if(d.reverseDeps == null) {
+            d.reverseDeps = new HashSet<>();
+        }
         d.reverseDeps.add(this);
     }
 
     public HashSet<SinkableArrayValue> getAllDepsFlat() {
         HashSet<SinkableArrayValue> ret = new HashSet<>();
-		if(deps != null) {
-			for(SinkableArrayValue r : deps) {
-				if(ret.add(r)) {
-					r.getAllDepsFlat(ret);
-				}
-			}
-		}
+        if(deps != null) {
+            for(SinkableArrayValue r : deps) {
+                if(ret.add(r)) {
+                    r.getAllDepsFlat(ret);
+                }
+            }
+        }
         return ret;
     }
 
     private void getAllDepsFlat(HashSet<SinkableArrayValue> ret) {
-		if(deps != null) {
-			for(SinkableArrayValue r : deps) {
-				if(ret.add(r)) {
-					r.getAllDepsFlat(ret);
-				}
-			}
-		}
+        if(deps != null) {
+            for(SinkableArrayValue r : deps) {
+                if(ret.add(r)) {
+                    r.getAllDepsFlat(ret);
+                }
+            }
+        }
     }
 
     public SinkableArrayValue getOriginalValue() {
-		if(masterDup != null) {
-			return masterDup.getOriginalValue();
-		} else {
-			if(isBottomDup) {
-				for(SinkableArrayValue d : deps) {
-					if(d.getSrc().getOpcode() == Opcodes.NEWARRAY) {
-						return d;
-					}
-				}
-				throw new UnsupportedOperationException();
-			}
-			return this;
-		}
+        if(masterDup != null) {
+            return masterDup.getOriginalValue();
+        } else {
+            if(isBottomDup) {
+                for(SinkableArrayValue d : deps) {
+                    if(d.getSrc().getOpcode() == Opcodes.NEWARRAY) {
+                        return d;
+                    }
+                }
+                throw new UnsupportedOperationException();
+            }
+            return this;
+        }
     }
 
     public AbstractInsnNode getOriginalSource() {
-		if(masterDup != null) {
-			return masterDup.getOriginalSource();
-		} else {
-			if(isBottomDup) {
-				for(SinkableArrayValue d : deps) {
-					if(d.getSrc().getOpcode() == Opcodes.NEWARRAY) {
-						return d.getSrc();
-					}
-					if(d.isBottomDup || d.masterDup != null) {
-						return d.getOriginalSource();
-					}
-				}
-				throw new UnsupportedOperationException();
-			}
-			return getSrc();
-		}
+        if(masterDup != null) {
+            return masterDup.getOriginalSource();
+        } else {
+            if(isBottomDup) {
+                for(SinkableArrayValue d : deps) {
+                    if(d.getSrc().getOpcode() == Opcodes.NEWARRAY) {
+                        return d.getSrc();
+                    }
+                    if(d.isBottomDup || d.masterDup != null) {
+                        return d.getOriginalSource();
+                    }
+                }
+                throw new UnsupportedOperationException();
+            }
+            return getSrc();
+        }
     }
 
     @Override
@@ -138,25 +138,25 @@ public class SinkableArrayValue extends BasicValue {
         if(disabledFor != null) {
             return "[" + (flowsToInstMethodCall ? "T" : "F") + formatDesc() + ", disabled for: " + this.disabledFor + "]";
         }
-		if(this == NULL_VALUE) {
-			return "N";
-		} else {
-			return (flowsToInstMethodCall ? "T" : "F") + "<" + formatDesc() + "> " + (doNotPropagateToDeps ? "T" : "F") + (src != null && src.getOpcode() > 0 ? Printer.OPCODES[src.getOpcode()] : "????") + (src != null ? "@" + getLine() : "");
-		}
+        if(this == NULL_VALUE) {
+            return "N";
+        } else {
+            return (flowsToInstMethodCall ? "T" : "F") + "<" + formatDesc() + "> " + (doNotPropagateToDeps ? "T" : "F") + (src != null && src.getOpcode() > 0 ? Printer.OPCODES[src.getOpcode()] : "????") + (src != null ? "@" + getLine() : "");
+        }
     }
 
     private String formatDesc() {
-		if(getType() == null) {
-			return "N";
-		} else if(this == UNINITIALIZED_VALUE) {
-			return ".";
-		} else if(this == RETURNADDRESS_VALUE) {
-			return "A";
-		} else if(this == REFERENCE_VALUE) {
-			return "R";
-		} else {
-			return getType().getDescriptor();
-		}
+        if(getType() == null) {
+            return "N";
+        } else if(this == UNINITIALIZED_VALUE) {
+            return ".";
+        } else if(this == RETURNADDRESS_VALUE) {
+            return "A";
+        } else if(this == REFERENCE_VALUE) {
+            return "R";
+        } else {
+            return getType().getDescriptor();
+        }
     }
 
 
@@ -166,9 +166,9 @@ public class SinkableArrayValue extends BasicValue {
         queue.add(this);
         LinkedList<SinkableArrayValue> ret = new LinkedList<>();
         LinkedList<SinkableArrayValue> processed = new LinkedList<>();
-		if(this.getType() != null && this.getType().getSort() == Type.ARRAY && this.getType().getDimensions() > 1) {
-			return ret;
-		}
+        if(this.getType() != null && this.getType().getSort() == Type.ARRAY && this.getType().getDimensions() > 1) {
+            return ret;
+        }
         while(!queue.isEmpty()) {
             SinkableArrayValue v = queue.poll();
 
@@ -203,24 +203,24 @@ public class SinkableArrayValue extends BasicValue {
     }
 
     public boolean deepEquals(SinkableArrayValue obj) {
-		if(this == obj) {
-			return true;
-		}
-		if(getType() == null && obj.getType() != null) {
-			return false;
-		}
-		if(getType() != null && obj.getType() == null) {
-			return false;
-		}
+        if(this == obj) {
+            return true;
+        }
+        if(getType() == null && obj.getType() != null) {
+            return false;
+        }
+        if(getType() != null && obj.getType() == null) {
+            return false;
+        }
         if(((getType() == null && obj.getType() == null) ||
                 getType().equals(obj.getType()))) {
-			if((src != null && obj.src == null) || (src == null && obj.src != null)) {
-				return false;
-			}
+            if((src != null && obj.src == null) || (src == null && obj.src != null)) {
+                return false;
+            }
             if(doNotPropagateToDeps == obj.doNotPropagateToDeps && (src == null || src.equals(obj.getSrc()))) {
-				if((deps != null && obj.deps == null) || (deps == null && obj.deps != null)) {
-					return false;
-				}
+                if((deps != null && obj.deps == null) || (deps == null && obj.deps != null)) {
+                    return false;
+                }
                 return deps == null || deps.equals(obj.deps);
             }
         }

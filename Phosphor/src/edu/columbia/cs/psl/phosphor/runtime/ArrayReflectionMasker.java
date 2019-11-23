@@ -8,6 +8,10 @@ import java.lang.reflect.Array;
 
 public class ArrayReflectionMasker {
 
+    private ArrayReflectionMasker() {
+        // Prevents this class from being instantiated
+    }
+
     public static int getLength(Object obj) {
         if(obj.getClass().isArray()) {
             return Array.getLength(obj);

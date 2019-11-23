@@ -170,7 +170,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 break;
             case Opcodes.LSHL:
             case Opcodes.LUSHR:
-            case Opcodes.LSHR: {
+            case Opcodes.LSHR:
                 //T VV T V
                 tmp = lvs.getTmpLV();
                 mv.visitInsn(TaintUtils.IS_TMP_STORE);
@@ -196,7 +196,6 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 // VV T
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-            }
             break;
             case Opcodes.LSUB:
             case Opcodes.LMUL:
@@ -252,7 +251,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
             case Opcodes.I2S:
                 mv.visitInsn(opcode);
                 break;
-            case Opcodes.LCMP: {
+            case Opcodes.LCMP:
                 //T VV T VV
                 tmp = lvs.getTmpLV();
                 mv.visitInsn(TaintUtils.IS_TMP_STORE);
@@ -277,10 +276,9 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 }
                 // V T
                 mv.visitInsn(SWAP);
-            }
             break;
             case Opcodes.DCMPL:
-            case Opcodes.DCMPG: {
+            case Opcodes.DCMPG:
                 //T VV T VV
                 tmp = lvs.getTmpLV();
                 mv.visitInsn(TaintUtils.IS_TMP_STORE);
@@ -305,11 +303,10 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 }
                 // V T
                 mv.visitInsn(SWAP);
-            }
             break;
             // VV T
             case Opcodes.FCMPL:
-            case Opcodes.FCMPG: {
+            case Opcodes.FCMPG:
                 //T V T V
                 tmp = lvs.getTmpLV();
                 mv.visitInsn(TaintUtils.IS_TMP_STORE);
@@ -332,7 +329,6 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                     COMBINE_TAGS.delegateVisit(mv);
                 }
                 mv.visitInsn(SWAP);
-            }
             break;
             case Opcodes.ARRAYLENGTH:
                 Type arrType = TaintAdapter.getTypeForStackType(adapter.analyzer.stack.get(adapter.analyzer.stack.size() - 1));

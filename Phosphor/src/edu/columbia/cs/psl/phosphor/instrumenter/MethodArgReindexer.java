@@ -22,22 +22,22 @@ public class MethodArgReindexer extends MethodVisitor {
     private String desc;
     private boolean hasTaintSentinelAddedToDesc = false;
     private List<Type> oldArgTypesList;
-	private MethodNode lvStore;
+    private MethodNode lvStore;
     private int nNewArgs = 0;
-	private boolean hasPreAllocatedReturnAddress;
+    private boolean hasPreAllocatedReturnAddress;
     private Type newReturnType;
 
-	private int nLongDoubleArgs = 0;
-	private Map<String, Integer> parameters = new HashMap<>();
-	private int indexOfControlTagsInLocals;
+    private int nLongDoubleArgs = 0;
+    private Map<String, Integer> parameters = new HashMap<>();
+    private int indexOfControlTagsInLocals;
 
-	MethodArgReindexer(MethodVisitor mv, int access, String name, String desc, String originalDesc, MethodNode lvStore, boolean isLambda) {
+    MethodArgReindexer(MethodVisitor mv, int access, String name, String desc, String originalDesc, MethodNode lvStore, boolean isLambda) {
         super(Configuration.ASM_VERSION, mv);
         this.lvStore = lvStore;
-		lvStore.localVariables = new java.util.ArrayList<>();
+        lvStore.localVariables = new java.util.ArrayList<>();
         this.name = name;
         this.desc = desc;
-		Type[] oldArgTypes = Type.getArgumentTypes(originalDesc);
+        Type[] oldArgTypes = Type.getArgumentTypes(originalDesc);
         origNumArgs = oldArgTypes.length;
         isStatic = (Opcodes.ACC_STATIC & access) != 0;
         for(Type t : oldArgTypes) {
@@ -51,12 +51,12 @@ public class MethodArgReindexer extends MethodVisitor {
         }
         newArgOffset = 0;
         oldArgTypesList = new ArrayList<>();
-		List<Type> oldTypesDoublesAreOne = new ArrayList<>();
+        List<Type> oldTypesDoublesAreOne = new ArrayList<>();
         if(!isStatic) {
             oldArgTypesList.add(Type.getType("Lthis;"));
             oldTypesDoublesAreOne.add(Type.getType("Lthis;"));
         }
-		Type[] firstFrameLocals = new Type[origNumArgs];
+        Type[] firstFrameLocals = new Type[origNumArgs];
         int ffl = 0;
         if(!isStatic) {
             firstFrameLocals[0] = Type.getObjectType("java/lang/Object");
@@ -76,32 +76,32 @@ public class MethodArgReindexer extends MethodVisitor {
         boolean hasBeenRemapped = false;
         oldArgMappings = new int[originalLastArgIdx + 1];
         int oldVarCount = (isStatic ? 0 : 1);
-		for(Type oldArgType : oldArgTypes) {
-			if(!isLambda) {
-				if(oldArgType.getSort() == Type.ARRAY) {
-					if(oldArgType.getElementType().getSort() != Type.OBJECT) {
-						if(oldArgType.getDimensions() == 1) {
-							newArgOffset++;
-							nNewArgs++;
-						}
-						hasBeenRemapped = true;
-					}
-				} else if(oldArgType.getSort() != Type.OBJECT) {
-					hasBeenRemapped = true;
-					newArgOffset += 1;
-					nNewArgs++;
-				}
-			}
-			oldArgMappings[oldVarCount] = oldVarCount + newArgOffset;
-			if(oldArgType.getSize() == 2) {
-				oldArgMappings[oldVarCount + 1] = oldVarCount + newArgOffset + 1;
-				oldVarCount++;
-			}
-			if(TaintUtils.DEBUG_LOCAL) {
-				System.out.println(">>>>" + oldVarCount + "->" + oldArgMappings[oldVarCount]);
-			}
-			oldVarCount++;
-		}
+        for(Type oldArgType : oldArgTypes) {
+            if(!isLambda) {
+                if(oldArgType.getSort() == Type.ARRAY) {
+                    if(oldArgType.getElementType().getSort() != Type.OBJECT) {
+                        if(oldArgType.getDimensions() == 1) {
+                            newArgOffset++;
+                            nNewArgs++;
+                        }
+                        hasBeenRemapped = true;
+                    }
+                } else if(oldArgType.getSort() != Type.OBJECT) {
+                    hasBeenRemapped = true;
+                    newArgOffset += 1;
+                    nNewArgs++;
+                }
+            }
+            oldArgMappings[oldVarCount] = oldVarCount + newArgOffset;
+            if(oldArgType.getSize() == 2) {
+                oldArgMappings[oldVarCount + 1] = oldVarCount + newArgOffset + 1;
+                oldVarCount++;
+            }
+            if(TaintUtils.DEBUG_LOCAL) {
+                System.out.println(">>>>" + oldVarCount + "->" + oldArgMappings[oldVarCount]);
+            }
+            oldVarCount++;
+        }
         if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")) {
             hasBeenRemapped = true;
             indexOfControlTagsInLocals = oldArgTypes.length + newArgOffset + (isStatic ? 0 : 1);
@@ -117,7 +117,7 @@ public class MethodArgReindexer extends MethodVisitor {
             newReturnType = Type.getReturnType(desc);
             newArgOffset++;
             nNewArgs++;
-		}
+        }
         origArgMappings = new int[oldArgMappings.length];
         System.arraycopy(oldArgMappings, 0, origArgMappings, 0, oldArgMappings.length);
         if(TaintUtils.DEBUG_FRAMES || TaintUtils.DEBUG_LOCAL) {
@@ -152,10 +152,10 @@ public class MethodArgReindexer extends MethodVisitor {
             boolean found = false;
             for(Object _lv : lvStore.localVariables) {
                 LocalVariableNode lv = (LocalVariableNode) _lv;
-				if(lv != null && lv.name != null && lv.name.equals(name) && lv.index == index) {
-					found = true;
-					break;
-				}
+                if(lv != null && lv.name != null && lv.name.equals(name) && lv.index == index) {
+                    found = true;
+                    break;
+                }
             }
             if(!found) {
                 lvStore.localVariables.add(new LocalVariableNode(name, desc, signature, null, null, index));
@@ -186,7 +186,7 @@ public class MethodArgReindexer extends MethodVisitor {
     @Override
     public void visitLineNumber(int line, Label start) {
         super.visitLineNumber(line, start);
-	}
+    }
 
     @Override
     public void visitLdcInsn(Object value) {
@@ -281,8 +281,8 @@ public class MethodArgReindexer extends MethodVisitor {
 
             }
             if(origNumArgs != 0 && (Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
-                while(thisLocalIndexInNewFrame < indexOfControlTagsInLocals) //There are no locals in this frame, BUT there were args on the method - make sure metadata goes to the right spot
-                {
+                while(thisLocalIndexInNewFrame < indexOfControlTagsInLocals) {
+                    //There are no locals in this frame, BUT there were args on the method - make sure metadata goes to the right spot
                     remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
                     thisLocalIndexInNewFrame++;
                     nLocal++;
@@ -293,7 +293,6 @@ public class MethodArgReindexer extends MethodVisitor {
                 nLocal++;
             }
             if(origNumArgs != 0 && hasPreAllocatedReturnAddress) {
-
                 remappedLocals[thisLocalIndexInNewFrame] = newReturnType.getInternalName();
                 thisLocalIndexInNewFrame++;
                 thisLocalVarNumberInNewFrame++;
@@ -323,8 +322,6 @@ public class MethodArgReindexer extends MethodVisitor {
         if(nLocal > remappedLocals.length) {
             throw new IllegalStateException();
         }
-//		if(debug)
-//		System.out.println("New locals : " + name + desc + ":\t\t" + Arrays.toString(remappedLocals));
         ArrayList<Object> newStack = new ArrayList<>();
         int origNStack = nStack;
         for(int i = 0; i < origNStack; i++) {
@@ -396,16 +393,16 @@ public class MethodArgReindexer extends MethodVisitor {
     @Override
     public void visitIincInsn(int var, int increment) {
         int origVar = var;
-		if(isStatic || var != 0) {
-			if(var < originalLastArgIdx) {
-				//accessing an arg; remap it
-				var = oldArgMappings[var];// + (isStatic?0:1);
-			} else {
-				//not accessing an arg. just add offset.
-				var += newArgOffset;
-			}
-		}
-		if(TaintUtils.DEBUG_LOCAL) {
+        if(isStatic || var != 0) {
+            if(var < originalLastArgIdx) {
+                //accessing an arg; remap it
+                var = oldArgMappings[var];// + (isStatic?0:1);
+            } else {
+                //not accessing an arg. just add offset.
+                var += newArgOffset;
+            }
+        }
+        if(TaintUtils.DEBUG_LOCAL) {
             System.out.println("\t\t" + origVar + "->" + var);
         }
         super.visitIincInsn(var, increment);
@@ -422,16 +419,16 @@ public class MethodArgReindexer extends MethodVisitor {
             return;
         }
         int origVar = var;
-		if(isStatic || var != 0) {
-			if(var < originalLastArgIdx) {
-				//accessing an arg; remap it
-				var = oldArgMappings[var];// + (isStatic?0:1);
-			} else {
-				//not accessing an arg. just add offset.
-				var += newArgOffset;
-			}
-		}
-		if(TaintUtils.DEBUG_LOCAL) {
+        if(isStatic || var != 0) {
+            if(var < originalLastArgIdx) {
+                //accessing an arg; remap it
+                var = oldArgMappings[var];// + (isStatic?0:1);
+            } else {
+                //not accessing an arg. just add offset.
+                var += newArgOffset;
+            }
+        }
+        if(TaintUtils.DEBUG_LOCAL) {
             System.out.println("MAR\t\t" + origVar + "->" + var + " " + originalLastArgIdx);
         }
         super.visitVarInsn(opcode, var);

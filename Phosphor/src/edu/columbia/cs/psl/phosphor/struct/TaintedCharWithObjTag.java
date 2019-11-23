@@ -13,9 +13,9 @@ public final class TaintedCharWithObjTag extends TaintedPrimitiveWithObjTag impl
     static {
         cache = new TaintedCharWithObjTag[127 + 1];
 
-		for(int i = 0; i < cache.length; i++) {
-			cache[i] = new TaintedCharWithObjTag(null, (char) i);
-		}
+        for(int i = 0; i < cache.length; i++) {
+            cache[i] = new TaintedCharWithObjTag(null, (char) i);
+        }
     }
 
     public char val;

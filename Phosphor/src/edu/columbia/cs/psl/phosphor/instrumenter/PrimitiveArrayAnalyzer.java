@@ -482,8 +482,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             }
             outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), stack.size(), stack.toArray()));
             visitLabel(new Label());
-            //				}
-
         }
 
         @Override
@@ -564,9 +562,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     int label = -1;
                     boolean isFirst = true;
                     while(insns.hasNext()) {
-                        AbstractInsnNode insn = insns.next();
-                        int idx = m.instructions.indexOf(insn);
-                        if(insn instanceof LabelNode) {
+                        AbstractInsnNode nextInsn = insns.next();
+                        int idx = m.instructions.indexOf(nextInsn);
+                        if(nextInsn instanceof LabelNode) {
                             label++;
                         }
                         insnToLabel[idx] = (isFirst ? 1 : label);
@@ -1429,11 +1427,11 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             }
             if(this.insn.getOpcode() == Opcodes.GOTO) {
                 AnnotatedInstruction suc = successors.iterator().next();
-                AbstractInsnNode insn = suc.insn;
-                while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL) {
-                    insn = insn.getNext();
+                AbstractInsnNode successorInsn = suc.insn;
+                while(successorInsn.getType() == AbstractInsnNode.FRAME || successorInsn.getType() == AbstractInsnNode.LINE || successorInsn.getType() == AbstractInsnNode.LABEL) {
+                    successorInsn = successorInsn.getNext();
                 }
-                return insn;
+                return successorInsn;
             }
             if(successors.size() > 1) {
                 throw new IllegalStateException();

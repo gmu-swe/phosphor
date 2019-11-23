@@ -32,6 +32,10 @@ public class ReflectionMasker {
         System.setSecurityManager(null);
     }
 
+    private ReflectionMasker() {
+        // Prevents this class from being instantiated
+    }
+
     @SuppressWarnings("unused")
     public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long offset, ControlTaintTagStack ctrl) {
         return getObject$$PHOSPHORTAGGED(u, obj, null, offset);
@@ -302,8 +306,8 @@ public class ReflectionMasker {
             } else if(paramType.getName().contains("edu.columbia.cs.psl.phosphor.struct.Lazy")) {
                 // Add the original multidimensional primitive array for the current LazyArray array
                 originalParamTypes.enqueue(TaintUtils.getUnwrappedClass(paramType));
-            } else if(!paramType.equals(TaintSentinel.class) && !paramType.equals(ControlTaintTagStack.class) &&
-                    !TaintedPrimitiveWithObjTag.class.isAssignableFrom(paramType)) {
+            } else if(!paramType.equals(TaintSentinel.class) && !paramType.equals(ControlTaintTagStack.class)
+                    && !TaintedPrimitiveWithObjTag.class.isAssignableFrom(paramType)) {
                 // Add the type as is if it is not TaintSentinel, ControlTaintTagStack or a TaintedPrimitiveWithXTags
                 originalParamTypes.enqueue(paramType);
             }
@@ -341,7 +345,8 @@ public class ReflectionMasker {
                             Type newType;
                             newType = MultiDTaintedArrayWithObjTag.getTypeForType(t);
                             try {
-                                newParams.add(Class.forName(newType.getInternalName().replace("/", ".")));
+                                newParams.add(Class.forName(newType.getInternalName().replace("/",
+                                        ".")));
                                 continue;
                             } catch(ClassNotFoundException e) {
                                 e.printStackTrace();
@@ -405,7 +410,8 @@ public class ReflectionMasker {
 
     /* Returns true if the specified class was ignored by Phosphor. */
     private static boolean isIgnoredClass(Class<?> clazz) {
-        return clazz != null && (Instrumenter.isIgnoredClass(clazz.getName().replace('.', '/')) || Object.class.equals(clazz));
+        return clazz != null && (Instrumenter.isIgnoredClass(clazz.getName().replace('.', '/'))
+                || Object.class.equals(clazz));
     }
 
     private static boolean isPrimitiveOrPrimitiveArray(Class<?> c) {
@@ -415,7 +421,8 @@ public class ReflectionMasker {
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_CONSTRUCTOR)
     public static Object[] fixAllArgs(Object[] in, Constructor<?> c) {
-        return fixAllArgs(in, c, false, null);
+        return fixAllArgs(in, c, false,
+                null);
     }
 
     @SuppressWarnings("unused")
@@ -424,7 +431,8 @@ public class ReflectionMasker {
         return fixAllArgs(in, c, true, ctrl);
     }
 
-    private static Object[] fixAllArgs(Object[] in, Constructor<?> c, boolean implicitTracking, ControlTaintTagStack ctrl) {
+    private static Object[] fixAllArgs(Object[] in, Constructor<?> c, boolean implicitTracking,
+                                       ControlTaintTagStack ctrl) {
         if(declaredInIgnoredClass(c)) {
             return getOriginalParams(c.getParameterTypes(), in);
         }
@@ -566,8 +574,8 @@ public class ReflectionMasker {
     }
 
     /**
-     * Adds arguments to the target argument array from the specified array of provided arguments based on the specified
-     * expected parameter types. Returns the number of arguments added.
+     * Adds arguments to the target argument array from the specified array of provided arguments based on the
+     * specified expected parameter types. Returns the number of arguments added.
      */
     private static int fillInParams(Object[] targetArgs, Object[] providedArgs, Class<?>[] paramTypes) {
         int targetParamIndex = 0;
@@ -700,7 +708,8 @@ public class ReflectionMasker {
         SinglyLinkedList<Field> ret = new SinglyLinkedList<>();
         boolean removeSVUIDField = containsSVUIDSentinelField(in);
         for(Field f : in) {
-            if(!f.getName().equals("taint") && !f.getName().endsWith(TaintUtils.TAINT_FIELD) && !f.getName().startsWith(TaintUtils.PHOSPHOR_ADDED_FIELD_PREFIX)
+            if(!f.getName().equals("taint") && !f.getName().endsWith(TaintUtils.TAINT_FIELD)
+                    && !f.getName().startsWith(TaintUtils.PHOSPHOR_ADDED_FIELD_PREFIX)
                     && !(removeSVUIDField && f.getName().equals("serialVersionUID"))) {
                 ret.enqueue(f);
             }
@@ -758,14 +767,15 @@ public class ReflectionMasker {
             } else if(!match) {
                 // Check for synthetic hashCode and equals methods added by Phosphor
                 if(f.isSynthetic()) {
-                    if(chars.length == 6 && chars[0] == 'e' && chars[1] == 'q' && chars[2] == 'u' && chars[3] == 'a' &&
-                            chars[4] == 'l' && chars[5] == 's') {
+                    if(chars.length == 6 && chars[0] == 'e' && chars[1] == 'q' && chars[2] == 'u' && chars[3] == 'a'
+                            && chars[4] == 'l' && chars[5] == 's') {
                         if(!declaredOnly) {
                             ret.enqueue(ObjectMethods.EQUALS.method);
                         }
                         continue;
-                    } else if(chars.length == 8 && chars[0] == 'h' && chars[1] == 'a' && chars[2] == 's' && chars[3] == 'h' &&
-                            chars[4] == 'C' && chars[5] == 'o' && chars[6] == 'd' && chars[7] == 'e') {
+                    } else if(chars.length == 8 && chars[0] == 'h' && chars[1] == 'a' && chars[2] == 's'
+                            && chars[3] == 'h' && chars[4] == 'C' && chars[5] == 'o' && chars[6] == 'd'
+                            && chars[7] == 'e') {
                         if(!declaredOnly) {
                             ret.enqueue(ObjectMethods.HASH_CODE.method);
                         }

@@ -3,9 +3,9 @@ package edu.columbia.cs.psl.phosphor.struct;
 public class BitSet {
 
     // Used to determine the packet index for a bit index
-    private final static int SHIFT_AMOUNT = 6;
+    private static final int SHIFT_AMOUNT = 6;
     // The number of bits that can be packed into a long.
-    private final static int BITS_PER_PACKET = 1 << SHIFT_AMOUNT;
+    private static final int BITS_PER_PACKET = 1 << SHIFT_AMOUNT;
     // Array of bit-packed longs. Each bit in a packet represents a particular element in the set. If a bit is 1 then
     // the element represented by that bit is present in the set, otherwise the element in is absent.
     private long[] packets;

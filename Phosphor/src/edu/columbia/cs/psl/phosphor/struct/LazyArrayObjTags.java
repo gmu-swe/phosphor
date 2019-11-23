@@ -50,12 +50,12 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 
     @Override
     public boolean equals(Object o) {
-		if(this == o) {
-			return true;
-		}
-		if(!(o instanceof LazyArrayObjTags)) {
-			return false;
-		}
+        if(this == o) {
+            return true;
+        }
+        if(!(o instanceof LazyArrayObjTags)) {
+            return false;
+        }
         LazyArrayObjTags that = (LazyArrayObjTags) o;
         return this.getVal() == that.getVal();
     }

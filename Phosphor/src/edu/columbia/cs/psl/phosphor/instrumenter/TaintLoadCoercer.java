@@ -49,10 +49,10 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
     public static void main(String[] args) throws Throwable {
         Configuration.IMPLICIT_TRACKING = true;
         Configuration.IMPLICIT_EXCEPTION_FLOW = true;
-//		Configuration.IMPLICIT_LIGHT_TRACKING = true;
-//		Configuration.ARRAY_LENGTH_TRACKING = true;
-//		Configuration.ARRAY_INDEX_TRACKING = true;
-//		Configuration.ANNOTATE_LOOPS = true;
+        // Configuration.IMPLICIT_LIGHT_TRACKING = true;
+        // Configuration.ARRAY_LENGTH_TRACKING = true;
+        // Configuration.ARRAY_INDEX_TRACKING = true;
+        // Configuration.ANNOTATE_LOOPS = true;
         ClassReader cr = new ClassReader(new FileInputStream("z.class"));
         final String className = cr.getClassName();
         PrintWriter pw = new PrintWriter("z.txt");
@@ -101,15 +101,10 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                         super.visitInsn(opcode);
                     }
                 };
-//				mv = new SpecialOpcodeRemovingMV(mv,false,className,false);
-//				NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, className, desc, mv);
                 mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true, null, false, false);
-//				LocalVariableManager lvs = new LocalVariableManager(access, desc, mv, analyzer, mv, false);
-//				mv = lvs;
                 PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, mv, false);
                 NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, access, name, desc, paa);
                 paa.setAnalyzer(an);
-//				((PrimitiveArrayAnalyzer) mv).setAnalyzer(an);
                 mv = an;
                 return mv;
             }
@@ -328,9 +323,8 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                                     //if we make an inst call and are passing a prim array type, then we need the tags
                                     if(TaintUtils.isPrimitiveOrPrimitiveArrayType(t) && !v.flowsToInstMethodCall) {
                                         relevantValues.addAll(v.tag(insn));
-                                    }
-                                    //regardless of the kind of call, if we upcast then we need it
-                                    else if(t.getDescriptor().equals("Ljava/lang/Object;") && TaintUtils.isPrimitiveArrayType(v.getType()) && !v.flowsToInstMethodCall) {
+                                    } else if(t.getDescriptor().equals("Ljava/lang/Object;") && TaintUtils.isPrimitiveArrayType(v.getType()) && !v.flowsToInstMethodCall) {
+                                        //regardless of the kind of call, if we upcast then we need it
                                         //TODO: when doing this for *uninst* arrays, it's ok to just leave as is and not patch
                                         relevantValues.addAll(v.tag(insn));
                                     }
@@ -355,9 +349,8 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                                     //if we make an inst call and are passing a prim array type, then we need the tags
                                     if(TaintUtils.isPrimitiveOrPrimitiveArrayType(t) && !v.flowsToInstMethodCall) {
                                         relevantValues.addAll(v.tag(insn));
-                                    }
-                                    //regardless of the kind of call, if we upcast then we need it
-                                    else if((t.getDescriptor().equals("Ljava/lang/Object;") || t.getDescriptor().equals("Ljava/io/Serializable;")) && (TaintUtils.isPrimitiveArrayType(v.getType())) && !v.flowsToInstMethodCall) {
+                                    } else if((t.getDescriptor().equals("Ljava/lang/Object;") || t.getDescriptor().equals("Ljava/io/Serializable;")) && (TaintUtils.isPrimitiveArrayType(v.getType())) && !v.flowsToInstMethodCall) {
+                                        //regardless of the kind of call, if we upcast then we need it
                                         //TODO: when doing this for *uninst* arrays, it's ok to just leave as is and not patch
                                         relevantValues.addAll(v.tag(insn));
                                     } else if(t.getDescriptor().equals("Ljava/lang/Object;") && min.owner.equals("java/lang/System") && min.name.equals("arraycopy") && !v.flowsToInstMethodCall) {

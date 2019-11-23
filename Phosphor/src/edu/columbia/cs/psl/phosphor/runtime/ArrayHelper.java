@@ -1,7 +1,12 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 public class ArrayHelper {
+
     public static int engaged = 0;
+
+    private ArrayHelper() {
+        // Prevents this class from being instantiated
+    }
 
     private static native Taint _getTag(Object obj);
 

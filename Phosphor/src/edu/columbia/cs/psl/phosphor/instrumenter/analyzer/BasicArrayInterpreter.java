@@ -64,22 +64,22 @@ public class BasicArrayInterpreter extends BasicInterpreter {
 
     @Override
     public BasicValue merge(BasicValue v, BasicValue w) {
-		if(v == BasicValue.UNINITIALIZED_VALUE || w == BasicValue.UNINITIALIZED_VALUE) {
-			return BasicValue.UNINITIALIZED_VALUE;
-		}
+        if(v == BasicValue.UNINITIALIZED_VALUE || w == BasicValue.UNINITIALIZED_VALUE) {
+            return BasicValue.UNINITIALIZED_VALUE;
+        }
         if((v instanceof BasicThisFieldValue && !(w instanceof BasicThisFieldValue)) || (w instanceof BasicThisFieldValue && !(v instanceof BasicThisFieldValue))) {
             if(v.getType().equals(w.getType())) {
-				if(v.getType().getSort() == Type.OBJECT || v.getType().getSort() == Type.ARRAY) {
-					return BasicValue.REFERENCE_VALUE;
-				} else {
-					return newValue(v.getType());
-				}
+                if(v.getType().getSort() == Type.OBJECT || v.getType().getSort() == Type.ARRAY) {
+                    return BasicValue.REFERENCE_VALUE;
+                } else {
+                    return newValue(v.getType());
+                }
             }
             return BasicValue.UNINITIALIZED_VALUE;
         } else if(v instanceof BasicThisFieldValue && w instanceof BasicThisFieldValue) {
-			if(v.equals(w)) {
-				return v;
-			}
+            if(v.equals(w)) {
+                return v;
+            }
             return BasicValue.UNINITIALIZED_VALUE;
         }
         return super.merge(v, w);
@@ -90,9 +90,9 @@ public class BasicArrayInterpreter extends BasicInterpreter {
         String t = null;
         if(insn.getType() == AbstractInsnNode.METHOD_INSN) {
             Type typ = Type.getReturnType(((MethodInsnNode) insn).desc);
-			if(typ.getSort() == Type.OBJECT) {
-				t = typ.getInternalName();
-			}
+            if(typ.getSort() == Type.OBJECT) {
+                t = typ.getInternalName();
+            }
         }
         if(t != null && (t.contains("Exception") || t.contains("Error"))) {
             return new BasicValue(Type.getObjectType(t));
@@ -102,11 +102,11 @@ public class BasicArrayInterpreter extends BasicInterpreter {
 
     @Override
     public BasicValue binaryOperation(AbstractInsnNode insn, BasicValue value1, BasicValue value2) throws AnalyzerException {
-		if(insn.getOpcode() == Opcodes.AALOAD) {
-			return value1;
-		} else {
-			return super.binaryOperation(insn, value1, value2);
-		}
+        if(insn.getOpcode() == Opcodes.AALOAD) {
+            return value1;
+        } else {
+            return super.binaryOperation(insn, value1, value2);
+        }
     }
 
     @Override
@@ -115,39 +115,39 @@ public class BasicArrayInterpreter extends BasicInterpreter {
             return BasicValue.UNINITIALIZED_VALUE;
         }
         if(type.getSort() == Type.ARRAY) {
-			if(type.getDimensions() > 1) {
-				return new BasicArrayValue(type);
-			} else {
-				switch(type.getElementType().getSort()) {
-					case Type.BOOLEAN:
-						return BasicArrayValue.BOOLEAN_ARRAY;
-					case Type.BYTE:
-						return BasicArrayValue.BYTE_ARRAY;
-					case Type.CHAR:
-						return BasicArrayValue.CHAR_ARRAY;
-					case Type.DOUBLE:
-						return BasicArrayValue.DOUBLE_ARRAY;
-					case Type.FLOAT:
-						return BasicArrayValue.FLOAT_ARRAY;
-					case Type.INT:
-						return BasicArrayValue.INT_ARRAY;
-					case Type.LONG:
-						return BasicArrayValue.LONG_ARRAY;
-					case Type.OBJECT:
-						return BasicArrayValue.REFERENCE_VALUE;
-					case Type.SHORT:
-						return BasicArrayValue.SHORT_ARRAY;
-					default:
-						throw new IllegalArgumentException();
-				}
-			}
+            if(type.getDimensions() > 1) {
+                return new BasicArrayValue(type);
+            } else {
+                switch(type.getElementType().getSort()) {
+                    case Type.BOOLEAN:
+                        return BasicArrayValue.BOOLEAN_ARRAY;
+                    case Type.BYTE:
+                        return BasicArrayValue.BYTE_ARRAY;
+                    case Type.CHAR:
+                        return BasicArrayValue.CHAR_ARRAY;
+                    case Type.DOUBLE:
+                        return BasicArrayValue.DOUBLE_ARRAY;
+                    case Type.FLOAT:
+                        return BasicArrayValue.FLOAT_ARRAY;
+                    case Type.INT:
+                        return BasicArrayValue.INT_ARRAY;
+                    case Type.LONG:
+                        return BasicArrayValue.LONG_ARRAY;
+                    case Type.OBJECT:
+                        return BasicArrayValue.REFERENCE_VALUE;
+                    case Type.SHORT:
+                        return BasicArrayValue.SHORT_ARRAY;
+                    default:
+                        throw new IllegalArgumentException();
+                }
+            }
         } else if(type.equals("Lnull;")) {
-			return BasicArrayValue.NULL_VALUE;
-		} else if(Configuration.IMPLICIT_EXCEPTION_FLOW && (type.getDescriptor().contains("Error") || type.getDescriptor().contains("Exception"))) {
-			return new BasicArrayValue(type);
-		} else {
-			return super.newValue(type);
-		}
+            return BasicArrayValue.NULL_VALUE;
+        } else if(Configuration.IMPLICIT_EXCEPTION_FLOW && (type.getDescriptor().contains("Error") || type.getDescriptor().contains("Exception"))) {
+            return new BasicArrayValue(type);
+        } else {
+            return super.newValue(type);
+        }
     }
 
     public class BasicThisFieldValue extends BasicValue {
@@ -171,15 +171,15 @@ public class BasicArrayInterpreter extends BasicInterpreter {
 
         @Override
         public boolean equals(Object o) {
-			if(this == o) {
-				return true;
-			}
-			if(o == null || getClass() != o.getClass()) {
-				return false;
-			}
-			if(!super.equals(o)) {
-				return false;
-			}
+            if(this == o) {
+                return true;
+            }
+            if(o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            if(!super.equals(o)) {
+                return false;
+            }
             BasicThisFieldValue that = (BasicThisFieldValue) o;
             return Objects.equals(field, that.field);
         }

@@ -554,7 +554,7 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
             if(shouldExclude(insn)) {
                 exclusions.add(insn);
             }
-//            walkToLeaves(insn);
+            // walkToLeaves(insn);
         }
         return exclusions;
     }

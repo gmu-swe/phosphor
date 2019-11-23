@@ -25,4 +25,9 @@ public final class BasicTracedValue extends TracedValue {
         }
         return super.equals(o);
     }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }

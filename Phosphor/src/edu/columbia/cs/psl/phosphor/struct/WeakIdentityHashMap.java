@@ -77,7 +77,7 @@ public class WeakIdentityHashMap<K, V> implements Serializable {
     }
 
     private void expungeStaleEntries() {
-        for(Reference ref; (ref = queue.poll()) != null; ) {
+        for(Reference ref; (ref = queue.poll()) != null;) {
             map.remove(ref);
         }
     }
