@@ -589,8 +589,8 @@ public final class FlowGraph<V> {
      * respect to at least one back edge (i.e., an edge in the flow graph whose target dominates its source). The set of
      * back edges with the same target vertex form a single natural loop. For some control flow graph G = (V, E) the set
      * of vertices contained within the natural loop defined by a set of back edges S that target a vertex d is defined
-     * as {@code d + {n | (n -> d) in S} + {v | v in V, (n -> d) in S, there exits a path from n to v in the traverse of G that
-     * does not pass through d}}.
+     * as {@code d + {n | (n -> d) in S} + {v | v in V, (n -> d) in S, there is a path from v to n in G that does not
+     * pass through d}}.
      *
      * @param <V> the type of the vertices of the flow graph in which this loop exists
      */
