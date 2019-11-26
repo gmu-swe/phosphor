@@ -25,8 +25,8 @@ import static org.objectweb.asm.Opcodes.*;
  * <p>A branch edge (u, v) is to be binding if and only if one of the following conditions is true:
  * <ul>
  *     <li>The basic block u ends with an IFEQ or IFNE instruction.</li>
- *     <li>The basic block u ends with an ICMPEQ or IF_ACMEQ instruction that has a jump target t and t = v</li>
- *     <li>The basic block u ends with an ICMPNE or IF_ACMPNE instruction that has a jump target t and t != v</li>
+ *     <li>The basic block u ends with an IF_ICMPEQ or IF_ACMEQ instruction that has a jump target t and t = v</li>
+ *     <li>The basic block u ends with an IF_ICMPNE or IF_ACMPNE instruction that has a jump target t and t != v</li>
  *     <li>The basic block u ends with a TABLESWITCH or LOOKUPSWITCH instruction that has a set of jump targets T and
  *     v is an element of T.</li>
  * </ul>
