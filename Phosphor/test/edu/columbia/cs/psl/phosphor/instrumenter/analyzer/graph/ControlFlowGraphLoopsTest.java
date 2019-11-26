@@ -108,4 +108,12 @@ public class ControlFlowGraphLoopsTest {
         Map<Integer, Set<Integer>> loops = calculateLoops("doWhile");
         assertEquals(expected, loops);
     }
+
+    @Test
+    public void testContinueWhile() throws Exception {
+        Map<Integer, Set<Integer>> expected = new HashMap<>();
+        expected.put(1, new HashSet<>(Arrays.asList(1, 2, 3, 4)));
+        Map<Integer, Set<Integer>> loops = calculateLoops("continueWhile");
+        assertEquals(expected, loops);
+    }
 }

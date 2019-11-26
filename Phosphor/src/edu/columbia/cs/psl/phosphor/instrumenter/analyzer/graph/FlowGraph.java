@@ -381,25 +381,31 @@ public final class FlowGraph<V> {
      */
     public Set<NaturalLoop<V>> getNaturalLoops() {
         if(naturalLoops == null) {
-            naturalLoops = new HashSet<>();
+            HashMap<V, NaturalLoop<V>> naturalLoopMap = new HashMap<>();
             ensureReachableVerticesListIsCalculated();
-            Map<V, Set<V>> tempDominatorSets = getDominatorSets();
+            getDominatorSets(); // ensure that the dominator sets have been calculated
             // Add a natural loop to the set for each back edge
-            for(V source : tempDominatorSets.keySet()) {
+            for(V source : dominatorSets.keySet()) {
                 for(V target : successors.get(source)) {
-                    if(tempDominatorSets.get(source).contains(target)) {
+                    if(dominatorSets.get(source).contains(target)) {
                         // There is an edge from source to target and source is dominated by target
-                        naturalLoops.add(new NaturalLoop<>(source, target));
+                        if(naturalLoopMap.containsKey(target)) {
+                            naturalLoopMap.get(target).tails.add(source);
+                        } else {
+                            naturalLoopMap.put(target, new NaturalLoop<>(source, target));
+                        }
                     }
                 }
             }
-            for(NaturalLoop<V> loop : naturalLoops) {
+            for(NaturalLoop<V> loop : naturalLoopMap.values()) {
                 loop.vertices.add(loop.header); // Mark the loop's header as visited
-                if(loop.tail != loop.header) {
-                    transverseDepthFirstSearch(loop.tail, loop.vertices);
+                for(V tail : loop.tails) {
+                    if(tail != loop.header) {
+                        transverseDepthFirstSearch(tail, loop.vertices);
+                    }
                 }
             }
-            naturalLoops = Collections.unmodifiableSet(naturalLoops);
+            naturalLoops = Collections.unmodifiableSet(new HashSet<>(naturalLoopMap.values()));
         }
         return naturalLoops;
     }
@@ -580,38 +586,55 @@ public final class FlowGraph<V> {
     /**
      * Represents a natural loop in a flow graph as described in Compilers: Principles, Techniques, and Tools (2nd Edition)
      * by Alfred V. Aho, Monica S. Lam, Ravi Sethi, and Jeffrey D. Ullman. Specifically, a natural loop is defined with
-     * respect to some back edge (i.e., an edge in the flow graph whose target dominates its source). The natural loop for
-     * of a back edge n -> d contains the vertex n, the vertex d, and any vertex that can reach n without passing through d.
+     * respect to at least one back edge (i.e., an edge in the flow graph whose target dominates its source). The set of
+     * back edges with the same target vertex form a single natural loop. For some control flow graph G = (V, E) the set
+     * of vertices contained within the natural loop defined by a set of back edges S that target a vertex d is defined
+     * as {@code d + {n | (n -> d) in S} + {v | v in V, (n -> d) in S, there exits a path from n to v in the traverse of G that
+     * does not pass through d}}.
      *
      * @param <V> the type of the vertices of the flow graph in which this loop exists
      */
     public static final class NaturalLoop<V> {
 
         /**
-         * The single point of entry into this loop i.e., the target of the back edge that defines this loop
+         * The single point of entry into this loop i.e., the target of the back edges that define this loop
          */
         private final V header;
 
         /**
-         * The source of the back edge that defines this loop
+         * The source vertices of the back edges that define this loop
          */
-        private final V tail;
+        private final Set<V> tails;
 
         /**
          * A set containing all of vertices that are considered to be part of this loop including this loop's
-         * tail and header
+         * tails and header
          */
         private final Set<V> vertices;
 
         /**
-         * Constructs a new natural loop defined the back edge from the specified tail vertex to the specified header
+         * Constructs a new natural loop defined by the back edge from the specified tail vertex to the specified header
          * vertex.
          *
          * @param tail   the source of the back edge that defines the loop being constructed
          * @param header the target of the back edge that defines the loop being constructed
          */
         NaturalLoop(V tail, V header) {
-            this.tail = tail;
+            this.tails = new HashSet<>();
+            tails.add(tail);
+            this.header = header;
+            this.vertices = new HashSet<>();
+        }
+
+        /**
+         * Constructs a new natural loop defined by the back edges from the specified tail vertices to the specified
+         * header vertex.
+         *
+         * @param tails  the source vertices of the back edges that defines the loop being constructed
+         * @param header the target of the back edge that defines the loop being constructed
+         */
+        NaturalLoop(Set<V> tails, V header) {
+            this.tails = new HashSet<>(tails);
             this.header = header;
             this.vertices = new HashSet<>();
         }
@@ -624,10 +647,10 @@ public final class FlowGraph<V> {
         }
 
         /**
-         * @return the source of the back edge that defines this loop
+         * @return an unmodifiable set containing the source vertices of the back edges that define this loop
          */
-        public V getTail() {
-            return tail;
+        public Set<V> getTails() {
+            return Collections.unmodifiableSet(tails);
         }
 
         /**
@@ -642,27 +665,26 @@ public final class FlowGraph<V> {
         public boolean equals(Object o) {
             if(this == o) {
                 return true;
-            }
-            if(!(o instanceof NaturalLoop)) {
+            } else if(!(o instanceof NaturalLoop)) {
                 return false;
             }
             NaturalLoop<?> that = (NaturalLoop<?>) o;
             if(header != null ? !header.equals(that.header) : that.header != null) {
                 return false;
             }
-            return tail != null ? tail.equals(that.tail) : that.tail == null;
+            return tails.equals(that.tails);
         }
 
         @Override
         public int hashCode() {
             int result = header != null ? header.hashCode() : 0;
-            result = 31 * result + (tail != null ? tail.hashCode() : 0);
+            result = 31 * result + tails.hashCode();
             return result;
         }
 
         @Override
         public String toString() {
-            return String.format("%s -> %s: %s", tail, header, vertices);
+            return String.format("%s -> %s: %s", tails, header, vertices);
         }
     }
 }

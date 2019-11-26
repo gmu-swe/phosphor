@@ -26,36 +26,6 @@ public class FlowGraphTest {
         }
     };
 
-    private static void initializeGraphs() {
-        emptyGraph = new FlowGraphBuilder<Integer>()
-                .addEntryPoint(0)
-                .addExitPoint(1)
-                .addEdge(0, 1)
-                .build();
-        loopingGraph = new FlowGraphBuilder<Integer>()
-                .addEntryPoint(0)
-                .addExitPoint(11)
-                .addEdge(0, 1)
-                .addEdge(1, 2)
-                .addEdge(1, 3)
-                .addEdge(2, 3)
-                .addEdge(3, 4)
-                .addEdge(4, 3)
-                .addEdge(4, 5)
-                .addEdge(4, 6)
-                .addEdge(5, 7)
-                .addEdge(6, 7)
-                .addEdge(7, 4)
-                .addEdge(7, 8)
-                .addEdge(8, 3)
-                .addEdge(8, 9)
-                .addEdge(8, 10)
-                .addEdge(9, 1)
-                .addEdge(10, 7)
-                .addEdge(10, 11)
-                .build();
-    }
-
     @Test
     public void testGetAllSuccessorsEmptyGraph() {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
@@ -159,7 +129,7 @@ public class FlowGraphTest {
     @Test
     public void testGetAllPredecessorsLoopingGraph() {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
-        expected.put(0, new HashSet<Integer>());
+        expected.put(0, new HashSet<>());
         expected.put(1, new HashSet<>(Arrays.asList(0, 9)));
         expected.put(2, new HashSet<>(Arrays.asList(1)));
         expected.put(3, new HashSet<>(Arrays.asList(1, 2, 4, 8)));
@@ -269,13 +239,42 @@ public class FlowGraphTest {
         Map<NaturalLoop<Integer>, Set<Integer>> expected = new HashMap<>();
         expected.put(new NaturalLoop<>(10, 7), new HashSet<>(Arrays.asList(7, 8, 10)));
         expected.put(new NaturalLoop<>(7, 4), new HashSet<>(Arrays.asList(4, 5, 6, 7, 8, 10)));
-        expected.put(new NaturalLoop<>(4, 3), new HashSet<>(Arrays.asList(3, 4, 5, 6, 7, 8, 10)));
-        expected.put(new NaturalLoop<>(8, 3), new HashSet<>(Arrays.asList(3, 4, 5, 6, 7, 8, 10)));
+        expected.put(new NaturalLoop<>(new HashSet<>(Arrays.asList(4, 8)), 3), new HashSet<>(Arrays.asList(3, 4, 5, 6, 7, 8, 10)));
         expected.put(new NaturalLoop<>(9, 1), new HashSet<>(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)));
         Set<NaturalLoop<Integer>> loops = loopingGraph.getNaturalLoops();
         assertEquals(expected.keySet(), loops);
         for(NaturalLoop<Integer> loop : loops) {
             assertEquals(expected.get(loop), loop.getVertices());
         }
+    }
+
+    private static void initializeGraphs() {
+        emptyGraph = new FlowGraphBuilder<Integer>()
+                .addEntryPoint(0)
+                .addExitPoint(1)
+                .addEdge(0, 1)
+                .build();
+        loopingGraph = new FlowGraphBuilder<Integer>()
+                .addEntryPoint(0)
+                .addExitPoint(11)
+                .addEdge(0, 1)
+                .addEdge(1, 2)
+                .addEdge(1, 3)
+                .addEdge(2, 3)
+                .addEdge(3, 4)
+                .addEdge(4, 3)
+                .addEdge(4, 5)
+                .addEdge(4, 6)
+                .addEdge(5, 7)
+                .addEdge(6, 7)
+                .addEdge(7, 4)
+                .addEdge(7, 8)
+                .addEdge(8, 3)
+                .addEdge(8, 9)
+                .addEdge(8, 10)
+                .addEdge(9, 1)
+                .addEdge(10, 7)
+                .addEdge(10, 11)
+                .build();
     }
 }
