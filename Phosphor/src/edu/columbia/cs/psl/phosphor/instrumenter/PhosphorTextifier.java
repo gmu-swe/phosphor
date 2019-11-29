@@ -229,7 +229,6 @@ public class PhosphorTextifier extends Textifier {
         }
     }
 
-
     @Override
     public void visitTypeInsn(final int opcode, final String type) {
         if(opcode > 200) {

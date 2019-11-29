@@ -14,7 +14,7 @@ import static org.objectweb.asm.Opcodes.*;
 
 /**
  * Identifies and marks the scope of "binding" branch edges and indicates whether each marked edge is "revisable". Does
- * not considered edges due to exceptional control flow.
+ * not consider edges due to exceptional control flow.
  *
  * <p>For a control flow graph G = (V, E):
  *
@@ -22,7 +22,7 @@ import static org.objectweb.asm.Opcodes.*;
  * Branch edges are the result of conditional jump instructions (i.e., IF_ACMP<cond>, IF_ICMP<cond>, IF<cond>,
  * TABLESWITCH, LOOKUPSWITCH, IFNULL, and IFNONNULL).
  *
- * <p>A branch edge (u, v) is to be binding if and only if one of the following conditions is true:
+ * <p>A branch edge (u, v) is said to be binding if and only if one of the following conditions is true:
  * <ul>
  *     <li>The basic block u ends with an IFEQ or IFNE instruction.</li>
  *     <li>The basic block u ends with an IF_ICMPEQ or IF_ACMEQ instruction that has a jump target t and t = v</li>
