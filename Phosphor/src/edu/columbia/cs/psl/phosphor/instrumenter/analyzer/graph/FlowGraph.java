@@ -365,7 +365,7 @@ public final class FlowGraph<V> {
      * vertices that post-dominate it
      */
     public Map<V, Set<V>> getPostDominatorSets() {
-        return getTransverseGraph().getPostDominatorSets();
+        return getTransverseGraph().getDominatorSets();
     }
 
     /**

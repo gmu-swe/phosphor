@@ -30,14 +30,14 @@ public class FlowGraphTest {
     public void testGetAllSuccessorsEmptyGraph() {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(0, new HashSet<>(Arrays.asList(1)));
-        expected.put(1, new HashSet<Integer>());
+        expected.put(1, new HashSet<>());
         assertEquals(expected, emptyGraph.getSuccessors());
     }
 
     @Test
     public void testGetAllPredecessorsEmptyGraph() {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
-        expected.put(0, new HashSet<Integer>());
+        expected.put(0, new HashSet<>());
         expected.put(1, new HashSet<>(Arrays.asList(0)));
         assertEquals(expected, emptyGraph.getPredecessors());
     }
@@ -98,8 +98,8 @@ public class FlowGraphTest {
     @Test
     public void testGetDominanceFrontiersEmptyGraph() {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
-        expected.put(0, new HashSet<Integer>());
-        expected.put(1, new HashSet<Integer>());
+        expected.put(0, new HashSet<>());
+        expected.put(1, new HashSet<>());
         assertEquals(expected, emptyGraph.getDominanceFrontiers());
     }
 
@@ -122,7 +122,7 @@ public class FlowGraphTest {
         expected.put(8, new HashSet<>(Arrays.asList(3, 9, 10)));
         expected.put(9, new HashSet<>(Arrays.asList(1)));
         expected.put(10, new HashSet<>(Arrays.asList(7, 11)));
-        expected.put(11, new HashSet<Integer>());
+        expected.put(11, new HashSet<>());
         assertEquals(expected, loopingGraph.getSuccessors());
     }
 
@@ -219,7 +219,7 @@ public class FlowGraphTest {
     @Test
     public void testGetDominanceFrontiersLoopingGraph() {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
-        expected.put(0, new HashSet<Integer>());
+        expected.put(0, new HashSet<>());
         expected.put(1, new HashSet<>(Arrays.asList(1)));
         expected.put(2, new HashSet<>(Arrays.asList(3)));
         expected.put(3, new HashSet<>(Arrays.asList(1, 3)));
@@ -230,7 +230,7 @@ public class FlowGraphTest {
         expected.put(8, new HashSet<>(Arrays.asList(1, 3, 7)));
         expected.put(9, new HashSet<>(Arrays.asList(1)));
         expected.put(10, new HashSet<>(Arrays.asList(7)));
-        expected.put(11, new HashSet<Integer>());
+        expected.put(11, new HashSet<>());
         assertEquals(expected, loopingGraph.getDominanceFrontiers());
     }
 
