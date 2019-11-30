@@ -1,12 +1,13 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Collections;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 import static org.objectweb.asm.Opcodes.*;
 
-abstract class SourceLeaf {
+public abstract class SourceLeaf {
 
     static SourceLeaf newLeaf(AbstractInsnNode insn, InstructionEffect effect, Map<TracedValue, ParamValue> paramMap) {
         if(effect == null) {
@@ -14,7 +15,8 @@ abstract class SourceLeaf {
         } else if(effect.product instanceof ConstantTracedValue) {
             return new ConstantLeaf(insn);
         } else if(effect.sources.length == 1 && paramMap.containsKey(effect.sources[0])) {
-            return new ParameterLeaf(insn);
+            int paramNumber = paramMap.get(effect.sources[0]).getLocal();
+            return new ParameterLeaf(insn, paramNumber);
         } else {
             switch(insn.getOpcode()) {
                 case IALOAD:
@@ -48,73 +50,111 @@ abstract class SourceLeaf {
 
     static class FieldAccessLeaf extends SourceLeaf {
 
-        AbstractInsnNode insn;
+        private final AbstractInsnNode insn;
 
         FieldAccessLeaf(AbstractInsnNode insn) {
             this.insn = insn;
+        }
+
+        public AbstractInsnNode getInsn() {
+            return insn;
         }
     }
 
     static class ArrayAccessLeaf extends SourceLeaf {
 
-        AbstractInsnNode insn;
+        private final AbstractInsnNode insn;
 
         ArrayAccessLeaf(AbstractInsnNode insn) {
             this.insn = insn;
+        }
+
+        public AbstractInsnNode getInsn() {
+            return insn;
         }
     }
 
     static class MethodResultLeaf extends SourceLeaf {
 
-        AbstractInsnNode insn;
+        private final AbstractInsnNode insn;
 
         MethodResultLeaf(AbstractInsnNode insn) {
             this.insn = insn;
         }
+
+        public AbstractInsnNode getInsn() {
+            return insn;
+        }
     }
 
-    static class NewValueLeaf extends SourceLeaf {
+    public static class NewValueLeaf extends SourceLeaf {
 
-        AbstractInsnNode insn;
+        private final AbstractInsnNode insn;
 
         NewValueLeaf(AbstractInsnNode insn) {
             this.insn = insn;
         }
-    }
 
-    static class ParameterLeaf extends SourceLeaf {
-
-        AbstractInsnNode insn;
-
-        ParameterLeaf(AbstractInsnNode insn) {
-            this.insn = insn;
+        public AbstractInsnNode getInsn() {
+            return insn;
         }
     }
 
-    static class ConstantLeaf extends SourceLeaf {
+    public static class ParameterLeaf extends SourceLeaf {
 
-        AbstractInsnNode insn;
+        private final AbstractInsnNode insn;
+        private final int paramNumber;
+
+        ParameterLeaf(AbstractInsnNode insn, int paramNumber) {
+            this.insn = insn;
+            this.paramNumber = paramNumber;
+        }
+
+        public AbstractInsnNode getInsn() {
+            return insn;
+        }
+
+        public int getParamNumber() {
+            return paramNumber;
+        }
+    }
+
+    public static class ConstantLeaf extends SourceLeaf {
+
+        private final AbstractInsnNode insn;
 
         ConstantLeaf(AbstractInsnNode insn) {
             this.insn = insn;
         }
+
+        public AbstractInsnNode getInsn() {
+            return insn;
+        }
     }
 
-    static class UnknownSource extends SourceLeaf {
+    public static class UnknownSource extends SourceLeaf {
 
-        AbstractInsnNode insn;
+        private final AbstractInsnNode insn;
 
         UnknownSource(AbstractInsnNode insn) {
             this.insn = insn;
         }
+
+        public AbstractInsnNode getInsn() {
+            return insn;
+        }
     }
 
-    static class SplitSource extends SourceLeaf {
+    public static class SplitSource extends SourceLeaf {
 
-        Set<AbstractInsnNode> possibleInstructionSources;
+        private final Set<AbstractInsnNode> possibleInstructionSources;
 
         SplitSource(Set<AbstractInsnNode> possibleInstructionSources) {
-            this.possibleInstructionSources = possibleInstructionSources;
+            this.possibleInstructionSources = Collections.unmodifiableSet(possibleInstructionSources);
+        }
+
+        public Set<AbstractInsnNode> getPossibleInstructionSources() {
+            return possibleInstructionSources;
         }
     }
 }

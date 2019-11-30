@@ -64,21 +64,15 @@ public class BindingControlFlowAnalyzer {
      * @param methodNode the method to be analyzed and possibly modified
      * @return the number of unique branch ids used in added instructions
      */
-    public static int analyzeAndModify(String owner, MethodNode methodNode) {
+    public static int analyzeAndModify(String owner, MethodNode methodNode) throws AnalyzerException {
         InsnList instructions = methodNode.instructions;
         if(instructions.size() == 0) {
             return 0;
         }
         BindingControlFlowGraphCreator creator = new BindingControlFlowGraphCreator();
         FlowGraph<BasicBlock> controlFlowGraph = creator.createControlFlowGraph(methodNode);
-        Set<AbstractInsnNode> exclusionCandidates = Collections.emptySet();
-        TracingInterpreter interpreter = null;
-        try {
-            interpreter = new TracingInterpreter(owner, methodNode);
-            exclusionCandidates = interpreter.identifyRevisionExcludedInstructions();
-        } catch(AnalyzerException e) {
-            //
-        }
+        TracingInterpreter interpreter = new TracingInterpreter(owner, methodNode);
+        Set<AbstractInsnNode> exclusionCandidates = interpreter.identifyRevisionExcludedInstructions();
         Collection<BindingBranchEdge> edges = filterEdges(creator.bindingBranchEdges, controlFlowGraph);
         Map<BasicBlock, Set<BindingBranchEdge>> groupedStartBlocks = groupEdgesBySource(edges);
         int nextBranchIDAssigned = 0;
