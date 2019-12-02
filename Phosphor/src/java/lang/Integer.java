@@ -30,6 +30,7 @@ package java.lang;
  * @see java.lang.Number
  * @since 1.1
  */
+@SuppressWarnings("ALL")
 public final class Integer extends Number implements Comparable<Integer> {
 
     private static final long serialVersionUID = 1360826667806852920L;
@@ -890,4 +891,8 @@ public final class Integer extends Number implements Comparable<Integer> {
 	public static int parseUnsignedInt(String s) {
 		return 0;
 	}
+
+    public static int compare(int x, int y) {
+        return 0;
+    }
 }

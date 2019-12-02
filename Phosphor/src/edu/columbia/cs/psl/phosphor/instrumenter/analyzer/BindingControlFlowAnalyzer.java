@@ -147,7 +147,7 @@ public class BindingControlFlowAnalyzer {
     }
 
     /**
-     * @param edges a set containing the egdes to be grouped
+     * @param edges a set containing the edges to be grouped
      * @return a mapping between basic blocks and non-empty sets containing all of the edges for which the basic
      * block is a source
      */

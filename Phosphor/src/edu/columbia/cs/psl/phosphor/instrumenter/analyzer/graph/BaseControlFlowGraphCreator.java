@@ -1,10 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.PhosphorTextifier;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
@@ -120,7 +117,26 @@ public class BaseControlFlowGraphCreator extends ControlFlowGraphCreator {
                 FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator().createControlFlowGraph(mn);
                 Map<BasicBlock, Integer> blockNumbers = new HashMap<>();
                 int nextBlockNum = 0;
-                for(BasicBlock vertex : cfg.getVertices()) {
+                List<BasicBlock> blocks = new LinkedList<>(cfg.getVertices());
+                Collections.sort(blocks, (b1, b2) -> {
+                    if(b1 instanceof EntryPoint || b2 instanceof ExitPoint) {
+                        return -1;
+                    } else if(b1 instanceof ExitPoint || b2 instanceof EntryPoint) {
+                        return 1;
+                    }
+                    AbstractInsnNode insn1 = b1.getFirstInsn();
+                    AbstractInsnNode insn2 = b2.getFirstInsn();
+                    if(insn1 == null && insn2 == null) {
+                        return 0;
+                    } else if(insn1 == null) {
+                        return 1;
+                    } else if(insn2 == null) {
+                        return -1;
+                    } else {
+                        return Integer.compare(mn.instructions.indexOf(insn1), mn.instructions.indexOf(insn2));
+                    }
+                });
+                for(BasicBlock vertex : blocks) {
                     writer.println("\t\t\t{");
                     writer.println("\t\t\t\t\"id\": \"" + nextBlockNum + "\",");
                     StringBuilder label = new StringBuilder();
