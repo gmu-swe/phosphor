@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.*;
 
 public class RuntimeBoxUnboxPropagator {
@@ -756,6 +757,18 @@ public class RuntimeBoxUnboxPropagator {
     public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, TaintedLongWithObjTag ret) {
         ret.val = Long.parseLong(s, radix);
         ret.taint = getCombinedTaint(s);
+        return ret;
+    }
+
+    @SuppressWarnings("unused")
+    public static <T> TaintedCharWithObjTag forDigit$$PHOSPHORTAGGED(Taint<T> digitTag, int digit, Taint<T> radixTag, int radix,
+                                                                     TaintedCharWithObjTag ret) {
+        ret.val = Character.forDigit(digit, radix);
+        if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
+            ret.taint = Taint.copyTaint(Taint.combineTags(digitTag, radixTag));
+        } else {
+            ret.taint = Taint.copyTaint(digitTag);
+        }
         return ret;
     }
 

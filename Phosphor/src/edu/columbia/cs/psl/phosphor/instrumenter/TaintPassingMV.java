@@ -3370,7 +3370,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case BYTE_NAME:
                 return name.equals("parseByte");
             case CHARACTER_NAME:
-                return name.equals("digit");
+                return name.equals("digit") || name.equals("forDigit");
             case DOUBLE_NAME:
                 return name.equals("parseDouble");
             case FLOAT_NAME:
