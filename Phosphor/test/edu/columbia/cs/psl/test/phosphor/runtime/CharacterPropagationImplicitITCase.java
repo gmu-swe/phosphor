@@ -9,7 +9,7 @@ import static org.junit.Assert.assertEquals;
 public class CharacterPropagationImplicitITCase extends BaseMultiTaintClass {
 
     @Test
-    public void testMaskForDigit() {
+    public void testForDigitPropagates() {
         int digit = MultiTainter.taintedInt(5, "digit");
         int radix = MultiTainter.taintedInt(10, "radix");
         char result = Character.forDigit(digit, radix);
