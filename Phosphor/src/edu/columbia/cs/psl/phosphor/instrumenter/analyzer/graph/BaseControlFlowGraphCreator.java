@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.PhosphorTextifier;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;

@@ -2,14 +2,15 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.*;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingLabel;
 import edu.columbia.cs.psl.phosphor.runtime.*;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.*;
@@ -772,7 +773,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     @Override
     public void visitLdcInsn(Object cst) {
-        if(nextLoadIsTracked) {
+        if(cst instanceof PhosphorInstructionInfo) {
+            super.visitLdcInsn(cst);
+        } else if(nextLoadIsTracked) {
             controlFlowDelegator.generateEmptyTaint();
             nextLoadIsTracked = false;
             super.visitLdcInsn(cst);
@@ -1690,7 +1693,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             super.visitMethodInsn(opcode, owner, name, desc, isInterface);
             return;
         }
-        if(Configuration.IMPLICIT_TRACKING && opcode == Opcodes.INVOKEVIRTUAL && owner.equals("java/lang/Object") && (name.equals("equals") || name.equals("hashCode"))) {
+        if(Configuration.IMPLICIT_TRACKING && opcode == INVOKEVIRTUAL && owner.equals("java/lang/Object") && (name.equals("equals") || name.equals("hashCode"))) {
             Type callee = getTopOfStackType();
             if(name.equals("equals")) {
                 callee = getStackTypeAtOffset(1);
@@ -2178,7 +2181,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
                         super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
                     }
-                    super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "edu/columbia/cs/psl/phosphor/struct/Lazy" + elName + "ArrayObjTags", methodName,
+                    super.visitMethodInsn(INVOKEVIRTUAL, "edu/columbia/cs/psl/phosphor/struct/Lazy" + elName + "ArrayObjTags", methodName,
                             "(" + "[" + elType + (doingLoadWithIdxTaint ? Configuration.TAINT_TAG_DESC : "") + "I" + retType.getDescriptor() + (Configuration.IMPLICIT_TRACKING || isImplicitLightTracking ? "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;" : "") + ")" + retType.getDescriptor(), false);
                     if(nextLoadIsTracked) {
                         super.visitInsn(DUP);
@@ -2243,31 +2246,20 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     } else {
                         registerTaintedArray();
                     }
-                    if(idxTainted) {
-                        //Not supported
-                        //Array Taint Index Val
-                        super.visitInsn(DUP2_X1);
-                        //Array Index Val Taint Index Val
-                        super.visitInsn(POP2);
-                        //Array Index Val Taint
-                        super.visitInsn(POP);
-                        //Array Index Val
-                    }
-                    super.visitInsn(opcode);
                 } else {
                     controlFlowDelegator.storingReferenceInArray();
-                    if(idxTainted) {
-                        //Not supported
-                        //Array Taint Index Val
-                        super.visitInsn(DUP2_X1);
-                        //Array Index Val Taint Index Val
-                        super.visitInsn(POP2);
-                        //Array Index Val Taint
-                        super.visitInsn(POP);
-                        //Array Index Val
-                    }
-                    super.visitInsn(opcode);
                 }
+                if(idxTainted) {
+                    //Not supported
+                    //Array Taint Index Val
+                    super.visitInsn(DUP2_X1);
+                    //Array Index Val Taint Index Val
+                    super.visitInsn(POP2);
+                    //Array Index Val Taint
+                    super.visitInsn(POP);
+                    //Array Index Val
+                }
+                super.visitInsn(opcode);
                 break;
             case Opcodes.IASTORE:
             case Opcodes.LASTORE:
@@ -2276,71 +2268,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.BASTORE:
             case Opcodes.CASTORE:
             case Opcodes.SASTORE:
-                Object beingStored = analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - (opcode == LASTORE || opcode == DASTORE ? 2 : 1));
-                int offsetToArray = 4;
-                int ob = (opcode == LASTORE || opcode == DASTORE ? 2 : 1) + ((beingStored instanceof TaggedValue) ? 1 : 0) + 1;
-                boolean tagIsTracked = Configuration.ARRAY_INDEX_TRACKING && analyzer.stackTagStatus.get(analyzer.stackTagStatus.size() - ob) instanceof TaggedValue;
-                if(tagIsTracked) {
-                    offsetToArray++;
-                }
-                switch(opcode) {
-                    case Opcodes.LASTORE:
-                        elType = "J";
-                        offsetToArray++;
-                        break;
-                    case Opcodes.DASTORE:
-                        elType = "D";
-                        offsetToArray++;
-                        break;
-                    case Opcodes.IASTORE:
-                        elType = "I";
-                        break;
-                    case Opcodes.FASTORE:
-                        elType = "F";
-                        break;
-                    case Opcodes.BASTORE:
-                        elType = "B";
-                        if(beingStored instanceof TaggedValue) {
-                            elType = Type.getType((String) analyzer.stack.get(analyzer.stack.size() - offsetToArray)).getElementType().getDescriptor();
-                        }
-                        break;
-                    case Opcodes.CASTORE:
-                        elType = "C";
-                        break;
-                    case Opcodes.SASTORE:
-                        elType = "S";
-                        break;
-                    default:
-                        elType = null;
-                }
-                if(!(beingStored instanceof TaggedValue)) {
-                    if(tagIsTracked) {
-                        String typ = (String) analyzer.stack.get(analyzer.stack.size() - offsetToArray);
-                        super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "set", "([" + elType + Configuration.TAINT_TAG_DESC + "I" + elType + ")V", false);
-                    } else {
-                        super.visitInsn(opcode);
-                    }
-                } else if(analyzer.stackTagStatus.get(analyzer.stack.size() - offsetToArray) instanceof TaggedValue) {
-                    String typ = (String) analyzer.stack.get(analyzer.stack.size() - offsetToArray - 1);
-                    if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
-                        super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-                        if(tagIsTracked) {
-                            super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "set", "([" + elType + Configuration.TAINT_TAG_DESC + "I" + Configuration.TAINT_TAG_DESC + elType + "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
-                        } else {
-                            super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "set", "([" + elType + "I" + Configuration.TAINT_TAG_DESC + elType + "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V", false);
-                        }
-                    } else if(tagIsTracked) {
-                        super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "set", "([" + elType + Configuration.TAINT_TAG_DESC + "I" + Configuration.TAINT_TAG_DESC + elType + ")V", false);
-                    } else {
-                        super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, typ, "set", "([" + elType + "I" + Configuration.TAINT_TAG_DESC + elType + ")V", false);
-                    }
-                } else {
-                    if(tagIsTracked) {
-                        throw new IllegalStateException(analyzer.stackTagStatus.toString());
-                    }
-                    super.visitInsn(opcode);
-                }
-                isTaintlessArrayStore = false;
+                visitPrimitiveArrayStore(opcode);
                 break;
             case Opcodes.POP:
                 if(topCarriesTaint()) {
@@ -3105,14 +3033,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.FSUB:
             case Opcodes.FMUL:
             case Opcodes.FDIV:
-                if(!topCarriesTaint()) {
-                    super.visitInsn(opcode);
-                    break;
-                } else {
-                    Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
-                    analyzer.setTopOfStackTagged();
-                }
-                break;
             case Opcodes.IADD:
             case Opcodes.ISUB:
             case Opcodes.IMUL:
@@ -3261,6 +3181,95 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitInsn(opcode);
                 throw new IllegalArgumentException();
         }
+    }
+
+    /**
+     * stack_pre = [lazy-arrayref?, arrayref, index-taint?, index, value-taint?, value]
+     * stack_post = []
+     *
+     * @param opcode the opcode of the instruction to be visited. This opcode is either IASTORE, LASTORE, FASTORE,
+     *               DASTORE, BASTORE, CASTORE, or SASTORE
+     */
+    private void visitPrimitiveArrayStore(int opcode) {
+        String elementType;
+        int valuePosition = analyzer.stackTagStatus.size() - (opcode == LASTORE || opcode == DASTORE ? 2 : 1);
+        boolean valueTagged = analyzer.stackTagStatus.get(valuePosition) instanceof TaggedValue;
+        int indexPosition = valuePosition - (valueTagged ? 2 : 1);
+        boolean indexTagged = analyzer.stackTagStatus.get(indexPosition) instanceof TaggedValue;
+        int arrayRefPosition = indexPosition - (indexTagged ? 2 : 1);
+        boolean arrayRefTagged = analyzer.stackTagStatus.get(arrayRefPosition) instanceof TaggedValue;
+        switch(opcode) {
+            case Opcodes.LASTORE:
+                elementType = "J";
+                break;
+            case Opcodes.DASTORE:
+                elementType = "D";
+                break;
+            case Opcodes.IASTORE:
+                elementType = "I";
+                break;
+            case Opcodes.FASTORE:
+                elementType = "F";
+                break;
+            case Opcodes.BASTORE:
+                elementType = "B";
+                if(valueTagged) {
+                    Object arrayRefType = analyzer.stack.get(arrayRefPosition);
+                    if(arrayRefType instanceof String) {
+                        elementType = Type.getType((String) arrayRefType).getElementType().getDescriptor();
+                    }
+                }
+                break;
+            case Opcodes.CASTORE:
+                elementType = "C";
+                break;
+            case Opcodes.SASTORE:
+                elementType = "S";
+                break;
+            default:
+                throw new IllegalArgumentException();
+        }
+        Type valueType = Type.getType(elementType);
+        if(arrayRefTagged) {
+            StringBuilder descBuilder = new StringBuilder("([").append(elementType);
+            if(indexTagged) {
+                descBuilder.append(Configuration.TAINT_TAG_DESC);
+            }
+            descBuilder.append("I").append(Configuration.TAINT_TAG_DESC).append(elementType);
+            if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
+                super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+                descBuilder.append("Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V");
+            } else {
+                descBuilder.append(")V");
+            }
+            if(!valueTagged) {
+                super.visitInsn(ACONST_NULL);
+                if(valueType.getSize() == 1) {
+                    super.visitInsn(SWAP);
+                } else {
+                    super.visitInsn(DUP_X2);
+                    super.visitInsn(POP);
+                }
+            }
+            String lazyArrayType = (String) analyzer.stack.get(arrayRefPosition - 1);
+            super.visitMethodInsn(INVOKEVIRTUAL, lazyArrayType, "set", descBuilder.toString(), false);
+        } else if(!valueTagged && !indexTagged) {
+            super.visitInsn(opcode);
+        } else {
+            int temp = lvs.getTmpLV(valueType);
+            super.visitVarInsn(valueType.getOpcode(ISTORE), temp);
+            if(valueTagged) {
+                super.visitInsn(POP);
+            }
+            if(indexTagged) {
+                super.visitInsn(SWAP);
+                super.visitInsn(POP);
+            }
+            super.visitVarInsn(valueType.getOpcode(ILOAD), temp);
+            lvs.freeTmpLV(temp);
+            super.visitInsn(opcode);
+        }
+        isTaintlessArrayStore = false;
     }
 
     @Override

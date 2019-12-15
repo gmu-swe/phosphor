@@ -30,7 +30,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     boolean isEmptyMethod = true;
     Set<Type> wrapperTypesToPreAlloc = new HashSet<>();
     int nJumps;
-    boolean hasFinally;
     int nTryCatch;
     int nThrow;
     private NeverNullArgAnalyzerAdapter analyzer;
@@ -244,9 +243,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     @Override
     public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
         super.visitTryCatchBlock(addUniqueLabelFor(start), end, handler, type);
-        if(type == null) {
-            hasFinally = true;
-        }
         nTryCatch++;
     }
 

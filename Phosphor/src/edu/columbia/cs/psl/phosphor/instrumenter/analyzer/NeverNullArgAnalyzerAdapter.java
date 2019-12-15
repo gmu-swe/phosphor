@@ -30,6 +30,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.*;
@@ -458,6 +459,9 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     public void visitLdcInsn(final Object cst) {
         if(mv != null) {
             mv.visitLdcInsn(cst);
+        }
+        if(cst instanceof PhosphorInstructionInfo) {
+            return;
         }
         noInsnsSinceListFrame = false;
         isFollowedByFrame = false;

@@ -7,8 +7,8 @@ public class ExceptionalTaintData {
     private final SinglyLinkedList<Taint> taintHistory;
 
     public ExceptionalTaintData() {
-        this.taintHistory = new SinglyLinkedList<>();
-        this.taintHistory.push(null); // starting taint is null/empty
+        taintHistory = new SinglyLinkedList<>();
+        taintHistory.push(null); // starting taint is null/empty
     }
 
     public Taint getCurrentTaint() {
@@ -16,15 +16,16 @@ public class ExceptionalTaintData {
     }
 
     public void reset() {
-        this.taintHistory.clear();
+        taintHistory.clear();
+        taintHistory.push(null); // starting taint is null/empty
     }
 
     @SuppressWarnings("unchecked")
     public void push(Taint tag) {
-        this.taintHistory.push(new Taint(tag, taintHistory.peek()));
+        taintHistory.push(new Taint(tag, taintHistory.peek()));
     }
 
     public Taint pop() {
-        return this.taintHistory.pop();
+        return taintHistory.pop();
     }
 }

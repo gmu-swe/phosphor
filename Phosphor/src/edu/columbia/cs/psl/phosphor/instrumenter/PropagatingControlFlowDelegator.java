@@ -162,7 +162,7 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
         this.numberOfExceptionHandlersRemaining = primitiveArrayAnalyzer.nTryCatch;
         this.numberOfThrows = primitiveArrayAnalyzer.nThrow;
         this.numberOfBranchIDs = (primitiveArrayAnalyzer.nJumps + primitiveArrayAnalyzer.nTryCatch == 0) ? 0 : primitiveArrayAnalyzer.nJumps + primitiveArrayAnalyzer.nTryCatch + 2;
-        this.addHandler = Configuration.IMPLICIT_TRACKING && !primitiveArrayAnalyzer.hasFinally && !isInstanceInitializer;
+        this.addHandler = Configuration.IMPLICIT_TRACKING && !isInstanceInitializer;
         this.handlerScopeStart = addHandler ? new Label() : null;
         this.handlerScopeEnd = addHandler ? new Label() : null;
         this.handlerCodeStart = addHandler ? new Label() : null;

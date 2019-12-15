@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
@@ -189,8 +190,12 @@ public class MethodArgReindexer extends MethodVisitor {
     }
 
     @Override
-    public void visitLdcInsn(Object value) {
-        super.visitLdcInsn(value);
+    public void visitLdcInsn(Object cst) {
+        if(cst instanceof PhosphorInstructionInfo) {
+            mv.visitLdcInsn(cst);
+        } else {
+            super.visitLdcInsn(cst);
+        }
     }
 
     @Override

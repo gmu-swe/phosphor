@@ -108,7 +108,7 @@ public class BindingControlFlowAnalyzer {
         }
         // Add an instruction to signal the end of the scopes of all of the branch edges before every instruction which
         // causes the method to return
-        if(nextBranchIDAssigned >= 0) {
+        if(nextBranchIDAssigned > 0) {
             for(BasicBlock basicBlock : controlFlowGraph.getPredecessors(controlFlowGraph.getExitPoint())) {
                 if(!(basicBlock instanceof DummyBasicBlock)) {
                     instructions.insertBefore(basicBlock.getLastInsn(), new VarInsnNode(TaintUtils.BRANCH_END, -1));

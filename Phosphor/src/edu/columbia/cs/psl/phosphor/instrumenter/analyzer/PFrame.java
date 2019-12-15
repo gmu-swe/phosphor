@@ -1,7 +1,9 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
+import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
@@ -29,6 +31,8 @@ public class PFrame extends Frame<BasicValue> {
     @Override
     public void execute(AbstractInsnNode insn, Interpreter<BasicValue> interpreter) throws AnalyzerException {
         if(insn.getOpcode() > 200) {
+            return;
+        } else if((insn instanceof LdcInsnNode && ((LdcInsnNode) insn).cst instanceof PhosphorInstructionInfo)) {
             return;
         }
         switch(insn.getOpcode()) {
