@@ -206,7 +206,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         } else if(obj instanceof ControlTaintTagStack) {
             ControlTaintTagStack ctrl = (ControlTaintTagStack) obj;
             if(!ctrl.isEmpty()) {
-                taintViolation((Taint<T>) ctrl.getTag(), obj, baseSink, actualSink);
+                taintViolation((Taint<T>) ctrl.copyTag(), obj, baseSink, actualSink);
             }
         } else if(obj instanceof TaintedPrimitiveWithObjTag) {
             if(((TaintedPrimitiveWithObjTag) obj).taint != null) {

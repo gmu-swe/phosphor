@@ -428,7 +428,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 		resetState();
 		foo();
 		System.out.println("post foo: ");
-		System.out.println(MultiTainter.getControlFlow().getTag());
+		System.out.println(MultiTainter.getControlFlow().copyTag());
 	}
 	
 	void foo()
@@ -473,11 +473,11 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 		resetState();
 		String userInputPassword = taintedString("superSecure");
 		resetState();
-		assertNullOrEmpty(MultiTainter.getControlFlow().getTag());
+		assertNullOrEmpty(MultiTainter.getControlFlow().copyTag());
 //		if (userInputPassword.equals("superSecure"))
 		if(equals(userInputPassword,"superSecure"))
 			passwordCorrect = true;
-		assertNullOrEmpty(MultiTainter.getControlFlow().getTag());
+		assertNullOrEmpty(MultiTainter.getControlFlow().copyTag());
 		Taint taint = MultiTainter.getTaint(passwordCorrect);
 		assertTrue(MultiTainter.getTaint(passwordCorrect) != null && !MultiTainter.getTaint(passwordCorrect).isEmpty());
 	}
