@@ -126,7 +126,7 @@ public class PowerSetTree {
         private transient RankedObject key;
         // The node that represents the set difference between this set and the singleton set containing the object
         // associated with this node's key
-        private transient SetNode parent;
+        private transient volatile SetNode parent;
         // Stores child nodes that represent the union of the set represented by this node with a singleton set containing
         // the key of the child node. Children is null until at least one child node is added.
         private transient IntObjectAMT<WeakReference<SetNode>> children;
@@ -188,7 +188,7 @@ public class PowerSetTree {
         }
 
         /* Returns whether this node represents the empty set or a quasi-empty set. */
-        public synchronized boolean isEmpty() {
+        public boolean isEmpty() {
             return this.parent == null;
         }
 

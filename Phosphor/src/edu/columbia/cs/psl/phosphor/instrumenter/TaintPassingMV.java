@@ -600,7 +600,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                             super.visitInsn(DUP);
                             super.visitInsn(ACONST_NULL);
                             super.visitFieldInsn(opcode, owner, name, desc);
-                            NEW_EMPTY_TAINT.delegateVisit(mv);
+                            super.visitInsn(ACONST_NULL);
                         } else {
                             super.visitInsn(DUP2_X1);
                             super.visitInsn(POP2);
@@ -2067,7 +2067,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitInsn(opcode);
                 if(nextLoadIsTracked) {
                     nextLoadIsTracked = false;
-                    NEW_EMPTY_TAINT.delegateVisit(mv);
+                    super.visitInsn(Opcodes.ACONST_NULL); //for the wrapper
                     mv.visitInsn(SWAP);
                     analyzer.setTopOfStackTagged();
                 }
