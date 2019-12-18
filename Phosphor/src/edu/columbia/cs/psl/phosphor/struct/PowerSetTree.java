@@ -1,5 +1,10 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
 
@@ -113,17 +118,16 @@ public class PowerSetTree {
 
     /* Represents some set in the collection. The set represented by some node contains the objects associated with
      * the keys of every node on the path from that node to the root of the tree. */
-    public class SetNode {
-
+    public class SetNode extends Taint {
         // Holds an object and its associated rank. This object is the object with the highest rank in the set
         // represented by this node.
-        private RankedObject key;
+        private transient RankedObject key;
         // The node that represents the set difference between this set and the singleton set containing the object
         // associated with this node's key
-        private SetNode parent;
+        private transient SetNode parent;
         // Stores child nodes that represent the union of the set represented by this node with a singleton set containing
         // the key of the child node. Children is null until at least one child node is added.
-        private IntObjectAMT<WeakReference<SetNode>> children;
+        private transient IntObjectAMT<WeakReference<SetNode>> children;
 
         /* Constructs a new set node with no child nodes. */
         private SetNode(RankedObject key, SetNode parent) {
@@ -135,10 +139,10 @@ public class PowerSetTree {
         /* Returns all non-null child nodes of this node. */
         private synchronized SinglyLinkedList<SetNode> getChildren() {
             SinglyLinkedList<SetNode> list = new SinglyLinkedList<>();
-            if(children != null) {
-                for(WeakReference<SetNode> ref : children.values()) {
+            if (children != null) {
+                for (WeakReference<SetNode> ref : children.values()) {
                     SetNode node = ref.get();
-                    if(node != null) {
+                    if (node != null) {
                         list.enqueue(node);
                     }
                 }
@@ -156,19 +160,19 @@ public class PowerSetTree {
         /* Adds a new entry to this node's map of child nodes for the specified key if one does not already exist.
          * Returns the child node for the specified key. */
         private SetNode addChild(RankedObject childKey) {
-            synchronized(this) {
-                if(children == null) {
+            synchronized (this) {
+                if (children == null) {
                     // Initialize the child map
                     children = new IntObjectAMT<>();
                 }
-                if(!children.contains(childKey.rank)) {
+                if (!children.contains(childKey.rank)) {
                     // There is no entry for child key
                     SetNode node = new SetNode(childKey, this);
                     children.put(childKey.rank, new WeakReference<>(node));
                     return node;
                 } else {
                     SetNode childNode = children.get(childKey.rank).get();
-                    if(childNode != null) {
+                    if (childNode != null) {
                         // There is an existing non-garbage collected entry for the child key
                         return childNode;
                     } else {
@@ -186,26 +190,45 @@ public class PowerSetTree {
             return this.parent == null;
         }
 
+        @Override
+        public String toString() {
+            return "Taint [Labels = [" + toList() + "]";
+        }
+
+        @Override
+        public boolean containsLabel(Object label) {
+            if (label == null) {
+                return true;
+            }
+            return contains(label);
+        }
+
+        @Override
+        public Object[] getLabels() {
+            return toList().toArray();
+        }
+
         /* Returns a node that represents the set union of the set represented by this node with the set represented by
          * the specified other node. Does not change the elements contained by the sets represented by either original node */
-        public SetNode union(SetNode other) {
-            if(other == null) {
+        public SetNode union(Taint _other) {
+            if (_other == null) {
                 return this;
             }
+            SetNode other = (SetNode) _other;
             SinglyLinkedList<RankedObject> mergedList = new SinglyLinkedList<>();
             // If the this set is empty ensure the node representing the empty set is used
             SetNode cur = this.isEmpty() ? emptySet() : this;
             // If the other set is empty ensure the node representing the empty set is used
             other = other.isEmpty() ? emptySet() : other;
             // Maintain a sorted list of objects popped off from the two sets until one set is exhausted
-            while(!cur.isEmpty() && !other.isEmpty()) {
-                if(cur == other) {
+            while (!cur.isEmpty() && !other.isEmpty()) {
+                if (cur == other) {
                     break;
-                } else if(cur.key.rank == other.key.rank) {
+                } else if (cur.key.rank == other.key.rank) {
                     mergedList.push(cur.key);
                     cur = cur.parent;
                     other = other.parent;
-                } else if(cur.key.rank > other.key.rank) {
+                } else if (cur.key.rank > other.key.rank) {
                     mergedList.push(cur.key);
                     cur = cur.parent;
                 } else {
@@ -216,7 +239,7 @@ public class PowerSetTree {
             // Find the node for the non-exhausted set
             SetNode result = cur.isEmpty() ? other : cur;
             // Move down the path in the tree for the merged list adding child nodes as necessary
-            while(!mergedList.isEmpty()) {
+            while (!mergedList.isEmpty()) {
                 result = result.addChild(mergedList.pop());
             }
             return result;
@@ -225,7 +248,7 @@ public class PowerSetTree {
         /* Return a node representing the set union of the set represented by this node and the singleton set containing
          * the specified element. Does not change the elements contained by the set represented by this node. */
         public SetNode add(Object element) {
-            if(element == null) {
+            if (element == null) {
                 return this;
             }
             RankedObject obj = getRankedObject(element);
@@ -234,11 +257,11 @@ public class PowerSetTree {
             SetNode cur = this.isEmpty() ? emptySet() : this;
             // Maintain a sorted list of objects popped off from this set until the right place to insert the new element
             // is found
-            while(!cur.isEmpty()) {
-                if(cur.key.rank == obj.rank) {
+            while (!cur.isEmpty()) {
+                if (cur.key.rank == obj.rank) {
                     // The specified element was already in the list
                     return this;
-                } else if(cur.key.rank > obj.rank) {
+                } else if (cur.key.rank > obj.rank) {
                     list.push(cur.key);
                     cur = cur.parent;
                 } else {
@@ -248,7 +271,7 @@ public class PowerSetTree {
             }
             list.push(obj);
             // Move down the path in the tree for the list adding child nodes as necessary
-            while(!list.isEmpty()) {
+            while (!list.isEmpty()) {
                 cur = cur.addChild(list.pop());
             }
             return cur;
@@ -256,11 +279,11 @@ public class PowerSetTree {
 
         /* Returns whether the set represented by this node contains the specified element. */
         public boolean contains(Object element) {
-            if(element == null || isEmpty()) {
+            if (element == null || isEmpty()) {
                 return false;
             }
-            for(SetNode cur = this; !cur.isEmpty(); cur = cur.parent) {
-                if(cur.key.object.equals(element)) {
+            for (SetNode cur = this; !cur.isEmpty(); cur = cur.parent) {
+                if (cur.key.object.equals(element)) {
                     return true;
                 }
             }
@@ -269,21 +292,22 @@ public class PowerSetTree {
 
         /* Returns whether the set represented by this node is a superset of the set represented by the specified other
          * node. */
-        public boolean isSuperset(SetNode other) {
-            if(other == null) {
+        public boolean isSuperset(Taint _other) {
+            if (_other == null) {
                 return true;
             }
+            SetNode other = (SetNode) _other;
             SetNode cur = this;
-            while(!other.isEmpty()) {
-                if(cur.isEmpty()) {
+            while (!other.isEmpty()) {
+                if (cur.isEmpty()) {
                     return false;
                 }
-                if(cur == other) {
+                if (cur == other) {
                     return true;
-                } else if(cur.key.rank == other.key.rank) {
+                } else if (cur.key.rank == other.key.rank) {
                     cur = cur.parent;
                     other = other.parent;
-                } else if(cur.key.rank > other.key.rank) {
+                } else if (cur.key.rank > other.key.rank) {
                     cur = cur.parent;
                 } else {
                     return false;
@@ -296,10 +320,48 @@ public class PowerSetTree {
         public SinglyLinkedList<Object> toList() {
             SinglyLinkedList<Object> list = new SinglyLinkedList<>();
             // Walk to the root adding the objects associated with the nodes' key values to the list
-            for(SetNode cur = this; !cur.isEmpty(); cur = cur.parent) {
+            for (SetNode cur = this; !cur.isEmpty(); cur = cur.parent) {
                 list.push(cur.key.object);
             }
             return list;
+        }
+
+
+        //TODO serialization of SetNode?
+        //This won't work right now because this is a non-static inner class...
+        private void writeObject(ObjectOutputStream out) throws IOException {
+            out.defaultWriteObject();
+            out.writeObject(toList());
+        }
+
+        private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+            in.defaultReadObject();
+            SinglyLinkedList<Object> labels = (SinglyLinkedList<Object>) in.readObject();
+            SetNode ret = (SetNode) Taint.emptyTaint();
+            for(Object o : labels){
+                ret = ret.union(Taint.withLabel(o));
+            }
+            this.key = ret.key;
+            this.parent = ret.parent;
+            this.children = ret.children;
+
+            //We just created a new node "ret", but we wanted it to be the "this" instead
+
+            //Replace all parent references
+            if (children != null) {
+                for (WeakReference<SetNode> ref : children.values()) {
+                    SetNode node = ref.get();
+                    if (node != null) {
+                        node.parent = this;
+                    }
+                }
+            }
+
+            //Clean up our parent
+            if(parent != null){
+                parent.children.remove(ret.key.rank);
+                parent.children.put(key.rank, new WeakReference<>(this));
+            }
         }
     }
 

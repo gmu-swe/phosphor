@@ -147,49 +147,49 @@ public final class MultiTainter {
     }
 
     public static TaintedBooleanWithObjTag taintedBoolean$$PHOSPHORTAGGED(Taint oldTag, boolean in, Object lbl, TaintedBooleanWithObjTag ret) {
-        ret.taint = new Taint<>(lbl);
+        ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
     public static TaintedByteWithObjTag taintedByte$$PHOSPHORTAGGED(Taint oldTag, byte in, Object lbl, TaintedByteWithObjTag ret) {
-        ret.taint = new Taint<>(lbl);
+        ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
     public static TaintedCharWithObjTag taintedChar$$PHOSPHORTAGGED(Taint oldTag, char in, Object lbl, TaintedCharWithObjTag ret) {
-        ret.taint = new Taint<>(lbl);
+        ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
     public static TaintedDoubleWithObjTag taintedDouble$$PHOSPHORTAGGED(Taint oldTag, double in, Object lbl, TaintedDoubleWithObjTag ret) {
-        ret.taint = new Taint<>(lbl);
+        ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
     public static TaintedFloatWithObjTag taintedFloat$$PHOSPHORTAGGED(Taint oldTag, float in, Object lbl, TaintedFloatWithObjTag ret) {
-        ret.taint = new Taint<>(lbl);
+        ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
     public static TaintedIntWithObjTag taintedInt$$PHOSPHORTAGGED(Taint oldTag, int in, Object lbl, TaintedIntWithObjTag ret) {
-        ret.taint = new Taint<>(lbl);
+        ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
     public static TaintedLongWithObjTag taintedLong$$PHOSPHORTAGGED(Taint oldTag, long in, Object lbl, TaintedLongWithObjTag ret) {
-        ret.taint = new Taint<>(lbl);
+        ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
     public static TaintedShortWithObjTag taintedShort$$PHOSPHORTAGGED(Taint oldTag, short in, Object lbl, TaintedShortWithObjTag ret) {
-        ret.taint = new Taint<>(lbl);
+        ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
@@ -199,7 +199,7 @@ public final class MultiTainter {
             ret.taints = new Taint[in.length];
         }
         for(int i = 0; i < in.length; i++) {
-            ret.taints[i] = new Taint<>(lbl);
+            ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
@@ -209,7 +209,7 @@ public final class MultiTainter {
             ret.taints = new Taint[in.length];
         }
         for(int i = 0; i < in.length; i++) {
-            ret.taints[i] = new Taint<>(lbl);
+            ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
@@ -219,7 +219,7 @@ public final class MultiTainter {
             ret.taints = new Taint[in.length];
         }
         for(int i = 0; i < in.length; i++) {
-            ret.taints[i] = new Taint<>(lbl);
+            ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
@@ -229,7 +229,7 @@ public final class MultiTainter {
             ret.taints = new Taint[in.length];
         }
         for(int i = 0; i < in.length; i++) {
-            ret.taints[i] = new Taint<>(lbl);
+            ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
@@ -239,7 +239,7 @@ public final class MultiTainter {
             ret.taints = new Taint[in.length];
         }
         for(int i = 0; i < in.length; i++) {
-            ret.taints[i] = new Taint<>(lbl);
+            ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
@@ -249,7 +249,7 @@ public final class MultiTainter {
             ret.taints = new Taint[in.length];
         }
         for(int i = 0; i < in.length; i++) {
-            ret.taints[i] = new Taint<>(lbl);
+            ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
@@ -259,7 +259,7 @@ public final class MultiTainter {
             ret.taints = new Taint[in.length];
         }
         for(int i = 0; i < in.length; i++) {
-            ret.taints[i] = new Taint<>(lbl);
+            ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
@@ -269,7 +269,7 @@ public final class MultiTainter {
             ret.taints = new Taint[in.length];
         }
         for(int i = 0; i < in.length; i++) {
-            ret.taints[i] = new Taint<>(lbl);
+            ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }

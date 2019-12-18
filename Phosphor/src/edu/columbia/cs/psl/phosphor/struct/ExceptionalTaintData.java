@@ -22,10 +22,18 @@ public class ExceptionalTaintData {
 
     @SuppressWarnings("unchecked")
     public void push(Taint tag) {
-        taintHistory.push(new Taint(tag, taintHistory.peek()));
+        taintHistory.push(tag.union(taintHistory.peek()));
     }
 
     public Taint pop() {
         return taintHistory.pop();
+    }
+
+    public void unionWithCurrentTaint(Taint tag) {
+        Taint top = getCurrentTaint();
+        if (top != null && top.isSuperset(tag)) {
+            return;
+        }
+        push(tag.union(pop()));
     }
 }

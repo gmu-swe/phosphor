@@ -5,12 +5,12 @@ import org.junit.Test;
 public class ControlTaintTagTest {
 	@Test
 	public void testAddControlTag() throws Exception {
-//		Taint tag = new Taint("a");
-//		Taint tag3 = new Taint("a3");
+//		Taint tag = Taint.withLabel("a");
+//		Taint tag3 = Taint.withLabel("a3");
 //
-//		Taint tag2 = new Taint("a2");
+//		Taint tag2 = Taint.withLabel("a2");
 //		ControlTaintTagStack ctrl = new ControlTaintTagStack();
-//		Taint tag5 = new Taint(tag2);
+//		Taint tag5 = Taint.withLabel(tag2);
 //		tag = ctrl.push(tag);
 //		tag3 = ctrl.push(tag3);
 //		tag2 = ctrl.push(tag2);

@@ -48,7 +48,7 @@ public final class LazyCharArrayObjTags extends LazyArrayObjTags {
         } else if(tag == null) {
             set(l, idx, idxTag, val);
         } else {
-            set(l, idx, new Taint(tag, idxTag), val);
+            set(l, idx, tag.union(idxTag), val);
         }
     }
 

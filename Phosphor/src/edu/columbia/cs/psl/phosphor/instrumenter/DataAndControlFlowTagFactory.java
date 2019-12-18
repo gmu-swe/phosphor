@@ -16,7 +16,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
     @Override
     public Taint<?> getAutoTaint(String source) {
-        return new Taint<>(source);
+        return Taint.withLabel(source);
     }
 
     @Override

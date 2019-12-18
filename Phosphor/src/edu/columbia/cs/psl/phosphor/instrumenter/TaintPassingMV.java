@@ -400,7 +400,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 case Opcodes.FSTORE:
                 case Opcodes.DSTORE:
                     super.visitVarInsn(opcode, var);
-                    COPY_TAINT.delegateVisit(mv);
                     super.visitVarInsn(ASTORE, shadowVar);
                     return;
                 case Opcodes.ASTORE:

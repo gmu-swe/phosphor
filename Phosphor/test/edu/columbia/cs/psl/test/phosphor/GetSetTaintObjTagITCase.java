@@ -18,8 +18,8 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 	public void testReferenceType() throws Exception {
 		String s = "def";
 		HashMap<Object, Object> m =  new HashMap<Object, Object>();
-		MultiTainter.taintedObject(s, new Taint<>("a"));;
-		MultiTainter.taintedObject(m, new Taint<>("a"));
+		MultiTainter.taintedObject(s, Taint.withLabel("a"));;
+		MultiTainter.taintedObject(m, Taint.withLabel("a"));
 
 		int[] x = new int[10];
 		//In its default mode, Phosphor tracks ONLY for the array ELEMENTS - not for the reference
@@ -107,8 +107,8 @@ public class GetSetTaintObjTagITCase extends BaseMultiTaintClass{
 		String hundred = new String(new char[]{'1','0','0'});
 		Integer lbl = 5;
 		String TRUE = new String(new char[]{'t','r','u','e'});
-		((TaintedWithObjTag) ((Object) hundred)).setPHOSPHOR_TAG(new Taint<>(lbl));
-		((TaintedWithObjTag) ((Object) TRUE)).setPHOSPHOR_TAG(new Taint<>(lbl));
+		((TaintedWithObjTag) ((Object) hundred)).setPHOSPHOR_TAG(Taint.withLabel(lbl));
+		((TaintedWithObjTag) ((Object) TRUE)).setPHOSPHOR_TAG(Taint.withLabel(lbl));
 		boolean z = Boolean.parseBoolean(TRUE);
 		byte b = Byte.valueOf(hundred);
 		byte b2 = Byte.parseByte(hundred);

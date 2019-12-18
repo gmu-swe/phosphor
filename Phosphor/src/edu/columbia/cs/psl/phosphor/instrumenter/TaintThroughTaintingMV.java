@@ -42,7 +42,8 @@ public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
                 super.visitVarInsn(ALOAD, idx); // Load the argument onto the stack
                 super.visitVarInsn(ALOAD, 0); // Load this onto the stack for the call to GETFIELD
                 super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-                super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
+                //TODO instead, addTaint should return a Configuration.TAINT_TAG_DESC, and that should replace the taint here
+                //                super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
                 super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "addTaint", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
             }
             idx += args[i].getSize();
@@ -62,9 +63,10 @@ public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
                 super.visitInsn(SWAP);
                 super.visitVarInsn(ALOAD, 0); // Load this onto the stack for the call to GETFIELD
                 super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-                super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
+                //TODO instead, addTaint should return a Configuration.TAINT_TAG_DESC, and that should replace the taint here
+                //                super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
                 super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "addTaint", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-            } else if(origReturnType.getSort() != Type.VOID) {
+            } else if (origReturnType.getSort() != Type.VOID) {
                 // Wrapped primitive return type. The stack before this code runs contains wrapped primitive return type
                 super.visitInsn(DUP); //for the PUTFIELD
                 super.visitInsn(DUP); //for the combineTags
@@ -72,7 +74,8 @@ public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
                 super.visitVarInsn(ALOAD, 0);
                 super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
                 super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
-                super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
+                //TODO delete below?
+                //                super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
                 super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithObjTag.class), "taint", Configuration.TAINT_TAG_DESC);
             }
         }

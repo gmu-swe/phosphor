@@ -43,16 +43,16 @@ public class ParsePrimitiveObjTagITCase extends BaseMultiTaintClass {
     private String taintString(String str) {
         str = new String(str);
         if(taintString && taintChars) {
-            MultiTainter.taintedObject(str, new Taint<>(STRING_LABEL));
+            MultiTainter.taintedObject(str, Taint.withLabel(STRING_LABEL));
             IgnoredTestUtil.setStringCharTaints(str, CHARS_LABEL);
             return str;
         } else if(taintString) {
-            MultiTainter.taintedObject(str, new Taint<>(STRING_LABEL));
+            MultiTainter.taintedObject(str, Taint.withLabel(STRING_LABEL));
             IgnoredTestUtil.setStringCharTaints(str, null);
             return str;
         } else if(taintChars) {
             char[] c = str.toCharArray();
-            MultiTainter.taintedObject(c, new Taint<>(CHARS_LABEL));
+            MultiTainter.taintedObject(c, Taint.withLabel(CHARS_LABEL));
             return new String(c);
         } else {
             return str;
