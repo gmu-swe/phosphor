@@ -7,16 +7,17 @@ import java.util.Iterator;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
+@SuppressWarnings({"unused", "rawtypes", "unchecked"})
 public final class ControlTaintTagStack {
 
     public static final int PUSHED = 1;
     public static final int PUSHED_REVISABLE = -1;
     public static final int NOT_PUSHED = 0;
-
     private static ControlTaintTagStack instance = new ControlTaintTagStack(true);
+
     private final SinglyLinkedList<Taint> taintHistory = new SinglyLinkedList<>();
     private final SinglyLinkedList<Taint> revisionExcludedTaintHistory = new SinglyLinkedList<>();
-    private boolean isDisabled = false;
+    private boolean disabled = false;
     private SinglyLinkedList<MaybeThrownException> unthrownExceptions = null;
     private SinglyLinkedList<MaybeThrownException> influenceExceptions = null;
 
@@ -25,9 +26,9 @@ public final class ControlTaintTagStack {
         revisionExcludedTaintHistory.push(null); // starting taint is null/empty
     }
 
-    private ControlTaintTagStack(boolean isDisabled) {
+    private ControlTaintTagStack(boolean disabled) {
         this();
-        this.isDisabled = isDisabled;
+        this.disabled = disabled;
     }
 
     /**
@@ -35,7 +36,6 @@ public final class ControlTaintTagStack {
      * exception, and if there is one, we'll need to add it to the current ControlTaintTagStack and
      * return a pointer so it can later be removed
      */
-    @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = CONTROL_STACK_EXCEPTION_HANDLER_START)
     public final EnqueuedTaint exceptionHandlerStart(Throwable exceptionCaught, EnqueuedTaint eq) {
         if(exceptionCaught instanceof TaintedWithObjTag) {
@@ -51,7 +51,6 @@ public final class ControlTaintTagStack {
      * At the start of an exception handler, this method is called once for each exception type handled by the handler.
      * Removes elements from the unthrown exception list whose exception type either is or is a subtype of the specified type.
      */
-    @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = CONTROL_STACK_EXCEPTION_HANDLER_START_VOID)
     public final void exceptionHandlerStart(Class<? extends Throwable> exTypeHandled) {
         tryBlockEnd(exTypeHandled);
@@ -61,7 +60,6 @@ public final class ControlTaintTagStack {
      * Called ONCE at the end of each handler to remove an exception from influencing the control state
      * Passed the same MaybeThrownException from the start method
      */
-    @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = CONTROL_STACK_EXCEPTION_HANDLER_END)
     public final void exceptionHandlerEnd(EnqueuedTaint ex) {
         if(ex != null) {
@@ -91,7 +89,6 @@ public final class ControlTaintTagStack {
      * follows that code in a "try" block, then that unthrown exception
      * is currently affecting the current flow (at least until the end of the catch block)
      */
-    @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = CONTROL_STACK_APPLY_POSSIBLY_UNTHROWN_EXCEPTION)
     public final void applyPossiblyUnthrownExceptionToTaint(Class<? extends Throwable> t) {
         if(unthrownExceptions == null) {
@@ -116,8 +113,6 @@ public final class ControlTaintTagStack {
      * an exception if we went down some branch differently, we note that, along with whatever taints
      * were applied in this method only
      */
-    @SuppressWarnings("unused")
-
     @InvokedViaInstrumentation(record = CONTROL_STACK_ADD_UNTHROWN_EXCEPTION)
     public final void addUnthrownException(ExceptionalTaintData taints, Class<? extends Throwable> t) {
         if(taints != null && taints.getCurrentTaint() != null) {
@@ -141,21 +136,7 @@ public final class ControlTaintTagStack {
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG_EXCEPTION)
     public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, ExceptionalTaintData curMethod, boolean revisable) {
-        if(tag == null) {
-            return branchTags;
-        } else {
-            return _push(tag, branchTags, branchID, maxSize, curMethod, revisable);
-        }
-    }
-
-    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG)
-    public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, boolean revisable) {
-        return push(tag, branchTags, branchID, maxSize, null, revisable);
-    }
-
-    @SuppressWarnings("unchecked")
-    private int[] _push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, ExceptionalTaintData exceptionData, boolean revisable) {
-        if(isDisabled || tag == null || tag.isEmpty()) {
+        if(disabled || tag == null || tag.isEmpty()) {
             return branchTags;
         }
         if(branchTags == null) {
@@ -164,16 +145,16 @@ public final class ControlTaintTagStack {
         if(branchTags[branchID] == NOT_PUSHED) {
             // Adding a label for this branch for the first time
             taintHistory.push(new Taint(tag, taintHistory.peek()));
-            if(exceptionData != null) {
-                exceptionData.push(new Taint(tag, taintHistory.peek()));
+            if(curMethod != null) {
+                curMethod.push(new Taint(tag, taintHistory.peek()));
             }
             if(!revisable) {
                 revisionExcludedTaintHistory.push(new Taint(tag, revisionExcludedTaintHistory.peek()));
             }
         } else {
             taintHistory.peek().addDependency(tag);
-            if(exceptionData != null) {
-                exceptionData.getCurrentTaint().addDependency(tag);
+            if(curMethod != null) {
+                curMethod.getCurrentTaint().addDependency(tag);
             }
             if(!revisable) {
                 revisionExcludedTaintHistory.peek().addDependency(tag);
@@ -183,9 +164,13 @@ public final class ControlTaintTagStack {
         return branchTags;
     }
 
-    @SuppressWarnings("unchecked")
+    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG)
+    public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, boolean revisable) {
+        return push(tag, branchTags, branchID, maxSize, null, revisable);
+    }
+
     public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
-        if(tag == null || tag.isEmpty() || tag == taintHistory.peek() || isDisabled) {
+        if(tag == null || tag.isEmpty() || tag == taintHistory.peek() || disabled) {
             return null;
         }
         EnqueuedTaint ret = prev == null ? new EnqueuedTaint() : prev;
@@ -275,7 +260,6 @@ public final class ControlTaintTagStack {
         return isEmpty() ? null : taintHistory.peek().copy();
     }
 
-    @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_REVISION_EXCLUDED_TAG)
     public Taint copyRevisionExcludedTag() {
         return isEmpty() ? null : revisionExcludedTaintHistory.peek();
@@ -286,7 +270,7 @@ public final class ControlTaintTagStack {
     }
 
     public final boolean isEmpty() {
-        return isDisabled || taintHistory.peek() == null || taintHistory.peek().isEmpty();
+        return disabled || taintHistory.peek() == null || taintHistory.peek().isEmpty();
     }
 
     public void reset() {
@@ -306,19 +290,16 @@ public final class ControlTaintTagStack {
         return influenceExceptions == null || influenceExceptions.isEmpty();
     }
 
-    @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = CONTROL_STACK_ENABLE)
     public void enable() {
-        this.isDisabled = false;
+        this.disabled = false;
     }
 
-    @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = CONTROL_STACK_DISABLE)
     public void disable() {
-        this.isDisabled = true;
+        this.disabled = true;
     }
 
-    @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = CONTROL_STACK_FACTORY)
     public static ControlTaintTagStack factory() {
         return instance;

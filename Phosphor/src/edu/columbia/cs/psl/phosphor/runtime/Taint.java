@@ -540,7 +540,7 @@ public class Taint<T> implements Serializable {
         if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
             if(tags.lacksInfluenceExceptions()) {
                 //Can do a direct check of taint subsumption, no exception data to look at
-                if(tags.getTag() == null) {
+                if(tags.isEmpty()) {
                     return t1;
                 }
                 if(t1 == null) {

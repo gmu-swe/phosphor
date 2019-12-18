@@ -398,18 +398,14 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
             ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className, name, analyzer);
             PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
-            LocalVariableManager lvs;
-            TaintPassingMV tmv;
-            MethodVisitor nextMV;
-            InstOrUninstChoosingMV instOrUninstChoosingMV;
 
-            tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer, rootmV, wrapperMethodsToAdd, isImplicitLightTrackingMethod);
+            TaintPassingMV tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer, rootmV, wrapperMethodsToAdd, isImplicitLightTrackingMethod);
             tmv.setFields(fields);
             UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, newDesc, oldReturnType, signature, exceptions, boxFixer, analyzer, ignoreFrames);
-            instOrUninstChoosingMV = new InstOrUninstChoosingMV(tmv, umv);
-            lvs = new LocalVariableManager(access, newDesc, instOrUninstChoosingMV, analyzer, mv, generateExtraLVDebug);
+            InstOrUninstChoosingMV instOrUninstChoosingMV = new InstOrUninstChoosingMV(tmv, umv);
+            LocalVariableManager lvs = new LocalVariableManager(access, newDesc, instOrUninstChoosingMV, analyzer, mv, generateExtraLVDebug);
             umv.setLocalVariableSorter(lvs);
-            nextMV = lvs;
+            MethodVisitor nextMV = lvs;
             boolean isDisabled = Configuration.ignoredMethods.contains(className + "." + originalName + desc);
 
             somv.setLVS(lvs);
