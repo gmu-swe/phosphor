@@ -235,8 +235,8 @@ public abstract class Taint<T> implements Serializable {
 
     @InvokedViaInstrumentation(record = COMBINE_TAGS_CONTROL)
     public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags) {
-        if(t1 == null && tags.isEmpty() && tags.lacksInfluenceExceptions()) {
-            return null;
+        if(tags.isEmpty() && tags.lacksInfluenceExceptions()) {
+            return t1;
         }
         return _combineTagsInternal(t1, tags);
     }

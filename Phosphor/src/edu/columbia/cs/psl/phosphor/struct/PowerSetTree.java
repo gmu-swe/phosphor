@@ -118,7 +118,9 @@ public class PowerSetTree {
 
     /* Represents some set in the collection. The set represented by some node contains the objects associated with
      * the keys of every node on the path from that node to the root of the tree. */
-    public class SetNode extends Taint {
+    public static final class SetNode extends Taint {
+
+        private static final long serialVersionUID = 7385461591854398858L;
         // Holds an object and its associated rank. This object is the object with the highest rank in the set
         // represented by this node.
         private transient RankedObject key;
@@ -217,9 +219,9 @@ public class PowerSetTree {
             SetNode other = (SetNode) _other;
             SinglyLinkedList<RankedObject> mergedList = new SinglyLinkedList<>();
             // If the this set is empty ensure the node representing the empty set is used
-            SetNode cur = this.isEmpty() ? emptySet() : this;
+            SetNode cur = this.isEmpty() ? PowerSetTree.getInstance().emptySet() : this;
             // If the other set is empty ensure the node representing the empty set is used
-            other = other.isEmpty() ? emptySet() : other;
+            other = other.isEmpty() ? PowerSetTree.getInstance().emptySet() : other;
             // Maintain a sorted list of objects popped off from the two sets until one set is exhausted
             while (!cur.isEmpty() && !other.isEmpty()) {
                 if (cur == other) {
@@ -251,10 +253,10 @@ public class PowerSetTree {
             if (element == null) {
                 return this;
             }
-            RankedObject obj = getRankedObject(element);
+            RankedObject obj = PowerSetTree.getInstance().getRankedObject(element);
             SinglyLinkedList<RankedObject> list = new SinglyLinkedList<>();
             // If the this set is empty ensure the node representing the empty set is used
-            SetNode cur = this.isEmpty() ? emptySet() : this;
+            SetNode cur = this.isEmpty() ? PowerSetTree.getInstance().emptySet() : this;
             // Maintain a sorted list of objects popped off from this set until the right place to insert the new element
             // is found
             while (!cur.isEmpty()) {
@@ -327,8 +329,6 @@ public class PowerSetTree {
         }
 
 
-        //TODO serialization of SetNode?
-        //This won't work right now because this is a non-static inner class...
         private void writeObject(ObjectOutputStream out) throws IOException {
             out.defaultWriteObject();
             out.writeObject(toList());
@@ -341,27 +341,11 @@ public class PowerSetTree {
             for(Object o : labels){
                 ret = ret.union(Taint.withLabel(o));
             }
-            this.key = ret.key;
-            this.parent = ret.parent;
-            this.children = ret.children;
+            this.parent = ret;
+        }
 
-            //We just created a new node "ret", but we wanted it to be the "this" instead
-
-            //Replace all parent references
-            if (children != null) {
-                for (WeakReference<SetNode> ref : children.values()) {
-                    SetNode node = ref.get();
-                    if (node != null) {
-                        node.parent = this;
-                    }
-                }
-            }
-
-            //Clean up our parent
-            if(parent != null){
-                parent.children.remove(ret.key.rank);
-                parent.children.put(key.rank, new WeakReference<>(this));
-            }
+        private Object readResolve(){
+            return this.parent;
         }
     }
 

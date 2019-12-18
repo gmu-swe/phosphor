@@ -250,7 +250,7 @@ public final class ControlTaintTagStack {
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_EXCEPTIONS)
     public Taint copyTagExceptions() {
         if(isEmpty() && lacksInfluenceExceptions()) {
-            return null;
+            return Taint.emptyTaint();
         }
         Taint ret = taintHistory.peek() == null ? Taint.emptyTaint() : taintHistory.peek();
         if(lacksInfluenceExceptions()) {

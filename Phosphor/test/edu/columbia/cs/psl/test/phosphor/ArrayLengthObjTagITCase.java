@@ -10,7 +10,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
-public class ArrayLengthObjTagITCase extends BasePhosphorTest {
+public class ArrayLengthObjTagITCase extends BaseMultiTaintClass {
 
 	@Test
 	public void testArrayLengthTaintedPrimArray() throws Exception {
@@ -21,7 +21,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t, r);
 		else
-			assertNull(r);
+			assertNullOrEmpty(r);
 	}
 
 	@Test
@@ -33,7 +33,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t, r);
 		else
-			assertNull(r);
+			assertNullOrEmpty(r);
 	}
 
 	@Test
@@ -45,12 +45,12 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t, r);
 		else
-			assertNull(r);
+			assertNullOrEmpty(r);
 		r = MultiTainter.getTaint(ar[0].length);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t, r);
 		else
-			assertNull(r);
+			assertNullOrEmpty(r);
 	}
 
 	@Test
@@ -62,12 +62,12 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t, r);
 		else
-			assertNull(r);
+			assertNullOrEmpty(r);
 		r = MultiTainter.getTaint(ar[0].length);
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t, r);
 		else
-			assertNull(r);
+			assertNullOrEmpty(r);
 	}
 
 	@Test
@@ -81,7 +81,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t, r);
 		else
-			assertNull(r);
+			assertNullOrEmpty(r);
 		String[] s = new String[10];
 		for (j = 0; j < s.length; j++)
 			s[j] = "b";
@@ -89,7 +89,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t, r);
 		else
-			assertNull(r);
+			assertNullOrEmpty(r);
 	}
 
 	@Test
@@ -104,7 +104,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t, r);
 		else
-			assertNull(r);
+			assertNullOrEmpty(r);
 
 		String[] s = new String[10];
 		s[i] = "bar";
@@ -112,7 +112,7 @@ public class ArrayLengthObjTagITCase extends BasePhosphorTest {
 		if (Configuration.ARRAY_LENGTH_TRACKING)
 			assertEquals(t, r);
 		else
-			assertNull(r);
+			assertNullOrEmpty(r);
 	}
 	
 	@Test

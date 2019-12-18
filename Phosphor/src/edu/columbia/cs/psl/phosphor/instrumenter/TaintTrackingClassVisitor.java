@@ -19,8 +19,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_FACTORY;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_POOL_INSTANCE;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 /**
  * CV responsibilities: Add a field to classes to track each instance's taint
@@ -1221,7 +1220,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             if(m.name.equals("equals")) {
                 int retVar = (Configuration.IMPLICIT_TRACKING ? 3 : 2);
                 ga.visitVarInsn(Opcodes.ALOAD, retVar);
-                ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+                NEW_EMPTY_TAINT.delegateVisit(ga);
                 ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
                 ga.visitVarInsn(Opcodes.ALOAD, 0);
                 ga.visitVarInsn(Opcodes.ALOAD, 1);
@@ -1247,7 +1246,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 ga.visitVarInsn(Opcodes.ALOAD, retVar);
                 ga.visitInsn(Opcodes.DUP);
                 ga.visitInsn(Opcodes.DUP);
-                ga.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+                NEW_EMPTY_TAINT.delegateVisit(ga);
                 ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
                 ga.visitInsn(Opcodes.ICONST_0);
                 ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", "I");

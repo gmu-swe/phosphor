@@ -8,6 +8,7 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.NEW_EMPTY_TAINT;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
@@ -96,7 +97,7 @@ public class NoFlowControlFlowDelegator implements ControlFlowDelegator {
 
     @Override
     public void generateEmptyTaint() {
-        delegate.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+        NEW_EMPTY_TAINT.delegateVisit(delegate);
     }
 
     @Override
@@ -121,7 +122,7 @@ public class NoFlowControlFlowDelegator implements ControlFlowDelegator {
 
     @Override
     public void visitingTrackedInstanceOf() {
-        delegate.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+        NEW_EMPTY_TAINT.delegateVisit(delegate);
         delegate.visitInsn(SWAP);
     }
 

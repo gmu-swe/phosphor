@@ -58,7 +58,7 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
 //		System.out.println(MultiTainter.getTaint(f));
         //control-tag-remove-i
         int r = 54;
-        assertNull(MultiTainter.getTaint(r));
+        assertNullOrEmpty(MultiTainter.getTaint(r));
 
         switch(f) {
             case 0:
@@ -71,7 +71,7 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
                 r = 7;
                 break;
             default:
-                assertNull(MultiTainter.getTaint(r));
+                assertNullOrEmpty(MultiTainter.getTaint(r));
 
                 foo(r);
                 r = 111;
@@ -87,7 +87,7 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
     int foo(int in) {
         int k = 5;
         assertTaintHasOnlyLabel(MultiTainter.getTaint(k), labelFoo);
-        assertNull(MultiTainter.getTaint(in));
+        assertNullOrEmpty(MultiTainter.getTaint(in));
 		if(in > 5) {
 			return 10;
 		}
@@ -119,7 +119,7 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
         assertTaintHasOnlyLabels(MultiTainter.getTaint(j), "J", "I");
         assertTaintHasOnlyLabel(MultiTainter.getTaint(i), "I");
         assertTaintHasOnlyLabel(MultiTainter.getTaint(y), "I");
-        assertNull(MultiTainter.getTaint(x));
+        assertNullOrEmpty(MultiTainter.getTaint(x));
     }
 
     @Test

@@ -210,7 +210,8 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
                 taintViolation((Taint<T>) ctrl.copyTag(), obj, baseSink, actualSink);
             }
         } else if(obj instanceof TaintedPrimitiveWithObjTag) {
-            if(((TaintedPrimitiveWithObjTag) obj).taint != null) {
+            Taint t = ((TaintedPrimitiveWithObjTag) obj).taint;
+            if (t != null && !t.isEmpty()) {
                 taintViolation(((TaintedPrimitiveWithObjTag) obj).taint, ((TaintedPrimitiveWithObjTag) obj).getValue(), baseSink, actualSink);
             }
         }
