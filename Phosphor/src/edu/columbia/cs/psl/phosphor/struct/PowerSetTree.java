@@ -35,7 +35,10 @@ public class PowerSetTree {
         this.nextRank = Integer.MIN_VALUE;
     }
 
-    /* Resets the tree to its initial state, turning all reachable SetNodes into quasi-empty sets. */
+    /* Resets the tree to its initial state, turning all reachable SetNodes into quasi-empty sets.
+    * THREAD SAFETY WARNING: Other threads running concurrently might check to see if taints are empty while this method
+    * runs. If so, there is no guarantee that they will see taints emptied until after this method returns.
+    * */
     public synchronized void reset() {
         this.rankMap.clear();
         this.rankQueue.clear();
