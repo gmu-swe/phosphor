@@ -27,21 +27,24 @@ public abstract class Taint<T> implements Serializable {
     public abstract Object[] getLabels();
 
     @SuppressWarnings("unused")
-    public Object[] getLabels$$PHOSPHORTAGGED(){
+    public Object[] getLabels$$PHOSPHORTAGGED() {
         return getLabels();
     }
 
-    public static <T> Taint<T> withLabel(T label){
+    @SuppressWarnings("unchecked")
+    public static <T> Taint<T> withLabel(T label) {
         return setTree.makeSingletonSet(label);
     }
 
-    public static <T> Taint<T> withLabel$$PHOSPHORTAGGED(T label){
+    public static <T> Taint<T> withLabel$$PHOSPHORTAGGED(T label) {
         return withLabel(label);
     }
 
-    public static Taint emptyTaint(){
-        return setTree.emptySet();
+    @SuppressWarnings("unchecked")
+    public static <E> Taint<E> emptyTaint() {
+        return (Taint<E>) setTree.emptySet();
     }
+
     /* Returns an array containing this taint's labels or label indices if the BitSet representation is used. The runtime
      * type of the returned array is that of the specified array. */
     @SuppressWarnings("unchecked")
@@ -299,9 +302,5 @@ public abstract class Taint<T> implements Serializable {
                     tags.taints[i] = combineTags(tags.taints[i], ctrl);
                 }
             }
-    }
-
-    public static <E> Taint<E> emptyTaint() {
-        return null;
     }
 }

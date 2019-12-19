@@ -69,14 +69,14 @@ public final class StandardControlStack<E> extends ControlStack<E> {
         }
 
         Taint<E> copyTag() {
-            return top.tag == null ? null : top.tag.copy();
+            return top.tag;
         }
 
         boolean push(Taint<E> tag, int branchID, int branchesSize) {
             if(branchLevels == null) {
                 branchLevels = new boolean[branchesSize];
             }
-            Taint<E> t = Taint.combineTags(this.top.tag, tag).copy();
+            Taint<E> t = Taint.combineTags(this.top.tag, tag);
             if(branchLevels[branchID]) {
                 top.tag = t;
                 return false;
@@ -109,7 +109,7 @@ public final class StandardControlStack<E> extends ControlStack<E> {
         }
 
         void push(Taint<E> tag) {
-            Taint<E> t = Taint.combineTags(this.top.tag, tag).copy();
+            Taint<E> t = Taint.combineTags(this.top.tag, tag);
             top = new ControlStack.Node<>(t, top);
         }
 

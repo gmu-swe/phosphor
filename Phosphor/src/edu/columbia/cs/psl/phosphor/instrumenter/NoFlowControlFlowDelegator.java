@@ -6,7 +6,6 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.NEW_EMPTY_TAINT;
-
 import static org.objectweb.asm.Opcodes.POP;
 import static org.objectweb.asm.Opcodes.SWAP;
 
