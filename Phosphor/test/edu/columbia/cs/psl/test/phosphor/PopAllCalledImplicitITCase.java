@@ -1,4 +1,4 @@
-package edu.columbia.cs.psl;
+package edu.columbia.cs.psl.test.phosphor;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;

@@ -192,7 +192,6 @@ public class BitSetTest {
             set.add(i);
             count++;
         }
-        System.out.println(set.size());
         assertEquals(count, set.size());
     }
 }

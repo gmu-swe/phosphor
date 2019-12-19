@@ -217,7 +217,7 @@ public class TaintUtils {
                     if(taints[i] == null) {
                         taints[i] = ctrl.copyTag();
                     } else {
-                        taints[i].addDependency(ctrl.getTag());
+                        taints[i].addDependency(ctrl.copyTag());
                     }
                 }
             }
@@ -301,7 +301,7 @@ public class TaintUtils {
                     if(taints[i] == null) {
                         taints[i] = ctrl.copyTag();
                     } else {
-                        taints[i].addDependency(ctrl.getTag());
+                        taints[i].addDependency(ctrl.copyTag());
                     }
                 }
             }
@@ -815,6 +815,14 @@ public class TaintUtils {
                     || type.equals(Type.getType(TaintedFloatWithObjTag.class)) || type.equals(Type.getType(TaintedIntWithObjTag.class))
                     || type.equals(Type.getType(TaintedLongWithObjTag.class)) || type.equals(Type.getType(TaintedShortWithObjTag.class));
         }
+    }
+
+    public static int max(int a, int b) {
+        return a > b ? a : b;
+    }
+
+    public static int max(int a, int b, int c) {
+        return max(max(a, b), c);
     }
 
     public static void main(String[] args) {

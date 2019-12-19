@@ -546,10 +546,10 @@ public class Taint<T> implements Serializable {
                 if(t1 == null) {
                     return tags.copyTag();
                 }
-                if(t1.contains(tags.getTag())) {
+                if(t1.contains(tags.copyTag())) {
                     return t1;
                 }
-                if(tags.getTag().contains(t1)) {
+                if(tags.copyTag().contains(t1)) {
                     return tags.copyTag();
                 }
             }
@@ -650,5 +650,9 @@ public class Taint<T> implements Serializable {
                 }
             }
         }
+    }
+
+    public static <E> Taint<E> emptyTaint() {
+        return null;
     }
 }

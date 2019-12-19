@@ -125,7 +125,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
             super.visitLdcInsn(clazz.replace("/", "."));
             if(Configuration.IMPLICIT_TRACKING) {
                 if(this.localIdxOfControlTag < 0) {
-                    localIdxOfControlTag = lvs.idxOfMasterControlLV;
+                    localIdxOfControlTag = lvs.getIndexOfMasterControlLV();
                 }
                 super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Class;", false);

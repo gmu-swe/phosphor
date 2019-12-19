@@ -1,14 +1,12 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.LocalVariableNode;
 
-import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.Opcodes.POP;
+import static org.objectweb.asm.Opcodes.SWAP;
 
 /**
  * Specifies that control flow should not propagate.
@@ -20,43 +18,13 @@ public class NoFlowControlFlowDelegator implements ControlFlowDelegator {
      */
     private final MethodVisitor delegate;
 
-    /**
-     * Manager that handles freeing and allocating local variables.
-     */
-    private final LocalVariableManager localVariableManager;
-
-    /**
-     * True if the method being visited is a class initialization method (i.e.,  {@code <clinit>}).
-     */
-    private final boolean isClassInitializer;
-
-    public NoFlowControlFlowDelegator(MethodVisitor delegate, LocalVariableManager localVariableManager, String methodName) {
+    public NoFlowControlFlowDelegator(MethodVisitor delegate) {
         this.delegate = delegate;
-        this.localVariableManager = localVariableManager;
-        this.isClassInitializer = "<clinit>".equals(methodName);
     }
 
     @Override
     public void visitedCode() {
-        if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
-            if(localVariableManager.idxOfMasterControlLV < 0) {
-                int tmpLV = localVariableManager.createMasterControlTaintLV();
-                delegate.visitTypeInsn(NEW, Type.getInternalName(ControlTaintTagStack.class));
-                delegate.visitInsn(DUP);
-                if(isClassInitializer) {
-                    delegate.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "()V", false);
-                }
-                delegate.visitVarInsn(ASTORE, tmpLV);
-            } else {
-                LocalVariableNode phosphorJumpControlTagIndex = new LocalVariableNode("phosphorJumpControlTag",
-                        Type.getDescriptor(ControlTaintTagStack.class), null,
-                        new LabelNode(localVariableManager.newStartLabel),
-                        new LabelNode(localVariableManager.end),
-                        localVariableManager.idxOfMasterControlLV
-                );
-                localVariableManager.createdLVs.add(phosphorJumpControlTagIndex);
-            }
-        }
+
     }
 
     @Override

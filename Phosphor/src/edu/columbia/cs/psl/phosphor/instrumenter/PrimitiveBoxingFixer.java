@@ -119,7 +119,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
                 super.visitJumpInsn(IFNONNULL, makeNew);
                 super.visitInsn(SWAP);
                 if(Configuration.IMPLICIT_TRACKING) {
-                    super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+                    super.visitVarInsn(ALOAD, lvs.getIndexOfMasterControlLV());
                 }
                 super.visitMethodInsn(opcode, owner, name, desc, itfc);
                 super.visitJumpInsn(GOTO, isOK);
@@ -134,7 +134,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
                 //N N T I
                 super.visitInsn(Opcodes.ACONST_NULL);
                 if(Configuration.IMPLICIT_TRACKING) {
-                    super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+                    super.visitVarInsn(ALOAD, lvs.getIndexOfMasterControlLV());
                     super.visitInsn(SWAP);
                     super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "(" + Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(ControlTaintTagStack.class) + Type.getDescriptor(TaintSentinel.class) + ")V", false);
                 } else {
@@ -169,7 +169,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
                 super.visitInsn(DUP_X2);
                 super.visitInsn(POP);
                 if(Configuration.IMPLICIT_TRACKING) {
-                    super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+                    super.visitVarInsn(ALOAD, lvs.getIndexOfMasterControlLV());
                 }
 
                 super.visitMethodInsn(opcode, owner, name, desc, false);
@@ -193,7 +193,7 @@ public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
 
                 super.visitInsn(Opcodes.ACONST_NULL);
                 if(Configuration.IMPLICIT_TRACKING) {
-                    super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+                    super.visitVarInsn(ALOAD, lvs.getIndexOfMasterControlLV());
                     super.visitInsn(SWAP);
                     super.visitMethodInsn(Opcodes.INVOKESPECIAL, owner, "<init>", "(" + Configuration.TAINT_TAG_DESC + Type.getArgumentTypes(desc)[1].getDescriptor() + Type.getDescriptor(ControlTaintTagStack.class) + Type.getDescriptor(TaintSentinel.class) + ")V", false);
                 } else {
