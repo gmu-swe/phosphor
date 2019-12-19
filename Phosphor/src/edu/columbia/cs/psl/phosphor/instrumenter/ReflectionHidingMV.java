@@ -254,7 +254,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         super.visitVarInsn(ALOAD, preallocLV);
         lvs.freeTmpLV(preallocLV);
         super.visitInsn(DUP);
-        super.visitInsn(ACONST_NULL);
+        NEW_EMPTY_TAINT.delegateVisit(mv);
         super.visitFieldInsn(PUTFIELD, fieldOwner, "taint", Configuration.TAINT_TAG_DESC);
     }
 

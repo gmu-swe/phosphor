@@ -13,8 +13,7 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.BOX_IF_NECESSARY;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.ENSURE_UNBOXED;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public class UninstrumentedCompatMV extends TaintAdapter {
     private NeverNullArgAnalyzerAdapter analyzer;
@@ -230,7 +229,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                 int lv = lvs.getPreAllocatedReturnTypeVar(returnType);
                 super.visitVarInsn(Opcodes.ALOAD, lv);
                 super.visitInsn(DUP);
-                super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+                NEW_EMPTY_TAINT.delegateVisit(mv);
                 super.visitFieldInsn(Opcodes.PUTFIELD, returnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 
                 super.visitInsn(SWAP);

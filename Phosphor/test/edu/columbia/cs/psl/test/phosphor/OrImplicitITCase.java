@@ -1,11 +1,8 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.assertNull;
-
+import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import org.junit.After;
 import org.junit.Test;
-
-import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 
 public class OrImplicitITCase extends BaseMultiTaintClass {
 
@@ -25,7 +22,7 @@ public class OrImplicitITCase extends BaseMultiTaintClass {
 		}
 		other+=5;
 		assertTaintHasOnlyLabels(MultiTainter.getTaint(result), "x", "y");
-		assertNull(MultiTainter.getTaint(other));
+		assertNullOrEmpty(MultiTainter.getTaint(other));
 	}
 	
 	@Test
@@ -40,7 +37,7 @@ public class OrImplicitITCase extends BaseMultiTaintClass {
 		}
 		other+=5;
 		assertTaintHasOnlyLabels(MultiTainter.getTaint(result), "x");
-		assertNull(MultiTainter.getTaint(other));
+		assertNullOrEmpty(MultiTainter.getTaint(other));
 	}
 	
 	@Test
@@ -59,7 +56,7 @@ public class OrImplicitITCase extends BaseMultiTaintClass {
 		}
 		other+=5;
 		assertTaintHasOnlyLabels(MultiTainter.getTaint(result), "x", "y","z");
-		assertNull(MultiTainter.getTaint(other));
+		assertNullOrEmpty(MultiTainter.getTaint(other));
 	}
 	@Test
 	public void testTwoWayOr2() throws Exception {
@@ -77,7 +74,7 @@ public class OrImplicitITCase extends BaseMultiTaintClass {
 		}
 		other+=5;
 		assertTaintHasOnlyLabels(MultiTainter.getTaint(result), "x","z");
-		assertNull(MultiTainter.getTaint(other));
+		assertNullOrEmpty(MultiTainter.getTaint(other));
 	}
 	
 }

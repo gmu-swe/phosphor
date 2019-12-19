@@ -82,8 +82,8 @@ public class ReflectionObjTagITCase extends BaseMultiTaintClass {
 			int objVal = list.get(i);
 			Taint objTaint = MultiTainter.getTaint(obj);
 			Taint valTaint = MultiTainter.getTaint(objVal);
-			assertTrue(objTaint.contains(valTaint));
-			assertTrue(valTaint.contains(objTaint));
+			assertTrue(objTaint.isSuperset(valTaint));
+			assertTrue(valTaint.isSuperset(objTaint));
 		}
 	}
 
@@ -98,7 +98,7 @@ public class ReflectionObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testNewInstanceConstructorTaintedPrimitiveArg() throws Exception {
 		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Boolean.TYPE);
-		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		boolean z = MultiTainter.taintedBoolean(true, Taint.withLabel("PrimArgLabel"));
 		ConstructorHolder instance = cons.newInstance(z);
 		assertTrue("Expected new instance from reflected constructor to have its field set.", instance.bool);
 		assertNonNullTaint(MultiTainter.getTaint(instance.bool));
@@ -116,7 +116,7 @@ public class ReflectionObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testNewInstanceConstructorTaintedPrimitiveArrArg() throws Exception {
 		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Class.forName("[Z"));
-		boolean z = MultiTainter.taintedBoolean(true, new Taint<>("PrimArgLabel"));
+		boolean z = MultiTainter.taintedBoolean(true, Taint.withLabel("PrimArgLabel"));
 		boolean[] arr = new boolean[] {z, z};
 		ConstructorHolder instance = cons.newInstance((Object)arr);
 		assertNotNull(instance.bools);

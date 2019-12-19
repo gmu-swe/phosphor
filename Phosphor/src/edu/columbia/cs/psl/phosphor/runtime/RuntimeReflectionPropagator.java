@@ -89,7 +89,7 @@ public class RuntimeReflectionPropagator {
             ret = f.get(obj);
         }
         if(f.getType().isArray() && f.getType().getComponentType().isPrimitive()) {
-            Object taint = null;
+            Object taint = Taint.emptyTaint();
 
             try {
                 try {

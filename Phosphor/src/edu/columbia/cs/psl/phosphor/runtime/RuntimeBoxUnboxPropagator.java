@@ -765,9 +765,9 @@ public class RuntimeBoxUnboxPropagator {
                                                                      TaintedCharWithObjTag ret) {
         ret.val = Character.forDigit(digit, radix);
         if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
-            ret.taint = Taint.copyTaint(Taint.combineTags(digitTag, radixTag));
+            ret.taint = Taint.combineTags(digitTag, radixTag);
         } else {
-            ret.taint = Taint.copyTaint(digitTag);
+            ret.taint = digitTag;
         }
         return ret;
     }
@@ -779,13 +779,7 @@ public class RuntimeBoxUnboxPropagator {
             return null;
         } else {
             Taint charsTaint = MultiTainter.getMergedTaint(TaintSourceWrapper.getStringValueTag(str));
-            if(charsTaint != null) {
-                charsTaint = charsTaint.copy();
-            }
             Taint strTaint = getTaint(str);
-            if(strTaint != null) {
-                strTaint = strTaint.copy();
-            }
             return Taint.combineTags(strTaint, charsTaint);
         }
     }
@@ -798,20 +792,9 @@ public class RuntimeBoxUnboxPropagator {
             return null;
         } else {
             Taint charsTaint = MultiTainter.getMergedTaint(TaintSourceWrapper.getStringValueTag(str));
-            if(charsTaint != null) {
-                charsTaint = charsTaint.copy();
-            }
             Taint strTaint = getTaint(str);
-            if(strTaint != null) {
-                strTaint = strTaint.copy();
-            }
             Taint result = Taint.combineTags(strTaint, charsTaint);
-            if(result == null) {
-                return (tag == null) ? null : tag.copy();
-            } else {
-                result.addDependency(tag);
-            }
-            return result;
+            return result.union(tag);
         }
     }
 

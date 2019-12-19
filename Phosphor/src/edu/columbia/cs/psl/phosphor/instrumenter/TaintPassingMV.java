@@ -295,7 +295,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                             }
                         }
                     } else if(analyzer.locals.size() > var && analyzer.locals.get(var) == Opcodes.NULL) {
-                        super.visitInsn(Opcodes.ACONST_NULL);
+                        NEW_EMPTY_TAINT.delegateVisit(mv);
                         super.visitVarInsn(opcode, var);
                         analyzer.setTopOfStackTagged();
                         return;
@@ -343,7 +343,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         if(TaintUtils.DEBUG_LOCAL) {
                             System.out.println("Ignoring shadow " + shadowVar + " on ALOAD " + var + " because var is null");
                         }
-                        super.visitInsn(ACONST_NULL);
+                        NEW_EMPTY_TAINT.delegateVisit(mv);
                         super.visitVarInsn(opcode, var);
                         analyzer.setTopOfStackTagged();
                         return;
@@ -400,7 +400,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 case Opcodes.FSTORE:
                 case Opcodes.DSTORE:
                     super.visitVarInsn(opcode, var);
-                    COPY_TAINT.delegateVisit(mv);
                     super.visitVarInsn(ASTORE, shadowVar);
                     return;
                 case Opcodes.ASTORE:
@@ -1987,7 +1986,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     super.visitInsn(ACONST_NULL);
                     super.visitFieldInsn(PUTFIELD, returnType.getInternalName(), "taints", "[" + Configuration.TAINT_TAG_DESC);
                 } else {
-                    super.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+                    NEW_EMPTY_TAINT.delegateVisit(mv);
                     super.visitFieldInsn(PUTFIELD, returnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
                 }
                 super.visitInsn(ARETURN);
@@ -2030,7 +2029,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitInsn(opcode);
                 if(nextLoadIsTracked) {
                     nextLoadIsTracked = false;
-                    super.visitInsn(ACONST_NULL);
+                    super.visitInsn(Opcodes.ACONST_NULL); //for the wrapper
+                    mv.visitInsn(SWAP);
                     analyzer.setTopOfStackTagged();
                 }
                 break;
@@ -2177,7 +2177,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     Object theArray = analyzer.stack.get(analyzer.stack.size() - 3 - (idxTainted ? 1 : 0));
                     t = getTypeForStackType(theArray);
                     if(theArray != Opcodes.NULL && t.getElementType().getSort() != Type.OBJECT) {
-                        super.visitInsn(ACONST_NULL);
+                        NEW_EMPTY_TAINT.delegateVisit(mv);
                     }
                 }
                 if(t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {

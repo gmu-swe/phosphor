@@ -8,15 +8,14 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.COMBINE_TAGS;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.GET_TAINT_OBJECT;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 
 public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
     @Override
     public Taint<?> getAutoTaint(String source) {
-        return new Taint<>(source);
+        return Taint.withLabel(source);
     }
 
     @Override
@@ -51,7 +50,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
     @Override
     public void generateEmptyTaint(MethodVisitor mv) {
-        mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
+        NEW_EMPTY_TAINT.delegateVisit(mv);
     }
 
     @Override
@@ -87,8 +86,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 mv.visitInsn(POP);
                 if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
-                    mv.visitInsn(ACONST_NULL);
-                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+                    NEW_EMPTY_TAINT.delegateVisit(mv);
                 } else {
                     COMBINE_TAGS.delegateVisit(mv);
                 }
@@ -122,8 +120,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 mv.visitInsn(POP);
                 if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
-                    mv.visitInsn(ACONST_NULL);
-                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+                    NEW_EMPTY_TAINT.delegateVisit(mv);
                 } else {
                     COMBINE_TAGS.delegateVisit(mv);
                 }
@@ -155,8 +152,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                     //T T
                     if(Configuration.WITHOUT_PROPAGATION) {
                         mv.visitInsn(POP2);
-                        mv.visitInsn(ACONST_NULL);
-                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+                        NEW_EMPTY_TAINT.delegateVisit(mv);
                     } else {
                         COMBINE_TAGS.delegateVisit(mv);
                     }
@@ -188,8 +184,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 mv.visitInsn(POP2);
                 if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
-                    mv.visitInsn(ACONST_NULL);
-                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+                    NEW_EMPTY_TAINT.delegateVisit(mv);
                 } else {
                     COMBINE_TAGS.delegateVisit(mv);
                 }
@@ -221,8 +216,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 mv.visitInsn(POP2);
                 if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
-                    mv.visitInsn(ACONST_NULL);
-                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+                    NEW_EMPTY_TAINT.delegateVisit(mv);
                 } else {
                     COMBINE_TAGS.delegateVisit(mv);
                 }
@@ -269,8 +263,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 mv.visitInsn(POP);
                 if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
-                    mv.visitInsn(ACONST_NULL);
-                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+                    NEW_EMPTY_TAINT.delegateVisit(mv);
                 } else {
                     COMBINE_TAGS.delegateVisit(mv);
                 }
@@ -296,8 +289,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 mv.visitInsn(POP);
                 if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
-                    mv.visitInsn(ACONST_NULL);
-                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+                    NEW_EMPTY_TAINT.delegateVisit(mv);
                 } else {
                     COMBINE_TAGS.delegateVisit(mv);
                 }
@@ -323,8 +315,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                 mv.visitInsn(POP);
                 if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
-                    mv.visitInsn(ACONST_NULL);
-                    mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+                    NEW_EMPTY_TAINT.delegateVisit(mv);
                 } else {
                     COMBINE_TAGS.delegateVisit(mv);
                 }
@@ -341,8 +332,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                         mv.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "getLengthTaint", "()" + Configuration.TAINT_TAG_DESC, false);
                     } else {
                         mv.visitInsn(POP);
-                        mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
-                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+                        NEW_EMPTY_TAINT.delegateVisit(mv);
                     }
                     mv.visitInsn(SWAP);
                     //A
@@ -353,8 +343,7 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                         GET_TAINT_OBJECT.delegateVisit(mv);
                     } else {
                         mv.visitInsn(POP);
-                        mv.visitInsn(Configuration.NULL_TAINT_LOAD_OPCODE);
-                        mv.visitTypeInsn(CHECKCAST, Configuration.TAINT_TAG_INTERNAL_NAME);
+                        NEW_EMPTY_TAINT.delegateVisit(mv);
                     }
                     mv.visitInsn(SWAP);
                 }

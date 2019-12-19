@@ -97,7 +97,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testTaintThroughAppliesToArgsAtEndOfMethod() throws Exception {
 		TaintThroughExample ex = new TaintThroughExample();
-		MultiTainter.taintedObject(ex,new Taint("Test"));
+		MultiTainter.taintedObject(ex, Taint.withLabel("Test"));
 
 		int[] ar = new int[10];
 
@@ -125,7 +125,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testPrimitiveTaintThrough() throws Exception {
 		TaintThroughExample taintedObj = new TaintThroughExample();
-		MultiTainter.taintedObject(taintedObj, new Taint<>("Test"));
+		MultiTainter.taintedObject(taintedObj, Taint.withLabel("Test"));
 		int ret = taintedObj.taintThroughInt();
 		assertNonNullTaint(ret);
 	}
@@ -133,7 +133,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testStaticThroughMethod() throws Exception {
 		String s = "test";
-		MultiTainter.taintedObject(s, new Taint<>("Test"));
+		MultiTainter.taintedObject(s, Taint.withLabel("Test"));
 		String ret = TaintThroughExample.staticMethod(s);
 		assertNonNullTaint(ret);
 	}
@@ -175,7 +175,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testURITaintThrough() throws Exception {
 		URI uri = new URI("http://java.sun.com/j2se/1.3/");
-		MultiTainter.taintedObject(uri, new Taint<>("testURITaintThrough"));
+		MultiTainter.taintedObject(uri, Taint.withLabel("testURITaintThrough"));
 		String path = uri.getPath();
 		assertNonNullTaint(path);
 	}
@@ -183,7 +183,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testSocketChannelTaintThrough() throws Exception {
 		SocketChannel channel = SocketChannel.open();
-		MultiTainter.taintedObject(channel, new Taint<>("testSocketChannelTaintThrough"));
+		MultiTainter.taintedObject(channel, Taint.withLabel("testSocketChannelTaintThrough"));
 		boolean connected = channel.isConnected();
 		assertNonNullTaint(MultiTainter.getTaint(connected));
 	}

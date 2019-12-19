@@ -40,9 +40,9 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
             }
             for(int i = 0; i < array.getLength(); i++) {
                 if(array.taints[i] == null) {
-                    array.taints[i] = tag.copy();
+                    array.taints[i] = tag;
                 } else {
-                    array.taints[i].addDependency(tag);
+                    array.taints[i] = array.taints[i].union(tag);
                 }
             }
         } else if(inputArray instanceof Object[]) {
@@ -51,9 +51,9 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
                 if(o instanceof TaintedWithObjTag) {
                     Taint existing = (Taint) ((TaintedWithObjTag) o).getPHOSPHOR_TAG();
                     if(existing != null) {
-                        existing.addDependency(tag);
+                        ((TaintedWithObjTag) o).setPHOSPHOR_TAG(existing.union(tag));
                     } else {
-                        ((TaintedWithObjTag) o).setPHOSPHOR_TAG(tag.copy());
+                        ((TaintedWithObjTag) o).setPHOSPHOR_TAG(tag);
                     }
                 }
             }
@@ -63,6 +63,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
     /* Called by taintThrough methods. */
     @SuppressWarnings({"unchecked", "unused"})
     public void addTaint(Object obj, Taint<? extends AutoTaintLabel> tag) {
+        //TODO make this return Taint
         if(tag == null || obj == null) {
             return;
         }
@@ -71,15 +72,15 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         } else if(obj instanceof TaintedWithObjTag) {
             TaintedWithObjTag tainted = (TaintedWithObjTag) obj;
             Taint prevTag = (Taint) tainted.getPHOSPHOR_TAG();
-            if(prevTag != null) {
-                prevTag.addDependency(tag);
+            if (prevTag != null) {
+                //prevTag.addDependency(tag);
             } else {
                 tainted.setPHOSPHOR_TAG(tag);
             }
-        } else if(obj instanceof TaintedPrimitiveWithObjTag) {
+        } else if (obj instanceof TaintedPrimitiveWithObjTag) {
             TaintedPrimitiveWithObjTag tainted = (TaintedPrimitiveWithObjTag) obj;
-            if(tainted.taint != null) {
-                tainted.taint.addDependency(tag);
+            if (tainted.taint != null) {
+                //tainted.taint.addDependency(tag);
             } else {
                 tainted.taint = tag;
             }
@@ -95,7 +96,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         StackTraceElement[] st = Thread.currentThread().getStackTrace();
         StackTraceElement[] s = new StackTraceElement[st.length - 3];
         System.arraycopy(st, 3, s, 0, s.length);
-        return new Taint<>(new AutoTaintLabel(source, s));
+        return Taint.withLabel(new AutoTaintLabel(source, s));
     }
 
     /* Called by sources for the arguments and return value. */
@@ -127,7 +128,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
     public TaintedWithObjTag autoTaint(TaintedWithObjTag ret, Taint<? extends AutoTaintLabel> tag) {
         Taint prevTag = (Taint) ret.getPHOSPHOR_TAG();
         if(prevTag != null) {
-            prevTag.addDependency(tag);
+            ret.setPHOSPHOR_TAG(prevTag.union(tag));
         } else {
             ret.setPHOSPHOR_TAG(tag);
         }
@@ -140,9 +141,9 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         if(taintArray != null) {
             for(int i = 0; i < taintArray.length; i++) {
                 if(taintArray[i] == null) {
-                    taintArray[i] = tag.copy();
+                    taintArray[i] = tag;
                 } else {
-                    taintArray[i].addDependency(tag);
+                    taintArray[i] = taintArray[i].union(tag);
                 }
             }
         } else {
@@ -154,7 +155,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
     @SuppressWarnings("unchecked")
     public TaintedPrimitiveWithObjTag autoTaint(TaintedPrimitiveWithObjTag ret, Taint<? extends AutoTaintLabel> tag) {
         if(ret.taint != null) {
-            ret.taint.addDependency(tag);
+            ret.taint = ret.taint.union(tag);
         } else {
             ret.taint = tag;
         }
@@ -209,7 +210,8 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
                 taintViolation((Taint<T>) ctrl.copyTag(), obj, baseSink, actualSink);
             }
         } else if(obj instanceof TaintedPrimitiveWithObjTag) {
-            if(((TaintedPrimitiveWithObjTag) obj).taint != null) {
+            Taint t = ((TaintedPrimitiveWithObjTag) obj).taint;
+            if (t != null && !t.isEmpty()) {
                 taintViolation(((TaintedPrimitiveWithObjTag) obj).taint, ((TaintedPrimitiveWithObjTag) obj).getValue(), baseSink, actualSink);
             }
         }

@@ -150,9 +150,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
         public void visitCode() {
             super.visitCode();
             Label label1 = new Label();
-            // Check that taint is non-null
-            super.visitVarInsn(ALOAD, 1);
-            super.visitJumpInsn(IFNULL, label1);
+            // Note - used to be a null check here, but taints should not be null.
             // Check that taint is non-empty
             super.visitVarInsn(ALOAD, 1);
             super.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_INTERNAL_NAME, "isEmpty", "()Z", false);

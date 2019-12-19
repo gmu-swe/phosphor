@@ -13,7 +13,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -23,7 +23,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -33,7 +33,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -43,7 +43,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -53,7 +53,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -63,7 +63,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -73,7 +73,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -87,7 +87,7 @@ public class CharacterUtils {
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
-            Taint _t = new Taint(t);
+            Taint _t = Taint.withLabel(t);
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }
@@ -101,8 +101,8 @@ public class CharacterUtils {
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
-            Taint _t = new Taint(t);
-            _t.addDependency((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
+            Taint _t = Taint.withLabel(t);
+            _t = _t.union((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }
@@ -117,7 +117,7 @@ public class CharacterUtils {
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
-            Taint _t = new Taint(t);
+            Taint _t = Taint.withLabel(t);
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }
@@ -133,7 +133,7 @@ public class CharacterUtils {
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
-            Taint _t = new Taint(t);
+            Taint _t = Taint.withLabel(t);
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }
@@ -147,8 +147,8 @@ public class CharacterUtils {
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
-            Taint _t = new Taint(t);
-            _t.addDependency((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
+            Taint _t = Taint.withLabel(t);
+            _t = _t.union((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }
@@ -163,7 +163,7 @@ public class CharacterUtils {
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
-            Taint _t = new Taint(t);
+            Taint _t = Taint.withLabel(t);
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }
@@ -177,7 +177,7 @@ public class CharacterUtils {
         if(idxTaint != null) {
             ret.taints = new Taint[v.length];
             for(int i = 0; i < v.length; i++) {
-                ret.taints[i] = idxTaint.copy();
+                ret.taints[i] = idxTaint;
             }
         }
         return ret;
@@ -188,7 +188,7 @@ public class CharacterUtils {
         ret.val = Character.toChars(idx, ar, dstIdx);
 
         if(idxTaint != null) {
-            ret.taint = idxTaint.copy();
+            ret.taint = idxTaint;
         }
         return ret;
     }
@@ -203,8 +203,8 @@ public class CharacterUtils {
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
-            Taint _t = new Taint(t);
-            _t.addDependency(ctrl.copyTag());
+            Taint _t = Taint.withLabel(t);
+            _t = _t.union(ctrl.getTag());
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }
@@ -218,9 +218,9 @@ public class CharacterUtils {
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
-            Taint _t = new Taint(t);
-            _t.addDependency((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
-            _t.addDependency(ctrl.copyTag());
+            Taint _t = Taint.withLabel(t);
+            _t = _t.union((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
+            _t = _t.union(ctrl.getTag());
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }
@@ -235,8 +235,8 @@ public class CharacterUtils {
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
-            Taint _t = new Taint(t);
-            _t.addDependency(ctrl.copyTag());
+            Taint _t = Taint.withLabel(t);
+            _t = _t.union(ctrl.getTag());
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }
@@ -248,7 +248,7 @@ public class CharacterUtils {
         if(idxTaint != null) {
             ret.taints = new Taint[v.length];
             for(int i = 0; i < v.length; i++) {
-                ret.taints[i] = idxTaint.copy();
+                ret.taints[i] = idxTaint;
             }
         }
         return ret;
@@ -257,7 +257,7 @@ public class CharacterUtils {
     public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, LazyCharArrayObjTags artags, char[] ar, Taint t, int dstIdx, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         ret.val = Character.toChars(idx, ar, dstIdx);
         if(idxTaint != null) {
-            ret.taint = idxTaint.copy();
+            ret.taint = idxTaint;
         }
         return ret;
     }
@@ -267,7 +267,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -277,7 +277,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -287,7 +287,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -297,7 +297,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -307,7 +307,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -317,7 +317,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -327,7 +327,7 @@ public class CharacterUtils {
         if(t == null) {
             ret.taint = null;
         } else {
-            ret.taint = t.copy();
+            ret.taint = t;
         }
         return ret;
     }
@@ -353,7 +353,7 @@ public class CharacterUtils {
     public static TaintedIntWithObjTag toUpperCaseEx$$PHOSPHORTAGGED(Taint t, int cp, TaintedIntWithObjTag ret) {
         ret.val = Character.toUpperCaseEx(cp);
         if(t != null) {
-            ret.taint = t.copy();
+            ret.taint = t;
         } else {
             ret.taint = null;
         }
@@ -366,7 +366,7 @@ public class CharacterUtils {
             ret.taints = new Taint[ret.val.length];
             for(int i = 0; i < ret.taints.length; i++) {
                 if(t != null) {
-                    ret.taints[i] = t.copy();
+                    ret.taints[i] = t;
                 }
             }
         } else {
@@ -378,7 +378,7 @@ public class CharacterUtils {
     public static TaintedIntWithObjTag toUpperCaseEx$$PHOSPHORTAGGED(Taint t, int cp, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         ret.val = Character.toUpperCaseEx(cp);
         if(t != null) {
-            ret.taint = t.copy();
+            ret.taint = t;
         } else {
             ret.taint = null;
         }
@@ -391,7 +391,7 @@ public class CharacterUtils {
             ret.taints = new Taint[ret.val.length];
             for(int i = 0; i < ret.taints.length; i++) {
                 if(t != null) {
-                    ret.taints[i] = t.copy();
+                    ret.taints[i] = t;
                 }
             }
         } else {
@@ -404,7 +404,7 @@ public class CharacterUtils {
         ret.val = Character.codePointAtImpl(a, index, limit);
         ret.taint = null;
         if(t.taints != null && t.taints[index] != null) {
-            ret.taint = t.taints[index].copy();
+            ret.taint = t.taints[index];
         }
         return ret;
     }
@@ -413,7 +413,7 @@ public class CharacterUtils {
         ret.val = Character.codePointAtImpl(a, index, limit);
         ret.taint = null;
         if(t.taints != null && t.taints[index] != null) {
-            ret.taint = t.taints[index].copy();
+            ret.taint = t.taints[index];
         }
         return ret;
     }

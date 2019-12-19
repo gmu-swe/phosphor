@@ -123,12 +123,12 @@ public final class ControlTaintTagStack {
             for(MaybeThrownException mte : unthrownExceptions) {
                 if(mte != null && mte.clazz == t) {
                     found = true;
-                    mte.tag = Taint.combineTags(mte.tag, taints.getCurrentTaint().copy());
+                    mte.tag = Taint.combineTags(mte.tag, taints.getCurrentTaint());
                     break;
                 }
             }
             if(!found) {
-                MaybeThrownException ex = new MaybeThrownException(t, taints.getCurrentTaint().copy());
+                MaybeThrownException ex = new MaybeThrownException(t, taints.getCurrentTaint());
                 unthrownExceptions.push(ex);
             }
         }
@@ -144,20 +144,29 @@ public final class ControlTaintTagStack {
         }
         if(branchTags[branchID] == NOT_PUSHED) {
             // Adding a label for this branch for the first time
-            taintHistory.push(new Taint(tag, taintHistory.peek()));
+            taintHistory.push(tag.union(taintHistory.peek()));
             if(curMethod != null) {
-                curMethod.push(new Taint(tag, taintHistory.peek()));
+                curMethod.push(tag.union(taintHistory.peek()));
             }
             if(!revisable) {
-                revisionExcludedTaintHistory.push(new Taint(tag, revisionExcludedTaintHistory.peek()));
+                revisionExcludedTaintHistory.push(tag.union(revisionExcludedTaintHistory.peek()));
             }
         } else {
-            taintHistory.peek().addDependency(tag);
+            Taint r = taintHistory.peek();
+            if (r != tag && !r.isSuperset(tag)) {
+                taintHistory.push(taintHistory.pop().union(tag));
+            }
             if(curMethod != null) {
-                curMethod.getCurrentTaint().addDependency(tag);
+                r = curMethod.getCurrentTaint();
+                if(r != tag && !r.isSuperset(tag)){
+                    curMethod.push(curMethod.pop().union(tag));
+                }
             }
             if(!revisable) {
-                revisionExcludedTaintHistory.peek().addDependency(tag);
+                r = revisionExcludedTaintHistory.peek();
+                if(r != tag && !r.isSuperset(tag)){
+                    revisionExcludedTaintHistory.push(revisionExcludedTaintHistory.pop().union(tag));
+                }
             }
         }
         branchTags[branchID] = revisable ? PUSHED_REVISABLE : PUSHED;
@@ -175,7 +184,7 @@ public final class ControlTaintTagStack {
         }
         EnqueuedTaint ret = prev == null ? new EnqueuedTaint() : prev;
         ret.activeCount++;
-        taintHistory.push(new Taint(tag, taintHistory.peek()));
+        taintHistory.push(tag.union(taintHistory.peek()));
         return ret;
     }
 
@@ -241,15 +250,15 @@ public final class ControlTaintTagStack {
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_EXCEPTIONS)
     public Taint copyTagExceptions() {
         if(isEmpty() && lacksInfluenceExceptions()) {
-            return null;
+            return Taint.emptyTaint();
         }
-        Taint ret = taintHistory.peek() == null ? new Taint() : taintHistory.peek().copy();
+        Taint ret = taintHistory.peek() == null ? Taint.emptyTaint() : taintHistory.peek();
         if(lacksInfluenceExceptions()) {
             return ret;
         }
         for(MaybeThrownException mte : influenceExceptions) {
             if(mte != null && mte.tag != null) {
-                ret.addDependency(mte.tag);
+                ret = ret.union(mte.tag);
             }
         }
         return ret;
@@ -257,7 +266,7 @@ public final class ControlTaintTagStack {
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG)
     public Taint copyTag() {
-        return isEmpty() ? null : taintHistory.peek().copy();
+        return isEmpty() ? null : taintHistory.peek();
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_REVISION_EXCLUDED_TAG)

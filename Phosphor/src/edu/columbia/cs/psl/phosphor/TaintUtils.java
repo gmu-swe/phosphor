@@ -115,16 +115,7 @@ public class TaintUtils {
         } else if(ArrayHelper.engaged == 1) {
             return ArrayHelper.getTag(obj);
         } else if(obj instanceof Taint[]) {
-            Taint ret = new Taint();
-            for(Taint t : ((Taint[]) obj)) {
-                if(t != null) {
-                    ret.addDependency(t);
-                }
-            }
-            if(ret.isEmpty()) {
-                return null;
-            }
-            return ret;
+            return Taint.combineTaintArray((Taint[]) obj);
         } else if(obj instanceof LazyArrayObjTags) {
             return ((LazyArrayObjTags) obj).lengthTaint;
         }
@@ -138,7 +129,7 @@ public class TaintUtils {
             return null;
         } else if(obj instanceof TaintedWithObjTag) {
             Taint<?> t = ((Taint<?>) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG());
-            return t == null ? null : t.copy();
+            return t;
         } else {
             return null;
         }
@@ -217,7 +208,7 @@ public class TaintUtils {
                     if(taints[i] == null) {
                         taints[i] = ctrl.copyTag();
                     } else {
-                        taints[i].addDependency(ctrl.copyTag());
+                        taints[i] = taints[i].union(ctrl.getTag());
                     }
                 }
             }
@@ -266,16 +257,14 @@ public class TaintUtils {
         } catch(ArrayIndexOutOfBoundsException ex) {
             Taint t = null;
             if(srcPosTaint != null) {
-                t = ((Taint) srcPosTaint).copy();
-                t.addDependency((Taint) destPosTaint);
-                t.addDependency((Taint) lengthTaint);
+                t = ((Taint) srcPosTaint);
+                t = t.union((Taint) destPosTaint);
+                t = t.union((Taint) lengthTaint);
             } else if(destPosTaint != null) {
-
-                t = ((Taint) destPosTaint).copy();
-                t.addDependency((Taint) lengthTaint);
+                t = ((Taint) destPosTaint);
+                t = t.union((Taint) lengthTaint);
             } else if(lengthTaint != null) {
-
-                t = ((Taint) lengthTaint).copy();
+                t = ((Taint) lengthTaint);
             }
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(t);
             throw ex;
@@ -301,23 +290,22 @@ public class TaintUtils {
                     if(taints[i] == null) {
                         taints[i] = ctrl.copyTag();
                     } else {
-                        taints[i].addDependency(ctrl.copyTag());
+                        taints[i] = taints[i].union(ctrl.getTag());
                     }
                 }
             }
         } catch(ArrayIndexOutOfBoundsException ex) {
             Taint t = null;
             if(srcPosTaint != null) {
-                t = ((Taint) srcPosTaint).copy();
-                t.addDependency((Taint) destPosTaint);
-                t.addDependency((Taint) lengthTaint);
+                t = ((Taint) srcPosTaint);
+                t = t.union((Taint) destPosTaint);
+                t = t.union((Taint) lengthTaint);
             } else if(destPosTaint != null) {
 
-                t = ((Taint) destPosTaint).copy();
-                t.addDependency((Taint) lengthTaint);
+                t = ((Taint) destPosTaint);
+                t = t.union((Taint) lengthTaint);
             } else if(lengthTaint != null) {
-
-                t = ((Taint) lengthTaint).copy();
+                t = ((Taint) lengthTaint);
             }
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(t);
             throw ex;

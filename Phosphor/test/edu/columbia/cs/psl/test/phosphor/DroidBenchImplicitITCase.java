@@ -38,7 +38,7 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 
 	public static String taintedString(String string) {
 		Object r = new String(MultiTainter.taintedCharArray(string.toCharArray(), "Some stuff"));
-		((TaintedWithObjTag) r).setPHOSPHOR_TAG(new Taint<>("Some tainted data " + (++i)));
+		((TaintedWithObjTag) r).setPHOSPHOR_TAG(Taint.withLabel("Some tainted data " + (++i)));
 		return (String) r;
 	}
 
@@ -312,8 +312,8 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 		public void doTest() {
 			ArrayList arrayList = new ArrayList();
 			LinkedList linkedList = new LinkedList();
-			((TaintedWithObjTag) arrayList).setPHOSPHOR_TAG(new Taint("arraylist tag"));
-			((TaintedWithObjTag) linkedList).setPHOSPHOR_TAG(new Taint("linkedlist tag"));
+			((TaintedWithObjTag) arrayList).setPHOSPHOR_TAG(Taint.withLabel("arraylist tag"));
+			((TaintedWithObjTag) linkedList).setPHOSPHOR_TAG(Taint.withLabel("linkedlist tag"));
 
 			leakInformationBit(linkedList);
 			leakInformationBit(arrayList);

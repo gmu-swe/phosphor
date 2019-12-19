@@ -13,7 +13,7 @@ public class StringConcatObjTagITCase extends BasePhosphorTest {
 	@Test
 	public void testLDCStringConcat() throws Exception {
 		String str1 = "abcdefg";
-		((TaintedWithObjTag)((Object)str1)).setPHOSPHOR_TAG(new Taint<>("sensitive"));
+		((TaintedWithObjTag)((Object)str1)).setPHOSPHOR_TAG(Taint.withLabel("sensitive"));
 		String str2 = "a"+str1;
 		assertTrue(MultiTainter.getTaint(str2.charAt(0)) == null);
 		assertTrue(MultiTainter.getTaint(str2.charAt(1)) != null);
@@ -22,7 +22,7 @@ public class StringConcatObjTagITCase extends BasePhosphorTest {
 	@Test
 	public void testNewStringConcat() throws Exception {
 		String str1 = new String("abcdefg");
-		((TaintedWithObjTag)((Object)str1)).setPHOSPHOR_TAG(new Taint<>("sensitive"));
+		((TaintedWithObjTag)((Object)str1)).setPHOSPHOR_TAG(Taint.withLabel("sensitive"));
 		String str2 = "a"+str1;
 		assertTrue(MultiTainter.getTaint(str2.charAt(0)) == null);
 		assertTrue(MultiTainter.getTaint(str2.charAt(1)) != null);
@@ -31,7 +31,7 @@ public class StringConcatObjTagITCase extends BasePhosphorTest {
 	@Test
 	public void testConcatAndMultiTainter() throws Exception {
 		String str1 = new String("abcdefg");
-		MultiTainter.taintedObject(str1, new Taint<>("Sensitive"));
+		MultiTainter.taintedObject(str1, Taint.withLabel("Sensitive"));
 		String str2 = str1 + "a";
 		assertTrue(MultiTainter.getTaint(str2.charAt(0)) != null);
 		assertTrue(MultiTainter.getTaint(str2.charAt(7)) == null);
@@ -42,7 +42,7 @@ public class StringConcatObjTagITCase extends BasePhosphorTest {
 		String s = "abc";
 		int val = 98;
 		
-		MultiTainter.taintedObject(s, new Taint<>("string"));
+		MultiTainter.taintedObject(s, Taint.withLabel("string"));
 		val = MultiTainter.taintedInt(val, "int");
 		
 		String concate = s + val;

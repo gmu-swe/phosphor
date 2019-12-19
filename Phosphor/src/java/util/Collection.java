@@ -3,6 +3,8 @@ package java.util;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 
+import java.util.stream.Stream;
+
 public interface Collection<E> extends Iterable<E> {
     int size();
 
@@ -17,6 +19,8 @@ public interface Collection<E> extends Iterable<E> {
     <T> T[] toArray(T[] a);
 
     boolean add(E e);
+
+    Stream<E> stream();
 
     TaintedBooleanWithObjTag add$$PHOSPHORTAGGED(E e, TaintedBooleanWithObjTag ret);
 
