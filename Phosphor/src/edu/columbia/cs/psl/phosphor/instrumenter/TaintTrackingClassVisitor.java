@@ -388,7 +388,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             ControlStackRestoringMV controlStackRestoringMV = null;
             MethodVisitor next = mv;
             if(ControlStackInitializingMV.isApplicable(isImplicitLightTrackingMethod)) {
-                controlStackInitializingMV = new ControlStackInitializingMV(next, isImplicitLightTrackingMethod);
+                controlStackInitializingMV = new ControlStackInitializingMV(next);
                 next = controlStackInitializingMV;
             }
             if(ControlStackRestoringMV.isApplicable(name)) {

@@ -5,126 +5,105 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.Arrays;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 
-public final class LoopAwareControlStack<E> extends ControlStack<E> {
+public final class LoopAwareControlStack<E> {
 
     private static final int NOT_PUSHED = -1;
-    private LoopAwareControlFrame<E> stackTop = new LoopAwareControlFrame<>(0, null, null);
-    private LoopAwareControlFrameBuilder<E> frameBuilder = new LoopAwareControlFrameBuilder<>();
+    private LoopAwareControlFrame<E> stackTop;
+    private LoopAwareControlFrameBuilder<E> frameBuilder;
 
-    @Override
+    public LoopAwareControlStack() {
+        stackTop = new LoopAwareControlFrame<>(0, null, null);
+        frameBuilder = new LoopAwareControlFrameBuilder<>();
+    }
+
+    LoopAwareControlStack(LoopAwareControlStack<E> stack) {
+        stackTop = new LoopAwareControlFrame<>(stack.stackTop.invocationLevel, stack.stackTop.argumentConstancyLevels, null);
+        stackTop.levelStackMap.putAll(stack.stackTop.levelStackMap);
+        frameBuilder = stack.frameBuilder.copy();
+    }
+
     public LoopAwareControlStack<E> startFrame(int invocationLevel, int numArguments) {
         frameBuilder.start(invocationLevel, numArguments);
         return this;
     }
 
-    @Override
     public LoopAwareControlStack<E> setNextFrameArgConstant() {
         frameBuilder.setNextArgLevel(0);
         return this;
     }
 
-    @Override
     public LoopAwareControlStack<E> setNextFrameArgDependent(int[] dependencies) {
         frameBuilder.setNextArgLevel(getLevel(dependencies));
         return this;
     }
 
-    @Override
     public LoopAwareControlStack<E> setNextFrameArgVariant(int levelOffset) {
         frameBuilder.setNextArgLevel(getLevel(levelOffset));
         return this;
     }
 
-    @Override
-    public LoopAwareControlStack<E> pushFrame() {
+    public void pushFrame() {
         stackTop = frameBuilder.build(stackTop);
-        return this;
     }
 
-    @Override
-    public ControlFrame<E> getRestorePoint() {
-        return stackTop;
-    }
-
-    @Override
     public int getLevel(int levelOffset) {
         return stackTop.getLevel(levelOffset);
     }
 
-    @Override
     public int getLevel(int[] dependencies) {
         return stackTop.getLevel(dependencies);
     }
 
-    @Override
     public void popFrame() {
-        stackTop = (LoopAwareControlFrame<E>) stackTop.getNext();
+        stackTop = stackTop.next;
     }
 
-    @Override
-    public void popToFrame(ControlFrame<E> restorePoint) {
-        stackTop = (LoopAwareControlFrame<E>) restorePoint;
-    }
-
-    @Override
-    public Taint<E> copyTag() {
-        return stackTop.copyTag();
-    }
-
-    @Override
     public Taint<E> copyTagConstant() {
         return stackTop.copyTag(0);
     }
 
-    @Override
-    public Taint<E> copyTagArgDependent(int[] dependencies) {
+    public Taint<E> copyTagDependent(int[] dependencies) {
         return stackTop.copyTag(getLevel(dependencies));
     }
 
-    @Override
     public Taint<E> copyTagVariant(int levelOffset) {
         return stackTop.copyTag(getLevel(levelOffset));
     }
 
-    @Override
     public void pushConstant(Taint<E> tag, int branchID, int branchesSize) {
         stackTop.push(tag, branchID, branchesSize, 0);
     }
 
-    @Override
     public void pushDependent(Taint<E> tag, int branchID, int branchesSize, int[] dependencies) {
         stackTop.push(tag, branchID, branchesSize, getLevel(dependencies));
     }
 
-    @Override
     public void pushVariant(Taint<E> tag, int branchID, int branchesSize, int levelOffset) {
         stackTop.push(tag, branchID, branchesSize, getLevel(levelOffset));
     }
 
-    @Override
-    public boolean pop(int branchID) {
-        return stackTop.pop(branchID);
+    public void pop(int branchID) {
+        stackTop.pop(branchID);
     }
 
-    @Override
     public void reset() {
         stackTop.reset();
     }
 
-    @Override
     public void exitLoopLevel(int levelOffset) {
         stackTop.exitLoopLevel(levelOffset);
     }
 
-    private static final class LoopAwareControlFrame<E> extends ControlStack.ControlFrame<E> {
+    private static final class LoopAwareControlFrame<E> {
 
         private final int invocationLevel;
         private final int[] argumentConstancyLevels;
-        private final Map<Integer, ControlStack.Node<E>> levelStackMap;
+        private final Map<Integer, Node<E>> levelStackMap;
         private int[] branchLevels;
+        private LoopAwareControlFrame<E> next;
 
         private LoopAwareControlFrame(int invocationLevel, int[] argumentConstancyLevels, LoopAwareControlFrame<E> next) {
-            super(next);
+            this.next = next;
             this.invocationLevel = invocationLevel;
             this.argumentConstancyLevels = argumentConstancyLevels;
             if(next == null) {
@@ -163,44 +142,33 @@ public final class LoopAwareControlStack<E> extends ControlStack<E> {
             return tag;
         }
 
-        Taint<E> copyTag() {
-            Taint<E> tag = null;
-            for(Integer key : levelStackMap.keySet()) {
-                tag = Taint.combineTags(tag, levelStackMap.get(key).tag);
-            }
-            return tag;
-        }
-
         void push(Taint<E> tag, int branchID, int branchesSize, int level) {
             if(branchLevels == null) {
                 branchLevels = new int[branchesSize];
                 Arrays.fill(branchLevels, NOT_PUSHED);
             }
             if(!levelStackMap.containsKey(level)) {
-                levelStackMap.put(level, ControlStack.Node.emptyNode());
+                levelStackMap.put(level, Node.emptyNode());
             }
             if(branchLevels[branchID] == NOT_PUSHED) {
                 branchLevels[branchID] = level;
-                levelStackMap.put(level, new ControlStack.Node<>(Taint.combineTags(tag, levelStackMap.get(level).tag), levelStackMap.get(level)));
+                levelStackMap.put(level, new Node<>(Taint.combineTags(tag, levelStackMap.get(level).tag), levelStackMap.get(level)));
             } else {
                 Node<E> r = levelStackMap.get(level);
                 r.tag = r.tag.union(tag);
             }
         }
 
-        boolean pop(int branchID) {
+        void pop(int branchID) {
             if(branchLevels != null && branchLevels[branchID] != NOT_PUSHED) {
                 levelStackMap.put(branchLevels[branchID], levelStackMap.get(branchLevels[branchID]).next);
                 branchLevels[branchID] = NOT_PUSHED;
-                return true;
-            } else {
-                return false;
             }
         }
 
         void reset() {
-            if(getNext() instanceof LoopAwareControlFrame) {
-                ((LoopAwareControlFrame<Object>) getNext()).reset();
+            if(next != null) {
+                next.reset();
             }
             branchLevels = null;
             levelStackMap.clear();
@@ -209,7 +177,7 @@ public final class LoopAwareControlStack<E> extends ControlStack<E> {
         void exitLoopLevel(int levelOffset) {
             if(branchLevels != null) {
                 int level = getLevel(levelOffset);
-                levelStackMap.put(level, ControlStack.Node.emptyNode());
+                levelStackMap.put(level, Node.emptyNode());
                 for(int i = 0; i < branchLevels.length; i++) {
                     if(branchLevels[i] == level) {
                         branchLevels[i] = NOT_PUSHED;
@@ -225,6 +193,14 @@ public final class LoopAwareControlStack<E> extends ControlStack<E> {
         private int[] argumentConstancyLevels = null;
         private int currentArg = 0;
 
+        LoopAwareControlFrameBuilder<E> copy() {
+            LoopAwareControlFrameBuilder<E> copy = new LoopAwareControlFrameBuilder<>();
+            copy.invocationLevel = invocationLevel;
+            copy.argumentConstancyLevels = argumentConstancyLevels == null ? null : argumentConstancyLevels.clone();
+            copy.currentArg = currentArg;
+            return copy;
+        }
+
         void start(int invocationLevel, int numArguments) {
             this.invocationLevel = invocationLevel;
             argumentConstancyLevels = new int[numArguments];
@@ -237,8 +213,27 @@ public final class LoopAwareControlStack<E> extends ControlStack<E> {
 
         LoopAwareControlFrame<E> build(LoopAwareControlFrame<E> next) {
             LoopAwareControlFrame<E> frame = new LoopAwareControlFrame<>(invocationLevel, argumentConstancyLevels, next);
+            invocationLevel = 0;
             argumentConstancyLevels = null;
+            currentArg = 0;
             return frame;
+        }
+    }
+
+    private static final class Node<E> {
+        @SuppressWarnings("rawtypes")
+        private static final Node EMPTY_NODE = new Node<>(Taint.emptyTaint(), null);
+        Taint<E> tag;
+        Node<E> next;
+
+        Node(Taint<E> tag, Node<E> next) {
+            this.tag = tag;
+            this.next = next;
+        }
+
+        @SuppressWarnings("unchecked")
+        static <E> Node<E> emptyNode() {
+            return (Node<E>) EMPTY_NODE;
         }
     }
 }

@@ -78,19 +78,6 @@ public class LoopAwareControlStackTest {
     }
 
     @Test
-    public void testPopToFrame() {
-        LoopAwareControlStack<Object> ctrl = new LoopAwareControlStack<>();
-        ctrl.pushConstant(Taint.withLabel(0), 0, 1);
-        ControlStack.ControlFrame<Object> restorePoint = ctrl.getRestorePoint();
-        ctrl.startFrame(1, 0).pushFrame();
-        ctrl.pushConstant(Taint.withLabel(1), 0, 1);
-        ctrl.startFrame(0, 0).pushFrame();
-        ctrl.pushConstant(Taint.withLabel(2), 0, 1);
-        ctrl.popToFrame(restorePoint);
-        assertContainsLabels(ctrl.copyTagConstant(), 0);
-    }
-
-    @Test
     public void testReset() {
         LoopAwareControlStack<Object> ctrl = new LoopAwareControlStack<>();
         ctrl.pushConstant(Taint.withLabel(0), 0, 1);

@@ -1,25 +1,34 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo.ConstantArg;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo.DependentArg;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo.FrameArgumentLevel;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo.VariantArg;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 
+import java.util.Iterator;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager.CONTROL_STACK_INTERNAL_NAME;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 import static org.objectweb.asm.Opcodes.*;
 
 public class ControlStackInitializingMV extends MethodVisitor {
 
-    private final boolean isImplicitLightTrackingMethod;
     private LocalVariableManager localVariableManager;
     private PrimitiveArrayAnalyzer arrayAnalyzer;
+    private LoopAwareConstancyInfo nextMethodFrameInfo = null;
 
-    public ControlStackInitializingMV(MethodVisitor methodVisitor, boolean isImplicitLightTrackingMethod) {
+    public ControlStackInitializingMV(MethodVisitor methodVisitor) {
         super(Configuration.ASM_VERSION, methodVisitor);
-        this.isImplicitLightTrackingMethod = isImplicitLightTrackingMethod;
     }
 
     void setArrayAnalyzer(PrimitiveArrayAnalyzer arrayAnalyzer) {
@@ -65,6 +74,77 @@ public class ControlStackInitializingMV extends MethodVisitor {
             // Create a local variable for the array used to track tags pushed for each "branch" location
             super.visitInsn(Opcodes.ACONST_NULL);
             super.visitVarInsn(Opcodes.ASTORE, localVariableManager.createBranchesLV());
+            // Push a frame for the method invocation
+            super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+            CONTROL_STACK_PUSH_FRAME.delegateVisit(mv);
+        }
+    }
+
+    @Override
+    public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+        Type[] args = Type.getArgumentTypes(descriptor);
+        if(args.length >= 2 && args[args.length - 2].getInternalName().equals(CONTROL_STACK_INTERNAL_NAME)) {
+            if(nextMethodFrameInfo != null) {
+                setFrameInfo();
+            }
+            if("<init>".equals(name)) {
+                // Stack = ControlTaintTagStack TaintSentinel
+                super.visitInsn(SWAP);
+                CONTROL_STACK_COPY_TOP.delegateVisit(mv);
+                super.visitInsn(SWAP);
+            }
+        }
+        nextMethodFrameInfo = null;
+        super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+    }
+
+    @Override
+    public void visitInvokeDynamicInsn(String name, String descriptor, Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
+        Type[] args = Type.getArgumentTypes(descriptor);
+        if(nextMethodFrameInfo != null && args.length >= 2 && args[args.length - 2].getInternalName().equals(CONTROL_STACK_INTERNAL_NAME)) {
+            setFrameInfo();
+        }
+        nextMethodFrameInfo = null;
+        super.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
+    }
+
+    private void setFrameInfo() {
+        // Start the frame and set the argument levels
+        super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+        PropagatingControlFlowDelegator.push(mv, nextMethodFrameInfo.getInvocationLevel());
+        PropagatingControlFlowDelegator.push(mv, nextMethodFrameInfo.getNumArguments());
+        CONTROL_STACK_START_FRAME.delegateVisit(mv);
+        Iterator<FrameArgumentLevel> argLevels = nextMethodFrameInfo.getLevelIterator();
+        while(argLevels.hasNext()) {
+            FrameArgumentLevel argLevel = argLevels.next();
+            if(argLevel instanceof ConstantArg) {
+                CONTROL_STACK_SET_ARG_CONSTANT.delegateVisit(mv);
+            } else if(argLevel instanceof DependentArg) {
+                int[] dependencies = ((DependentArg) argLevel).getDependencies();
+                // Make the dependencies array
+                PropagatingControlFlowDelegator.push(mv, dependencies.length);
+                super.visitIntInsn(NEWARRAY, T_INT);
+                for(int i = 0; i < dependencies.length; i++) {
+                    super.visitInsn(DUP); // Duplicate the array
+                    PropagatingControlFlowDelegator.push(mv, i); // Push the index
+                    PropagatingControlFlowDelegator.push(mv, dependencies[i]); // Push the dependency value
+                    super.visitInsn(IASTORE);
+                }
+                CONTROL_STACK_SET_ARG_DEPENDENT.delegateVisit(mv);
+            } else if(argLevel instanceof VariantArg) {
+                PropagatingControlFlowDelegator.push(mv, ((VariantArg) argLevel).getLevelOffset());
+                CONTROL_STACK_SET_ARG_VARIANT.delegateVisit(mv);
+            }
+        }
+        super.visitInsn(POP); // Pop the ControlTaintTagStack off the runtime stack
+    }
+
+    @Override
+    public void visitLdcInsn(Object cst) {
+        if(cst instanceof LoopAwareConstancyInfo) {
+            nextMethodFrameInfo = (LoopAwareConstancyInfo) cst;
+        } else {
+            super.visitLdcInsn(cst);
         }
     }
 

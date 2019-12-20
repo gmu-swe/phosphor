@@ -126,7 +126,7 @@ public class ControlStackRestoringMV extends MethodVisitor {
 
     private void restoreControlStack() {
         if(localVariableManager.getIndexOfBranchesLV() >= 0) {
-            callPopAll();
+            callPopFrame();
         }
         if(excludedFromControlTrack) {
             super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
@@ -134,19 +134,15 @@ public class ControlStackRestoringMV extends MethodVisitor {
         }
     }
 
-    /**
-     * Pops all of the tags pushed onto the ControlTaintTagStack during the execution of the method
-     * being visited off of the stack.
-     */
-    private void callPopAll() {
+    private void callPopFrame() {
         if(localVariableManager.getIndexOfBranchesLV() >= 0) {
             passThroughMV.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             passThroughMV.visitVarInsn(ALOAD, localVariableManager.getIndexOfBranchesLV());
             if(localVariableManager.getIndexOfMasterExceptionLV() >= 0) {
                 passThroughMV.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
-                CONTROL_STACK_POP_ALL_EXCEPTION.delegateVisit(passThroughMV);
+                CONTROL_STACK_POP_FRAME_EXCEPTION.delegateVisit(passThroughMV);
             } else {
-                CONTROL_STACK_POP_ALL.delegateVisit(passThroughMV);
+                CONTROL_STACK_POP_FRAME.delegateVisit(passThroughMV);
             }
         }
     }

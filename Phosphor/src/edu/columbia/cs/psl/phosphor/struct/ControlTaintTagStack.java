@@ -17,18 +17,34 @@ public final class ControlTaintTagStack {
 
     private final SinglyLinkedList<Taint> taintHistory = new SinglyLinkedList<>();
     private final SinglyLinkedList<Taint> revisionExcludedTaintHistory = new SinglyLinkedList<>();
-    private boolean disabled = false;
-    private SinglyLinkedList<MaybeThrownException> unthrownExceptions = null;
-    private SinglyLinkedList<MaybeThrownException> influenceExceptions = null;
+    private final LoopAwareControlStack loopAwareControlStack;
+    private int disabled;
+    private SinglyLinkedList<MaybeThrownException> unthrownExceptions;
+    private SinglyLinkedList<MaybeThrownException> influenceExceptions;
 
     public ControlTaintTagStack() {
+        disabled = 0;
+        unthrownExceptions = null;
+        influenceExceptions = null;
         taintHistory.push(Taint.emptyTaint()); // starting taint is null/empty
         revisionExcludedTaintHistory.push(Taint.emptyTaint()); // starting taint is null/empty
+        loopAwareControlStack = new LoopAwareControlStack();
     }
 
     private ControlTaintTagStack(boolean disabled) {
         this();
-        this.disabled = disabled;
+        if(disabled) {
+            this.disabled = 1;
+        }
+    }
+
+    private ControlTaintTagStack(ControlTaintTagStack other) {
+        disabled = other.disabled;
+        unthrownExceptions = other.unthrownExceptions == null ? null : other.unthrownExceptions.copy();
+        influenceExceptions = other.influenceExceptions == null ? null : other.influenceExceptions.copy();
+        taintHistory.push(other.taintHistory.peek());
+        revisionExcludedTaintHistory.push(other.revisionExcludedTaintHistory.peek());
+        loopAwareControlStack = new LoopAwareControlStack(other.loopAwareControlStack);
     }
 
     /**
@@ -67,6 +83,11 @@ public final class ControlTaintTagStack {
         }
     }
 
+    @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TOP)
+    public ControlTaintTagStack copyTop() {
+        return new ControlTaintTagStack(this);
+    }
+
     /**
      * Called N times at the end of each try block to clear unthrown exceptions, one time for each handled exception type
      */
@@ -78,7 +99,7 @@ public final class ControlTaintTagStack {
         Iterator<MaybeThrownException> itr = influenceExceptions.iterator();
         while(itr.hasNext()) {
             MaybeThrownException mte = itr.next();
-            if(exTypeHandled.isAssignableFrom(mte.clazz)) {
+            if(exTypeHandled.isAssignableFrom(mte.getClazz())) {
                 itr.remove();
             }
         }
@@ -97,7 +118,7 @@ public final class ControlTaintTagStack {
         Iterator<MaybeThrownException> itr = unthrownExceptions.iterator();
         while(itr.hasNext()) {
             MaybeThrownException mte = itr.next();
-            if(t.isAssignableFrom(mte.clazz)) {
+            if(t.isAssignableFrom(mte.getClazz())) {
                 itr.remove();
                 if(influenceExceptions == null) {
                     influenceExceptions = new SinglyLinkedList<>();
@@ -121,9 +142,9 @@ public final class ControlTaintTagStack {
             }
             boolean found = false;
             for(MaybeThrownException mte : unthrownExceptions) {
-                if(mte != null && mte.clazz == t) {
+                if(mte != null && mte.getClazz() == t) {
                     found = true;
-                    mte.tag = Taint.combineTags(mte.tag, taints.getCurrentTaint());
+                    mte.unionTag(taints.getCurrentTaint());
                     break;
                 }
             }
@@ -134,9 +155,14 @@ public final class ControlTaintTagStack {
         }
     }
 
+    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG)
+    public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, boolean revisable) {
+        return push(tag, branchTags, branchID, maxSize, null, revisable);
+    }
+
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG_EXCEPTION)
     public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, ExceptionalTaintData curMethod, boolean revisable) {
-        if(disabled || tag == null || tag.isEmpty()) {
+        if(disabled != 0 || tag == null || tag.isEmpty()) {
             return branchTags;
         }
         if(branchTags == null) {
@@ -171,21 +197,6 @@ public final class ControlTaintTagStack {
         }
         branchTags[branchID] = revisable ? PUSHED_REVISABLE : PUSHED;
         return branchTags;
-    }
-
-    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG)
-    public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, boolean revisable) {
-        return push(tag, branchTags, branchID, maxSize, null, revisable);
-    }
-
-    public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
-        if(tag == null || tag.isEmpty() || tag == taintHistory.peek() || disabled) {
-            return null;
-        }
-        EnqueuedTaint ret = prev == null ? new EnqueuedTaint() : prev;
-        ret.activeCount++;
-        taintHistory.push(tag.union(taintHistory.peek()));
-        return ret;
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_EXCEPTION)
@@ -247,6 +258,16 @@ public final class ControlTaintTagStack {
         }
     }
 
+    public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
+        if(tag == null || tag.isEmpty() || tag == taintHistory.peek() || disabled != 0) {
+            return null;
+        }
+        EnqueuedTaint ret = prev == null ? new EnqueuedTaint() : prev;
+        ret.activeCount++;
+        taintHistory.push(tag.union(taintHistory.peek()));
+        return ret;
+    }
+
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_EXCEPTIONS)
     public Taint copyTagExceptions() {
         if(isEmpty() && lacksInfluenceExceptions()) {
@@ -257,8 +278,8 @@ public final class ControlTaintTagStack {
             return ret;
         }
         for(MaybeThrownException mte : influenceExceptions) {
-            if(mte != null && mte.tag != null) {
-                ret = ret.union(mte.tag);
+            if(mte != null && mte.getTag() != null) {
+                ret = ret.union(mte.getTag());
             }
         }
         return ret;
@@ -266,16 +287,20 @@ public final class ControlTaintTagStack {
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG)
     public Taint copyTag() {
-        return disabled ? Taint.emptyTaint() : taintHistory.peek();
+        return disabled != 0 ? Taint.emptyTaint() : taintHistory.peek();
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_REVISION_EXCLUDED_TAG)
     public Taint copyRevisionExcludedTag() {
-        return disabled ? Taint.emptyTaint() : revisionExcludedTaintHistory.peek();
+        return disabled != 0 ? Taint.emptyTaint() : revisionExcludedTaintHistory.peek();
     }
 
     public final boolean isEmpty() {
-        return disabled || taintHistory.peek().isEmpty();
+        return disabled != 0 || taintHistory.peek().isEmpty();
+    }
+
+    public boolean lacksInfluenceExceptions() {
+        return influenceExceptions == null || influenceExceptions.isEmpty();
     }
 
     public void reset() {
@@ -286,9 +311,10 @@ public final class ControlTaintTagStack {
         }
         size = revisionExcludedTaintHistory.size();
         revisionExcludedTaintHistory.clear();
-        for(int i = 0;i < size; i++) {
+        for(int i = 0; i < size; i++) {
             revisionExcludedTaintHistory.push(Taint.emptyTaint());
         }
+        loopAwareControlStack.reset();
         if(influenceExceptions != null) {
             influenceExceptions.clear();
         }
@@ -297,18 +323,95 @@ public final class ControlTaintTagStack {
         }
     }
 
-    public boolean lacksInfluenceExceptions() {
-        return influenceExceptions == null || influenceExceptions.isEmpty();
-    }
-
     @InvokedViaInstrumentation(record = CONTROL_STACK_ENABLE)
     public void enable() {
-        this.disabled = false;
+        disabled--;
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_DISABLE)
     public void disable() {
-        this.disabled = true;
+        disabled++;
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_POP_FRAME)
+    public void popFrame(int[] branchTags) {
+        pop(branchTags);
+        loopAwareControlStack.popFrame();
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_POP_FRAME_EXCEPTION)
+    public void popFrame(int[] branchTags, ExceptionalTaintData curMethod) {
+        pop(branchTags, curMethod);
+        loopAwareControlStack.popFrame();
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_FRAME)
+    public void pushFrame() {
+        loopAwareControlStack.pushFrame();
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_START_FRAME)
+    public ControlTaintTagStack startFrame(int invocationLevel, int numArguments) {
+        loopAwareControlStack.startFrame(invocationLevel, numArguments);
+        return this;
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_SET_ARG_CONSTANT)
+    public ControlTaintTagStack setNextFrameArgConstant() {
+        loopAwareControlStack.setNextFrameArgConstant();
+        return this;
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_SET_ARG_DEPENDENT)
+    public ControlTaintTagStack setNextFrameArgDependent(int[] dependencies) {
+        loopAwareControlStack.setNextFrameArgDependent(dependencies);
+        return this;
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_SET_ARG_VARIANT)
+    public ControlTaintTagStack setNextFrameArgVariant(int levelOffset) {
+        loopAwareControlStack.setNextFrameArgVariant(levelOffset);
+        return this;
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_CONSTANT)
+    public Taint copyTagConstant() {
+        return loopAwareControlStack.copyTagConstant();
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_DEPENDENT)
+    public Taint copyTagDependent(int[] dependencies) {
+        return loopAwareControlStack.copyTagDependent(dependencies);
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_VARIANT)
+    public Taint copyTagVariant(int levelOffset) {
+        return loopAwareControlStack.copyTagVariant(levelOffset);
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_CONSTANT)
+    public void pushConstant(Taint tag, int branchID, int branchesSize) {
+        loopAwareControlStack.pushConstant(tag, branchID, branchesSize);
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_DEPENDENT)
+    public void pushDependent(Taint tag, int branchID, int branchesSize, int[] dependencies) {
+        loopAwareControlStack.pushDependent(tag, branchID, branchesSize, dependencies);
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_VARIANT)
+    public void pushVariant(Taint tag, int branchID, int branchesSize, int levelOffset) {
+        loopAwareControlStack.pushVariant(tag, branchID, branchesSize, levelOffset);
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_LOOP_AWARE_POP)
+    public void loopAwarePop(int branchID) {
+        loopAwareControlStack.pop(branchID);
+    }
+
+    @InvokedViaInstrumentation(record = CONTROL_STACK_EXIT_LOOP_LEVEL)
+    public void exitLoopLevel(int levelOffset) {
+        loopAwareControlStack.exitLoopLevel(levelOffset);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_FACTORY)
