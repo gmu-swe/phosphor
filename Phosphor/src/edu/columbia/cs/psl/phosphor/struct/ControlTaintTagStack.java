@@ -279,10 +279,16 @@ public final class ControlTaintTagStack {
     }
 
     public void reset() {
+        int size = taintHistory.size();
         taintHistory.clear();
-        taintHistory.push(Taint.emptyTaint());
+        for(int i = 0; i < size; i++) {
+            taintHistory.push(Taint.emptyTaint());
+        }
+        size = revisionExcludedTaintHistory.size();
         revisionExcludedTaintHistory.clear();
-        revisionExcludedTaintHistory.push(Taint.emptyTaint());
+        for(int i = 0;i < size; i++) {
+            revisionExcludedTaintHistory.push(Taint.emptyTaint());
+        }
         if(influenceExceptions != null) {
             influenceExceptions.clear();
         }
