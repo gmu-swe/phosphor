@@ -82,8 +82,39 @@ public abstract class MultiDTaintedArrayWithObjTag {
         if(originalElementType.getSort() != Type.ARRAY) {
             throw new IllegalArgumentException("passed " + originalElementType);
         }
-        Class clazz = getClassForComponentType(originalElementType.getElementType().getSort());
-        return Type.getType(originalElementType.getDescriptor().substring(0, originalElementType.getDescriptor().length() - 2) + Type.getDescriptor(clazz));
+        int nDimensions = originalElementType.getDimensions() - 1;
+        String type = getDescriptorForComponentType(originalElementType.getElementType().getSort());
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < nDimensions; i++) {
+            sb.append('[');
+        }
+        sb.append(type);
+        return Type.getType(sb.toString());
+    }
+
+    public static String getDescriptorForComponentType(final int componentSort) {
+        switch (componentSort) {
+            case Type.BOOLEAN:
+                return "Ledu/columbia/cs/psl/phosphor/struct/LazyBooleanArrayObjTags;";
+            case Type.BYTE:
+                return "Ledu/columbia/cs/psl/phosphor/struct/LazyByteArrayObjTags;";
+            case Type.CHAR:
+                return "Ledu/columbia/cs/psl/phosphor/struct/LazyCharArrayObjTags;";
+            case Type.DOUBLE:
+                return "Ledu/columbia/cs/psl/phosphor/struct/LazyDoubleArrayObjTags;";
+            case Type.FLOAT:
+                return "Ledu/columbia/cs/psl/phosphor/struct/LazyFloatArrayObjTags;";
+            case Type.INT:
+                return "Ledu/columbia/cs/psl/phosphor/struct/LazyIntArrayObjTags;";
+            case Type.LONG:
+                return "Ledu/columbia/cs/psl/phosphor/struct/LazyLongArrayObjTags;";
+            case Type.SHORT:
+                return "Ledu/columbia/cs/psl/phosphor/struct/LazyShortArrayObjTags;";
+            //case Type.OBJECT:
+            //  return "Ledu/columbia/cs/psl/phosphor/struct/LazyReferenceArrayObjTags;";
+            default:
+                throw new IllegalArgumentException("invalid sort: " + componentSort);
+        }
     }
 
     public static String isPrimitiveBoxClass(Class c) {

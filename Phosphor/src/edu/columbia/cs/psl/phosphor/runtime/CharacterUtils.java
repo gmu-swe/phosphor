@@ -78,9 +78,9 @@ public class CharacterUtils {
         return ret;
     }
 
-    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, TaintedIntWithObjTag ret) {
         try {
-            ret.val = Character.codePointAt(ar, i);
+            ret.val = Character.codePointAt(tags.val, i);
             ret.taint = null;
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
@@ -96,8 +96,8 @@ public class CharacterUtils {
     public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(CharSequence seq, Taint t, int i, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointAt(seq, i);
-            if(seq instanceof String && ((String) seq).valuePHOSPHOR_TAG != null && ((String) seq).valuePHOSPHOR_TAG.taints != null) {
-                ret.taint = ((String) seq).valuePHOSPHOR_TAG.taints[i];
+            if(seq instanceof String && ((String) seq).valuePHOSPHOR_WRAPPER != null && ((String) seq).valuePHOSPHOR_WRAPPER.taints != null) {
+                ret.taint = ((String) seq).valuePHOSPHOR_WRAPPER.taints[i];
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
@@ -108,9 +108,9 @@ public class CharacterUtils {
         }
     }
 
-    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
         try {
-            ret.val = Character.codePointAt(ar, i, i2);
+            ret.val = Character.codePointAt(tags.val, i, i2);
             ret.taint = null;
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
@@ -124,9 +124,9 @@ public class CharacterUtils {
     }
 
 
-    public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, TaintedIntWithObjTag ret) {
         try {
-            ret.val = Character.codePointBefore(ar, i);
+            ret.val = Character.codePointBefore(tags.val, i);
             ret.taint = null;
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
@@ -142,8 +142,8 @@ public class CharacterUtils {
     public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(CharSequence seq, Taint t, int i, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointBefore(seq, i);
-            if(seq instanceof String && ((String) seq).valuePHOSPHOR_TAG != null && ((String) seq).valuePHOSPHOR_TAG.taints != null) {
-                ret.taint = ((String) seq).valuePHOSPHOR_TAG.taints[i];
+            if(seq instanceof String && ((String) seq).valuePHOSPHOR_WRAPPER != null && ((String) seq).valuePHOSPHOR_WRAPPER.taints != null) {
+                ret.taint = ((String) seq).valuePHOSPHOR_WRAPPER.taints[i];
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
@@ -154,9 +154,9 @@ public class CharacterUtils {
         }
     }
 
-    public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
         try {
-            ret.val = Character.codePointBefore(ar, i, i2);
+            ret.val = Character.codePointBefore(tags.val, i, i2);
             ret.taint = null;
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
@@ -183,9 +183,9 @@ public class CharacterUtils {
         return ret;
     }
 
-    public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, LazyCharArrayObjTags artags, char[] ar, Taint t, int dstIdx, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, LazyCharArrayObjTags array, Taint t, int dstIdx, TaintedIntWithObjTag ret) {
 
-        ret.val = Character.toChars(idx, ar, dstIdx);
+        ret.val = Character.toChars(idx, array.val, dstIdx);
 
         if(idxTaint != null) {
             ret.taint = idxTaint;
@@ -194,9 +194,9 @@ public class CharacterUtils {
     }
 
 
-    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         try {
-            ret.val = Character.codePointAt(ar, i);
+            ret.val = Character.codePointAt(tags.val, i);
             ret.taint = null;
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
@@ -213,8 +213,8 @@ public class CharacterUtils {
     public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(CharSequence seq, Taint t, int i, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointAt(seq, i);
-            if(seq instanceof String && ((String) seq).valuePHOSPHOR_TAG != null) {
-                ret.taint = seq.toString().valuePHOSPHOR_TAG.taints[i];
+            if(seq instanceof String && ((String) seq).valuePHOSPHOR_WRAPPER != null) {
+                ret.taint = seq.toString().valuePHOSPHOR_WRAPPER.taints[i];
             }
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
@@ -226,9 +226,9 @@ public class CharacterUtils {
         }
     }
 
-    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, Taint t2, int i2, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, Taint t2, int i2, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         try {
-            ret.val = Character.codePointAt(ar, i, i2);
+            ret.val = Character.codePointAt(tags.val, i, i2);
             ret.taint = null;
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
@@ -254,8 +254,8 @@ public class CharacterUtils {
         return ret;
     }
 
-    public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, LazyCharArrayObjTags artags, char[] ar, Taint t, int dstIdx, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
-        ret.val = Character.toChars(idx, ar, dstIdx);
+    public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, LazyCharArrayObjTags tags, Taint t, int dstIdx, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+        ret.val = Character.toChars(idx, tags.val, dstIdx);
         if(idxTaint != null) {
             ret.taint = idxTaint;
         }
@@ -332,8 +332,8 @@ public class CharacterUtils {
         return ret;
     }
 
-    public static TaintedIntWithObjTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
-        ret.val = Character.codePointBeforeImpl(ar, i, i2);
+    public static TaintedIntWithObjTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
+        ret.val = Character.codePointBeforeImpl(tags.val, i, i2);
         ret.taint = null;
         if(tags.taints != null) {
             ret.taint = tags.taints[i];
@@ -341,8 +341,8 @@ public class CharacterUtils {
         return ret;
     }
 
-    public static TaintedIntWithObjTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, char[] ar, Taint t, int i, Taint t2, int i2, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
-        ret.val = Character.codePointBeforeImpl(ar, i, i2);
+    public static TaintedIntWithObjTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, Taint t2, int i2, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+        ret.val = Character.codePointBeforeImpl(tags.val, i, i2);
         ret.taint = null;
         if(tags.taints != null) {
             ret.taint = tags.taints[i];
@@ -400,8 +400,8 @@ public class CharacterUtils {
         return ret;
     }
 
-    public static TaintedIntWithObjTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags t, char[] a, Taint ti, int index, Taint tl, int limit, TaintedIntWithObjTag ret) {
-        ret.val = Character.codePointAtImpl(a, index, limit);
+    public static TaintedIntWithObjTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags t, Taint ti, int index, Taint tl, int limit, TaintedIntWithObjTag ret) {
+        ret.val = Character.codePointAtImpl(t.val, index, limit);
         ret.taint = null;
         if(t.taints != null && t.taints[index] != null) {
             ret.taint = t.taints[index];
@@ -409,8 +409,8 @@ public class CharacterUtils {
         return ret;
     }
 
-    public static TaintedIntWithObjTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags t, char[] a, Taint ti, int index, Taint tl, int limit, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
-        ret.val = Character.codePointAtImpl(a, index, limit);
+    public static TaintedIntWithObjTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags t, Taint ti, int index, Taint tl, int limit, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+        ret.val = Character.codePointAtImpl(t.val, index, limit);
         ret.taint = null;
         if(t.taints != null && t.taints[index] != null) {
             ret.taint = t.taints[index];

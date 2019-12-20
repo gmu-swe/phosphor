@@ -5,8 +5,10 @@ import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -77,29 +79,20 @@ public class MethodArgReindexer extends MethodVisitor {
         boolean hasBeenRemapped = false;
         oldArgMappings = new int[originalLastArgIdx + 1];
         int oldVarCount = (isStatic ? 0 : 1);
-        for(Type oldArgType : oldArgTypes) {
-            if(!isLambda) {
-                if(oldArgType.getSort() == Type.ARRAY) {
-                    if(oldArgType.getElementType().getSort() != Type.OBJECT) {
-                        if(oldArgType.getDimensions() == 1) {
-                            newArgOffset++;
-                            nNewArgs++;
-                        }
-                        hasBeenRemapped = true;
-                    }
-                } else if(oldArgType.getSort() != Type.OBJECT) {
-                    hasBeenRemapped = true;
-                    newArgOffset += 1;
+        for (Type oldArgType : oldArgTypes) {
+            if (!isLambda) {
+                if (TaintUtils.isShadowedType(oldArgType)) {
+                    newArgOffset++;
                     nNewArgs++;
+                    hasBeenRemapped = true;
+                } else if (TaintUtils.isWrappedType(oldArgType)) {
+                    hasBeenRemapped = true;
                 }
             }
             oldArgMappings[oldVarCount] = oldVarCount + newArgOffset;
             if(oldArgType.getSize() == 2) {
                 oldArgMappings[oldVarCount + 1] = oldVarCount + newArgOffset + 1;
                 oldVarCount++;
-            }
-            if(TaintUtils.DEBUG_LOCAL) {
-                System.out.println(">>>>" + oldVarCount + "->" + oldArgMappings[oldVarCount]);
             }
             oldVarCount++;
         }
@@ -149,6 +142,10 @@ public class MethodArgReindexer extends MethodVisitor {
 
     @Override
     public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
+        Type t = Type.getType(desc);
+        if (TaintUtils.isWrappedType(t)) {
+            desc = TaintUtils.getWrapperType(t).getDescriptor();
+        }
         if(index < originalLastArgIdx) {
             boolean found = false;
             for(Object _lv : lvStore.localVariables) {
@@ -201,10 +198,6 @@ public class MethodArgReindexer extends MethodVisitor {
     @Override
     public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
         Object[] remappedLocals = new Object[Math.max(local.length, origNumArgs) + newArgOffset + 1 + nLongDoubleArgs]; //was +1, not sure why??
-        if(TaintUtils.DEBUG_FRAMES) {
-            System.out.println(name + desc + " orig nArgs = " + origNumArgs);
-            System.out.println("Pre-reindex Frame: " + Arrays.toString(local) + ";" + nLocal + " ; " + Arrays.toString(stack) + nStack);
-        }
         int nLocalsInputFrame = nLocal;
         oldArgMappings = new int[originalLastArgIdx + 1];
         if(type == Opcodes.F_FULL || type == Opcodes.F_NEW) {
@@ -246,8 +239,8 @@ public class MethodArgReindexer extends MethodVisitor {
                     continue;
                 }
                 //add taint storage if WAS originally a primitive or primitive array
-                if(TaintUtils.isPrimitiveOrPrimitiveArrayType(thisLocalTypeOld)) {
-                    if(TaintUtils.isPrimitiveOrPrimitiveArrayType(thisLocalTypeNew)) {
+                if(TaintUtils.isShadowedType(thisLocalTypeOld)) {
+                    if(TaintUtils.isShadowedType(thisLocalTypeNew)) {
                         //Add the shadow type
                         remappedLocals[thisLocalIndexInNewFrame] = TaintUtils.getShadowTaintTypeForFrame(thisLocalTypeNew);
                         thisLocalIndexInNewFrame++;
@@ -260,7 +253,7 @@ public class MethodArgReindexer extends MethodVisitor {
                         thisLocalVarNumberInNewFrame++;
                         nLocal++;
                     }
-                } else if(TaintUtils.isPrimitiveOrPrimitiveArrayType(thisLocalTypeNew)) {
+                } else if(TaintUtils.isShadowedType(thisLocalTypeNew)) {
                     thisLocalTypeObjNew = new TaggedValue(thisLocalTypeObjNew);
                 }
 
@@ -268,8 +261,8 @@ public class MethodArgReindexer extends MethodVisitor {
                     remappedLocals[thisLocalIndexInNewFrame] = thisLocalTypeObjNew;
                 }
 
-                if(thisLocalTypeNew.getSort() == Type.ARRAY && thisLocalTypeNew.getDimensions() > 1 && thisLocalTypeNew.getElementType().getSort() != Type.OBJECT && thisLocalIndexInNewFrame < remappedLocals.length) {
-                    remappedLocals[thisLocalIndexInNewFrame] = MultiDTaintedArray.getTypeForType(Type.getObjectType((String) local[thisLocalIndexInOldFrame])).getInternalName();
+                if(TaintUtils.isWrappedType(thisLocalTypeNew) && thisLocalIndexInNewFrame < remappedLocals.length) {
+                    remappedLocals[thisLocalIndexInNewFrame] = TaintUtils.getWrapperType(thisLocalTypeNew).getInternalName();
                 }
 
 
@@ -309,11 +302,11 @@ public class MethodArgReindexer extends MethodVisitor {
                 thisLocalVarNumberInNewFrame++;
                 nLocal++;
             }
-            for(int i = thisLocalIndexInOldFrame; i < nLocalsInputFrame; i++) {
+            for (int i = thisLocalIndexInOldFrame; i < nLocalsInputFrame; i++) {
                 remappedLocals[thisLocalIndexInNewFrame] = local[i];
                 Type t = getTypeForStackTypeTOPAsNull(local[i]);
-                if(t.getSort() == Type.ARRAY && t.getDimensions() > 1 && t.getElementType().getSort() != Type.OBJECT) {
-                    remappedLocals[thisLocalIndexInNewFrame] = MultiDTaintedArray.getTypeForType(Type.getObjectType((String) local[i])).getInternalName();
+                if (TaintUtils.isWrappedType(t)) {
+                    remappedLocals[thisLocalIndexInNewFrame] = TaintUtils.getWrapperType(Type.getObjectType((String) local[i])).getInternalName();
                 }
                 thisLocalIndexInNewFrame++;
                 thisLocalVarNumberInNewFrame += t.getSize();
@@ -343,22 +336,20 @@ public class MethodArgReindexer extends MethodVisitor {
                     newStack.add(Configuration.TAINT_TAG_STACK_TYPE);
                     nStack++;
                 }
-                newStack.add(stack[i]);
-            } else if(stack[i] != Opcodes.TOP && stack[i] instanceof String && ((String) stack[i]).charAt(1) == '[' && Type.getObjectType((String) stack[i]).getElementType().getSort() != Type.OBJECT) {
-                newStack.add(MultiDTaintedArray.getTypeForType(Type.getObjectType((String) stack[i])).getInternalName());
+                if (TaintUtils.isWrappedType(TaintAdapter.getTypeForStackType(stack[i]))) {
+                    newStack.add(TaintUtils.getWrapperType(TaintAdapter.getTypeForStackType(stack[i])).getInternalName());
+                } else {
+                    newStack.add(stack[i]);
+                }
+            } else if (TaintUtils.isWrappedType(TaintAdapter.getTypeForStackType(stack[i]))) {
+                newStack.add(TaintUtils.getWrapperType(TaintAdapter.getTypeForStackType(stack[i])).getInternalName());
             } else {
                 newStack.add(stack[i]);
             }
         }
         Object[] stack2;
         stack2 = newStack.toArray();
-        if(TaintUtils.DEBUG_FRAMES) {
-            System.out.println("Post-adjust Frame: " + Arrays.toString(remappedLocals) + ";" + Arrays.toString(stack2));
-        }
         super.visitFrame(type, nLocal, remappedLocals, nStack, stack2);
-        if(TaintUtils.DEBUG_FRAMES) {
-            System.out.println("Post-visit Frame: " + Arrays.toString(remappedLocals) + ";" + Arrays.toString(stack2));
-        }
     }
 
     @Override

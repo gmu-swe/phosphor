@@ -324,26 +324,20 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 }
             }
         } else {
-            for(Type t : argTypes) {
-                if(t.getSort() == Type.ARRAY) {
-                    if(t.getElementType().getSort() != Type.OBJECT) {
-                        if(t.getDimensions() > 1) {
-                            newArgTypes.add(MultiDTaintedArray.getTypeForType(t));
-                            isRewrittenDesc = true;
-                            continue;
-                        } else {
-                            newArgTypes.add(MultiDTaintedArray.getTypeForType(t));
-                            isRewrittenDesc = true;
-                        }
-                    }
-                } else if(t.getSort() != Type.OBJECT) {
+            for (Type t : argTypes) {
+                if (TaintUtils.isShadowedType(t)) {
+                    newArgTypes.add(Type.getType(TaintUtils.getShadowTaintType(t.getDescriptor())));
                     isRewrittenDesc = true;
-                    newArgTypes.add(Type.getType(Configuration.TAINT_TAG_DESC));
                 }
-                newArgTypes.add(t);
+                if (TaintUtils.isWrappedType(t)) {
+                    newArgTypes.add(TaintUtils.getWrapperType(t));
+                    isRewrittenDesc = true;
+                } else {
+                    newArgTypes.add(t);
+                }
             }
         }
-        if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")
+        if ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")
                 && addControlTaintTagStack) {
             isRewrittenDesc = true;
             newArgTypes.add(Type.getType(ControlTaintTagStack.class));
@@ -487,7 +481,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             access = access | Opcodes.ACC_PUBLIC;
         }
         Type fieldType = Type.getType(desc);
-        if(TaintUtils.getShadowTaintType(desc) != null) {
+        if(TaintUtils.isShadowedType(fieldType)) {
             if(TaintAdapter.canRawTaintAccess(className)) {
                 extraFieldsToVisit.add(new FieldNode(access, name + TaintUtils.TAINT_FIELD, TaintUtils.getShadowTaintType(desc), null, null));
             } else {
@@ -496,7 +490,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         } else if(!FIELDS_ONLY && fieldType.getSort() == Type.ARRAY && fieldType.getElementType().getSort() != Type.OBJECT && fieldType.getDimensions() > 1) {
             desc = MultiDTaintedArray.getTypeForType(fieldType).getDescriptor();
         }
-        if(!hasSerialUID && name.equals("serialVersionUID")) {
+        if (TaintUtils.isWrappedTypeWithSeparateField(fieldType)) {
+            extraFieldsToVisit.add(new FieldNode(access, name + TaintUtils.TAINT_WRAPPER_FIELD, TaintUtils.getWrapperType(fieldType).getDescriptor(), null, null));
+            access = access | Opcodes.ACC_TRANSIENT;
+        }
+        if (!hasSerialUID && name.equals("serialVersionUID")) {
             hasSerialUID = true;
         }
         if((access & Opcodes.ACC_STATIC) == 0) {
@@ -676,7 +674,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     mv.visitMethodInsn(Opcodes.INVOKESPECIAL, taintType.getInternalName(), "<init>", "([C)V", false);
                     //T
                     mv.visitInsn(Opcodes.DUP_X1);
-                    mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD, taintType.getDescriptor());
+                    mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_WRAPPER_FIELD, taintType.getDescriptor());
 
                     mv.visitVarInsn(Opcodes.ALOAD, 1);
                     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
@@ -916,39 +914,38 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         }
 
                         String newDesc = "(";
-                        for(Type t : argTypes) {
+                        for (Type t : argTypes) {
                             boolean loaded = false;
                             boolean needToBoxMultiD = false;
-                            if(t.getSort() == Type.ARRAY) {
-                                if(t.getElementType().getSort() != Type.OBJECT) {
-                                    if(t.getDimensions() == 1) {
-                                        newDesc += TaintUtils.getShadowTaintType(t.getDescriptor());
-                                        ga.visitVarInsn(Opcodes.ALOAD, idx);
-                                        TaintAdapter.createNewTaintArray(t.getDescriptor(), an, lvs, lvs);
-                                        loaded = true;
-                                    } else {
-                                        newDesc += MultiDTaintedArray.getTypeForType(t).getDescriptor();
-                                        needToBoxMultiD = true;
-                                    }
-                                }
-                            } else if(t.getSort() != Type.OBJECT) {
+                            if (TaintUtils.isShadowedType(t)) {
                                 newDesc += Configuration.TAINT_TAG_DESC;
                                 Configuration.taintTagFactory.generateEmptyTaint(ga);
                             }
-                            if(!loaded) {
+                            if (TaintUtils.isWrappedType(t)) {
+                                if (t.getSort() == Type.ARRAY && t.getDimensions() == 1) {
+                                    newDesc += TaintUtils.getWrapperType(t);
+                                    ga.visitVarInsn(Opcodes.ALOAD, idx);
+                                    TaintAdapter.createNewTaintArray(t.getDescriptor(), an, lvs, lvs);
+                                    loaded = true;
+                                } else {
+                                    newDesc += TaintUtils.getWrapperType(t);
+                                    needToBoxMultiD = true;
+                                }
+                            } else {
+                                newDesc += t.getDescriptor();
+                            }
+                            if (!loaded) {
                                 ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
                             }
-                            if(NATIVE_BOX_UNBOX && t.getSort() == Type.OBJECT && Instrumenter.isCollection(t.getInternalName())) {
+                            if (NATIVE_BOX_UNBOX && t.getSort() == Type.OBJECT && Instrumenter.isCollection(t.getInternalName())) {
                                 ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(NativeHelper.class), "ensureIsBoxedObjTags", "(Ljava/util/Collection;)Ljava/util/Collection;", false);
                                 ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
                             }
-                            if(t.getDescriptor().endsWith("java/lang/Object;") && !className.contains("MethodAccessorImpl") && !m.name.startsWith("invoke") && !className.contains("ConstructorAccessorImpl")) {
+                            if (t.getDescriptor().endsWith("java/lang/Object;") && !className.contains("MethodAccessorImpl") && !m.name.startsWith("invoke") && !className.contains("ConstructorAccessorImpl")) {
                                 ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
                                 ga.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
                             }
-                            if(!needToBoxMultiD) {
-                                newDesc += t.getDescriptor();
-                            } else {
+                            if (needToBoxMultiD) {
                                 Label isDone = new Label();
                                 ga.visitInsn(Opcodes.DUP);
                                 ga.visitJumpInsn(Opcodes.IFNULL, isDone);
@@ -1172,16 +1169,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         LinkedList<LocalVariableNode> lvsToVisit = new LinkedList<>();
         LabelNode start = new LabelNode(new Label());
         LabelNode end = new LabelNode(new Label());
-        for(Type t : argTypes) {
-            if(t.getSort() == Type.ARRAY) {
-                if(t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-                    newDesc += TaintUtils.getShadowTaintType(t.getDescriptor());
-                }
-            } else if(t.getSort() != Type.OBJECT) {
-                newDesc += Configuration.TAINT_TAG_DESC;
+        for (Type t : argTypes) {
+            if (TaintUtils.isShadowedType(t)) {
+                newDesc += TaintUtils.getShadowTaintType(t.getDescriptor());
             }
-            if(t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() > 1) {
-                newDesc += MultiDTaintedArray.getTypeForType(t).getDescriptor();
+            if (TaintUtils.isWrappedType(t)) {
+                newDesc += TaintUtils.getWrapperType(t);
             } else {
                 newDesc += t.getDescriptor();
             }
@@ -1288,18 +1281,19 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 idx++;
             }
             for(Type t : argTypes) {
-                if(t.getSort() == Type.ARRAY) {
-                    if(t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-                        lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg" + idx, TaintUtils.getShadowTaintType(t.getDescriptor()), null, start, end, idx));
-                        idx++;
-                    }
-                } else if(t.getSort() != Type.OBJECT) {
-                    lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg" + idx, Configuration.TAINT_TAG_DESC, null, start, end, idx));
+                if (TaintUtils.isShadowedType(t)) {
+                    lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg" + idx, TaintUtils.getShadowTaintType(t.getDescriptor()), null, start, end, idx));
                     idx++;
                 }
                 ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
-                lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg" + idx, t.getDescriptor(), null, start, end, idx));
-                if(!skipUnboxing) {
+                if (TaintUtils.isWrappedType(t)) {
+                    Type wrapper = TaintUtils.getWrapperType(t);
+                    ga.visitMethodInsn(Opcodes.INVOKESTATIC, wrapper.getInternalName(),"unwrap","("+wrapper.getDescriptor()+")"+t.getDescriptor(),false);
+                    lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg" + idx, TaintUtils.getWrapperType(t).getDescriptor(), null, start, end, idx));
+                } else {
+                    lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg" + idx, t.getDescriptor(), null, start, end, idx));
+                }
+                if (!skipUnboxing) {
                     if(t.getDescriptor().equals("[Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;")) {
                         ga.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxCK_ATTRIBUTE", "([Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;)[Lsun/security/pkcs11/wrapper/CK_ATTRIBUTE;", false);
                     } else if(t.getDescriptor().equals("Ljava/lang/Object;") || (t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().equals("Ljava/lang/Object;"))) {
@@ -1370,10 +1364,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         ga.visitTypeInsn(Opcodes.CHECKCAST, newReturn.getDescriptor());
                     } else {
                         TaintAdapter.createNewTaintArray(origReturn.getDescriptor(), an, lvs, lvs);
-                        ga.visitInsn(Opcodes.SWAP);
+                        //                        ga.visitInsn(Opcodes.SWAP);
                     }
                 } else {
-                    //TODO here's where we store to the pre-alloc'ed container
                     if(origReturn.getSize() == 1) {
                         int retIdx = lvs.getPreAllocatedReturnTypeVar(newReturn);
                         an.visitVarInsn(Opcodes.ALOAD, retIdx);

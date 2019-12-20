@@ -5,6 +5,8 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
 
+import java.lang.reflect.Field;
+
 /* Provides utility methods ignored by Phosphor. */
 public class IgnoredTestUtil {
 
@@ -20,7 +22,13 @@ public class IgnoredTestUtil {
         for(int i = 0 ; i < tags.length; i++) {
             tags[i] = tag;
         }
-        TaintSourceWrapper.setStringValueTag(str, new LazyCharArrayObjTags(str.toCharArray(), tags));
+        try {
+            Field taintField = String.class.getDeclaredField("valuePHOSPHOR_WRAPPER");
+            LazyCharArrayObjTags taints = (LazyCharArrayObjTags) taintField.get(str);
+            taints.taints = tags;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
     }
 
     @SuppressWarnings("unused")

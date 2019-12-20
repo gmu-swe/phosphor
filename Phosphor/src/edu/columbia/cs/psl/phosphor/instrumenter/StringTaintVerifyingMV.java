@@ -78,57 +78,61 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
 
     @Override
     public void visitFieldInsn(int opcode, String owner, String name, String desc) {
-        Type t = Type.getType(desc);
-        if(nextLoadIsTainted && opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && t.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_FIELD) && !name.equals("taint") &&
-                t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1 && !checkedThisFrame.contains(owner + "." + name)
+        Type accessedType = Type.getType(desc);
+        Type originalType = TaintUtils.getUnwrappedType(accessedType);
+        if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && name.endsWith(TaintUtils.TAINT_WRAPPER_FIELD) &&
+               !checkedThisFrame.contains(owner + "." + name)
                 && (owner.equals("java/lang/String") || implementsSerializable || owner.equals("java/io/BufferedInputStream")
                 || owner.startsWith("java/lang/reflect") || owner.equals("com/sun/security/auth/module/UnixSystem"))) {
-            nextLoadIsTainted = false;
-            //Tag Obj
-            super.visitInsn(SWAP);
-            //Obj Tag
-            super.visitInsn(POP);
+            //For GETFIELD operations on a 1D array wrapper, make sure that the wrapper is initialized and pointing to the array.
+            String originalName = name.replace(TaintUtils.TAINT_WRAPPER_FIELD,"");
             //Obj
             //Make sure that it's been initialized
             Label isOK = new Label();
             FrameNode fn1 = TaintAdapter.getCurrentFrameNode(analyzer);
+            //Ob Ob
             super.visitInsn(DUP);
-            //Obj Obj
-            super.visitFieldInsn(opcode, owner, name, desc);
-            //Obj F
+            super.visitFieldInsn(opcode, owner, originalName, originalType.getDescriptor());
             super.visitJumpInsn(IFNULL, isOK); //if value is null, do nothing
-            //Obj
+
+
+            //Array is not null, unsure about wrapper
+            //Ob
             super.visitInsn(DUP);
-            //Obj Obj
-            String shadowDesc = TaintUtils.getShadowTaintType(desc);
-            String shadowObj = Type.getType(shadowDesc).getInternalName();
-            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, shadowDesc);
-            //Obj tf
-            super.visitJumpInsn(IFNONNULL, isOK); //if taint is null, def init
-            //Obj
-            //if taint is not null, check the length
+            //Ob Ob
             super.visitInsn(DUP);
-            super.visitInsn(DUP);
-            //Obj Obj
-            super.visitFieldInsn(opcode, owner, name, desc);
-            //Obj Obj
-            super.visitTypeInsn(NEW, shadowObj);
-            super.visitInsn(DUP_X1);
+            //Ob Ob Ob
+            super.visitFieldInsn(opcode, owner, originalName, originalType.getDescriptor());
+            //Ob Ob Ar
             super.visitInsn(SWAP);
-            super.visitMethodInsn(INVOKESPECIAL, shadowObj, "<init>", "(" + desc + ")V", false);
-            //Obj Obj TF
-            super.visitFieldInsn(PUTFIELD, owner, name + TaintUtils.TAINT_FIELD, shadowDesc); // O
-            //Obj
+            //Ob Ar Ob
+            super.visitFieldInsn(opcode, owner, name, desc);
+            //Ob Ar Wrapper
+            super.visitMethodInsn(INVOKESTATIC, accessedType.getInternalName(), "unwrap","("+accessedType.getDescriptor()+")"+originalType.getDescriptor(),false);
+            //Ob Ar Ar
+            super.visitJumpInsn(IF_ACMPEQ, isOK);
+            //Wrapper is not correct for the array.
+            //Ob
+            super.visitInsn(DUP);
+            super.visitInsn(DUP);
+            //Ob Ob Ob
+            super.visitFieldInsn(opcode, owner, originalName, originalType.getDescriptor());
+            //Ob Ob Ar
+            super.visitTypeInsn(NEW, accessedType.getInternalName());
+            super.visitInsn(DUP_X1);
+            //Ob Ob W Ar W
+            super.visitInsn(SWAP);
+            //Ob Ob W W Ar
+            super.visitMethodInsn(INVOKESPECIAL, accessedType.getInternalName(), "<init>", "(" + originalType.getDescriptor() + ")V", false);
+            //Ob Ob W
+            super.visitFieldInsn(PUTFIELD, owner, name, desc); // O
             super.visitLabel(isOK);
             TaintAdapter.acceptFn(fn1, this);
-            //O
-            super.visitInsn(DUP);
-            //OO
-            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, shadowDesc);
-            super.visitInsn(SWAP);
             super.visitFieldInsn(opcode, owner, name, desc);
-        } else if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && t.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_FIELD) && !name.equals("taint") &&
-                t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 2 && !checkedThisFrame.contains(owner + "." + name)) {
+        } else if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && accessedType.getSort() == Type.ARRAY && !name.equals("taint") &&
+                accessedType.getElementType().getSort() != Type.OBJECT && accessedType.getDimensions() == 2 && !checkedThisFrame.contains(owner + "." + name)) {
+            //For 2D wrapped arrays
+            //TODO
             super.visitInsn(SWAP);
             super.visitInsn(POP);
             //Make sure that it's been initialized
@@ -142,7 +146,7 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
             super.visitJumpInsn(IFNULL, isOK); //if value is null, do nothing
 
             super.visitInsn(DUP);
-            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, "[[I");
+            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, "[[I");
             super.visitJumpInsn(IFNULL, doInit); //if taint is null, def init
             //if taint is not null, check the length
             super.visitInsn(DUP); // O O
@@ -150,7 +154,7 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
             super.visitFieldInsn(opcode, owner, name, desc);
             super.visitInsn(ARRAYLENGTH);
             super.visitInsn(SWAP);
-            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, "[[I");
+            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, "[[I");
             super.visitInsn(ARRAYLENGTH);
             super.visitJumpInsn(IF_ICMPLE, isOK); //if taint is shorter than value, reinit it
             super.visitLabel(doInit);
@@ -162,16 +166,17 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
             super.visitInsn(ARRAYLENGTH);//O O A L
             super.visitMultiANewArrayInsn("[[I", 1); //O O A TA
             super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[I)[[I", false);
-            super.visitFieldInsn(PUTFIELD, owner, name + TaintUtils.TAINT_FIELD, "[[I"); // O
+            super.visitFieldInsn(PUTFIELD, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, "[[I"); // O
             super.visitLabel(isOK);
             TaintAdapter.acceptFn(fn1, this);
             //O
             super.visitInsn(DUP);
-            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, "[[I");
+            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, "[[I");
             super.visitInsn(SWAP);
             super.visitFieldInsn(opcode, owner, name, desc);
-        } else if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && t.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_FIELD) && !name.equals("taint") &&
-                t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 3 && !checkedThisFrame.contains(owner + "." + name)) {
+            throw new UnsupportedOperationException();
+        } else if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && accessedType.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_WRAPPER_FIELD) && !name.equals("taint") &&
+                accessedType.getElementType().getSort() != Type.OBJECT && accessedType.getDimensions() == 3 && !checkedThisFrame.contains(owner + "." + name)) {
             super.visitInsn(SWAP);
             super.visitInsn(POP);
 
@@ -185,7 +190,7 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
             super.visitJumpInsn(IFNULL, isOK); //if value is null, do nothing
 
             super.visitInsn(DUP);
-            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, "[[[I");
+            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, "[[[I");
             super.visitJumpInsn(IFNULL, doInit); //if taint is null, def init
             //if taint is not null, check the length
             super.visitInsn(DUP); // O O
@@ -193,7 +198,7 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
             super.visitFieldInsn(opcode, owner, name, desc);
             super.visitInsn(ARRAYLENGTH);
             super.visitInsn(SWAP);
-            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, "[[[I");
+            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, "[[[I");
             super.visitInsn(ARRAYLENGTH);
             super.visitJumpInsn(IF_ICMPLE, isOK); //if taint is shorter than value, reinit it
             super.visitLabel(doInit);
@@ -205,14 +210,15 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
             super.visitInsn(ARRAYLENGTH);//O O A L
             super.visitMultiANewArrayInsn("[[[I", 1); //O O A TA
             super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[I)[[[I", false);
-            super.visitFieldInsn(PUTFIELD, owner, name + TaintUtils.TAINT_FIELD, "[[[I"); // O
+            super.visitFieldInsn(PUTFIELD, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, "[[[I"); // O
             super.visitLabel(isOK);
             TaintAdapter.acceptFn(fn1, this);
             //O
             super.visitInsn(DUP);
-            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, "[[[I");
+            super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, "[[[I");
             super.visitInsn(SWAP);
             super.visitFieldInsn(opcode, owner, name, desc);
+            throw new UnsupportedOperationException();
         } else {
             super.visitFieldInsn(opcode, owner, name, desc);
         }

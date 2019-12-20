@@ -402,7 +402,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                                             this.instructions.insertBefore(insn, new InsnNode(DUP));
                                             this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
                                             this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, wrappedType.getInternalName()));
-                                            this.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, ((FieldInsnNode) insn).owner, ((FieldInsnNode) insn).name + TaintUtils.TAINT_FIELD, wrappedType.getDescriptor()));
+                                            this.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, ((FieldInsnNode) insn).owner, ((FieldInsnNode) insn).name + TaintUtils.TAINT_WRAPPER_FIELD, wrappedType.getDescriptor()));
                                         } else {
                                             ((FieldInsnNode) insn).desc = wrappedType.getDescriptor();
                                             this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
@@ -451,8 +451,9 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                             Object valInExistingFrame = fn.local.get(j);
                             BasicValue calculatedVal = (BasicValue) frame.getLocal(analyzerFrameIdx);
                             if(calculatedVal instanceof SinkableArrayValue && ((SinkableArrayValue) calculatedVal).flowsToInstMethodCall &&
-                                    (TaintAdapter.isPrimitiveStackType(valInExistingFrame) || valInExistingFrame == Opcodes.NULL
-                                            || valInExistingFrame.equals("java/lang/Object")) && valInExistingFrame != Opcodes.TOP) {
+                                    valInExistingFrame != Opcodes.TOP &&
+                                    (TaintUtils.isShadowedType(TaintAdapter.getTypeForStackType(valInExistingFrame)) || valInExistingFrame == Opcodes.NULL
+                                            || valInExistingFrame.equals("java/lang/Object"))) {
                                 ignoreExistingFrames = false;
                                 if(valInExistingFrame.equals("java/lang/Object")) {
                                     fn.local.set(j, new TaggedValue(TaintUtils.getStackTypeForType(calculatedVal.getType())));
@@ -473,7 +474,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                         for(int j = 0; j < fn.stack.size(); j++) {
                             Object l = fn.stack.get(j);
                             BasicValue v = (BasicValue) frame.getStack(j);
-                            if(v instanceof SinkableArrayValue && ((SinkableArrayValue) v).flowsToInstMethodCall && (TaintAdapter.isPrimitiveStackType(l) || l == Opcodes.NULL || l.equals("java/lang/Object"))) {
+                            if(v instanceof SinkableArrayValue && ((SinkableArrayValue) v).flowsToInstMethodCall && (TaintUtils.isShadowedType(TaintAdapter.getTypeForStackType(l)) || l == Opcodes.NULL || l.equals("java/lang/Object"))) {
                                 fn.stack.set(j, new TaggedValue((ignoreExistingFrames ? TaintUtils.getStackTypeForType(v.getType()) : l)));
                             }
                         }

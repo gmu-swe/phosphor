@@ -57,10 +57,13 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
             SinkableArrayValue ret = new SinkableArrayValue(_v.getType());
             ret.addDepCopy(((SinkableArrayValue) _v));
             ret.setSrc(insn);
+            if (((SinkableArrayValue) _v).TEMPORARY_DISABLED) {
+                ret.TEMPORARY_DISABLED = true;
+            }
             return ret;
         }
         SinkableArrayValue old = executed.put(insn, null);
-        if(old != null) {
+        if (old != null) {
             old.disable();
         }
         return super.copyOperation(insn, _v);
@@ -82,6 +85,9 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
             ((SinkableArrayValue) ret).masterDup = existing;
             existing.isBottomDup = true;
             existing.otherDups.add((SinkableArrayValue) ret);
+        }
+        if (existing.TEMPORARY_DISABLED || underlying.TEMPORARY_DISABLED) {
+            ((SinkableArrayValue) ret).TEMPORARY_DISABLED = true;
         }
         return ret;
     }
@@ -581,11 +587,18 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
         if(type == null) {
             return new SinkableArrayValue(null);
         }
-        if(TaintUtils.isPrimitiveOrPrimitiveArrayType(type)) {
+        if (TaintUtils.isPrimitiveArrayType(type)) {
+            //TODO remove this handler when implementing refernece tainting
+            SinkableArrayValue ret = new SinkableArrayValue(type);
+            ret.disable();
+            ret.TEMPORARY_DISABLED = true;
+            return ret;
+        }
+        if (TaintUtils.isShadowedType(type)) {
             return new SinkableArrayValue(type);
-        } else if(type.getSort() == Type.ARRAY && type.getElementType().getSort() != Type.OBJECT) {
+        } else if (type.getSort() == Type.ARRAY && type.getElementType().getSort() != Type.OBJECT) {
             return new BasicArrayValue(type);
-        } else if(type.getDescriptor().equals("Lnull;")) {
+        } else if (type.getDescriptor().equals("Lnull;")) {
             return new SinkableArrayValue(null);
         } else {
             return super.newValue(type);

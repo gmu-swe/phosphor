@@ -102,7 +102,7 @@ public final class String implements Serializable, Comparable<String>,
 
     private int hashCode;
 
-	public LazyCharArrayObjTags valuePHOSPHOR_TAG;
+	public LazyCharArrayObjTags valuePHOSPHOR_WRAPPER;
 
     private static Charset DefaultCharset;
 

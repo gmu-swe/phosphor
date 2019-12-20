@@ -585,7 +585,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         for(int i : varToShadowVar.keySet()) {
             if(i < newLocals.length && newLocals[i] == null && varToShadowVar.get(i) < newLocals.length) {
                 newLocals[varToShadowVar.get(i)] = Opcodes.TOP;
-            } else if(i < newLocals.length && !TaintAdapter.isPrimitiveStackType(newLocals[i]) && varToShadowVar.get(i) < newLocals.length) {
+            } else if(i < newLocals.length && newLocals[i] != null && !TaintUtils.isShadowedType(TaintAdapter.getTypeForStackType(newLocals[i])) && varToShadowVar.get(i) < newLocals.length) {
                 newLocals[varToShadowVar.get(i)] = Opcodes.TOP;
             }
         }

@@ -31,8 +31,8 @@ public class RuntimeBoxUnboxPropagator {
         return 19;
     }
 
-    public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyCharArrayObjTags ta, char[] ar) {
-        Long.getChars(l, idx, ar);
+    public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyCharArrayObjTags ta) {
+        Long.getChars(l, idx, ta.val);
         if(lt != null) {
             int nChars;
             if(l < 0) {
@@ -41,7 +41,7 @@ public class RuntimeBoxUnboxPropagator {
                 nChars = stringSize(l);
             }
             if(ta.taints == null) {
-                ta.taints = new Taint[ar.length];
+                ta.taints = new Taint[ta.val.length];
             }
             for(int k = idx - nChars; k < idx; k++) {
                 ta.taints[k] = lt;
@@ -49,8 +49,8 @@ public class RuntimeBoxUnboxPropagator {
         }
     }
 
-    public static void getChars$$PHOSPHORTAGGED(Taint it, int i, Taint idt, int idx, LazyCharArrayObjTags ta, char[] ar) {
-        Integer.getChars(i, idx, ar);
+    public static void getChars$$PHOSPHORTAGGED(Taint it, int i, Taint idt, int idx, LazyCharArrayObjTags ta) {
+        Integer.getChars(i, idx, ta.val);
         if(it != null) {
             int nChars;
             if(i < 0) {
@@ -59,7 +59,7 @@ public class RuntimeBoxUnboxPropagator {
                 nChars = stringSize(i);
             }
             if(ta.taints == null) {
-                ta.taints = new Taint[ar.length];
+                ta.taints = new Taint[ta.val.length];
             }
             for(int k = idx - nChars; k < Math.min(idx, ta.taints.length); k++) {
                 ta.taints[k] = it;
@@ -67,12 +67,12 @@ public class RuntimeBoxUnboxPropagator {
         }
     }
 
-    public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyCharArrayObjTags ta, char[] ar, ControlTaintTagStack ctrl) {
-        getChars$$PHOSPHORTAGGED(lt, l, idt, idx, ta, ar);
+    public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyCharArrayObjTags ta, ControlTaintTagStack ctrl) {
+        getChars$$PHOSPHORTAGGED(lt, l, idt, idx, ta);
     }
 
-    public static void getChars$$PHOSPHORTAGGED(Taint it, int i, Taint idt, int idx, LazyCharArrayObjTags ta, char[] ar, ControlTaintTagStack ctrl) {
-        getChars$$PHOSPHORTAGGED(it, i, idt, idx, ta, ar);
+    public static void getChars$$PHOSPHORTAGGED(Taint it, int i, Taint idt, int idx, LazyCharArrayObjTags ta, ControlTaintTagStack ctrl) {
+        getChars$$PHOSPHORTAGGED(it, i, idt, idx, ta);
     }
 
     public static String toString$$PHOSPHORTAGGED(Taint t, byte i) {

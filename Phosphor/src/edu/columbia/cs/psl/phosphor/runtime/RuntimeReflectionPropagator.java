@@ -32,7 +32,7 @@ public class RuntimeReflectionPropagator {
 
     public static Class<?> getType(Field f) {
         String name = f.getName();
-        if(f.getName().endsWith("PHOSPHOR_TAG")) {
+        if(f.getName().endsWith(TaintUtils.TAINT_FIELD) || f.getName().endsWith(TaintUtils.TAINT_WRAPPER_FIELD)){
             return f.getType();
         }
         Class<?> ret = f.getType();
@@ -89,23 +89,21 @@ public class RuntimeReflectionPropagator {
             ret = f.get(obj);
         }
         if(f.getType().isArray() && f.getType().getComponentType().isPrimitive()) {
-            Object taint = Taint.emptyTaint();
 
             try {
                 try {
                     if(ret instanceof LazyArrayObjTags && ((LazyArrayObjTags) ret).taints != null) {
                         return ret;
                     } else {
-                        Field taintField;
+                        Field wrapperField;
                         if(fieldToField.containsKey(f)) {
-                            taintField = fieldToField.get(f);
+                            wrapperField = fieldToField.get(f);
                         } else {
-                            taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
-                            taintField.setAccessible(true);
-                            fieldToField.put(f, taintField);
+                            wrapperField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_WRAPPER_FIELD);
+                            wrapperField.setAccessible(true);
+                            fieldToField.put(f, wrapperField);
                         }
-                        taint = taintField.get(obj);
-                        return taint;
+                        return wrapperField.get(obj);
                     }
                 } catch(NoSuchFieldException t) {
 
@@ -785,7 +783,7 @@ public class RuntimeReflectionPropagator {
         f.set(obj, val);
         if(f.getType().isArray() && val instanceof LazyArrayObjTags) {
             try {
-                Field taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+                Field taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_WRAPPER_FIELD);
                 Unsafe u = getUnsafe();
                 u.putObject(obj, u.objectFieldOffset(taintField), val);
             } catch(NoSuchFieldException | SecurityException e) {
@@ -891,7 +889,7 @@ public class RuntimeReflectionPropagator {
         f.set(obj, val);
         if(f.getType().isArray() && val instanceof LazyArrayObjTags) {
             try {
-                Field taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_FIELD);
+                Field taintField = f.getDeclaringClass().getDeclaredField(f.getName() + TaintUtils.TAINT_WRAPPER_FIELD);
                 Unsafe u = getUnsafe();
                 if(Modifier.isStatic(f.getModifiers())) {
                     u.putObject(u.staticFieldBase(taintField), u.staticFieldOffset(taintField), val);

@@ -32,7 +32,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         this.methodName = name;
         this.disable = shouldDisable(className, name);
         this.isObjOutputStream = (className.equals("java/io/ObjectOutputStream") && name.startsWith("writeObject0")) ||
-                (className.equals("java/io/InputStream") && name.startsWith("defaultReadFields"));
+                (className.equals("java/io/ObjectInputStream") && name.startsWith("defaultReadFields"));
     }
 
     public void setLvs(LocalVariableManager lvs) {

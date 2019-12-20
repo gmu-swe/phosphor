@@ -12,6 +12,9 @@ public class SinkableArrayValue extends BasicValue {
 
     public static final BasicValue NULL_VALUE = new BasicArrayValue(Type.getType("Lnull;"));
 
+    //TODO remove reference taints
+    public boolean TEMPORARY_DISABLED;
+
     public boolean flowsToInstMethodCall;
     public Set<SinkableArrayValue> reverseDeps;
     public Set<SinkableArrayValue> deps;
@@ -31,10 +34,13 @@ public class SinkableArrayValue extends BasicValue {
 
     public SinkableArrayValue(Type type) {
         super(type);
+        if (type == null || type.getSort() == Type.ARRAY) {
+            TEMPORARY_DISABLED = true;
+        }
     }
 
     public void disable() {
-        if(src != null) {
+        if (src != null) {
             this.oldSrc = src;
             src = null;
         }
@@ -165,8 +171,11 @@ public class SinkableArrayValue extends BasicValue {
         LinkedList<SinkableArrayValue> queue = new LinkedList<>();
         queue.add(this);
         LinkedList<SinkableArrayValue> ret = new LinkedList<>();
+        if (TEMPORARY_DISABLED) {
+            return ret;
+        }
         LinkedList<SinkableArrayValue> processed = new LinkedList<>();
-        if(this.getType() != null && this.getType().getSort() == Type.ARRAY && this.getType().getDimensions() > 1) {
+        if (this.getType() != null && this.getType().getSort() == Type.ARRAY && this.getType().getDimensions() > 1) {
             return ret;
         }
         while(!queue.isEmpty()) {
@@ -176,7 +185,7 @@ public class SinkableArrayValue extends BasicValue {
                 v = v.disabledFor;
             }
             processed.add(v);
-            if(!v.flowsToInstMethodCall) {
+            if(!v.flowsToInstMethodCall && !v.TEMPORARY_DISABLED) {
                 v.flowsToInstMethodCall = true;
                 ret.add(v);
                 v.sink = sink;

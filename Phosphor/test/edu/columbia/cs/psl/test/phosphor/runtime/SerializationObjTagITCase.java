@@ -31,6 +31,7 @@ public class SerializationObjTagITCase extends FieldHolderBaseTest {
         public PrimitiveArrayHolderChild(boolean taintFields) {
             super(taintFields);
         }
+
     }
 
     public static class EmptyHolder implements Serializable {

@@ -178,7 +178,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     @Deprecated
     public boolean topStackElCarriesTaints() {
         Object o = analyzer.stack.get(analyzer.stack.size() - 1);
-        return isPrimitiveStackType(o);
+        return TaintUtils.isShadowedType(getTypeForStackType(o));
     }
 
     public boolean topStackElIsNull() {
@@ -658,6 +658,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 
     public static void createNewTaintArray(String arrayDesc, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor mv, LocalVariableManager lvs) {
         Type arrayType = Type.getType(arrayDesc);
+        Type wrapper = TaintUtils.getWrapperType(arrayType);
         Label isNull = new Label();
         Label done = new Label();
         Object[] locals1 = removeLongsDoubleTopVal(analyzer.locals);
@@ -708,13 +709,10 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             mv.visitMultiANewArrayInsn(arrayDesc.substring(0, arrayDesc.length() - 1) + Configuration.TAINT_TAG_DESC, arrayType.getDimensions()); //TODO XXX this won't be properly initialized.
 
         } else {
-            String shadowDesc = TaintUtils.getShadowTaintType(arrayDesc);
-            mv.visitInsn(DUP);
-            mv.visitTypeInsn(NEW, shadowDesc.substring(1, shadowDesc.length() - 1));
+            mv.visitTypeInsn(NEW, wrapper.getInternalName());
             mv.visitInsn(DUP_X1);
             mv.visitInsn(SWAP);
-            mv.visitMethodInsn(INVOKESPECIAL, shadowDesc.substring(1, shadowDesc.length() - 1), "<init>", "(" + arrayDesc + ")V", false);
-            mv.visitInsn(SWAP);
+            mv.visitMethodInsn(INVOKESPECIAL, wrapper.getInternalName(), "<init>", "(" + arrayDesc + ")V", false);
         }
 
         Object[] locals = removeLongsDoubleTopVal(analyzer.locals);
@@ -728,8 +726,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 
         mv.visitLabel(isNull);
 
-        mv.visitInsn(Opcodes.ACONST_NULL);
-        mv.visitInsn(Opcodes.SWAP);
+        mv.visitTypeInsn(CHECKCAST,wrapper.getInternalName());
         mv.visitLabel(done);
         mv.visitFrame(TaintUtils.RAW_INSN, localSize, locals, stackSize, stack);
     }
@@ -760,17 +757,6 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             return Type.getType("Luninitialized;");
         }
         throw new IllegalArgumentException("got " + obj + " zzz" + obj.getClass());
-    }
-
-    public static boolean isPrimitiveStackType(Object obj) {
-        if(obj instanceof String) {
-            if(((String) obj).startsWith("[")) {
-                Type t = Type.getType((String) obj);
-                return t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1;
-            }
-            return false;
-        }
-        return obj == Opcodes.INTEGER || obj == Opcodes.FLOAT || obj == Opcodes.DOUBLE || obj == Opcodes.LONG || obj == Opcodes.TOP;
     }
 
     public static boolean isPrimitiveType(Type t) {

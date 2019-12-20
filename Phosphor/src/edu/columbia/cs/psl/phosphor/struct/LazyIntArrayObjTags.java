@@ -31,65 +31,72 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
         this.lengthTaint = lenTaint;
     }
 
+    public static LazyIntArrayObjTags factory(int[] array) {
+        if (array == null) {
+            return null;
+        }
+        return new LazyIntArrayObjTags(array);
+    }
+
     @Override
     public Object clone() {
         return new LazyIntArrayObjTags(val.clone(), (taints != null) ? taints.clone() : null);
     }
 
-    public void set(int[] arr, Taint idxTag, int idx, int val) {
-        set(arr, idxTag, idx, null, val);
+    public void set(Taint idxTag, int idx, int val) {
+        set(idxTag, idx, null, val);
     }
 
-    public void set(int[] l, Taint idxTag, int idx, Taint tag, int val) {
-        if(Configuration.derivedTaintListener != null) {
-            set(l, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, null), val);
-        } else if(idxTag == null) {
-            set(l, idx, tag, val);
-        } else if(tag == null) {
-            set(l, idx, idxTag, val);
+    public void set(Taint idxTag, int idx, Taint tag, int val) {
+        if (Configuration.derivedTaintListener != null) {
+            set(idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, null), val);
+        } else if (idxTag == null) {
+            set(idx, tag, val);
+        } else if (tag == null) {
+            set(idx, idxTag, val);
         } else {
-            set(l, idx, tag.union(idxTag), val);
+            set(idx, tag.union(idxTag), val);
         }
     }
 
-    public void set(int[] arr, int idx, Taint tag, int val) {
+    public void set(int idx, Taint tag, int val) {
         this.val[idx] = val;
-        if(taints == null && tag != null) {
+        if (taints == null && tag != null && !tag.isEmpty()) {
             taints = new Taint[this.val.length];
         }
-        if(taints != null) {
+        if (taints != null) {
             taints[idx] = tag;
         }
     }
 
-    public void set(int[] arr, Taint idxTag, int idx, Taint tag, int val, ControlTaintTagStack ctrl) {
+    public void set(Taint idxTag, int idx, Taint tag, int val, ControlTaintTagStack ctrl) {
         checkAIOOB(idxTag, idx, ctrl);
-        set(arr, idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
+        set(idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
     }
 
-    public void set(int[] arr, int idx, Taint tag, int val, ControlTaintTagStack ctrl) {
+    public void set(int idx, Taint tag, int val, ControlTaintTagStack ctrl) {
         checkAIOOB(null, idx, ctrl);
-        set(arr, idx, Taint.combineTags(tag, ctrl), val);
+        set(idx, Taint.combineTags(tag, ctrl), val);
     }
 
-    public TaintedIntWithObjTag get(int[] arr, Taint idxTaint, int idx, TaintedIntWithObjTag ret) {
+    public TaintedIntWithObjTag get(Taint idxTaint, int idx, TaintedIntWithObjTag ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
     }
 
-    public TaintedIntWithObjTag get(int[] arr, Taint idxTaint, int idx, TaintedIntWithObjTag ret, ControlTaintTagStack ctrl) {
+    public TaintedIntWithObjTag get(Taint idxTaint, int idx, TaintedIntWithObjTag ret, ControlTaintTagStack ctrl) {
         checkAIOOB(idxTaint, idx, ctrl);
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
     }
 
-    public TaintedIntWithObjTag get(int[] arr, int idx, TaintedIntWithObjTag ret) {
+    public TaintedIntWithObjTag get(int idx, TaintedIntWithObjTag ret) {
         ret.val = val[idx];
-        ret.taint = (taints == null) ? null : taints[idx];
+        ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
         return ret;
     }
 
-    public TaintedIntWithObjTag get(int[] arr, int idx, TaintedIntWithObjTag ret, ControlTaintTagStack ctrl) {
+    public TaintedIntWithObjTag get(int idx, TaintedIntWithObjTag ret, ControlTaintTagStack ctrl) {
         checkAIOOB(null, idx, ctrl);
-        get(arr, idx, ret);
+        get(idx, ret);
         ret.taint = Taint.combineTags(ret.taint, ctrl);
         return ret;
     }
@@ -104,17 +111,24 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
     }
 
     public void ensureVal(int[] v) {
-        if(v != val) {
+        if (v != val) {
             val = v;
         }
     }
 
+    public static int[] unwrap(LazyIntArrayObjTags obj) {
+        if (obj != null) {
+            return obj.val;
+        }
+        return null;
+    }
+
     private void writeObject(ObjectOutputStream stream) throws IOException {
-        if(val == null) {
+        if (val == null) {
             stream.writeInt(-1);
         } else {
             stream.writeInt(val.length);
-            for(int el : val) {
+            for (int el : val) {
                 stream.writeInt(el);
             }
         }
@@ -123,11 +137,11 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
 
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
         int len = stream.readInt();
-        if(len == -1) {
+        if (len == -1) {
             val = null;
         } else {
             val = new int[len];
-            for(int i = 0; i < len; i++) {
+            for (int i = 0; i < len; i++) {
                 val[i] = stream.readInt();
             }
         }
