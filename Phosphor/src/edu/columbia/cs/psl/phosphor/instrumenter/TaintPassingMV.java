@@ -1948,12 +1948,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 }
                 if(t.getSort() == Type.ARRAY && t.getElementType().getDescriptor().length() == 1) {
                     //this is a multi-d array. make it work, even if it's nasty.
-                    if(!analyzer.isTopOfStackTagged()) {
-                        super.visitMethodInsn(INVOKESTATIC, MultiDTaintedArray.getTypeForType(t).getInternalName(), "factory", "(" + t + ")" + MultiDTaintedArray.getTypeForType(t).getDescriptor(), false);
-                        nextLoadIsTracked = false;
-                    } else {
-                        registerTaintedArray();
-                    }
+                    super.visitMethodInsn(INVOKESTATIC, MultiDTaintedArray.getTypeForType(t).getInternalName(), "factory", "(" + t + ")" + MultiDTaintedArray.getTypeForType(t).getDescriptor(), false);
+                    nextLoadIsTracked = false;
                 } else {
                     controlFlowDelegator.storingReferenceInArray();
                 }
