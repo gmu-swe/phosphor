@@ -917,26 +917,26 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                             idx++;
                         }
 
-                        String newDesc = "(";
+                        StringBuilder newDesc = new StringBuilder("(");
                         for (Type t : argTypes) {
                             boolean loaded = false;
                             boolean needToBoxMultiD = false;
                             if (TaintUtils.isShadowedType(t)) {
-                                newDesc += Configuration.TAINT_TAG_DESC;
+                                newDesc.append(Configuration.TAINT_TAG_DESC);
                                 Configuration.taintTagFactory.generateEmptyTaint(ga);
                             }
                             if (TaintUtils.isWrappedType(t)) {
                                 if (t.getSort() == Type.ARRAY && t.getDimensions() == 1) {
-                                    newDesc += TaintUtils.getWrapperType(t);
+                                    newDesc.append(TaintUtils.getWrapperType(t));
                                     ga.visitVarInsn(Opcodes.ALOAD, idx);
                                     TaintAdapter.createNewTaintArray(t.getDescriptor(), an, lvs, lvs);
                                     loaded = true;
                                 } else {
-                                    newDesc += TaintUtils.getWrapperType(t);
+                                    newDesc.append(TaintUtils.getWrapperType(t));
                                     needToBoxMultiD = true;
                                 }
                             } else {
-                                newDesc += t.getDescriptor();
+                                newDesc.append(t.getDescriptor());
                             }
                             if (!loaded) {
                                 ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
@@ -991,9 +991,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                             opcode = Opcodes.INVOKESTATIC;
                         }
                         if(m.name.equals("<init>")) {
-                            ga.visitMethodInsn(Opcodes.INVOKESPECIAL, className, m.name, newDesc.toString(), false);
+                            ga.visitMethodInsn(Opcodes.INVOKESPECIAL, className, m.name, newDesc.toString().toString(), false);
                         } else {
-                            ga.visitMethodInsn(opcode, className, m.name + (useSuffixName ? TaintUtils.METHOD_SUFFIX : ""), newDesc.toString(), false);
+                            ga.visitMethodInsn(opcode, className, m.name + (useSuffixName ? TaintUtils.METHOD_SUFFIX : ""), newDesc.toString().toString(), false);
                         }
                         //unbox collections
                         idx = 0;
@@ -1174,10 +1174,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         LabelNode end = new LabelNode(new Label());
         for (Type t : argTypes) {
             if (TaintUtils.isShadowedType(t)) {
-                newDesc += TaintUtils.getShadowTaintType(t.getDescriptor());
+                newDesc.append(TaintUtils.getShadowTaintType(t.getDescriptor()));
             }
             if (TaintUtils.isWrappedType(t)) {
-                newDesc += TaintUtils.getWrapperType(t);
+                newDesc.append(TaintUtils.getWrapperType(t));
             } else {
                 newDesc.append(t.getDescriptor());
             }
@@ -1197,15 +1197,15 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
         MethodVisitor mv;
         if(m.name.equals("<init>")) {
-            mv = super.visitMethod(m.access & ~Opcodes.ACC_NATIVE, m.name, newDesc.toString(), m.signature, exceptions);
+            mv = super.visitMethod(m.access & ~Opcodes.ACC_NATIVE, m.name, newDesc.toString().toString(), m.signature, exceptions);
         } else {
-            mv = super.visitMethod(m.access & ~Opcodes.ACC_NATIVE, m.name + TaintUtils.METHOD_SUFFIX + (skipUnboxing ? "$$NOUNBOX" : ""), newDesc.toString(), m.signature, exceptions);
+            mv = super.visitMethod(m.access & ~Opcodes.ACC_NATIVE, m.name + TaintUtils.METHOD_SUFFIX + (skipUnboxing ? "$$NOUNBOX" : ""), newDesc.toString().toString(), m.signature, exceptions);
         }
-        NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, newDesc.toString(), mv);
-        MethodVisitor soc = new SpecialOpcodeRemovingMV(an, ignoreFrames, m.access, className, newDesc.toString(), fixLdcClass);
-        LocalVariableManager lvs = new LocalVariableManager(m.access, newDesc.toString(), soc, an, mv, generateExtraLVDebug);
+        NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, m.access, m.name, newDesc.toString().toString(), mv);
+        MethodVisitor soc = new SpecialOpcodeRemovingMV(an, ignoreFrames, m.access, className, newDesc.toString().toString(), fixLdcClass);
+        LocalVariableManager lvs = new LocalVariableManager(m.access, newDesc.toString().toString(), soc, an, mv, generateExtraLVDebug);
         lvs.setPrimitiveArrayAnalyzer(new PrimitiveArrayAnalyzer(newReturn));
-        GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name + TaintUtils.METHOD_SUFFIX, newDesc.toString());
+        GeneratorAdapter ga = new GeneratorAdapter(lvs, m.access, m.name + TaintUtils.METHOD_SUFFIX, newDesc.toString().toString());
         if(isInterface) {
             ga.visitEnd();
             return;
@@ -1247,7 +1247,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 ga.visitInsn(Opcodes.ICONST_0);
                 ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", "I");
             } else {
-                switch(Type.getReturnType(newDesc.toString()).getSort()) {
+                switch(Type.getReturnType(newDesc.toString().toString()).getSort()) {
                     case Type.INT:
                     case Type.SHORT:
                     case Type.BOOLEAN:
