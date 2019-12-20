@@ -324,7 +324,7 @@ public final class MultiTainter {
         } else if(obj instanceof TaintedPrimitiveWithObjTag) {
             ((TaintedPrimitiveWithObjTag) obj).taint = tag;
         } else if(obj instanceof LazyArrayObjTags) {
-            ((LazyArrayObjTags) obj).setTaints(tag);
+            // TODO
         } else if(obj != null && ArrayHelper.engaged == 1) {
             ArrayHelper.setTag(obj, tag);
         }
@@ -338,6 +338,24 @@ public final class MultiTainter {
     @SuppressWarnings("unused")
     public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint tag) {
         taintedObject(obj, tag);
+    }
+
+    /* If the specified object is a one-dimensional primitive array sets the taint of each element in the array to be
+     * the specified tag. */
+    public static void setPrimitiveArrayTaints(Object obj, Taint tag) {
+        if(obj instanceof LazyArrayObjTags) {
+            ((LazyArrayObjTags) obj).setTaints(tag);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public static void setPrimitiveArrayTaints$$PHOSPHORTAGGED(Object obj, Taint tag, ControlTaintTagStack ctrl) {
+        setPrimitiveArrayTaints(obj, tag);
+    }
+
+    @SuppressWarnings("unused")
+    public static void setPrimitiveArrayTaints$$PHOSPHORTAGGED(Object obj, Taint tag) {
+        setPrimitiveArrayTaints(obj, tag);
     }
 
     /* If multi-tainted and the specified object is a multi-dimensional array returns a Taint tag containing the taints of

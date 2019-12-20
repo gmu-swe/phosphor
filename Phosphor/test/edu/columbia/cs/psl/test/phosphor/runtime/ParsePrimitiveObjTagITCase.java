@@ -52,7 +52,7 @@ public class ParsePrimitiveObjTagITCase extends BaseMultiTaintClass {
             return str;
         } else if(taintChars) {
             char[] c = str.toCharArray();
-            MultiTainter.taintedObject(c, Taint.withLabel(CHARS_LABEL));
+            MultiTainter.setPrimitiveArrayTaints(c, Taint.withLabel(CHARS_LABEL));
             return new String(c);
         } else {
             return str;
