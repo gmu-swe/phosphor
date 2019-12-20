@@ -129,7 +129,6 @@ public class ReflectionMasker {
                     } catch(ClassNotFoundException e) {
                         e.printStackTrace();
                     }
-                    newArgs.add(c);
                 } else {
                     Class elementType = c.getComponentType();
                     while(elementType.isArray()) {
@@ -220,7 +219,6 @@ public class ReflectionMasker {
                     // 1d primitive array
                     madeChange = true;
                     newArgs.add(MultiDTaintedArray.getUnderlyingBoxClassForUnderlyingClass(c));
-                    newArgs.add(c);
                 } else {
                     Class elementType = c.getComponentType();
                     while(elementType.isArray()) {
@@ -240,6 +238,7 @@ public class ReflectionMasker {
                     }
                 }
             } else if(c.isPrimitive()) {
+                //TODO reference tainting
                 madeChange = true;
                 newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
                 newArgs.add(c);
@@ -302,7 +301,7 @@ public class ReflectionMasker {
                 originalParamTypes.enqueue(taintedParamTypes[++i]);
             } else if(LazyArrayObjTags.class.isAssignableFrom(paramType)) {
                 // Add the type of the 1D primitive array for which the current parameter is the taint array
-                originalParamTypes.enqueue(taintedParamTypes[++i]);
+                originalParamTypes.enqueue(TaintUtils.getUnwrappedClass(paramType));
             } else if(paramType.getName().contains("edu.columbia.cs.psl.phosphor.struct.Lazy")) {
                 // Add the original multidimensional primitive array for the current LazyArray array
                 originalParamTypes.enqueue(TaintUtils.getUnwrappedClass(paramType));
@@ -341,6 +340,7 @@ public class ReflectionMasker {
                     if(t.getElementType().getSort() != Type.OBJECT) {
                         if(t.getDimensions() == 1) {
                             newParams.add(MultiDTaintedArray.getUnderlyingBoxClassForUnderlyingClass(c));
+                            continue;
                         } else {
                             Type newType;
                             newType = MultiDTaintedArrayWithObjTag.getTypeForType(t);
@@ -354,6 +354,7 @@ public class ReflectionMasker {
                         }
                     }
                 } else if(t.getSort() != Type.OBJECT) {
+                    //TODO reference tainting
                     newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
                 }
                 newParams.add(c);
@@ -591,8 +592,6 @@ public class ReflectionMasker {
                     // Add a LazyArray to the args
                     LazyArrayObjTags arr = ((LazyArrayObjTags) providedArg);
                     targetArgs[targetParamIndex++] = arr;
-                    // Add a primitive array to the args
-                    targetArgs[targetParamIndex++] = (arr == null) ? null : arr.getVal();
                 } else {
                     // Add the provided argument as is to the args
                     targetArgs[targetParamIndex++] = providedArg;
@@ -608,11 +607,11 @@ public class ReflectionMasker {
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = GET_ORIGINAL_CLASS_OBJECT_OUTPUT_STREAM)
     public static Class<?> getOriginalClassObjectOutputStream(Object obj) {
-        if(obj instanceof LazyArrayObjTags && ((LazyArrayObjTags) obj).taints != null) {
-            return obj.getClass();
-        } else {
-            return getOriginalClass(obj.getClass());
-        }
+        // if (obj instanceof LazyArrayObjTags && ((LazyArrayObjTags) obj).taints != null) {
+        return obj.getClass();
+        // } else {
+        //     return getOriginalClass(obj.getClass());
+        // }
     }
 
     @SuppressWarnings("unused")
@@ -709,6 +708,7 @@ public class ReflectionMasker {
         boolean removeSVUIDField = containsSVUIDSentinelField(in);
         for(Field f : in) {
             if(!f.getName().equals("taint") && !f.getName().endsWith(TaintUtils.TAINT_FIELD)
+                    && !f.getName().endsWith(TaintUtils.TAINT_WRAPPER_FIELD)
                     && !f.getName().startsWith(TaintUtils.PHOSPHOR_ADDED_FIELD_PREFIX)
                     && !(removeSVUIDField && f.getName().equals("serialVersionUID"))) {
                 ret.enqueue(f);

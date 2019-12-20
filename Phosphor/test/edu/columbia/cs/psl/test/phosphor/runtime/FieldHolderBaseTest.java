@@ -402,6 +402,20 @@ public abstract class FieldHolderBaseTest extends BaseMultiTaintClass {
             return new String[]{"ia", "ja", "za", "sa", "da", "ba", "ca", "fa"};
         }
 
+        @Override
+        public String toString() {
+            return "PrimitiveArrayHolder{" +
+                    "ia=" + Arrays.toString(ia) +
+                    ", ja=" + Arrays.toString(ja) +
+                    ", za=" + Arrays.toString(za) +
+                    ", sa=" + Arrays.toString(sa) +
+                    ", da=" + Arrays.toString(da) +
+                    ", ba=" + Arrays.toString(ba) +
+                    ", ca=" + Arrays.toString(ca) +
+                    ", fa=" + Arrays.toString(fa) +
+                    '}';
+        }
+
         /* Returns this class' fields without calling getDeclaredFields. */
         public static Field[] fields() throws NoSuchFieldException {
             return getFields(PrimitiveArrayHolder.class, fieldNames());

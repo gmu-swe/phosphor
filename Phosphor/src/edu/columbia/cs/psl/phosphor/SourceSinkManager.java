@@ -52,19 +52,22 @@ public abstract class SourceSinkManager {
         String r = "(";
         boolean isSkipping = false;
         for(Type t : Type.getArgumentTypes(desc)) {
-            if(t.getSort() == Type.ARRAY) {
+            if (t.getDescriptor().equals("Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;")) {
+                //
+            } else if (t.getSort() == Type.ARRAY) {
                 r += remapReturnType(t);
-            } else if(t.getSort() != Type.OBJECT) {
+            } else if (t.getSort() != Type.OBJECT) {
                 if(!isSkipping) {
                     isSkipping = true;
                 } else {
                     r += t.getDescriptor();
                     isSkipping = !isSkipping;
                 }
-            } else if(t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")) {
-                r += MultiDTaintedArray.getPrimitiveTypeForWrapper(t.getDescriptor()).getDescriptor();
-            } else if(!t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct") && !TaintUtils.isTaintSentinel(t)) {
-                if(t.getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
+            } else if (t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")
+                    || t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct")) {
+                r += TaintUtils.getUnwrappedType(t).getDescriptor();
+            } else if (!TaintUtils.isTaintSentinel(t)) {
+                if (t.getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
                     isSkipping = true;
                 } else {
                     r += t;

@@ -45,7 +45,7 @@ public class RuntimeUnsafePropagator {
                         // Find the associated taint field's offset
                         long tagOffset = Unsafe.INVALID_FIELD_OFFSET;
                         try {
-                            Field taintField = clazz.getField(field.getName() + TaintUtils.TAINT_FIELD);
+                            Field taintField = clazz.getField(field.getName() + TaintUtils.TAINT_WRAPPER_FIELD);
                             Class<?> taintClazz = taintField.getType();
                             if(taintClazz != null && LazyArrayObjTags.class.isAssignableFrom(taintClazz)) {
                                 tagOffset = unsafe.objectFieldOffset(taintField);

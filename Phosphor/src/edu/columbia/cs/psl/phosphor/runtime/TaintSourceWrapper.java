@@ -233,7 +233,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
     public static void setStringValueTag(String str, LazyCharArrayObjTags tags) {
         if(str != null) {
-            str.valuePHOSPHOR_TAG = tags;
+            str.valuePHOSPHOR_WRAPPER = tags;
         }
     }
 
@@ -241,7 +241,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         if(str == null) {
             return null;
         } else {
-            return str.valuePHOSPHOR_TAG;
+            return str.valuePHOSPHOR_WRAPPER;
 
         }
     }

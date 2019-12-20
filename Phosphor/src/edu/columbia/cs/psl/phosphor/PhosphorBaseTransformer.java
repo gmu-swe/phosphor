@@ -16,26 +16,25 @@ public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
 
     @SuppressWarnings("unused")
     public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined,
-                                                          ProtectionDomain protectionDomain, LazyByteArrayObjTags classTaint,
-                                                          byte[] classFileBuffer) throws IllegalClassFormatException {
+                                                          ProtectionDomain protectionDomain, LazyByteArrayObjTags classTaint) throws IllegalClassFormatException {
         if(!INITED) {
             Configuration.IMPLICIT_TRACKING = false;
             Configuration.init();
             INITED = true;
         }
-        return new LazyByteArrayObjTags(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classFileBuffer));
+        return LazyByteArrayObjTags.factory(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classTaint.val));
     }
 
     @SuppressWarnings("unused")
     public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined,
                                                           ProtectionDomain protectionDomain, LazyByteArrayObjTags classTaint,
-                                                          byte[] classFileBuffer, ControlTaintTagStack ctrl) throws IllegalClassFormatException {
+                                                          ControlTaintTagStack ctrl) throws IllegalClassFormatException {
         if(!INITED) {
             Configuration.IMPLICIT_TRACKING = true;
             Configuration.init();
             INITED = true;
         }
-        return new LazyByteArrayObjTags(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classFileBuffer));
+        return LazyByteArrayObjTags.factory(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classTaint.val));
     }
 
     private byte[] signalAndTransform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain,

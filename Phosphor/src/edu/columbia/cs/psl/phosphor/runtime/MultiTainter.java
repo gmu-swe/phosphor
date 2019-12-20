@@ -194,81 +194,81 @@ public final class MultiTainter {
         return ret;
     }
 
-    public static LazyBooleanArrayObjTags taintedBooleanArray$$PHOSPHORTAGGED(LazyBooleanArrayObjTags ret, boolean[] in, Object lbl) {
+    public static LazyBooleanArrayObjTags taintedBooleanArray$$PHOSPHORTAGGED(LazyBooleanArrayObjTags ret, Object lbl) {
         if(ret.taints == null) {
-            ret.taints = new Taint[in.length];
+            ret.taints = new Taint[ret.val.length];
         }
-        for(int i = 0; i < in.length; i++) {
+        for(int i = 0; i < ret.val.length; i++) {
             ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
 
-    public static LazyByteArrayObjTags taintedByteArray$$PHOSPHORTAGGED(LazyByteArrayObjTags ret, byte[] in, Object lbl) {
+    public static LazyByteArrayObjTags taintedByteArray$$PHOSPHORTAGGED(LazyByteArrayObjTags ret, Object lbl) {
         if(ret.taints == null) {
-            ret.taints = new Taint[in.length];
+            ret.taints = new Taint[ret.val.length];
         }
-        for(int i = 0; i < in.length; i++) {
+        for(int i = 0; i < ret.val.length; i++) {
             ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
 
-    public static LazyCharArrayObjTags taintedCharArray$$PHOSPHORTAGGED(LazyCharArrayObjTags ret, char[] in, Object lbl) {
+    public static LazyCharArrayObjTags taintedCharArray$$PHOSPHORTAGGED(LazyCharArrayObjTags ret, Object lbl) {
         if(ret.taints == null) {
-            ret.taints = new Taint[in.length];
+            ret.taints = new Taint[ret.val.length];
         }
-        for(int i = 0; i < in.length; i++) {
+        for(int i = 0; i < ret.val.length; i++) {
             ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
 
-    public static LazyDoubleArrayObjTags taintedDoubleArray$$PHOSPHORTAGGED(LazyDoubleArrayObjTags ret, double[] in, Object lbl) {
+    public static LazyDoubleArrayObjTags taintedDoubleArray$$PHOSPHORTAGGED(LazyDoubleArrayObjTags ret, Object lbl) {
         if(ret.taints == null) {
-            ret.taints = new Taint[in.length];
+            ret.taints = new Taint[ret.val.length];
         }
-        for(int i = 0; i < in.length; i++) {
+        for(int i = 0; i < ret.val.length; i++) {
             ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
 
-    public static LazyFloatArrayObjTags taintedFloatArray$$PHOSPHORTAGGED(LazyFloatArrayObjTags ret, float[] in, Object lbl) {
+    public static LazyFloatArrayObjTags taintedFloatArray$$PHOSPHORTAGGED(LazyFloatArrayObjTags ret, Object lbl) {
         if(ret.taints == null) {
-            ret.taints = new Taint[in.length];
+            ret.taints = new Taint[ret.val.length];
         }
-        for(int i = 0; i < in.length; i++) {
+        for(int i = 0; i < ret.val.length; i++) {
             ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
 
-    public static LazyIntArrayObjTags taintedIntArray$$PHOSPHORTAGGED(LazyIntArrayObjTags ret, int[] in, Object lbl) {
+    public static LazyIntArrayObjTags taintedIntArray$$PHOSPHORTAGGED(LazyIntArrayObjTags ret, Object lbl) {
         if(ret.taints == null) {
-            ret.taints = new Taint[in.length];
+            ret.taints = new Taint[ret.val.length];
         }
-        for(int i = 0; i < in.length; i++) {
+        for(int i = 0; i < ret.val.length; i++) {
             ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
 
-    public static LazyShortArrayObjTags taintedShortArray$$PHOSPHORTAGGED(LazyShortArrayObjTags ret, short[] in, Object lbl) {
+    public static LazyShortArrayObjTags taintedShortArray$$PHOSPHORTAGGED(LazyShortArrayObjTags ret, Object lbl) {
         if(ret.taints == null) {
-            ret.taints = new Taint[in.length];
+            ret.taints = new Taint[ret.val.length];
         }
-        for(int i = 0; i < in.length; i++) {
+        for(int i = 0; i < ret.val.length; i++) {
             ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
     }
 
-    public static LazyLongArrayObjTags taintedLongArray$$PHOSPHORTAGGED(LazyLongArrayObjTags ret, long[] in, Object lbl) {
+    public static LazyLongArrayObjTags taintedLongArray$$PHOSPHORTAGGED(LazyLongArrayObjTags ret, Object lbl) {
         if(ret.taints == null) {
-            ret.taints = new Taint[in.length];
+            ret.taints = new Taint[ret.val.length];
         }
-        for(int i = 0; i < in.length; i++) {
+        for(int i = 0; i < ret.val.length; i++) {
             ret.taints[i] = Taint.withLabel(lbl);
         }
         return ret;
@@ -283,7 +283,7 @@ public final class MultiTainter {
         if(str == null) {
             return null;
         }
-        return str.valuePHOSPHOR_TAG.taints;
+        return str.valuePHOSPHOR_WRAPPER.taints;
     }
 
     public static Taint getTaint(Object obj) {

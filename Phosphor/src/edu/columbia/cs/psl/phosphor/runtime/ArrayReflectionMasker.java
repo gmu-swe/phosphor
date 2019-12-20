@@ -86,11 +86,12 @@ public class ArrayReflectionMasker {
         return Array.newInstance(clazz, len);
     }
 
-    public static Object newInstance$$PHOSPHORTAGGED(Class clazz, LazyIntArrayObjTags dimsTaint, int[] dims, ControlTaintTagStack ctrl) {
-        return newInstance$$PHOSPHORTAGGED(clazz, dimsTaint, dims);
+    public static Object newInstance$$PHOSPHORTAGGED(Class clazz, LazyIntArrayObjTags dimsTaint, ControlTaintTagStack ctrl) {
+        return newInstance$$PHOSPHORTAGGED(clazz, dimsTaint);
     }
 
-    public static Object newInstance$$PHOSPHORTAGGED(Class clazz, LazyIntArrayObjTags dimsTaint, int[] dims) {
+    public static Object newInstance$$PHOSPHORTAGGED(Class clazz, LazyIntArrayObjTags dimstaint) {
+        int[] dims = dimstaint.val;
         Type t = Type.getType(clazz);
         if(t.getSort() == Type.ARRAY && t.getElementType().getSort() != Type.OBJECT) {
             // Component type is multi-dimensional primitive array
@@ -178,22 +179,13 @@ public class ArrayReflectionMasker {
         return Array.get(obj, idx);
     }
 
-    public static int tryToGetTaint(Object val) {
-        try {
-            val.getClass().getDeclaredField("valuePHOSPHOR_TAG").setAccessible(true);
-            return val.getClass().getDeclaredField("valuePHOSPHOR_TAG").getInt(val);
-        } catch(Exception ex) {
-            return 0;
-        }
-    }
-
     public static Taint tryToGetTaintObj(Object val) {
         return MultiTainter.getTaint(val);
     }
 
     public static TaintedByteWithObjTag getByte$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, TaintedByteWithObjTag ret) {
         if(obj instanceof LazyByteArrayObjTags) {
-            return ((LazyByteArrayObjTags) obj).get(((LazyByteArrayObjTags) obj).val, idx, ret);
+            return ((LazyByteArrayObjTags) obj).get(idx, ret);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
@@ -232,49 +224,49 @@ public class ArrayReflectionMasker {
 
     public static TaintedBooleanWithObjTag getBoolean$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, TaintedBooleanWithObjTag ret) {
         if(obj instanceof LazyBooleanArrayObjTags) {
-            return ((LazyBooleanArrayObjTags) obj).get(((LazyBooleanArrayObjTags) obj).val, idx, ret);
+            return ((LazyBooleanArrayObjTags) obj).get(idx, ret);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static TaintedCharWithObjTag getChar$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, TaintedCharWithObjTag ret) {
         if(obj instanceof LazyCharArrayObjTags) {
-            return ((LazyCharArrayObjTags) obj).get(((LazyCharArrayObjTags) obj).val, idx, ret);
+            return ((LazyCharArrayObjTags) obj).get(idx, ret);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static TaintedDoubleWithObjTag getDouble$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, TaintedDoubleWithObjTag ret) {
         if(obj instanceof LazyDoubleArrayObjTags) {
-            return ((LazyDoubleArrayObjTags) obj).get(((LazyDoubleArrayObjTags) obj).val, idx, ret);
+            return ((LazyDoubleArrayObjTags) obj).get(idx, ret);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static TaintedIntWithObjTag getInt$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, TaintedIntWithObjTag ret) {
         if(obj instanceof LazyIntArrayObjTags) {
-            return ((LazyIntArrayObjTags) obj).get(((LazyIntArrayObjTags) obj).val, idx, ret);
+            return ((LazyIntArrayObjTags) obj).get(idx, ret);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static TaintedLongWithObjTag getLong$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, TaintedLongWithObjTag ret) {
         if(obj instanceof LazyLongArrayObjTags) {
-            return ((LazyLongArrayObjTags) obj).get(((LazyLongArrayObjTags) obj).val, idx, ret);
+            return ((LazyLongArrayObjTags) obj).get(idx, ret);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static TaintedShortWithObjTag getShort$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, TaintedShortWithObjTag ret) {
         if(obj instanceof LazyShortArrayObjTags) {
-            return ((LazyShortArrayObjTags) obj).get(((LazyShortArrayObjTags) obj).val, idx, ret);
+            return ((LazyShortArrayObjTags) obj).get(idx, ret);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static TaintedFloatWithObjTag getFloat$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, TaintedFloatWithObjTag ret) {
         if(obj instanceof LazyFloatArrayObjTags) {
-            return ((LazyFloatArrayObjTags) obj).get(((LazyFloatArrayObjTags) obj).val, idx, ret);
+            return ((LazyFloatArrayObjTags) obj).get(idx, ret);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
@@ -376,7 +368,7 @@ public class ArrayReflectionMasker {
     public static void setBoolean$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, Taint taint, boolean val) {
         if(obj instanceof LazyBooleanArrayObjTags) {
             LazyBooleanArrayObjTags a = (LazyBooleanArrayObjTags) obj;
-            a.set(a.val, idx, taint, val);
+            a.set(idx, taint, val);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
         }
@@ -385,7 +377,7 @@ public class ArrayReflectionMasker {
     public static void setByte$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, Taint taint, byte val) {
         if(obj instanceof LazyByteArrayObjTags) {
             LazyByteArrayObjTags a = (LazyByteArrayObjTags) obj;
-            a.set(a.val, idx, taint, val);
+            a.set(idx, taint, val);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!, got " + obj.getClass());
         }
@@ -394,7 +386,7 @@ public class ArrayReflectionMasker {
     public static void setChar$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, Taint taint, char val) {
         if(obj instanceof LazyCharArrayObjTags) {
             LazyCharArrayObjTags a = (LazyCharArrayObjTags) obj;
-            a.set(a.val, idx, taint, val);
+            a.set(idx, taint, val);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
         }
@@ -403,7 +395,7 @@ public class ArrayReflectionMasker {
     public static void setDouble$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, Taint taint, double val) {
         if(obj instanceof LazyDoubleArrayObjTags) {
             LazyDoubleArrayObjTags a = (LazyDoubleArrayObjTags) obj;
-            a.set(a.val, idx, taint, val);
+            a.set(idx, taint, val);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
         }
@@ -412,7 +404,7 @@ public class ArrayReflectionMasker {
     public static void setFloat$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, Taint taint, float val) {
         if(obj instanceof LazyFloatArrayObjTags) {
             LazyFloatArrayObjTags a = (LazyFloatArrayObjTags) obj;
-            a.set(a.val, idx, taint, val);
+            a.set(idx, taint, val);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
         }
@@ -421,7 +413,7 @@ public class ArrayReflectionMasker {
     public static void setInt$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, Taint taint, int val) {
         if(obj instanceof LazyIntArrayObjTags) {
             LazyIntArrayObjTags a = (LazyIntArrayObjTags) obj;
-            a.set(a.val, idx, taint, val);
+            a.set(idx, taint, val);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
         }
@@ -430,7 +422,7 @@ public class ArrayReflectionMasker {
     public static void setLong$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, Taint taint, long val) {
         if(obj instanceof LazyLongArrayObjTags) {
             LazyLongArrayObjTags a = (LazyLongArrayObjTags) obj;
-            a.set(a.val, idx, taint, val);
+            a.set(idx, taint, val);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
         }
@@ -439,7 +431,7 @@ public class ArrayReflectionMasker {
     public static void setShort$$PHOSPHORTAGGED(Object obj, Taint idxTaint, int idx, Taint taint, short val) {
         if(obj instanceof LazyShortArrayObjTags) {
             LazyShortArrayObjTags a = (LazyShortArrayObjTags) obj;
-            a.set(a.val, idx, taint, val);
+            a.set(idx, taint, val);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
         }

@@ -9,7 +9,6 @@ import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 
 public class ParameterAnnotationObjTagITCase {
 	@Retention(RetentionPolicy.RUNTIME)
@@ -25,10 +24,10 @@ public class ParameterAnnotationObjTagITCase {
 
 	@Test
 	public void testParameterAnnotationsAreReindexed() throws Exception{
-		Method meth = AnnotationHolder.class.getDeclaredMethod("primitiveMethod$$PHOSPHORTAGGED",String.class, Taint.class, Integer.TYPE, Taint.class, Integer.TYPE, LazyIntArrayObjTags.class, int[].class);
+		Method meth = AnnotationHolder.class.getDeclaredMethod("primitiveMethod$$PHOSPHORTAGGED", String.class, Taint.class, Integer.TYPE, Taint.class, Integer.TYPE, LazyIntArrayObjTags.class);
 		Annotation[][] annotations = meth.getParameterAnnotations();
 
-		Assert.assertEquals(7, annotations.length);
+		Assert.assertEquals(6, annotations.length);
 		Assert.assertEquals(0, annotations[0].length);
 		Assert.assertEquals(0, annotations[1].length);
 		Assert.assertEquals(1, annotations[2].length);
@@ -36,9 +35,8 @@ public class ParameterAnnotationObjTagITCase {
 		Assert.assertEquals("Param1",param1.value());
 		Assert.assertEquals(0, annotations[3].length);
 		Assert.assertEquals(0, annotations[4].length);
-		Assert.assertEquals(0, annotations[5].length);
-		Assert.assertEquals(1, annotations[6].length);
-		Annotated param3 = (Annotated) annotations[6][0];
+		Assert.assertEquals(1, annotations[5].length);
+		Annotated param3 = (Annotated) annotations[5][0];
 		Assert.assertEquals("param3",param3.value());
 
 	}

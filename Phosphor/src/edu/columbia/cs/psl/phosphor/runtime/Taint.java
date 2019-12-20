@@ -284,23 +284,23 @@ public abstract class Taint<T> implements Serializable {
         Taint existing = str.PHOSPHOR_TAG;
         str.PHOSPHOR_TAG = combineTags(existing, ctrl);
 
-        LazyCharArrayObjTags tags = str.valuePHOSPHOR_TAG;
-        if(tags == null) {
-            str.valuePHOSPHOR_TAG = new LazyCharArrayObjTags(str.value);
-            tags = str.valuePHOSPHOR_TAG;
+        LazyCharArrayObjTags tags = str.valuePHOSPHOR_WRAPPER;
+        if (tags == null) {
+            str.valuePHOSPHOR_WRAPPER = new LazyCharArrayObjTags(str.value);
+            tags = str.valuePHOSPHOR_WRAPPER;
         }
-        if(tags.taints == null) {
+        if (tags.taints == null) {
             tags.taints = new Taint[str.length()];
         }
-            // SetNode representation is being used
-            Taint originalPreviousTaint = null;
-            for(int i = 0; i < tags.taints.length; i++) {
-                if(originalPreviousTaint != null && originalPreviousTaint.equals(tags.taints[i])) {
-                    tags.taints[i] = tags.taints[i - 1];
-                } else {
-                    originalPreviousTaint = tags.taints[i];
-                    tags.taints[i] = combineTags(tags.taints[i], ctrl);
-                }
+        // SetNode representation is being used
+        Taint originalPreviousTaint = null;
+        for (int i = 0; i < tags.taints.length; i++) {
+            if (originalPreviousTaint != null && originalPreviousTaint.equals(tags.taints[i])) {
+                tags.taints[i] = tags.taints[i - 1];
+            } else {
+                originalPreviousTaint = tags.taints[i];
+                tags.taints[i] = combineTags(tags.taints[i], ctrl);
             }
+        }
     }
 }

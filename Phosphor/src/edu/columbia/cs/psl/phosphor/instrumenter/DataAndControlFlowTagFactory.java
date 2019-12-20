@@ -324,17 +324,22 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
             case Opcodes.ARRAYLENGTH:
                 Type arrType = TaintAdapter.getTypeForStackType(adapter.analyzer.stack.get(adapter.analyzer.stack.size() - 1));
                 boolean loaded = false;
-                if(arrType.getElementType().getSort() != Type.OBJECT) {
+                if(arrType.getSort() != Type.ARRAY) {
                     //TA A
                     loaded = true;
-                    mv.visitInsn(SWAP);
-                    if(Configuration.ARRAY_LENGTH_TRACKING) {
-                        mv.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "getLengthTaint", "()" + Configuration.TAINT_TAG_DESC, false);
-                    } else {
-                        mv.visitInsn(POP);
+                    if(adapter.topCarriesTaint()) {
+                        mv.visitInsn(SWAP);
+                        if (Configuration.ARRAY_LENGTH_TRACKING) {
+                            mv.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "getLengthTaint", "()" + Configuration.TAINT_TAG_DESC, false);
+                        } else {
+                            mv.visitInsn(POP);
+                            NEW_EMPTY_TAINT.delegateVisit(mv);
+                        }
+                        mv.visitInsn(SWAP);
+                    } else{
                         NEW_EMPTY_TAINT.delegateVisit(mv);
+                        mv.visitInsn(SWAP);
                     }
-                    mv.visitInsn(SWAP);
                     //A
                 }
                 if(!loaded) {
@@ -347,7 +352,11 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
                     }
                     mv.visitInsn(SWAP);
                 }
-                mv.visitInsn(opcode);
+                if (arrType.getSort() != Type.ARRAY) {
+                    mv.visitMethodInsn(INVOKEVIRTUAL, arrType.getInternalName(), "getLength", "()I", false);
+                } else {
+                    mv.visitInsn(opcode);
+                }
                 break;
         }
     }
@@ -409,12 +418,8 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
         if((acc & Opcodes.ACC_STATIC) == 0) {
             idx++;
         }
-        for(Type t : argTypes) {
-            if(t.getSort() == Type.ARRAY) {
-                if(t.getElementType().getSort() != Type.OBJECT && t.getDimensions() == 1) {
-                    idx++;
-                }
-            } else if(t.getSort() != Type.OBJECT) {
+        for (Type t : argTypes) {
+            if (TaintUtils.isShadowedType(t)) {
                 mv.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
                 COMBINE_TAGS.delegateVisit(mv);
                 idx++;

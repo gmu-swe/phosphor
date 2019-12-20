@@ -90,17 +90,9 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                         super.visitInsn(Opcodes.DUP);
                     }
 
-                    //O A O A
-                    super.visitTypeInsn(NEW, Type.getType(taintFieldType).getInternalName());
-                    //O A O A W
-                    super.visitInsn(DUP_X1);
-                    //O A O W A W
-                    super.visitInsn(DUP_X1);
-                    //O A O W W A
-                    super.visitInsn(POP);
-                    super.visitMethodInsn(INVOKESPECIAL, Type.getType(taintFieldType).getInternalName(), "<init>", "(" + desc + ")V", false);
+                    super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getType(taintFieldType).getInternalName(), "factory","(" + desc + ")" + taintFieldType, false);
                     // O A O W
-                    super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, taintFieldType);
+                    super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, taintFieldType);
                     super.visitLabel(ok);
                     if(!skipFrames) {
                         fn.accept(this);
@@ -182,7 +174,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                         ((elType.getSort() == Type.ARRAY && elType.getElementType().getSort() != Type.OBJECT)
                                 || elType.getDescriptor().equals("Ljava/lang/Object;"))) {
                     visit(BOX_IF_NECESSARY);
-                } else if(arType instanceof String && ((String) arType).contains("[Ledu/columbia/cs/psl/phosphor/struct/multid/MultiDTainted")) {
+                } else if(arType instanceof String && ((String) arType).contains("[Ledu/columbia/cs/psl/phosphor/struct/Lazy")) {
                     visit(BOX_IF_NECESSARY);
                 }
                 super.visitInsn(opcode);
@@ -190,7 +182,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
             case Opcodes.AALOAD:
                 Object arrayType = analyzer.stack.get(analyzer.stack.size() - 2);
                 Type t = getTypeForStackType(arrayType);
-                if(t.getDimensions() == 1 && t.getElementType().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/multid/MultiDTainted")) {
+                if(t.getDimensions() == 1 && t.getElementType().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy")) {
                     super.visitInsn(opcode);
                     try {
                         super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
@@ -237,6 +229,21 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                 super.visitVarInsn(Opcodes.ALOAD, lv);
                 super.visitInsn(ARETURN);
                 break;
+            case Opcodes.LALOAD:
+            case Opcodes.DALOAD:
+            case Opcodes.IALOAD:
+            case Opcodes.FALOAD:
+            case Opcodes.BALOAD:
+            case Opcodes.CALOAD:
+            case Opcodes.SALOAD:
+                onStack = Type.getObjectType((String) analyzer.stack.get(analyzer.stack.size() - 2));
+                if (onStack.getSort() != Type.ARRAY) {
+                    super.visitInsn(SWAP);
+                    super.visitMethodInsn(Opcodes.INVOKESTATIC, onStack.getInternalName(), "unwrap", "(" + onStack.getDescriptor() + ")" + TaintUtils.getUnwrappedType(onStack).getDescriptor(), false);
+                    super.visitInsn(SWAP);
+                }
+                super.visitInsn(opcode);
+                break;
             default:
                 super.visitInsn(opcode);
                 break;
@@ -278,11 +285,16 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 
     @Override
     public void visitJumpInsn(int opcode, Label label) {
-        if(Configuration.WITH_UNBOX_ACMPEQ && (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ACMPNE)) {
-            visit(ENSURE_UNBOXED);
-            mv.visitInsn(SWAP);
-            visit(ENSURE_UNBOXED);
-            mv.visitInsn(SWAP);
+        if(Configuration.WITH_UNBOX_ACMPEQ) {
+            switch (opcode) {
+                case IF_ACMPEQ:
+                case IF_ACMPNE:
+                    ENSURE_UNBOXED.delegateVisit(mv);
+                    super.visitInsn(SWAP);
+                    ENSURE_UNBOXED.delegateVisit(mv);
+                    super.visitInsn(SWAP);
+                    break;
+            }
         }
         super.visitJumpInsn(opcode, label);
     }
