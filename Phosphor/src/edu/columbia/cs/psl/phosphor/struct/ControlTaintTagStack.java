@@ -22,8 +22,8 @@ public final class ControlTaintTagStack {
     private SinglyLinkedList<MaybeThrownException> influenceExceptions = null;
 
     public ControlTaintTagStack() {
-        taintHistory.push(null); // starting taint is null/empty
-        revisionExcludedTaintHistory.push(null); // starting taint is null/empty
+        taintHistory.push(Taint.emptyTaint()); // starting taint is null/empty
+        revisionExcludedTaintHistory.push(Taint.emptyTaint()); // starting taint is null/empty
     }
 
     private ControlTaintTagStack(boolean disabled) {
@@ -153,18 +153,18 @@ public final class ControlTaintTagStack {
             }
         } else {
             Taint r = taintHistory.peek();
-            if (r != tag && !r.isSuperset(tag)) {
+            if(r != tag && !r.isSuperset(tag)) {
                 taintHistory.push(taintHistory.pop().union(tag));
             }
             if(curMethod != null) {
                 r = curMethod.getCurrentTaint();
-                if(r != tag && !r.isSuperset(tag)){
+                if(r != tag && !r.isSuperset(tag)) {
                     curMethod.push(curMethod.pop().union(tag));
                 }
             }
             if(!revisable) {
                 r = revisionExcludedTaintHistory.peek();
-                if(r != tag && !r.isSuperset(tag)){
+                if(r != tag && !r.isSuperset(tag)) {
                     revisionExcludedTaintHistory.push(revisionExcludedTaintHistory.pop().union(tag));
                 }
             }
@@ -252,7 +252,7 @@ public final class ControlTaintTagStack {
         if(isEmpty() && lacksInfluenceExceptions()) {
             return Taint.emptyTaint();
         }
-        Taint ret = taintHistory.peek() == null ? Taint.emptyTaint() : taintHistory.peek();
+        Taint ret = taintHistory.peek();
         if(lacksInfluenceExceptions()) {
             return ret;
         }
@@ -266,27 +266,23 @@ public final class ControlTaintTagStack {
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG)
     public Taint copyTag() {
-        return isEmpty() ? null : taintHistory.peek();
+        return disabled ? Taint.emptyTaint() : taintHistory.peek();
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_REVISION_EXCLUDED_TAG)
     public Taint copyRevisionExcludedTag() {
-        return isEmpty() ? null : revisionExcludedTaintHistory.peek();
-    }
-
-    public Taint getTag() {
-        return isEmpty() ? null : taintHistory.peek();
+        return disabled ? Taint.emptyTaint() : revisionExcludedTaintHistory.peek();
     }
 
     public final boolean isEmpty() {
-        return disabled || taintHistory.peek() == null || taintHistory.peek().isEmpty();
+        return disabled || taintHistory.peek().isEmpty();
     }
 
     public void reset() {
         taintHistory.clear();
-        taintHistory.push(null);
+        taintHistory.push(Taint.emptyTaint());
         revisionExcludedTaintHistory.clear();
-        revisionExcludedTaintHistory.push(null);
+        revisionExcludedTaintHistory.push(Taint.emptyTaint());
         if(influenceExceptions != null) {
             influenceExceptions.clear();
         }

@@ -208,7 +208,7 @@ public class TaintUtils {
                     if(taints[i] == null) {
                         taints[i] = ctrl.copyTag();
                     } else {
-                        taints[i] = taints[i].union(ctrl.getTag());
+                        taints[i] = taints[i].union(ctrl.copyTag());
                     }
                 }
             }
@@ -290,7 +290,7 @@ public class TaintUtils {
                     if(taints[i] == null) {
                         taints[i] = ctrl.copyTag();
                     } else {
-                        taints[i] = taints[i].union(ctrl.getTag());
+                        taints[i] = taints[i].union(ctrl.copyTag());
                     }
                 }
             }

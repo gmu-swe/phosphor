@@ -204,7 +204,7 @@ public class CharacterUtils {
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
             Taint _t = Taint.withLabel(t);
-            _t = _t.union(ctrl.getTag());
+            _t = _t.union(ctrl.copyTag());
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }
@@ -220,7 +220,7 @@ public class CharacterUtils {
         } catch(StringIndexOutOfBoundsException ex) {
             Taint _t = Taint.withLabel(t);
             _t = _t.union((Taint) ((TaintedWithObjTag) seq).getPHOSPHOR_TAG());
-            _t = _t.union(ctrl.getTag());
+            _t = _t.union(ctrl.copyTag());
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }
@@ -236,7 +236,7 @@ public class CharacterUtils {
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
             Taint _t = Taint.withLabel(t);
-            _t = _t.union(ctrl.getTag());
+            _t = _t.union(ctrl.copyTag());
             ((TaintedWithObjTag) ex).setPHOSPHOR_TAG(_t);
             throw ex;
         }

@@ -212,10 +212,10 @@ public abstract class Taint<T> implements Serializable {
                 if(t1 == null) {
                     return tags.copyTag();
                 }
-                if(t1.isSuperset(tags.getTag())) {
+                if(t1.isSuperset(tags.copyTag())) {
                     return t1;
                 }
-                if(tags.getTag().isSuperset(t1)) {
+                if(tags.copyTag().isSuperset(t1)) {
                     return tags.copyTag();
                 }
             }

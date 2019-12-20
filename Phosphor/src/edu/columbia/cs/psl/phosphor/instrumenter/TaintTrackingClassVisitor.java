@@ -391,10 +391,15 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
             mv = new StringTaintVerifyingMV(analyzer, (implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")), analyzer); //TODO - how do we handle directbytebuffers?
             ControlStackInitializingMV controlStackInitializingMV = null;
+            ControlStackRestoringMV controlStackRestoringMV = null;
             MethodVisitor next = mv;
             if(ControlStackInitializingMV.isApplicable(isImplicitLightTrackingMethod)) {
                 controlStackInitializingMV = new ControlStackInitializingMV(next, isImplicitLightTrackingMethod);
                 next = controlStackInitializingMV;
+            }
+            if(ControlStackRestoringMV.isApplicable(name)) {
+                controlStackRestoringMV = new ControlStackRestoringMV(next, rootmV, className, name);
+                next = controlStackRestoringMV;
             }
             ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(next, className, name, analyzer);
             PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
@@ -421,6 +426,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             if(controlStackInitializingMV != null) {
                 controlStackInitializingMV.setArrayAnalyzer(primitiveArrayFixer);
                 controlStackInitializingMV.setLocalVariableManager(lvs);
+            }
+            if(controlStackRestoringMV != null) {
+                controlStackRestoringMV.setArrayAnalyzer(primitiveArrayFixer);
+                controlStackRestoringMV.setLocalVariableManager(lvs);
             }
             lvs.setPrimitiveArrayAnalyzer(primitiveArrayFixer); // this guy will tell the LVS what return types to prealloc
             reflectionMasker.setLvs(lvs);

@@ -1,15 +1,12 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Arrays;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
-import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -43,11 +40,6 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     private final LocalVariableManager localVariableManager;
 
     /**
-     * True if the ControlTaintTagStack should be disabled in this method.
-     */
-    private final boolean isExcludedFromControlTrack;
-
-    /**
      * True if the method being visited is an instance initialization method (i.e.,  {@code <init>}).
      */
     private final boolean isInstanceInitializer;
@@ -56,23 +48,6 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
      * The number of unique identifier for "branch" location in the method being visited.
      */
     private final int numberOfBranchIDs;
-
-    /**
-     * True if a try-finally style exception handler should be added to the method being visited.
-     */
-    private final boolean addHandler;
-
-    /**
-     * If an exception handler is to be added to the method being visited, the label marking the start of the exception
-     * handler's scope. Otherwise, null.
-     */
-    private final Label handlerScopeStart;
-
-    /**
-     * If an exception handler is to be added to the method being visited, the label marking the end of the exception
-     * handler's scope and the start of its code. Otherwise, null.
-     */
-    private final Label handlerScopeEnd;
 
     /**
      * Set containing the indices of local variables that need to be force stored.
@@ -95,11 +70,6 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     private final Type[] paramTypes;
 
     /**
-     * The number of exception handlers for the method being visited that have not yet been visited.
-     */
-    private int numberOfExceptionHandlersRemaining;
-
-    /**
      * Contains info about the next "branch" location encountered.
      */
     private SinglyLinkedList<BranchInfo> nextBranch = new SinglyLinkedList<>();
@@ -111,41 +81,25 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
 
     public PropagatingControlFlowDelegator(MethodVisitor delegate, MethodVisitor passThroughDelegate, NeverNullArgAnalyzerAdapter analyzer,
                                            LocalVariableManager localVariableManager, PrimitiveArrayAnalyzer primitiveArrayAnalyzer,
-                                           String className, String methodName, int lastParameterIndex, Type[] paramTypes) {
+                                           String methodName, int lastParameterIndex, Type[] paramTypes) {
         this.delegate = delegate;
         this.passThroughDelegate = passThroughDelegate;
         this.analyzer = analyzer;
         this.localVariableManager = localVariableManager;
-        this.isExcludedFromControlTrack = Instrumenter.isIgnoredFromControlTrack(className, methodName);
         this.isInstanceInitializer = "<init>".equals(methodName);
         this.lastParameterIndex = lastParameterIndex;
         this.paramTypes = paramTypes;
-        this.numberOfExceptionHandlersRemaining = primitiveArrayAnalyzer.nTryCatch;
         this.numberOfBranchIDs = (primitiveArrayAnalyzer.nJumps + primitiveArrayAnalyzer.nTryCatch == 0) ? 0 : primitiveArrayAnalyzer.nJumps + primitiveArrayAnalyzer.nTryCatch + 2;
-        this.addHandler = Configuration.IMPLICIT_TRACKING && !isInstanceInitializer;
-        this.handlerScopeStart = addHandler ? new Label() : null;
-        this.handlerScopeEnd = addHandler ? new Label() : null;
     }
 
     @Override
     public void visitedCode() {
-        if(isExcludedFromControlTrack) {
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            CONTROL_STACK_DISABLE.delegateVisit(delegate);
-        }
-        if(addHandler && numberOfExceptionHandlersRemaining == 0) {
-            delegate.visitTryCatchBlock(handlerScopeStart, handlerScopeEnd, handlerScopeEnd, null);
-            delegate.visitLabel(handlerScopeStart);
-        }
+
     }
 
     @Override
     public void visitedTryCatch() {
-        numberOfExceptionHandlersRemaining--;
-        if(addHandler && numberOfExceptionHandlersRemaining == 0) {
-            delegate.visitTryCatchBlock(handlerScopeStart, handlerScopeEnd, handlerScopeEnd, null);
-            delegate.visitLabel(handlerScopeStart);
-        }
+
     }
 
     @Override
@@ -405,39 +359,11 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
 
     @Override
     public void visitingMaxs(int maxStack, int maxLocals) {
-        if(addHandler) {
-            delegate.visitLabel(handlerScopeEnd);
-            int indexOfMasterControl = localVariableManager.getIndexOfMasterControlLV();
-            int indexOfMasterException = localVariableManager.getIndexOfMasterExceptionLV();
-            int indexOfBranches = localVariableManager.getIndexOfBranchesLV();
-            int maxLV = TaintUtils.max(indexOfMasterControl, indexOfMasterException, indexOfBranches);
-            Object[] baseLvs = new Object[maxLV + 1];
-            Arrays.fill(baseLvs, TOP);
-            baseLvs[localVariableManager.getIndexOfMasterControlLV()] = CONTROL_STACK_INTERNAL_NAME;
-            if(indexOfMasterException >= 0) {
-                baseLvs[indexOfMasterException] = MASTER_EXCEPTION_INTERNAL_NAME;
-            }
-            if(indexOfBranches > 0) {
-                baseLvs[indexOfBranches] = BRANCHES_INTERNAL_NAME;
-            }
-            delegate.visitFrame(F_NEW, baseLvs.length, baseLvs, 1, new Object[]{"java/lang/Throwable"});
-            if(indexOfBranches >= 0) {
-                callPopAll();
-            }
-            if(isExcludedFromControlTrack) {
-                delegate.visitVarInsn(ALOAD, indexOfMasterControl);
-                CONTROL_STACK_ENABLE.delegateVisit(delegate);
-            }
-            delegate.visitInsn(ATHROW);
-        }
+
     }
 
     @Override
     public void onMethodExit(int opcode) {
-        if(this.isExcludedFromControlTrack) {
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            CONTROL_STACK_ENABLE.delegateVisit(delegate);
-        }
         if(opcode == ATHROW) {
             passThroughDelegate.visitInsn(DUP);
             passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());

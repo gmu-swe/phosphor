@@ -8,7 +8,7 @@ public class ExceptionalTaintData {
 
     public ExceptionalTaintData() {
         taintHistory = new SinglyLinkedList<>();
-        taintHistory.push(null); // starting taint is null/empty
+        taintHistory.push(Taint.emptyTaint()); // starting taint is null/empty
     }
 
     public Taint getCurrentTaint() {
@@ -17,7 +17,7 @@ public class ExceptionalTaintData {
 
     public void reset() {
         taintHistory.clear();
-        taintHistory.push(null); // starting taint is null/empty
+        taintHistory.push(Taint.emptyTaint()); // starting taint is null/empty
     }
 
     @SuppressWarnings("unchecked")
@@ -31,9 +31,8 @@ public class ExceptionalTaintData {
 
     public void unionWithCurrentTaint(Taint tag) {
         Taint top = getCurrentTaint();
-        if (top != null && top.isSuperset(tag)) {
-            return;
+        if(!top.isSuperset(tag)) {
+            push(tag.union(pop()));
         }
-        push(tag.union(pop()));
     }
 }
