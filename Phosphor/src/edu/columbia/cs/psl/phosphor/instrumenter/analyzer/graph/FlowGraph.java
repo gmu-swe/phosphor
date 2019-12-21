@@ -508,7 +508,7 @@ public final class FlowGraph<V> {
         Map<V, Set<V>> predecessors = new HashMap<>();
         for(V key : edges.keySet()) {
             // Make empty sets for each vertex
-            predecessors.put(key, new HashSet<V>());
+            predecessors.put(key, new HashSet<>());
         }
         for(V key : edges.keySet()) {
             for(V value : edges.get(key)) {
@@ -659,6 +659,14 @@ public final class FlowGraph<V> {
          */
         public Set<V> getVertices() {
             return Collections.unmodifiableSet(vertices);
+        }
+
+        /**
+         * @param vertex the vertex whose membership in this loop is being tested
+         * @return true if this loop contains the specified vertex
+         */
+        public boolean contains(V vertex) {
+            return vertices.contains(vertex);
         }
 
         @Override

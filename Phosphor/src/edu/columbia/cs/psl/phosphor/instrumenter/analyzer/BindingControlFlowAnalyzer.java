@@ -1,14 +1,14 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BaseControlFlowGraphCreator;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BasicBlock;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.DummyBasicBlock;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.*;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace.TracingInterpreter;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
+
+import java.util.Iterator;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -106,35 +106,81 @@ public class BindingControlFlowAnalyzer {
                 }
             }
         }
-        // Add an instruction to signal the end of the scopes of all of the branch edges before every instruction which
-        // causes the method to return
-        if(nextBranchIDAssigned > 0) {
-            for(BasicBlock basicBlock : controlFlowGraph.getPredecessors(controlFlowGraph.getExitPoint())) {
-                if(!(basicBlock instanceof DummyBasicBlock)) {
-                    instructions.insertBefore(basicBlock.getLastInsn(), new VarInsnNode(TaintUtils.BRANCH_END, -1));
-                }
-            }
-        }
         // Mark all revision-excluded instructions
         for(AbstractInsnNode exclusionCandidate : exclusionCandidates) {
             instructions.insertBefore(exclusionCandidate, new InsnNode(TaintUtils.EXCLUDE_REVISABLE_BRANCHES));
         }
+        Map<AbstractInsnNode, Integer> loopLevels = getLoopLevels(instructions, controlFlowGraph);
+        markLoopExits(instructions, controlFlowGraph, loopLevels);
         return nextBranchIDAssigned;
+    }
+
+    private static void markLoopExits(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph, Map<AbstractInsnNode, Integer> loopLevels) {
+        Set<NaturalLoop<BasicBlock>> loops = controlFlowGraph.getNaturalLoops();
+        for(NaturalLoop<BasicBlock> loop : loops) {
+            BasicBlock header = loop.getHeader();
+            if(header instanceof SimpleBasicBlock) {
+                Set<SimpleBasicBlock> exits = new HashSet<>();
+                for(BasicBlock vertex : loop.getVertices()) {
+                    for(BasicBlock target : controlFlowGraph.getSuccessors(vertex)) {
+                        if(target instanceof SimpleBasicBlock && !loop.contains(target)) {
+                            exits.add((SimpleBasicBlock) target);
+                        }
+                    }
+                }
+                ExitLoopLevelInfo exitLoopLevelInfo = new ExitLoopLevelInfo(loopLevels.get(header.getFirstInsn()));
+                for(BasicBlock exit : exits) {
+                    AbstractInsnNode nextInsn = findNextPrecedableInstruction(exit.getFirstInsn());
+                    instructions.insertBefore(nextInsn, new LdcInsnNode(exitLoopLevelInfo));
+                }
+            }
+        }
+    }
+
+    /**
+     * @param instructions     the instructions whose loop levels are to calculated
+     * @param controlFlowGraph a control flow graph representing the instructions in the specified list
+     * @return the number of natural loops that contain of the each instruction in the specified loop
+     */
+    private static Map<AbstractInsnNode, Integer> getLoopLevels(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph) {
+        Set<NaturalLoop<BasicBlock>> loops = controlFlowGraph.getNaturalLoops();
+        int[] loopLevels = new int[instructions.size()];
+        for(NaturalLoop<BasicBlock> loop : loops) {
+            for(BasicBlock basicBlock : loop.getVertices()) {
+                if(basicBlock instanceof SimpleBasicBlock) {
+                    AbstractInsnNode start = basicBlock.getFirstInsn();
+                    while(start != null) {
+                        loopLevels[instructions.indexOf(start)]++;
+                        if(start == basicBlock.getLastInsn()) {
+                            break;
+                        }
+                        start = start.getNext();
+                    }
+                }
+            }
+        }
+        Map<AbstractInsnNode, Integer> levelMap = new HashMap<>();
+        int index = 0;
+        Iterator<AbstractInsnNode> itr = instructions.iterator();
+        while(itr.hasNext()) {
+            levelMap.put(itr.next(), loopLevels[index++]);
+        }
+        return levelMap;
     }
 
     /**
      * Marks the ends of the scope for the specified edge by inserting BRANCH_END instructions.
      *
-     * @param insnList         the instructions of a method
+     * @param instructions     the instructions of a method
      * @param edge             a vertex that represents a binding branch edge in the specified method
      * @param id               the unique identifier assigned to the specified branch edge
      * @param controlFlowGraph the control flow graph of the method
      */
-    private static void markBranchEnds(InsnList insnList, BindingBranchEdge edge, int id, FlowGraph<BasicBlock> controlFlowGraph) {
+    private static void markBranchEnds(InsnList instructions, BindingBranchEdge edge, int id, FlowGraph<BasicBlock> controlFlowGraph) {
         Set<BasicBlock> scopeEnds = edge.getScopeEnds(controlFlowGraph);
         for(BasicBlock scopeEnd : scopeEnds) {
             AbstractInsnNode insn = findNextPrecedableInstruction(scopeEnd.getFirstInsn());
-            insnList.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, id));
+            instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, id));
         }
     }
 

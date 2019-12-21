@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ExitLoopLevelInfo;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo.ConstantArg;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo.DependentArg;
@@ -139,9 +140,17 @@ public class ControlStackInitializingMV extends MethodVisitor {
         super.visitInsn(POP); // Pop the ControlTaintTagStack off the runtime stack
     }
 
+    private void exitLoopLevel(ExitLoopLevelInfo insn) {
+        super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+        PropagatingControlFlowDelegator.push(mv, insn.getLevelOffset());
+        CONTROL_STACK_EXIT_LOOP_LEVEL.delegateVisit(mv);
+    }
+
     @Override
     public void visitLdcInsn(Object cst) {
-        if(cst instanceof LoopAwareConstancyInfo) {
+        if(cst instanceof ExitLoopLevelInfo) {
+            exitLoopLevel((ExitLoopLevelInfo) cst);
+        } else if(cst instanceof LoopAwareConstancyInfo) {
             nextMethodFrameInfo = (LoopAwareConstancyInfo) cst;
         } else {
             super.visitLdcInsn(cst);
