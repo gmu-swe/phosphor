@@ -14,7 +14,7 @@ public class BitSetTest {
         for(int index : addIndices) {
             set.add(index);
         }
-        SinglyLinkedList<Integer> list = set.toList();
+        IntSinglyLinkedList list = set.toList();
         for(int index : addIndices) {
             assertTrue(list.contains(index));
         }

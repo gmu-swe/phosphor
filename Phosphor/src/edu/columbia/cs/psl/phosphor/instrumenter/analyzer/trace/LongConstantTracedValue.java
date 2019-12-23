@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
-public final class LongConstantTracedValue extends ConstantTracedValue {
+final class LongConstantTracedValue extends ConstantTracedValue {
 
     private final long constant;
 

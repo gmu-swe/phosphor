@@ -7,7 +7,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
  * Represents a value in the operand stack or local variable array of a frame in a method that has been determined
  * to be equal to exactly one constant value along all execution paths.
  */
-public abstract class ConstantTracedValue extends TracedValue {
+abstract class ConstantTracedValue extends TracedValue {
 
     ConstantTracedValue(int size, Set<AbstractInsnNode> instructions) {
         super(size, instructions);

@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
-public final class DoubleConstantTracedValue extends ConstantTracedValue {
+final class DoubleConstantTracedValue extends ConstantTracedValue {
 
     private final double constant;
 

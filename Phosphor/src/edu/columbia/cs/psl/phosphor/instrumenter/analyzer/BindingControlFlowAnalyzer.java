@@ -71,7 +71,8 @@ public class BindingControlFlowAnalyzer {
         }
         BindingControlFlowGraphCreator creator = new BindingControlFlowGraphCreator();
         FlowGraph<BasicBlock> controlFlowGraph = creator.createControlFlowGraph(methodNode);
-        TracingInterpreter interpreter = new TracingInterpreter(owner, methodNode);
+        Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap = getContainingLoops(instructions, controlFlowGraph);
+        TracingInterpreter interpreter = new TracingInterpreter(owner, methodNode, containingLoopMap);
         Set<AbstractInsnNode> exclusionCandidates = interpreter.identifyRevisionExcludedInstructions();
         Collection<BindingBranchEdge> edges = filterEdges(creator.bindingBranchEdges, controlFlowGraph);
         Map<BasicBlock, Set<BindingBranchEdge>> groupedStartBlocks = groupEdgesBySource(edges);
@@ -110,12 +111,11 @@ public class BindingControlFlowAnalyzer {
         for(AbstractInsnNode exclusionCandidate : exclusionCandidates) {
             instructions.insertBefore(exclusionCandidate, new InsnNode(TaintUtils.EXCLUDE_REVISABLE_BRANCHES));
         }
-        Map<AbstractInsnNode, Integer> loopLevels = getLoopLevels(instructions, controlFlowGraph);
-        markLoopExits(instructions, controlFlowGraph, loopLevels);
+        markLoopExits(instructions, controlFlowGraph, containingLoopMap);
         return nextBranchIDAssigned;
     }
 
-    private static void markLoopExits(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph, Map<AbstractInsnNode, Integer> loopLevels) {
+    private static void markLoopExits(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph, Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap) {
         Set<NaturalLoop<BasicBlock>> loops = controlFlowGraph.getNaturalLoops();
         for(NaturalLoop<BasicBlock> loop : loops) {
             BasicBlock header = loop.getHeader();
@@ -128,7 +128,8 @@ public class BindingControlFlowAnalyzer {
                         }
                     }
                 }
-                ExitLoopLevelInfo exitLoopLevelInfo = new ExitLoopLevelInfo(loopLevels.get(header.getFirstInsn()));
+                int numContainingLoops = containingLoopMap.get(header.getFirstInsn()).size();
+                ExitLoopLevelInfo exitLoopLevelInfo = new ExitLoopLevelInfo(numContainingLoops);
                 for(BasicBlock exit : exits) {
                     AbstractInsnNode nextInsn = findNextPrecedableInstruction(exit.getFirstInsn());
                     instructions.insertBefore(nextInsn, new LdcInsnNode(exitLoopLevelInfo));
@@ -138,19 +139,23 @@ public class BindingControlFlowAnalyzer {
     }
 
     /**
-     * @param instructions     the instructions whose loop levels are to calculated
+     * @param instructions     the instructions whose containing loops are to be calculated
      * @param controlFlowGraph a control flow graph representing the instructions in the specified list
-     * @return the number of natural loops that contain of the each instruction in the specified loop
+     * @return a mapping between each instruction in the specified list and the natural loops that contain it
      */
-    private static Map<AbstractInsnNode, Integer> getLoopLevels(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph) {
+    public static Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> getContainingLoops(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph) {
         Set<NaturalLoop<BasicBlock>> loops = controlFlowGraph.getNaturalLoops();
-        int[] loopLevels = new int[instructions.size()];
+        Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> loopMap = new HashMap<>();
+        Iterator<AbstractInsnNode> itr = instructions.iterator();
+        while(itr.hasNext()) {
+            loopMap.put(itr.next(), new HashSet<>());
+        }
         for(NaturalLoop<BasicBlock> loop : loops) {
             for(BasicBlock basicBlock : loop.getVertices()) {
                 if(basicBlock instanceof SimpleBasicBlock) {
                     AbstractInsnNode start = basicBlock.getFirstInsn();
                     while(start != null) {
-                        loopLevels[instructions.indexOf(start)]++;
+                        loopMap.get(start).add(loop);
                         if(start == basicBlock.getLastInsn()) {
                             break;
                         }
@@ -159,13 +164,7 @@ public class BindingControlFlowAnalyzer {
                 }
             }
         }
-        Map<AbstractInsnNode, Integer> levelMap = new HashMap<>();
-        int index = 0;
-        Iterator<AbstractInsnNode> itr = instructions.iterator();
-        while(itr.hasNext()) {
-            levelMap.put(itr.next(), loopLevels[index++]);
-        }
-        return levelMap;
+        return loopMap;
     }
 
     /**

@@ -3,10 +3,10 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ExitLoopLevelInfo;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo.ConstantArg;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo.DependentArg;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo.FrameArgumentLevel;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo.VariantArg;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.ConstantLoopLevel;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.DependentLoopLevel;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.VariantLoopLevel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
 import org.objectweb.asm.Handle;
@@ -115,13 +115,13 @@ public class ControlStackInitializingMV extends MethodVisitor {
         PropagatingControlFlowDelegator.push(mv, nextMethodFrameInfo.getInvocationLevel());
         PropagatingControlFlowDelegator.push(mv, nextMethodFrameInfo.getNumArguments());
         CONTROL_STACK_START_FRAME.delegateVisit(mv);
-        Iterator<FrameArgumentLevel> argLevels = nextMethodFrameInfo.getLevelIterator();
+        Iterator<LoopLevel> argLevels = nextMethodFrameInfo.getLevelIterator();
         while(argLevels.hasNext()) {
-            FrameArgumentLevel argLevel = argLevels.next();
-            if(argLevel instanceof ConstantArg) {
+            LoopLevel argLevel = argLevels.next();
+            if(argLevel instanceof ConstantLoopLevel) {
                 CONTROL_STACK_SET_ARG_CONSTANT.delegateVisit(mv);
-            } else if(argLevel instanceof DependentArg) {
-                int[] dependencies = ((DependentArg) argLevel).getDependencies();
+            } else if(argLevel instanceof DependentLoopLevel) {
+                int[] dependencies = ((DependentLoopLevel) argLevel).getDependencies();
                 // Make the dependencies array
                 PropagatingControlFlowDelegator.push(mv, dependencies.length);
                 super.visitIntInsn(NEWARRAY, T_INT);
@@ -132,8 +132,8 @@ public class ControlStackInitializingMV extends MethodVisitor {
                     super.visitInsn(IASTORE);
                 }
                 CONTROL_STACK_SET_ARG_DEPENDENT.delegateVisit(mv);
-            } else if(argLevel instanceof VariantArg) {
-                PropagatingControlFlowDelegator.push(mv, ((VariantArg) argLevel).getLevelOffset());
+            } else if(argLevel instanceof VariantLoopLevel) {
+                PropagatingControlFlowDelegator.push(mv, ((VariantLoopLevel) argLevel).getLevelOffset());
                 CONTROL_STACK_SET_ARG_VARIANT.delegateVisit(mv);
             }
         }

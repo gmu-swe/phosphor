@@ -9,7 +9,7 @@ import org.objectweb.asm.tree.analysis.Value;
 /**
  * Represents a value in the operand stack or local variable array of a frame in a method.
  */
-public abstract class TracedValue implements Value {
+abstract class TracedValue implements Value {
 
     /**
      * The size of this value i.e., 2 for {@code long} and {@code double} values and 1 otherwise

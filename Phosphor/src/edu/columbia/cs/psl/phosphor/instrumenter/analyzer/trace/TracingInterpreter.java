@@ -1,15 +1,17 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.ConstantLoopLevel;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.DependentLoopLevel;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BasicBlock;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.Analyzer;
+import edu.columbia.cs.psl.phosphor.struct.BitSet;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
-import org.objectweb.asm.tree.analysis.Analyzer;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
-import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.Interpreter;
 
 import java.util.Iterator;
@@ -20,15 +22,17 @@ import static org.objectweb.asm.Opcodes.*;
 public class TracingInterpreter extends Interpreter<TracedValue> {
 
     private final Map<AbstractInsnNode, InstructionEffect> effectMap = new HashMap<>();
-    private final Frame<TracedValue>[] frames;
     private final InsnList instructions;
-    private final Map<TracedValue, ParamValue> paramMap = new HashMap<>();
+    private final Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap;
+    private int paramNumber = 0;
+    private int currentInsnIndex = -1;
 
-    public TracingInterpreter(String owner, MethodNode methodNode) throws AnalyzerException {
+    public TracingInterpreter(String owner, MethodNode methodNode, Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap) throws AnalyzerException {
         super(Configuration.ASM_VERSION);
-        Analyzer<TracedValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(this);
-        this.frames = analyzer.analyze(owner, methodNode);
         this.instructions = methodNode.instructions;
+        this.containingLoopMap = containingLoopMap;
+        Analyzer<TracedValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(this);
+        analyzer.analyze(owner, methodNode);
     }
 
     @Override
@@ -36,14 +40,14 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
         if(type == Type.VOID_TYPE) {
             return null;
         }
-        return new BasicTracedValue(type == null ? 1 : type.getSize(), new HashSet<>());
+        return new VariantTracedValue(type == null ? 1 : type.getSize(), new HashSet<>(), Collections.emptySet());
     }
 
     @Override
     public TracedValue newParameterValue(boolean isInstanceMethod, int local, Type type) {
-        TracedValue result = newValue(type);
-        paramMap.put(result, new ParamValue(isInstanceMethod, local, type));
-        return result;
+        BitSet dependencies = new BitSet(paramNumber + 1);
+        dependencies.add(paramNumber++);
+        return new DependentTracedValue(type == null ? 1 : type.getSize(), new HashSet<>(), dependencies);
     }
 
     @Override
@@ -106,7 +110,7 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
                 result = new ObjectConstantTracedValue(size, set, ((LdcInsnNode) insn).cst);
                 break;
             default:
-                result = new BasicTracedValue(size, set);
+                result = new VariantTracedValue(size, set, containingLoopMap.get(insn));
                 break;
         }
         effectMap.put(insn, new InstructionEffect(result));
@@ -117,8 +121,6 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
     public TracedValue copyOperation(AbstractInsnNode insn, TracedValue value) {
         TracedValue result;
         int size = value.getSize();
-        Set<AbstractInsnNode> set = new HashSet<>();
-        set.add(insn);
         switch(insn.getOpcode()) {
             case ILOAD:
             case LLOAD:
@@ -130,7 +132,7 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
             case FSTORE:
             case DSTORE:
             case ASTORE:
-                result = value.newInstance(size, set);
+                result = value.newInstance(size, Collections.singleton(insn));
                 break;
             default:
                 result = value;
@@ -241,7 +243,7 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
             }
         }
         if(!finished) {
-            result = new BasicTracedValue(size, set);
+            result = value.newInstance(size, Collections.singleton(insn));
         }
         effectMap.put(insn, new InstructionEffect(value, result));
         return result;
@@ -252,8 +254,7 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
         TracedValue result = null;
         boolean finished = false;
         int size = getSize(insn);
-        Set<AbstractInsnNode> set = new HashSet<>();
-        set.add(insn);
+        Set<AbstractInsnNode> set = Collections.singleton(insn);
         if(value1 instanceof IntegerConstantTracedValue && value2 instanceof IntegerConstantTracedValue) {
             switch(insn.getOpcode()) {
                 case IADD:
@@ -414,9 +415,27 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
                     finished = true;
                     break;
             }
+        } else if(value1 instanceof DependentTracedValue && value2 instanceof DependentTracedValue) {
+            result = new DependentTracedValue(size, set, (DependentTracedValue) value1, (DependentTracedValue) value2);
+            finished = true;
+        } else if(value1 instanceof DependentTracedValue && value2 instanceof ConstantTracedValue) {
+            result = value1.newInstance(size, set);
+            finished = true;
+        } else if(value1 instanceof ConstantTracedValue && value2 instanceof DependentTracedValue) {
+            result = value2.newInstance(size, set);
+            finished = true;
         }
         if(!finished) {
-            result = new BasicTracedValue(size, set);
+            Set<NaturalLoop<BasicBlock>> variantLoops = new HashSet<>();
+            if(value1 instanceof VariantTracedValue) {
+                variantLoops.addAll(((VariantTracedValue) value1).getVariantLoops());
+            }
+            if(value2 instanceof VariantTracedValue) {
+                variantLoops.addAll(((VariantTracedValue) value2).getVariantLoops());
+            }
+            Set<NaturalLoop<BasicBlock>> containingLoops = new HashSet<>(containingLoopMap.get(insn));
+            containingLoops.retainAll(variantLoops);
+            result = new VariantTracedValue(size, set, containingLoops);
         }
         effectMap.put(insn, new InstructionEffect(new TracedValue[]{value1, value2}, result));
         return result;
@@ -424,19 +443,14 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
 
     @Override
     public TracedValue ternaryOperation(AbstractInsnNode insn, TracedValue value1, TracedValue value2, TracedValue value3) {
-        Set<AbstractInsnNode> set = new HashSet<>();
-        set.add(insn);
-        TracedValue result = new BasicTracedValue(1, set);
+        TracedValue result = new VariantTracedValue(1, Collections.singleton(insn), containingLoopMap.get(insn));
         effectMap.put(insn, new InstructionEffect(new TracedValue[]{value1, value2, value3}, result));
         return result;
     }
 
     @Override
     public TracedValue naryOperation(AbstractInsnNode insn, List<? extends TracedValue> values) {
-        int size = getSize(insn);
-        Set<AbstractInsnNode> set = new HashSet<>();
-        set.add(insn);
-        TracedValue result = new BasicTracedValue(size, set);
+        TracedValue result = new VariantTracedValue(getSize(insn), Collections.singleton(insn), containingLoopMap.get(insn));
         effectMap.put(insn, new InstructionEffect(values.toArray(new TracedValue[0]), result));
         return result;
     }
@@ -446,17 +460,17 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
         effectMap.put(insn, new InstructionEffect(new TracedValue[]{value}, null));
     }
 
+    public void preMerge(int insnIndex) {
+        currentInsnIndex = insnIndex;
+    }
+
+    public void postMerge() {
+        currentInsnIndex = -1;
+    }
+
     @Override
     public TracedValue merge(TracedValue value1, TracedValue value2) {
         if(value1 == value2) {
-            return value1;
-        } else if(value1 instanceof BasicTracedValue) {
-            if(value1.getSize() != value2.getSize() || !value1.getSources().containsAll(value2.getSources())) {
-                Set<AbstractInsnNode> setUnion = new HashSet<>(value1.getSources());
-                setUnion.addAll(value2.getSources());
-                int size = Math.min(value1.getSize(), value2.getSize());
-                return new BasicTracedValue(size, setUnion);
-            }
             return value1;
         }
         Set<AbstractInsnNode> setUnion = new HashSet<>(value1.getSources());
@@ -469,7 +483,20 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
                 return value2.newInstance(size, setUnion);
             }
         }
-        return new BasicTracedValue(size, setUnion);
+        if(currentInsnIndex == -1) {
+            return new VariantTracedValue(size, setUnion, new HashSet<>());
+        } else {
+            Set<NaturalLoop<BasicBlock>> variantLoops = new HashSet<>();
+            if(value1 instanceof VariantTracedValue) {
+                variantLoops.addAll(((VariantTracedValue) value1).getVariantLoops());
+            }
+            if(value2 instanceof VariantTracedValue) {
+                variantLoops.addAll(((VariantTracedValue) value2).getVariantLoops());
+            }
+            Set<NaturalLoop<BasicBlock>> containingLoops = new HashSet<>(containingLoopMap.get(instructions.get(currentInsnIndex)));
+            containingLoops.retainAll(variantLoops);
+            return new VariantTracedValue(size, setUnion, containingLoops);
+        }
     }
 
     /**
@@ -618,27 +645,54 @@ public class TracingInterpreter extends Interpreter<TracedValue> {
         }
     }
 
-    private Set<SourceLeaf> walkToLeaves(AbstractInsnNode insn) {
-        Set<SourceLeaf> leaves = new HashSet<>();
-        gatherLeaves(insn, new HashSet<>(), leaves);
-        return leaves;
-    }
-
-    private void gatherLeaves(AbstractInsnNode insn, Set<AbstractInsnNode> visited, Set<SourceLeaf> leaves) {
-        if(visited.add(insn)) {
+    Map<AbstractInsnNode, LoopLevel> calculateLoopLevelMap() {
+        Map<AbstractInsnNode, LoopLevel> loopLevelMap = new HashMap<>();
+        for(AbstractInsnNode insn : effectMap.keySet()) {
             InstructionEffect effect = effectMap.get(insn);
-            SourceLeaf l = SourceLeaf.newLeaf(insn, effect, paramMap);
-            if(l != null) {
-                leaves.add(l);
+            if(effect.product instanceof ConstantTracedValue || allSourcesConstant(effect)) {
+                loopLevelMap.put(insn, ConstantLoopLevel.CONSTANT_LOOP_LEVEL);
             } else {
-                for(TracedValue val : effect.sources) {
-                    if(val.getSources().size() == 1) {
-                        gatherLeaves(val.getSources().iterator().next(), visited, leaves);
-                    } else {
-                        leaves.add(new SourceLeaf.SplitSource(val.getSources()));
-                    }
+                BitSet dependencies = getSourceDependencies(effect);
+                if(dependencies != null) {
+                    loopLevelMap.put(insn, new DependentLoopLevel(dependencies.toList().toArray()));
+                } else {
+                    Set<NaturalLoop<BasicBlock>> containingVariantLoops = containingLoopMap.get(insn);
+                    containingVariantLoops.retainAll(getSourceVariantLoops(effect));
+                    loopLevelMap.put(insn, new LoopLevel.VariantLoopLevel(containingVariantLoops.size()));
                 }
             }
         }
+        return loopLevelMap;
+    }
+
+    private boolean allSourcesConstant(InstructionEffect effect) {
+        for(TracedValue source : effect.sources) {
+            if(!(source instanceof ConstantTracedValue)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private BitSet getSourceDependencies(InstructionEffect effect) {
+        BitSet dependencies = null;
+        for(TracedValue source : effect.sources) {
+            if(source instanceof DependentTracedValue) {
+                dependencies = BitSet.union(dependencies, ((DependentTracedValue) source).getDependencies());
+            } else if(source instanceof VariantTracedValue) {
+                return null;
+            }
+        }
+        return dependencies;
+    }
+
+    private Set<NaturalLoop<BasicBlock>> getSourceVariantLoops(InstructionEffect effect) {
+        Set<NaturalLoop<BasicBlock>> variantLoops = new HashSet<>();
+        for(TracedValue source : effect.sources) {
+            if(source instanceof VariantTracedValue) {
+                variantLoops.addAll(((VariantTracedValue) source).getVariantLoops());
+            }
+        }
+        return variantLoops;
     }
 }

@@ -5,7 +5,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 
 import java.util.Objects;
 
-public final class ObjectConstantTracedValue extends ConstantTracedValue {
+final class ObjectConstantTracedValue extends ConstantTracedValue {
 
     private final Object constant;
 

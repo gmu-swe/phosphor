@@ -5,7 +5,7 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.Arrays;
 /**
  * Record type that stores information about the values used and produced by an instruction.
  */
-public class InstructionEffect {
+class InstructionEffect {
 
     /**
      * The values used by the instruction, non-null
