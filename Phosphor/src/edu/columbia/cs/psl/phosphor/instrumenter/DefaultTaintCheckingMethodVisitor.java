@@ -4,27 +4,36 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
 
 
-public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
+public class DefaultTaintCheckingMethodVisitor extends MethodVisitor implements Opcodes {
 
     Set<String> checkedThisFrame = new HashSet<>();
     private boolean implementsSerializable;
     private NeverNullArgAnalyzerAdapter analyzer;
-    private boolean nextLoadIsTainted = false;
+    private boolean isUninitConstructor;
+    private List<FieldNode> fields;
+    private String className;
 
-    public StringTaintVerifyingMV(MethodVisitor mv, boolean implementsSerializable, NeverNullArgAnalyzerAdapter analyzer) {
+    public DefaultTaintCheckingMethodVisitor(MethodVisitor mv, int acc, String className, String name, String desc, boolean implementsSerializable, NeverNullArgAnalyzerAdapter analyzer, List<FieldNode> fields) {
         super(Configuration.ASM_VERSION, mv);
         this.analyzer = analyzer;
         this.implementsSerializable = implementsSerializable;
+        this.className = className;
+        this.isUninitConstructor = name.equals("<init>");
+        this.fields = fields;
     }
+
 
     @Override
     public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
@@ -32,57 +41,61 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
         super.visitFrame(type, nLocal, local, nStack, stack);
     }
 
+    ReferenceArrayTarget arrayTarget;
     @Override
-    public void visitInsn(int opcode) {
-        if(opcode == TaintUtils.TRACKED_LOAD) {
-            nextLoadIsTainted = true;
+    public void visitLdcInsn(Object value) {
+        if (value instanceof ReferenceArrayTarget) {
+            this.arrayTarget = (ReferenceArrayTarget) value;
+        } else {
+            super.visitLdcInsn(value);
         }
-        super.visitInsn(opcode);
     }
 
-    @Override
-    public void visitVarInsn(int opcode, int var) {
-        nextLoadIsTainted = false;
-        super.visitVarInsn(opcode, var);
-    }
-
-    @Override
-    public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-        nextLoadIsTainted = false;
-        super.visitMethodInsn(opcode, owner, name, desc, itf);
-    }
-
-    @Override
-    public void visitTypeInsn(int opcode, String type) {
-        nextLoadIsTainted = false;
-        super.visitTypeInsn(opcode, type);
-    }
-
-    @Override
-    public void visitIincInsn(int var, int increment) {
-        nextLoadIsTainted = false;
-        super.visitIincInsn(var, increment);
-    }
-
-    @Override
-    public void visitIntInsn(int opcode, int operand) {
-        nextLoadIsTainted = false;
-        super.visitIntInsn(opcode, operand);
-    }
-
-    @Override
-    public void visitMultiANewArrayInsn(String desc, int dims) {
-        nextLoadIsTainted = false;
-        super.visitMultiANewArrayInsn(desc, dims);
-    }
+    // @Override
+    // public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+    //     super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+    //     if(opcode == INVOKESPECIAL && name.equals("<init>") && isUninitConstructor){
+    //         //TODO this should be calculated correctly...
+    //         fixInstanceTaintFields();
+    //         isUninitConstructor = false;
+    //     }
+    // }
+    //
+    // private void fixInstanceTaintFields() {
+    //     for(FieldNode fn : fields){
+    //         if((fn.access & Opcodes.ACC_STATIC) == 0) {
+    //             FrameNode frame = TaintAdapter.getCurrentFrameNode(analyzer);
+    //             frame.type = Opcodes.F_NEW;
+    //             Label lbl = new Label();
+    //             super.visitVarInsn(ALOAD, 0);
+    //             super.visitFieldInsn(GETFIELD, className, fn.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+    //             super.visitJumpInsn(IFNONNULL, lbl);
+    //             super.visitVarInsn(ALOAD, 0);
+    //             TaintMethodRecord.NEW_EMPTY_TAINT.delegateVisit(mv);
+    //             super.visitFieldInsn(PUTFIELD, className, fn.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+    //             super.visitLabel(lbl);
+    //             frame.accept(mv);
+    //         }
+    //     }
+    // }
 
     @Override
     public void visitFieldInsn(int opcode, String owner, String name, String desc) {
         Type accessedType = Type.getType(desc);
         Type originalType = TaintUtils.getUnwrappedType(accessedType);
+        if(arrayTarget != null){
+            originalType = Type.getType(arrayTarget.getOriginalArrayType());
+            arrayTarget = null;
+        }
+        if (originalType.getSort() != Type.ARRAY || originalType.getDimensions() > 1 || (originalType.getDescriptor().equals("[Ljava/lang/Object;") && !owner.startsWith("java/lang/reflect") && !owner.equals("java/lang/AssertionStatusDirectives"))) {
+            //TODO do reference arrays need this hacking?
+            super.visitFieldInsn(opcode, owner, name, desc);
+            return;
+        }
         if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && name.endsWith(TaintUtils.TAINT_WRAPPER_FIELD) &&
                !checkedThisFrame.contains(owner + "." + name)
                 && (owner.equals("java/lang/String") || implementsSerializable || owner.equals("java/io/BufferedInputStream")
+                || owner.equals("java/lang/AssertionStatusDirectives")
                 || owner.startsWith("java/lang/reflect") || owner.equals("com/sun/security/auth/module/UnixSystem"))) {
             //For GETFIELD operations on a 1D array wrapper, make sure that the wrapper is initialized and pointing to the array.
             String originalName = name.replace(TaintUtils.TAINT_WRAPPER_FIELD,"");
@@ -108,7 +121,7 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
             //Ob Ar Ob
             super.visitFieldInsn(opcode, owner, name, desc);
             //Ob Ar Wrapper
-            super.visitMethodInsn(INVOKESTATIC, accessedType.getInternalName(), "unwrap","("+accessedType.getDescriptor()+")"+originalType.getDescriptor(),false);
+            super.visitMethodInsn(INVOKESTATIC, accessedType.getInternalName(), "unwrap", "(" + accessedType.getDescriptor() + ")" + (originalType.getElementType().getSort() == Type.OBJECT ? "[Ljava/lang/Object;" : originalType.getDescriptor()), false);
             //Ob Ar Ar
             super.visitJumpInsn(IF_ACMPEQ, isOK);
             //Wrapper is not correct for the array.
@@ -123,7 +136,7 @@ public class StringTaintVerifyingMV extends MethodVisitor implements Opcodes {
             //Ob Ob W Ar W
             super.visitInsn(SWAP);
             //Ob Ob W W Ar
-            super.visitMethodInsn(INVOKESPECIAL, accessedType.getInternalName(), "<init>", "(" + originalType.getDescriptor() + ")V", false);
+            super.visitMethodInsn(INVOKESPECIAL, accessedType.getInternalName(), "<init>", "(" + (originalType.getElementType().getSort() == Type.OBJECT ? "[Ljava/lang/Object;" : originalType.getDescriptor()) + ")V", false);
             //Ob Ob W
             super.visitFieldInsn(PUTFIELD, owner, name, desc); // O
             super.visitLabel(isOK);

@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.SourceSinkManager;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
@@ -13,14 +12,12 @@ public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
 
     private final String owner;
     private final String desc;
-    private final Type origReturnType;
     private final boolean isStatic;
 
     public TaintThroughTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc) {
         super(Configuration.ASM_VERSION, mv);
         this.owner = owner;
         this.desc = desc;
-        this.origReturnType = Type.getReturnType(SourceSinkManager.remapMethodDescToRemoveTaints(desc));
         this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
     }
 
@@ -40,10 +37,11 @@ public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
                 // Argument is an object or array of objects
                 super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
                 super.visitVarInsn(ALOAD, idx); // Load the argument onto the stack
-                super.visitVarInsn(ALOAD, 0); // Load this onto the stack for the call to GETFIELD
-                super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-                //TODO instead, addTaint should return a Configuration.TAINT_TAG_DESC, and that should replace the taint here
-                //                super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
+                // super.visitVarInsn(ALOAD, 0); // Load this onto the stack for the call to GETFIELD
+                // super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+                super.visitVarInsn(ALOAD, 1); //Load our reference taint onto the stack
+                //
+                //                hodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
                 super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "addTaint", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
             }
             idx += args[i].getSize();
@@ -55,27 +53,18 @@ public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
         if(TaintUtils.isReturnOpcode(opcode)) {
             taintArguments();
         }
-        if(opcode == ARETURN) {
-            if(origReturnType.getSort() == Type.OBJECT || origReturnType.getSort() == Type.ARRAY) {
-                // Reference original return type
-                super.visitInsn(DUP);
-                super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter", Type.getDescriptor(TaintSourceWrapper.class));
-                super.visitInsn(SWAP);
-                super.visitVarInsn(ALOAD, 0); // Load this onto the stack for the call to GETFIELD
-                super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-                //TODO instead, addTaint should return a Configuration.TAINT_TAG_DESC, and that should replace the taint here
-                //                super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "copyTaint", "(" + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
-                super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class), "addTaint", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-            } else if (origReturnType.getSort() != Type.VOID) {
-                // Wrapped primitive return type. The stack before this code runs contains wrapped primitive return type
-                super.visitInsn(DUP); //for the PUTFIELD
-                super.visitInsn(DUP); //for the combineTags
-                super.visitFieldInsn(GETFIELD, Type.getInternalName(TaintedPrimitiveWithObjTag.class), "taint", Configuration.TAINT_TAG_DESC); //for combined tags
-                super.visitVarInsn(ALOAD, 0);
-                super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-                super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
-                super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithObjTag.class), "taint", Configuration.TAINT_TAG_DESC);
-            }
+        if (opcode == ARETURN) {
+
+            // Wrapped primitive return type. The stack before this code runs contains wrapped primitive return type
+            super.visitInsn(DUP); //for the PUTFIELD
+            super.visitInsn(DUP); //for the combineTags
+            super.visitFieldInsn(GETFIELD, Type.getInternalName(TaintedPrimitiveWithObjTag.class), "taint", Configuration.TAINT_TAG_DESC); //for combined tags
+            // super.visitVarInsn(ALOAD, 0);
+            // super.visitFieldInsn(GETFIELD, owner, TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
+            super.visitVarInsn(ALOAD, 1); //Load our reference taint onto the stack
+
+            super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
+            super.visitFieldInsn(PUTFIELD, Type.getInternalName(TaintedPrimitiveWithObjTag.class), "taint", Configuration.TAINT_TAG_DESC);
         }
         super.visitInsn(opcode);
     }

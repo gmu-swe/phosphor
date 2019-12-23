@@ -13,8 +13,8 @@ public class RuntimeBoxUnboxPropagator {
     }
 
     private static int stringSize(int x) {
-        for(int i = 0; ; i++) {
-            if(x <= sizeTable[i]) {
+        for (int i = 0; ; i++) {
+            if (x <= sizeTable[i]) {
                 return i + 1;
             }
         }
@@ -22,8 +22,8 @@ public class RuntimeBoxUnboxPropagator {
 
     private static int stringSize(long x) {
         long p = 10;
-        for(int i = 1; i < 19; i++) {
-            if(x < p) {
+        for (int i = 1; i < 19; i++) {
+            if (x < p) {
                 return i;
             }
             p = 10 * p;
@@ -31,740 +31,1019 @@ public class RuntimeBoxUnboxPropagator {
         return 19;
     }
 
-    public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyCharArrayObjTags ta) {
+    public static void getChars$$PHOSPHORTAGGED(long l, Taint lt, int idx, Taint idt, LazyCharArrayObjTags ta, Taint taTaint) {
         Long.getChars(l, idx, ta.val);
-        if(lt != null) {
+        if (lt != null) {
             int nChars;
-            if(l < 0) {
+            if (l < 0) {
                 nChars = stringSize(-l) + 1;
             } else {
                 nChars = stringSize(l);
             }
-            if(ta.taints == null) {
+            if (ta.taints == null) {
                 ta.taints = new Taint[ta.val.length];
             }
-            for(int k = idx - nChars; k < idx; k++) {
+            for (int k = idx - nChars; k < idx; k++) {
                 ta.taints[k] = lt;
             }
         }
     }
 
-    public static void getChars$$PHOSPHORTAGGED(Taint it, int i, Taint idt, int idx, LazyCharArrayObjTags ta) {
+    public static void getChars$$PHOSPHORTAGGED(int i, Taint it, int idx, Taint idt, LazyCharArrayObjTags ta, Taint taTaint) {
         Integer.getChars(i, idx, ta.val);
-        if(it != null) {
+        if (it != null) {
             int nChars;
-            if(i < 0) {
+            if (i < 0) {
                 nChars = stringSize(-i) + 1;
             } else {
                 nChars = stringSize(i);
             }
-            if(ta.taints == null) {
+            if (ta.taints == null) {
                 ta.taints = new Taint[ta.val.length];
             }
-            for(int k = idx - nChars; k < Math.min(idx, ta.taints.length); k++) {
+            for (int k = idx - nChars; k < Math.min(idx, ta.taints.length); k++) {
                 ta.taints[k] = it;
             }
         }
     }
 
-    public static void getChars$$PHOSPHORTAGGED(Taint lt, long l, Taint idt, int idx, LazyCharArrayObjTags ta, ControlTaintTagStack ctrl) {
-        getChars$$PHOSPHORTAGGED(lt, l, idt, idx, ta);
+    public static void getChars$$PHOSPHORTAGGED(long l, Taint lt, int idx, Taint idt, LazyCharArrayObjTags ta, Taint taTaint, ControlTaintTagStack ctrl) {
+        getChars$$PHOSPHORTAGGED(l, lt, idx, idt, ta, taTaint);
     }
 
-    public static void getChars$$PHOSPHORTAGGED(Taint it, int i, Taint idt, int idx, LazyCharArrayObjTags ta, ControlTaintTagStack ctrl) {
-        getChars$$PHOSPHORTAGGED(it, i, idt, idx, ta);
+    public static void getChars$$PHOSPHORTAGGED(int i, Taint it, int idx, Taint idt, LazyCharArrayObjTags ta, Taint taTaint, ControlTaintTagStack ctrl) {
+        getChars$$PHOSPHORTAGGED(i, it, idx, idt, ta, taTaint);
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, byte i) {
-        if(t == null) {
-            return Byte.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(byte i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Byte.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Byte.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Byte.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, char i) {
-        if(t == null) {
-            return Character.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(char i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Character.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Character.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Character.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, int i) {
-        if(t == null) {
-            return Integer.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Integer.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, int i, Taint t2, int r) {
-        if(t == null) {
-            return Integer.toString(i, r);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(int i, Taint t, int r, Taint t2, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Integer.toString(i, r);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toString(i, r).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toString(i, r).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, int i) {
-        if(t == null) {
-            return Integer.toUnsignedString(i);
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Integer.toUnsignedString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toUnsignedString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toUnsignedString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, int i, Taint tr, int r) {
-        if(t == null) {
-            return Integer.toUnsignedString(i, r);
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(Taint t, int i, Taint tr, int r, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Integer.toUnsignedString(i, r);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toUnsignedString(i, r).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toUnsignedString(i, r).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toOctalString$$PHOSPHORTAGGED(Taint t, int i) {
-        if(t == null) {
-            return Integer.toOctalString(i);
+    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Integer.toOctalString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toOctalString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toOctalString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toHexString$$PHOSPHORTAGGED(Taint t, int i) {
-        if(t == null) {
-            return Integer.toHexString(i);
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Integer.toHexString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toHexString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toHexString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, short i) {
-        if(t == null) {
-            return Short.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(short i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Short.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, boolean i) {
-        if(t == null) {
-            return Boolean.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(boolean i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Boolean.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Boolean.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Boolean.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, float i) {
-        if(t == null) {
-            return Float.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Float.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Float.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Float.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toHexString$$PHOSPHORTAGGED(Taint t, float i) {
-        if(t == null) {
-            return Float.toHexString(i);
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Float.toHexString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Float.toHexString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Float.toHexString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, double i) {
-        if(t == null) {
-            return Double.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Double.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Double.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Double.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toHexString$$PHOSPHORTAGGED(Taint t, double i) {
-        if(t == null) {
-            return Double.toHexString(i);
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Double.toHexString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Double.toHexString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Double.toHexString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, long i) {
-        if(t == null) {
-            return Long.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Long.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, long i, Taint t2, int r) {
-        if(t == null) {
-            return Long.toString(i, r);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint t2, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Long.toString(i, r);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toString(i, r).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toString(i, r).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toBinaryString$$PHOSPHORTAGGED(Taint t, long i) {
-        if(t == null) {
-            return Long.toBinaryString(i);
+    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Long.toBinaryString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toBinaryString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toBinaryString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toBinaryString$$PHOSPHORTAGGED(Taint t, int i) {
-        if(t == null) {
-            return Integer.toBinaryString(i);
+    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Integer.toBinaryString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toBinaryString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toBinaryString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toBinaryString$$PHOSPHORTAGGED(Taint t, int i, ControlTaintTagStack ctrl) {
-        return toBinaryString$$PHOSPHORTAGGED(t, i);
+    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        return toBinaryString$$PHOSPHORTAGGED(i, t, ret);
     }
 
-    public static String toHexString$$PHOSPHORTAGGED(Taint t, long i) {
-        if(t == null) {
-            return Long.toHexString(i);
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Long.toHexString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toHexString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toHexString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, long i) {
-        if(t == null) {
-            return Long.toUnsignedString(i);
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Long.toUnsignedString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toUnsignedString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toUnsignedString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, long i, Taint tr, int r) {
-        if(t == null) {
-            return Long.toUnsignedString(i, r);
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint tr, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Long.toUnsignedString(i, r);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toUnsignedString(i, r).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toUnsignedString(i, r).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, long i, Taint tr, int r, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Long.toUnsignedString(i, r);
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint tr, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Long.toUnsignedString(i, r);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toUnsignedString(i, r).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toUnsignedString(i, r).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toOctalString$$PHOSPHORTAGGED(Taint t, long i) {
-        if(t == null) {
-            return Long.toOctalString(i);
+    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Long.toOctalString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toOctalString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toOctalString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, byte i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Byte.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(byte i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Byte.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Byte.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Byte.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
+        return ret;
+
+    }
+
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(char i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Character.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
+        }
+        ret.val = new String(Character.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, char i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Character.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Integer.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Character.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, int i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Integer.toString(i);
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Integer.toUnsignedString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toUnsignedString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, int i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Integer.toUnsignedString(i);
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(int i, Taint t, int r, Taint tr, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Integer.toUnsignedString(i, r);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toUnsignedString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toUnsignedString(i, r).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, int i, Taint tr, int r, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Integer.toUnsignedString(i, r);
+    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Integer.toOctalString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toUnsignedString(i, r).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toOctalString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toOctalString$$PHOSPHORTAGGED(Taint t, int i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Integer.toOctalString(i);
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Integer.toHexString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toOctalString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toHexString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toHexString$$PHOSPHORTAGGED(Taint t, int i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Integer.toHexString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(short i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Short.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toHexString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Integer.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, short i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Short.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(boolean i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Boolean.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Integer.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Boolean.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, boolean i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Boolean.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Float.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Boolean.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Float.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, float i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Float.toString(i);
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Float.toHexString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Float.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Float.toHexString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toHexString$$PHOSPHORTAGGED(Taint t, float i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Float.toHexString(i);
-        }
-        String ret = new String(Float.toHexString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        Double.toString$$PHOSPHORTAGGED(i, t, ret, ctrl);
+        ret.val = new String(((LazyCharArrayObjTags) ret.val), Taint.emptyTaint(), ctrl);
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, double i, ControlTaintTagStack ctrl) {
-        char[] c = Double.toString$$PHOSPHORTAGGED(t, i, ctrl).value;
-        String ret = new String(new LazyCharArrayObjTags(c), c, ctrl, null);
-        if(t != null) {
-            ret.setPHOSPHOR_TAG(t);
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Double.toHexString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
+        ret.val = new String(Double.toHexString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toHexString$$PHOSPHORTAGGED(Taint t, double i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Double.toHexString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Long.toString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Double.toHexString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, long i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Long.toString(i);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint t2, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            ret.val = Long.toString(i, r);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toString(i, r).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toString$$PHOSPHORTAGGED(Taint t, long i, Taint t2, int r, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Long.toString(i, r);
+    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Long.toBinaryString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toString(i, r).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toBinaryString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toBinaryString$$PHOSPHORTAGGED(Taint t, long i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Long.toBinaryString(i);
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Long.toHexString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toBinaryString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toHexString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toHexString$$PHOSPHORTAGGED(Taint t, long i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Long.toHexString(i);
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Long.toUnsignedString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toHexString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toUnsignedString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toUnsignedString$$PHOSPHORTAGGED(Taint t, long i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Long.toUnsignedString(i);
+    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            ret.val = Long.toOctalString(i);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         }
-        String ret = new String(Long.toUnsignedString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
+        ret.val = new String(Long.toOctalString(i).toCharArray());
+        ((String) ret.val).setPHOSPHOR_TAG(t);
+        ret.taint = t;
         return ret;
     }
 
-    public static String toOctalString$$PHOSPHORTAGGED(Taint t, long i, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Long.toOctalString(i);
-        }
-        String ret = new String(Long.toOctalString(i).toCharArray());
-        ret.setPHOSPHOR_TAG(t);
-        return ret;
-    }
-
-    public static TaintedIntWithObjTag digit$$PHOSPHORTAGGED(Taint cTaint, char c, Taint rTaint, int radix, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag digit$$PHOSPHORTAGGED(char c, Taint cTaint, int radix, Taint rTaint, TaintedIntWithObjTag ret) {
         ret.val = Character.digit(c, radix);
-        if(cTaint != null) {
+        if (cTaint != null) {
             ret.taint = cTaint;
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag digit$$PHOSPHORTAGGED(Taint cTaint, int codePoint, Taint rTaint, int radix, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag digit$$PHOSPHORTAGGED(int codePoint, Taint cTaint, int radix, Taint rTaint, TaintedIntWithObjTag ret) {
         ret.val = Character.digit(codePoint, radix);
-        if(cTaint != null) {
+        if (cTaint != null) {
             ret.taint = cTaint;
         }
         return ret;
     }
 
-    public static Long valueOf(Taint t, long l, ControlTaintTagStack ctrl) {
-        if(t == null) {
-            return Long.valueOf$$PHOSPHORTAGGED(null, l, ctrl);
+    public static TaintedReferenceWithObjTag valueOf(long l, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        if (t == null) {
+            Long.valueOf$$PHOSPHORTAGGED(l, t, ret, ctrl);
+            ret.taint = Taint.emptyTaint();
+            return ret;
         } else {
-            Long ret = new Long(t, l, ctrl, null);
-            ((TaintedWithObjTag) ((Object) ret)).setPHOSPHOR_TAG(t);
+            ret.val = new Long(l, t, ctrl);
+            ret.taint = t;
+            ((TaintedWithObjTag) (ret.val)).setPHOSPHOR_TAG(t);
             return ret;
         }
     }
 
-    public static Long valueOf(Taint t, long l) {
-        if(t == null) {
-            return Long.valueOf$$PHOSPHORTAGGED(null, l);
+    public static TaintedReferenceWithObjTag valueOf(long l, Taint t, TaintedReferenceWithObjTag ret) {
+        if (t == null) {
+            Long.valueOf$$PHOSPHORTAGGED(l, t, ret);
+            ret.taint = Taint.emptyTaint();
+            return ret;
 
         } else {
-            Long ret = new Long(t, l, null);
-            ((TaintedWithObjTag) ((Object) ret)).setPHOSPHOR_TAG(t);
+            ret.val = new Long(l, t, null);
+            ret.taint = t;
+            ((TaintedWithObjTag) ((Object) ret.val)).setPHOSPHOR_TAG(t);
             return ret;
         }
     }
 
-    public static Boolean valueOfZ$$PHOSPHORTAGGED(String s) {
-        return valueOfZ(s);
+    public static TaintedReferenceWithObjTag valueOfZ$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = valueOfZ(s);
+        ret.taint = getCombinedTaint(s, taint);
+        return ret;
     }
 
-    public static Byte valueOfB$$PHOSPHORTAGGED(String s) {
-        return valueOfB(s);
+    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = valueOfB(s);
+        // ret.taint = taint;
+        ret.taint = getCombinedTaint(s, taint);
+        return ret;
     }
 
-    public static Short valueOfS$$PHOSPHORTAGGED(String s) {
-        return valueOfS(s);
+    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = valueOfS(s);
+        // ret.taint = taint;
+        ret.taint = getCombinedTaint(s, taint);
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfZ$$PHOSPHORTAGGED(boolean s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Boolean.valueOf(s);
+        ret.taint = taint;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(byte s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Byte.valueOf(s);
+        // ret.taint = taint;
+        ret.taint = taint;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(short s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Short.valueOf(s);
+        // ret.taint = taint;
+        ret.taint = taint;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfD$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Double.valueOf(s);
+        ret.taint = getCombinedTaint(s, taint);
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfD$$PHOSPHORTAGGED(double s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Double.valueOf(s);
+        ret.taint = taint;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfI$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Integer.valueOf(s);
+        ret.taint = getCombinedTaint(s, taint);
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfI$$PHOSPHORTAGGED(String s, Taint taint, int radix, Taint radixTaint, TaintedReferenceWithObjTag ret) {
+        ret.val = Integer.valueOf(s, radix);
+        ret.taint = getCombinedTaint(s, taint).union(radixTaint);
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfI$$PHOSPHORTAGGED(int s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Integer.valueOf(s);
+        ret.taint = taint;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfF$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Float.valueOf(s);
+        ret.taint = getCombinedTaint(s, taint);
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfF$$PHOSPHORTAGGED(float s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Float.valueOf(s);
+        ret.taint = taint;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfJ$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Long.valueOf(s);
+        ret.taint = getCombinedTaint(s, taint);
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfJ$$PHOSPHORTAGGED(long s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Long.valueOf(s);
+        ret.taint = taint;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfJ$$PHOSPHORTAGGED(String s, Taint taint, int radix, Taint radixtaint, TaintedReferenceWithObjTag ret) {
+        ret.val = Long.valueOf(s, radix);
+        ret.taint = getCombinedTaint(s, taint).union(radixtaint);
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag valueOfC$$PHOSPHORTAGGED(char s, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.val = Character.valueOf(s);
+        ret.taint = taint;
+        return ret;
+    }
+
+    public static TaintedBooleanWithObjTag booleanValue$$PHOSPHORTAGGED(Boolean v, Taint vTaint, TaintedBooleanWithObjTag ret) {
+        ret.val = v.booleanValue();
+        ret.taint = vTaint;
+        return ret;
+    }
+
+    public static TaintedByteWithObjTag byteValue$$PHOSPHORTAGGED(Byte v, Taint vTaint, TaintedByteWithObjTag ret) {
+        ret.val = v.byteValue();
+        ret.taint = vTaint;
+        return ret;
+    }
+
+    public static TaintedCharWithObjTag charValue$$PHOSPHORTAGGED(Character v, Taint vTaint, TaintedCharWithObjTag ret) {
+        ret.val = v.charValue();
+        ret.taint = vTaint;
+        return ret;
+    }
+
+    public static TaintedDoubleWithObjTag doubleValue$$PHOSPHORTAGGED(Double v, Taint vTaint, TaintedDoubleWithObjTag ret) {
+        ret.val = v.doubleValue();
+        ret.taint = vTaint;
+        return ret;
+    }
+
+    public static TaintedIntWithObjTag intValue$$PHOSPHORTAGGED(Integer v, Taint vTaint, TaintedIntWithObjTag ret) {
+        ret.val = v.intValue();
+        ret.taint = vTaint;
+        return ret;
+    }
+
+    public static TaintedShortWithObjTag shortValue$$PHOSPHORTAGGED(Short v, Taint vTaint, TaintedShortWithObjTag ret) {
+        ret.val = v.shortValue();
+        ret.taint = vTaint;
+        return ret;
+    }
+
+    public static TaintedFloatWithObjTag floatValue$$PHOSPHORTAGGED(Float v, Taint vTaint, TaintedFloatWithObjTag ret) {
+        ret.val = v.floatValue();
+        ret.taint = vTaint;
+        return ret;
+    }
+
+    public static TaintedLongWithObjTag longValue$$PHOSPHORTAGGED(Long v, Taint vTaint, TaintedLongWithObjTag ret) {
+        ret.val = v.longValue();
+        ret.taint = vTaint;
+        return ret;
     }
 
     public static Boolean valueOfZ(String s) {
-        return s == null ? Boolean.FALSE : BoxedPrimitiveStoreWithObjTags.valueOf(getCombinedTaint(s), Boolean.parseBoolean(s));
+        return s == null ? Boolean.FALSE : Boolean.parseBoolean(s);
     }
 
     public static Byte valueOfB(String s) {
-        return BoxedPrimitiveStoreWithObjTags.valueOf(getCombinedTaint(s), Byte.parseByte(s));
+        return Byte.parseByte(s);
     }
 
     public static Short valueOfS(String s) {
-        return BoxedPrimitiveStoreWithObjTags.valueOf(getCombinedTaint(s), Short.parseShort(s));
+        return Short.parseShort(s);
     }
 
     @SuppressWarnings("unused")
-    public static Byte valueOfB$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, ControlTaintTagStack ctrl) {
-        return BoxedPrimitiveStoreWithObjTags.valueOf(getCombinedTaint(s, tag), Byte.parseByte(s, radix));
+    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        ret.val = Byte.parseByte(s, radix);
+        ret.taint = getCombinedTaint(s, tag).union(sTaint);
+        return ret;
     }
 
     @SuppressWarnings("unused")
-    public static Byte valueOfB$$PHOSPHORTAGGED(String s, Taint t, int radix) {
-        return BoxedPrimitiveStoreWithObjTags.valueOf(getCombinedTaint(s), Byte.parseByte(s, radix));
+    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint t, TaintedReferenceWithObjTag ret) {
+        ret.val = Byte.parseByte(s, radix);
+        ret.taint = getCombinedTaint(s, t).union(sTaint);
+        return ret;
     }
 
     @SuppressWarnings("unused")
-    public static Short valueOfS$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, ControlTaintTagStack ctrl) {
-        return BoxedPrimitiveStoreWithObjTags.valueOf(getCombinedTaint(s, tag), Short.parseShort(s, radix));
+    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        ret.val = Short.parseShort(s, radix);
+        ret.taint = getCombinedTaint(s, tag).union(sTaint);
+        return ret;
     }
 
     @SuppressWarnings("unused")
-    public static Short valueOfS$$PHOSPHORTAGGED(String s, Taint t, int radix) {
-        return BoxedPrimitiveStoreWithObjTags.valueOf(getCombinedTaint(s), Short.parseShort(s, radix));
+    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint t, TaintedReferenceWithObjTag ret) {
+        ret.taint = getCombinedTaint(s, sTaint);
+        ret.val = Short.parseShort(s, radix);
+        return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedBooleanWithObjTag parseBoolean$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
-        return parseBoolean$$PHOSPHORTAGGED(s, ret);
+    public static TaintedBooleanWithObjTag parseBoolean$$PHOSPHORTAGGED(String s, Taint sTaint, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
+        return parseBoolean$$PHOSPHORTAGGED(s, sTaint, ret);
     }
 
     @SuppressWarnings("unused")
-    public static TaintedBooleanWithObjTag parseBoolean$$PHOSPHORTAGGED(String s, TaintedBooleanWithObjTag ret) {
+    public static TaintedBooleanWithObjTag parseBoolean$$PHOSPHORTAGGED(String s, Taint sTaint, TaintedBooleanWithObjTag ret) {
         ret.val = Boolean.parseBoolean(s);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedByteWithObjTag parseByte$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedByteWithObjTag ret) {
-        return parseByte$$PHOSPHORTAGGED(s, ret);
+    public static TaintedByteWithObjTag parseByte$$PHOSPHORTAGGED(String s, Taint sTaint, ControlTaintTagStack ctrl, TaintedByteWithObjTag ret) {
+        return parseByte$$PHOSPHORTAGGED(s, sTaint, ret);
     }
 
     @SuppressWarnings("unused")
-    public static TaintedByteWithObjTag parseByte$$PHOSPHORTAGGED(String s, TaintedByteWithObjTag ret) {
+    public static TaintedByteWithObjTag parseByte$$PHOSPHORTAGGED(String s, Taint sTaint, TaintedByteWithObjTag ret) {
         ret.val = Byte.parseByte(s);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedDoubleWithObjTag parseDouble$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedDoubleWithObjTag ret) {
-        return parseDouble$$PHOSPHORTAGGED(s, ret);
+    public static TaintedDoubleWithObjTag parseDouble$$PHOSPHORTAGGED(String s, Taint sTaint, ControlTaintTagStack ctrl, TaintedDoubleWithObjTag ret) {
+        return parseDouble$$PHOSPHORTAGGED(s, sTaint, ret);
     }
 
     @SuppressWarnings("unused")
-    public static TaintedDoubleWithObjTag parseDouble$$PHOSPHORTAGGED(String s, TaintedDoubleWithObjTag ret) {
+    public static TaintedDoubleWithObjTag parseDouble$$PHOSPHORTAGGED(String s, Taint sTaint, TaintedDoubleWithObjTag ret) {
         ret.val = Double.parseDouble(s);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedFloatWithObjTag parseFloat$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedFloatWithObjTag ret) {
-        return parseFloat$$PHOSPHORTAGGED(s, ret);
+    public static TaintedFloatWithObjTag parseFloat$$PHOSPHORTAGGED(String s, Taint sTaint, ControlTaintTagStack ctrl, TaintedFloatWithObjTag ret) {
+        return parseFloat$$PHOSPHORTAGGED(s, sTaint, ret);
     }
 
     @SuppressWarnings("unused")
-    public static TaintedFloatWithObjTag parseFloat$$PHOSPHORTAGGED(String s, TaintedFloatWithObjTag ret) {
+    public static TaintedFloatWithObjTag parseFloat$$PHOSPHORTAGGED(String s, Taint sTaint, TaintedFloatWithObjTag ret) {
         ret.val = Float.parseFloat(s);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
-        return parseInt$$PHOSPHORTAGGED(s, ret);
+    public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, Taint sTaint, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+        return parseInt$$PHOSPHORTAGGED(s, sTaint, ret);
     }
 
     @SuppressWarnings("unused")
-    public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, Taint sTaint, TaintedIntWithObjTag ret) {
         ret.val = Integer.parseInt(s);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedLongWithObjTag parseLong$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
-        return parseLong$$PHOSPHORTAGGED(s, ret);
+    public static TaintedLongWithObjTag parseLong$$PHOSPHORTAGGED(String s, Taint sTaint, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
+        return parseLong$$PHOSPHORTAGGED(s, sTaint, ret);
     }
 
     @SuppressWarnings("unused")
-    public static TaintedLongWithObjTag parseLong$$PHOSPHORTAGGED(String s, TaintedLongWithObjTag ret) {
+    public static TaintedLongWithObjTag parseLong$$PHOSPHORTAGGED(String s, Taint sTaint, TaintedLongWithObjTag ret) {
         ret.val = Long.parseLong(s);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedShortWithObjTag ret) {
-        return parseShort$$PHOSPHORTAGGED(s, ret);
+    public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, Taint sTaint, ControlTaintTagStack ctrl, TaintedShortWithObjTag ret) {
+        return parseShort$$PHOSPHORTAGGED(s, sTaint, ret);
     }
 
     @SuppressWarnings("unused")
-    public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, TaintedShortWithObjTag ret) {
+    public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, Taint sTaint, TaintedShortWithObjTag ret) {
         ret.val = Short.parseShort(s);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
-        return parseUnsignedInt$$PHOSPHORTAGGED(s, ret);
+    public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, Taint sTaint, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+        return parseUnsignedInt$$PHOSPHORTAGGED(s, sTaint, ret);
     }
 
     @SuppressWarnings("unused")
-    public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, Taint sTaint, TaintedIntWithObjTag ret) {
         ret.val = Integer.parseInt(s);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
-        return parseUnsignedLong$$PHOSPHORTAGGED(s, ret);
+    public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, Taint sTaint, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
+        return parseUnsignedLong$$PHOSPHORTAGGED(s, sTaint, ret);
     }
 
     @SuppressWarnings("unused")
-    public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, TaintedLongWithObjTag ret) {
+    public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, Taint sTaint, TaintedLongWithObjTag ret) {
         ret.val = Long.parseLong(s);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedByteWithObjTag parseByte$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, ControlTaintTagStack ctrl, TaintedByteWithObjTag ret) {
+    public static TaintedByteWithObjTag parseByte$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, ControlTaintTagStack ctrl, TaintedByteWithObjTag ret) {
         try {
             ret.val = Byte.parseByte(s, radix);
             ret.taint = getCombinedTaint(s, tag);
             return ret;
-        } catch(NumberFormatException ex) {
-            Taint.combineTagsInPlace(ex, tag);
+        } catch (NumberFormatException ex) {
+
             throw ex;
         }
     }
 
     @SuppressWarnings("unused")
-    public static TaintedByteWithObjTag parseByte$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, TaintedByteWithObjTag ret) {
+    public static TaintedByteWithObjTag parseByte$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedByteWithObjTag ret) {
         ret.val = Byte.parseByte(s, radix);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         try {
             ret.val = Integer.parseInt(s, radix);
             ret.taint = getCombinedTaint(s, tag);
             return ret;
-        } catch(NumberFormatException ex) {
-            Taint.combineTagsInPlace(ex, tag);
+        } catch (NumberFormatException ex) {
+
             throw ex;
         }
     }
 
     @SuppressWarnings("unused")
-    public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag parseInt$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedIntWithObjTag ret) {
         ret.val = Integer.parseInt(s, radix);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedLongWithObjTag parseLong$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
+    public static TaintedLongWithObjTag parseLong$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
         try {
             ret.val = Long.parseLong(s, radix);
             ret.taint = getCombinedTaint(s, tag);
             return ret;
-        } catch(NumberFormatException ex) {
-            Taint.combineTagsInPlace(ex, tag);
+        } catch (NumberFormatException ex) {
+
             throw ex;
         }
     }
 
     @SuppressWarnings("unused")
-    public static TaintedLongWithObjTag parseLong$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, TaintedLongWithObjTag ret) {
+    public static TaintedLongWithObjTag parseLong$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedLongWithObjTag ret) {
         ret.val = Long.parseLong(s, radix);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, ControlTaintTagStack ctrl, TaintedShortWithObjTag ret) {
+    public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, ControlTaintTagStack ctrl, TaintedShortWithObjTag ret) {
         try {
             ret.val = Short.parseShort(s, radix);
             ret.taint = getCombinedTaint(s, tag);
             return ret;
-        } catch(NumberFormatException ex) {
-            Taint.combineTagsInPlace(ex, tag);
+        } catch (NumberFormatException ex) {
+
             throw ex;
         }
     }
 
     @SuppressWarnings("unused")
-    public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, TaintedShortWithObjTag ret) {
+    public static TaintedShortWithObjTag parseShort$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedShortWithObjTag ret) {
         ret.val = Short.parseShort(s, radix);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         try {
             ret.val = Integer.parseInt(s, radix);
             ret.taint = getCombinedTaint(s, tag);
             return ret;
-        } catch(NumberFormatException ex) {
-            Taint.combineTagsInPlace(ex, tag);
+        } catch (NumberFormatException ex) {
+
             throw ex;
         }
     }
 
     @SuppressWarnings("unused")
-    public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag parseUnsignedInt$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedIntWithObjTag ret) {
         ret.val = Integer.parseInt(s, radix);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
+    public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
         try {
             ret.val = Long.parseLong(s, radix);
             ret.taint = getCombinedTaint(s, tag);
             return ret;
-        } catch(NumberFormatException ex) {
-            Taint.combineTagsInPlace(ex, tag);
+        } catch (NumberFormatException ex) {
+
             throw ex;
         }
     }
 
     @SuppressWarnings("unused")
-    public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, Taint<?> tag, int radix, TaintedLongWithObjTag ret) {
+    public static TaintedLongWithObjTag parseUnsignedLong$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedLongWithObjTag ret) {
         ret.val = Long.parseLong(s, radix);
-        ret.taint = getCombinedTaint(s);
+        ret.taint = getCombinedTaint(s, sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static <T> TaintedCharWithObjTag forDigit$$PHOSPHORTAGGED(Taint<T> digitTag, int digit, Taint<T> radixTag, int radix,
+    public static <T> TaintedCharWithObjTag forDigit$$PHOSPHORTAGGED(int digit, Taint digitTag, int radix, Taint<T> radixTag,
                                                                      TaintedCharWithObjTag ret) {
         ret.val = Character.forDigit(digit, radix);
-        if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
+        if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
             ret.taint = Taint.combineTags(digitTag, radixTag);
         } else {
             ret.taint = digitTag;
@@ -772,33 +1051,93 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Boolean value, Taint tag, TaintedReferenceWithObjTag ret) {
+        ret.val = new String(value.toString());
+        ((String) ret.val).setPHOSPHOR_TAG(tag);
+        ret.taint = tag;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Byte value, Taint tag, TaintedReferenceWithObjTag ret) {
+        ret.val = new String(value.toString());
+        ((String) ret.val).setPHOSPHOR_TAG(tag);
+        ret.taint = tag;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Character value, Taint tag, TaintedReferenceWithObjTag ret) {
+        ret.val = new String(value.toString());
+        ((String) ret.val).setPHOSPHOR_TAG(tag);
+        ret.taint = tag;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Float value, Taint tag, TaintedReferenceWithObjTag ret) {
+        ret.val = new String(value.toString());
+        ((String) ret.val).setPHOSPHOR_TAG(tag);
+        ret.taint = tag;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Integer value, Taint tag, TaintedReferenceWithObjTag ret) {
+        ret.val = new String(value.toString());
+        ((String) ret.val).setPHOSPHOR_TAG(tag);
+        ret.taint = tag;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Long value, Taint tag, TaintedReferenceWithObjTag ret) {
+        ret.val = new String(value.toString());
+        ((String) ret.val).setPHOSPHOR_TAG(tag);
+        ret.taint = tag;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Short value, Taint tag, TaintedReferenceWithObjTag ret) {
+        ret.val = new String(value.toString());
+        ((String) ret.val).setPHOSPHOR_TAG(tag);
+        ret.taint = tag;
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Double value, Taint tag, TaintedReferenceWithObjTag ret) {
+        ret.val = new String(value.toString());
+        ((String) ret.val).setPHOSPHOR_TAG(tag);
+        ret.taint = tag;
+        return ret;
+    }
+
     /* Returns a taint tag that contains the labels of the specified String's tag and the labels of any tags for its
      * characters. */
-    private static Taint getCombinedTaint(String str) {
-        if(str == null) {
+    private static Taint getCombinedTaint(String str, Taint referenceTaint) {
+        if (str == null) {
             return null;
         } else {
             Taint charsTaint = MultiTainter.getMergedTaint(TaintSourceWrapper.getStringValueTag(str));
-            Taint strTaint = getTaint(str);
-            return Taint.combineTags(strTaint, charsTaint);
+            return Taint.combineTags(referenceTaint, charsTaint);
         }
     }
 
     /* Returns a taint tag that contains the labels of the specified String's tag, the labels of any tags for its
      * characters, and in labels for the specified tag */
     @SuppressWarnings("unchecked")
-    private static Taint getCombinedTaint(String str, Taint<?> tag) {
-        if(str == null) {
-            return null;
+    private static Taint getCombinedTaint(String str, Taint strTaint, Taint<?> tag) {
+        if (str == null) {
+            return Taint.emptyTaint();
         } else {
             Taint charsTaint = MultiTainter.getMergedTaint(TaintSourceWrapper.getStringValueTag(str));
-            Taint strTaint = getTaint(str);
             Taint result = Taint.combineTags(strTaint, charsTaint);
+            if (result == null) {
+                return tag;
+            }
+            if (tag == null) {
+                return result;
+            }
             return result.union(tag);
         }
     }
 
     private static Taint getTaint(Object obj) {
-        return (obj == null) ? null : (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
+        return (obj == null) ? Taint.emptyTaint() : (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
     }
 }

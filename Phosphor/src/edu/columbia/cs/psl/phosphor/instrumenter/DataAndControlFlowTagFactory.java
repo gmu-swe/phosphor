@@ -8,7 +8,8 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.COMBINE_TAGS;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.NEW_EMPTY_TAINT;
 
 
 public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
@@ -71,28 +72,6 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
             case Opcodes.FSUB:
             case Opcodes.FMUL:
             case Opcodes.FDIV:
-                //T V T V
-                mv.visitInsn(TaintUtils.IS_TMP_STORE);
-                int tmp = lvs.getTmpLV(adapter.getTopOfStackType());
-                mv.visitVarInsn(FSTORE, tmp);
-                //T V T
-                mv.visitInsn(SWAP);
-                //T T V
-                mv.visitVarInsn(FLOAD, tmp);
-                //T T V V
-                mv.visitInsn(opcode);
-                //T T V
-                mv.visitInsn(DUP_X2);
-                mv.visitInsn(POP);
-                if(Configuration.WITHOUT_PROPAGATION) {
-                    mv.visitInsn(POP2);
-                    NEW_EMPTY_TAINT.delegateVisit(mv);
-                } else {
-                    COMBINE_TAGS.delegateVisit(mv);
-                }
-                mv.visitInsn(SWAP);
-                lvs.freeTmpLV(tmp);
-                break;
             case Opcodes.IADD:
             case Opcodes.ISUB:
             case Opcodes.IMUL:
@@ -104,94 +83,37 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
             case Opcodes.IOR:
             case Opcodes.IAND:
             case Opcodes.IXOR:
-                tmp = lvs.getTmpLV(Type.INT_TYPE);
-                //T V T V
+            case Opcodes.FCMPL:
+            case Opcodes.FCMPG:
+                //VT VT
                 mv.visitInsn(TaintUtils.IS_TMP_STORE);
-                mv.visitVarInsn(ISTORE, tmp);
-                //T V T
+                int tmp = lvs.getTmpLV(adapter.getTopOfStackType());
+                mv.visitVarInsn(ASTORE, tmp);
+                // V T V
                 mv.visitInsn(SWAP);
-                //T T V
-                mv.visitVarInsn(ILOAD, tmp);
-                lvs.freeTmpLV(tmp);
-                //T T V V
-                mv.visitInsn(opcode);
-                //T T V
-                mv.visitInsn(DUP_X2);
-                mv.visitInsn(POP);
+                //V V T
+                mv.visitVarInsn(ALOAD, tmp);
+                //V V T T
                 if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
                     NEW_EMPTY_TAINT.delegateVisit(mv);
                 } else {
                     COMBINE_TAGS.delegateVisit(mv);
                 }
+                //VV T
+                mv.visitInsn(DUP_X2);
+                mv.visitInsn(POP);
+                //T VV
+                mv.visitInsn(opcode);
+                //T V
                 mv.visitInsn(SWAP);
+                lvs.freeTmpLV(tmp);
                 break;
             case Opcodes.DADD:
             case Opcodes.DSUB:
             case Opcodes.DMUL:
             case Opcodes.DDIV:
             case Opcodes.DREM:
-                boolean secondHas0Taint = adapter.secondHas0Taint();
-                //Do it with LVs where it is less opcodes.
-                //T VV T VV
-                tmp = lvs.getTmpLV();
-                mv.visitInsn(TaintUtils.IS_TMP_STORE);
-                mv.visitVarInsn(DSTORE, tmp);
-                //T VV T
-                mv.visitInsn(DUP_X2);
-                mv.visitInsn(POP);
-                //T T VV
-                int tmp2 = lvs.getTmpLV();
-                mv.visitInsn(TaintUtils.IS_TMP_STORE);
-                mv.visitVarInsn(DSTORE, tmp2);
-                if(secondHas0Taint) {
-                    //0 T
-                    mv.visitInsn(SWAP);
-                    mv.visitInsn(POP);
-                } else {
-                    //T T
-                    if(Configuration.WITHOUT_PROPAGATION) {
-                        mv.visitInsn(POP2);
-                        NEW_EMPTY_TAINT.delegateVisit(mv);
-                    } else {
-                        COMBINE_TAGS.delegateVisit(mv);
-                    }
-                }
-                //T
-                mv.visitVarInsn(DLOAD, tmp2);
-                mv.visitVarInsn(DLOAD, tmp);
-                mv.visitInsn(opcode);
-                lvs.freeTmpLV(tmp2);
-                lvs.freeTmpLV(tmp);
-                break;
-            case Opcodes.LSHL:
-            case Opcodes.LUSHR:
-            case Opcodes.LSHR:
-                //T VV T V
-                tmp = lvs.getTmpLV();
-                mv.visitInsn(TaintUtils.IS_TMP_STORE);
-                mv.visitVarInsn(ISTORE, tmp);
-                //T VV T
-                mv.visitInsn(DUP_X2);
-                mv.visitInsn(POP);
-                //T T VV
-                mv.visitVarInsn(ILOAD, tmp);
-                lvs.freeTmpLV(tmp);
-                // T T VV V
-                mv.visitInsn(opcode);
-                // T T VV
-                mv.visitInsn(DUP2_X2);
-                mv.visitInsn(POP2);
-                if(Configuration.WITHOUT_PROPAGATION) {
-                    mv.visitInsn(POP2);
-                    NEW_EMPTY_TAINT.delegateVisit(mv);
-                } else {
-                    COMBINE_TAGS.delegateVisit(mv);
-                }
-                // VV T
-                mv.visitInsn(DUP_X2);
-                mv.visitInsn(POP);
-            break;
             case Opcodes.LSUB:
             case Opcodes.LMUL:
             case Opcodes.LADD:
@@ -200,162 +122,115 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
             case Opcodes.LAND:
             case Opcodes.LOR:
             case Opcodes.LXOR:
-                //T VV T VV
-                tmp = lvs.getTmpLV();
-                mv.visitVarInsn(LSTORE, tmp);
-                //T VV T
-                mv.visitInsn(DUP_X2);
-                mv.visitInsn(POP);
-                //T T VV
-                mv.visitVarInsn(LLOAD, tmp);
-                lvs.freeTmpLV(tmp);
-                // T T VV VV
-                mv.visitInsn(opcode);
-                // T T VV
-                mv.visitInsn(DUP2_X2);
+            case Opcodes.LCMP:
+            case Opcodes.DCMPL:
+            case Opcodes.DCMPG:
+                //VV T VV T
+                mv.visitInsn(TaintUtils.IS_TMP_STORE);
+                tmp = lvs.getTmpLV(adapter.getTopOfStackType());
+                mv.visitVarInsn(ASTORE, tmp);
+                // VV T VV
+                mv.visitInsn(DUP2_X1);
                 mv.visitInsn(POP2);
+                //VV VV T
+                mv.visitVarInsn(ALOAD, tmp);
+                //VV VV T T
                 if(Configuration.WITHOUT_PROPAGATION) {
                     mv.visitInsn(POP2);
                     NEW_EMPTY_TAINT.delegateVisit(mv);
                 } else {
                     COMBINE_TAGS.delegateVisit(mv);
                 }
-                // VV T
-                mv.visitInsn(DUP_X2);
-                mv.visitInsn(POP);
+                //VV  VV T
+                mv.visitVarInsn(ASTORE, tmp);
+                mv.visitInsn(opcode);
+                mv.visitVarInsn(ALOAD, tmp);
+                lvs.freeTmpLV(tmp);
+                break;
+            case Opcodes.LSHL:
+            case Opcodes.LUSHR:
+            case Opcodes.LSHR:
+                //VV T V T
+                mv.visitInsn(TaintUtils.IS_TMP_STORE);
+                tmp = lvs.getTmpLV(adapter.getTopOfStackType());
+                mv.visitVarInsn(ASTORE, tmp);
+                // VV T V
+                mv.visitInsn(SWAP);
+                //VV V T
+                mv.visitVarInsn(ALOAD, tmp);
+                //VV V T T
+                if(Configuration.WITHOUT_PROPAGATION) {
+                    mv.visitInsn(POP2);
+                    NEW_EMPTY_TAINT.delegateVisit(mv);
+                } else {
+                    COMBINE_TAGS.delegateVisit(mv);
+                }
+                //VV V T
+                mv.visitVarInsn(ASTORE, tmp);
+                mv.visitInsn(opcode);
+                //V
+                mv.visitVarInsn(ALOAD, tmp);
+                lvs.freeTmpLV(tmp);
+                break;
+            case Opcodes.I2D:
+            case Opcodes.F2L:
+            case Opcodes.F2D:
+            case Opcodes.I2L:
+                mv.visitInsn(SWAP);
+                mv.visitInsn(opcode);
+                mv.visitInsn(DUP2_X1);
+                mv.visitInsn(POP2);
                 break;
             case Opcodes.INEG:
             case Opcodes.FNEG:
-            case Opcodes.LNEG:
-            case Opcodes.DNEG:
-            case Opcodes.I2L:
             case Opcodes.I2F:
-            case Opcodes.I2D:
-            case Opcodes.L2I:
-            case Opcodes.L2F:
-            case Opcodes.L2D:
             case Opcodes.F2I:
-            case Opcodes.F2L:
-            case Opcodes.F2D:
-            case Opcodes.D2I:
-            case Opcodes.D2L:
-            case Opcodes.D2F:
             case Opcodes.I2B:
             case Opcodes.I2C:
             case Opcodes.I2S:
+                mv.visitInsn(SWAP);
                 mv.visitInsn(opcode);
+                mv.visitInsn(SWAP);
                 break;
-            case Opcodes.LCMP:
-                //T VV T VV
-                tmp = lvs.getTmpLV();
-                mv.visitInsn(TaintUtils.IS_TMP_STORE);
-                mv.visitVarInsn(LSTORE, tmp);
-                //T VV T
+            case Opcodes.D2I:
+            case Opcodes.D2F:
+            case Opcodes.L2I:
+            case Opcodes.L2F:
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                //T T VV
-                mv.visitVarInsn(LLOAD, tmp);
-                lvs.freeTmpLV(tmp);
-                // T T VV VV
                 mv.visitInsn(opcode);
-                // T T V
-                mv.visitInsn(DUP_X2);
-                mv.visitInsn(POP);
-                if(Configuration.WITHOUT_PROPAGATION) {
-                    mv.visitInsn(POP2);
-                    NEW_EMPTY_TAINT.delegateVisit(mv);
-                } else {
-                    COMBINE_TAGS.delegateVisit(mv);
-                }
-                // V T
                 mv.visitInsn(SWAP);
-            break;
-            case Opcodes.DCMPL:
-            case Opcodes.DCMPG:
-                //T VV T VV
-                tmp = lvs.getTmpLV();
-                mv.visitInsn(TaintUtils.IS_TMP_STORE);
-                mv.visitVarInsn(DSTORE, tmp);
-                //T VV T
+                break;
+            case Opcodes.D2L:
+            case Opcodes.L2D:
+            case Opcodes.LNEG:
+            case Opcodes.DNEG:
                 mv.visitInsn(DUP_X2);
                 mv.visitInsn(POP);
-                //T T VV
-                mv.visitVarInsn(DLOAD, tmp);
-                lvs.freeTmpLV(tmp);
-                // T T VV VV
                 mv.visitInsn(opcode);
-                // T T V
-                mv.visitInsn(DUP_X2);
-                mv.visitInsn(POP);
-                if(Configuration.WITHOUT_PROPAGATION) {
-                    mv.visitInsn(POP2);
-                    NEW_EMPTY_TAINT.delegateVisit(mv);
-                } else {
-                    COMBINE_TAGS.delegateVisit(mv);
-                }
-                // V T
-                mv.visitInsn(SWAP);
-            break;
-            // VV T
-            case Opcodes.FCMPL:
-            case Opcodes.FCMPG:
-                //T V T V
-                tmp = lvs.getTmpLV();
-                mv.visitInsn(TaintUtils.IS_TMP_STORE);
-                mv.visitVarInsn(FSTORE, tmp);
-                //T V T
-                mv.visitInsn(SWAP);
-                //T T V
-                mv.visitVarInsn(FLOAD, tmp);
-                lvs.freeTmpLV(tmp);
-                //T T V V
-                mv.visitInsn(opcode);
-                //T T V
-                mv.visitInsn(DUP_X2);
-                mv.visitInsn(POP);
-                if(Configuration.WITHOUT_PROPAGATION) {
-                    mv.visitInsn(POP2);
-                    NEW_EMPTY_TAINT.delegateVisit(mv);
-                } else {
-                    COMBINE_TAGS.delegateVisit(mv);
-                }
-                mv.visitInsn(SWAP);
-            break;
+                mv.visitInsn(DUP2_X1);
+                mv.visitInsn(POP2);
+                break;
             case Opcodes.ARRAYLENGTH:
-                Type arrType = TaintAdapter.getTypeForStackType(adapter.analyzer.stack.get(adapter.analyzer.stack.size() - 1));
-                boolean loaded = false;
-                if(arrType.getSort() != Type.ARRAY) {
-                    //TA A
-                    loaded = true;
-                    if(adapter.topCarriesTaint()) {
-                        mv.visitInsn(SWAP);
-                        if (Configuration.ARRAY_LENGTH_TRACKING) {
-                            mv.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "getLengthTaint", "()" + Configuration.TAINT_TAG_DESC, false);
-                        } else {
-                            mv.visitInsn(POP);
-                            NEW_EMPTY_TAINT.delegateVisit(mv);
-                        }
-                        mv.visitInsn(SWAP);
-                    } else{
-                        NEW_EMPTY_TAINT.delegateVisit(mv);
-                        mv.visitInsn(SWAP);
-                    }
-                    //A
-                }
-                if(!loaded) {
-                    mv.visitInsn(DUP);
-                    if((Configuration.IMPLICIT_TRACKING || Configuration.ARRAY_LENGTH_TRACKING)) {
-                        GET_TAINT_OBJECT.delegateVisit(mv);
-                    } else {
-                        mv.visitInsn(POP);
-                        NEW_EMPTY_TAINT.delegateVisit(mv);
-                    }
-                    mv.visitInsn(SWAP);
-                }
+                Type arrType = TaintAdapter.getTypeForStackType(adapter.analyzer.stack.get(adapter.analyzer.stack.size() - 2));
+                mv.visitInsn(DUP2);
                 if (arrType.getSort() != Type.ARRAY) {
+                    mv.visitInsn(POP);
                     mv.visitMethodInsn(INVOKEVIRTUAL, arrType.getInternalName(), "getLength", "()I", false);
                 } else {
+                    mv.visitInsn(POP);
                     mv.visitInsn(opcode);
+                }
+                //Array Taint Length
+                mv.visitInsn(DUP_X2);
+                mv.visitInsn(POP);
+                //Length array taint
+                if (arrType.getSort() != Type.ARRAY) {
+                    mv.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_ARRAY_INTERNAL_NAME, "getLengthTaint", "("+Configuration.TAINT_TAG_DESC+")" + Configuration.TAINT_TAG_DESC, false);
+                    //A
+                } else {
+                    mv.visitInsn(POP2); //TODO maybe use reference taint for arraylength?
+                    NEW_EMPTY_TAINT.delegateVisit(mv);
                 }
                 break;
         }
@@ -417,14 +292,15 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
         Type[] argTypes = Type.getArgumentTypes(newDesc);
         if((acc & Opcodes.ACC_STATIC) == 0) {
             idx++;
+            idx++;
         }
         for (Type t : argTypes) {
+            idx += t.getSize();
             if (TaintUtils.isShadowedType(t)) {
                 mv.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, idx);
                 COMBINE_TAGS.delegateVisit(mv);
                 idx++;
             }
-            idx += t.getSize();
         }
     }
 

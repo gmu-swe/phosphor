@@ -30,7 +30,8 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
         this.skip = className.contains("$$Lambda$")
                 || className.equals("java/lang/ClassCircularityError")
                 || className.equals("java/lang/LinkageError")
-                || className.equals("java/lang/Error");
+                || className.equals("java/lang/Error")
+        || fixLdcClass; //TODO the Class.forName was throwing an exception in dacapo and I'm not sure if we really need to support this anyway?
     }
 
     @Override

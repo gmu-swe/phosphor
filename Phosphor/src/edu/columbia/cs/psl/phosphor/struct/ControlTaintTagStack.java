@@ -37,7 +37,7 @@ public final class ControlTaintTagStack {
      * return a pointer so it can later be removed
      */
     @InvokedViaInstrumentation(record = CONTROL_STACK_EXCEPTION_HANDLER_START)
-    public final EnqueuedTaint exceptionHandlerStart(Throwable exceptionCaught, EnqueuedTaint eq) {
+    public final EnqueuedTaint exceptionHandlerStart(Throwable exceptionCaught, Taint exceptionTaint, EnqueuedTaint eq) {
         if(exceptionCaught instanceof TaintedWithObjTag) {
             Taint<?> t = (Taint) ((TaintedWithObjTag) exceptionCaught).getPHOSPHOR_TAG();
             if(t != null) {

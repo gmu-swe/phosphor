@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.Label;
@@ -64,37 +65,45 @@ public class UninstrumentedCompatMV extends TaintAdapter {
     @Override
     public void visitFieldInsn(int opcode, String owner, String name, String desc) {
         Type t = Type.getType(desc);
-        if(t.getSort() == Type.ARRAY && t.getDimensions() > 1 && t.getElementType().getSort() != Type.OBJECT) {
-            desc = MultiDTaintedArray.getTypeForType(t).getDescriptor();
-        }
         switch(opcode) {
             case Opcodes.GETFIELD:
             case Opcodes.GETSTATIC:
-                super.visitFieldInsn(opcode, owner, name, desc);
+                if (TaintUtils.isWrappedTypeWithSeparateField(t)) {
+                    super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, TaintUtils.getWrapperType(t).getDescriptor());
+                    // super.visitMethodInsn(INVOKEVIRTUAL, TaintUtils.getWrapperType(t).getInternalName(), "getVal","()Ljava/lang/Object;", false);
+                    // super.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
+                } else {
+                    super.visitFieldInsn(opcode, owner, name, desc);
+                }
                 break;
             case Opcodes.PUTFIELD:
             case Opcodes.PUTSTATIC:
-                if(t.getSort() == Type.ARRAY && t.getDimensions() == 1 && t.getElementType().getSort() != Type.OBJECT) {
-                    String taintFieldType = TaintUtils.getShadowTaintType(desc);
+                if (TaintUtils.isWrappedTypeWithSeparateField(t)) {
+                    Type taintFieldType = TaintUtils.getWrapperType(t);
                     //1d prim array - need to make sure that there is some taint here
                     FrameNode fn = getCurrentFrameNode();
                     fn.type = Opcodes.F_NEW;
                     super.visitInsn(Opcodes.DUP);
                     Label ok = new Label();
                     super.visitJumpInsn(IFNULL, ok);
-                    if(opcode == Opcodes.PUTFIELD) {
+                    if (opcode == Opcodes.PUTFIELD) {
                         //O A
                         super.visitInsn(DUP2);
                         //O A O A
                     } else {
                         super.visitInsn(Opcodes.DUP);
                     }
-
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getType(taintFieldType).getInternalName(), "factory","(" + desc + ")" + taintFieldType, false);
+                    String factoryType = desc;
+                    if(t.getElementType().getSort() == Type.OBJECT){
+                        factoryType = "[Ljava/lang/Object;";
+                    }
+                    NEW_EMPTY_TAINT.delegateVisit(mv);
+                    super.visitInsn(SWAP);
+                    super.visitMethodInsn(Opcodes.INVOKESTATIC, taintFieldType.getInternalName(), "factory", "(" + Configuration.TAINT_TAG_DESC + factoryType + ")" + taintFieldType, false);
                     // O A O W
-                    super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, taintFieldType);
+                    super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_WRAPPER_FIELD, taintFieldType.getDescriptor());
                     super.visitLabel(ok);
-                    if(!skipFrames) {
+                    if (!skipFrames) {
                         fn.accept(this);
                     }
                 }
@@ -164,17 +173,42 @@ public class UninstrumentedCompatMV extends TaintAdapter {
         super.visitTypeInsn(opcode, type);
     }
 
+    ReferenceArrayTarget referenceArrayTarget;
+    @Override
+    public void visitLdcInsn(Object value) {
+        if(value instanceof ReferenceArrayTarget){
+            referenceArrayTarget = (ReferenceArrayTarget) value;
+        }
+        super.visitLdcInsn(value);
+    }
+
+    @Override
+    public void visitVarInsn(int opcode, int var) {
+        if (opcode <= 200) {
+            super.visitVarInsn(opcode, var);
+        }
+    }
+
     @Override
     public void visitInsn(int opcode) {
-        switch(opcode) {
+        switch (opcode) {
+            case Opcodes.IASTORE:
+                super.visitInsn(opcode);
+                break;
             case Opcodes.AASTORE:
                 Object arType = analyzer.stack.get(analyzer.stack.size() - 3);
+                Type _arType = TaintAdapter.getTypeForStackType(arType);
+                if (_arType.getSort() == Type.OBJECT) {
+                    //storing to a multid array...
+                    super.visitMethodInsn(INVOKEVIRTUAL, _arType.getInternalName(), "setUninst", "(ILjava/lang/Object;)V", false);
+                    break;
+                }
                 Type elType = getTopOfStackType();
-                if(arType.equals("[Ljava/lang/Object;") &&
+                if (arType.equals("[Ljava/lang/Object;") &&
                         ((elType.getSort() == Type.ARRAY && elType.getElementType().getSort() != Type.OBJECT)
                                 || elType.getDescriptor().equals("Ljava/lang/Object;"))) {
                     visit(BOX_IF_NECESSARY);
-                } else if(arType instanceof String && ((String) arType).contains("[Ledu/columbia/cs/psl/phosphor/struct/Lazy")) {
+                } else if (arType instanceof String && ((String) arType).contains("[Ledu/columbia/cs/psl/phosphor/struct/Lazy")) {
                     visit(BOX_IF_NECESSARY);
                 }
                 super.visitInsn(opcode);
@@ -182,12 +216,16 @@ public class UninstrumentedCompatMV extends TaintAdapter {
             case Opcodes.AALOAD:
                 Object arrayType = analyzer.stack.get(analyzer.stack.size() - 2);
                 Type t = getTypeForStackType(arrayType);
-                if(t.getDimensions() == 1 && t.getElementType().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy")) {
+                if (t.getSort() != Type.ARRAY) {
+                    super.visitMethodInsn(INVOKEVIRTUAL, t.getInternalName(), "get", "(I)Ljava/lang/Object;", false);
+                    super.visitTypeInsn(CHECKCAST, referenceArrayTarget.getOriginalArrayType());
+                    referenceArrayTarget = null;
+                } else if (t.getDimensions() == 1 && t.getElementType().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy")) {
                     super.visitInsn(opcode);
                     try {
                         super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
                         super.visitTypeInsn(Opcodes.CHECKCAST, "[" + MultiDTaintedArray.getPrimitiveTypeForWrapper(Class.forName(t.getElementType().getInternalName().replace("/", "."))));
-                    } catch(Exception e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 } else {
@@ -218,6 +256,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
             case Opcodes.DRETURN:
             case Opcodes.FRETURN:
             case Opcodes.LRETURN:
+            case Opcodes.ARETURN:
                 int lv = lvs.getPreAllocatedReturnTypeVar(returnType);
                 super.visitVarInsn(Opcodes.ALOAD, lv);
                 super.visitInsn(DUP);
@@ -359,7 +398,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                     }
                 }
             } else if(hasArgsToBox) {
-                String newDesc = TaintUtils.remapMethodDesc(desc);
+                String newDesc = TaintUtils.remapMethodDesc(opcode != INVOKESTATIC, desc);
                 int[] argStorage = new int[args.length];
                 for(int i = 0; i < args.length; i++) {
                     Type t = args[args.length - i - 1];

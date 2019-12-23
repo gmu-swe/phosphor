@@ -8,80 +8,80 @@ public class CharacterUtils {
         // Prevents this class from being instantiated
     }
 
-    public static TaintedCharWithObjTag reverseBytes$$PHOSPHORTAGGED(Taint t, char c, TaintedCharWithObjTag ret) {
+    public static TaintedCharWithObjTag reverseBytes$$PHOSPHORTAGGED(char c, Taint t, TaintedCharWithObjTag ret) {
         ret.val = Character.reverseBytes(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedCharWithObjTag toLowerCase$$PHOSPHORTAGGED(Taint t, char c, TaintedCharWithObjTag ret) {
+    public static TaintedCharWithObjTag toLowerCase$$PHOSPHORTAGGED(char c, Taint t, TaintedCharWithObjTag ret) {
         ret.val = Character.toLowerCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag toLowerCase$$PHOSPHORTAGGED(Taint t, int c, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag toLowerCase$$PHOSPHORTAGGED(int c, Taint t, TaintedIntWithObjTag ret) {
         ret.val = Character.toLowerCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedCharWithObjTag toTitleCase$$PHOSPHORTAGGED(Taint t, char c, TaintedCharWithObjTag ret) {
+    public static TaintedCharWithObjTag toTitleCase$$PHOSPHORTAGGED(char c, Taint t, TaintedCharWithObjTag ret) {
         ret.val = Character.toTitleCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag toTitleCase$$PHOSPHORTAGGED(Taint t, int c, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag toTitleCase$$PHOSPHORTAGGED(int c, Taint t, TaintedIntWithObjTag ret) {
         ret.val = Character.toTitleCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedCharWithObjTag toUpperCase$$PHOSPHORTAGGED(Taint t, char c, TaintedCharWithObjTag ret) {
+    public static TaintedCharWithObjTag toUpperCase$$PHOSPHORTAGGED(char c, Taint t, TaintedCharWithObjTag ret) {
         ret.val = Character.toUpperCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag toUpperCase$$PHOSPHORTAGGED(Taint t, int c, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag toUpperCase$$PHOSPHORTAGGED(int c, Taint t, TaintedIntWithObjTag ret) {
         ret.val = Character.toUpperCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint tagsTaint, int i, Taint t, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointAt(tags.val, i);
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
             }
@@ -93,7 +93,7 @@ public class CharacterUtils {
         }
     }
 
-    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(CharSequence seq, Taint t, int i, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(CharSequence seq, Taint seqTaint, int i, Taint t, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointAt(seq, i);
             if(seq instanceof String && ((String) seq).valuePHOSPHOR_WRAPPER != null && ((String) seq).valuePHOSPHOR_WRAPPER.taints != null) {
@@ -108,10 +108,10 @@ public class CharacterUtils {
         }
     }
 
-    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint tagsTaint, int i, Taint t, int i2, Taint t2, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointAt(tags.val, i, i2);
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
             }
@@ -124,10 +124,10 @@ public class CharacterUtils {
     }
 
 
-    public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint tagsTaint, int i, Taint t, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointBefore(tags.val, i);
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
             }
@@ -139,7 +139,7 @@ public class CharacterUtils {
         }
     }
 
-    public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(CharSequence seq, Taint t, int i, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(CharSequence seq, Taint seqTaint, int i, Taint t, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointBefore(seq, i);
             if(seq instanceof String && ((String) seq).valuePHOSPHOR_WRAPPER != null && ((String) seq).valuePHOSPHOR_WRAPPER.taints != null) {
@@ -154,10 +154,10 @@ public class CharacterUtils {
         }
     }
 
-    public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointBefore$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint tagsTaint, int i, Taint t, Taint t2, int i2, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointBefore(tags.val, i, i2);
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
             }
@@ -169,7 +169,7 @@ public class CharacterUtils {
         }
     }
 
-    public static LazyCharArrayObjTags toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx) {
+    public static TaintedReferenceWithObjTag toChars$$PHOSPHORTAGGED(int idx, Taint idxTaint, TaintedReferenceWithObjTag _ret) {
 
         char[] v = Character.toChars(idx);
         LazyCharArrayObjTags ret = new LazyCharArrayObjTags(v);
@@ -180,10 +180,12 @@ public class CharacterUtils {
                 ret.taints[i] = idxTaint;
             }
         }
-        return ret;
+        _ret.val = ret;
+        _ret.taint = idxTaint;
+        return _ret;
     }
 
-    public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, LazyCharArrayObjTags array, Taint t, int dstIdx, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(int idx, Taint idxTaint, LazyCharArrayObjTags array, Taint t, int dstIdx, TaintedIntWithObjTag ret) {
 
         ret.val = Character.toChars(idx, array.val, dstIdx);
 
@@ -194,10 +196,10 @@ public class CharacterUtils {
     }
 
 
-    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint tagsTaint, int i, Taint t, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointAt(tags.val, i);
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
             }
@@ -210,7 +212,7 @@ public class CharacterUtils {
         }
     }
 
-    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(CharSequence seq, Taint t, int i, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(CharSequence seq, Taint seqTaint, int i, Taint t, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointAt(seq, i);
             if(seq instanceof String && ((String) seq).valuePHOSPHOR_WRAPPER != null) {
@@ -226,10 +228,10 @@ public class CharacterUtils {
         }
     }
 
-    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, Taint t2, int i2, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAt$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint tagsTaint, int i, Taint t, Taint t2, int i2, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         try {
             ret.val = Character.codePointAt(tags.val, i, i2);
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
             if(tags.taints != null) {
                 ret.taint = tags.taints[i];
             }
@@ -242,7 +244,7 @@ public class CharacterUtils {
         }
     }
 
-    public static LazyCharArrayObjTags toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, ControlTaintTagStack ctrl) {
+    public static TaintedReferenceWithObjTag toChars$$PHOSPHORTAGGED(int idx, Taint idxTaint, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag _ret) {
         char[] v = Character.toChars(idx);
         LazyCharArrayObjTags ret = new LazyCharArrayObjTags(v);
         if(idxTaint != null) {
@@ -251,10 +253,12 @@ public class CharacterUtils {
                 ret.taints[i] = idxTaint;
             }
         }
-        return ret;
+        _ret.taint = Taint.emptyTaint();
+        _ret.val = ret;
+        return _ret;
     }
 
-    public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(Taint idxTaint, int idx, LazyCharArrayObjTags tags, Taint t, int dstIdx, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(int idx, Taint idxTaint, LazyCharArrayObjTags tags, Taint t, int dstIdx, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         ret.val = Character.toChars(idx, tags.val, dstIdx);
         if(idxTaint != null) {
             ret.taint = idxTaint;
@@ -262,105 +266,132 @@ public class CharacterUtils {
         return ret;
     }
 
-    public static TaintedCharWithObjTag reverseBytes$$PHOSPHORTAGGED(Taint t, char c, ControlTaintTagStack ctrl, TaintedCharWithObjTag ret) {
+    public static TaintedCharWithObjTag reverseBytes$$PHOSPHORTAGGED(char c, Taint t, ControlTaintTagStack ctrl, TaintedCharWithObjTag ret) {
         ret.val = Character.reverseBytes(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedCharWithObjTag toLowerCase$$PHOSPHORTAGGED(Taint t, char c, ControlTaintTagStack ctrl, TaintedCharWithObjTag ret) {
+    public static TaintedCharWithObjTag toLowerCase$$PHOSPHORTAGGED(char c, Taint t, ControlTaintTagStack ctrl, TaintedCharWithObjTag ret) {
         ret.val = Character.toLowerCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag toLowerCase$$PHOSPHORTAGGED(Taint t, int c, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag toLowerCase$$PHOSPHORTAGGED(int c, Taint t, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         ret.val = Character.toLowerCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedCharWithObjTag toTitleCase$$PHOSPHORTAGGED(Taint t, char c, ControlTaintTagStack ctrl, TaintedCharWithObjTag ret) {
+    public static TaintedCharWithObjTag toTitleCase$$PHOSPHORTAGGED(char c, Taint t, ControlTaintTagStack ctrl, TaintedCharWithObjTag ret) {
         ret.val = Character.toTitleCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag toTitleCase$$PHOSPHORTAGGED(Taint t, int c, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag toTitleCase$$PHOSPHORTAGGED(int c, Taint t, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         ret.val = Character.toTitleCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedCharWithObjTag toUpperCase$$PHOSPHORTAGGED(Taint t, char c, ControlTaintTagStack ctrl, TaintedCharWithObjTag ret) {
+    public static TaintedCharWithObjTag toUpperCase$$PHOSPHORTAGGED(char c, Taint t, ControlTaintTagStack ctrl, TaintedCharWithObjTag ret) {
         ret.val = Character.toUpperCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag toUpperCase$$PHOSPHORTAGGED(Taint t, int c, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag toUpperCase$$PHOSPHORTAGGED(int c, Taint t, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         ret.val = Character.toUpperCase(c);
         if(t == null) {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         } else {
             ret.taint = t;
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, Taint t2, int i2, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint tagsTaint, int i, Taint t, Taint t2, int i2, TaintedIntWithObjTag ret) {
         ret.val = Character.codePointBeforeImpl(tags.val, i, i2);
-        ret.taint = null;
+        ret.taint = Taint.emptyTaint();
         if(tags.taints != null) {
             ret.taint = tags.taints[i];
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint t, int i, Taint t2, int i2, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointBeforeImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags tags, Taint tagsTaint, int i, Taint t, Taint t2, int i2, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         ret.val = Character.codePointBeforeImpl(tags.val, i, i2);
-        ret.taint = null;
+        ret.taint = Taint.emptyTaint();
         if(tags.taints != null) {
             ret.taint = tags.taints[i];
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag toUpperCaseEx$$PHOSPHORTAGGED(Taint t, int cp, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag toUpperCaseEx$$PHOSPHORTAGGED(int cp, Taint t, TaintedIntWithObjTag ret) {
         ret.val = Character.toUpperCaseEx(cp);
         if(t != null) {
             ret.taint = t;
         } else {
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
         }
         return ret;
     }
 
-    public static LazyCharArrayObjTags toUpperCaseCharArray$$PHOSPHORTAGGED(Taint t, int cp) {
+    public static TaintedReferenceWithObjTag toUpperCaseCharArray$$PHOSPHORTAGGED(int c, Taint t, TaintedReferenceWithObjTag _ret) {
+        LazyCharArrayObjTags ret = new LazyCharArrayObjTags(Character.toUpperCaseCharArray(c));
+        if(t != null) {
+            ret.taints = new Taint[ret.val.length];
+            for(int i = 0; i < ret.taints.length; i++) {
+                if(t != null) {
+                    ret.taints[i] = t;
+                }
+            }
+        } else {
+            ret.taints = null;
+        }
+        _ret.val = ret;
+        _ret.taint = Taint.emptyTaint();
+        return _ret;
+    }
+
+    public static TaintedIntWithObjTag toUpperCaseEx$$PHOSPHORTAGGED(int c, Taint t, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+        ret.val = Character.toUpperCaseEx(c);
+        if(t != null) {
+            ret.taint = t;
+        } else {
+            ret.taint = Taint.emptyTaint();
+        }
+        return ret;
+    }
+
+    public static TaintedReferenceWithObjTag toUpperCaseCharArray$$PHOSPHORTAGGED(Taint t, ControlTaintTagStack ctrl, int cp, TaintedReferenceWithObjTag _ret) {
         LazyCharArrayObjTags ret = new LazyCharArrayObjTags(Character.toUpperCaseCharArray(cp));
         if(t != null) {
             ret.taints = new Taint[ret.val.length];
@@ -372,46 +403,23 @@ public class CharacterUtils {
         } else {
             ret.taints = null;
         }
-        return ret;
+        _ret.taint = Taint.emptyTaint();
+        _ret.val = ret;
+        return _ret;
     }
 
-    public static TaintedIntWithObjTag toUpperCaseEx$$PHOSPHORTAGGED(Taint t, int cp, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
-        ret.val = Character.toUpperCaseEx(cp);
-        if(t != null) {
-            ret.taint = t;
-        } else {
-            ret.taint = null;
-        }
-        return ret;
-    }
-
-    public static LazyCharArrayObjTags toUpperCaseCharArray$$PHOSPHORTAGGED(Taint t, ControlTaintTagStack ctrl, int cp) {
-        LazyCharArrayObjTags ret = new LazyCharArrayObjTags(Character.toUpperCaseCharArray(cp));
-        if(t != null) {
-            ret.taints = new Taint[ret.val.length];
-            for(int i = 0; i < ret.taints.length; i++) {
-                if(t != null) {
-                    ret.taints[i] = t;
-                }
-            }
-        } else {
-            ret.taints = null;
-        }
-        return ret;
-    }
-
-    public static TaintedIntWithObjTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags t, Taint ti, int index, Taint tl, int limit, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags t, Taint refTaint, int index, Taint ti, int limit, Taint tl, TaintedIntWithObjTag ret) {
         ret.val = Character.codePointAtImpl(t.val, index, limit);
-        ret.taint = null;
+        ret.taint = Taint.emptyTaint();
         if(t.taints != null && t.taints[index] != null) {
             ret.taint = t.taints[index];
         }
         return ret;
     }
 
-    public static TaintedIntWithObjTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags t, Taint ti, int index, Taint tl, int limit, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag codePointAtImpl$$PHOSPHORTAGGED(LazyCharArrayObjTags t, Taint refTaint, int index, Taint ti, int limit, Taint tl, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
         ret.val = Character.codePointAtImpl(t.val, index, limit);
-        ret.taint = null;
+        ret.taint = Taint.emptyTaint();
         if(t.taints != null && t.taints[index] != null) {
             ret.taint = t.taints[index];
         }

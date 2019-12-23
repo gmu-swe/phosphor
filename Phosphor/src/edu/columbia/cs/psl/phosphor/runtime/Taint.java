@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.struct.*;
 
@@ -16,7 +15,7 @@ public abstract class Taint<T> implements Serializable {
     private static PowerSetTree setTree = PowerSetTree.getInstance();
     public static boolean IGNORE_TAINTING = false;
 
-    static <T> Taint<T> copy(Taint<T> in){
+    static <T> Taint<T> copy(Taint<T> in) {
         return in;
     }
 
@@ -27,19 +26,23 @@ public abstract class Taint<T> implements Serializable {
     public abstract Object[] getLabels();
 
     @SuppressWarnings("unused")
-    public Object[] getLabels$$PHOSPHORTAGGED(){
-        return getLabels();
+    public TaintedReferenceWithObjTag getLabels$$PHOSPHORTAGGED(Taint referenceTaint, TaintedReferenceWithObjTag ret) {
+        ret.taint = Taint.emptyTaint();
+        ret.val = new LazyReferenceArrayObjTags(getLabels());
+        return ret;
     }
 
     public static <T> Taint<T> withLabel(T label){
         return setTree.makeSingletonSet(label);
     }
 
-    public static <T> Taint<T> withLabel$$PHOSPHORTAGGED(T label){
-        return withLabel(label);
+    public static <T> TaintedReferenceWithObjTag withLabel$$PHOSPHORTAGGED(T label, Taint tag, TaintedReferenceWithObjTag ret) {
+        ret.taint = Taint.emptyTaint();
+        ret.val = withLabel(label);
+        return ret;
     }
 
-    public static Taint emptyTaint(){
+    public static Taint emptyTaint() {
         return setTree.emptySet();
     }
     /* Returns an array containing this taint's labels or label indices if the BitSet representation is used. The runtime
@@ -62,22 +65,24 @@ public abstract class Taint<T> implements Serializable {
     }
 
     @SuppressWarnings("unused")
-    public T[] getLabels$$PHOSPHORTAGGED(T[] arr) {
-        return getLabels(arr);
+    public TaintedReferenceWithObjTag getLabels$$PHOSPHORTAGGED(T[] arr, Taint tag, TaintedReferenceWithObjTag ret) {
+        ret.val = new LazyReferenceArrayObjTags(getLabels(arr));
+        ret.taint = Taint.emptyTaint();
+        return ret;
     }
 
     /* Returns whether this taint object's label set is the empty. */
     public abstract boolean isEmpty();
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag isEmpty$$PHOSPHORTAGGED(TaintedBooleanWithObjTag ret) {
+    public TaintedBooleanWithObjTag isEmpty$$PHOSPHORTAGGED(Taint referenceTaint, TaintedBooleanWithObjTag ret) {
         ret.val = isEmpty();
         ret.taint = null;
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag isEmpty$$PHOSPHORTAGGED(ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
+    public TaintedBooleanWithObjTag isEmpty$$PHOSPHORTAGGED(Taint referenceTaint, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
         ret.val = isEmpty();
         ret.taint = null;
         return ret;
@@ -88,14 +93,14 @@ public abstract class Taint<T> implements Serializable {
     public abstract boolean isSuperset(Taint<T> other);
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag isSuperset$$PHOSPHORTAGGED(Taint<T> that, TaintedBooleanWithObjTag ret) {
+    public TaintedBooleanWithObjTag isSuperset$$PHOSPHORTAGGED(Taint myRefTaint, Taint<T> that, Taint thatTaint, TaintedBooleanWithObjTag ret) {
         ret.taint = null;
         ret.val = isSuperset(that);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag isSuperset$$PHOSPHORTAGGED(Taint<T> that, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
+    public TaintedBooleanWithObjTag isSuperset$$PHOSPHORTAGGED(Taint myRefTaint, Taint<T> that, Taint thatTaint, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
         ret.taint = null;
         ret.val = isSuperset(that);
         return ret;
@@ -115,16 +120,16 @@ public abstract class Taint<T> implements Serializable {
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag containsOnlyLabels$$PHOSPHORTAGGED(Object[] labels, TaintedBooleanWithObjTag ret) {
+    public TaintedBooleanWithObjTag containsOnlyLabels$$PHOSPHORTAGGED(Taint referenceTaint, LazyReferenceArrayObjTags labels, Taint tag, TaintedBooleanWithObjTag ret, Object[] unused) {
         ret.taint = null;
-        ret.val = containsOnlyLabels(labels);
+        ret.val = containsOnlyLabels(labels.val);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag containsOnlyLabels$$PHOSPHORTAGGED(Object[] labels, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
+    public TaintedBooleanWithObjTag containsOnlyLabels$$PHOSPHORTAGGED(Taint referenceTaint, LazyReferenceArrayObjTags labels, Taint tag, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl, Object[] unused) {
         ret.taint = null;
-        ret.val = containsOnlyLabels(labels);
+        ret.val = containsOnlyLabels(labels.val);
         return ret;
     }
 
@@ -132,53 +137,23 @@ public abstract class Taint<T> implements Serializable {
     public abstract boolean containsLabel(Object label);
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag containsLabel$$PHOSPHORTAGGED(Object label, TaintedBooleanWithObjTag ret) {
+    public TaintedBooleanWithObjTag containsLabel$$PHOSPHORTAGGED(Taint referenceTaint, Object label, Taint tag, TaintedBooleanWithObjTag ret) {
         ret.taint = null;
         ret.val = containsLabel(label);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag containsLabel$$PHOSPHORTAGGED(Object label, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
+    public TaintedBooleanWithObjTag containsLabel$$PHOSPHORTAGGED(Taint referenceTaint, Object label, Taint tag, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
         ret.taint = null;
         ret.val = containsLabel(label);
         return ret;
     }
 
-    public static <T> void combineTagsOnArrayInPlace(Object[] ar, Taint<T>[] t1, int dims) {
-        combineTagsInPlace(ar, t1[dims - 1]);
-        if(dims == 1) {
-            for(Object o : ar) {
-                combineTagsInPlace(o, t1[dims - 1]);
-            }
-        } else {
-            for(Object o : ar) {
-                combineTagsOnArrayInPlace((Object[]) o, t1, dims - 1);
-            }
-        }
-    }
-
-    @InvokedViaInstrumentation(record = COMBINE_TAGS_IN_PLACE)
-    public static <T> void combineTagsInPlace(Object obj, Taint<T> t1) {
-        if(obj != null && t1 != null && !IGNORE_TAINTING) {
-            _combineTagsInPlace(obj, t1);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> void _combineTagsInPlace(Object obj, Taint<T> t1) {
-        Taint<T> t = (Taint<T>) TaintUtils.getTaintObj(obj);
-        if(t == null && t1 != null) {
-            MultiTainter.taintedObject(obj, t1);
-        } else if(t != null && t1 != null) {
-            MultiTainter.taintedObject(obj, t.union(t1));
-        }
-    }
-
     @InvokedViaInstrumentation(record = COMBINE_TAGS)
     public static <T> Taint<T> combineTags(Taint<T> t1, Taint<T> t2) {
-        if(t1 == null && t2 == null) {
-            return null;
+        if(t1 == Taint.emptyTaint() && t2 == Taint.emptyTaint()) {
+            return Taint.emptyTaint();
         } else if(t2 == null || t2.isEmpty()) {
             return t1;
         } else if(t1 == null || t1.isEmpty()) {
@@ -235,7 +210,7 @@ public abstract class Taint<T> implements Serializable {
 
     @InvokedViaInstrumentation(record = COMBINE_TAGS_CONTROL)
     public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags) {
-        if(tags.isEmpty() && tags.lacksInfluenceExceptions()) {
+        if (tags == null || (tags.isEmpty() && tags.lacksInfluenceExceptions())) {
             return t1;
         }
         return _combineTagsInternal(t1, tags);
@@ -300,4 +275,9 @@ public abstract class Taint<T> implements Serializable {
             }
         }
     }
+
+    public static boolean isEmpty(Taint in){
+        return in == null || in.isEmpty();
+    }
+
 }

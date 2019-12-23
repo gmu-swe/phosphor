@@ -48,9 +48,6 @@ public class Instrumenter {
     static Option opt_withoutBranchNotTaken = Option.builder("withoutBranchNotTaken")
             .desc("Disable branch not taken analysis in control tracking")
             .build();
-    static Option opt_trackArrayLengthTaints = Option.builder("withArrayLengthTags")
-            .desc("Tracks taint tags on array lengths - requires use of JVMTI runtime library when running")
-            .build();
     static Option opt_trackArrayIndexTaints = Option.builder("withArrayIndexTags")
             .desc("Tracks taint tags from array indices to values get/set")
             .build();
@@ -100,6 +97,11 @@ public class Instrumenter {
     private static ClassFileTransformer addlTransformer;
     private static File rootOutputDir;
     private static long START;
+
+    static {
+        classes.putAll(ClassSupertypeReadingTransformer.classNodes);
+        ClassSupertypeReadingTransformer.classNodes = null;
+    }
 
     private Instrumenter() {
         // Prevents this class from being instantiated
@@ -155,6 +157,7 @@ public class Instrumenter {
                 || (StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor"))
                 || (StringUtils.startsWith(owner, "edu/gmu/swe/phosphor/ignored"))
                 || StringUtils.startsWith(owner, "sun/awt/image/codec/")
+                || StringUtils.startsWith(owner, "com/sun/image/codec/")
                 || (StringUtils.startsWith(owner, "sun/reflect/Reflection")) //was on last
                 || owner.equals("java/lang/reflect/Proxy") //was on last
                 || StringUtils.startsWith(owner, "sun/reflection/annotation/AnnotationParser") //was on last
@@ -245,7 +248,6 @@ public class Instrumenter {
         options.addOptionGroup(controlPropagationGroup);
         options.addOption(opt_controlTrackExceptions);
         options.addOption(opt_withoutDataTrack);
-        options.addOption(opt_trackArrayLengthTaints);
         options.addOption(opt_trackArrayIndexTaints);
         options.addOption(opt_withoutFieldHiding);
         options.addOption(opt_withoutPropagation);
@@ -281,7 +283,6 @@ public class Instrumenter {
         Configuration.IMPLICIT_LIGHT_TRACKING = line.hasOption(opt_controlLightTrack.getOpt());
         Configuration.IMPLICIT_EXCEPTION_FLOW = line.hasOption(opt_controlTrackExceptions.getOpt());
         Configuration.DATAFLOW_TRACKING = !line.hasOption(opt_withoutDataTrack.getOpt());
-        Configuration.ARRAY_LENGTH_TRACKING = line.hasOption(opt_trackArrayLengthTaints.getOpt());
         Configuration.WITHOUT_FIELD_HIDING = line.hasOption(opt_withoutFieldHiding.getOpt());
         Configuration.WITHOUT_PROPAGATION = line.hasOption(opt_withoutPropagation.getOpt());
         Configuration.WITH_ENUM_BY_VAL = line.hasOption(opt_enumPropagation.getOpt());
@@ -480,7 +481,9 @@ public class Instrumenter {
                         FileOutputStream fos = new FileOutputStream(outputDir.getPath() + File.separator + name);
                         byte[] c = instrumentClass(outputDir.getAbsolutePath(), is, true);
                         is.close();
-                        bos.write(c);
+                        if(c != null) {
+                            bos.write(c);
+                        }
                         bos.writeTo(fos);
                         fos.close();
                         return new LinkedList();

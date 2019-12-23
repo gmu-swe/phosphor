@@ -8,11 +8,9 @@ import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropagator;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeUnsafePropagator;
 import edu.columbia.cs.psl.phosphor.struct.*;
-import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.FrameNode;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
@@ -22,17 +20,16 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     private final NeverNullArgAnalyzerAdapter analyzer;
     private final String methodName;
     private final boolean disable;
-    private final boolean isObjOutputStream;
+    private final boolean isEnumValueOf;
     private LocalVariableManager lvs;
 
-    public ReflectionHidingMV(MethodVisitor mv, String className, String name, NeverNullArgAnalyzerAdapter analyzer) {
+    public ReflectionHidingMV(MethodVisitor mv, String className, String name, NeverNullArgAnalyzerAdapter analyzer, boolean isEnum) {
         super(Configuration.ASM_VERSION, mv);
         this.className = className;
         this.analyzer = analyzer;
         this.methodName = name;
         this.disable = shouldDisable(className, name);
-        this.isObjOutputStream = (className.equals("java/io/ObjectOutputStream") && name.startsWith("writeObject0")) ||
-                (className.equals("java/io/ObjectInputStream") && name.startsWith("defaultReadFields"));
+        this.isEnumValueOf = isEnum && name.equals("valueOf$$PHOSPHORTAGGED");
     }
 
     public void setLvs(LocalVariableManager lvs) {
@@ -51,64 +48,99 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         super.visitInsn(DUP);
         //B B
         super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "m", "Ljava/lang/reflect/Method;");
-        //B M
         super.visitInsn(SWAP);
-        //M B
+        super.visitInsn(DUP);
+        super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "m_taint", Configuration.TAINT_TAG_DESC);
+        super.visitInsn(SWAP);
         super.visitInsn(DUP);
         super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "o", "Ljava/lang/Object;");
         super.visitInsn(SWAP);
-        super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "a", "[Ljava/lang/Object;");
-        if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+        super.visitInsn(DUP);
+        super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "o_taint", Configuration.TAINT_TAG_DESC);
+        super.visitInsn(SWAP);
+        super.visitInsn(DUP);
+        super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "a", Type.getDescriptor(LazyReferenceArrayObjTags.class));
+        super.visitInsn(SWAP);
+        super.visitInsn(DUP);
+        super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "a_taint", Configuration.TAINT_TAG_DESC);
+        super.visitInsn(SWAP);
+        super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "prealloc", Type.getDescriptor(TaintedReferenceWithObjTag.class));
+        if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
             super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+            super.visitInsn(SWAP);
         }
+        super.visitInsn(ACONST_NULL); // for the array descriptor arg
     }
 
     private void maskConstructorNewInstance() {
         if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
-            super.visitInsn(POP);
-            super.visitInsn(SWAP);
-            //[A C
-            super.visitInsn(DUP_X1);
-            //C [A C
-            super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
             visit(FIX_ALL_ARGS_CONSTRUCTOR_CONTROL);
-            super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
-        } else {
+            super.visitInsn(DUP);
+            super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "c", "Ljava/lang/reflect/Constructor;");
             super.visitInsn(SWAP);
-            //[A C
-            super.visitInsn(DUP_X1);
-            //C [A C
+            super.visitInsn(DUP);
+            super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "c_taint", Configuration.TAINT_TAG_DESC);
+            super.visitInsn(SWAP);
+            super.visitInsn(DUP);
+            super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "a", Type.getDescriptor(LazyReferenceArrayObjTags.class));
+            super.visitInsn(SWAP);
+            super.visitInsn(DUP);
+            super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "a_taint", Configuration.TAINT_TAG_DESC);
+            super.visitInsn(SWAP);
+            super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "prealloc", Type.getDescriptor(TaintedReferenceWithObjTag.class));
+            super.visitVarInsn(ALOAD, lvs.idxOfMasterControlLV);
+            super.visitInsn(SWAP);
+            super.visitInsn(ACONST_NULL); // for the array descriptor arg
+        } else {
+            //Method taint array taint prealloc
             visit(FIX_ALL_ARGS_CONSTRUCTOR);
+            super.visitInsn(DUP);
+            super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "c", "Ljava/lang/reflect/Constructor;");
+            super.visitInsn(SWAP);
+            super.visitInsn(DUP);
+            super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "c_taint", Configuration.TAINT_TAG_DESC);
+            super.visitInsn(SWAP);
+            super.visitInsn(DUP);
+            super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "a", Type.getDescriptor(LazyReferenceArrayObjTags.class));
+            super.visitInsn(SWAP);
+            super.visitInsn(DUP);
+            super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "a_taint", Configuration.TAINT_TAG_DESC);
+            super.visitInsn(SWAP);
+            super.visitFieldInsn(GETFIELD, Type.getInternalName(MethodInvoke.class), "prealloc", Type.getDescriptor(TaintedReferenceWithObjTag.class));
+            super.visitInsn(ACONST_NULL); // for the array descriptor arg
+
+        }
+    }
+
+    private int[] storeToLocals(int n) {
+        int[] ret = new int[n];
+        for (int i = 0; i < n; i++) {
+            ret[i] = lvs.getTmpLV();
+            super.visitVarInsn(ASTORE, ret[i]);
+        }
+        return ret;
+    }
+
+    private void loadAndFree(int[] r) {
+        for (int i = r.length - 1; i >= 0; i--) {
+            super.visitVarInsn(ALOAD, r[i]);
+            lvs.freeTmpLV(r[i]);
         }
     }
 
     private void maskGetter(TaintMethodRecord mask, Type[] args) {
-        if(args.length == 0) {
-            visit(mask);
-        } else if(args.length == 1) {
-            super.visitInsn(SWAP);
-            visit(mask);
-            super.visitInsn(SWAP);
-        } else if(args.length == 2) {
-            int lv1 = lvs.getTmpLV();
-            super.visitVarInsn(ASTORE, lv1);
-            int lv2 = lvs.getTmpLV();
-            super.visitVarInsn(ASTORE, lv2);
-            visit(mask);
-            super.visitVarInsn(ALOAD, lv2);
-            super.visitVarInsn(ALOAD, lv1);
-            lvs.freeTmpLV(lv1);
-            lvs.freeTmpLV(lv2);
-        }
+        int[] tmps = storeToLocals(args.length);
+        visit(mask);
+        loadAndFree(tmps);
     }
 
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * that retrieves the value of a field of a Java heap object. */
     private boolean isUnsafeFieldGetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
-        if(className.equals("sun/misc/Unsafe") || opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
+        if (className.equals("sun/misc/Unsafe") || opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
             return false;
         } else {
-            if(args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
+            if(args.length < 2 || !args[1].equals(Type.getType(Object.class))) {
                 return false;
             }
             switch(nameWithoutSuffix) {
@@ -137,33 +169,13 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         }
     }
 
-    /* Changes calls to methods added to Unsafe by Phosphor which retrieve the value of a field of a Java heap object to
-     * instead call a method in RuntimeUnsafePropagator. */
-    private void maskUnsafeFieldGetter(Type retType, String nameWithoutSuffix, Type[] args) {
-        SinglyLinkedList<Type> argStack = new SinglyLinkedList<>();
-        for(Type arg : args) {
-            argStack.push(arg);
-        }
-        popControlTaintTagStack(argStack);
-        if(!TaintUtils.isTaintedPrimitiveType(argStack.peek())) {
-            // Put a null value onto the stack in place of the prealloc
-            super.visitInsn(ACONST_NULL);
-            argStack.push(Type.getType(Object.class));
-        }
-        removeOffsetTagAndCastOffset(argStack);
-        String name = nameWithoutSuffix.contains("Volatile") ? "getVolatile" : "get";
-        super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name,
-                "(Lsun/misc/Unsafe;Ljava/lang/Object;JLjava/lang/Object;)Ljava/lang/Object;", false);
-        super.visitTypeInsn(CHECKCAST, retType.getInternalName());
-    }
-
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * that sets the value of a field of a Java heap object. */
     private boolean isUnsafeFieldSetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
         if(className.equals("sun/misc/Unsafe") || opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
             return false;
         } else {
-            if(args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
+            if(args.length < 2 || !args[1].equals(Type.getType(Object.class))) {
                 return false;
             }
             switch(nameWithoutSuffix) {
@@ -198,15 +210,11 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     /* Changes calls to methods added to Unsafe by Phosphor which set the value of a field of a Java heap object to instead
      * call a method in RuntimeUnsafePropagator. */
     private void maskUnsafeFieldSetter(String nameWithoutSuffix, Type[] args) {
-        SinglyLinkedList<Type> argStack = new SinglyLinkedList<>();
-        for(Type arg : args) {
-            argStack.push(arg);
-        }
-        popControlTaintTagStack(argStack);
-        wrapPrimitive(argStack);
-        removeOffsetTagAndCastOffset(argStack);
-        String name = nameWithoutSuffix.contains("Volatile") ? "putVolatile" : (nameWithoutSuffix.contains("Ordered") ? "putOrdered" : "put");
-        super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name,
+        popControlTaintTagStack();
+        // wrapPrimitive(argStack);
+        // removeOffsetTagAndCastOffset(argStack);
+        // String name = nameWithoutSuffix.contains("Volatile") ? "putVolatile" : (nameWithoutSuffix.contains("Ordered") ? "putOrdered" : "put");
+        super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), nameWithoutSuffix,
                 "(Lsun/misc/Unsafe;Ljava/lang/Object;JLjava/lang/Object;)V", false);
     }
 
@@ -222,40 +230,12 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         }
     }
 
-    /* Changes calls to methods added to Unsafe by Phosphor for compareAndSwap to instead call a method in
-     * RuntimeUnsafePropagator. */
-    private void maskUnsafeCAS(Type[] args) {
-        SinglyLinkedList<Type> argStack = new SinglyLinkedList<>();
-        for(Type arg : args) {
-            argStack.push(arg);
+    private boolean isUnsafeCopyMemory(String owner, String name, String nameWithoutSuffix) {
+        if(!"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX) || className.equals("sun/misc/Unsafe")) {
+            return false;
+        } else {
+            return "copyMemory".equals(nameWithoutSuffix);
         }
-        popControlTaintTagStack(argStack);
-        // Store the prealloc into a local variable
-        int preallocLV = lvs.getTmpLV();
-        super.visitVarInsn(ASTORE, preallocLV);
-        argStack.pop();
-        // If a primitive and its tag are at the top of the stack, wrap them together
-        wrapPrimitive(argStack);
-        int valLV = lvs.getTmpLV();
-        super.visitVarInsn(ASTORE, valLV);
-        argStack.pop();
-        // If a primitive and its tag are at the top of the stack, wrap them together
-        wrapPrimitive(argStack);
-        removeOffsetTagAndCastOffset(argStack);
-        super.visitVarInsn(ALOAD, valLV);
-        lvs.freeTmpLV(valLV);
-        super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), "compareAndSwap",
-                "(Lsun/misc/Unsafe;Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z", false);
-        // Set the prealloc's val field to be the returned boolean, and taint field be null/0
-        super.visitVarInsn(ALOAD, preallocLV);
-        super.visitInsn(SWAP);
-        String fieldOwner = Type.getInternalName(TaintedBooleanWithObjTag.class);
-        super.visitFieldInsn(PUTFIELD, fieldOwner, "val", "Z");
-        super.visitVarInsn(ALOAD, preallocLV);
-        lvs.freeTmpLV(preallocLV);
-        super.visitInsn(DUP);
-        NEW_EMPTY_TAINT.delegateVisit(mv);
-        super.visitFieldInsn(PUTFIELD, fieldOwner, "taint", Configuration.TAINT_TAG_DESC);
     }
 
     /* Swaps the top stack value of the specified type with the value below it of the specified other type. */
@@ -276,18 +256,9 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     /* If the the type at the top of the specified stack is a ControlTaintTagStack type or the top type is a tainted
      * primitive container type and the type under it is a ControlTaintTagStack type pops the ControlTaintTagStack off of
      * the stack and updates the stack to reflect the changes made. */
-    private void popControlTaintTagStack(SinglyLinkedList<Type> argStack) {
-        if(!argStack.isEmpty() && argStack.peek().equals(Type.getType(ControlTaintTagStack.class))) {
+    private void popControlTaintTagStack() {
+        if(Configuration.IMPLICIT_TRACKING){
             super.visitInsn(POP);
-            argStack.pop();
-        } else if(argStack.size() >= 2 && TaintUtils.isTaintedPrimitiveType(argStack.peek())) {
-            Type top = argStack.pop();
-            if(argStack.peek().equals(Type.getType(ControlTaintTagStack.class))) {
-                swap(top, argStack.peek());
-                super.visitInsn(POP);
-                argStack.pop();
-            }
-            argStack.push(top);
         }
     }
 
@@ -318,6 +289,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     /* The stack when entering this method should have a Object followed by either an int or a long and then the taint tag
      * for that int or long. Removes the taint tag from the stack and ensures that the second value is always a long. */
     private void removeOffsetTagAndCastOffset(SinglyLinkedList<Type> argStack) {
+        System.out.println(analyzer.stack);
         Type top = argStack.pop();
         Type second = argStack.pop();
         swap(top, second);
@@ -340,6 +312,16 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         argStack.pop();
         argStack.push(Type.LONG_TYPE);
         argStack.push(top);
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void visitInsn(int opcode) {
+        if(opcode == Opcodes.ARETURN && isEnumValueOf){
+            super.visitVarInsn(ALOAD, 1);
+            ENUM_VALUE_OF.delegateVisit(mv);
+        }
+        super.visitInsn(opcode);
     }
 
     @Override
@@ -347,9 +329,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         Type[] args = Type.getArgumentTypes(desc);
         String nameWithoutSuffix = name.replace(TaintUtils.METHOD_SUFFIX, "");
         Type returnType = Type.getReturnType(desc);
-        if(owner.equals("java/lang/Object") && nameWithoutSuffix.equals("getClass") && isObjOutputStream) {
-            visit(GET_ORIGINAL_CLASS_OBJECT_OUTPUT_STREAM);
-        } else if((disable || className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream")) && owner.equals("java/lang/Class") && !owner.equals(className) && name.startsWith("isInstance$$PHOSPHORTAGGED")) {
+        if((disable || className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream")) && owner.equals("java/lang/Class") && !owner.equals(className) && name.startsWith("isInstance$$PHOSPHORTAGGED")) {
             // Even if we are ignoring other hiding here, we definitely need to do this.
             if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                 super.visitInsn(SWAP);
@@ -389,12 +369,18 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                     if(nameWithoutSuffix.equals("getMethod")) {
                         if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                             super.visitInsn(POP);
+                            super.visitInsn(SWAP);
+                            super.visitInsn(POP);
+                            super.visitInsn(ACONST_NULL);
                         }
                         visit(GET_METHOD);
                         return;
                     } else if(nameWithoutSuffix.equals("getDeclaredMethod")) {
                         if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                             super.visitInsn(POP);
+                            super.visitInsn(SWAP);
+                            super.visitInsn(POP);
+                            super.visitInsn(ACONST_NULL);
                         }
                         visit(GET_DECLARED_METHOD);
                         return;
@@ -402,29 +388,49 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                         // Constructor<T> getDeclaredConstructor(Class<?>... parameterTypes)
                         if(Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                             super.visitInsn(POP);
-                        }
-                        if(Configuration.IMPLICIT_TRACKING) {
-                            super.visitInsn(DUP_X2);
+                            super.visitInsn(SWAP);
                             super.visitInsn(POP);
-                            super.visitInsn(SWAP);
-                            super.visitInsn(DUP_X2);
-                            super.visitInsn(SWAP);
-                        } else {
-                            super.visitInsn(SWAP);
-                            super.visitInsn(DUP_X1);
-                            super.visitInsn(SWAP);
+                            super.visitInsn(ACONST_NULL);
+                            throw new UnsupportedOperationException();
                         }
-                        super.visitInsn((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING ? ICONST_1 : ICONST_0));
-                        visit(ADD_TYPE_PARAMS);
+                        super.visitInsn(POP); //for the fake array
+                        int prealloc = lvs.getTmpLV(Type.getType(TaintedReferenceWithObjTag.class));
                         if(Configuration.IMPLICIT_TRACKING) {
+                            //Class taint array taint ctrl prealloc
                             super.visitInsn(SWAP);
-                        } else if(Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+                            super.visitInsn(POP);
+                        }
+                        super.visitVarInsn(ASTORE, prealloc);
+                        //Class taint Array Taint Prealloc
+                        //need to save all of these things for later
+                        //Class taint array taint
+                        super.visitInsn(POP);
+                        //Class taint array
+                        super.visitInsn(SWAP);
+                        super.visitInsn(POP);
+                        //Class array
+                        super.visitInsn(DUP2);
+                        // Class array class array
+                        super.visitInsn((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING ? ICONST_1 : ICONST_0));
+
+                        visit(ADD_TYPE_PARAMS); //class taint array taint boolean prealloc
+                        //Class badArray array
+                        super.visitInsn(SWAP);
+                        super.visitInsn(POP);
+                        //Class array
+                        NEW_EMPTY_TAINT.delegateVisit(mv);
+                        super.visitInsn(DUP_X1);
+                        if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                             super.visitVarInsn(ALOAD, lvs.getIdxOfMasterControlLV());
                         }
+                        //Class taint array taint
+                        super.visitVarInsn(ALOAD, prealloc);
+                        lvs.freeTmpLV(prealloc);
+                        super.visitInsn(ACONST_NULL); //for the fake array
                     }
                     break;
             }
-            if(owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
+            if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
                 owner = Type.getInternalName(ArrayReflectionMasker.class);
             }
             if(owner.equals("java/lang/reflect/Field")
@@ -443,59 +449,66 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                     desc = "(Ljava/lang/reflect/Field;Ljava/lang/Object;Ljava/lang/Object;)V";
                 }
             }
-            if(isUnsafeFieldGetter(opcode, owner, name, args, nameWithoutSuffix)) {
-                maskUnsafeFieldGetter(returnType, nameWithoutSuffix, args);
+            if (isUnsafeFieldGetter(opcode, owner, name, args, nameWithoutSuffix)) {
+                if (Configuration.IMPLICIT_TRACKING) {
+                    desc = desc.replace(Type.getDescriptor(ControlTaintTagStack.class), "");
+                    super.visitInsn(SWAP);
+                    super.visitInsn(POP);
+                }
+                desc = "(Lsun/misc/Unsafe;" + desc.substring(1);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name, desc, false);
                 return;
-            } else if(isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
-                maskUnsafeFieldSetter(nameWithoutSuffix, args);
+            } else if (isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
+                if (Configuration.IMPLICIT_TRACKING) {
+                    desc = desc.replace(Type.getDescriptor(ControlTaintTagStack.class), "");
+                    super.visitInsn(POP);
+                }
+                desc = "(Lsun/misc/Unsafe;" + desc.substring(1);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name, desc, false);
                 return;
-            } else if(isUnsafeCAS(owner, name, nameWithoutSuffix)) {
-                maskUnsafeCAS(args);
+            } else if (isUnsafeCAS(owner, name, nameWithoutSuffix) || isUnsafeCopyMemory(owner, name, nameWithoutSuffix)) {
+                if (Configuration.IMPLICIT_TRACKING) {
+                    desc = desc.replace(Type.getDescriptor(ControlTaintTagStack.class), "");
+                    super.visitInsn(SWAP);
+                    super.visitInsn(POP);
+                }
+                owner = Type.getInternalName(RuntimeUnsafePropagator.class);
+                opcode = INVOKESTATIC;
+                desc = "(Lsun/misc/Unsafe;" + desc.substring(1);
+                super.visitMethodInsn(opcode, owner, name, desc, isInterface);
                 return;
             }
             super.visitMethodInsn(opcode, owner, name, desc, isInterface);
-            if(owner.equals("java/lang/Class") && desc.endsWith("[Ljava/lang/reflect/Field;") && !className.equals("java/lang/Class")) {
-                if(!Configuration.WITHOUT_FIELD_HIDING) {
+            if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Fields") && !className.equals("java/lang/Class")) {
+                if (!Configuration.WITHOUT_FIELD_HIDING) {
                     visit(REMOVE_TAINTED_FIELDS);
                 }
-            } else if(owner.equals("java/lang/Class") && !className.equals(owner) && (desc.equals("()[Ljava/lang/reflect/Method;") || desc.equals("(" + Type.getDescriptor(ControlTaintTagStack.class) + ")[Ljava/lang/reflect/Method;"))) {
+            } else if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Methods") && !className.equals(owner) && desc.equals("(" + Configuration.TAINT_TAG_DESC + controlTrackDescOrNone() + Type.getDescriptor(TaintedReferenceWithObjTag.class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class))) {
                 super.visitInsn("getMethods".equals(nameWithoutSuffix) ? ICONST_0 : ICONST_1);
                 visit(REMOVE_TAINTED_METHODS);
-            } else if(owner.equals("java/lang/Class") && !className.equals(owner) && (desc.equals("()[Ljava/lang/reflect/Constructor;") || desc.equals("(" + Type.getDescriptor(ControlTaintTagStack.class) + ")[Ljava/lang/reflect/Constructor;"))) {
+            } else if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Constructors") && !className.equals(owner) &&
+                    desc.equals("(" + Configuration.TAINT_TAG_DESC + controlTrackDescOrNone() + Type.getDescriptor(TaintedReferenceWithObjTag.class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class))) {
                 visit(REMOVE_TAINTED_CONSTRUCTORS);
-            } else if(owner.equals("java/lang/Class") && name.equals("getInterfaces")) {
+            } else if (owner.equals("java/lang/Class") && name.equals("getInterfaces")) {
                 visit(REMOVE_TAINTED_INTERFACES);
-            } else if(owner.equals("java/lang/Throwable") && (name.equals("getOurStackTrace") || name.equals("getStackTrace")) && desc.equals("()" + "[" + Type.getDescriptor(StackTraceElement.class))) {
-                if(className.equals("java/lang/Throwable")) {
+            } else if (owner.equals("java/lang/Throwable") && (name.equals("getOurStackTrace") || name.equals("getStackTrace")) && desc.equals("(" + Configuration.TAINT_TAG_DESC + controlTrackDescOrNone() + Type.getDescriptor(TaintedReferenceWithObjTag.class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class))) {
+                if (className.equals("java/lang/Throwable")) {
                     super.visitVarInsn(ALOAD, 0);
                     super.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
                 } else {
                     super.visitLdcInsn(Type.getObjectType(className));
                 }
                 visit(REMOVE_EXTRA_STACK_TRACE_ELEMENTS);
-            } else if(owner.equals("java/lang/Object") && name.equals("getClass") && !isObjOutputStream) {
-                visit(GET_ORIGINAL_CLASS);
-            }
-            if((owner.equals("java/lang/reflect/Method") || owner.equals("java/lang/reflect/Constructor")) && !(className.equals("java/lang/Class")) &&
-                    (name.equals("invoke") || name.equals("newInstance") || name.equals("invoke$$PHOSPHORTAGGED")
-                            || name.equals("newInstance$$PHOSPHORTAGGED"))) {
-                // Unbox if necessary
-                FrameNode fn = TaintAdapter.getCurrentFrameNode(analyzer);
-                fn.type = F_NEW;
-                super.visitInsn(DUP);
-                super.visitTypeInsn(INSTANCEOF, Type.getInternalName(TaintedPrimitiveWithObjTag.class));
-                Label notPrimitive = new Label();
-                super.visitJumpInsn(IFEQ, notPrimitive);
-                FrameNode fn2 = TaintAdapter.getCurrentFrameNode(analyzer);
-                fn2.type = F_NEW;
-                super.visitTypeInsn(CHECKCAST, Type.getInternalName(TaintedPrimitiveWithObjTag.class));
-                super.visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintedPrimitiveWithObjTag.class), "toPrimitiveType", "()Ljava/lang/Object;", false);
-                super.visitLabel(notPrimitive);
-                fn2.accept(this);
+            } else if (owner.equals("java/lang/reflect/Method") && nameWithoutSuffix.equals("invoke")) {
+                visitInsn(DUP);
+                visitMethodInsn(INVOKEVIRTUAL, Type.getInternalName(TaintedReferenceWithObjTag.class), "unwrapPrimitives", "()V", false);
             }
         }
     }
 
+    private String controlTrackDescOrNone(){
+        return (Configuration.IMPLICIT_TRACKING ? Type.getDescriptor(ControlTaintTagStack.class) : "");
+    }
     /**
      * Visits a method instruction for the specified method.
      *
@@ -506,10 +519,10 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     }
 
     private static boolean shouldDisable(String className, String methodName) {
-        if(className.equals("org/codehaus/groovy/vmplugin/v5/Java5") && methodName.equals("makeInterfaceTypes")) {
+        if (className.equals("org/codehaus/groovy/vmplugin/v5/Java5") && methodName.equals("makeInterfaceTypes")) {
             return true;
         } else {
-            return Configuration.TAINT_THROUGH_SERIALIZATION &&
+            return Configuration.TAINT_THROUGH_SERIALIZATION && !methodName.equals("getDeclaredSerialFields$$PHOSPHORTAGGED") &&
                     (className.startsWith("java/io/ObjectStreamClass") || className.equals("java/io/ObjectStreamField"));
         }
     }

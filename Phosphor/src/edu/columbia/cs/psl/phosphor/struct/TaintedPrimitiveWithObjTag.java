@@ -18,14 +18,17 @@ public abstract class TaintedPrimitiveWithObjTag {
             return val;
         } else if(val instanceof Boolean) {
             return BoxedPrimitiveStoreWithObjTags.valueOf(taint, (boolean) val);
-        } else if(val instanceof Byte) {
+        } else if (val instanceof Byte) {
             return BoxedPrimitiveStoreWithObjTags.valueOf(taint, (byte) val);
-        } else if(val instanceof Character) {
+        } else if (val instanceof Character) {
             return BoxedPrimitiveStoreWithObjTags.valueOf(taint, (char) val);
-        } else if(val instanceof Short) {
+        } else if (val instanceof Short) {
             return BoxedPrimitiveStoreWithObjTags.valueOf(taint, (short) val);
         } else {
             int tag = -1;
+            if (val == null) {
+                return null;
+            }
             try {
                 // Set the PHOSPHOR_TAG field if possible
                 java.lang.reflect.Field taintField = val.getClass().getDeclaredField("PHOSPHOR_TAG");

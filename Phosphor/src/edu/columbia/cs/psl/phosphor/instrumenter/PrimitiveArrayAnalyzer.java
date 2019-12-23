@@ -1,10 +1,12 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BindingControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BaseControlFlowGraphCreator;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BasicBlock;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
@@ -12,12 +14,11 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.Natura
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.SimpleBasicBlock;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
+import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.*;
 
 import java.util.Iterator;
@@ -90,7 +91,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
     @Override
     public void visitInsn(int opcode) {
-        super.visitInsn(opcode);
         switch(opcode) {
             case Opcodes.FADD:
             case Opcodes.FREM:
@@ -158,6 +158,15 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             case Opcodes.SALOAD:
                 wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("S"));
                 break;
+            case Opcodes.AALOAD:
+                String arrayType = "[Ljava/lang/Object;";
+                Object onStack = analyzer.stack.get(analyzer.stack.size() - 2);
+                if (onStack instanceof String) {
+                    arrayType = (String) onStack;
+                }
+                super.visitLdcInsn(new ReferenceArrayTarget(arrayType));
+                wrapperTypesToPreAlloc.add(Type.getType(TaintedReferenceWithObjTag.class));
+                break;
             case Opcodes.I2C:
                 if(Configuration.PREALLOC_STACK_OPS) {
                     wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("C"));
@@ -198,6 +207,18 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 nThrow++;
                 break;
         }
+        super.visitInsn(opcode);
+    }
+
+    @Override
+    public void visitInvokeDynamicInsn(String name, String desc, Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
+        super.visitInvokeDynamicInsn(name, desc, bootstrapMethodHandle, bootstrapMethodArguments);
+        Type returnType = Type.getReturnType(desc);
+        Type newReturnType = TaintUtils.getContainerReturnType(returnType);
+        isEmptyMethod = false;
+        if(newReturnType != returnType) {
+            wrapperTypesToPreAlloc.add(newReturnType);
+        }
     }
 
     @Override
@@ -206,7 +227,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         Type returnType = Type.getReturnType(desc);
         Type newReturnType = TaintUtils.getContainerReturnType(returnType);
         isEmptyMethod = false;
-        if(newReturnType != returnType && !(returnType.getSort() == Type.ARRAY)) {
+        if(newReturnType != returnType) {
             wrapperTypesToPreAlloc.add(newReturnType);
         }
     }
@@ -301,8 +322,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         private final boolean shouldTrackExceptions;
         private final MethodVisitor cmv;
         int curLabel = 0;
-        List<FrameNode> inFrames = new ArrayList<>();
-        List<FrameNode> outFrames = new ArrayList<>();
         Map<Integer, AnnotatedInstruction> implicitAnalysisBlocks = new HashMap<>();
 
         PrimitiveArrayAnalyzerMN(int access, String name, String desc, String signature, String[] exceptions, String className, MethodVisitor cmv) {
@@ -330,42 +349,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             }
             super.visitCode();
             visitLabel(newFirstLabel);
-
-        }
-
-        private void visitFrameTypes(final int n, final Object[] types, final java.util.List<Object> result) {
-            for(int i = 0; i < n; i++) {
-                Object type = types[i];
-                result.add(type);
-                if(type == Opcodes.LONG || type == Opcodes.DOUBLE) {
-                    result.add(Opcodes.TOP);
-                }
-            }
-        }
-
-        FrameNode generateFrameNode(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-            FrameNode ret = new FrameNode(type, nLocal, local, nStack, stack);
-            ret.local = new java.util.ArrayList<>();
-            ret.stack = new java.util.ArrayList<>();
-            visitFrameTypes(nLocal, local, ret.local);
-            visitFrameTypes(nStack, stack, ret.stack);
-            return ret;
-        }
-
-        @Override
-        public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-            if(DEBUG) {
-                System.out.println("Visitframe curlabel " + (curLabel - 1));
-            }
-            super.visitFrame(type, nLocal, local, nStack, stack);
-            if(DEBUG) {
-                System.out.println("label " + (curLabel - 1) + " reset to " + Arrays.toString(stack));
-            }
-            if(inFrames.size() == curLabel - 1) {
-                inFrames.add(generateFrameNode(type, nLocal, local, nStack, stack));
-            } else {
-                inFrames.set(curLabel - 1, generateFrameNode(type, nLocal, local, nStack, stack));
-            }
         }
 
         @Override
@@ -381,57 +364,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             if(oldFirstLabel == null && label != newFirstLabel) {
                 oldFirstLabel = label;
             }
-            if(DEBUG) {
-                System.out.println("Visit label: " + curLabel + " analyzer: " + analyzer.stack + " inframes size "
-                        + inFrames.size() + " " + outFrames.size());
-            }
-            if(analyzer.locals == null || analyzer.stack == null) {
-                inFrames.add(new FrameNode(0, 0, new Object[0], 0, new Object[0]));
-            } else {
-                inFrames.add(new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(),
-                        analyzer.stack.size(), analyzer.stack.toArray()));
-            }
-            outFrames.add(null);
-            if(curLabel > 0 && outFrames.get(curLabel - 1) == null && analyzer.stack != null) {
-                outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(),
-                        analyzer.stack.size(), analyzer.stack.toArray()));
-            }
-            if(DEBUG) {
-                System.out.println("Added out-frame for " + (outFrames.size() - 1) + " : " + analyzer.stack);
-            }
             super.visitLabel(label);
             curLabel++;
-        }
-
-        @Override
-        public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
-            if(DEBUG) {
-                System.out.println("Rewriting " + curLabel + " OUT to " + analyzer.stack);
-            }
-            outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
-            super.visitTableSwitchInsn(min, max, dflt, labels);
-        }
-
-        @Override
-        public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
-            if(DEBUG) {
-                System.out.println("Rewriting " + curLabel + " OUT to " + analyzer.stack);
-            }
-            outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
-            super.visitLookupSwitchInsn(dflt, keys, labels);
-        }
-
-        @Override
-        public void visitInsn(int opcode) {
-            if(opcode == Opcodes.ATHROW) {
-                if(DEBUG) {
-                    System.out.println("Rewriting " + curLabel + " OUT to " + analyzer.stack);
-                }
-                if(analyzer.locals != null && analyzer.stack != null) {
-                    outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), analyzer.stack.size(), analyzer.stack.toArray()));
-                }
-            }
-            super.visitInsn(opcode);
         }
 
         public void visitJumpInsn(int opcode, Label label) {
@@ -466,18 +400,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 default:
                     throw new IllegalArgumentException();
             }
-            //The analyzer won't have executed yet, so simulate it did :'(
-            List<Object> stack = new ArrayList<>(analyzer.stack);
-            while(nToPop > 0 && !stack.isEmpty()) {
-                stack.remove(stack.size() - 1);
-                nToPop--;
-            }
-
-            if(DEBUG) {
-                System.out.println(name + " Rewriting " + curLabel + " OUT to " + stack);
-            }
-            outFrames.set(curLabel - 1, new FrameNode(0, analyzer.locals.size(), analyzer.locals.toArray(), stack.size(), stack.toArray()));
-            visitLabel(new Label());
         }
 
         @Override
@@ -543,7 +465,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     return new Frame(nLocals, nStack) {
                         @Override
                         public void execute(AbstractInsnNode insn, Interpreter interpreter) throws AnalyzerException {
-                            if(insn.getOpcode() > 200) {
+                            if(insn.getOpcode() > 200 || (insn instanceof LdcInsnNode && ((LdcInsnNode) insn).cst instanceof PhosphorInstructionInfo)) {
                                 return;
                             }
                             super.execute(insn, interpreter);
@@ -599,75 +521,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                                         }
                                     } catch(Throwable t) {
                                         //Maybe can't load exception type, that's ok
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    for(Map.Entry<Integer, LinkedList<Integer>> edge : edges.entrySet()) {
-                        Integer successor = edge.getKey();
-                        if(edge.getValue().size() > 1) {
-                            int labelToSuccessor = getLabel(successor);
-                            if(DEBUG) {
-                                System.out.println(name + " Must merge: " + edge.getValue() + " into " + successor + " AKA " + labelToSuccessor);
-                            }
-                            if(DEBUG) {
-                                System.out.println("Input to successor: " + inFrames.get(labelToSuccessor).stack);
-                            }
-                            for(Integer toMerge : edge.getValue()) {
-                                if(shouldTrackExceptions) {
-                                    AnnotatedInstruction b = implicitAnalysisBlocks.get(toMerge);
-                                    if(b.insn.getOpcode() == Opcodes.ATHROW) {
-                                        continue;
-                                    }
-                                }
-                                int labelToMerge = getLabel(toMerge);
-                                if(DEBUG) {
-                                    System.out.println(toMerge + " AKA " + labelToMerge);
-                                }
-                                if(DEBUG) {
-                                    System.out.println((outFrames.get(labelToMerge) == null ? "null" : outFrames.get(labelToMerge).stack));
-                                }
-                                if(inFrames.get(labelToSuccessor) == null || outFrames.get(labelToMerge) == null) {
-                                    //e.g. for an edge into the first instruction in an exception handler
-                                    continue;
-                                }
-                                if(!outFrames.get(labelToMerge).stack.isEmpty() && !inFrames.get(labelToSuccessor).stack.isEmpty()) {
-                                    Object output1Top = outFrames.get(labelToMerge).stack.get(outFrames.get(labelToMerge).stack.size() - 1);
-                                    Object inputTop = inFrames.get(labelToSuccessor).stack.get(inFrames.get(labelToSuccessor).stack.size() - 1);
-                                    if(output1Top == Opcodes.TOP) {
-                                        output1Top = outFrames.get(labelToMerge).stack.get(outFrames.get(labelToMerge).stack.size() - 2);
-                                    }
-                                    if(inputTop == Opcodes.TOP) {
-                                        inputTop = inFrames.get(labelToSuccessor).stack.get(inFrames.get(labelToSuccessor).stack.size() - 2);
-                                    }
-                                    if(output1Top != null && output1Top != inputTop) {
-                                        Type inputTopType = TaintAdapter.getTypeForStackType(inputTop);
-                                        Type outputTopType = TaintAdapter.getTypeForStackType(output1Top);
-                                        if((output1Top == Opcodes.NULL) && inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() != Type.OBJECT
-                                                && inputTopType.getDimensions() == 1) {
-                                            insertACONSTNULLBEFORE.add(toMerge);
-                                        } else if((inputTopType.getSort() == Type.OBJECT || (inputTopType.getSort() == Type.ARRAY && inputTopType.getElementType().getSort() == Type.OBJECT)) && outputTopType.getSort() == Type.ARRAY && outputTopType.getElementType().getSort() != Type.OBJECT
-                                                && inputTopType.getDimensions() == 1) {
-                                            insertACHECKCASTBEFORE.add(toMerge);
-                                        }
-                                    }
-                                }
-                                if(!outFrames.get(labelToMerge).local.isEmpty() && !inFrames.get(labelToSuccessor).local.isEmpty()) {
-                                    for(int i = 0; i < Math.min(outFrames.get(labelToMerge).local.size(), inFrames.get(labelToSuccessor).local.size()); i++) {
-                                        Object out = outFrames.get(labelToMerge).local.get(i);
-                                        Object in = inFrames.get(labelToSuccessor).local.get(i);
-                                        if(out instanceof String && in instanceof String) {
-                                            Type tout = Type.getObjectType((String) out);
-                                            Type tin = Type.getObjectType((String) in);
-                                            if(tout.getSort() == Type.ARRAY && tout.getElementType().getSort() != Type.OBJECT && tout.getDimensions() == 1 && tin.getSort() == Type.OBJECT) {
-                                                int insnN = getLastInsnByLabel(labelToMerge);
-                                                if(!alwaysAutoBoxByFrame.containsKey(insnN)) {
-                                                    alwaysAutoBoxByFrame.put(insnN, new LinkedList<>());
-                                                }
-                                                alwaysAutoBoxByFrame.get(insnN).add(i);
-                                            }
-                                        }
                                     }
                                 }
                             }
@@ -826,94 +679,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         }
                     }
                 }
-                List<Integer> toAddNullBefore = new ArrayList<>();
-                toAddNullBefore.addAll(insertACHECKCASTBEFORE);
-                toAddNullBefore.addAll(neverAutoBoxByFrame.keySet());
-                toAddNullBefore.addAll(alwaysAutoBoxByFrame.keySet());
-                Collections.sort(toAddNullBefore);
-                int nNewNulls = 0;
-                for(Integer i : toAddNullBefore) {
-                    AbstractInsnNode insertAfter = this.instructions.get(i + nNewNulls);
-                    if(!insertACONSTNULLBEFORE.contains(i)) {
-                        if(insertACHECKCASTBEFORE.contains(i)) {
-                            if(DEBUG) {
-                                System.out.println("Adding checkcast before: " + i + " (plus " + nNewNulls + ")");
-                            }
-                            if(insertAfter.getOpcode() == Opcodes.GOTO) {
-                                insertAfter = insertAfter.getPrevious();
-                            }
-                            this.instructions.insert(insertAfter, new TypeInsnNode(Opcodes.CHECKCAST, Type.getInternalName(Object.class)));
-                            nNewNulls++;
-                        } else if(neverAutoBoxByFrame.containsKey(i)) {
-                            if(insertAfter.getOpcode() == Opcodes.GOTO) {
-                                insertAfter = insertAfter.getPrevious();
-                            }
-                            for(int j : neverAutoBoxByFrame.get(i)) {
-                                this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.NEVER_AUTOBOX, j));
-                                nNewNulls++;
-                            }
-                        } else if(alwaysAutoBoxByFrame.containsKey(i)) {
-                            for(int j : alwaysAutoBoxByFrame.get(i)) {
-                                AbstractInsnNode query = insertAfter.getNext();
-                                while(query.getNext() != null && (query.getType() == AbstractInsnNode.LABEL ||
-                                        query.getType() == AbstractInsnNode.LINE ||
-                                        query.getType() == AbstractInsnNode.FRAME || query.getOpcode() > 200)) {
-                                    query = query.getNext();
-                                }
-                                if(query.getOpcode() == Opcodes.ALOAD && query.getNext().getOpcode() == Opcodes.MONITOREXIT) {
-                                    insertAfter = query.getNext();
-                                }
-                                if(query.getType() == AbstractInsnNode.JUMP_INSN) {
-                                    insertAfter = query;
-                                }
-                                if(insertAfter.getType() == AbstractInsnNode.JUMP_INSN) {
-                                    insertAfter = insertAfter.getPrevious();
-                                    if(insertAfter.getNext().getOpcode() != Opcodes.GOTO) {
-                                        this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_BOX_JUMP, j));
-                                    } else {
-                                        this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
-                                    }
-                                } else {
-                                    if(insertAfter.getOpcode() == Opcodes.ATHROW) {
-                                        this.instructions.insertBefore(query, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
-                                    } else {
-                                        this.instructions.insert(insertAfter, new VarInsnNode(TaintUtils.ALWAYS_AUTOBOX, j));
-                                    }
-                                }
-                                nNewNulls++;
-                            }
-                        }
-                    }
-                }
-                boolean hadChanges = true;
-                while(hadChanges) {
-                    hadChanges = false;
-                    java.util.Set<LocalVariableNode> newLVNodes = new java.util.HashSet<>();
-                    if(this.localVariables != null) {
-                        for(Object _lv : this.localVariables) {
-                            LocalVariableNode lv = (LocalVariableNode) _lv;
-                            AbstractInsnNode toCheck = lv.start;
-                            LabelNode veryEnd = lv.end;
-                            while(toCheck != null && toCheck != lv.end) {
-                                if((toCheck.getOpcode() == TaintUtils.ALWAYS_BOX_JUMP
-                                        || toCheck.getOpcode() == TaintUtils.ALWAYS_AUTOBOX) && ((VarInsnNode) toCheck).var == lv.index) {
-                                    LabelNode beforeProblem = new LabelNode(new Label());
-                                    LabelNode afterProblem = new LabelNode(new Label());
-                                    this.instructions.insertBefore(toCheck, beforeProblem);
-                                    this.instructions.insert(toCheck.getNext(), afterProblem);
-                                    LocalVariableNode newLV = new LocalVariableNode(lv.name, lv.desc, lv.signature, afterProblem, veryEnd, lv.index);
-                                    lv.end = beforeProblem;
-                                    newLVNodes.add(newLV);
-                                    hadChanges = true;
-                                    break;
-                                }
-                                toCheck = toCheck.getNext();
-                            }
-                        }
-                        this.localVariables.addAll(newLVNodes);
-                    }
-                }
-
             } catch(Throwable e) {
                 System.err.println("While analyzing " + className);
                 e.printStackTrace();

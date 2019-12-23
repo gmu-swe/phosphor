@@ -1150,4 +1150,10 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             }
         }
     }
+    public void printLocals(){
+        System.out.println("LOCALS:");
+        for(int i = 0; i < locals.size(); i++){
+            System.out.println("\t"+i+": " + locals.get(i));
+        }
+    }
 }

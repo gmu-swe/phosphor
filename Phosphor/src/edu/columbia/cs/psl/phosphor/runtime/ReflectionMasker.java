@@ -6,15 +6,14 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.Type;
 import sun.misc.Unsafe;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Member;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
@@ -37,45 +36,32 @@ public class ReflectionMasker {
     }
 
     @SuppressWarnings("unused")
-    public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long offset, ControlTaintTagStack ctrl) {
-        return getObject$$PHOSPHORTAGGED(u, obj, null, offset);
+    public static TaintedReferenceWithObjTag getObject$$PHOSPHORTAGGED(Unsafe u, Taint uT, Object obj, Taint<?> tag, long offset, Taint oT, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag ret) {
+        RuntimeUnsafePropagator.getObject$$PHOSPHORTAGGED(u, uT, obj, tag, offset, oT, ret);
+        return ret;
     }
 
     @SuppressWarnings("unused")
-    public static Object getObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long offset) {
-        return RuntimeUnsafePropagator.get(u, obj, offset, null);
+    public static TaintedReferenceWithObjTag getObject$$PHOSPHORTAGGED(Unsafe u, Taint unsafeTaint, Object obj, Taint<?> tag, long offset, Taint offsetTag, TaintedReferenceWithObjTag ret) {
+        RuntimeUnsafePropagator.getObject$$PHOSPHORTAGGED(u, unsafeTaint, obj, tag, offset, offsetTag, ret);
+        return ret;
     }
 
     @SuppressWarnings("unused")
-    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val, ControlTaintTagStack ctrl) {
-        putObject$$PHOSPHORTAGGED(u, obj, tag, fieldOffset, val);
+    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Taint unsafetaint, Object obj, Taint<?> tag, long fieldOffset, Taint offsetTag, Object val, Taint valTaint, ControlTaintTagStack ctrl) {
+        RuntimeUnsafePropagator.putObject$$PHOSPHORTAGGED(u, unsafetaint, obj, tag, fieldOffset, offsetTag, val, valTaint);
     }
 
     @SuppressWarnings("unused")
-    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Object obj, Taint<?> tag, long fieldOffset, Object val) {
-        if(val instanceof LazyArrayObjTags) {
-            try {
-                RuntimeUnsafePropagator.OffsetPair pair = RuntimeUnsafePropagator.getOffsetPair(u, obj, fieldOffset);
-                if(pair != null) {
-                    if(pair.origFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
-                        u.putObject(obj, pair.origFieldOffset, MultiDTaintedArray.unbox1D(val));
-                    }
-                    if(pair.tagFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
-                        u.putObject(obj, pair.tagFieldOffset, val);
-                    }
-                    return;
-                }
-            } catch(Exception e) {
-                //
-            }
-        }
-        u.putObject(obj, fieldOffset, val);
+    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Taint unsafetaint, Object obj, Taint<?> tag, long fieldOffset, Taint offsetTag, Object val, Taint valTaint) {
+        //TODO go straight to runtimeunsafeprop instead?
+        RuntimeUnsafePropagator.putObject$$PHOSPHORTAGGED(u, unsafetaint, obj, tag, fieldOffset, offsetTag, val, valTaint);
     }
 
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = IS_INSTANCE)
-    public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Object o, TaintedBooleanWithObjTag ret) {
+    public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Taint c1Taint, Object o, Taint oTaint, TaintedBooleanWithObjTag ret) {
         ret.taint = null;
         if(o instanceof LazyArrayObjTags && !LazyArrayObjTags.class.isAssignableFrom(c1)) {
             ret.val = c1.isInstance(MultiDTaintedArrayWithObjTag.unboxRaw(o));
@@ -95,98 +81,16 @@ public class ReflectionMasker {
         return System.getProperty(prop);
     }
 
-    private static Method getTaintMethodControlTrack(Method m) {
-        if(m.getDeclaringClass().isAnnotation()) {
-            return m;
-        }
-        final char[] chars = m.getName().toCharArray();
-        if(chars.length > METHOD_SUFFIX_LEN) {
-            boolean isEq = true;
-            int x = 0;
-            for(int i = chars.length - METHOD_SUFFIX_LEN; i < chars.length; i++) {
-                if(chars[i] != METHOD_SUFFIX_CHARS[x]) {
-                    isEq = false;
-                }
-                x++;
+    private static boolean isWrappedErasedType(Class c){
+        if(c.isArray()){
+            if(c.getComponentType().isPrimitive()){
+                return false;
             }
-            if(isEq) {
-                if(!IS_KAFFE) {
-                    setMark(m, true);
-                }
-                return m;
-            }
+            return true;
         }
-        if(declaredInIgnoredClass(m)) {
-            return m;
-        }
-        ArrayList<Class> newArgs = new ArrayList<>();
-        for(final Class c : m.getParameterTypes()) {
-            if(c.isArray()) {
-                if(c.getComponentType().isPrimitive()) {
-                    // 1d primitive array
-                    try {
-                        newArgs.add(Class.forName(MultiDTaintedArrayWithObjTag.getTypeForType(Type.getType(c)).getInternalName().replace('/', '.')));
-                    } catch(ClassNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    Class elementType = c.getComponentType();
-                    while(elementType.isArray()) {
-                        elementType = c.getComponentType();
-                    }
-                    if(elementType.isPrimitive()) {
-                        // 2d primitive array
-                        try {
-                            newArgs.add(Class.forName(MultiDTaintedArrayWithObjTag.getTypeForType(Type.getType(c)).getInternalName().replace('/', '.')));
-                        } catch(ClassNotFoundException e) {
-                            e.printStackTrace();
-                        }
-                    } else {
-                        // Reference array
-                        newArgs.add(c);
-                    }
-                }
-            } else if(c.isPrimitive()) {
-                newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
-                newArgs.add(c);
-            } else {
-                // Anything else
-                newArgs.add(c);
-            }
-        }
-        newArgs.add(ControlTaintTagStack.class);
-        final Class returnType = m.getReturnType();
-        if(returnType.isPrimitive() && returnType != Void.TYPE) {
-            if(returnType == Integer.TYPE) {
-                newArgs.add(TaintedIntWithObjTag.class);
-            } else if(returnType == Short.TYPE) {
-                newArgs.add(TaintedShortWithObjTag.class);
-            } else if(returnType == Float.TYPE) {
-                newArgs.add(TaintedFloatWithObjTag.class);
-            } else if(returnType == Double.TYPE) {
-                newArgs.add(TaintedDoubleWithObjTag.class);
-            } else if(returnType == Long.TYPE) {
-                newArgs.add(TaintedLongWithObjTag.class);
-            } else if(returnType == Character.TYPE) {
-                newArgs.add(TaintedCharWithObjTag.class);
-            } else if(returnType == Byte.TYPE) {
-                newArgs.add(TaintedByteWithObjTag.class);
-            } else if(returnType == Boolean.TYPE) {
-                newArgs.add(TaintedBooleanWithObjTag.class);
-            }
-        }
-        Class[] args = new Class[newArgs.size()];
-        newArgs.toArray(args);
-        Method ret = null;
-        try {
-            ret = m.getDeclaringClass().getDeclaredMethod(m.getName() + TaintUtils.METHOD_SUFFIX, args);
-        } catch(NoSuchMethodException | SecurityException e) {
-            e.printStackTrace();
-        }
-        return ret;
+        return false;
     }
-
-    private static Method getTaintMethod(Method m) {
+    private static Method getTaintMethod(Method m, boolean controlTracking) {
         if(isMarked(m) && getCachedMethod(m) != null) {
             return m;
         } else if(!isMarked(m) && getCachedMethod(m) != null) {
@@ -213,43 +117,44 @@ public class ReflectionMasker {
         }
         ArrayList<Class> newArgs = new ArrayList<>();
         boolean madeChange = false;
-        for(final Class c : m.getParameterTypes()) {
+        if (!Modifier.isStatic(m.getModifiers())) {
+            madeChange = true;
+            newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
+        }
+        LinkedList<Class> wrappedArgs = new LinkedList<>();
+        for (final Class c : m.getParameterTypes()) {
             if(c.isArray()) {
-                if(c.getComponentType().isPrimitive()) {
-                    // 1d primitive array
+                if(!c.getComponentType().isArray()) {
+                    // 1d array
                     madeChange = true;
                     newArgs.add(MultiDTaintedArray.getUnderlyingBoxClassForUnderlyingClass(c));
                 } else {
                     Class elementType = c.getComponentType();
-                    while(elementType.isArray()) {
+                    while (elementType.isArray()) {
                         elementType = elementType.getComponentType();
                     }
-                    if(elementType.isPrimitive()) {
-                        // 2d primitive array
-                        madeChange = true;
-                        try {
-                            newArgs.add(Class.forName(MultiDTaintedArray.getTypeForType(Type.getType(c)).getInternalName()));
-                        } catch(ClassNotFoundException e) {
-                            e.printStackTrace();
-                        }
-                    } else {
-                        //reference array
-                        newArgs.add(c);
+                    madeChange = true;
+                    try {
+                        newArgs.add(Class.forName(MultiDTaintedArray.getTypeForType(Type.getType(c)).getInternalName()));
+                    } catch (ClassNotFoundException e) {
+                        e.printStackTrace();
                     }
                 }
-            } else if(c.isPrimitive()) {
-                //TODO reference tainting
-                madeChange = true;
-                newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
-                newArgs.add(c);
             } else {
-                //anything else
+                madeChange = true;
                 newArgs.add(c);
             }
+            if(isWrappedErasedType(c)){
+                wrappedArgs.add(c);
+            }
+            newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
+        }
+        if(controlTracking){
+            newArgs.add(ControlTaintTagStack.class);
         }
         final Class returnType = m.getReturnType();
         if(!returnType.isArray()) {
-            if(returnType.isPrimitive() && returnType != Void.TYPE) {
+            if(returnType != Void.TYPE) {
                 if(returnType == Integer.TYPE) {
                     newArgs.add(TaintedIntWithObjTag.class);
                 } else if(returnType == Short.TYPE) {
@@ -266,10 +171,13 @@ public class ReflectionMasker {
                     newArgs.add(TaintedByteWithObjTag.class);
                 } else if(returnType == Boolean.TYPE) {
                     newArgs.add(TaintedBooleanWithObjTag.class);
+                } else{
+                    newArgs.add(TaintedReferenceWithObjTag.class);
                 }
                 madeChange = true;
             }
         }
+        newArgs.addAll(wrappedArgs);
         if(madeChange) {
             Class[] args = new Class[newArgs.size()];
             newArgs.toArray(args);
@@ -292,23 +200,27 @@ public class ReflectionMasker {
 
     /* Returns the original list of the parameters for a method that would produce a phosphor-added method with the specified
      * tainted parameters. */
-    private static SinglyLinkedList<Class<?>> getOriginalParamTypes(Class<?>[] taintedParamTypes) {
-        SinglyLinkedList<Class<?>> originalParamTypes = new SinglyLinkedList<>();
-        for(int i = 0; i < taintedParamTypes.length; i++) {
+    private static ArrayList<Class<?>> getOriginalParamTypes(Class<?>[] taintedParamTypes) {
+        ArrayList<Class<?>> originalParamTypes = new ArrayList<>(taintedParamTypes.length);
+        SinglyLinkedList<Class<?>> originalWrappedTypes = new SinglyLinkedList<>();
+        for (int i = 1; i < taintedParamTypes.length; i++) { //start from 1 to skip the taint for THIS
             Class<?> paramType = taintedParamTypes[i];
-            if(paramType.equals(Taint.class) || paramType.equals(Integer.TYPE)) {
-                // Add the type of the primitive for which the current parameter is the taint tag
-                originalParamTypes.enqueue(taintedParamTypes[++i]);
-            } else if(LazyArrayObjTags.class.isAssignableFrom(paramType)) {
+            if (paramType.isArray()) {
+                originalWrappedTypes.enqueue(paramType);
+            } else if(paramType == LazyReferenceArrayObjTags.class){
+                originalParamTypes.add(paramType);
+            } else if (LazyArrayObjTags.class.isAssignableFrom(paramType)) {
                 // Add the type of the 1D primitive array for which the current parameter is the taint array
-                originalParamTypes.enqueue(TaintUtils.getUnwrappedClass(paramType));
-            } else if(paramType.getName().contains("edu.columbia.cs.psl.phosphor.struct.Lazy")) {
-                // Add the original multidimensional primitive array for the current LazyArray array
-                originalParamTypes.enqueue(TaintUtils.getUnwrappedClass(paramType));
-            } else if(!paramType.equals(TaintSentinel.class) && !paramType.equals(ControlTaintTagStack.class)
-                    && !TaintedPrimitiveWithObjTag.class.isAssignableFrom(paramType)) {
+                originalParamTypes.add(TaintUtils.getUnwrappedClass(paramType));
+            } else if (!paramType.equals(ControlTaintTagStack.class)
+                    && !TaintedPrimitiveWithObjTag.class.isAssignableFrom(paramType) && !paramType.equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
                 // Add the type as is if it is not TaintSentinel, ControlTaintTagStack or a TaintedPrimitiveWithXTags
-                originalParamTypes.enqueue(paramType);
+                originalParamTypes.add(paramType);
+            }
+        }
+        for(int i = 0; i < originalParamTypes.size(); i++){
+            if(originalParamTypes.get(i) == LazyReferenceArrayObjTags.class){
+                originalParamTypes.set(i, originalWrappedTypes.dequeue());
             }
         }
         return originalParamTypes;
@@ -319,67 +231,50 @@ public class ReflectionMasker {
      */
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = ADD_TYPE_PARAMS)
-    public static Class<?>[] addTypeParams(Class<?> clazz, Class<?>[] params, boolean implicitTracking) {
-        if(isIgnoredClass(clazz) || params == null) {
+    public static LazyReferenceArrayObjTags addTypeParams(Class<?> clazz, LazyReferenceArrayObjTags params, boolean implicitTracking) {
+        if(isIgnoredClass(clazz) || params.val == null) {
             return params;
         }
-        boolean needsChange = false;
-        for(Class<?> c : params) {
-            if(c != null && isPrimitiveOrPrimitiveArray(c)) {
-                needsChange = true;
-            }
-        }
-        if(implicitTracking) {
-            needsChange = true;
-        }
-        if(needsChange) {
-            ArrayList<Class<?>> newParams = new ArrayList<>();
-            for(Class<?> c : params) {
-                Type t = Type.getType(c);
-                if(t.getSort() == Type.ARRAY) {
-                    if(t.getElementType().getSort() != Type.OBJECT) {
-                        if(t.getDimensions() == 1) {
-                            newParams.add(MultiDTaintedArray.getUnderlyingBoxClassForUnderlyingClass(c));
-                            continue;
-                        } else {
-                            Type newType;
-                            newType = MultiDTaintedArrayWithObjTag.getTypeForType(t);
-                            try {
-                                newParams.add(Class.forName(newType.getInternalName().replace("/",
-                                        ".")));
-                                continue;
-                            } catch(ClassNotFoundException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                } else if(t.getSort() != Type.OBJECT) {
-                    //TODO reference tainting
-                    newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
+        boolean needsChange = true;
+        ArrayList<Class<?>> newParams = new ArrayList<>();
+        newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
+        LinkedList<Class<?>> wrapped = new LinkedList<>();
+        for (Class<?> c : (Class[]) params.val) {
+            Type t = Type.getType(c);
+            if (t.getSort() == Type.ARRAY) {
+                newParams.add(MultiDTaintedArray.getUnderlyingBoxClassForUnderlyingClass(c));
+                newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
+                if(isWrappedErasedType(c)){
+                    wrapped.add(c);
                 }
-                newParams.add(c);
+                continue;
             }
-            if(implicitTracking) {
-                newParams.add(ControlTaintTagStack.class);
-            }
-            newParams.add(TaintSentinel.class);
-            Class[] ret = new Class[newParams.size()];
-            newParams.toArray(ret);
-            return ret;
+            newParams.add(c);
+            newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
         }
-        return params;
+        if (implicitTracking) {
+            newParams.add(ControlTaintTagStack.class);
+        }
+        newParams.addAll(wrapped);
+        Class[] ret = new Class[newParams.size()];
+        newParams.toArray(ret);
+        return new LazyReferenceArrayObjTags(ret);
     }
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = GET_DECLARED_METHOD)
-    public static Method getDeclaredMethod(Class<?> czz, String name, Class<?>[] params) throws NoSuchMethodException {
-        return checkForSyntheticObjectMethod(czz.getDeclaredMethod(name, params), true);
+    public static TaintedReferenceWithObjTag getDeclaredMethod(Class<?> czz, Taint czzTaint, String name, Taint nameTaint, LazyReferenceArrayObjTags params, Taint paramsTaint, TaintedReferenceWithObjTag ret, Class[] unused) throws NoSuchMethodException {
+        ret.taint = Taint.emptyTaint();
+        ret.val = checkForSyntheticObjectMethod(czz.getDeclaredMethod(name, (params == null ? null : (Class[]) params.val)), true);
+        return ret;
     }
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = GET_METHOD)
-    public static Method getMethod(Class<?> czz, String name, Class<?>[] params) throws NoSuchMethodException {
-        return checkForSyntheticObjectMethod(czz.getMethod(name, params), false);
+    public static TaintedReferenceWithObjTag getMethod(Class<?> czz, Taint czzTaint, String name, Taint nameTaint, LazyReferenceArrayObjTags params, Taint paramsTaint, TaintedReferenceWithObjTag ret, Class[] unused) throws NoSuchMethodException {
+        ret.taint = Taint.emptyTaint();
+        ret.val = checkForSyntheticObjectMethod(czz.getMethod(name, (params == null ? null : (Class[]) params.val)), false);
+        return ret;
     }
 
     /* If the specified method is a synthetic hashCode or equals method added by Phosphor and declaredOnly is true,
@@ -421,42 +316,50 @@ public class ReflectionMasker {
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_CONSTRUCTOR)
-    public static Object[] fixAllArgs(Object[] in, Constructor<?> c) {
-        return fixAllArgs(in, c, false,
-                null);
+    public static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, TaintedReferenceWithObjTag prealloc, Object[] unused) {
+        return fixAllArgs(c, cTaint, in, argstaint, prealloc, false, null, unused);
     }
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_CONSTRUCTOR_CONTROL)
-    public static Object[] fixAllArgs(Object[] in, Constructor c, ControlTaintTagStack ctrl) {
-        return fixAllArgs(in, c, true, ctrl);
+    public static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused) {
+        return fixAllArgs(c, cTaint, in, argstaint, prealloc, true, ctrl, unused);
     }
 
-    private static Object[] fixAllArgs(Object[] in, Constructor<?> c, boolean implicitTracking,
-                                       ControlTaintTagStack ctrl) {
+    private static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, TaintedReferenceWithObjTag prealloc, boolean implicitTracking,
+                                       ControlTaintTagStack ctrl, Object[] unused) {
+        MethodInvoke ret = new MethodInvoke();
+        ret.c = c;
+        ret.c_taint = cTaint;
+        ret.a_taint = argstaint;
+        ret.prealloc = prealloc;
+        ret.a = in;
         if(declaredInIgnoredClass(c)) {
-            return getOriginalParams(c.getParameterTypes(), in);
+            if(in != null) {
+                ret.a.val = getOriginalParams(c.getParameterTypes(), in.val);
+            }
+            return ret;
         }
         if(c == null) {
-            return in;
-        } else if(in != null && c.getParameterTypes().length != in.length) {
-            Object[] ret = new Object[c.getParameterTypes().length];
-            fillInParams(ret, in, c.getParameterTypes());
-            if(implicitTracking) {
-                ret[ret.length - 2] = ctrl;
+            return ret;
+        } else if(in == null || in.val == null || c.getParameterTypes().length != in.val.length) {
+            ret.a = new LazyReferenceArrayObjTags(new Object[c.getParameterTypes().length]);
+            fillInParams(ret.a, in, c.getParameterTypes());
+            if(implicitTracking && ret.a.val.length > 0) {
+                ret.a.val[ret.a.val.length - 1] = ctrl;
             }
             return ret;
         } else if(in == null && c.getParameterTypes().length == 1) {
-            Object[] ret = new Object[1];
-            ret[0] = null;
+            ret.a = new LazyReferenceArrayObjTags(new Object[1]);
+            ret.a.val[0] = Taint.emptyTaint();
             return ret;
         } else if(in == null && c.getParameterTypes().length == 2) {
-            Object[] ret = new Object[2];
-            ret[0] = implicitTracking ? ctrl : new ControlTaintTagStack();
-            ret[1] = null;
+            ret.a = new LazyReferenceArrayObjTags(new Object[2]);
+            ret.a.val[0] = Taint.emptyTaint();
+            ret.a.val[1] = implicitTracking ? ctrl : new ControlTaintTagStack();
             return ret;
         }
-        return in;
+        return ret;
     }
 
     /**
@@ -485,9 +388,13 @@ public class ReflectionMasker {
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_METHOD)
-    public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in) {
+    public static MethodInvoke fixAllArgs(Method m, Taint mTaint, Object owner, Taint ownerTaint, LazyReferenceArrayObjTags in, Taint inTaint, TaintedReferenceWithObjTag prealloc, Object[] unused) {
         MethodInvoke ret = new MethodInvoke();
-        if(m == null || declaredInIgnoredClass(m)) {
+        ret.m_taint = mTaint;
+        ret.o_taint = ownerTaint;
+        ret.a_taint = inTaint;
+        ret.prealloc = prealloc;
+        if (m == null || declaredInIgnoredClass(m)) {
             ret.a = in;
             ret.o = owner;
             ret.m = m;
@@ -495,26 +402,24 @@ public class ReflectionMasker {
         }
         m.setAccessible(true);
         if((!isMarked(m)) && !"java.lang.Object".equals(m.getDeclaringClass().getName())) {
-            m = getTaintMethod(m);
+            m = getTaintMethod(m, false);
         }
         m.setAccessible(true);
         ret.o = owner;
         ret.m = m;
-        if(in != null && m.getParameterTypes().length != in.length) {
-            ret.a = new Object[ret.m.getParameterTypes().length];
+        if (in == null || m.getParameterTypes().length != in.val.length) {
+            ret.a = new LazyReferenceArrayObjTags(new Object[ret.m.getParameterTypes().length]);
         } else {
             ret.a = in;
         }
         int j = fillInParams(ret.a, in, ret.m.getParameterTypes());
-        if((in == null && m.getParameterTypes().length == 1) || (in != null && j != in.length - 1)) {
-            ret.a = (in != null) ? ret.a : new Object[1];
-            final Class returnType = m.getReturnType();
-            if(TaintedPrimitiveWithObjTag.class.isAssignableFrom(returnType)) {
-                try {
-                    ret.a[j] = returnType.newInstance();
-                } catch(InstantiationException | IllegalAccessException e) {
-                    e.printStackTrace();
-                }
+
+        final Class returnType = m.getReturnType();
+        if (TaintedPrimitiveWithObjTag.class.isAssignableFrom(returnType)) {
+            try {
+                ret.a.val[j] = returnType.newInstance();
+            } catch (InstantiationException | IllegalAccessException e) {
+                e.printStackTrace();
             }
         }
         return ret;
@@ -525,50 +430,43 @@ public class ReflectionMasker {
      */
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_METHOD_CONTROL)
-    public static MethodInvoke fixAllArgs(Method m, Object owner, Object[] in, ControlTaintTagStack ctrl) {
+    public static MethodInvoke fixAllArgs(Method m, Taint mTaint, Object owner, Taint ownerTaint, LazyReferenceArrayObjTags in, Taint inTaint, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused) {
         MethodInvoke ret = new MethodInvoke();
-        m.setAccessible(true);
-        if(declaredInIgnoredClass(m)) {
+        ret.m_taint = mTaint;
+        ret.o_taint = ownerTaint;
+        ret.a_taint = inTaint;
+        ret.prealloc = prealloc;
+        if (m == null || declaredInIgnoredClass(m)) {
             ret.a = in;
             ret.o = owner;
             ret.m = m;
             return ret;
         }
-        if(!isMarked(m)) {
-            m = getTaintMethodControlTrack(m);
+        m.setAccessible(true);
+        if((!isMarked(m)) && !"java.lang.Object".equals(m.getDeclaringClass().getName())) {
+            m = getTaintMethod(m, true);
         }
         m.setAccessible(true);
         ret.o = owner;
         ret.m = m;
-        if(in != null && m.getParameterTypes().length != in.length) {
-            ret.a = new Object[ret.m.getParameterTypes().length];
+        if (in == null || m.getParameterTypes().length != in.val.length) {
+            ret.a = new LazyReferenceArrayObjTags(new Object[ret.m.getParameterTypes().length]);
         } else {
             ret.a = in;
         }
         int j = fillInParams(ret.a, in, ret.m.getParameterTypes());
-        if(ret.a != null && ret.a.length > j) {
-            ret.a[j++] = ctrl;
+
+        if(ret.a.val.length > 0) {
+            ret.a.val[j] = ctrl;
+            j++;
         }
-        if(in == null && m.getParameterTypes().length == 1) {
-            ret.a = new Object[1];
-            ret.a[0] = ctrl;
-        } else if((in == null && m.getParameterTypes().length == 2)
-                || (in != null && j != in.length - 1)) {
-            if(in == null) {
-                ret.a = new Object[2];
-                ret.a[0] = ctrl;
-                j++;
-            }
-            final Class returnType = m.getReturnType();
-            if(TaintedPrimitiveWithObjTag.class.isAssignableFrom(returnType)) {
-                try {
-                    ret.a[j] = returnType.newInstance();
-                    if(ret.a[j].getClass().equals(Boolean.class)) {
-                        System.exit(-1);
-                    }
-                } catch(InstantiationException | IllegalAccessException e) {
-                    e.printStackTrace();
-                }
+
+        final Class returnType = m.getReturnType();
+        if (TaintedPrimitiveWithObjTag.class.isAssignableFrom(returnType)) {
+            try {
+                ret.a.val[j] = returnType.newInstance();
+            } catch (InstantiationException | IllegalAccessException e) {
+                e.printStackTrace();
             }
         }
         return ret;
@@ -578,24 +476,23 @@ public class ReflectionMasker {
      * Adds arguments to the target argument array from the specified array of provided arguments based on the
      * specified expected parameter types. Returns the number of arguments added.
      */
-    private static int fillInParams(Object[] targetArgs, Object[] providedArgs, Class<?>[] paramTypes) {
+    private static int fillInParams(LazyReferenceArrayObjTags targetArgs, LazyReferenceArrayObjTags providedArgs, Class<?>[] paramTypes) {
         int targetParamIndex = 0;
-        if(providedArgs != null && paramTypes.length != providedArgs.length) {
-            for(Object providedArg : providedArgs) {
-                Class<?> targetParamClass = paramTypes[targetParamIndex];
-                if(targetParamClass.equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
-                    // Add an object taint
-                    targetArgs[targetParamIndex++] = MultiTainter.getTaint(providedArg);
-                    // Add a boxed primitive to the args
-                    targetArgs[targetParamIndex++] = providedArg;
-                } else if(LazyArrayObjTags.class.isAssignableFrom(targetParamClass)) {
-                    // Add a LazyArray to the args
-                    LazyArrayObjTags arr = ((LazyArrayObjTags) providedArg);
-                    targetArgs[targetParamIndex++] = arr;
+        if (paramTypes.length > 0 && paramTypes[0] == Configuration.TAINT_TAG_OBJ_CLASS) {
+            targetArgs.val[targetParamIndex] = Taint.emptyTaint();
+            targetParamIndex++;
+        }
+        if (providedArgs != null) {
+            int idx = 0;
+            for (Object providedArg : providedArgs.val) {
+                // Class<?> targetParamClass = paramTypes[targetParamIndex];
+                targetArgs.val[targetParamIndex++] = providedArg;
+                if (providedArgs.taints == null) {
+                    targetArgs.val[targetParamIndex++] = Taint.emptyTaint();
                 } else {
-                    // Add the provided argument as is to the args
-                    targetArgs[targetParamIndex++] = providedArg;
+                    targetArgs.val[targetParamIndex++] = providedArgs.taints[idx];
                 }
+                idx++;
             }
         }
         return targetParamIndex;
@@ -631,7 +528,7 @@ public class ReflectionMasker {
         }
         boolean hasSentinel = false;
         for(Class<?> clazz : cons.getParameterTypes()) {
-            if(clazz.equals(TaintSentinel.class)) {
+            if(clazz.equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
                 hasSentinel = true;
                 break;
             }
@@ -703,7 +600,8 @@ public class ReflectionMasker {
      */
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = REMOVE_TAINTED_FIELDS)
-    public static Field[] removeTaintedFields(Field[] in) {
+    public static TaintedReferenceWithObjTag removeTaintedFields(TaintedReferenceWithObjTag _in) {
+        Field[] in = (Field[]) ((LazyReferenceArrayObjTags) _in.val).val;
         SinglyLinkedList<Field> ret = new SinglyLinkedList<>();
         boolean removeSVUIDField = containsSVUIDSentinelField(in);
         for(Field f : in) {
@@ -714,7 +612,8 @@ public class ReflectionMasker {
                 ret.enqueue(f);
             }
         }
-        return ret.toArray(new Field[ret.size()]);
+        ((LazyReferenceArrayObjTags)_in.val).val = ret.toArray(new Field[ret.size()]);
+        return _in;
     }
 
     /**
@@ -737,7 +636,8 @@ public class ReflectionMasker {
      */
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = REMOVE_TAINTED_METHODS)
-    public static Method[] removeTaintedMethods(Method[] in, boolean declaredOnly) {
+    public static TaintedReferenceWithObjTag removeTaintedMethods(TaintedReferenceWithObjTag _in, boolean declaredOnly) {
+        Method[] in = (Method[]) ((LazyReferenceArrayObjTags) _in.val).val;
         SinglyLinkedList<Method> ret = new SinglyLinkedList<>();
         for(Method f : in) {
             final char[] chars = f.getName().toCharArray();
@@ -785,29 +685,33 @@ public class ReflectionMasker {
                 ret.enqueue(f);
             }
         }
-        return ret.toArray(new Method[ret.size()]);
+        ((LazyReferenceArrayObjTags) _in.val).val = ret.toArray(new Method[ret.size()]);
+        return _in;
     }
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = REMOVE_TAINTED_CONSTRUCTORS)
-    public static Constructor<?>[] removeTaintedConstructors(Constructor<?>[] in) {
+    public static TaintedReferenceWithObjTag removeTaintedConstructors(TaintedReferenceWithObjTag _in) {
         SinglyLinkedList<Constructor<?>> ret = new SinglyLinkedList<>();
-        for(Constructor<?> f : in) {
+        LazyReferenceArrayObjTags ar = (LazyReferenceArrayObjTags) _in.val;
+        for (Constructor<?> f : (((Constructor<?>[]) ar.val))) {
             Class<?>[] params = f.getParameterTypes();
-            if(params.length == 0 || !(TaintUtils.isTaintSentinel(params[params.length - 1]))) {
+            if (params.length == 0 || !(params[0].equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
                 ret.enqueue(f);
             }
         }
-        return ret.toArray(new Constructor<?>[ret.size()]);
+        ar.val = ret.toArray(new Constructor<?>[ret.size()]);
+        return _in;
     }
 
     @SuppressWarnings({"rawtypes", "unused"})
     @InvokedViaInstrumentation(record = REMOVE_TAINTED_INTERFACES)
-    public static Class[] removeTaintedInterfaces(Class[] in) {
-        if(in == null) {
+    public static TaintedReferenceWithObjTag removeTaintedInterfaces(TaintedReferenceWithObjTag _in) {
+        if(_in.val == null) {
             return null;
         }
         boolean found = false;
+        Class[] in = (Class[]) ((LazyReferenceArrayObjTags) _in.val).val;
         for(Class aClass : in) {
             if(aClass.equals(TaintedWithObjTag.class)) {
                 found = true;
@@ -815,7 +719,7 @@ public class ReflectionMasker {
             }
         }
         if(!found) {
-            return in;
+            return _in;
         }
         Class[] ret = new Class[in.length - 1];
         int idx = 0;
@@ -825,14 +729,16 @@ public class ReflectionMasker {
                 idx++;
             }
         }
-        return ret;
+        ((LazyReferenceArrayObjTags)_in.val).val = ret;
+        return _in;
     }
 
     @SuppressWarnings({"rawtypes", "unused"})
     @InvokedViaInstrumentation(record = REMOVE_EXTRA_STACK_TRACE_ELEMENTS)
-    public static StackTraceElement[] removeExtraStackTraceElements(StackTraceElement[] in, Class<?> clazz) {
+    public static TaintedReferenceWithObjTag removeExtraStackTraceElements(TaintedReferenceWithObjTag _in, Class<?> clazz) {
         int depthToCut = 0;
         String toFind = clazz.getName();
+        StackTraceElement[] in = (StackTraceElement[]) ((LazyReferenceArrayObjTags) _in.val).val;
         if(in == null) {
             return null;
         }
@@ -845,6 +751,13 @@ public class ReflectionMasker {
         }
         StackTraceElement[] ret = new StackTraceElement[in.length - depthToCut];
         System.arraycopy(in, depthToCut, ret, 0, ret.length);
+        ((LazyReferenceArrayObjTags)_in.val).val = ret;
+        return _in;
+    }
+
+    @InvokedViaInstrumentation(record = ENUM_VALUE_OF)
+    public static TaintedReferenceWithObjTag propogateEnumValueOf(TaintedReferenceWithObjTag ret, Taint tag){
+        ret.taint = tag; //TODO also from string?
         return ret;
     }
 

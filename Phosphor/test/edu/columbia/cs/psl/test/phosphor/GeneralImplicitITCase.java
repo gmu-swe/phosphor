@@ -24,7 +24,8 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
             h.j = 40L;
         }
         assertTaintHasOnlyLabel(MultiTainter.getTaint(h.x), "testTaintingOnFieldWrites");
-        assertTaintHasOnlyLabel(MultiTainter.getTaint(h), "testTaintingOnFieldWrites");
+        //TODO i don't think we should propogate in this way any more if we are planning to get rid of the $$PHOSPHORRTAG field of each object- JB
+        // assertTaintHasOnlyLabel(MultiTainter.getTaint(h), "testTaintingOnFieldWrites");
     }
 
     public void testStringBuilderAppend() {

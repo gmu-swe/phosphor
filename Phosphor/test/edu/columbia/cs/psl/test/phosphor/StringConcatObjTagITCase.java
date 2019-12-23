@@ -1,13 +1,12 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import org.junit.Test;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+
+import static org.junit.Assert.*;
 
 public class StringConcatObjTagITCase extends BasePhosphorTest {
 	@Test
@@ -15,8 +14,8 @@ public class StringConcatObjTagITCase extends BasePhosphorTest {
 		String str1 = "abcdefg";
 		((TaintedWithObjTag)((Object)str1)).setPHOSPHOR_TAG(Taint.withLabel("sensitive"));
 		String str2 = "a"+str1;
-		assertTrue(MultiTainter.getTaint(str2.charAt(0)) == null);
-		assertTrue(MultiTainter.getTaint(str2.charAt(1)) != null);
+		assertTrue(MultiTainter.getTaint(str2.charAt(0)).isEmpty());
+		assertFalse(MultiTainter.getTaint(str2.charAt(1)).isEmpty());
 	}
 
 	@Test
@@ -24,8 +23,8 @@ public class StringConcatObjTagITCase extends BasePhosphorTest {
 		String str1 = new String("abcdefg");
 		((TaintedWithObjTag)((Object)str1)).setPHOSPHOR_TAG(Taint.withLabel("sensitive"));
 		String str2 = "a"+str1;
-		assertTrue(MultiTainter.getTaint(str2.charAt(0)) == null);
-		assertTrue(MultiTainter.getTaint(str2.charAt(1)) != null);
+		assertTrue(MultiTainter.getTaint(str2.charAt(0)).isEmpty());
+		assertFalse(MultiTainter.getTaint(str2.charAt(1)).isEmpty());
 	}
 	
 	@Test
@@ -33,8 +32,8 @@ public class StringConcatObjTagITCase extends BasePhosphorTest {
 		String str1 = new String("abcdefg");
 		MultiTainter.taintedObject(str1, Taint.withLabel("Sensitive"));
 		String str2 = str1 + "a";
-		assertTrue(MultiTainter.getTaint(str2.charAt(0)) != null);
-		assertTrue(MultiTainter.getTaint(str2.charAt(7)) == null);
+		assertFalse(MultiTainter.getTaint(str2.charAt(0)).isEmpty());
+		assertTrue(MultiTainter.getTaint(str2.charAt(7)).isEmpty());
 	}
 	
 	@Test

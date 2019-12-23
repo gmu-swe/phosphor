@@ -63,7 +63,6 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
             case TaintUtils.BRANCH_START:
             case TaintUtils.REVISABLE_BRANCH_START:
             case TaintUtils.FORCE_CTRL_STORE:
-            case TaintUtils.ALWAYS_AUTOBOX:
             case TaintUtils.IGNORE_EVERYTHING:
                 break;
             default:
@@ -85,6 +84,10 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
     public void visitTypeInsn(int opcode, String type) {
         if(opcode > 200) {
             return;
+        }
+        //TODO delete this check
+        if(opcode == Opcodes.CHECKCAST && type.startsWith("[Ledu/columbia/cs/psl/phosphor/struct/LazyReference")) {
+            throw new IllegalStateException();
         }
         super.visitTypeInsn(opcode, type);
     }
@@ -152,12 +155,10 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
             case TaintUtils.NO_TAINT_STORE_INSN:
             case TaintUtils.IGNORE_EVERYTHING:
             case TaintUtils.IS_TMP_STORE:
-            case TaintUtils.ALWAYS_BOX_JUMP:
             case TaintUtils.CUSTOM_SIGNAL_1:
             case TaintUtils.CUSTOM_SIGNAL_2:
             case TaintUtils.CUSTOM_SIGNAL_3:
             case TaintUtils.FORCE_CTRL_STORE:
-            case TaintUtils.TRACKED_LOAD:
             case TaintUtils.LOOP_HEADER:
             case TaintUtils.EXCLUDE_REVISABLE_BRANCHES:
                 break;
