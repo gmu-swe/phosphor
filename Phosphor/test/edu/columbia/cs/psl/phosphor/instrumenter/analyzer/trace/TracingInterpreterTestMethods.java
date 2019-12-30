@@ -130,7 +130,7 @@ public class TracingInterpreterTestMethods {
 
     public static void multiArraySelfComputation(int[][] a) {
         for(/* constant */ int i = 0; i < 5; i++) {
-            a[0][0] = a[0][0] * 2; // dependent on arg0
+            a[0][0] = a[0][0] * 2; // dependent on arg0 OR variant +1 ?
         }
     }
 

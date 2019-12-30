@@ -797,6 +797,14 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
 
     /**
      * @param insn the instruction being checked
+     * @return true if the specified instruction loads a value from a field
+     */
+    private static boolean isFieldLoadInsn(AbstractInsnNode insn) {
+        return insn.getOpcode() == GETFIELD || insn.getOpcode() == GETSTATIC;
+    }
+
+    /**
+     * @param insn the instruction being checked
      * @return true if the specified instruction stores a value into an array
      */
     private static boolean isArrayStoreInsn(AbstractInsnNode insn) {
@@ -842,8 +850,38 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
         } else if(value1 instanceof ConstantTracedValue && value2 instanceof ConstantTracedValue) {
             return ((ConstantTracedValue) value1).canMerge((ConstantTracedValue) value2);
         }
-        // TODO check if is same field value or same array value
-        // TODO check if there is a method call or definition for the array/field value between accesses
+        AbstractInsnNode insn1 = value1.getInsnSource();
+        AbstractInsnNode insn2 = value2.getInsnSource();
+        if(insn1 != null && insn2 != null
+                && insn1.getOpcode() == insn2.getOpcode()
+                && effectMap.containsKey(insn1)
+                && effectMap.containsKey(insn2)) {
+            InstructionEffect effect1 = effectMap.get(insn1);
+            InstructionEffect effect2 = effectMap.get(insn2);
+            if(isArithmeticOrLogicalInsn(insn1)) {
+                // Note: does not take into account commutative operations
+                for(int i = 0; i < effect1.sources.length; i++) {
+                    if(!isSameValue(effect1.sources[i], effect2.sources[i], effectMap)) {
+                        return false;
+                    }
+                }
+                return true;
+            } else if(insn1.getOpcode() == ARRAYLENGTH) {
+                // TODO: check for method calls and redefinitions along all paths between accesses
+                return isSameValue(effect1.sources[0], effect2.sources[0], effectMap);
+            } else if(isArrayLoadInsn(insn1)) {
+                // TODO: check for method calls and redefinitions along all paths between accesses
+                return isSameValue(effect1.sources[0], effect2.sources[0], effectMap)
+                        && isSameValue(effect1.sources[1], effect2.sources[1], effectMap);
+            } else if(isFieldLoadInsn(insn1)) {
+                // TODO: check for method calls and redefinitions along all paths between accesses
+                FieldInsnNode fieldInsn1 = (FieldInsnNode) insn1;
+                FieldInsnNode fieldInsn2 = (FieldInsnNode) insn2;
+                return fieldInsn1.owner.equals(fieldInsn2.owner) && fieldInsn1.name.equals(fieldInsn2.name)
+                        && (insn1.getOpcode() == GETSTATIC || isSameValue(effect1.sources[0], effect2.sources[0], effectMap));
+
+            }
+        }
         return false;
     }
 

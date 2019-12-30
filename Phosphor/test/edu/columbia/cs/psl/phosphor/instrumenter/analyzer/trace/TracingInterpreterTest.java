@@ -7,6 +7,7 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.Arrays;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -89,6 +90,7 @@ public class TracingInterpreterTest {
         assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
     }
 
+    @Ignore
     @Test
     public void testMultiArraySelfComputation() throws Exception {
         MethodNode mn = getMethodNode("multiArraySelfComputation");
