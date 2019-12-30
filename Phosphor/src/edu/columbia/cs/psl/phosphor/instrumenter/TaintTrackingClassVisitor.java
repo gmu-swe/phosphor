@@ -254,7 +254,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             }
         }
     }
-    HashMap<String, MethodNode> TEMPORARY_ASTORE_WRAPPERS = new HashMap<>();
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
@@ -342,6 +341,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         boolean isVirtual = ((Opcodes.ACC_STATIC) & access) == 0;
         boolean isRewrittenDesc = false;
         boolean addControlTaintTagStack = true;
+        boolean addStubMethod = ((Opcodes.ACC_ABSTRACT & access) != 0) && isAbstractMethodToWrap(className, name);
+        if(addStubMethod){
+            access = access & ~Opcodes.ACC_ABSTRACT;
+        }
         if(isVirtual){
             newArgTypes.add(Type.getType(Configuration.TAINT_TAG_DESC));
             isRewrittenDesc = true;
@@ -434,7 +437,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className, name, analyzer, isEnum);
             PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
 
-            TaintPassingMV tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer, rootmV, wrapperMethodsToAdd, isImplicitLightTrackingMethod, TEMPORARY_ASTORE_WRAPPERS);
+            TaintPassingMV tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer, rootmV, wrapperMethodsToAdd, isImplicitLightTrackingMethod);
             tmv.setFields(fields);
             UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, newDesc, oldReturnType, signature, exceptions, boxFixer, analyzer, ignoreFrames);
             InstOrUninstChoosingMV instOrUninstChoosingMV = new InstOrUninstChoosingMV(tmv, umv);
@@ -500,6 +503,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     e.printStackTrace();
                 }
             }
+            if(addStubMethod){
+                mv.visitCode();
+                mv.visitInsn(Opcodes.ACONST_NULL);
+                mv.visitInsn(Opcodes.ATHROW);
+                mv.visitMaxs(0,0);
+                return mv;
+            }
             return rawMethod;
         } else {
             // this is a native method. we want here to make a $taint method that will call the original one.
@@ -557,10 +567,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             mn.accept(this);
         }
 
-        for(MethodNode mn : TEMPORARY_ASTORE_WRAPPERS.values()) {
-            mn.accept(cv);
-        }
-
         if((isEnum || className.equals("java/lang/Enum")) && Configuration.WITH_ENUM_BY_VAL) {
             MethodVisitor mv = super.visitMethod(Opcodes.ACC_PUBLIC, "clone", "()Ljava/lang/Object;", null, new String[]{"java/lang/CloneNotSupportedException"});
             mv.visitCode();
@@ -615,9 +621,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         if((isAbstractClass || isInterface) && implementsComparable && !goLightOnGeneratedStuff) {
             //Need to add this to interfaces so that we can call it on the interface
             if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
-                super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;" + Type.getDescriptor(ControlTaintTagStack.class) + Configuration.TAINTED_INT_DESC + ")" + Configuration.TAINTED_INT_DESC, null, null);
+                super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "("+Configuration.TAINT_TAG_DESC + "Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + Type.getDescriptor(ControlTaintTagStack.class) + Configuration.TAINTED_INT_DESC + ")" + Configuration.TAINTED_INT_DESC, null, null);
             } else {
-                super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(Ljava/lang/Object;" + Configuration.TAINTED_INT_DESC + ")" + Configuration.TAINTED_INT_DESC, null, null);
+                super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT, "compareTo$$PHOSPHORTAGGED", "(" + Configuration.TAINT_TAG_DESC + "Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + Configuration.TAINTED_INT_DESC + ")" + Configuration.TAINTED_INT_DESC, null, null);
             }
         }
 
@@ -1526,5 +1532,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 av.visit(name, value);
             }
         }
+    }
+
+    private static boolean isAbstractMethodToWrap(String className, String methodName) {
+        return (className.equals("org/apache/jasper/runtime/HttpJspBase") && methodName.equals("_jspService"))
+                || (className.equals("javax/servlet/jsp/tagext/JspFragment") && methodName.equals("invoke"));
     }
 }

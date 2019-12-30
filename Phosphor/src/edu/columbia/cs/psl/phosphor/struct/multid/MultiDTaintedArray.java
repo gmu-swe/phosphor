@@ -70,6 +70,18 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_B_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
+        for (int i = 0; i < dim1; i++) {
+            LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
+            ret.val[i] = d;
+            for (int j = 0; j < dim2; j++) {
+                d.val[j] = new LazyReferenceArrayObjTags(t3, new LazyByteArrayObjTags[dim3]);
+            }
+        }
+        return ret;
+    }
+
     public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyBooleanArrayObjTags[dim1]);
         for (int i = 0; i < dim1; i++) {
@@ -98,6 +110,18 @@ public abstract class MultiDTaintedArray {
             ret.val[i] = d;
             for (int j = 0; j < dim2; j++) {
                 d.val[j] = new LazyBooleanArrayObjTags(t3, new boolean[dim3]);
+            }
+        }
+        return ret;
+    }
+
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
+        for (int i = 0; i < dim1; i++) {
+            LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
+            ret.val[i] = d;
+            for (int j = 0; j < dim2; j++) {
+                d.val[j] = new LazyReferenceArrayObjTags(t3, new LazyBooleanArrayObjTags[dim3]);
             }
         }
         return ret;
@@ -136,6 +160,18 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_C_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
+        for (int i = 0; i < dim1; i++) {
+            LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
+            ret.val[i] = d;
+            for (int j = 0; j < dim2; j++) {
+                d.val[j] = new LazyReferenceArrayObjTags(t3, new LazyCharArrayObjTags[dim3]);
+            }
+        }
+        return ret;
+    }
+
     public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyFloatArrayObjTags[dim1]);
         for (int i = 0; i < dim1; i++) {
@@ -164,6 +200,18 @@ public abstract class MultiDTaintedArray {
             ret.val[i] = d;
             for (int j = 0; j < dim2; j++) {
                 d.val[j] = new LazyFloatArrayObjTags(t3, new float[dim3]);
+            }
+        }
+        return ret;
+    }
+
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
+        for (int i = 0; i < dim1; i++) {
+            LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
+            ret.val[i] = d;
+            for (int j = 0; j < dim2; j++) {
+                d.val[j] = new LazyReferenceArrayObjTags(t3, new LazyFloatArrayObjTags[dim3]);
             }
         }
         return ret;
@@ -202,6 +250,18 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_I_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
+        for (int i = 0; i < dim1; i++) {
+            LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
+            ret.val[i] = d;
+            for (int j = 0; j < dim2; j++) {
+                d.val[j] = new LazyReferenceArrayObjTags(t3, new LazyIntArrayObjTags[dim3]);
+            }
+        }
+        return ret;
+    }
+
     public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyDoubleArrayObjTags[dim1]);
         for (int i = 0; i < dim1; i++) {
@@ -230,6 +290,18 @@ public abstract class MultiDTaintedArray {
             ret.val[i] = d;
             for (int j = 0; j < dim2; j++) {
                 d.val[j] = new LazyDoubleArrayObjTags(t3, new double[dim3]);
+            }
+        }
+        return ret;
+    }
+
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
+        for (int i = 0; i < dim1; i++) {
+            LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
+            ret.val[i] = d;
+            for (int j = 0; j < dim2; j++) {
+                d.val[j] = new LazyReferenceArrayObjTags(t3, new LazyDoubleArrayObjTags[dim3]);
             }
         }
         return ret;
@@ -268,6 +340,18 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_S_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
+        for (int i = 0; i < dim1; i++) {
+            LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
+            ret.val[i] = d;
+            for (int j = 0; j < dim2; j++) {
+                d.val[j] = new LazyReferenceArrayObjTags(t3, new LazyShortArrayObjTags[dim3]);
+            }
+        }
+        return ret;
+    }
+
     public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyLongArrayObjTags[dim1]);
         for (int i = 0; i < dim1; i++) {
@@ -301,7 +385,31 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
+        for (int i = 0; i < dim1; i++) {
+            LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
+            ret.val[i] = d;
+            for (int j = 0; j < dim2; j++) {
+                d.val[j] = new LazyReferenceArrayObjTags(t3, new LazyLongArrayObjTags[dim3]);
+            }
+        }
+        return ret;
+    }
+
     // ============ END GENERATED =============
+
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
+        for (int i = 0; i < dim1; i++) {
+            LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
+            ret.val[i] = d;
+            for (int j = 0; j < dim2; j++) {
+                d.val[j] = new LazyReferenceArrayObjTags(t3, new LazyReferenceArrayObjTags[dim3]);
+            }
+        }
+        return ret;
+    }
 
     public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_3DIMS(int dim1, Taint t1, int dim2, Taint t2) {
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);

@@ -5,11 +5,14 @@ import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.NEW_EMPTY_TAINT;
 
 public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
@@ -120,27 +123,56 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
     @Override
     public void visitLdcInsn(Object cst) {
         if(cst instanceof Type && fixLdcClass) {
+            int prealloc = lvs.getPreAllocatedReturnTypeVar(Type.getType(TaintedReferenceWithObjTag.class));
+
             super.visitLdcInsn(((Type) cst).getInternalName().replace("/", "."));
-            if(Configuration.IMPLICIT_TRACKING) {
-                super.visitInsn(Opcodes.ACONST_NULL);
-            }
+            NEW_EMPTY_TAINT.delegateVisit(mv);
             super.visitInsn(Opcodes.ICONST_0);
+            NEW_EMPTY_TAINT.delegateVisit(mv);
             super.visitLdcInsn(clazz.replace("/", "."));
+            NEW_EMPTY_TAINT.delegateVisit(mv);
+
             if(Configuration.IMPLICIT_TRACKING) {
                 if(this.localIdxOfControlTag < 0) {
                     localIdxOfControlTag = lvs.idxOfMasterControlLV;
                 }
+                String ctrlDesc = Type.getDescriptor(ControlTaintTagStack.class);
+                //Str Taint 0 taint ThisClazz Taint
                 super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
-                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Class;", false);
+                super.visitVarInsn(Opcodes.ALOAD, prealloc);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + ctrlDesc + Type.getDescriptor(TaintedReferenceWithObjTag.class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
+                super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(TaintedReferenceWithObjTag.class), "val","Ljava/lang/Object;");
+                super.visitTypeInsn(Opcodes.CHECKCAST, "java/lang/Class");
+                NEW_EMPTY_TAINT.delegateVisit(mv);
                 super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
-                super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader$$PHOSPHORTAGGED", "(Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/ClassLoader;", false);
+                super.visitVarInsn(Opcodes.ALOAD, prealloc);
+                super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader$$PHOSPHORTAGGED", "(" + Configuration.TAINT_TAG_DESC + ctrlDesc + Type.getDescriptor(TaintedReferenceWithObjTag.class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
+                super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(TaintedReferenceWithObjTag.class), "val","Ljava/lang/Object;");
+                super.visitTypeInsn(Opcodes.CHECKCAST, "java/lang/ClassLoader");
+                NEW_EMPTY_TAINT.delegateVisit(mv);
                 super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
-                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + "ZLjava/lang/ClassLoader;Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)Ljava/lang/Class;", false);
-
+                super.visitVarInsn(Opcodes.ALOAD, prealloc);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + "Z" + Configuration.TAINT_TAG_DESC + "Ljava/lang/ClassLoader;" + Configuration.TAINT_TAG_DESC + ctrlDesc + Type.getDescriptor(TaintedReferenceWithObjTag.class)
+                        + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
+                super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(TaintedReferenceWithObjTag.class), "val","Ljava/lang/Object;");
+                super.visitTypeInsn(Opcodes.CHECKCAST, "java/lang/Class");
             } else {
-                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
-                super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;", false);
-                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", false);
+                //Str Taint 0 taint ThisClazz Taint
+                super.visitVarInsn(Opcodes.ALOAD, prealloc);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + Type.getDescriptor(TaintedReferenceWithObjTag.class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
+                super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(TaintedReferenceWithObjTag.class), "val","Ljava/lang/Object;");
+                super.visitTypeInsn(Opcodes.CHECKCAST, "java/lang/Class");
+                NEW_EMPTY_TAINT.delegateVisit(mv);
+                super.visitVarInsn(Opcodes.ALOAD, prealloc);
+                super.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Class", "getClassLoader$$PHOSPHORTAGGED", "(" + Configuration.TAINT_TAG_DESC + Type.getDescriptor(TaintedReferenceWithObjTag.class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
+                super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(TaintedReferenceWithObjTag.class), "val","Ljava/lang/Object;");
+                super.visitTypeInsn(Opcodes.CHECKCAST, "java/lang/ClassLoader");
+                NEW_EMPTY_TAINT.delegateVisit(mv);
+                super.visitVarInsn(Opcodes.ALOAD, prealloc);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + "Z" + Configuration.TAINT_TAG_DESC + "Ljava/lang/ClassLoader;" + Configuration.TAINT_TAG_DESC + Type.getDescriptor(TaintedReferenceWithObjTag.class)
+                        + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
+                super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(TaintedReferenceWithObjTag.class), "val","Ljava/lang/Object;");
+                super.visitTypeInsn(Opcodes.CHECKCAST, "java/lang/Class");
             }
         } else if(!(cst instanceof PhosphorInstructionInfo)) {
             super.visitLdcInsn(cst);

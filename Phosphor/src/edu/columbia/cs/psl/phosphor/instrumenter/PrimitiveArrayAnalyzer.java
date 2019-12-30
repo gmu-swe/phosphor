@@ -404,13 +404,10 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
         @Override
         public void visitEnd() {
-            final HashMap<Integer, LinkedList<Integer>> neverAutoBoxByFrame = new HashMap<>();
-            final HashMap<Integer, LinkedList<Integer>> alwaysAutoBoxByFrame = new HashMap<>();
-            final HashMap<Integer, LinkedList<Integer>> outEdges = new HashMap<>();
-            final HashSet<Integer> insertACHECKCASTBEFORE = new HashSet<>();
-            final HashSet<Integer> insertACONSTNULLBEFORE = new HashSet<>();
+
+            final HashMap<AbstractInsnNode, String> referenceArraysToCheckcast = new HashMap<>();
             @SuppressWarnings("unchecked")
-            Analyzer a = new Analyzer(new BasicArrayInterpreter((this.access & Opcodes.ACC_STATIC) != 0, isImplicitLightTracking)) {
+            Analyzer a = new Analyzer(new BasicArrayInterpreter((this.access & Opcodes.ACC_STATIC) != 0, isImplicitLightTracking, referenceArraysToCheckcast)) {
                 protected int[] insnToLabel;
                 HashMap<Integer, LinkedList<Integer>> edges = new HashMap<>();
                 LinkedList<Integer> varsStoredThisInsn = new LinkedList<>();
@@ -527,8 +524,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                         }
                     }
 
-                    //TODO: if the output of a frame is an array but the input is an obj, hint to always box?
-                    //or is that necessary, because we already assume that it's unboxed.
                     return ret;
                 }
 
@@ -553,13 +548,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                     if(!edges.get(successor).contains(insn)) {
                         edges.get(successor).add(insn);
                     }
-                    if(!outEdges.containsKey(insn)) {
-                        outEdges.put(insn, new LinkedList<>());
-                    }
-                    if(!outEdges.get(insn).contains(successor)) {
-                        outEdges.get(insn).add(successor);
-                    }
-
                     AnnotatedInstruction fromBlock;
                     if(!implicitAnalysisBlocks.containsKey(insn)) {
                         //insn not added yet
@@ -698,6 +686,19 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             }
 
             this.maxStack += 100;
+
+            for (Map.Entry<AbstractInsnNode, String> each : referenceArraysToCheckcast.entrySet()) {
+                AbstractInsnNode existing = each.getKey().getPrevious();
+                if (existing instanceof LdcInsnNode) {
+                    Object cst = ((LdcInsnNode) existing).cst;
+                    if (cst instanceof ReferenceArrayTarget) {
+                        if (!((ReferenceArrayTarget) cst).getOriginalArrayType().equals("[Ljava/lang/Object;")) {
+                            continue;
+                        }
+                    }
+                }
+                instructions.insertBefore(each.getKey(), new LdcInsnNode(new ReferenceArrayTarget(each.getValue())));
+            }
 
             AbstractInsnNode insn = instructions.getFirst();
             while(insn != null) {

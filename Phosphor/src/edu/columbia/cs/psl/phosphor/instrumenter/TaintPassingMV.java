@@ -52,7 +52,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     private boolean isLambda;
     private boolean isAtStartOfExceptionHandler;
     private LinkedList<MethodNode> wrapperMethodsToAdd;
-    private HashMap<String, MethodNode> TEMPORARY_ASTORE_WRAPPERS;
     private HashSet<Label> exceptionHandlers = new HashSet<>();
     private PrimitiveArrayAnalyzer arrayAnalyzer;
     private ControlFlowDelegator controlFlowDelegator;
@@ -61,8 +60,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String signature,
                           String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,
-                          MethodVisitor passThroughMV, LinkedList<MethodNode> wrapperMethodsToAdd, boolean isImplicitLightTracking,
-                          HashMap<String, MethodNode> TEMPORARY_ASTORE_WRAPPERS) {
+                          MethodVisitor passThroughMV, LinkedList<MethodNode> wrapperMethodsToAdd, boolean isImplicitLightTracking) {
         super(access, className, name, desc, signature, exceptions, mv, analyzer);
         Configuration.taintTagFactory.instrumentationStarting(access, name, desc);
         this.isLambda = this.isIgnoreAllInstrumenting = className.contains("$Lambda$");
@@ -74,7 +72,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         this.passThroughMV = passThroughMV;
         this.desc = desc;
         this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
-        this.TEMPORARY_ASTORE_WRAPPERS = TEMPORARY_ASTORE_WRAPPERS;
         this.isObjOutputStream = (className.equals("java/io/ObjectOutputStream") && name.startsWith("writeObject0")) ||
                 (className.equals("java/io/ObjectInputStream") && name.startsWith("defaultReadFields"));
 
@@ -989,6 +986,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
         if(name.equals("getProperty") && className.equals("org/eclipse/jdt/core/tests/util/Util")) {
             // Workaround for eclipse benchmark
+            super.visitInsn(POP); //remove the taint
             owner = Type.getInternalName(ReflectionMasker.class);
             name = "getPropertyHideBootClasspath";
         }
@@ -1224,11 +1222,18 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 System.out.println("NULL on stack for calllee???" + analyzer.stack + " argsize " + argsSize);
             }
             Type callee = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - argsSize - 1));
-            if(TaintUtils.DEBUG_CALLS) {
-                System.out.println("CALLEE IS " + callee);
-            }
             if(callee.getSort() == Type.ARRAY) {
                 isCalledOnAPrimitiveArrayType = true;
+            }
+            if(callee.getDescriptor().equals("Ljava/lang/Object;") && !owner.equals("java/lang/Object")){
+                //AALOAD can result in a type of "java/lang/Object" on the stack (if there are no stack map frames)
+                //If this happened, we need to force a checkcast.
+                LocalVariableNode[] tmpLVs = storeToLocals(args.length);
+                super.visitTypeInsn(CHECKCAST, owner);
+                for(int i = tmpLVs.length-1; i >= 0; i--){
+                    super.visitVarInsn(Type.getType(tmpLVs[i].desc).getOpcode(ILOAD), tmpLVs[i].index);
+                }
+                freeLVs(tmpLVs);
             }
         }
         Configuration.taintTagFactory.methodOp(opcode, owner, name, newDesc, isInterface, mv, lvs, this);
@@ -1483,7 +1488,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         "(" + Configuration.TAINT_TAG_DESC + "I" + Configuration.TAINT_TAG_DESC + retType.getDescriptor() + (Configuration.IMPLICIT_TRACKING || isImplicitLightTracking ? "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;" : "") + ")" + retType.getDescriptor(), false);
                 super.visitInsn(DUP);
                 super.visitFieldInsn(GETFIELD, retType.getInternalName(), "val", elType);
-                if (elType.equals("Ljava/lang/Object;")) {
+                if (elType.equals("Ljava/lang/Object;") && referenceArrayTarget != null) {
                     Type originalArrayType = Type.getType(referenceArrayTarget.getOriginalArrayType());
                     String castTo = Type.getType(originalArrayType.getDescriptor().substring(1)).getInternalName();
                     if (originalArrayType.getDimensions() == 2) {

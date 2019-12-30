@@ -153,32 +153,30 @@ public class ReflectionMasker {
             newArgs.add(ControlTaintTagStack.class);
         }
         final Class returnType = m.getReturnType();
-        if(!returnType.isArray()) {
-            if(returnType != Void.TYPE) {
-                if(returnType == Integer.TYPE) {
-                    newArgs.add(TaintedIntWithObjTag.class);
-                } else if(returnType == Short.TYPE) {
-                    newArgs.add(TaintedShortWithObjTag.class);
-                } else if(returnType == Float.TYPE) {
-                    newArgs.add(TaintedFloatWithObjTag.class);
-                } else if(returnType == Double.TYPE) {
-                    newArgs.add(TaintedDoubleWithObjTag.class);
-                } else if(returnType == Long.TYPE) {
-                    newArgs.add(TaintedLongWithObjTag.class);
-                } else if(returnType == Character.TYPE) {
-                    newArgs.add(TaintedCharWithObjTag.class);
-                } else if(returnType == Byte.TYPE) {
-                    newArgs.add(TaintedByteWithObjTag.class);
-                } else if(returnType == Boolean.TYPE) {
-                    newArgs.add(TaintedBooleanWithObjTag.class);
-                } else{
-                    newArgs.add(TaintedReferenceWithObjTag.class);
-                }
-                madeChange = true;
+        if (returnType != Void.TYPE) {
+            if (returnType == Integer.TYPE) {
+                newArgs.add(TaintedIntWithObjTag.class);
+            } else if (returnType == Short.TYPE) {
+                newArgs.add(TaintedShortWithObjTag.class);
+            } else if (returnType == Float.TYPE) {
+                newArgs.add(TaintedFloatWithObjTag.class);
+            } else if (returnType == Double.TYPE) {
+                newArgs.add(TaintedDoubleWithObjTag.class);
+            } else if (returnType == Long.TYPE) {
+                newArgs.add(TaintedLongWithObjTag.class);
+            } else if (returnType == Character.TYPE) {
+                newArgs.add(TaintedCharWithObjTag.class);
+            } else if (returnType == Byte.TYPE) {
+                newArgs.add(TaintedByteWithObjTag.class);
+            } else if (returnType == Boolean.TYPE) {
+                newArgs.add(TaintedBooleanWithObjTag.class);
+            } else {
+                newArgs.add(TaintedReferenceWithObjTag.class);
             }
+            madeChange = true;
         }
         newArgs.addAll(wrappedArgs);
-        if(madeChange) {
+        if (madeChange) {
             Class[] args = new Class[newArgs.size()];
             newArgs.toArray(args);
             Method ret = null;
