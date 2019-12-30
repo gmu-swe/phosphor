@@ -16,11 +16,16 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.LinkedList;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BindingControlFlowAnalyzer.getContainingLoops;
 
 @SuppressWarnings("unused")
 public class TracingInterpreterTestMethods {
+
+    private int a = 1;
+    private int[] a1 = new int[1];
 
     public static Map<AbstractInsnNode, LoopLevel> calculateLoopLevelMap(MethodNode methodNode) throws AnalyzerException {
         ControlFlowGraphCreator creator = new BaseControlFlowGraphCreator();
@@ -100,21 +105,107 @@ public class TracingInterpreterTestMethods {
     public static void argDependentBranching(boolean condition) {
         int a = -88; // constant
         int b;
-        if(condition) { // dependent on arg0
+        if(condition) {
             b = 77;  // constant
         } else {
             b = 144; // constant
         }
         b = b * a; // constant:  x = x OP C
-        int c = b;  // dependent on arg0: reaching definition of b depends on the value of arg0
+        int c = b;  // variant 0: reaching definition of b varies
         int d = a + 77; // constant
-        a = a + b; // dependent on arg0: reaching definition of b depends on the value of arg0
+        a = a + b; // variant 0: reaching definition of b varies
     }
 
-    public static void arrayIncrement() {
-        int[] a = new int[1];
-        for(int i = 0; i < 5; i++) {
-            a[0]++; // constant x[i] = x[i] OP C
+    public static void localSelfComputation(int a) {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            a = a * 2; // constant
         }
+    }
+
+    public static void arraySelfComputation(int[] a) {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            a[0] = a[0] * 2; // dependent on arg0
+        }
+    }
+
+    public static void multiArraySelfComputation(int[][] a) {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            a[0][0] = a[0][0] * 2; // dependent on arg0
+        }
+    }
+
+    public void fieldSelfComputation() {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            a = a * 2; // dependent on arg0 (this)
+        }
+    }
+
+    public void arrayFieldSelfComputation() {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            a1[0] = a1[0] * 2; // dependent on arg0 (this)
+        }
+    }
+
+    public static void localAssignedVariantValue(int a) {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            a = i; // variant +1
+        }
+    }
+
+    public static void arrayAssignedVariantValue(int[] a) {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            a[0] = i; // variant +1
+        }
+    }
+
+    public static void multiArrayAssignedVariantValue(int[][] a) {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            a[0][0] = i; // variant +1
+        }
+    }
+
+    public void fieldAssignedVariantValue() {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            a = i; // variant +1
+        }
+    }
+
+    public void arrayFieldAssignedVariantValue() {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            a1[0] = i; // variant +1
+        }
+    }
+    
+    public void variantArray(int[][] a) {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            a[i][0] = 5; // variant +1
+        }
+    }
+
+    public void variantArray2(LinkedList<int[]> in) {
+        Iterator<int[]> itr = in.iterator();
+        for(/* constant */ int i = 0; i < 5; i++) {
+            int[] a = itr.next();
+            a[0] = 5; // variant +1
+        }
+    }
+
+    public static void twoArrays(int[] a, int[] b) {
+        for(/* constant */ int i = 0; i < 5; i++) {
+            b[0]++; // dependent on arg1
+            a[0] = b[0] + 27; // variant +1
+        }
+    }
+
+    public static void arrayAliasing(int[] a, int[] b) {
+        b = a; // dependent on arg0
+        a[0] = b[0] + 1; // dependent on arg0
+    }
+
+    public static void arrayAliasingVariant(int[] a, int[] b, boolean condition) {
+        if(condition) {
+            b = a; // dependent on arg0
+        }
+        a[0] = b[0] + 1; // variant +0
     }
 }
