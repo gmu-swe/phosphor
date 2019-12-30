@@ -1,21 +1,19 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
 import edu.columbia.cs.psl.phosphor.struct.BitSet;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.AbstractInsnNode;
-
 
 final class DependentTracedValue extends TracedValue {
 
     BitSet dependencies;
 
-    DependentTracedValue(int size, Set<AbstractInsnNode> instructions, DependentTracedValue value1, DependentTracedValue value2) {
-        super(size, instructions);
+    DependentTracedValue(int size, AbstractInsnNode sourceInsn, DependentTracedValue value1, DependentTracedValue value2) {
+        super(size, sourceInsn);
         this.dependencies = BitSet.union(value1.dependencies, value2.dependencies);
     }
 
-    DependentTracedValue(int size, Set<AbstractInsnNode> instructions, BitSet dependencies) {
-        super(size, instructions);
+    DependentTracedValue(int size, AbstractInsnNode instruction, BitSet dependencies) {
+        super(size, instruction);
         this.dependencies = dependencies.copy();
     }
 
@@ -24,8 +22,8 @@ final class DependentTracedValue extends TracedValue {
     }
 
     @Override
-    public TracedValue newInstance(int size, Set<AbstractInsnNode> instructions) {
-        return new DependentTracedValue(size, instructions, dependencies);
+    public TracedValue newInstance(int size, AbstractInsnNode instruction) {
+        return new DependentTracedValue(size, instruction, dependencies);
     }
 
     @Override

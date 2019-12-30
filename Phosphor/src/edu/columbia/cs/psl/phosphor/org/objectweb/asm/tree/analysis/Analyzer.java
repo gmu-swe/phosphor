@@ -554,12 +554,9 @@ public class Analyzer<V extends Value> implements Opcodes {
             changed = true;
         } else {
             if(interpreter instanceof TracingInterpreter) {
-                ((TracingInterpreter) interpreter).preMerge(insnIndex);
+                ((TracingInterpreter) interpreter).preFrameMerge(insnIndex);
             }
             changed = oldFrame.merge(frame, interpreter);
-            if(interpreter instanceof TracingInterpreter) {
-                ((TracingInterpreter) interpreter).postMerge();
-            }
         }
         Subroutine oldSubroutine = subroutines[insnIndex];
         if(oldSubroutine == null) {

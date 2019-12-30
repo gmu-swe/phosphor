@@ -183,9 +183,9 @@ public class TracingInterpreterTestMethods {
     }
 
     public void variantArray2(LinkedList<int[]> in) {
-        Iterator<int[]> itr = in.iterator();
+        Iterator<int[]> itr = in.iterator(); // variant +0
         for(/* constant */ int i = 0; i < 5; i++) {
-            int[] a = itr.next();
+            int[] a = itr.next(); // variant +1
             a[0] = 5; // variant +1
         }
     }

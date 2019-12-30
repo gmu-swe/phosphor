@@ -46,6 +46,36 @@ public class PhosphorOpcodeIgnoringAnalyzer<V extends Value> extends Analyzer<V>
                 super.execute(insn, interpreter);
             }
         }
+
+        @Override
+        public boolean merge(final Frame<? extends V> frame, final Interpreter<V> interpreter)
+                throws AnalyzerException {
+            if(getStackSize() != frame.getStackSize()) {
+                throw new AnalyzerException(null, "Incompatible stack heights");
+            }
+            boolean changed = false;
+            for(int i = 0; i < getLocals(); i++) {
+                if(interpreter instanceof TracingInterpreter) {
+                    ((TracingInterpreter) interpreter).preVarMerge(i);
+                }
+                V v = interpreter.merge(getLocal(i), frame.getLocal(i));
+                if(!v.equals(getLocal(i))) {
+                    setLocal(i, v);
+                    changed = true;
+                }
+            }
+            for(int i = 0; i < getStackSize(); i++) {
+                if(interpreter instanceof TracingInterpreter) {
+                    ((TracingInterpreter) interpreter).preVarMerge(i + getLocals());
+                }
+                V v = interpreter.merge(getStack(i), frame.getStack(i));
+                if(!v.equals(getStack(i))) {
+                    setStack(i, v);
+                    changed = true;
+                }
+            }
+            return changed;
+        }
     }
 }
 

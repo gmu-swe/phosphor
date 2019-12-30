@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 /**
@@ -9,8 +8,8 @@ import org.objectweb.asm.tree.AbstractInsnNode;
  */
 abstract class ConstantTracedValue extends TracedValue {
 
-    ConstantTracedValue(int size, Set<AbstractInsnNode> instructions) {
-        super(size, instructions);
+    ConstantTracedValue(int size, AbstractInsnNode sourceInsn) {
+        super(size, sourceInsn);
     }
 
     /**

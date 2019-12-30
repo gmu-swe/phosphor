@@ -1,14 +1,13 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 final class IntegerConstantTracedValue extends ConstantTracedValue {
 
     private final int constant;
 
-    IntegerConstantTracedValue(int size, Set<AbstractInsnNode> instructions, int constant) {
-        super(size, instructions);
+    IntegerConstantTracedValue(int size, AbstractInsnNode insnSource, int constant) {
+        super(size, insnSource);
         this.constant = constant;
     }
 
@@ -16,80 +15,80 @@ final class IntegerConstantTracedValue extends ConstantTracedValue {
         return constant;
     }
 
-    IntegerConstantTracedValue increment(int size, Set<AbstractInsnNode> instructions, int amount) {
-        return new IntegerConstantTracedValue(size, instructions, constant + amount);
+    IntegerConstantTracedValue increment(int size, AbstractInsnNode insnSource, int amount) {
+        return new IntegerConstantTracedValue(size, insnSource, constant + amount);
     }
 
-    IntegerConstantTracedValue negate(int size, Set<AbstractInsnNode> instructions) {
-        return new IntegerConstantTracedValue(size, instructions, -constant);
+    IntegerConstantTracedValue negate(int size, AbstractInsnNode insnSource) {
+        return new IntegerConstantTracedValue(size, insnSource, -constant);
     }
 
-    FloatConstantTracedValue castToFloat(int size, Set<AbstractInsnNode> instructions) {
-        return new FloatConstantTracedValue(size, instructions, constant);
+    FloatConstantTracedValue castToFloat(int size, AbstractInsnNode insnSource) {
+        return new FloatConstantTracedValue(size, insnSource, constant);
     }
 
-    DoubleConstantTracedValue castToDouble(int size, Set<AbstractInsnNode> instructions) {
-        return new DoubleConstantTracedValue(size, instructions, constant);
+    DoubleConstantTracedValue castToDouble(int size, AbstractInsnNode insnSource) {
+        return new DoubleConstantTracedValue(size, insnSource, constant);
     }
 
-    LongConstantTracedValue castToLong(int size, Set<AbstractInsnNode> instructions) {
-        return new LongConstantTracedValue(size, instructions, constant);
+    LongConstantTracedValue castToLong(int size, AbstractInsnNode insnSource) {
+        return new LongConstantTracedValue(size, insnSource, constant);
     }
 
-    IntegerConstantTracedValue castToByte(int size, Set<AbstractInsnNode> instructions) {
-        return new IntegerConstantTracedValue(size, instructions, (byte) constant);
+    IntegerConstantTracedValue castToByte(int size, AbstractInsnNode insnSource) {
+        return new IntegerConstantTracedValue(size, insnSource, (byte) constant);
     }
 
-    IntegerConstantTracedValue castToShort(int size, Set<AbstractInsnNode> instructions) {
-        return new IntegerConstantTracedValue(size, instructions, (short) constant);
+    IntegerConstantTracedValue castToShort(int size, AbstractInsnNode insnSource) {
+        return new IntegerConstantTracedValue(size, insnSource, (short) constant);
     }
 
-    IntegerConstantTracedValue castToChar(int size, Set<AbstractInsnNode> instructions) {
-        return new IntegerConstantTracedValue(size, instructions, (char) constant);
+    IntegerConstantTracedValue castToChar(int size, AbstractInsnNode insnSource) {
+        return new IntegerConstantTracedValue(size, insnSource, (char) constant);
     }
 
-    IntegerConstantTracedValue add(int size, Set<AbstractInsnNode> instructions, IntegerConstantTracedValue other) {
-        return new IntegerConstantTracedValue(size, instructions, constant + other.constant);
+    IntegerConstantTracedValue add(int size, AbstractInsnNode insnSource, IntegerConstantTracedValue other) {
+        return new IntegerConstantTracedValue(size, insnSource, constant + other.constant);
     }
 
-    IntegerConstantTracedValue subtract(int size, Set<AbstractInsnNode> instructions, IntegerConstantTracedValue other) {
-        return new IntegerConstantTracedValue(size, instructions, constant - other.constant);
+    IntegerConstantTracedValue subtract(int size, AbstractInsnNode insnSource, IntegerConstantTracedValue other) {
+        return new IntegerConstantTracedValue(size, insnSource, constant - other.constant);
     }
 
-    IntegerConstantTracedValue divide(int size, Set<AbstractInsnNode> instructions, IntegerConstantTracedValue other) {
-        return new IntegerConstantTracedValue(size, instructions, constant / other.constant);
+    IntegerConstantTracedValue divide(int size, AbstractInsnNode insnSource, IntegerConstantTracedValue other) {
+        return new IntegerConstantTracedValue(size, insnSource, constant / other.constant);
     }
 
-    IntegerConstantTracedValue multiply(int size, Set<AbstractInsnNode> instructions, IntegerConstantTracedValue other) {
-        return new IntegerConstantTracedValue(size, instructions, constant * other.constant);
+    IntegerConstantTracedValue multiply(int size, AbstractInsnNode insnSource, IntegerConstantTracedValue other) {
+        return new IntegerConstantTracedValue(size, insnSource, constant * other.constant);
     }
 
-    IntegerConstantTracedValue remainder(int size, Set<AbstractInsnNode> instructions, IntegerConstantTracedValue other) {
-        return new IntegerConstantTracedValue(size, instructions, constant % other.constant);
+    IntegerConstantTracedValue remainder(int size, AbstractInsnNode insnSource, IntegerConstantTracedValue other) {
+        return new IntegerConstantTracedValue(size, insnSource, constant % other.constant);
     }
 
-    IntegerConstantTracedValue shiftLeft(int size, Set<AbstractInsnNode> instructions, IntegerConstantTracedValue other) {
-        return new IntegerConstantTracedValue(size, instructions, constant << other.constant);
+    IntegerConstantTracedValue shiftLeft(int size, AbstractInsnNode insnSource, IntegerConstantTracedValue other) {
+        return new IntegerConstantTracedValue(size, insnSource, constant << other.constant);
     }
 
-    IntegerConstantTracedValue shiftRight(int size, Set<AbstractInsnNode> instructions, IntegerConstantTracedValue other) {
-        return new IntegerConstantTracedValue(size, instructions, constant >> other.constant);
+    IntegerConstantTracedValue shiftRight(int size, AbstractInsnNode insnSource, IntegerConstantTracedValue other) {
+        return new IntegerConstantTracedValue(size, insnSource, constant >> other.constant);
     }
 
-    IntegerConstantTracedValue shiftRightUnsigned(int size, Set<AbstractInsnNode> instructions, IntegerConstantTracedValue other) {
-        return new IntegerConstantTracedValue(size, instructions, constant >>> other.constant);
+    IntegerConstantTracedValue shiftRightUnsigned(int size, AbstractInsnNode insnSource, IntegerConstantTracedValue other) {
+        return new IntegerConstantTracedValue(size, insnSource, constant >>> other.constant);
     }
 
-    IntegerConstantTracedValue bitwiseOr(int size, Set<AbstractInsnNode> instructions, IntegerConstantTracedValue other) {
-        return new IntegerConstantTracedValue(size, instructions, constant | other.constant);
+    IntegerConstantTracedValue bitwiseOr(int size, AbstractInsnNode insnSource, IntegerConstantTracedValue other) {
+        return new IntegerConstantTracedValue(size, insnSource, constant | other.constant);
     }
 
-    IntegerConstantTracedValue bitwiseAnd(int size, Set<AbstractInsnNode> instructions, IntegerConstantTracedValue other) {
-        return new IntegerConstantTracedValue(size, instructions, constant & other.constant);
+    IntegerConstantTracedValue bitwiseAnd(int size, AbstractInsnNode insnSource, IntegerConstantTracedValue other) {
+        return new IntegerConstantTracedValue(size, insnSource, constant & other.constant);
     }
 
-    IntegerConstantTracedValue bitwiseXor(int size, Set<AbstractInsnNode> instructions, IntegerConstantTracedValue other) {
-        return new IntegerConstantTracedValue(size, instructions, constant ^ other.constant);
+    IntegerConstantTracedValue bitwiseXor(int size, AbstractInsnNode insnSource, IntegerConstantTracedValue other) {
+        return new IntegerConstantTracedValue(size, insnSource, constant ^ other.constant);
     }
 
     @Override
@@ -101,8 +100,8 @@ final class IntegerConstantTracedValue extends ConstantTracedValue {
     }
 
     @Override
-    TracedValue newInstance(int size, Set<AbstractInsnNode> instructions) {
-        return new IntegerConstantTracedValue(size, instructions, constant);
+    TracedValue newInstance(int size, AbstractInsnNode insnSource) {
+        return new IntegerConstantTracedValue(size, insnSource, constant);
     }
 
     @Override

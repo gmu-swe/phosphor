@@ -1,14 +1,13 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 final class FloatConstantTracedValue extends ConstantTracedValue {
 
     private final float constant;
 
-    FloatConstantTracedValue(int size, Set<AbstractInsnNode> instructions, float constant) {
-        super(size, instructions);
+    FloatConstantTracedValue(int size, AbstractInsnNode insnSource, float constant) {
+        super(size, insnSource);
         this.constant = constant;
     }
 
@@ -16,60 +15,60 @@ final class FloatConstantTracedValue extends ConstantTracedValue {
         return constant;
     }
 
-    FloatConstantTracedValue negate(int size, Set<AbstractInsnNode> instructions) {
-        return new FloatConstantTracedValue(size, instructions, -constant);
+    FloatConstantTracedValue negate(int size, AbstractInsnNode insnSource) {
+        return new FloatConstantTracedValue(size, insnSource, -constant);
     }
 
-    DoubleConstantTracedValue castToDouble(int size, Set<AbstractInsnNode> instructions) {
-        return new DoubleConstantTracedValue(size, instructions, constant);
+    DoubleConstantTracedValue castToDouble(int size, AbstractInsnNode insnSource) {
+        return new DoubleConstantTracedValue(size, insnSource, constant);
     }
 
-    IntegerConstantTracedValue castToInt(int size, Set<AbstractInsnNode> instructions) {
-        return new IntegerConstantTracedValue(size, instructions, (int) constant);
+    IntegerConstantTracedValue castToInt(int size, AbstractInsnNode insnSource) {
+        return new IntegerConstantTracedValue(size, insnSource, (int) constant);
     }
 
-    LongConstantTracedValue castToLong(int size, Set<AbstractInsnNode> instructions) {
-        return new LongConstantTracedValue(size, instructions, (long) constant);
+    LongConstantTracedValue castToLong(int size, AbstractInsnNode insnSource) {
+        return new LongConstantTracedValue(size, insnSource, (long) constant);
     }
 
-    FloatConstantTracedValue add(int size, Set<AbstractInsnNode> instructions, FloatConstantTracedValue other) {
-        return new FloatConstantTracedValue(size, instructions, constant + other.constant);
+    FloatConstantTracedValue add(int size, AbstractInsnNode insnSource, FloatConstantTracedValue other) {
+        return new FloatConstantTracedValue(size, insnSource, constant + other.constant);
     }
 
-    FloatConstantTracedValue subtract(int size, Set<AbstractInsnNode> instructions, FloatConstantTracedValue other) {
-        return new FloatConstantTracedValue(size, instructions, constant - other.constant);
+    FloatConstantTracedValue subtract(int size, AbstractInsnNode insnSource, FloatConstantTracedValue other) {
+        return new FloatConstantTracedValue(size, insnSource, constant - other.constant);
     }
 
-    FloatConstantTracedValue divide(int size, Set<AbstractInsnNode> instructions, FloatConstantTracedValue other) {
-        return new FloatConstantTracedValue(size, instructions, constant / other.constant);
+    FloatConstantTracedValue divide(int size, AbstractInsnNode insnSource, FloatConstantTracedValue other) {
+        return new FloatConstantTracedValue(size, insnSource, constant / other.constant);
     }
 
-    FloatConstantTracedValue multiply(int size, Set<AbstractInsnNode> instructions, FloatConstantTracedValue other) {
-        return new FloatConstantTracedValue(size, instructions, constant * other.constant);
+    FloatConstantTracedValue multiply(int size, AbstractInsnNode insnSource, FloatConstantTracedValue other) {
+        return new FloatConstantTracedValue(size, insnSource, constant * other.constant);
     }
 
-    FloatConstantTracedValue remainder(int size, Set<AbstractInsnNode> instructions, FloatConstantTracedValue other) {
-        return new FloatConstantTracedValue(size, instructions, constant % other.constant);
+    FloatConstantTracedValue remainder(int size, AbstractInsnNode insnSource, FloatConstantTracedValue other) {
+        return new FloatConstantTracedValue(size, insnSource, constant % other.constant);
     }
 
-    FloatConstantTracedValue compareG(int size, Set<AbstractInsnNode> instructions, FloatConstantTracedValue other) {
+    FloatConstantTracedValue compareG(int size, AbstractInsnNode insnSource, FloatConstantTracedValue other) {
         float result;
         if(Float.isNaN(constant) || Float.isNaN(other.constant)) {
             result = 1;
         } else {
             result = Float.compare(constant, other.constant);
         }
-        return new FloatConstantTracedValue(size, instructions, result);
+        return new FloatConstantTracedValue(size, insnSource, result);
     }
 
-    FloatConstantTracedValue compareL(int size, Set<AbstractInsnNode> instructions, FloatConstantTracedValue other) {
+    FloatConstantTracedValue compareL(int size, AbstractInsnNode insnSource, FloatConstantTracedValue other) {
         float result;
         if(Float.isNaN(constant) || Float.isNaN(other.constant)) {
             result = -1;
         } else {
             result = Float.compare(constant, other.constant);
         }
-        return new FloatConstantTracedValue(size, instructions, result);
+        return new FloatConstantTracedValue(size, insnSource, result);
     }
 
     @Override
@@ -85,8 +84,8 @@ final class FloatConstantTracedValue extends ConstantTracedValue {
     }
 
     @Override
-    TracedValue newInstance(int size, Set<AbstractInsnNode> instructions) {
-        return new FloatConstantTracedValue(size, instructions, constant);
+    TracedValue newInstance(int size, AbstractInsnNode insnSource) {
+        return new FloatConstantTracedValue(size, insnSource, constant);
     }
 
     @Override

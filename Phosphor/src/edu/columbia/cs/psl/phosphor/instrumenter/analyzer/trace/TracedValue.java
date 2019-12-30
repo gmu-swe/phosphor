@@ -1,8 +1,5 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Collections;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.analysis.Value;
 
@@ -17,15 +14,15 @@ abstract class TracedValue implements Value {
     private final int size;
 
     /**
-     * An unmodifiable set containing the instructions that can produce this value for some execution
+     * The instruction that produces this value or null if multiple instructions can produce this value or the value
+     * is from a constant or argument value
      *
-     * @see org.objectweb.asm.tree.analysis.SourceValue
      */
-    private final Set<AbstractInsnNode> sources;
+    private final AbstractInsnNode sourceInsn;
 
-    public TracedValue(int size, Set<AbstractInsnNode> sources) {
+    public TracedValue(int size, AbstractInsnNode sourceInsn) {
         this.size = size;
-        this.sources = Collections.unmodifiableSet(new HashSet<>(sources));
+        this.sourceInsn = sourceInsn;
     }
 
     /**
@@ -37,18 +34,18 @@ abstract class TracedValue implements Value {
     }
 
     /**
-     * @return an unmodifiable set containing the instructions that can produce this value for some execution
+     * @return the instruction that produces this value
      */
-    public Set<AbstractInsnNode> getSources() {
-        return sources;
+    public AbstractInsnNode getInsnSource() {
+        return sourceInsn;
     }
 
     /**
      * @param size the size of the copy
-     * @param instructions the instructions of the copy
-     * @return a copy of this value, but with the specified size and instructions
+     * @param sourceInsn the source instruction of the copy
+     * @return a copy of this value, but with the specified size and source instruction
      */
-    abstract TracedValue newInstance(int size, Set<AbstractInsnNode> instructions);
+    abstract TracedValue newInstance(int size, AbstractInsnNode sourceInsn);
 
     @Override
     public boolean equals(Object o) {
@@ -61,14 +58,13 @@ abstract class TracedValue implements Value {
         if(size != that.size) {
             return false;
         }
-        return sources.equals(that.sources);
+        return sourceInsn != null ? sourceInsn.equals(that.sourceInsn) : that.sourceInsn == null;
     }
 
     @Override
     public int hashCode() {
         int result = size;
-        result = 31 * result + sources.hashCode();
+        result = 31 * result + (sourceInsn != null ? sourceInsn.hashCode() : 0);
         return result;
     }
-
 }

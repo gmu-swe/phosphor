@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 import java.util.Objects;
@@ -9,8 +8,8 @@ final class ObjectConstantTracedValue extends ConstantTracedValue {
 
     private final Object constant;
 
-    ObjectConstantTracedValue(int size, Set<AbstractInsnNode> instructions, Object constant) {
-        super(size, instructions);
+    ObjectConstantTracedValue(int size, AbstractInsnNode insnSource, Object constant) {
+        super(size, insnSource);
         this.constant = constant;
     }
 
@@ -20,8 +19,8 @@ final class ObjectConstantTracedValue extends ConstantTracedValue {
     }
 
     @Override
-    TracedValue newInstance(int size, Set<AbstractInsnNode> instructions) {
-        return new ObjectConstantTracedValue(size, instructions, constant);
+    TracedValue newInstance(int size, AbstractInsnNode insnSource) {
+        return new ObjectConstantTracedValue(size, insnSource, constant);
     }
 
     @Override

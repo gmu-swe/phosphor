@@ -1,14 +1,13 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 final class LongConstantTracedValue extends ConstantTracedValue {
 
     private final long constant;
 
-    LongConstantTracedValue(int size, Set<AbstractInsnNode> instructions, long constant) {
-        super(size, instructions);
+    LongConstantTracedValue(int size, AbstractInsnNode insnSource, long constant) {
+        super(size, insnSource);
         this.constant = constant;
     }
 
@@ -16,68 +15,68 @@ final class LongConstantTracedValue extends ConstantTracedValue {
         return constant;
     }
 
-    LongConstantTracedValue negate(int size, Set<AbstractInsnNode> instructions) {
-        return new LongConstantTracedValue(size, instructions, -constant);
+    LongConstantTracedValue negate(int size, AbstractInsnNode insnSource) {
+        return new LongConstantTracedValue(size, insnSource, -constant);
     }
 
-    FloatConstantTracedValue castToFloat(int size, Set<AbstractInsnNode> instructions) {
-        return new FloatConstantTracedValue(size, instructions, constant);
+    FloatConstantTracedValue castToFloat(int size, AbstractInsnNode insnSource) {
+        return new FloatConstantTracedValue(size, insnSource, constant);
     }
 
-    DoubleConstantTracedValue castToDouble(int size, Set<AbstractInsnNode> instructions) {
-        return new DoubleConstantTracedValue(size, instructions, constant);
+    DoubleConstantTracedValue castToDouble(int size, AbstractInsnNode insnSource) {
+        return new DoubleConstantTracedValue(size, insnSource, constant);
     }
 
-    IntegerConstantTracedValue castToInt(int size, Set<AbstractInsnNode> instructions) {
-        return new IntegerConstantTracedValue(size, instructions, (int) constant);
+    IntegerConstantTracedValue castToInt(int size, AbstractInsnNode insnSource) {
+        return new IntegerConstantTracedValue(size, insnSource, (int) constant);
     }
 
-    LongConstantTracedValue add(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, constant + other.constant);
+    LongConstantTracedValue add(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, constant + other.constant);
     }
 
-    LongConstantTracedValue subtract(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, constant - other.constant);
+    LongConstantTracedValue subtract(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, constant - other.constant);
     }
 
-    LongConstantTracedValue divide(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, constant / other.constant);
+    LongConstantTracedValue divide(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, constant / other.constant);
     }
 
-    LongConstantTracedValue multiply(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, constant * other.constant);
+    LongConstantTracedValue multiply(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, constant * other.constant);
     }
 
-    LongConstantTracedValue remainder(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, constant % other.constant);
+    LongConstantTracedValue remainder(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, constant % other.constant);
     }
 
-    LongConstantTracedValue shiftLeft(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, constant << other.constant);
+    LongConstantTracedValue shiftLeft(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, constant << other.constant);
     }
 
-    LongConstantTracedValue shiftRight(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, constant >> other.constant);
+    LongConstantTracedValue shiftRight(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, constant >> other.constant);
     }
 
-    LongConstantTracedValue shiftRightUnsigned(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, constant >>> other.constant);
+    LongConstantTracedValue shiftRightUnsigned(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, constant >>> other.constant);
     }
 
-    LongConstantTracedValue bitwiseOr(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, constant | other.constant);
+    LongConstantTracedValue bitwiseOr(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, constant | other.constant);
     }
 
-    LongConstantTracedValue bitwiseAnd(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, constant & other.constant);
+    LongConstantTracedValue bitwiseAnd(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, constant & other.constant);
     }
 
-    LongConstantTracedValue bitwiseXor(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, constant ^ other.constant);
+    LongConstantTracedValue bitwiseXor(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, constant ^ other.constant);
     }
 
-    LongConstantTracedValue compare(int size, Set<AbstractInsnNode> instructions, LongConstantTracedValue other) {
-        return new LongConstantTracedValue(size, instructions, Long.compare(constant, other.constant));
+    LongConstantTracedValue compare(int size, AbstractInsnNode insnSource, LongConstantTracedValue other) {
+        return new LongConstantTracedValue(size, insnSource, Long.compare(constant, other.constant));
     }
 
     @Override
@@ -91,8 +90,8 @@ final class LongConstantTracedValue extends ConstantTracedValue {
     }
 
     @Override
-    TracedValue newInstance(int size, Set<AbstractInsnNode> instructions) {
-        return new LongConstantTracedValue(size, instructions, constant);
+    TracedValue newInstance(int size, AbstractInsnNode insnSource) {
+        return new LongConstantTracedValue(size, insnSource, constant);
     }
 
     @Override
