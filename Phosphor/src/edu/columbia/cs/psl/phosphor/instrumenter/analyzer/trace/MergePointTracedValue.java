@@ -2,7 +2,9 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BasicBlock;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
@@ -12,51 +14,20 @@ public class MergePointTracedValue extends VariantTracedValue {
     private final int varIndex;
     private final Set<TracedValue> mergedValues;
 
-    public MergePointTracedValue(int size, Set<FlowGraph.NaturalLoop<BasicBlock>> variantLoops, AbstractInsnNode mergePoint,
-                                 int varIndex, TracedValue mergedValue1, TracedValue mergedValue2) {
+    private MergePointTracedValue(int size, Set<FlowGraph.NaturalLoop<BasicBlock>> variantLoops, AbstractInsnNode mergePoint,
+                                  int varIndex) {
         super(size, null, variantLoops);
-        if(mergePoint == null) {
-            throw new NullPointerException();
-        }
         this.mergePoint = mergePoint;
         this.varIndex = varIndex;
         this.mergedValues = new HashSet<>();
-        if(hasSameMergePoint(mergedValue1)) {
-            mergedValues.addAll(((MergePointTracedValue) mergedValue1).mergedValues);
-        } else {
-            mergedValues.add(mergedValue1);
-        }
-        if(hasSameMergePoint(mergedValue2)) {
-            mergedValues.addAll(((MergePointTracedValue) mergedValue2).mergedValues);
-        } else {
-            mergedValues.add(mergedValue2);
-        }
     }
 
-    public MergePointTracedValue(MergePointTracedValue other) {
-        super(other.getSize(), null, other.getVariantLoops());
-        this.mergePoint = other.mergePoint;
-        this.varIndex = other.varIndex;
-        this.mergedValues = new HashSet<>(other.mergedValues);
+    boolean contains(TracedValue value) {
+        return mergedValues.contains(value);
     }
 
-    boolean contains(TracedValue other) {
-        if(mergedValues.contains(other)) {
-            return true;
-        } else if(hasSameMergePoint(other)) {
-            MergePointTracedValue otherValue = (MergePointTracedValue) other;
-            return mergedValues.containsAll(otherValue.mergedValues);
-        } else {
-            return false;
-        }
-    }
-
-    boolean hasSameMergePoint(TracedValue other) {
-        if(other instanceof MergePointTracedValue) {
-            MergePointTracedValue otherValue = (MergePointTracedValue) other;
-            return otherValue.mergePoint == mergePoint && otherValue.varIndex == varIndex;
-        }
-        return false;
+    void add(TracedValue value) {
+        mergedValues.add(value);
     }
 
     @Override
@@ -68,25 +39,20 @@ public class MergePointTracedValue extends VariantTracedValue {
     public boolean equals(Object o) {
         if(this == o) {
             return true;
-        } else if(!(o instanceof MergePointTracedValue) || !super.equals(o)) {
+        } else if(!(o instanceof MergePointTracedValue)) {
             return false;
         }
         MergePointTracedValue that = (MergePointTracedValue) o;
         if(varIndex != that.varIndex) {
             return false;
         }
-        if(!mergePoint.equals(that.mergePoint)) {
-            return false;
-        }
-        return mergedValues.equals(that.mergedValues);
+        return mergePoint.equals(that.mergePoint);
     }
 
     @Override
     public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + mergePoint.hashCode();
+        int result = mergePoint.hashCode();
         result = 31 * result + varIndex;
-        result = 31 * result + mergedValues.hashCode();
         return result;
     }
 
@@ -96,5 +62,26 @@ public class MergePointTracedValue extends VariantTracedValue {
 
     public int getVarIndex() {
         return varIndex;
+    }
+
+    public boolean isValueForMergePoint(AbstractInsnNode mergePoint, int varIndex) {
+        return this.varIndex == varIndex && this.mergePoint == mergePoint;
+    }
+
+    static class MergePointValueCache {
+
+        private final Map<MergePointTracedValue, MergePointTracedValue> cache = new HashMap<>();
+
+        MergePointTracedValue getMergePointValue(int size, Set<FlowGraph.NaturalLoop<BasicBlock>> variantLoops,
+                                                 AbstractInsnNode mergePoint, int varIndex) {
+            if(mergePoint == null) {
+                throw new NullPointerException();
+            }
+            MergePointTracedValue value = new MergePointTracedValue(size, variantLoops, mergePoint, varIndex);
+            if(!cache.containsKey(value)) {
+                cache.put(value, value);
+            }
+            return cache.get(value);
+        }
     }
 }

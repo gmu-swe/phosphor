@@ -2,10 +2,12 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.ConstantLoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.DependentLoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.VariantLoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BasicBlock;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace.MergePointTracedValue.MergePointValueCache;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.Analyzer;
 import edu.columbia.cs.psl.phosphor.struct.BitSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
@@ -24,6 +26,7 @@ import static org.objectweb.asm.Opcodes.*;
 public final class TracingInterpreter extends Interpreter<TracedValue> {
 
     private final Map<AbstractInsnNode, InstructionEffect> effectMap = new HashMap<>();
+    private final MergePointValueCache mergePointCache = new MergePointValueCache();
     private final InsnList instructions;
     private final Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap;
     private final Frame<TracedValue>[] frames;
@@ -131,8 +134,15 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
         TracedValue result = null;
         boolean finished = false;
         int size = getSize(insn);
-        Set<AbstractInsnNode> set = new HashSet<>();
-        set.add(insn);
+        switch(insn.getOpcode()) {
+            case NEWARRAY:
+            case ANEWARRAY:
+            case GETFIELD:
+                result = new VariantTracedValueImpl(size, insn, new HashSet<>(containingLoopMap.get(insn)));
+                effectMap.put(insn, new InstructionEffect(value, result));
+                return result;
+
+        }
         if(value instanceof IntegerConstantTracedValue) {
             switch(insn.getOpcode()) {
                 case INEG:
@@ -483,13 +493,22 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
         if(value1 instanceof MergePointTracedValue && ((MergePointTracedValue) value1).contains(value2)) {
             return value1;
         } else if(value2 instanceof MergePointTracedValue && ((MergePointTracedValue) value2).contains(value1)) {
-            return new MergePointTracedValue((MergePointTracedValue) value2);
+            return value2;
+        } else if(value1 instanceof MergePointTracedValue && ((MergePointTracedValue) value1).isValueForMergePoint(currentInsn, varIndex)) {
+            ((MergePointTracedValue) value1).add(value2);
+            return value1;
+        } else if(value2 instanceof MergePointTracedValue && ((MergePointTracedValue) value2).isValueForMergePoint(currentInsn, varIndex)) {
+            ((MergePointTracedValue) value2).add(value1);
+            return value2;
         }
         Set<NaturalLoop<BasicBlock>> containingLoops = new HashSet<>(containingLoopMap.get(currentInsn));
         if(value1.getInsnSource() == value2.getInsnSource() && value1.getInsnSource() != null) {
             return new VariantTracedValueImpl(size, value1.getInsnSource(), containingLoops);
         }
-        return new MergePointTracedValue(size, containingLoops, currentInsn, varIndex, value1, value2);
+        MergePointTracedValue result = mergePointCache.getMergePointValue(size, containingLoops, currentInsn, varIndex);
+        result.add(value1);
+        result.add(value2);
+        return result;
     }
 
     /**
@@ -569,69 +588,14 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
     public Set<AbstractInsnNode> identifyRevisionExcludedInstructions() {
         Set<AbstractInsnNode> exclusions = new HashSet<>();
         Iterator<AbstractInsnNode> itr = instructions.iterator();
+        Map<AbstractInsnNode, LoopLevel> levelMap = calculateLoopLevelMap();
         while(itr.hasNext()) {
             AbstractInsnNode insn = itr.next();
-            if(shouldExclude(insn)) {
+            if(levelMap.containsKey(insn) && levelMap.get(insn) instanceof ConstantLoopLevel) {
                 exclusions.add(insn);
             }
         }
         return exclusions;
-    }
-
-    private boolean shouldExclude(AbstractInsnNode insn) {
-        switch(insn.getOpcode()) {
-            case ICONST_M1:
-            case ICONST_0:
-            case ICONST_1:
-            case ICONST_2:
-            case ICONST_3:
-            case ICONST_4:
-            case ICONST_5:
-            case LCONST_0:
-            case LCONST_1:
-            case FCONST_0:
-            case FCONST_1:
-            case FCONST_2:
-            case DCONST_0:
-            case DCONST_1:
-            case BIPUSH:
-            case SIPUSH:
-            case LDC:
-            case IINC:
-                return true;
-            case ISTORE:
-            case LSTORE:
-            case FSTORE:
-            case DSTORE:
-            case ASTORE:
-                int var = ((VarInsnNode) insn).var;
-                return checkSources(var, insn, new HashSet<>());
-            default:
-                return false;
-        }
-    }
-
-    private boolean checkSources(int var, AbstractInsnNode insn, Set<AbstractInsnNode> visited) {
-        visited.add(insn);
-        if(insn.getOpcode() >= ILOAD && insn.getOpcode() <= ALOAD && ((VarInsnNode) insn).var == var) {
-            return true;
-        }
-        if(effectMap.containsKey(insn)) {
-            InstructionEffect effect = effectMap.get(insn);
-            if(effect.product instanceof ConstantTracedValue) {
-                return true;
-            }
-            for(TracedValue source : effect.sources) {
-                if(!(source instanceof ConstantTracedValue)) {
-                    if(visited.contains(source.getInsnSource()) || !checkSources(var, source.getInsnSource(), visited)) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        } else {
-            return false;
-        }
     }
 
     /**
