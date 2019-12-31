@@ -38,12 +38,14 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     private boolean isImplicitLightTracking;
     private Label newFirstLabel = new Label();
     private Label oldFirstLabel;
+    private boolean fixLDCClass;
 
-    public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, final boolean isImplicitLightTracking) {
+    public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, final boolean isImplicitLightTracking, final boolean fixLDCClass) {
         super(Configuration.ASM_VERSION);
         this.mn = new PrimitiveArrayAnalyzerMN(access, name, desc, signature, exceptions, className, cmv);
         this.mv = mn;
         this.isImplicitLightTracking = isImplicitLightTracking;
+        this.fixLDCClass = fixLDCClass;
     }
 
     public PrimitiveArrayAnalyzer(Type singleWrapperTypeToAdd) {
@@ -87,6 +89,22 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
     private boolean mightEndBlock(AbstractInsnNode insn) {
         return insn.getType() == AbstractInsnNode.LABEL || isExitInstruction(insn) || insn.getOpcode() == Opcodes.GOTO;
+    }
+
+    @Override
+    public void visitLdcInsn(Object value) {
+        super.visitLdcInsn(value);
+        if (value instanceof Type && fixLDCClass) {
+            wrapperTypesToPreAlloc.add(Type.getType(TaintedReferenceWithObjTag.class));
+        }
+    }
+
+    @Override
+    public void visitMultiANewArrayInsn(String descriptor, int numDimensions) {
+        super.visitMultiANewArrayInsn(descriptor, numDimensions);
+        if (fixLDCClass) {
+            wrapperTypesToPreAlloc.add(Type.getType(TaintedReferenceWithObjTag.class));
+        }
     }
 
     @Override

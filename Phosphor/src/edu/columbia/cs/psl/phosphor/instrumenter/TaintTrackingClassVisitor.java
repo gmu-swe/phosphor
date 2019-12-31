@@ -451,7 +451,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             boolean reduceThisMethodSize = aggressivelyReduceMethodSize != null && aggressivelyReduceMethodSize.contains(name + newDesc);
             TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames, instOrUninstChoosingMV, reduceThisMethodSize | isDisabled, isImplicitLightTrackingMethod);
 
-            PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, tlc, isImplicitLightTrackingMethod);
+            PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, tlc, isImplicitLightTrackingMethod, fixLdcClass);
             NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, primitiveArrayFixer);
 
             primitiveArrayFixer.setAnalyzer(preAnalyzer);

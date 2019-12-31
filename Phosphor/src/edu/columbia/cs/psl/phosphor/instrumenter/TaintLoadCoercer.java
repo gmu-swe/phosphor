@@ -102,7 +102,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                     }
                 };
                 mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true, null, false, false);
-                PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, mv, false);
+                PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, mv, false, false);
                 NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, access, name, desc, paa);
                 paa.setAnalyzer(an);
                 mv = an;
