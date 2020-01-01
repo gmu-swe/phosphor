@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -48,34 +49,39 @@ public abstract class SourceSinkManager {
 
     public abstract String getBaseSink(String str);
 
-    public static String remapMethodDescToRemoveTaints(String desc) {
+    public static String remapMethodDescToRemoveTaintsAndReturnType(String desc) {
         String r = "(";
         boolean isSkipping = false;
+        LinkedList<String> wrappedTypes = new LinkedList<>();
         for(Type t : Type.getArgumentTypes(desc)) {
-            if (t.getDescriptor().equals("Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;")) {
+            if(t.getSort() == Type.ARRAY) {
+                wrappedTypes.add(t.getDescriptor());
+            }
+        }
+        for(Type t : Type.getArgumentTypes(desc)) {
+            if(t.getDescriptor().equals("Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;")) {
                 //
-            } else if (t.getSort() == Type.ARRAY) {
-                r += remapReturnType(t);
-            } else if (t.getSort() != Type.OBJECT) {
+            } else if(t.getDescriptor().equals("Ledu/columbia/cs/psl/phosphor/struct/LazyReferenceArrayObjTags;")) {
+                r += wrappedTypes.remove();
+            } else if(t.getSort() == Type.ARRAY) {
+                //
+            } else if(t.getSort() != Type.OBJECT) {
                 if(!isSkipping) {
                     isSkipping = true;
                 } else {
                     r += t.getDescriptor();
                     isSkipping = !isSkipping;
                 }
-            } else if (t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")
+            } else if(t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/multid")
                     || t.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct")) {
                 r += TaintUtils.getUnwrappedType(t).getDescriptor();
-            } else if (!TaintUtils.isTaintSentinel(t)) {
-                if (t.getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
-                    isSkipping = true;
-                } else {
-                    r += t;
-                }
+            } else if(t.getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
+                isSkipping = true;
+            } else {
+                r += t;
             }
-
         }
-        r += ")" + remapReturnType(Type.getReturnType(desc));
+        r += ")";
         if(Type.getReturnType(desc).getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct")) {
             r = r.replace(Type.getReturnType(desc).getDescriptor(), "");
         }
@@ -142,8 +148,8 @@ public abstract class SourceSinkManager {
     /* Constructs and returns the bytecode method signature from the specified pieces; removes any phosphor-added suffixes and tainted types from the
      * signature. */
     public static String getOriginalMethodSignature(String owner, String name, String desc) {
-        if(name.endsWith(TaintUtils.METHOD_SUFFIX) || TaintUtils.containsTaintSentinel(desc)) {
-            return owner + "." + name.replace(TaintUtils.METHOD_SUFFIX, "") + remapMethodDescToRemoveTaints(desc);
+        if(name.endsWith(TaintUtils.METHOD_SUFFIX) || TaintUtils.containsTaint(desc)) {
+            return owner + "." + name.replace(TaintUtils.METHOD_SUFFIX, "") + remapMethodDescToRemoveTaintsAndReturnType(desc);
         } else {
             return owner + "." + name + desc;
         }

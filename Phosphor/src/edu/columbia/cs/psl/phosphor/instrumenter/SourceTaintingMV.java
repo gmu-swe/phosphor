@@ -13,7 +13,7 @@ public class SourceTaintingMV extends MethodVisitor implements Opcodes {
 
     private static final SourceSinkManager sourceSinkManager = BasicSourceSinkManager.getInstance();
     private final String desc;
-    private final Type origReturnType;
+    private final Type returnType;
     private final boolean isStatic;
     private final Object lbl;
     // The untainted signature of the source method being visited
@@ -23,7 +23,7 @@ public class SourceTaintingMV extends MethodVisitor implements Opcodes {
     public SourceTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc) {
         super(Configuration.ASM_VERSION, mv);
         this.desc = desc;
-        this.origReturnType = Type.getReturnType(SourceSinkManager.remapMethodDescToRemoveTaints(desc));
+        this.returnType = Type.getReturnType(desc);
         this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
         this.lbl = sourceSinkManager.getLabel(owner, name, desc);
         this.actualSource = SourceSinkManager.getOriginalMethodSignature(owner, name, desc);
@@ -68,7 +68,7 @@ public class SourceTaintingMV extends MethodVisitor implements Opcodes {
         }
         if(opcode == ARETURN) {
             Type boxedReturnType = Type.getReturnType(this.desc);
-            if(origReturnType.getSort() != Type.VOID) {
+            if(returnType.getSort() != Type.VOID) {
                 callAutoTaint(-1, boxedReturnType.getInternalName());
             }
         }

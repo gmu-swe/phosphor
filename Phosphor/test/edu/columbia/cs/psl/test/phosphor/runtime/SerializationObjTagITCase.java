@@ -294,7 +294,7 @@ public class SerializationObjTagITCase extends FieldHolderBaseTest {
     @Test
     public void testSerializeTaintedObject() throws Exception {
         EmptyHolder input = new EmptyHolder();
-        MultiTainter.taintedObject(input, Taint.withLabel("label"));
+        input = MultiTainter.taintedReference(input, "label");
         EmptyHolder output = roundTripSerialize(input);
         assertNonNullTaint(output);
     }

@@ -26,6 +26,9 @@ public abstract class TaintedPrimitiveWithObjTag {
             return BoxedPrimitiveStoreWithObjTags.valueOf(taint, (short) val);
         } else {
             int tag = -1;
+            if(val == null) {
+                return null;
+            }
             try {
                 // Set the PHOSPHOR_TAG field if possible
                 java.lang.reflect.Field taintField = val.getClass().getDeclaredField("PHOSPHOR_TAG");

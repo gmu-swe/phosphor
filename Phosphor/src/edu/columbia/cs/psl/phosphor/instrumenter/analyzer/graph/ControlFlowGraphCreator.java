@@ -221,7 +221,10 @@ public abstract class ControlFlowGraphCreator {
             AbstractInsnNode insn = itr.next();
             if(insn instanceof JumpInsnNode) {
                 leaders.add(((JumpInsnNode) insn).label); // Mark the target of the jump as a leader
-                leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
+                if(insn.getNext() != null) {
+                    //TODO JB found null here when processing JDK classes like com.sun.corba.se.impl.orb.ORBImpl
+                    leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
+                }
             } else if(insn instanceof TableSwitchInsnNode) {
                 // Mark the targets of the switch as leaders
                 leaders.add(((TableSwitchInsnNode) insn).dflt);

@@ -2,13 +2,12 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.SerializationWrapper;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import org.objectweb.asm.*;
 
-import static edu.columbia.cs.psl.phosphor.SourceSinkManager.remapMethodDescToRemoveTaints;
+import static edu.columbia.cs.psl.phosphor.SourceSinkManager.remapMethodDescToRemoveTaintsAndReturnType;
 
 public class SerializationFixingCV extends ClassVisitor implements Opcodes {
 
@@ -38,14 +37,12 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
             return new StreamClassMV(mv);
         } else {
             switch(name) {
-                case "writeObject":
-                case "writeObject$$PHOSPHORTAGGED":
-                case "writeObject0$$PHOSPHORTAGGED":
-                    return new ObjectWriteMV(mv);
-                case "readObject":
                 case "readObject$$PHOSPHORTAGGED":
                 case "readObject0$$PHOSPHORTAGGED":
                     return new ObjectReadMV(mv);
+                case "writeObject$$PHOSPHORTAGGED":
+                case "writeObject0$$PHOSPHORTAGGED":
+                    return new ObjectWriteMV(mv);
                 case "writeInt$$PHOSPHORTAGGED":
                 case "writeLong$$PHOSPHORTAGGED":
                 case "writeBoolean$$PHOSPHORTAGGED":
@@ -54,7 +51,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
                 case "writeByte$$PHOSPHORTAGGED":
                 case "writeChar$$PHOSPHORTAGGED":
                 case "writeFloat$$PHOSPHORTAGGED":
-                    return new PrimitiveWriteMV(mv);
+                    return new PrimitiveWriteMV(mv, Type.getArgumentTypes(desc)[1].getSize());
                 case "readInt$$PHOSPHORTAGGED":
                 case "readLong$$PHOSPHORTAGGED":
                 case "readBoolean$$PHOSPHORTAGGED":
@@ -79,30 +76,19 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
     }
 
     @SuppressWarnings("unused")
-    public static Object wrapIfNecessary(Object obj) {
-        if(obj instanceof Boolean || obj instanceof Byte || obj instanceof Character || obj instanceof Short) {
-            Taint tag = MultiTainter.getTaint(obj);
-            if(tag != null && !tag.isEmpty()) {
-                if(obj instanceof Boolean) {
-                    return SerializationWrapper.wrap((Boolean) obj);
-                } else if(obj instanceof Byte) {
-                    return SerializationWrapper.wrap((Byte) obj);
-                } else if(obj instanceof Character) {
-                    return SerializationWrapper.wrap((Character) obj);
-                } else {
-                    return SerializationWrapper.wrap((Short) obj);
-                }
-            }
+    public static Object wrapIfNecessary(Object obj, Taint tag) {
+        if(tag != null && !tag.isEmpty()) {
+            return new TaintedReferenceWithObjTag(tag, obj);
         }
         return obj;
     }
 
     @SuppressWarnings("unused")
-    public static Object unwrapIfNecessary(Object obj) {
-        if(obj instanceof SerializationWrapper) {
-            return ((SerializationWrapper) obj).unwrap();
+    public static TaintedReferenceWithObjTag unwrapIfNecessary(TaintedReferenceWithObjTag ret) {
+        if(ret.val instanceof TaintedReferenceWithObjTag) {
+            return (TaintedReferenceWithObjTag) ret.val;
         }
-        return obj;
+        return ret;
     }
 
     private static class StreamClassMV extends MethodVisitor {
@@ -117,17 +103,21 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
                 Type[] args = Type.getArgumentTypes(desc);
                 if(args.length > 0 && Type.getType(Configuration.TAINT_TAG_DESC).equals(args[0])) {
                     String untaintedMethod = name.replace(TaintUtils.METHOD_SUFFIX, "");
-                    String untaintedDesc = remapMethodDescToRemoveTaints(desc);
+                    String untaintedDesc = remapMethodDescToRemoveTaintsAndReturnType(desc) + "V";
                     boolean widePrimitive = Type.DOUBLE_TYPE.equals(args[1]) || Type.LONG_TYPE.equals(args[1]);
                     if(args.length == 2) {
+                        //TODO this is not at all set up for reference tags... but tests pass anyway?
                         // stream, taint, primitive
                         super.visitInsn(widePrimitive ? DUP2_X1 : DUP_X1);
                         super.visitInsn(widePrimitive ? POP2 : POP);
                         super.visitInsn(POP);
                         super.visitMethodInsn(opcode, owner, untaintedMethod, untaintedDesc, isInterface);
                         return;
-                    } else if(args.length == 3 && args[2].equals(Type.getType(ControlTaintTagStack.class))) {
+                    } else if(args.length == 4 && args[3].equals(Type.getType(ControlTaintTagStack.class))) {
+                        //Taint primitive taint Controltaint
                         super.visitInsn(POP);
+                        super.visitInsn(POP);
+                        //Taint primitive
                         super.visitInsn(widePrimitive ? DUP2_X1 : DUP_X1);
                         super.visitInsn(widePrimitive ? POP2 : POP);
                         super.visitInsn(POP);
@@ -142,8 +132,11 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
 
     private static class PrimitiveWriteMV extends MethodVisitor {
 
-        PrimitiveWriteMV(MethodVisitor mv) {
+        int sizeOfArg;
+
+        PrimitiveWriteMV(MethodVisitor mv, int sizeOfArg) {
             super(Configuration.ASM_VERSION, mv);
+            this.sizeOfArg = sizeOfArg;
         }
 
         @Override
@@ -152,12 +145,12 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
             Label label1 = new Label();
             // Note - used to be a null check here, but taints should not be null.
             // Check that taint is non-empty
-            super.visitVarInsn(ALOAD, 1);
-            super.visitMethodInsn(INVOKEVIRTUAL, Configuration.TAINT_TAG_INTERNAL_NAME, "isEmpty", "()Z", false);
+            super.visitVarInsn(ALOAD, 2 + sizeOfArg);
+            super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "isEmpty", "(" + Configuration.TAINT_TAG_DESC + ")Z", false);
             super.visitJumpInsn(IFNE, label1);
             // Write the taint if non-null and non-empty
             super.visitVarInsn(ALOAD, 0);
-            super.visitVarInsn(ALOAD, 1); // Load taint onto stack
+            super.visitVarInsn(ALOAD, 2 + sizeOfArg); // Load taint onto stack
             super.visitMethodInsn(INVOKEVIRTUAL, OUTPUT_STREAM_NAME, "writeObject", "(Ljava/lang/Object;)V", false);
             super.visitLabel(label1);
         }
@@ -251,9 +244,11 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
         @Override
         public void visitCode() {
             super.visitCode();
-            super.visitVarInsn(ALOAD, 1);
-            super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(SerializationFixingCV.class), "wrapIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-            super.visitVarInsn(ASTORE, 1);
+            super.visitVarInsn(ALOAD, 2);
+            super.visitVarInsn(ALOAD, 3);
+
+            super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(SerializationFixingCV.class), "wrapIfNecessary", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")Ljava/lang/Object;", false);
+            super.visitVarInsn(ASTORE, 2);
         }
     }
 
@@ -266,7 +261,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
         @Override
         public void visitInsn(int opcode) {
             if(TaintUtils.isReturnOpcode(opcode)) {
-                super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(SerializationFixingCV.class), "unwrapIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+                super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(SerializationFixingCV.class), "unwrapIfNecessary", "(" + Type.getDescriptor(TaintedReferenceWithObjTag.class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
             }
             super.visitInsn(opcode);
         }

@@ -312,8 +312,8 @@ public class DroidBenchImplicitITCase extends BaseMultiTaintClass {
 		public void doTest() {
 			ArrayList arrayList = new ArrayList();
 			LinkedList linkedList = new LinkedList();
-			((TaintedWithObjTag) arrayList).setPHOSPHOR_TAG(Taint.withLabel("arraylist tag"));
-			((TaintedWithObjTag) linkedList).setPHOSPHOR_TAG(Taint.withLabel("linkedlist tag"));
+			arrayList = MultiTainter.taintedReference(arrayList, "arraylist tag");
+			linkedList = MultiTainter.taintedReference(linkedList, "linkedlist tag");
 
 			leakInformationBit(linkedList);
 			leakInformationBit(arrayList);

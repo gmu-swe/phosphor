@@ -25,4 +25,8 @@ public class ArrayHelper {
         }
         _setTag(obj, t);
     }
+
+    public static void PHOSPHOR$$AASTORE(Object[] ar, Taint arTaint, int idx, Taint idxTaint, Object val, Taint valTaint) {
+        ar[idx] = val;
+    }
 }

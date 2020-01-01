@@ -17,20 +17,22 @@ public class HardcodedBypassStore {
     }
 
     public static Object get(int i) {
-        if(i == -1 || i == 0) {
-            return null;
-        }
-        synchronized(values) {
-            return values.get(i);
-        }
+        // if(i == -1 || i == 0) {
+        //     return null;
+        // }
+        // synchronized(values) {
+        //     return values.get(i);
+        // }
+        return null;
     }
 
     public static int add(Object taintObjectToPointTo, Object referent) {
-        if(taintObjectToPointTo == null) {
-            return -1;
-        }
-        synchronized(values) {
-            return values.add(referent, taintObjectToPointTo);
-        }
+        return -1;
+        // if(taintObjectToPointTo == null) {
+        //     return -1;
+        // }
+        // synchronized(values) {
+        //     return values.add(referent, taintObjectToPointTo);
+        // }
     }
 }

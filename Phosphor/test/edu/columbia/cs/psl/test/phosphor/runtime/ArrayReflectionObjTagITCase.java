@@ -15,10 +15,10 @@ public class ArrayReflectionObjTagITCase extends BaseMultiTaintClass {
 
     @Test
     public void testArrayGet() {
-        boolean[] b = new boolean[]{false};
+        boolean[] b = new boolean[] {false};
         assertTrue(b.getClass().isArray());
-        for(int i = 0; i < Array.getLength(b); i++) {
-                Array.get(b, i);
+        for (int i = 0; i < Array.getLength(b); i++) {
+            Array.get(b, i);
         }
     }
 

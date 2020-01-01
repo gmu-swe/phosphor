@@ -20,8 +20,8 @@
 package java.lang;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 
 /**
  * The wrapper for the primitive type {@code long}.
@@ -81,11 +81,11 @@ public final class Long extends Number implements Comparable<Long> {
         this.value = value;
     }
 
-    public Long(Taint t, long value, TaintSentinel stl) {
+    public Long(long value, Taint t) {
         this.value = value;
     }
     
-    public Long(Taint t, long value, ControlTaintTagStack ctrl, TaintSentinel stl ) {
+    public Long(long value, Taint t, ControlTaintTagStack ctrl) {
         this.value = value;
     }
 
@@ -827,12 +827,12 @@ public final class Long extends Number implements Comparable<Long> {
 		return 0;
 	}
 
-	public static Long valueOf$$PHOSPHORTAGGED(Taint object, long l) {
+	public static TaintedReferenceWithObjTag valueOf$$PHOSPHORTAGGED(long l, Taint t, TaintedReferenceWithObjTag ret) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-    public static Long valueOf$$PHOSPHORTAGGED(Taint o, long l, ControlTaintTagStack ctrl) {
+    public static TaintedReferenceWithObjTag valueOf$$PHOSPHORTAGGED(long l, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
         return null;
     }
 }

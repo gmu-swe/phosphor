@@ -5,10 +5,7 @@ import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -17,23 +14,44 @@ public class MethodArgReindexer extends MethodVisitor {
 
     private int originalLastArgIdx;
     private int[] oldArgMappings;
-    private int[] origArgMappings;
     private int newArgOffset;
     private boolean isStatic;
     private int origNumArgs;
     private String name;
     private String desc;
-    private boolean hasTaintSentinelAddedToDesc = false;
     private List<Type> oldArgTypesList;
     private MethodNode lvStore;
     private int nNewArgs = 0;
+    int line;
     private boolean hasPreAllocatedReturnAddress;
     private Type newReturnType;
 
-    private int nLongDoubleArgs = 0;
     private Map<String, Integer> parameters = new HashMap<>();
     private int indexOfControlTagsInLocals;
+    HashSet<Label> tryCatchHandlers = new HashSet<>();
 
+    public int getNewArgOffset() {
+        return newArgOffset;
+    }
+
+    @Override
+    public void visitParameter(String name, int access) {
+        super.visitParameter(name, access);
+        parameters.put(name, access);
+    }
+
+    @Override
+    public void visitEnd() {
+        super.visitEnd();
+        if(!parameters.isEmpty()) {
+            // Add fake params
+            for(int i = 0; i < nNewArgs; i++) {
+                super.visitParameter("Phosphor$$Param$$" + i, 0);
+            }
+        }
+    }
+    boolean isHandler;
+    private int nWrappers = 0;
     MethodArgReindexer(MethodVisitor mv, int access, String name, String desc, String originalDesc, MethodNode lvStore, boolean isLambda) {
         super(Configuration.ASM_VERSION, mv);
         this.lvStore = lvStore;
@@ -70,73 +88,57 @@ public class MethodArgReindexer extends MethodVisitor {
             oldTypesDoublesAreOne.add(t);
             firstFrameLocals[ffl] = t;
             ffl++;
-            if(t.getSize() == 2) {
-                oldArgTypesList.add(Type.getType("LTOP;"));
-                nLongDoubleArgs++;
-            }
+        }
+
+        if(!isStatic) {
+            newArgOffset++;
+            nNewArgs++;
         }
 
         boolean hasBeenRemapped = false;
         oldArgMappings = new int[originalLastArgIdx + 1];
         int oldVarCount = (isStatic ? 0 : 1);
-        for (Type oldArgType : oldArgTypes) {
-            if (!isLambda) {
-                if (TaintUtils.isShadowedType(oldArgType)) {
-                    newArgOffset++;
-                    nNewArgs++;
-                    hasBeenRemapped = true;
-                } else if (TaintUtils.isWrappedType(oldArgType)) {
-                    hasBeenRemapped = true;
-                }
-            }
+        for(Type oldArgType : oldArgTypes) {
             oldArgMappings[oldVarCount] = oldVarCount + newArgOffset;
             if(oldArgType.getSize() == 2) {
                 oldArgMappings[oldVarCount + 1] = oldVarCount + newArgOffset + 1;
                 oldVarCount++;
             }
             oldVarCount++;
+            if(!isLambda) {
+                if(TaintUtils.isShadowedType(oldArgType)) {
+                    newArgOffset++;
+                    nNewArgs++;
+                    hasBeenRemapped = true;
+                }
+                if(TaintUtils.isWrappedTypeWithErasedType(oldArgType)) {
+                    hasBeenRemapped = true;
+                    nWrappers++;
+                    nNewArgs++;
+                }
+            }
         }
         if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")) {
             hasBeenRemapped = true;
             indexOfControlTagsInLocals = oldArgTypes.length + newArgOffset + (isStatic ? 0 : 1);
             newArgOffset++;
         }
-        if(name.equals("<init>") && hasBeenRemapped) {
-            hasTaintSentinelAddedToDesc = true;
-            newArgOffset++;
-            nNewArgs++;
-        }
+
         hasPreAllocatedReturnAddress = TaintUtils.isPreAllocReturnType(originalDesc);
         if(hasPreAllocatedReturnAddress) {
             newReturnType = Type.getReturnType(desc);
             newArgOffset++;
             nNewArgs++;
         }
-        origArgMappings = new int[oldArgMappings.length];
-        System.arraycopy(oldArgMappings, 0, origArgMappings, 0, oldArgMappings.length);
-        if(TaintUtils.DEBUG_FRAMES || TaintUtils.DEBUG_LOCAL) {
-            System.out.println(name + " origLastArg " + originalLastArgIdx + ", oldvarcount = " + oldVarCount + ", newargoffset " + newArgOffset);
-        }
-    }
-
-    public int getNewArgOffset() {
-        return newArgOffset;
+        newArgOffset += nWrappers;
     }
 
     @Override
-    public void visitParameter(String name, int access) {
-        super.visitParameter(name, access);
-        parameters.put(name, access);
-    }
-
-    @Override
-    public void visitEnd() {
-        super.visitEnd();
-        if(!parameters.isEmpty()) {
-            // Add fake params
-            for(int i = 0; i < nNewArgs; i++) {
-                super.visitParameter("Phosphor$$Param$$" + i, 0);
-            }
+    public void visitLdcInsn(Object cst) {
+        if(cst instanceof PhosphorInstructionInfo) {
+            mv.visitLdcInsn(cst);
+        } else {
+            super.visitLdcInsn(cst);
         }
     }
 
@@ -164,17 +166,19 @@ public class MethodArgReindexer extends MethodVisitor {
         } else if(index < originalLastArgIdx) {
             String shadow = TaintUtils.getShadowTaintType(desc);
             if(shadow != null) {
-                super.visitLocalVariable(name + TaintUtils.METHOD_SUFFIX, shadow, null, start, end, origArgMappings[index] - 1);
+                super.visitLocalVariable(name + TaintUtils.METHOD_SUFFIX, shadow, null, start, end, oldArgMappings[index] + 1);
             }
-            super.visitLocalVariable(name, desc, signature, start, end, origArgMappings[index]);
+            super.visitLocalVariable(name, desc, signature, start, end, oldArgMappings[index]);
             if(index == originalLastArgIdx - 1 && (Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
-                super.visitLocalVariable("Phopshor$$ImplicitTaintTrackingFromParent", Type.getDescriptor(ControlTaintTagStack.class), null, start, end, origArgMappings[index] + 1);
-            }
-            if(index == originalLastArgIdx - 1 && this.name.equals("<init>") && hasTaintSentinelAddedToDesc) {
-                super.visitLocalVariable("Phosphor$$TaintSentinel", "Ljava/lang/Object;", null, start, end, origArgMappings[index] + ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) ? 2 : 1));
+                super.visitLocalVariable("Phopshor$$ImplicitTaintTrackingFromParent", Type.getDescriptor(ControlTaintTagStack.class), null, start, end, oldArgMappings[index] + 1);
             }
             if((index == originalLastArgIdx - Type.getType(desc).getSize()) && hasPreAllocatedReturnAddress) {
-                super.visitLocalVariable("Phosphor$$ReturnPreAllocated", newReturnType.getDescriptor(), null, start, end, origArgMappings[index] + ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) ? 2 : 1));
+                super.visitLocalVariable("Phosphor$$ReturnPreAllocated", newReturnType.getDescriptor(), null, start, end, oldArgMappings[index] + ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) ? 2 : 1));
+            }
+            if(index == originalLastArgIdx - 1) {
+                for(int i = 0; i < nWrappers; i++) {
+                    super.visitLocalVariable("PhosphorMethodDescriptorHelper" + i, "Ljava/lang/Object;", null, start, end, oldArgMappings[index] + ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) ? 2 : 1));
+                }
             }
         } else {
             super.visitLocalVariable(name, desc, signature, start, end, index + newArgOffset);
@@ -184,29 +188,32 @@ public class MethodArgReindexer extends MethodVisitor {
     @Override
     public void visitLineNumber(int line, Label start) {
         super.visitLineNumber(line, start);
+        this.line = line;
     }
 
     @Override
-    public void visitLdcInsn(Object cst) {
-        if(cst instanceof PhosphorInstructionInfo) {
-            mv.visitLdcInsn(cst);
-        } else {
-            super.visitLdcInsn(cst);
-        }
+    public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
+        super.visitTryCatchBlock(start, end, handler, type);
+        tryCatchHandlers.add(handler);
+    }
+
+    @Override
+    public void visitLabel(Label label) {
+        super.visitLabel(label);
+        isHandler |= tryCatchHandlers.contains(label);
     }
 
     @Override
     public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-        Object[] remappedLocals = new Object[Math.max(local.length, origNumArgs) + newArgOffset + 1 + nLongDoubleArgs]; //was +1, not sure why??
+        Object[] remappedLocals = new Object[Math.max(local.length, origNumArgs) + newArgOffset + 1]; //was +1, not sure why??
         int nLocalsInputFrame = nLocal;
-        oldArgMappings = new int[originalLastArgIdx + 1];
+        boolean isExceptionHandler = isHandler;
+        isHandler = false;
         if(type == Opcodes.F_FULL || type == Opcodes.F_NEW) {
-            int thisLocalVarNumberInNewFrame = 0; //accounts for long/double
-            int thisLocalVarNumberInOldFrame = 0;
+            // System.out.println("In frame: " + Arrays.toString(local));
             int thisLocalIndexInNewFrame = 0; //does not account for long/double
-            int thisLocalIndexInOldFrame = 0;
             //Special cases of no args
-            if(origNumArgs == 0) {
+            if(origNumArgs == 0 && isStatic) {
                 if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")) {
                     remappedLocals[thisLocalIndexInNewFrame] = Type.getInternalName(ControlTaintTagStack.class);
                     thisLocalIndexInNewFrame++;
@@ -217,100 +224,77 @@ public class MethodArgReindexer extends MethodVisitor {
                     thisLocalIndexInNewFrame++;
                     nLocal++;
                 }
-            }
-
-            //Iterate over every LV slot. Some LV slots may be high end of 2-word vars.
-            for(int i = 0; i < oldArgTypesList.size() && local.length > 0; i++) {
-                //for each local in a slot that is mapping to an arg
-                Object thisLocalTypeObjNew;
-
-                if(thisLocalIndexInOldFrame < local.length) {
-                    thisLocalTypeObjNew = local[thisLocalIndexInOldFrame];
-                } else {
-                    thisLocalTypeObjNew = Opcodes.TOP;
-                }
-                //check and see what type was here before
-                Type thisLocalTypeOld = oldArgTypesList.get(i);
-                Type thisLocalTypeNew = getTypeForStackTypeTOPAsNull(thisLocalTypeObjNew);
-
-                if(thisLocalTypeOld.getDescriptor().equals("LTOP;") && thisLocalIndexInOldFrame > 0 &&
-                        thisLocalIndexInOldFrame - 1 < local.length &&
-                        getTypeForStackTypeTOPAsNull(local[thisLocalIndexInOldFrame - 1]).getSize() == 2) {
-                    continue;
-                }
-                //add taint storage if WAS originally a primitive or primitive array
-                if(TaintUtils.isShadowedType(thisLocalTypeOld)) {
-                    if(TaintUtils.isShadowedType(thisLocalTypeNew)) {
-                        //Add the shadow type
-                        remappedLocals[thisLocalIndexInNewFrame] = TaintUtils.getShadowTaintTypeForFrame(thisLocalTypeNew);
-                        thisLocalIndexInNewFrame++;
-                        thisLocalVarNumberInNewFrame++;
-                        nLocal++;
-                    } else {
-                        //add TOP
-                        remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
-                        thisLocalIndexInNewFrame++;
-                        thisLocalVarNumberInNewFrame++;
-                        nLocal++;
-                    }
-                } else if(TaintUtils.isShadowedType(thisLocalTypeNew)) {
-                    thisLocalTypeObjNew = new TaggedValue(thisLocalTypeObjNew);
-                }
-
-                if(thisLocalIndexInNewFrame < remappedLocals.length) {
-                    remappedLocals[thisLocalIndexInNewFrame] = thisLocalTypeObjNew;
-                }
-
-                if(TaintUtils.isWrappedType(thisLocalTypeNew) && thisLocalIndexInNewFrame < remappedLocals.length) {
-                    remappedLocals[thisLocalIndexInNewFrame] = TaintUtils.getWrapperType(thisLocalTypeNew).getInternalName();
-                }
-
-
-                //Increment counts for this var
-                oldArgMappings[thisLocalVarNumberInOldFrame] = thisLocalVarNumberInNewFrame;
-                if(thisLocalTypeNew.getSize() == 2) {
-                    oldArgMappings[thisLocalVarNumberInOldFrame + 1] = thisLocalVarNumberInNewFrame + 1;
-                }
-                thisLocalIndexInNewFrame++;
-                thisLocalIndexInOldFrame++;
-                thisLocalVarNumberInNewFrame += thisLocalTypeNew.getSize();
-                thisLocalVarNumberInOldFrame += thisLocalTypeNew.getSize();
-
-
-            }
-            if(origNumArgs != 0 && (Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
-                while(thisLocalIndexInNewFrame < indexOfControlTagsInLocals) {
-                    //There are no locals in this frame, BUT there were args on the method - make sure metadata goes to the right spot
+                for(int i = 0; i < nWrappers; i++) {
                     remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
                     thisLocalIndexInNewFrame++;
                     nLocal++;
                 }
-                remappedLocals[thisLocalIndexInNewFrame] = Type.getInternalName(ControlTaintTagStack.class);
-                thisLocalIndexInNewFrame++;
-                thisLocalVarNumberInNewFrame++;
-                nLocal++;
             }
-            if(origNumArgs != 0 && hasPreAllocatedReturnAddress) {
-                remappedLocals[thisLocalIndexInNewFrame] = newReturnType.getInternalName();
-                thisLocalIndexInNewFrame++;
-                thisLocalVarNumberInNewFrame++;
-                nLocal++;
+
+            //Iterate over every LV slot. Some LV slots may be high end of 2-word vars.
+            int idxInOldLocals = 0;
+            int idxInOldArgs = 0;
+            boolean isAllTOPs = true;
+            for(Object o : local) {
+                if(o != Integer.valueOf(0)) {
+                    isAllTOPs = false;
+                    break;
+                }
             }
-            if(hasTaintSentinelAddedToDesc) {
-                remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
-                thisLocalIndexInNewFrame++;
-                thisLocalVarNumberInNewFrame++;
-                nLocal++;
+            if(!isAllTOPs) {
+                for(idxInOldArgs = 0; idxInOldArgs < Math.min(nLocal, oldArgTypesList.size()); idxInOldArgs++) {
+                    Type t = oldArgTypesList.get(idxInOldArgs);
+                    if(TaintUtils.isWrappedType(t)) {
+                        remappedLocals[thisLocalIndexInNewFrame] = TaintUtils.getWrapperType(t).getInternalName();
+                    } else {
+                        remappedLocals[thisLocalIndexInNewFrame] = local[idxInOldLocals];
+                        if(local[idxInOldLocals] == Opcodes.TOP && t.getSize() == 2) {
+                            thisLocalIndexInNewFrame++;
+                            remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
+                            idxInOldLocals++;
+                        }
+                    }
+                    thisLocalIndexInNewFrame++;
+                    if(local[idxInOldLocals] == Opcodes.TOP) {
+                        remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
+                    } else {
+                        remappedLocals[thisLocalIndexInNewFrame] = Configuration.TAINT_TAG_INTERNAL_NAME;
+                    }
+                    nLocal++;
+                    thisLocalIndexInNewFrame++;
+                    idxInOldLocals++;
+                }
             }
-            for (int i = thisLocalIndexInOldFrame; i < nLocalsInputFrame; i++) {
+            if(origNumArgs != 0) {
+                if(Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) {
+                    while(thisLocalIndexInNewFrame < indexOfControlTagsInLocals) {
+                        //There are no locals in this frame, BUT there were args on the method - make sure metadata goes to the right spot
+                        remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
+                        thisLocalIndexInNewFrame++;
+                        nLocal++;
+                    }
+                    remappedLocals[thisLocalIndexInNewFrame] = Type.getInternalName(ControlTaintTagStack.class);
+                    thisLocalIndexInNewFrame++;
+                    nLocal++;
+                }
+                if(hasPreAllocatedReturnAddress) {
+                    remappedLocals[thisLocalIndexInNewFrame] = newReturnType.getInternalName();
+                    thisLocalIndexInNewFrame++;
+                    nLocal++;
+                }
+                for(int i = 0; i < nWrappers; i++) {
+                    remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
+                    thisLocalIndexInNewFrame++;
+                    nLocal++;
+                }
+            }
+            for(int i = idxInOldLocals; i < nLocalsInputFrame; i++) {
                 remappedLocals[thisLocalIndexInNewFrame] = local[i];
                 Type t = getTypeForStackTypeTOPAsNull(local[i]);
-                if (TaintUtils.isWrappedType(t)) {
+                if(TaintUtils.isWrappedType(t)) {
                     remappedLocals[thisLocalIndexInNewFrame] = TaintUtils.getWrapperType(Type.getObjectType((String) local[i])).getInternalName();
                 }
                 thisLocalIndexInNewFrame++;
-                thisLocalVarNumberInNewFrame += t.getSize();
-                thisLocalVarNumberInOldFrame += t.getSize();
             }
 
         } else {
@@ -323,33 +307,21 @@ public class MethodArgReindexer extends MethodVisitor {
         ArrayList<Object> newStack = new ArrayList<>();
         int origNStack = nStack;
         for(int i = 0; i < origNStack; i++) {
-            if(stack[i] instanceof TaggedValue) {
-                Object o = ((TaggedValue) stack[i]).v;
-                if(o instanceof String || o == Opcodes.NULL) {
-                    if(o == Opcodes.NULL) {
-                        newStack.add(Opcodes.NULL);
-                    } else {
-                        newStack.add(TaintUtils.getShadowTaintTypeForFrame((String) (o)));
-                    }
-                    nStack++;
-                } else {
-                    newStack.add(Configuration.TAINT_TAG_STACK_TYPE);
-                    nStack++;
-                }
-                if (TaintUtils.isWrappedType(TaintAdapter.getTypeForStackType(stack[i]))) {
-                    newStack.add(TaintUtils.getWrapperType(TaintAdapter.getTypeForStackType(stack[i])).getInternalName());
-                } else {
-                    newStack.add(stack[i]);
-                }
-            } else if (TaintUtils.isWrappedType(TaintAdapter.getTypeForStackType(stack[i]))) {
+            if(TaintUtils.isWrappedType(TaintAdapter.getTypeForStackType(stack[i]))) {
                 newStack.add(TaintUtils.getWrapperType(TaintAdapter.getTypeForStackType(stack[i])).getInternalName());
             } else {
                 newStack.add(stack[i]);
             }
+            if(!isExceptionHandler) {
+                newStack.add(Configuration.TAINT_TAG_INTERNAL_NAME);
+                nStack++;
+            }
         }
         Object[] stack2;
         stack2 = newStack.toArray();
+        // System.out.println("Out frame: " + Arrays.toString(remappedLocals));
         super.visitFrame(type, nLocal, remappedLocals, nStack, stack2);
+
     }
 
     @Override
@@ -456,7 +428,7 @@ public class MethodArgReindexer extends MethodVisitor {
             if(!(((String) obj).charAt(0) == '[') && ((String) obj).length() > 1) {
                 return Type.getType("L" + obj + ";");
             } else {
-                return Type.getType((String) obj);
+                return Type.getObjectType((String) obj);
             }
         }
         if(obj instanceof Label || obj == Opcodes.UNINITIALIZED_THIS) {

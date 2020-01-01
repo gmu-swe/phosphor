@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
@@ -14,8 +13,10 @@ public final class MultiTainter {
         throw new IllegalStateException();
     }
 
-    public static ControlTaintTagStack getControlFlow$$PHOSPHORTAGGED(ControlTaintTagStack ctrl) {
-        return ctrl;
+    public static TaintedReferenceWithObjTag getControlFlow$$PHOSPHORTAGGED(ControlTaintTagStack ctrl, TaintedReferenceWithObjTag ret) {
+        ret.taint = Taint.emptyTaint();
+        ret.val = ctrl;
+        return ret;
     }
 
     public static boolean taintedBoolean(boolean in, Object lbl) {
@@ -114,169 +115,173 @@ public final class MultiTainter {
         throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
     }
 
-    public static Taint getTaint$$PHOSPHORTAGGED(Taint t, boolean b) {
-        return t;
+    public static Taint getTaint(Object in) {
+        throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
     }
 
-    public static Taint getTaint$$PHOSPHORTAGGED(Taint t, byte b) {
-        return t;
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(boolean b, Taint t, TaintedReferenceWithObjTag ret) {
+        ret.val = t;
+        ret.taint = Taint.emptyTaint();
+        return ret;
     }
 
-    public static Taint getTaint$$PHOSPHORTAGGED(Taint t, char b) {
-        return t;
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(byte b, Taint t, TaintedReferenceWithObjTag ret) {
+        ret.val = t;
+        ret.taint = Taint.emptyTaint();
+        return ret;
     }
 
-    public static Taint getTaint$$PHOSPHORTAGGED(Taint t, double b) {
-        return t;
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(char b, Taint t, TaintedReferenceWithObjTag ret) {
+        ret.val = t;
+        ret.taint = Taint.emptyTaint();
+        return ret;
     }
 
-    public static Taint getTaint$$PHOSPHORTAGGED(Taint t, float b) {
-        return t;
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(double b, Taint t, TaintedReferenceWithObjTag ret) {
+        ret.val = t;
+        ret.taint = Taint.emptyTaint();
+        return ret;
     }
 
-    public static Taint getTaint$$PHOSPHORTAGGED(Taint t, int b) {
-        return t;
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(float b, Taint t, TaintedReferenceWithObjTag ret) {
+        ret.val = t;
+        ret.taint = Taint.emptyTaint();
+        return ret;
     }
 
-    public static Taint getTaint$$PHOSPHORTAGGED(Taint t, long b) {
-        return t;
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(int b, Taint t, TaintedReferenceWithObjTag ret) {
+        ret.val = t;
+        ret.taint = Taint.emptyTaint();
+        return ret;
     }
 
-    public static Taint getTaint$$PHOSPHORTAGGED(Taint t, short b) {
-        return t;
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(long b, Taint t, TaintedReferenceWithObjTag ret) {
+        ret.val = t;
+        ret.taint = Taint.emptyTaint();
+        return ret;
     }
 
-    public static TaintedBooleanWithObjTag taintedBoolean$$PHOSPHORTAGGED(Taint oldTag, boolean in, Object lbl, TaintedBooleanWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(short b, Taint t, TaintedReferenceWithObjTag ret) {
+        ret.val = t;
+        ret.taint = Taint.emptyTaint();
+        return ret;
+    }
+
+    public static TaintedBooleanWithObjTag taintedBoolean$$PHOSPHORTAGGED(boolean in, Taint oldTag, Object lbl, Taint lblTag, TaintedBooleanWithObjTag ret) {
         ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
-    public static TaintedByteWithObjTag taintedByte$$PHOSPHORTAGGED(Taint oldTag, byte in, Object lbl, TaintedByteWithObjTag ret) {
+    public static TaintedByteWithObjTag taintedByte$$PHOSPHORTAGGED(byte in, Taint oldTag, Object lbl, Taint lblTag, TaintedByteWithObjTag ret) {
         ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
-    public static TaintedCharWithObjTag taintedChar$$PHOSPHORTAGGED(Taint oldTag, char in, Object lbl, TaintedCharWithObjTag ret) {
+    public static TaintedCharWithObjTag taintedChar$$PHOSPHORTAGGED(char in, Taint oldTag, Object lbl, Taint lblTag, TaintedCharWithObjTag ret) {
         ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
-    public static TaintedDoubleWithObjTag taintedDouble$$PHOSPHORTAGGED(Taint oldTag, double in, Object lbl, TaintedDoubleWithObjTag ret) {
+    public static TaintedDoubleWithObjTag taintedDouble$$PHOSPHORTAGGED(double in, Taint oldTag, Object lbl, Taint lblTag, TaintedDoubleWithObjTag ret) {
         ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
-    public static TaintedFloatWithObjTag taintedFloat$$PHOSPHORTAGGED(Taint oldTag, float in, Object lbl, TaintedFloatWithObjTag ret) {
+    public static TaintedFloatWithObjTag taintedFloat$$PHOSPHORTAGGED(float in, Taint oldTag, Object lbl, Taint lblTag, TaintedFloatWithObjTag ret) {
         ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
-    public static TaintedIntWithObjTag taintedInt$$PHOSPHORTAGGED(Taint oldTag, int in, Object lbl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag taintedInt$$PHOSPHORTAGGED(int in, Taint oldTag, Object lbl, Taint lblTag, TaintedIntWithObjTag ret) {
         ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
-    public static TaintedLongWithObjTag taintedLong$$PHOSPHORTAGGED(Taint oldTag, long in, Object lbl, TaintedLongWithObjTag ret) {
+    public static TaintedLongWithObjTag taintedLong$$PHOSPHORTAGGED(long in, Taint oldTag, Object lbl, Taint lblTag, TaintedLongWithObjTag ret) {
         ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
-    public static TaintedShortWithObjTag taintedShort$$PHOSPHORTAGGED(Taint oldTag, short in, Object lbl, TaintedShortWithObjTag ret) {
+    public static TaintedShortWithObjTag taintedShort$$PHOSPHORTAGGED(short in, Taint oldTag, Object lbl, Taint lblTag, TaintedShortWithObjTag ret) {
         ret.taint = Taint.withLabel(lbl);
         ret.val = in;
         return ret;
     }
 
-    public static LazyBooleanArrayObjTags taintedBooleanArray$$PHOSPHORTAGGED(LazyBooleanArrayObjTags ret, Object lbl) {
-        if(ret.taints == null) {
-            ret.taints = new Taint[ret.val.length];
+    private static void taintedArray(LazyArrayObjTags in, Object lbl, TaintedReferenceWithObjTag ret) {
+        if(in.taints == null) {
+            in.taints = new Taint[in.getLength()];
         }
-        for(int i = 0; i < ret.val.length; i++) {
-            ret.taints[i] = Taint.withLabel(lbl);
+        for(int i = 0; i < in.getLength(); i++) {
+            in.taints[i] = Taint.withLabel(lbl);
         }
+        ret.taint = Taint.withLabel(lbl);
+        ret.val = in;
+    }
+
+    public static TaintedReferenceWithObjTag taintedBooleanArray$$PHOSPHORTAGGED(LazyBooleanArrayObjTags in, Taint arrayRefTag, Object lbl, Taint lblTag, TaintedReferenceWithObjTag ret) {
+        taintedArray(in, lbl, ret);
         return ret;
     }
 
-    public static LazyByteArrayObjTags taintedByteArray$$PHOSPHORTAGGED(LazyByteArrayObjTags ret, Object lbl) {
-        if(ret.taints == null) {
-            ret.taints = new Taint[ret.val.length];
-        }
-        for(int i = 0; i < ret.val.length; i++) {
-            ret.taints[i] = Taint.withLabel(lbl);
-        }
+    public static TaintedReferenceWithObjTag taintedByteArray$$PHOSPHORTAGGED(LazyByteArrayObjTags in, Taint arrayRefTag, Object lbl, Taint lblTag, TaintedReferenceWithObjTag ret) {
+        taintedArray(in, lbl, ret);
         return ret;
     }
 
-    public static LazyCharArrayObjTags taintedCharArray$$PHOSPHORTAGGED(LazyCharArrayObjTags ret, Object lbl) {
-        if(ret.taints == null) {
-            ret.taints = new Taint[ret.val.length];
-        }
-        for(int i = 0; i < ret.val.length; i++) {
-            ret.taints[i] = Taint.withLabel(lbl);
-        }
+    public static TaintedReferenceWithObjTag taintedCharArray$$PHOSPHORTAGGED(LazyCharArrayObjTags in, Taint arrayRefTag, Object lbl, Taint lblTag, TaintedReferenceWithObjTag ret) {
+        taintedArray(in, lbl, ret);
         return ret;
     }
 
-    public static LazyDoubleArrayObjTags taintedDoubleArray$$PHOSPHORTAGGED(LazyDoubleArrayObjTags ret, Object lbl) {
-        if(ret.taints == null) {
-            ret.taints = new Taint[ret.val.length];
-        }
-        for(int i = 0; i < ret.val.length; i++) {
-            ret.taints[i] = Taint.withLabel(lbl);
-        }
+    public static TaintedReferenceWithObjTag taintedDoubleArray$$PHOSPHORTAGGED(LazyDoubleArrayObjTags in, Taint arrayRefTag, Object lbl, Taint lblTag, TaintedReferenceWithObjTag ret) {
+        taintedArray(in, lbl, ret);
         return ret;
     }
 
-    public static LazyFloatArrayObjTags taintedFloatArray$$PHOSPHORTAGGED(LazyFloatArrayObjTags ret, Object lbl) {
-        if(ret.taints == null) {
-            ret.taints = new Taint[ret.val.length];
-        }
-        for(int i = 0; i < ret.val.length; i++) {
-            ret.taints[i] = Taint.withLabel(lbl);
-        }
+    public static TaintedReferenceWithObjTag taintedFloatArray$$PHOSPHORTAGGED(LazyFloatArrayObjTags in, Taint arrayRefTag, Object lbl, Taint lblTag, TaintedReferenceWithObjTag ret) {
+        taintedArray(in, lbl, ret);
         return ret;
     }
 
-    public static LazyIntArrayObjTags taintedIntArray$$PHOSPHORTAGGED(LazyIntArrayObjTags ret, Object lbl) {
-        if(ret.taints == null) {
-            ret.taints = new Taint[ret.val.length];
-        }
-        for(int i = 0; i < ret.val.length; i++) {
-            ret.taints[i] = Taint.withLabel(lbl);
-        }
+    public static TaintedReferenceWithObjTag taintedIntArray$$PHOSPHORTAGGED(LazyIntArrayObjTags in, Taint arrayRefTag, Object lbl, Taint lblTag, TaintedReferenceWithObjTag ret) {
+        taintedArray(in, lbl, ret);
         return ret;
     }
 
-    public static LazyShortArrayObjTags taintedShortArray$$PHOSPHORTAGGED(LazyShortArrayObjTags ret, Object lbl) {
-        if(ret.taints == null) {
-            ret.taints = new Taint[ret.val.length];
-        }
-        for(int i = 0; i < ret.val.length; i++) {
-            ret.taints[i] = Taint.withLabel(lbl);
-        }
+    public static TaintedReferenceWithObjTag taintedShortArray$$PHOSPHORTAGGED(LazyShortArrayObjTags in, Taint arrayRefTag, Object lbl, Taint lblTag, TaintedReferenceWithObjTag ret) {
+        taintedArray(in, lbl, ret);
         return ret;
     }
 
-    public static LazyLongArrayObjTags taintedLongArray$$PHOSPHORTAGGED(LazyLongArrayObjTags ret, Object lbl) {
-        if(ret.taints == null) {
-            ret.taints = new Taint[ret.val.length];
-        }
-        for(int i = 0; i < ret.val.length; i++) {
-            ret.taints[i] = Taint.withLabel(lbl);
-        }
+    public static TaintedReferenceWithObjTag taintedLongArray$$PHOSPHORTAGGED(LazyLongArrayObjTags in, Taint arrayRefTag, Object lbl, Taint lblTag, TaintedReferenceWithObjTag ret) {
+        taintedArray(in, lbl, ret);
         return ret;
     }
+
+    public static TaintedReferenceWithObjTag taintedReference$$PHOSPHORTAGGED(Object in, Taint inTaint, Object lbl, Taint lblTag, TaintedReferenceWithObjTag ret) {
+        ret.val = in;
+        ret.taint = Taint.withLabel(lbl);
+        return ret;
+    }
+
+    public static <T> T taintedReference(T toTaint, Object lbl) {
+        throw new IllegalStateException("Calling uninstrumented phosphor stubs!");
+    }
+
 
     @SuppressWarnings("unused")
-    public static Taint getTaint$$PHOSPHORTAGGED(Object obj) {
-        return getTaint(obj);
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(Object obj, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.taint = Taint.emptyTaint();
+        ret.val = taint;
+        return ret;
     }
 
     public static Taint[] getStringCharTaints(String str) {
@@ -286,35 +291,12 @@ public final class MultiTainter {
         return str.valuePHOSPHOR_WRAPPER.taints;
     }
 
-    public static Taint getTaint(Object obj) {
-        if(obj instanceof MultiDTaintedArrayWithObjTag) {
-            obj = ((MultiDTaintedArrayWithObjTag) obj).getVal();
-        }
-        if(Configuration.taintTagFactory == null) {
-            return null;
-        }
-        if(obj instanceof TaintedWithObjTag) {
-            return (Taint) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG();
-        } else if(obj != null && ArrayHelper.engaged == 1) {
-            return ArrayHelper.getTag(obj);
-        } else if(obj instanceof Boolean) {
-            return BoxedPrimitiveStoreWithObjTags.booleanValue((Boolean) obj).taint;
-        } else if(obj instanceof Byte) {
-            return BoxedPrimitiveStoreWithObjTags.byteValue((Byte) obj).taint;
-        } else if(obj instanceof Short) {
-            return BoxedPrimitiveStoreWithObjTags.shortValue((Short) obj).taint;
-        } else if(obj instanceof Character) {
-            return BoxedPrimitiveStoreWithObjTags.charValue((Character) obj).taint;
-        } else {
-            return null;
-        }
-    }
-
     @SuppressWarnings("unused")
-    public static Taint getTaint$$PHOSPHORTAGGED(Object obj, ControlTaintTagStack ctrl) {
-        return getTaint(obj);
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(Object obj, Taint theTaint, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        return getTaint$$PHOSPHORTAGGED(obj, theTaint, ret);
     }
 
+    @Deprecated
     public static void taintedObject(Object obj, Taint tag) {
         if(obj instanceof MultiDTaintedArrayWithObjTag) {
             obj = ((MultiDTaintedArrayWithObjTag) obj).getVal();
@@ -331,12 +313,12 @@ public final class MultiTainter {
     }
 
     @SuppressWarnings("unused")
-    public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint tag, ControlTaintTagStack ctrl) {
+    public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint oldTag, Taint tag, Taint tagTag, ControlTaintTagStack ctrl) {
         taintedObject(obj, tag);
     }
 
     @SuppressWarnings("unused")
-    public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint tag) {
+    public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint oldTag, Taint tag, Taint tagTag) {
         taintedObject(obj, tag);
     }
 
@@ -349,39 +331,48 @@ public final class MultiTainter {
     }
 
     @SuppressWarnings("unused")
-    public static void setPrimitiveArrayTaints$$PHOSPHORTAGGED(Object obj, Taint tag, ControlTaintTagStack ctrl) {
+    public static void setPrimitiveArrayTaints$$PHOSPHORTAGGED(Object obj, Taint oldTag, Taint tag, Taint tagTag) {
         setPrimitiveArrayTaints(obj, tag);
     }
 
     @SuppressWarnings("unused")
-    public static void setPrimitiveArrayTaints$$PHOSPHORTAGGED(Object obj, Taint tag) {
+    public static void setPrimitiveArrayTaints$$PHOSPHORTAGGED(Object obj, Taint oldTag, Taint tag, Taint tagTag, ControlTaintTagStack ctrl) {
         setPrimitiveArrayTaints(obj, tag);
     }
 
     /* If multi-tainted and the specified object is a multi-dimensional array returns a Taint tag containing the taints of
      * all of its elements, otherwise returns the object's taint. */
     public static Taint getMergedTaint(Object obj) {
-        if(obj instanceof LazyArrayObjTags) {
-            return Taint.combineTaintArray(((LazyArrayObjTags) obj).taints);
-        } else if(obj instanceof Object[]) {
-            Taint[] taints = new Taint[((Object[]) obj).length];
+        //TODO reference taints?
+        if(obj instanceof LazyReferenceArrayObjTags) {
+            Object[] ar = ((LazyReferenceArrayObjTags) obj).val;
+            Taint[] taints = new Taint[ar.length];
             int i = 0;
-            for(Object el : (Object[]) obj) {
+            for(Object el : ar) {
                 taints[i] = getMergedTaint(el);
             }
             return Taint.combineTaintArray(taints);
+        } else if(obj instanceof LazyArrayObjTags) {
+            return Taint.combineTaintArray(((LazyArrayObjTags) obj).taints);
+        } else if(obj instanceof Object[]) {
+            throw new IllegalStateException("Object[] should not exist!");
         } else {
-            return getTaint(obj);
+            // return getTaint(obj);
+            return Taint.emptyTaint();
         }
     }
 
     @SuppressWarnings("unused")
-    public static Taint getMergedTaint$$PHOSPHORTAGGED(Object obj, ControlTaintTagStack ctrl) {
-        return getMergedTaint(obj);
+    public static TaintedReferenceWithObjTag getMergedTaint$$PHOSPHORTAGGED(Object obj, Taint taint, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+        ret.taint = Taint.emptyTaint();
+        ret.val = getMergedTaint(obj);
+        return ret;
     }
 
     @SuppressWarnings("unused")
-    public static Taint getMergedTaint$$PHOSPHORTAGGED(Object obj) {
-        return getMergedTaint(obj);
+    public static TaintedReferenceWithObjTag getMergedTaint$$PHOSPHORTAGGED(Object obj, Taint taint, TaintedReferenceWithObjTag ret) {
+        ret.taint = Taint.emptyTaint();
+        ret.val = getMergedTaint(obj);
+        return ret;
     }
 }

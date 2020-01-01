@@ -2,8 +2,8 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -57,9 +57,6 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
             SinkableArrayValue ret = new SinkableArrayValue(_v.getType());
             ret.addDepCopy(((SinkableArrayValue) _v));
             ret.setSrc(insn);
-            if (((SinkableArrayValue) _v).TEMPORARY_DISABLED) {
-                ret.TEMPORARY_DISABLED = true;
-            }
             return ret;
         }
         SinkableArrayValue old = executed.put(insn, null);
@@ -85,9 +82,6 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
             ((SinkableArrayValue) ret).masterDup = existing;
             existing.isBottomDup = true;
             existing.otherDups.add((SinkableArrayValue) ret);
-        }
-        if (existing.TEMPORARY_DISABLED || underlying.TEMPORARY_DISABLED) {
-            ((SinkableArrayValue) ret).TEMPORARY_DISABLED = true;
         }
         return ret;
     }
@@ -178,9 +172,7 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
                     default:
                         throw new AnalyzerException(insn, "Invalid array type");
                 }
-                if(Configuration.ARRAY_LENGTH_TRACKING) {
-                    ret.addDep((SinkableArrayValue) value);
-                }
+                ret.addDep((SinkableArrayValue) value);
                 ret.isNewArray = true;
                 return ret;
             case ANEWARRAY:
@@ -586,13 +578,6 @@ public class InstMethodSinkInterpreter extends BasicInterpreter {
     public BasicValue newValue(Type type) {
         if(type == null) {
             return new SinkableArrayValue(null);
-        }
-        if (TaintUtils.isPrimitiveArrayType(type)) {
-            //TODO remove this handler when implementing refernece tainting
-            SinkableArrayValue ret = new SinkableArrayValue(type);
-            ret.disable();
-            ret.TEMPORARY_DISABLED = true;
-            return ret;
         }
         if (TaintUtils.isShadowedType(type)) {
             return new SinkableArrayValue(type);

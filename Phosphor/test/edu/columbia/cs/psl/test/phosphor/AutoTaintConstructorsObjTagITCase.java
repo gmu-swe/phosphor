@@ -11,8 +11,10 @@ public class AutoTaintConstructorsObjTagITCase extends BasePhosphorTest {
         public char c;
         public char[] cs;
         public char[][] csArr;
+        public String str;
         public ExampleWithSourceConstructors(char c, String s) {
             this.c = c;
+            this.str = s;
         }
 
         public ExampleWithSourceConstructors(char[] cs) {
@@ -46,7 +48,7 @@ public class AutoTaintConstructorsObjTagITCase extends BasePhosphorTest {
     public void testPrimitiveSourceConstructor() {
         String str = new String("testPrimitiveSourceConstructor");
         ExampleWithSourceConstructors ex = new ExampleWithSourceConstructors('x', str);
-        assertNonNullTaint(str);
+        assertNonNullTaint(ex.str);
     }
 
     /* Tests that a constructor that takes a char array argument and is marked as source properly taints its argument. */

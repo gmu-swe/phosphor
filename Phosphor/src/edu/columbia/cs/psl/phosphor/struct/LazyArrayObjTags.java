@@ -2,7 +2,11 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import sun.misc.Unsafe;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 public abstract class LazyArrayObjTags implements Cloneable, Serializable {
@@ -10,7 +14,7 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
     private static final long serialVersionUID = -2635717960621951243L;
 
     public Taint[] taints;
-    public Taint lengthTaint;
+    public Taint lengthTaint = Taint.emptyTaint();
     // Used to mark this object as visited when searching
     public int $$PHOSPHOR_MARK = Integer.MIN_VALUE;
 
@@ -25,7 +29,7 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 
     public abstract int getLength();
 
-    public Taint getLengthTaint() {
+    public Taint getLengthTaint(Taint referenceTaint) {
         return lengthTaint;
     }
 
@@ -61,16 +65,16 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o, TaintedBooleanWithObjTag ret) {
+    public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Taint thisTaint, Object o, Taint otherTaint, TaintedBooleanWithObjTag ret) {
         ret.val = this.equals(o);
-        ret.taint = null;
+        ret.taint = thisTaint.union(otherTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o, TaintedBooleanWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
+    public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Taint thisTaint, Object o, Taint otherTaint, TaintedBooleanWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
         ret.val = this.equals(o);
-        ret.taint = (this.taints != null) ? Taint.combineTaintArray(this.taints) : null;
+        ret.taint = controlTaintTagStack.copyTag().union(thisTaint).union(otherTaint);
         return ret;
     }
 
@@ -80,14 +84,65 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
     }
 
     @SuppressWarnings("unused")
-    public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(TaintedIntWithObjTag ret) {
+    public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Taint thisTaint, TaintedIntWithObjTag ret) {
         ret.val = this.hashCode();
-        ret.taint = null;
+        ret.taint = thisTaint;
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(TaintedIntWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
-        return this.hashCode$$PHOSPHORTAGGED(ret);
+    public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Taint thisTaint, TaintedIntWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
+        return this.hashCode$$PHOSPHORTAGGED(thisTaint, ret);
+    }
+
+    /**
+     * FOR INTERNAL USE ONLY
+     **/
+    public Taint getTaintOrEmpty(int idx) {
+        if(taints == null) {
+            return Taint.emptyTaint();
+        }
+        return taints[idx];
+    }
+
+    public int unsafeIndexFor(Unsafe unsafe, long offset) {
+        Class<?> clazz = getVal().getClass();
+        long baseOffset = unsafe.arrayBaseOffset(clazz);
+        long scale = unsafe.arrayIndexScale(clazz);
+        // Calculate the index based off the offset
+        int index = (int) ((offset - baseOffset) / scale);
+        return index;
+    }
+
+    public void setTaint(int idx, Taint valTaint) {
+        if(taints == null) {
+            taints = new Taint[getLength()];
+        }
+        taints[idx] = valTaint;
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        if(taints == null) {
+            stream.writeInt(-1);
+        } else {
+            stream.writeInt(taints.length);
+            for(Taint el : taints) {
+                stream.writeObject(el);
+            }
+        }
+        // stream.writeObject(taints);
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        int len = stream.readInt();
+        if(len == -1) {
+            taints = null;
+        } else {
+            taints = new Taint[len];
+            for(int i = 0; i < len; i++) {
+                taints[i] = (Taint) stream.readObject();
+            }
+        }
+        // taints = (Taint[]) stream.readObject();
     }
 }

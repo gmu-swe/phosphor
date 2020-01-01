@@ -33,10 +33,10 @@ public class Configuration {
     public static final Class TAINT_TAG_OBJ_CLASS = (Taint.class);
     public static boolean SKIP_LOCAL_VARIABLE_TABLE = false;
     public static String ADDL_IGNORE = null;
+    public static boolean REFERENCE_TAINTING = true;
     public static boolean DATAFLOW_TRACKING = true; //default
-    public static boolean ARRAY_LENGTH_TRACKING = false;
     public static boolean ARRAY_INDEX_TRACKING = false;
-    public static boolean IMPLICIT_TRACKING = true; //must be set to TRUE for MULTI_TAINTING to work!
+    public static boolean IMPLICIT_TRACKING = true;
     public static boolean IMPLICIT_LIGHT_TRACKING;
     public static boolean IMPLICIT_HEADERS_NO_TRACKING = false;
     public static boolean IMPLICIT_EXCEPTION_FLOW = false;

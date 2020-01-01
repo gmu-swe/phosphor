@@ -86,23 +86,7 @@ public class ControlStackInitializingMV extends MethodVisitor {
     public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
         boolean copyStack = "<init>".equals(name);
         int controlStackDistance = methodNotIgnoredAndPassedControlStack(owner, name, descriptor);
-        if(copyStack) {
-            if(controlStackDistance == 1) {
-                super.visitInsn(SWAP);
-                CONTROL_STACK_COPY_TOP.delegateVisit(mv);
-                super.visitInsn(SWAP);
-            } else if(controlStackDistance == 2) {
-                // ControlTaintTagStack Prealloc TaintSentinel
-                super.visitInsn(POP); // Pop the null TaintSentinel
-                super.visitInsn(SWAP);
-                CONTROL_STACK_COPY_TOP.delegateVisit(mv);
-                super.visitInsn(SWAP);
-                super.visitInsn(ACONST_NULL); // push a null back for the TaintSentinel
-            }
-        }
-        if(nextMethodFrameInfo != null) {
-            setFrameInfo(controlStackDistance);
-        }
+        setUpStackForCall(controlStackDistance, copyStack, nextMethodFrameInfo != null);
         nextMethodFrameInfo = null;
         super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
     }
@@ -110,10 +94,8 @@ public class ControlStackInitializingMV extends MethodVisitor {
     @Override
     public void visitInvokeDynamicInsn(String name, String descriptor, Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
         String owner = bootstrapMethodHandle.getOwner();
-        if(nextMethodFrameInfo != null) {
-            int controlStackDistance = methodNotIgnoredAndPassedControlStack(owner, name, descriptor);
-            setFrameInfo(controlStackDistance);
-        }
+        int controlStackDistance = methodNotIgnoredAndPassedControlStack(owner, name, descriptor);
+        setUpStackForCall(controlStackDistance, false, nextMethodFrameInfo != null);
         nextMethodFrameInfo = null;
         super.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
     }
@@ -135,21 +117,24 @@ public class ControlStackInitializingMV extends MethodVisitor {
         return -1;
     }
 
-    private void setFrameInfo(int controlStackDistance) {
-        if(controlStackDistance == 0) {
+    private void setUpStackForCall(int controlStackDistance, boolean copy, boolean setInfo) {
+        if(controlStackDistance == -1 || (!copy && !setInfo)) {
+            return;
+        }
+        int[] temp = new int[controlStackDistance];
+        for(int i = 0; i < temp.length; i++) {
+            temp[i] = localVariableManager.getTmpLV();
+            super.visitVarInsn(ASTORE, temp[i]); // Only reference types should be after the ControlTaintTagStack
+        }
+        if(copy) {
+            CONTROL_STACK_COPY_TOP.delegateVisit(mv);
+        }
+        if(setInfo) {
             setFrameInfo();
-        } else if(controlStackDistance == 1) {
-            super.visitInsn(SWAP);
-            setFrameInfo();
-            super.visitInsn(SWAP);
-        } else if(controlStackDistance == 2) {
-            // stack ref1 ref2
-            super.visitInsn(DUP2_X1);
-            super.visitInsn(POP2);
-            setFrameInfo();
-            // ref1 ref2 stack
-            super.visitInsn(DUP_X2);
-            super.visitInsn(POP);
+        }
+        for(int i = temp.length - 1; i >= 0; i--) {
+            super.visitVarInsn(ALOAD, temp[i]);
+            localVariableManager.freeTmpLV(temp[i]);
         }
     }
 

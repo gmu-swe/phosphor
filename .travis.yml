@@ -1,6 +1,6 @@
 dist: trusty
 language: java
-script: jdk_switcher use oraclejdk8; cd Phosphor; export INST_HOME=$JAVA_HOME/jre;
+script: jdk_switcher use oraclejdk8; cd Phosphor; export INST_HOME=$JAVA_HOME/jre; $JAVA_HOME/bin/java -version;
   mvn -Ddacapo.skip=false -B -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn install
 deploy:
   provider: script

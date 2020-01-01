@@ -120,6 +120,8 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
                 Array.set(obj, i, autoTaint(Array.get(obj, i), tag));
             }
             return obj;
+        } else if(obj instanceof Taint) {
+            return tag;
         }
         return obj;
     }
@@ -148,6 +150,11 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
             }
         } else {
             ret.setTaints(tag);
+        }
+        if(ret instanceof LazyReferenceArrayObjTags) {
+            for(Object o : ((LazyReferenceArrayObjTags) ret).val) {
+                autoTaint(o, tag);
+            }
         }
         return ret;
     }
@@ -200,6 +207,11 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
                     }
                 }
             }
+            if(obj instanceof LazyReferenceArrayObjTags) {
+                for(Object each : ((LazyReferenceArrayObjTags) obj).val) {
+                    checkTaint(each, baseSink, actualSink);
+                }
+            }
         } else if(obj instanceof Object[]) {
             for(Object o : ((Object[]) obj)) {
                 checkTaint(o, baseSink, actualSink);
@@ -211,8 +223,11 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
             }
         } else if(obj instanceof TaintedPrimitiveWithObjTag) {
             Taint t = ((TaintedPrimitiveWithObjTag) obj).taint;
-            if (t != null && !t.isEmpty()) {
+            if(t != null && !t.isEmpty()) {
                 taintViolation(((TaintedPrimitiveWithObjTag) obj).taint, ((TaintedPrimitiveWithObjTag) obj).getValue(), baseSink, actualSink);
+            }
+            if(obj instanceof TaintedReferenceWithObjTag) {
+                checkTaint(((TaintedReferenceWithObjTag) obj).val, baseSink, actualSink);
             }
         }
     }

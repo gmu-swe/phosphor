@@ -24,7 +24,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	}
 	
 	public void sink(int i) {
-		System.out.println("Sink'ed: " + i);
+		System.out.println("Sout still Sink'ed: " + i);
 	}
 	
 	public void sink(String i) {
@@ -97,7 +97,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testTaintThroughAppliesToArgsAtEndOfMethod() throws Exception {
 		TaintThroughExample ex = new TaintThroughExample();
-		MultiTainter.taintedObject(ex, Taint.withLabel("Test"));
+		ex = MultiTainter.taintedReference(ex, Taint.withLabel("Test"));
 
 		int[] ar = new int[10];
 
@@ -125,7 +125,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testPrimitiveTaintThrough() throws Exception {
 		TaintThroughExample taintedObj = new TaintThroughExample();
-		MultiTainter.taintedObject(taintedObj, Taint.withLabel("Test"));
+		taintedObj = MultiTainter.taintedReference(taintedObj, Taint.withLabel("Test"));
 		int ret = taintedObj.taintThroughInt();
 		assertNonNullTaint(ret);
 	}
@@ -133,7 +133,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testStaticThroughMethod() throws Exception {
 		String s = "test";
-		MultiTainter.taintedObject(s, Taint.withLabel("Test"));
+		s = MultiTainter.taintedReference(s, Taint.withLabel("Test"));
 		String ret = TaintThroughExample.staticMethod(s);
 		assertNonNullTaint(ret);
 	}
@@ -150,7 +150,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	public void testSourceTaints2DCharArrArg() throws Exception {
 		char[][] chars = new char[1][1];
 		sourceWithDoubleCharArrParam(chars);
-		assertNoTaint(chars[0] + "");
+		assertNonNullTaint(chars[0][0]);
 	}
 
 	/* Checks that sources properly taint object array arguments passed to them. */
@@ -161,9 +161,14 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		assertNonNullTaint(arr[0]);
 	}
 
+	public static int trap(int in){
+		return in;
+	}
 
 	@Test(expected = TaintSinkError.class)
 	public void testIntSink() throws Exception {
+		trap(5);
+		System.out.println("Hi!");
 		sink(iSource());
 	}
 	
@@ -175,7 +180,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testURITaintThrough() throws Exception {
 		URI uri = new URI("http://java.sun.com/j2se/1.3/");
-		MultiTainter.taintedObject(uri, Taint.withLabel("testURITaintThrough"));
+		uri = MultiTainter.taintedReference(uri, Taint.withLabel("testURITaintThrough"));
 		String path = uri.getPath();
 		assertNonNullTaint(path);
 	}
@@ -183,7 +188,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testSocketChannelTaintThrough() throws Exception {
 		SocketChannel channel = SocketChannel.open();
-		MultiTainter.taintedObject(channel, Taint.withLabel("testSocketChannelTaintThrough"));
+		channel = MultiTainter.taintedReference(channel, Taint.withLabel("testSocketChannelTaintThrough"));
 		boolean connected = channel.isConnected();
 		assertNonNullTaint(MultiTainter.getTaint(connected));
 	}

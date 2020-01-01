@@ -4,9 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSentinel;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
 import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
@@ -58,42 +56,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     private boolean disabled = false;
     private Label oldStartLabel;
 
-    public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean generateExtraDebug) {
-        super(Configuration.ASM_VERSION, access, desc, mv);
-        this.analyzer = analyzer;
-        this.uninstMV = uninstMV;
-        returnType = Type.getReturnType(desc);
-        args = Type.getArgumentTypes(desc);
-        if((access & Opcodes.ACC_STATIC) == 0) {
-            lastArg++;
-            oldArgTypes.add(Type.getType("Lthis;"));
-        } else {
-            isStatic = true;
-        }
-        for(Type arg : args) {
-            lastArg += arg.getSize();
-            oldArgTypes.add(arg);
-            if(arg.getSize() > 1) {
-                oldArgTypes.add(Type.getType("Ltop;"));
-            }
-            if(arg.getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class))) {
-                extraLVsInArg++;
-                indexOfMasterControlLV = lastArg - 1;
-            }
-            if(arg.getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
-                extraLVsInArg++;
-            }
-            if(arg.getDescriptor().equals(Type.getDescriptor(TaintSentinel.class))) {
-                extraLVsInArg++;
-            }
-        }
-        lastArg--;
-        if(returnType.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
-            preAllocatedReturnTypes.put(returnType, lastArg);
-        }
-        end = new Label();
-        this.generateExtraDebug = generateExtraDebug;
-    }
+    int line = 0;
 
     @Override
     public void visitInsn(int opcode) {
@@ -248,28 +211,38 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         }
     }
 
-    protected int remap(int var, Type type) {
-        int ret = super.remap(var, type);
-        origLVMap.put(ret, var);
-        Object objType = "[I";
-        switch(type.getSort()) {
-            case Type.BOOLEAN:
-            case Type.SHORT:
-            case Type.INT:
-                objType = Opcodes.INTEGER;
-                break;
-            case Type.LONG:
-                objType = Opcodes.LONG;
-                break;
-            case Type.DOUBLE:
-                objType = Opcodes.DOUBLE;
-                break;
-            case Type.FLOAT:
-                objType = Opcodes.FLOAT;
-                break;
+    public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean generateExtraDebug) {
+        super(Configuration.ASM_VERSION, access, desc, mv);
+        this.analyzer = analyzer;
+        this.uninstMV = uninstMV;
+        returnType = Type.getReturnType(desc);
+        args = Type.getArgumentTypes(desc);
+        if((access & Opcodes.ACC_STATIC) == 0) {
+            lastArg++;
+            oldArgTypes.add(Type.getType("Lthis;"));
+        } else {
+            isStatic = true;
         }
-        shadowLVMapType.put(ret, objType);
-        return ret;
+        for(Type arg : args) {
+            if(arg.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
+                preAllocatedReturnTypes.put(returnType, lastArg);
+            }
+            lastArg += arg.getSize();
+            oldArgTypes.add(arg);
+            if(arg.getSize() > 1) {
+                oldArgTypes.add(Type.getType("Ltop;"));
+            }
+            if(arg.getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class))) {
+                extraLVsInArg++;
+                indexOfMasterControlLV = lastArg - 1;
+            }
+            if(arg.getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
+                extraLVsInArg++;
+            }
+        }
+        lastArg--;
+        end = new Label();
+        this.generateExtraDebug = generateExtraDebug;
     }
 
     private int newPreAllocatedReturnType(Type type) {
@@ -425,23 +398,29 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         super.visitLabel(label);
     }
 
-    public void visitCode() {
-        super.visitCode();
-        super.visitLabel(newStartLabel);
-        if(primitiveArrayFixer != null) {
-            for(Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
-                if(t.equals(returnType)) {
-                    preAllocatedReturnTypes.put(t, lastArg);
-                } else {
-                    int lv = newPreAllocatedReturnType(t);
-                    preAllocatedReturnTypes.put(t, lv);
-                    super.visitTypeInsn(NEW, t.getInternalName());
-                    super.visitInsn(DUP);
-                    super.visitMethodInsn(INVOKESPECIAL, t.getInternalName(), "<init>", "()V", false);
-                    mv.visitVarInsn(ASTORE, lv);
-                }
-            }
+    protected int remap(int var, Type type) {
+        int ret = super.remap(var, type);
+        origLVMap.put(ret, var);
+        Object objType = "[I";
+        switch(type.getSort()) {
+            case Type.BOOLEAN:
+            case Type.SHORT:
+            case Type.INT:
+                objType = Opcodes.INTEGER;
+                break;
+            case Type.LONG:
+                objType = Opcodes.LONG;
+                break;
+            case Type.DOUBLE:
+                objType = Opcodes.DOUBLE;
+                break;
+            case Type.FLOAT:
+                objType = Opcodes.FLOAT;
+                break;
         }
+        shadowLVMapType.put(ret, objType);
+        // System.out.println(var + " -> " + ret);
+        return ret;
     }
 
     void setPrimitiveArrayAnalyzer(PrimitiveArrayAnalyzer primitiveArrayFixer) {
@@ -456,8 +435,28 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         return preAllocatedReturnTypes.get(newReturnType);
     }
 
+    public void visitCode() {
+        super.visitCode();
+        super.visitLabel(newStartLabel);
+        if(primitiveArrayFixer != null) {
+            for(Type t : primitiveArrayFixer.wrapperTypesToPreAlloc) {
+                if(!preAllocatedReturnTypes.containsKey(t)) {
+                    int lv = newPreAllocatedReturnType(t);
+                    preAllocatedReturnTypes.put(t, lv);
+                    super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
+                    super.visitTypeInsn(NEW, t.getInternalName());
+                    super.visitInsn(DUP);
+                    super.visitMethodInsn(INVOKESPECIAL, t.getInternalName(), "<init>", "()V", false);
+                    mv.visitVarInsn(ASTORE, lv);
+                    super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
+                }
+            }
+        }
+    }
+
     @Override
     public void visitLineNumber(int line, Label start) {
+        this.line = line;
         super.visitLineNumber(line, start);
     }
 
@@ -513,10 +512,6 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         int number = 0; // old local variable number
         for(; number < nLocal; ++number) {
             Object t = local[number];
-            boolean hasTaint = t instanceof TaggedValue;
-            if(hasTaint) {
-                t = ((TaggedValue) t).v;
-            }
             int size = t == Opcodes.LONG || t == Opcodes.DOUBLE ? 2 : 1;
             if(t != Opcodes.TOP) {
                 Type typ = OBJECT_TYPE;
@@ -531,59 +526,20 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
                 } else if(t instanceof String) {
                     typ = Type.getObjectType((String) t);
                 }
-                setFrameLocal(remap(index, typ), t);
-                Object shadowType = null;
-                if(hasTaint && t instanceof Integer && t != Opcodes.NULL && t != Opcodes.UNINITIALIZED_THIS) {
-                    shadowType = Configuration.TAINT_TAG_STACK_TYPE;
-                } else if(hasTaint && t instanceof String) {
-                    Type _t = Type.getObjectType((String) t);
-                    if(_t.getSort() == Type.ARRAY && _t.getDimensions() == 1 && _t.getElementType().getSort() != Type.OBJECT) {
-                        shadowType = TaintUtils.getShadowTaintTypeForFrame(_t.getDescriptor());
-                    }
-                }
-                if(!disabled && !hasTaint) {
-                    int newVar = remap(index, typ);
-                    int shadowVar = 0;
-                    if(newVar > lastArg) {
-                        if(varToShadowVar.containsKey(newVar)) {
-                            shadowVar = varToShadowVar.get(newVar);
-                            setFrameLocal(shadowVar, Opcodes.TOP);
-                        }
-                    }
-
-                }
-                if(!disabled && shadowType != null) {
-                    int newVar = remap(index, typ);
+                int remapped = remap(index, typ);
+                setFrameLocal(remapped, t);
+                Object shadowType = Configuration.TAINT_TAG_STACK_TYPE;
+                if(!disabled && !preAllocatedReturnTypes.containsValue(remapped)) {
                     int shadowVar;
-                    if(newVar > lastArg || (newVar < lastArg && oldArgTypes.get(newVar).getDescriptor().equals("Ltop;"))) {
-                        if(!varToShadowVar.containsKey(newVar)) {
-                            shadowVar = newShadowLV(typ, newVar);
+                    if(remapped > lastArg || (remapped < lastArg && oldArgTypes.get(remapped).getDescriptor().equals("Ltop;"))) {
+                        if(!varToShadowVar.containsKey(remapped)) {
+                            shadowVar = newShadowLV(typ, remapped);
                         } else {
-                            shadowVar = varToShadowVar.get(newVar);
+                            shadowVar = varToShadowVar.get(remapped);
                         }
                         setFrameLocal(shadowVar, shadowType);
                     } else {
-                        //Check to make sure that we already allocated a shadow LV for this in the methodargreindexer
-                        Type oldT = oldArgTypes.get(index);
-                        if(t instanceof Integer && oldT.getSort() != Type.OBJECT && oldT.getSort() != Type.ARRAY) {
-                            //Had shadow int, still need that, still OK
-                        } else if(t instanceof String && oldT.getSort() == Type.ARRAY && oldT.getDimensions() == 1 && oldT.getElementType().getSort() != Type.OBJECT) {
-                            //Had shadow array still ok
-                        } else if(t instanceof Integer && (oldT.getSort() == Type.ARRAY && oldT.getDimensions() == 1 && oldT.getElementType().getSort() != Type.OBJECT)) {
-                            //Had a shadow array, need shadow int
-                            setFrameLocal(index - 1, Configuration.TAINT_TAG_STACK_TYPE);
-                        } else if(t instanceof String && oldT.getSort() != Type.ARRAY && oldT.getSort() != Type.OBJECT) {
-                            //Had shadow int, need shadow array
-                            setFrameLocal(index - 1, TaintUtils.getShadowTaintTypeForFrame((String) t));
-                        } else {
-                            //Had nothing, need something
-                            if(!varToShadowVar.containsKey(newVar)) {
-                                shadowVar = newShadowLV(typ, newVar);
-                            } else {
-                                shadowVar = varToShadowVar.get(newVar);
-                            }
-                            setFrameLocal(shadowVar, shadowType);
-                        }
+                        // setFrameLocal(index + 1, Configuration.TAINT_TAG_STACK_TYPE);
                     }
                 }
             }
@@ -614,12 +570,9 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
             }
 
         }
-        for(int i = 0; i < newLocals.length; i++) {
-            if(newLocals[i] instanceof TaggedValue) {
-                newLocals[i] = ((TaggedValue) newLocals[i]).v;
-            }
-        }
+
         // visits remapped frame
+        // System.out.println("LVM OUt " + Arrays.toString(newLocals));
         mv.visitFrame(type, number, newLocals, nStack, stack);
         // restores original value of 'newLocals'
         newLocals = oldLocals;

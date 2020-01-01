@@ -336,7 +336,6 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             case TaintUtils.BRANCH_START:
             case TaintUtils.REVISABLE_BRANCH_START:
             case TaintUtils.FORCE_CTRL_STORE:
-            case TaintUtils.ALWAYS_AUTOBOX:
             case TaintUtils.IGNORE_EVERYTHING:
                 break;
             default:
@@ -1159,6 +1158,13 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             if(type == Opcodes.LONG || type == Opcodes.DOUBLE) {
                 result.add(Opcodes.TOP);
             }
+        }
+    }
+
+    public void printLocals() {
+        System.out.println("LOCALS:");
+        for(int i = 0; i < locals.size(); i++) {
+            System.out.println("\t" + i + ": " + locals.get(i));
         }
     }
 }

@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.Field;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -17,11 +18,13 @@ public class BasicArrayInterpreter extends BasicInterpreter {
     public static final BasicValue THIS_VALUE = new BasicValue(Type.getType("Ljava/lang/Object;"));
     private boolean isStaticMethod;
     private boolean isImplicitLightTracking;
+    private HashMap<AbstractInsnNode, String> referenceArraysToCheckcast;
 
-    public BasicArrayInterpreter(boolean isStaticMethod, boolean isImplicitLightTracking) {
+    public BasicArrayInterpreter(boolean isStaticMethod, boolean isImplicitLightTracking, HashMap<AbstractInsnNode, String> referenceArraysToCheckcast) {
         super(Configuration.ASM_VERSION);
         this.isStaticMethod = isStaticMethod;
         this.isImplicitLightTracking = isImplicitLightTracking;
+        this.referenceArraysToCheckcast = referenceArraysToCheckcast;
     }
 
     @Override
@@ -67,6 +70,12 @@ public class BasicArrayInterpreter extends BasicInterpreter {
         if(v == BasicValue.UNINITIALIZED_VALUE || w == BasicValue.UNINITIALIZED_VALUE) {
             return BasicValue.UNINITIALIZED_VALUE;
         }
+        if(v instanceof SinkableArrayValue) {
+            v = BasicValue.REFERENCE_VALUE;
+        }
+        if(w instanceof SinkableArrayValue) {
+            w = BasicValue.REFERENCE_VALUE;
+        }
         if((v instanceof BasicThisFieldValue && !(w instanceof BasicThisFieldValue)) || (w instanceof BasicThisFieldValue && !(v instanceof BasicThisFieldValue))) {
             if(v.getType().equals(w.getType())) {
                 if(v.getType().getSort() == Type.OBJECT || v.getType().getSort() == Type.ARRAY) {
@@ -93,6 +102,29 @@ public class BasicArrayInterpreter extends BasicInterpreter {
             if(typ.getSort() == Type.OBJECT) {
                 t = typ.getInternalName();
             }
+            //check params that came from multi-d array loads
+            Type[] params = Type.getArgumentTypes(((MethodInsnNode) insn).desc);
+            Type owner = Type.getObjectType(((MethodInsnNode) insn).owner);
+
+            boolean isStatic = insn.getOpcode() == Opcodes.INVOKESTATIC;
+            for(int i = 0; i < values.size(); i++) {
+                if(values.get(i) instanceof SinkableArrayValue) {
+                    Type declared;
+                    if(isStatic) {
+                        declared = params[i];
+                    } else {
+                        if(i == 0) {
+                            declared = owner;
+                        } else {
+                            declared = params[i - 1];
+                        }
+                    }
+                    SinkableArrayValue v = ((SinkableArrayValue) values.get(i));
+                    if(!declared.getDescriptor().equals("Ljava/lang/Object;")) {
+                        referenceArraysToCheckcast.put(v.getSrc(), "[" + declared.getDescriptor());
+                    }
+                }
+            }
         }
         if(t != null && (t.contains("Exception") || t.contains("Error"))) {
             return new BasicValue(Type.getObjectType(t));
@@ -103,7 +135,9 @@ public class BasicArrayInterpreter extends BasicInterpreter {
     @Override
     public BasicValue binaryOperation(AbstractInsnNode insn, BasicValue value1, BasicValue value2) throws AnalyzerException {
         if(insn.getOpcode() == Opcodes.AALOAD) {
-            return value1;
+            SinkableArrayValue ret = new SinkableArrayValue(BasicValue.REFERENCE_VALUE.getType());
+            ret.setSrc(insn);
+            return ret;
         } else {
             return super.binaryOperation(insn, value1, value2);
         }

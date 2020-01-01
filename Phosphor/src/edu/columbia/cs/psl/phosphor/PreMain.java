@@ -8,10 +8,11 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.*;
-import org.objectweb.asm.commons.SerialVersionUIDAdder;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
@@ -20,6 +21,7 @@ import java.io.*;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.ProtectionDomain;
@@ -69,8 +71,6 @@ public class PreMain {
                     }
                 } else if(s.equals("objmethods")) {
                     Configuration.WITH_HEAVY_OBJ_EQUALS_HASHCODE = true;
-                } else if(s.equals("arraylength")) {
-                    Configuration.ARRAY_LENGTH_TRACKING = true;
                 } else if(s.equals("lightImplicit")) {
                     Configuration.IMPLICIT_LIGHT_TRACKING = true;
                 } else if(s.equals("arrayindex")) {
@@ -176,11 +176,97 @@ public class PreMain {
             return _transform(loader, className2, classBeingRedefined, protectionDomain, classfileBuffer);
         }
 
-        public static byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer)
-                throws IllegalClassFormatException {
+        static byte[] instrumentWithRetry(ClassReader cr, byte[] classFileBuffer, boolean isiFace, String className, boolean skipFrames, boolean upgradeVersion, List<FieldNode> fields, Set<String> nonBridgeMethodsErasedReturnTypes, Set<String> methodsToReduceSizeOf, boolean traceClass) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+            TraceClassVisitor debugTracer = null;
+            try {
+                try {
+                    ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
+                    ClassVisitor _cv = cw;
+                    if(traceClass) {
+                        System.out.println("Saving " + className);
+                        File f = new File("debug/" + className.replace("/", ".") + ".class");
+                        if(!f.getParentFile().isDirectory() && !f.getParentFile().mkdirs()) {
+                            System.err.println("Failed to make debug directory: " + f);
+                        } else {
+                            try {
+                                FileOutputStream fos = new FileOutputStream(f);
+                                fos.write(classFileBuffer);
+                                fos.close();
+                            } catch(Exception ex2) {
+                                ex2.printStackTrace();
+                            }
+                        }
+                        debugTracer = new TraceClassVisitor(null, null);
+                        _cv = debugTracer;
+                    }
+                    if(Configuration.extensionClassVisitor != null) {
+                        Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
+                        _cv = extra.newInstance(_cv, skipFrames);
+                    }
+                    if(DEBUG || TaintUtils.VERIFY_CLASS_GENERATION) {
+                        _cv = new CheckClassAdapter(_cv, false);
+                    }
+                    if(SerializationFixingCV.isApplicable(className)) {
+                        _cv = new SerializationFixingCV(_cv, className);
+                    }
+                    _cv = new ClinitRetransformClassVisitor(_cv);
+                    if(isiFace) {
+                        _cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields, nonBridgeMethodsErasedReturnTypes, methodsToReduceSizeOf);
+                    } else {
+                        _cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields, nonBridgeMethodsErasedReturnTypes, methodsToReduceSizeOf));
+                    }
+                    if(EclipseCompilerCV.isEclipseCompilerClass(className)) {
+                        _cv = new EclipseCompilerCV(_cv);
+                    }
+                    if(OgnlUtilCV.isOgnlUtilClass(className) && !Configuration.REENABLE_CACHES) {
+                        _cv = new OgnlUtilCV(_cv);
+                    }
+                    if(JettyBufferUtilCV.isApplicable(className)) {
+                        _cv = new JettyBufferUtilCV(_cv);
+                    }
+                    if(PowerMockUtilCV.isApplicable(className)) {
+                        _cv = new PowerMockUtilCV(_cv);
+                    }
+                    if(Configuration.PRIOR_CLASS_VISITOR != null) {
+                        try {
+                            Constructor<? extends ClassVisitor> extra = Configuration.PRIOR_CLASS_VISITOR.getConstructor(ClassVisitor.class, Boolean.TYPE);
+                            _cv = extra.newInstance(_cv, skipFrames);
+                        } catch(Exception e) {
+                            //
+                        }
+                    }
+                    _cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
+                    cr.accept(_cv, ClassReader.EXPAND_FRAMES);
+                    return cw.toByteArray();
+                } catch(MethodTooLargeException ex) {
+                    if(methodsToReduceSizeOf == null) {
+                        methodsToReduceSizeOf = new HashSet<>();
+                    }
+                    methodsToReduceSizeOf.add(ex.getMethodName() + ex.getDescriptor());
+                    return instrumentWithRetry(cr, classFileBuffer, isiFace, className, skipFrames, upgradeVersion, fields, nonBridgeMethodsErasedReturnTypes, methodsToReduceSizeOf, false);
+                }
+            } catch(Throwable ex) {
+                INSTRUMENTATION_EXCEPTION_OCCURRED = true;
+                if(!traceClass) {
+                    instrumentWithRetry(cr, classFileBuffer, isiFace, className, skipFrames, upgradeVersion, fields, nonBridgeMethodsErasedReturnTypes, methodsToReduceSizeOf, true);
+                    return classFileBuffer;
+                }
+                ex.printStackTrace();
+                System.err.println("method so far:");
+                try {
+                    PrintWriter pw = new PrintWriter(new FileWriter("lastClass.txt"));
+                    debugTracer.p.print(pw);
+                    pw.flush();
+                } catch(IOException e) {
+                    e.printStackTrace();
+                }
+                return classFileBuffer;
+            }
+        }
+
+        public static byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) {
             ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer) : new ClassReader(classfileBuffer));
             String className = cr.getClassName();
-            innerException = false;
             curLoader = loader;
             if(Instrumenter.isIgnoredClass(className)) {
                 switch(className) {
@@ -308,6 +394,12 @@ public class PreMain {
                 for(FieldNode node : cn.fields) {
                     fields.add(node);
                 }
+                Set<String> nonBridgeMethodsErasedReturnTypes = new HashSet<>();
+                for(MethodNode mn : cn.methods) {
+                    if((mn.access & Opcodes.ACC_BRIDGE) == 0) {
+                        nonBridgeMethodsErasedReturnTypes.add(mn.name + "." + mn.desc.substring(0, mn.desc.indexOf(')')));
+                    }
+                }
                 if(skipFrames) {
                     // This class is old enough to not guarantee frames.
                     // Generate new frames for analysis reasons, then make sure
@@ -324,69 +416,7 @@ public class PreMain {
                 // Find out if this class already has frames
                 TraceClassVisitor cv;
                 try {
-                    ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
-                    ClassVisitor _cv = cw;
-                    if(Configuration.extensionClassVisitor != null) {
-                        Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
-                        _cv = extra.newInstance(_cv, skipFrames);
-                    }
-                    if(DEBUG || TaintUtils.VERIFY_CLASS_GENERATION) {
-                        _cv = new CheckClassAdapter(_cv, false);
-                    }
-                    if(SerializationFixingCV.isApplicable(className)) {
-                        _cv = new SerializationFixingCV(_cv, className);
-                    }
-                    _cv = new ClinitRetransformClassVisitor(_cv);
-                    if(isiFace) {
-                        _cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields);
-                    } else {
-                        _cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
-                    }
-                    if(EclipseCompilerCV.isEclipseCompilerClass(className)) {
-                        _cv = new EclipseCompilerCV(_cv);
-                    }
-                    if(OgnlUtilCV.isOgnlUtilClass(className) && !Configuration.REENABLE_CACHES) {
-                        _cv = new OgnlUtilCV(_cv);
-                    }
-                    if(JettyBufferUtilCV.isApplicable(className)) {
-                        _cv = new JettyBufferUtilCV(_cv);
-                    }
-                    if(PowerMockUtilCV.isApplicable(className)) {
-                        _cv = new PowerMockUtilCV(_cv);
-                    }
-                    if(Configuration.PRIOR_CLASS_VISITOR != null) {
-                        try {
-                            Constructor<? extends ClassVisitor> extra = Configuration.PRIOR_CLASS_VISITOR.getConstructor(ClassVisitor.class, Boolean.TYPE);
-                            _cv = extra.newInstance(_cv, skipFrames);
-                        } catch(Exception e) {
-                            //
-                        }
-                    }
-                    _cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
-                    cr.accept(_cv, ClassReader.EXPAND_FRAMES);
-                    byte[] instrumentedBytes;
-                    try {
-                        instrumentedBytes = cw.toByteArray();
-                    } catch(MethodTooLargeException ex) {
-                        cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
-                        _cv = cw;
-                        if(Configuration.extensionClassVisitor != null) {
-                            Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
-                            _cv = extra.newInstance(_cv, skipFrames);
-                        }
-                        if(DEBUG || TaintUtils.VERIFY_CLASS_GENERATION) {
-                            _cv = new CheckClassAdapter(_cv, false);
-                        }
-                        _cv = new ClinitRetransformClassVisitor(_cv);
-                        if(isiFace) {
-                            _cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields, true);
-                        } else {
-                            _cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields, true));
-                        }
-                        _cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
-                        cr.accept(_cv, ClassReader.EXPAND_FRAMES);
-                        instrumentedBytes = cw.toByteArray();
-                    }
+                    byte[] instrumentedBytes = instrumentWithRetry(cr, classfileBuffer, isiFace, className, skipFrames, upgradeVersion, fields, nonBridgeMethodsErasedReturnTypes, null, false);
 
                     if(DEBUG) {
                         File f = new File("debug/" + className + ".class");
@@ -422,46 +452,8 @@ public class PreMain {
                     }
                     return instrumentedBytes;
                 } catch(Throwable ex) {
-                    INSTRUMENTATION_EXCEPTION_OCCURRED = true;
                     ex.printStackTrace();
-                    cv = new TraceClassVisitor(null, null);
-                    try {
-                        ClassVisitor _cv = cv;
-                        if(Configuration.extensionClassVisitor != null) {
-                            Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
-                            _cv = extra.newInstance(_cv, skipFrames);
-                        }
-                        _cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
-                        _cv = new HidePhosphorFromASMCV(_cv, false);
-                        cr.accept(_cv, ClassReader.EXPAND_FRAMES);
-                    } catch(Throwable ex2) {
-                        //
-                    }
-                    ex.printStackTrace();
-                    System.err.println("method so far:");
-                    if(!innerException) {
-                        try {
-                            PrintWriter pw = new PrintWriter(new FileWriter("lastClass.txt"));
-                            cv.p.print(pw);
-                            pw.flush();
-                        } catch(IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    System.out.println("Saving " + className);
-                    File f = new File("debug/" + className.replace("/", ".") + ".class");
-                    if(!f.getParentFile().isDirectory() && !f.getParentFile().mkdirs()) {
-                        System.err.println("Failed to make debug directory: " + f);
-                    } else {
-                        try {
-                            FileOutputStream fos = new FileOutputStream(f);
-                            fos.write(classfileBuffer);
-                            fos.close();
-                        } catch(Exception ex2) {
-                            ex.printStackTrace();
-                        }
-                    }
-                    return new byte[0];
+                    throw new IllegalStateException(ex);
                 }
             } finally {
                 Configuration.taintTagFactory.instrumentationEnding(className);

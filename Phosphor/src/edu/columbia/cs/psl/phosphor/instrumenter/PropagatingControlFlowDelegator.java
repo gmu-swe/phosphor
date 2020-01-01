@@ -105,11 +105,11 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     @Override
     public void visitingIncrement(int var) {
         int shadowVar = 0;
-        if(var < lastParameterIndex && TaintUtils.getShadowTaintType(paramTypes[var].getDescriptor()) != null) {
+        if(var < lastParameterIndex && TaintUtils.isShadowedType(paramTypes[var])) {
             // Accessing an arg; remap it
             Type localType = paramTypes[var];
-            if(TaintUtils.getShadowTaintType(localType.getDescriptor()) != null) {
-                shadowVar = var - 1;
+            if(TaintUtils.isShadowedType(localType)) {
+                shadowVar = var + 1;
             }
         } else {
             shadowVar = localVariableManager.varToShadowVar.get(var);
@@ -151,27 +151,12 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
             switch(opcode) {
                 case ISTORE:
                 case FSTORE:
-                    // taint value
-                    delegate.visitInsn(SWAP);
-                    getRevisionExcludedControlTag();
-                    COMBINE_TAGS.delegateVisit(delegate);
-                    delegate.visitInsn(SWAP);
-                    break;
                 case DSTORE:
                 case LSTORE:
-                    // taint value
-                    delegate.visitInsn(DUP2_X1);
-                    delegate.visitInsn(POP2);
+                case ASTORE:
+                    // value taint
                     getRevisionExcludedControlTag();
                     COMBINE_TAGS.delegateVisit(delegate);
-                    delegate.visitInsn(DUP_X2);
-                    delegate.visitInsn(POP);
-                    break;
-                case ASTORE:
-                    // objectref
-                    delegate.visitInsn(DUP);
-                    getRevisionExcludedControlTag();
-                    COMBINE_TAGS_IN_PLACE.delegateVisit(delegate);
                     break;
             }
             excludeNext = false;
@@ -179,27 +164,12 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
             switch(opcode) {
                 case ISTORE:
                 case FSTORE:
-                    // taint value
-                    delegate.visitInsn(SWAP);
-                    delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                    COMBINE_TAGS_CONTROL.delegateVisit(delegate);
-                    delegate.visitInsn(SWAP);
-                    break;
                 case DSTORE:
                 case LSTORE:
-                    // taint value
-                    delegate.visitInsn(DUP2_X1);
-                    delegate.visitInsn(POP2);
+                case ASTORE:
+                    // value taint
                     delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
                     COMBINE_TAGS_CONTROL.delegateVisit(delegate);
-                    delegate.visitInsn(DUP_X2);
-                    delegate.visitInsn(POP);
-                    break;
-                case ASTORE:
-                    // objectref
-                    delegate.visitInsn(DUP);
-                    delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                    COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
                     break;
             }
         }
@@ -212,78 +182,49 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
 
     @Override
     public void visitingPutField(boolean isStatic, Type type, boolean topCarriesTaint) {
-        if(!isStatic) {
-            // Taint the object that owns the field
-            if(!isInstanceInitializer) {
-                if(type.getSize() == 1) {
-                    if(topCarriesTaint) {
-                        // obj, taint, val
-                        delegate.visitInsn(DUP2_X1);
-                        // taint, val, obj, taint, val
-                        delegate.visitInsn(POP2);
-                        // taint, val, obj
-                        delegate.visitInsn(DUP_X2);
-                        // obj, taint, val, obj
-                    } else {
-                        // obj, val
-                        delegate.visitInsn(SWAP);
-                        // val, obj
-                        delegate.visitInsn(DUP_X1);
-                        // obj, val, obj
-                    }
-                    delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                    COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
-                } else {
-                    // obj, taint, val-wide
-                    int tmp = localVariableManager.getTmpLV(type);
-                    delegate.visitVarInsn((type.getSort() == Type.DOUBLE ? DSTORE : LSTORE), tmp);
-                    // obj, taint
-                    delegate.visitInsn(SWAP);
-                    // taint, obj
-                    delegate.visitInsn(DUP_X1);
-                    // obj, taint, obj
-                    delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                    COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
-                    // obj, taint
-                    delegate.visitVarInsn(type.getSort() == Type.DOUBLE ? DLOAD : LLOAD, tmp);
-                    // obj, taint, val-wide
-                    localVariableManager.freeTmpLV(tmp);
-                }
-            }
-        }
-        if(type.getSort() == Type.OBJECT) {
-            // objectref
-            delegate.visitInsn(DUP);
-            //objectref objectref
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
-            // objectref
-        } else if(type.getSort() != Type.ARRAY) {
-            // Primitive type
-            if(type.getSize() == 1) {
-                // taint, val
-                delegate.visitInsn(SWAP);
-                // val, taint
-                delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                COMBINE_TAGS_CONTROL.delegateVisit(delegate);
-                // val, taint
-                delegate.visitInsn(SWAP);
-                // taint, val
-            } else {
-                // taint, val-wide
-                delegate.visitInsn(DUP2_X1);
-                // val-wide, taint, val-wide
-                delegate.visitInsn(POP2);
-                // val-wide, taint
-                delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                COMBINE_TAGS_CONTROL.delegateVisit(delegate);
-                // val-wide, taint
-                delegate.visitInsn(DUP_X2);
-                // taint, val-wide, taint
-                delegate.visitInsn(POP);
-                // taint, val-wide
-            }
-        }
+        //TODO I don't think we should do this any more, since we are getting rid of each object's taint field - JB
+        // if(!isStatic) {
+        //     // Taint the object that owns the field
+        //     if(!isInstanceInitializer) {
+        //         if(type.getSize() == 1) {
+        //             if(topCarriesTaint) {
+        //                 // obj, taint, val
+        //                 delegate.visitInsn(DUP2_X1);
+        //                 // taint, val, obj, taint, val
+        //                 delegate.visitInsn(POP2);
+        //                 // taint, val, obj
+        //                 delegate.visitInsn(DUP_X2);
+        //                 // obj, taint, val, obj
+        //             } else {
+        //                 // obj, val
+        //                 delegate.visitInsn(SWAP);
+        //                 // val, obj
+        //                 delegate.visitInsn(DUP_X1);
+        //                 // obj, val, obj
+        //             }
+        //             delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
+        //             COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
+        //         } else {
+        //             // obj, taint, val-wide
+        //             int tmp = localVariableManager.getTmpLV(type);
+        //             delegate.visitVarInsn((type.getSort() == Type.DOUBLE ? DSTORE : LSTORE), tmp);
+        //             // obj, taint
+        //             delegate.visitInsn(SWAP);
+        //             // taint, obj
+        //             delegate.visitInsn(DUP_X1);
+        //             // obj, taint, obj
+        //             delegate.visitVarInsn(ALOAD, localVariableManager.getIdxOfMasterControlLV());
+        //             COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
+        //             // obj, taint
+        //             delegate.visitVarInsn(type.getSort() == Type.DOUBLE ? DLOAD : LLOAD, tmp);
+        //             // obj, taint, val-wide
+        //             localVariableManager.freeTmpLV(tmp);
+        //         }
+        //     }
+        // }
+        //val taint
+        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+        COMBINE_TAGS_CONTROL.delegateVisit(delegate);
     }
 
     @Override
@@ -304,9 +245,10 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     @Override
     public void visitingExceptionHandlerStart(String type) {
         if(type == null) {
-            delegate.visitInsn(DUP);
+            delegate.visitInsn(DUP2);
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            delegate.visitInsn(SWAP);
+            delegate.visitInsn(DUP_X2);
+            delegate.visitInsn(POP);
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfControlExceptionLV());
             CONTROL_STACK_EXCEPTION_HANDLER_START.delegateVisit(delegate);
             delegate.visitVarInsn(ASTORE, localVariableManager.getIndexOfControlExceptionLV());
@@ -374,25 +316,8 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
     @Override
     public void visitingForceControlStore(Type stackTop) {
         if(!Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
-            if(stackTop.getSort() != Type.OBJECT && stackTop.getSort() != Type.ARRAY) {
-                if(stackTop.getSize() == 1) {
-                    delegate.visitInsn(SWAP);
-                    delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                    COMBINE_TAGS_CONTROL.delegateVisit(delegate);
-                    delegate.visitInsn(SWAP);
-                } else {
-                    delegate.visitInsn(DUP2_X1);
-                    delegate.visitInsn(POP2);
-                    delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                    COMBINE_TAGS_CONTROL.delegateVisit(delegate);
-                    delegate.visitInsn(DUP_X2);
-                    delegate.visitInsn(POP);
-                }
-            } else {
-                delegate.visitInsn(DUP);
-                delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
-            }
+            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+            COMBINE_TAGS_CONTROL.delegateVisit(delegate);
         }
     }
 
@@ -405,17 +330,9 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
             case Opcodes.IFGE:
             case Opcodes.IFGT:
             case Opcodes.IFLE:
-                // T V
-                delegate.visitInsn(SWAP);
-                pushBranchStarts();
-                delegate.visitInsn(POP); // Remove the taint tag
-                executeForcedControlStores();
-                break;
             case Opcodes.IFNULL:
             case Opcodes.IFNONNULL:
-                // objectref
-                delegate.visitInsn(DUP);
-                GET_TAINT_COPY_SIMPLE.delegateVisit(delegate);
+                // V T
                 pushBranchStarts();
                 delegate.visitInsn(POP); // Remove the taint tag
                 executeForcedControlStores();
@@ -426,15 +343,15 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
             case Opcodes.IF_ICMPGE:
             case Opcodes.IF_ICMPGT:
             case Opcodes.IF_ICMPLE:
-                // T V T V
+            case Opcodes.IF_ACMPNE:
+            case Opcodes.IF_ACMPEQ:
+                // v t v t
                 int tmp = localVariableManager.getTmpLV(Type.INT_TYPE);
-                // T V T V
-                delegate.visitInsn(SWAP);
+                // v t v t
                 delegate.visitInsn(TaintUtils.IS_TMP_STORE);
                 delegate.visitVarInsn(Configuration.TAINT_STORE_OPCODE, tmp);
-                // T V V
-                delegate.visitInsn(DUP2_X1);
-                delegate.visitInsn(POP2);
+                // v t v
+                delegate.visitInsn(SWAP);
                 // V V T
                 delegate.visitVarInsn(Configuration.TAINT_LOAD_OPCODE, tmp);
                 localVariableManager.freeTmpLV(tmp);
@@ -445,25 +362,11 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
                 delegate.visitInsn(POP); // Remove the taint tag
                 executeForcedControlStores();
                 break;
-            case Opcodes.IF_ACMPNE:
-            case Opcodes.IF_ACMPEQ:
-                // objectref objectref
-                delegate.visitInsn(DUP2);
-                GET_TAINT_COPY_SIMPLE.delegateVisit(delegate);
-                // objectref objectref objectref T
-                delegate.visitInsn(SWAP);
-                GET_TAINT_COPY_SIMPLE.delegateVisit(delegate);
-                COMBINE_TAGS.delegateVisit(delegate);
-                // objectref objectref T
-                pushBranchStarts();
-                delegate.visitInsn(POP); // Remove the taint tag
-                executeForcedControlStores();
         }
     }
 
     @Override
     public void visitingSwitch() {
-        delegate.visitInsn(SWAP);
         pushBranchStarts();
         delegate.visitInsn(POP); // Remove the taint tag
     }
@@ -543,11 +446,11 @@ public class PropagatingControlFlowDelegator implements ControlFlowDelegator {
                 if(analyzer.locals.size() <= var || analyzer.locals.get(var) == Opcodes.TOP) {
                     continue;
                 }
-                if(var < lastParameterIndex && TaintUtils.getShadowTaintType(paramTypes[var].getDescriptor()) != null) {
+                if(var < lastParameterIndex && TaintUtils.isShadowedType(paramTypes[var])) {
                     // Accessing an arg; remap it
                     Type localType = paramTypes[var];
                     if(localType.getSort() != Type.OBJECT && localType.getSort() != Type.ARRAY) {
-                        shadowVar = var - 1;
+                        shadowVar = var + localType.getSize();
                     } else if(localType.getSort() == Type.ARRAY) {
                         continue;
                     }

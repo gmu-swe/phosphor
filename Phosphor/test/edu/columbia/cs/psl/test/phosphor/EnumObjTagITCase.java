@@ -12,7 +12,8 @@ public class EnumObjTagITCase extends BasePhosphorTest {
 	@Test
 	public void testEnumFlow() throws Exception {
 		String s = "abcd";
-		MultiTainter.taintedObject(s, Taint.withLabel("foo"));
+		// MultiTainter.taintedObject(s, Taint.withLabel("foo"));
+		s = MultiTainter.taintedReference(s, "foo");
 		assertEquals(Taint.withLabel("foo"), MultiTainter.getTaint(s));
 		Dummy x = Dummy.a;
 		Dummy y = Dummy.valueOf(s);

@@ -8,7 +8,6 @@ import org.junit.Test;
 import org.junit.rules.ExternalResource;
 import sun.misc.Unsafe;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 
 import static org.junit.Assert.assertEquals;
@@ -30,30 +29,30 @@ public class UnsafeObjTagITCase extends MaskingBaseTest {
     /* Sets the specified Object's value at the specified offset to be a new value of the specified Class that is tainted
      * if taint is true. */
     public void setValue(Object obj, long offset, boolean taint, Class<?> clazz) {
-        if(boolean.class.equals(clazz)) {
-                unsafe.putBoolean(obj, offset, supplier.getBoolean(taint));
-            } else if(byte.class.equals(clazz)) {
-                unsafe.putByte(obj, offset, supplier.getByte(taint));
-            } else if(char.class.equals(clazz)) {
-                unsafe.putChar(obj, offset, supplier.getChar(taint));
-            } else if(double.class.equals(clazz)) {
-                unsafe.putDouble(obj, offset, supplier.getDouble(taint));
-            } else if(float.class.equals(clazz)) {
-                unsafe.putFloat(obj, offset, supplier.getFloat(taint));
-            } else if(int.class.equals(clazz)) {
-                unsafe.putInt(obj, offset, supplier.getInt(taint));
-            } else if(long.class.equals(clazz)) {
-                unsafe.putLong(obj, offset, supplier.getLong(taint));
-            } else if(short.class.equals(clazz)) {
-                unsafe.putShort(obj, offset, supplier.getShort(taint));
-            } else if(clazz.isArray()) {
-                unsafe.putObject(obj, offset, supplier.getArray(taint, clazz));
-            } else {
-                // Cycle through primitive array classes
-                Class<?> next = primArrayTypes.pop();
-                unsafe.putObject(obj, offset, supplier.getArray(taint, next));
-                primArrayTypes.add(next);
-            }
+        if (boolean.class.equals(clazz)) {
+            unsafe.putBoolean(obj, offset, supplier.getBoolean(taint));
+        } else if (byte.class.equals(clazz)) {
+            unsafe.putByte(obj, offset, supplier.getByte(taint));
+        } else if (char.class.equals(clazz)) {
+            unsafe.putChar(obj, offset, supplier.getChar(taint));
+        } else if (double.class.equals(clazz)) {
+            unsafe.putDouble(obj, offset, supplier.getDouble(taint));
+        } else if (float.class.equals(clazz)) {
+            unsafe.putFloat(obj, offset, supplier.getFloat(taint));
+        } else if (int.class.equals(clazz)) {
+            unsafe.putInt(obj, offset, supplier.getInt(taint));
+        } else if (long.class.equals(clazz)) {
+            unsafe.putLong(obj, offset, supplier.getLong(taint));
+        } else if (short.class.equals(clazz)) {
+            unsafe.putShort(obj, offset, supplier.getShort(taint));
+        } else if (clazz.isArray()) {
+            unsafe.putObject(obj, offset, supplier.getArray(taint, clazz));
+        } else {
+            // Cycle through primitive array classes
+            Class<?> next = primArrayTypes.pop();
+            unsafe.putObject(obj, offset, supplier.getArray(taint, next));
+            primArrayTypes.add(next);
+        }
     }
 
     /* Uses Unsafe to set the specified object's fields. */

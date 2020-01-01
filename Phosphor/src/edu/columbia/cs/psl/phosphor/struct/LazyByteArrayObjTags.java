@@ -31,11 +31,8 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
         this.lengthTaint = lenTaint;
     }
 
-    public static LazyByteArrayObjTags factory(byte[] array) {
-        if (array == null) {
-            return null;
-        }
-        return new LazyByteArrayObjTags(array);
+    public void set(Taint referenceTaint, int idx, Taint idxTag, byte val, Taint tag) {
+        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, null));
     }
 
     @Override
@@ -43,49 +40,35 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
         return new LazyByteArrayObjTags(val.clone(), (taints != null) ? taints.clone() : null);
     }
 
-    public void set(Taint idxTag, int idx, byte val) {
-        set(idxTag, idx, null, val);
-    }
-
-    public void set(Taint idxTag, int idx, Taint tag, byte val) {
-        if (Configuration.derivedTaintListener != null) {
-            set(idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, null), val);
-        } else if (idxTag == null) {
-            set(idx, tag, val);
-        } else if (tag == null) {
-            set(idx, idxTag, val);
-        } else {
-            set(idx, tag.union(idxTag), val);
-        }
-    }
-
-    public void set(int idx, Taint tag, byte val) {
+    public void set(int idx, byte val, Taint tag) {
         this.val[idx] = val;
-        if (taints == null && tag != null && !tag.isEmpty()) {
+        if(taints == null && tag != null && !tag.isEmpty()) {
             taints = new Taint[this.val.length];
         }
-        if (taints != null) {
+        if(taints != null) {
             taints[idx] = tag;
         }
     }
 
-    public void set(Taint idxTag, int idx, Taint tag, byte val, ControlTaintTagStack ctrl) {
+    public void set(Taint referenceTaint, int idx, Taint idxTag, byte val, Taint tag, ControlTaintTagStack ctrl) {
         checkAIOOB(idxTag, idx, ctrl);
-        set(idx, Configuration.derivedTaintListener.arraySet(this, idxTag, idx, tag, val, ctrl), val, ctrl);
+        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, ctrl));
     }
 
-    public void set(int idx, Taint tag, byte val, ControlTaintTagStack ctrl) {
-        checkAIOOB(null, idx, ctrl);
-        set(idx, Taint.combineTags(tag, ctrl), val);
-    }
-
-    public TaintedByteWithObjTag get(Taint idxTaint, int idx, TaintedByteWithObjTag ret) {
+    public TaintedByteWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedByteWithObjTag ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
     }
 
-    public TaintedByteWithObjTag get(Taint idxTaint, int idx, TaintedByteWithObjTag ret, ControlTaintTagStack ctrl) {
+    public TaintedByteWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedByteWithObjTag ret, ControlTaintTagStack ctrl) {
         checkAIOOB(idxTaint, idx, ctrl);
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
+    }
+
+    public static LazyByteArrayObjTags factory(Taint referenceTaint, byte[] array) {
+        if(array == null) {
+            return null;
+        }
+        return new LazyByteArrayObjTags(referenceTaint, array);
     }
 
     public TaintedByteWithObjTag get(int idx, TaintedByteWithObjTag ret) {
@@ -132,7 +115,6 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
                 stream.writeByte(el);
             }
         }
-        stream.writeObject(taints);
     }
 
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
@@ -145,7 +127,6 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
                 val[i] = stream.readByte();
             }
         }
-        taints = (Taint[]) stream.readObject();
     }
 }
 

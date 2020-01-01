@@ -56,7 +56,7 @@ public class DebugPrinter {
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-                mv = new PrimitiveArrayAnalyzer(cr.getClassName(), access, name, desc, signature, exceptions, mv, false);
+                mv = new PrimitiveArrayAnalyzer(cr.getClassName(), access, name, desc, signature, exceptions, mv, false, false);
                 NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(cr.getClassName(), access, name, desc, mv);
                 ((PrimitiveArrayAnalyzer) mv).setAnalyzer(an);
                 mv = an;

@@ -1,8 +1,10 @@
 package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
@@ -15,26 +17,36 @@ public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
     protected static int isBusyTransforming = 0;
 
     @SuppressWarnings("unused")
-    public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined,
-                                                          ProtectionDomain protectionDomain, LazyByteArrayObjTags classTaint) throws IllegalClassFormatException {
+    public TaintedReferenceWithObjTag transform$$PHOSPHORTAGGED(Taint refTaint, ClassLoader loader, Taint loaderTaint, String className, Taint classNameTaint, Class<?> classBeingRedefined,
+                                                                Taint classBeingRedefinedTaint, ProtectionDomain protectionDomain,
+                                                                Taint protectionDomainTaint, LazyByteArrayObjTags clazz,
+                                                                Taint clazzTaint,
+                                                                TaintedReferenceWithObjTag ret) throws IllegalClassFormatException {
         if(!INITED) {
             Configuration.IMPLICIT_TRACKING = false;
             Configuration.init();
             INITED = true;
         }
-        return LazyByteArrayObjTags.factory(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classTaint.val));
+        ret.taint = Taint.emptyTaint();
+        ret.val = LazyByteArrayObjTags.factory(null, signalAndTransform(loader, className, classBeingRedefined, protectionDomain, clazz.val));
+        return ret;
     }
 
     @SuppressWarnings("unused")
-    public LazyByteArrayObjTags transform$$PHOSPHORTAGGED(ClassLoader loader, String className, Class<?> classBeingRedefined,
-                                                          ProtectionDomain protectionDomain, LazyByteArrayObjTags classTaint,
-                                                          ControlTaintTagStack ctrl) throws IllegalClassFormatException {
+    public TaintedReferenceWithObjTag transform$$PHOSPHORTAGGED(Taint refTaint, ClassLoader loader, Taint loaderTaint, String className, Taint classNameTaint, Class<?> classBeingRedefined,
+                                                                Taint classBeingRedefinedTaint, ProtectionDomain protectionDomain,
+                                                                Taint protectionDomainTaint, LazyByteArrayObjTags clazz,
+                                                                Taint clazzTaint,
+                                                                ControlTaintTagStack ctrl,
+                                                                TaintedReferenceWithObjTag ret) throws IllegalClassFormatException {
         if(!INITED) {
             Configuration.IMPLICIT_TRACKING = true;
             Configuration.init();
             INITED = true;
         }
-        return LazyByteArrayObjTags.factory(signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classTaint.val));
+        ret.taint = Taint.emptyTaint();
+        ret.val = LazyByteArrayObjTags.factory(null, signalAndTransform(loader, className, classBeingRedefined, protectionDomain, clazz.val));
+        return ret;
     }
 
     private byte[] signalAndTransform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain,

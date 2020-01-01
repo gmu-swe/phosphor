@@ -24,20 +24,23 @@ public class ParameterAnnotationObjTagITCase {
 
 	@Test
 	public void testParameterAnnotationsAreReindexed() throws Exception{
-		Method meth = AnnotationHolder.class.getDeclaredMethod("primitiveMethod$$PHOSPHORTAGGED", String.class, Taint.class, Integer.TYPE, Taint.class, Integer.TYPE, LazyIntArrayObjTags.class);
+		Method meth = AnnotationHolder.class.getDeclaredMethod("primitiveMethod$$PHOSPHORTAGGED", Taint.class, String.class, Taint.class, Integer.TYPE, Taint.class, Integer.TYPE, Taint.class, LazyIntArrayObjTags.class, Taint.class);
 		Annotation[][] annotations = meth.getParameterAnnotations();
 
-		Assert.assertEquals(6, annotations.length);
+		Assert.assertEquals(9, annotations.length);
 		Assert.assertEquals(0, annotations[0].length);
 		Assert.assertEquals(0, annotations[1].length);
-		Assert.assertEquals(1, annotations[2].length);
-		Annotated param1 = (Annotated) annotations[2][0];
+		Assert.assertEquals(0, annotations[2].length);
+		Assert.assertEquals(1, annotations[3].length);
+		Annotated param1 = (Annotated) annotations[3][0];
 		Assert.assertEquals("Param1",param1.value());
-		Assert.assertEquals(0, annotations[3].length);
 		Assert.assertEquals(0, annotations[4].length);
-		Assert.assertEquals(1, annotations[5].length);
-		Annotated param3 = (Annotated) annotations[5][0];
+		Assert.assertEquals(0, annotations[5].length);
+		Assert.assertEquals(0, annotations[6].length);
+		Assert.assertEquals(1, annotations[7].length);
+		Annotated param3 = (Annotated) annotations[7][0];
 		Assert.assertEquals("param3",param3.value());
+		Assert.assertEquals(0, annotations[8].length);
 
 	}
 

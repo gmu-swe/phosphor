@@ -1,13 +1,11 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.NEW_EMPTY_TAINT;
-import static org.objectweb.asm.Opcodes.POP;
-import static org.objectweb.asm.Opcodes.SWAP;
+import static org.objectweb.asm.Opcodes.*;
 
 /**
  * Specifies that control flow should not propagate.
@@ -111,16 +109,37 @@ public class NoFlowControlFlowDelegator implements ControlFlowDelegator {
 
     @Override
     public void visitingJump(int opcode) {
+        switch(opcode) {
+            case IFNULL:
+            case IFNONNULL:
+            case IFEQ:
+            case IFNE:
+            case IFGE:
+            case IFGT:
+            case IFLE:
+            case IFLT:
+                delegate.visitInsn(POP);
+                break;
+            case IF_ICMPEQ:
+            case IF_ICMPLE:
+            case IF_ICMPNE:
+            case IF_ICMPLT:
+            case IF_ICMPGT:
+            case IF_ICMPGE:
+            case IF_ACMPEQ:
+            case IF_ACMPNE:
+                delegate.visitInsn(POP);
+                delegate.visitInsn(SWAP);
+                delegate.visitInsn(POP);
+                break;
+        }
 
     }
 
     @Override
     public void visitingSwitch() {
-        if(Configuration.IMPLICIT_TRACKING) {
-            // Remove the taint tag
-            delegate.visitInsn(SWAP);
-            delegate.visitInsn(POP);
-        }
+        // Remove the taint tag
+        delegate.visitInsn(POP);
     }
 
     @Override
