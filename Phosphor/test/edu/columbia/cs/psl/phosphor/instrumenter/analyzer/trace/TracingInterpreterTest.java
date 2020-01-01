@@ -7,7 +7,6 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.Arrays;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -90,14 +89,13 @@ public class TracingInterpreterTest {
         assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
     }
 
-    @Ignore
     @Test
     public void testMultiArraySelfComputation() throws Exception {
         MethodNode mn = getMethodNode("multiArraySelfComputation");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
-                new DependentLoopLevel(new int[]{0})
+                new VariantLoopLevel(1)
         );
         assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
     }
@@ -113,14 +111,13 @@ public class TracingInterpreterTest {
         assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
     }
 
-    @Ignore
     @Test
     public void testArrayFieldSelfComputation() throws Exception {
         MethodNode mn = getMethodNode("arrayFieldSelfComputation");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
-                new DependentLoopLevel(new int[]{0})
+                new VariantLoopLevel(1)
         );
         assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
     }
@@ -247,6 +244,29 @@ public class TracingInterpreterTest {
                 new VariantLoopLevel(0),
                 CONSTANT_LOOP_LEVEL,
                 new VariantLoopLevel(1)
+        );
+        assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
+    }
+
+    @Test
+    public void testArrayElementRedefined() throws Exception {
+        MethodNode mn = getMethodNode("arrayElementRedefined");
+        Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
+        List<LoopLevel> expected = Arrays.asList(
+                new VariantLoopLevel(0),
+                new DependentLoopLevel(new int[]{0}),
+                new VariantLoopLevel(0)
+        );
+        assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
+    }
+
+    @Test
+    public void testMethodCallBetweenUses() throws Exception {
+        MethodNode mn = getMethodNode("methodCallBetweenUses");
+        Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
+        List<LoopLevel> expected = Arrays.asList(
+                new VariantLoopLevel(0),
+                new VariantLoopLevel(0)
         );
         assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
     }

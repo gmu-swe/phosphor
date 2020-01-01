@@ -6,6 +6,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.ConstantLoop
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.DependentLoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.VariantLoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BasicBlock;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace.MergePointTracedValue.MergePointValueCache;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.tree.analysis.Analyzer;
@@ -29,18 +30,65 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
     private final MergePointValueCache mergePointCache = new MergePointValueCache();
     private final InsnList instructions;
     private final Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap;
+    private final Map<AbstractInsnNode, BasicBlock> blockMap;
     private final Frame<TracedValue>[] frames;
     private int paramNumber = 0;
     private int currentInsnIndex = -1;
     private int varIndex = -1;
 
     public TracingInterpreter(String owner, MethodNode methodNode, Map<AbstractInsnNode,
-            Set<NaturalLoop<BasicBlock>>> containingLoopMap) throws AnalyzerException {
+            Set<NaturalLoop<BasicBlock>>> containingLoopMap, FlowGraph<BasicBlock> controlFlowGraph) throws AnalyzerException {
         super(Configuration.ASM_VERSION);
         this.instructions = methodNode.instructions;
         this.containingLoopMap = containingLoopMap;
+        this.blockMap = createBlockMap(controlFlowGraph);
         Analyzer<TracedValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(this);
         this.frames = analyzer.analyze(owner, methodNode);
+    }
+
+    /**
+     * The "sources" of an instructions are the values used from local variables and the runtime stack by the
+     * instruction. For operations that store a value to a local variable, field, or array any source which
+     * is the current definition of the memory location being written to by the store operation is excluded from the
+     * instruction's sources. Specifically, for a ISTORE, LSTORE, FSTORE, DSTORE, ASTORE, IASTORE, LASTORE, FASTORE,
+     * DASTORE, AASTORE, BASTORE, CASTORE, SASTORE, PUTSTATIC, or PUTFIELD  instruction that stores a value v into a
+     * memory location x where v can be expressed as an arithmetic or logical expression e, any term in e that is
+     * loaded from memory location x is excluded.
+     *
+     * @param insn   the instruction whose sources are to be calculated
+     * @param effect the effect associated with the specified instruction
+     * @return the set of source values that should be considered when calculating the loop level of the specified
+     * instructions
+     */
+    private Set<TracedValue> getSources(AbstractInsnNode insn, InstructionEffect effect) {
+        if(isLocalVariableStoreInsn(insn)) {
+            Frame<TracedValue> currentFrame = frames[instructions.indexOf(insn)];
+            int local = ((VarInsnNode) insn).var;
+            TracedValue currentDefinition = currentFrame.getLocal(local);
+            Set<TracedValue> sources = new HashSet<>();
+            DefinitionChecker checker = new LocalVariableDefinitionChecker(currentDefinition);
+            gatherSources(checker, effect.sources[0], sources, new HashSet<>());
+            return sources;
+        } else if(isFieldStoreInsn(insn)) {
+            TracedValue receiver = insn.getOpcode() == PUTSTATIC ? null : effectMap.get(insn).sources[0];
+            DefinitionChecker checker = new FieldDefinitionChecker((FieldInsnNode) insn, receiver, this);
+            Set<TracedValue> sources = new HashSet<>();
+            if(insn.getOpcode() == PUTSTATIC) {
+                gatherSources(checker, effect.sources[0], sources, new HashSet<>());
+            } else {
+                sources.add(effect.sources[0]); // Add the receiver as a source
+                gatherSources(checker, effect.sources[1], sources, new HashSet<>(sources));
+            }
+            return sources;
+        } else if(isArrayStoreInsn(insn)) {
+            DefinitionChecker checker = new ArrayDefinitionChecker((InsnNode) insn, this);
+            Set<TracedValue> sources = new HashSet<>();
+            sources.add(effect.sources[0]); // Add the array reference as a source
+            sources.add(effect.sources[1]); // Add the index as a source
+            gatherSources(checker, effect.sources[2], sources, new HashSet<>(sources));
+            return sources;
+        }
+        return new HashSet<>(Arrays.asList(effect.sources));
     }
 
     @Override
@@ -616,48 +664,42 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
         return loopLevelMap;
     }
 
-    /**
-     * The "sources" of an instructions are the values used from local variables and the runtime stack by the
-     * instruction. For operations that store a value to a local variable, field, or array any source which
-     * is the current definition of the memory location being written to by the store operation is excluded from the
-     * instruction's sources. Specifically, for a ISTORE, LSTORE, FSTORE, DSTORE, ASTORE, IASTORE, LASTORE, FASTORE,
-     * DASTORE, AASTORE, BASTORE, CASTORE, SASTORE, PUTSTATIC, or PUTFIELD  instruction that stores a value v into a
-     * memory location x where v can be expressed as an arithmetic or logical expression e, any term in e that is
-     * loaded from memory location x is excluded.
-     *
-     * @param insn   the instruction whose sources are to be calculated
-     * @param effect the effect associated with the specified instruction
-     * @return the set of source values that should be considered when calculating the loop level of the specified
-     * instructions
-     */
-    private Set<TracedValue> getSources(AbstractInsnNode insn, InstructionEffect effect) {
-        if(isLocalVariableStoreInsn(insn)) {
-            Frame<TracedValue> currentFrame = frames[instructions.indexOf(insn)];
-            int local = ((VarInsnNode) insn).var;
-            TracedValue currentDefinition = currentFrame.getLocal(local);
-            Set<TracedValue> sources = new HashSet<>();
-            DefinitionChecker checker = new LocalVariableDefinitionChecker(effectMap, currentDefinition);
-            gatherSources(checker, effect.sources[0], sources, new HashSet<>());
-            return sources;
-        } else if(isFieldStoreInsn(insn)) {
-            DefinitionChecker checker = new FieldDefinitionChecker(effectMap, (FieldInsnNode) insn);
-            Set<TracedValue> sources = new HashSet<>();
-            if(insn.getOpcode() == PUTSTATIC) {
-                gatherSources(checker, effect.sources[0], sources, new HashSet<>());
-            } else {
-                sources.add(effect.sources[0]); // Add the receiver as a source
-                gatherSources(checker, effect.sources[1], sources, new HashSet<>(sources));
-            }
-            return sources;
-        } else if(isArrayStoreInsn(insn)) {
-            DefinitionChecker checker = new ArrayDefinitionChecker(effectMap, (InsnNode) insn);
-            Set<TracedValue> sources = new HashSet<>();
-            sources.add(effect.sources[0]); // Add the array reference as a source
-            sources.add(effect.sources[1]); // Add the index as a source
-            gatherSources(checker, effect.sources[2], sources, new HashSet<>(sources));
-            return sources;
+    private boolean isSameValue(TracedValue value1, TracedValue value2) {
+        if(value1.equals(value2)) {
+            return true;
+        } else if(value1 instanceof ConstantTracedValue && value2 instanceof ConstantTracedValue) {
+            return ((ConstantTracedValue) value1).canMerge((ConstantTracedValue) value2);
         }
-        return new HashSet<>(Arrays.asList(effect.sources));
+        AbstractInsnNode insn1 = value1.getInsnSource();
+        AbstractInsnNode insn2 = value2.getInsnSource();
+        if(insn1 != null && insn2 != null
+                && insn1.getOpcode() == insn2.getOpcode()
+                && effectMap.containsKey(insn1)
+                && effectMap.containsKey(insn2)) {
+            InstructionEffect effect1 = effectMap.get(insn1);
+            InstructionEffect effect2 = effectMap.get(insn2);
+            if(isArithmeticOrLogicalInsn(insn1)) {
+                // Note: does not take into account commutative operations
+                for(int i = 0; i < effect1.sources.length; i++) {
+                    if(!isSameValue(effect1.sources[i], effect2.sources[i])) {
+                        return false;
+                    }
+                }
+                return true;
+            } else if(insn1.getOpcode() == ARRAYLENGTH && interveningRedefinitionImpossible(insn1, insn2)) {
+                return isSameValue(effect1.sources[0], effect2.sources[0]);
+            } else if(isArrayLoadInsn(insn1) && interveningRedefinitionImpossible(insn1, insn2)) {
+                return isSameValue(effect1.sources[0], effect2.sources[0])
+                        && isSameValue(effect1.sources[1], effect2.sources[1]);
+            } else if(isFieldLoadInsn(insn1) && interveningRedefinitionImpossible(insn1, insn2)) {
+                FieldInsnNode fieldInsn1 = (FieldInsnNode) insn1;
+                FieldInsnNode fieldInsn2 = (FieldInsnNode) insn2;
+                return fieldInsn1.owner.equals(fieldInsn2.owner) && fieldInsn1.name.equals(fieldInsn2.name)
+                        && (insn1.getOpcode() == GETSTATIC || isSameValue(effect1.sources[0], effect2.sources[0]));
+
+            }
+        }
+        return false;
     }
 
     private void gatherSources(DefinitionChecker checker, TracedValue current, Set<TracedValue> sources, Set<TracedValue> visited) {
@@ -808,54 +850,48 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
         return insn.getOpcode() >= IADD && insn.getOpcode() <= DCMPG;
     }
 
-    private static boolean isSameValue(TracedValue value1, TracedValue value2, Map<AbstractInsnNode, InstructionEffect> effectMap) {
-        if(value1.equals(value2)) {
-            return true;
-        } else if(value1 instanceof ConstantTracedValue && value2 instanceof ConstantTracedValue) {
-            return ((ConstantTracedValue) value1).canMerge((ConstantTracedValue) value2);
-        }
-        AbstractInsnNode insn1 = value1.getInsnSource();
-        AbstractInsnNode insn2 = value2.getInsnSource();
-        if(insn1 != null && insn2 != null
-                && insn1.getOpcode() == insn2.getOpcode()
-                && effectMap.containsKey(insn1)
-                && effectMap.containsKey(insn2)) {
-            InstructionEffect effect1 = effectMap.get(insn1);
-            InstructionEffect effect2 = effectMap.get(insn2);
-            if(isArithmeticOrLogicalInsn(insn1)) {
-                // Note: does not take into account commutative operations
-                for(int i = 0; i < effect1.sources.length; i++) {
-                    if(!isSameValue(effect1.sources[i], effect2.sources[i], effectMap)) {
-                        return false;
-                    }
-                }
-                return true;
-            } else if(insn1.getOpcode() == ARRAYLENGTH) {
-                // TODO: check for method calls and redefinitions along all paths between accesses
-                return isSameValue(effect1.sources[0], effect2.sources[0], effectMap);
-            } else if(isArrayLoadInsn(insn1)) {
-                // TODO: check for method calls and redefinitions along all paths between accesses
-                return isSameValue(effect1.sources[0], effect2.sources[0], effectMap)
-                        && isSameValue(effect1.sources[1], effect2.sources[1], effectMap);
-            } else if(isFieldLoadInsn(insn1)) {
-                // TODO: check for method calls and redefinitions along all paths between accesses
-                FieldInsnNode fieldInsn1 = (FieldInsnNode) insn1;
-                FieldInsnNode fieldInsn2 = (FieldInsnNode) insn2;
-                return fieldInsn1.owner.equals(fieldInsn2.owner) && fieldInsn1.name.equals(fieldInsn2.name)
-                        && (insn1.getOpcode() == GETSTATIC || isSameValue(effect1.sources[0], effect2.sources[0], effectMap));
-
+    /**
+     * @param insn1 the first instruction to be checked
+     * @param insn2 the second instruction to be checked
+     * @return true if the specified instructions are in the same basic block and there are no instructions between
+     * the two specified instructions which call a method, write a field value, or write an array value
+     */
+    private boolean interveningRedefinitionImpossible(AbstractInsnNode insn1, AbstractInsnNode insn2) {
+        BasicBlock basicBlock = blockMap.get(insn1);
+        if(basicBlock == blockMap.get(insn2)) {
+            AbstractInsnNode cur = basicBlock.getFirstInsn();
+            while(cur != insn1 && cur != insn2) {
+                cur = cur.getNext();
             }
+            AbstractInsnNode target = cur == insn1 ? insn2 : insn1;
+            cur = cur.getNext();
+            while(cur != target) {
+                if(cur instanceof MethodInsnNode || cur instanceof InvokeDynamicInsnNode || isArrayStoreInsn(cur) || isFieldStoreInsn(cur)) {
+                    return false;
+                }
+                cur = cur.getNext();
+            }
+            return true;
         }
         return false;
     }
 
-    private abstract static class DefinitionChecker {
-        final Map<AbstractInsnNode, InstructionEffect> effectMap;
-
-        DefinitionChecker(Map<AbstractInsnNode, InstructionEffect> effectMap) {
-            this.effectMap = effectMap;
+    private static Map<AbstractInsnNode, BasicBlock> createBlockMap(FlowGraph<BasicBlock> controlFlowGraph) {
+        Map<AbstractInsnNode, BasicBlock> blockMap = new HashMap<>();
+        for(BasicBlock basicBlock : controlFlowGraph.getVertices()) {
+            AbstractInsnNode insn = basicBlock.getFirstInsn();
+            while(insn != null) {
+                blockMap.put(insn, basicBlock);
+                if(insn == basicBlock.getLastInsn()) {
+                    break;
+                }
+                insn = insn.getNext();
+            }
         }
+        return blockMap;
+    }
 
+    private abstract static class DefinitionChecker {
         abstract boolean usesCurrentDefinition(TracedValue tracedValue);
     }
 
@@ -863,8 +899,7 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
 
         private final TracedValue currentDefinition;
 
-        LocalVariableDefinitionChecker(Map<AbstractInsnNode, InstructionEffect> effectMap, TracedValue currentDefinition) {
-            super(effectMap);
+        LocalVariableDefinitionChecker(TracedValue currentDefinition) {
             this.currentDefinition = currentDefinition;
         }
 
@@ -878,28 +913,27 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
 
         private final FieldInsnNode fieldInsn;
         private final TracedValue receiver;
+        private final TracingInterpreter interpreter;
 
-        FieldDefinitionChecker(Map<AbstractInsnNode, InstructionEffect> effectMap, FieldInsnNode fieldInsn) {
-            super(effectMap);
+
+        FieldDefinitionChecker(FieldInsnNode fieldInsn, TracedValue receiver, TracingInterpreter interpreter) {
             this.fieldInsn = fieldInsn;
-            if(fieldInsn.getOpcode() == PUTSTATIC) {
-                receiver = null;
-            } else {
-                receiver = effectMap.get(fieldInsn).sources[0];
-            }
+            this.receiver = receiver;
+            this.interpreter = interpreter;
         }
 
         @Override
         boolean usesCurrentDefinition(TracedValue tracedValue) {
             AbstractInsnNode insn = tracedValue.getInsnSource();
-            InstructionEffect effect = effectMap.get(insn);
+            InstructionEffect effect = interpreter.effectMap.get(insn);
             if(effect != null && insn instanceof FieldInsnNode && ((FieldInsnNode) insn).name.equals(fieldInsn.name)
-                    && ((FieldInsnNode) insn).owner.equals(fieldInsn.owner)) {
+                    && ((FieldInsnNode) insn).owner.equals(fieldInsn.owner)
+                    && interpreter.interveningRedefinitionImpossible(fieldInsn, insn)) {
                 if(fieldInsn.getOpcode() == PUTSTATIC && insn.getOpcode() == GETSTATIC) {
                     return true;
                 } else if(fieldInsn.getOpcode() == PUTFIELD && insn.getOpcode() == GETFIELD) {
                     TracedValue otherReceiver = effect.sources[0];
-                    return isSameValue(receiver, otherReceiver, effectMap);
+                    return interpreter.isSameValue(receiver, otherReceiver);
                 }
             }
             return false;
@@ -910,22 +944,26 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
 
         private final TracedValue arrayReference;
         private final TracedValue index;
+        private final TracingInterpreter interpreter;
+        private final InsnNode insn;
 
-        ArrayDefinitionChecker(Map<AbstractInsnNode, InstructionEffect> effectMap, InsnNode insn) {
-            super(effectMap);
-            InstructionEffect effect = effectMap.get(insn);
+        ArrayDefinitionChecker(InsnNode insn, TracingInterpreter interpreter) {
+            InstructionEffect effect = interpreter.effectMap.get(insn);
             this.arrayReference = effect.sources[0];
             this.index = effect.sources[1];
+            this.interpreter = interpreter;
+            this.insn = insn;
         }
 
         @Override
         boolean usesCurrentDefinition(TracedValue tracedValue) {
-            AbstractInsnNode insn = tracedValue.getInsnSource();
-            if(insn != null && isArrayLoadInsn(insn) && effectMap.containsKey(insn)) {
-                InstructionEffect effect = effectMap.get(insn);
+            AbstractInsnNode insn2 = tracedValue.getInsnSource();
+            if(insn2 != null && isArrayLoadInsn(insn2) && interpreter.effectMap.containsKey(insn2)
+                    && interpreter.interveningRedefinitionImpossible(insn, insn2)) {
+                InstructionEffect effect = interpreter.effectMap.get(insn2);
                 TracedValue otherArrayReference = effect.sources[0];
                 TracedValue otherIndex = effect.sources[1];
-                return isSameValue(arrayReference, otherArrayReference, effectMap) && isSameValue(index, otherIndex, effectMap);
+                return interpreter.isSameValue(arrayReference, otherArrayReference) && interpreter.isSameValue(index, otherIndex);
             }
             return false;
         }

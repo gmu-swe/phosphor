@@ -72,7 +72,7 @@ public class BindingControlFlowAnalyzer {
         BindingControlFlowGraphCreator creator = new BindingControlFlowGraphCreator();
         FlowGraph<BasicBlock> controlFlowGraph = creator.createControlFlowGraph(methodNode);
         Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap = getContainingLoops(instructions, controlFlowGraph);
-        TracingInterpreter interpreter = new TracingInterpreter(owner, methodNode, containingLoopMap);
+        TracingInterpreter interpreter = new TracingInterpreter(owner, methodNode, containingLoopMap, controlFlowGraph);
         Set<AbstractInsnNode> exclusionCandidates = interpreter.identifyRevisionExcludedInstructions();
         Collection<BindingBranchEdge> edges = filterEdges(creator.bindingBranchEdges, controlFlowGraph);
         Map<BasicBlock, Set<BindingBranchEdge>> groupedStartBlocks = groupEdgesBySource(edges);
