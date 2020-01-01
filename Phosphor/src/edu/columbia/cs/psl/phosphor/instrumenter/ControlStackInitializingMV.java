@@ -1,12 +1,13 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ExitLoopLevelInfo;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwareConstancyInfo;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.ConstantLoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.DependentLoopLevel;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.VariantLoopLevel;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace.LoopAwareConstancyInfo;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
 import org.objectweb.asm.Handle;
@@ -76,24 +77,31 @@ public class ControlStackInitializingMV extends MethodVisitor {
             super.visitInsn(Opcodes.ACONST_NULL);
             super.visitVarInsn(Opcodes.ASTORE, localVariableManager.createBranchesLV());
             // Push a frame for the method invocation
-            super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            CONTROL_STACK_PUSH_FRAME.delegateVisit(mv);
         }
+        super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+        CONTROL_STACK_PUSH_FRAME.delegateVisit(mv);
     }
 
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-        Type[] args = Type.getArgumentTypes(descriptor);
-        if(args.length >= 2 && args[args.length - 2].getInternalName().equals(CONTROL_STACK_INTERNAL_NAME)) {
-            if(nextMethodFrameInfo != null) {
-                setFrameInfo();
-            }
-            if("<init>".equals(name)) {
-                // Stack = ControlTaintTagStack TaintSentinel
+        boolean copyStack = "<init>".equals(name);
+        int controlStackDistance = methodNotIgnoredAndPassedControlStack(owner, name, descriptor);
+        if(copyStack) {
+            if(controlStackDistance == 1) {
                 super.visitInsn(SWAP);
                 CONTROL_STACK_COPY_TOP.delegateVisit(mv);
                 super.visitInsn(SWAP);
+            } else if(controlStackDistance == 2) {
+                // ControlTaintTagStack Prealloc TaintSentinel
+                super.visitInsn(POP); // Pop the null TaintSentinel
+                super.visitInsn(SWAP);
+                CONTROL_STACK_COPY_TOP.delegateVisit(mv);
+                super.visitInsn(SWAP);
+                super.visitInsn(ACONST_NULL); // push a null back for the TaintSentinel
             }
+        }
+        if(nextMethodFrameInfo != null) {
+            setFrameInfo(controlStackDistance);
         }
         nextMethodFrameInfo = null;
         super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
@@ -101,17 +109,54 @@ public class ControlStackInitializingMV extends MethodVisitor {
 
     @Override
     public void visitInvokeDynamicInsn(String name, String descriptor, Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
-        Type[] args = Type.getArgumentTypes(descriptor);
-        if(nextMethodFrameInfo != null && args.length >= 2 && args[args.length - 2].getInternalName().equals(CONTROL_STACK_INTERNAL_NAME)) {
-            setFrameInfo();
+        String owner = bootstrapMethodHandle.getOwner();
+        if(nextMethodFrameInfo != null) {
+            int controlStackDistance = methodNotIgnoredAndPassedControlStack(owner, name, descriptor);
+            setFrameInfo(controlStackDistance);
         }
         nextMethodFrameInfo = null;
         super.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
     }
 
+    /**
+     * @return distance of the control stack from the top or -1 if the specified method is ignored or is not passed
+     * a control stack
+     */
+    private int methodNotIgnoredAndPassedControlStack(String owner, String name, String descriptor) {
+        if(!Instrumenter.isIgnoredClass(owner) && !Instrumenter.isIgnoredMethod(owner, name, descriptor)) {
+            Type[] args = Type.getArgumentTypes(descriptor);
+            for(int dist = 0; dist < args.length; dist++) {
+                Type arg = args[args.length - 1 - dist];
+                if(arg.getInternalName().equals((CONTROL_STACK_INTERNAL_NAME))) {
+                    return dist;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private void setFrameInfo(int controlStackDistance) {
+        if(controlStackDistance == 0) {
+            setFrameInfo();
+        } else if(controlStackDistance == 1) {
+            super.visitInsn(SWAP);
+            setFrameInfo();
+            super.visitInsn(SWAP);
+        } else if(controlStackDistance == 2) {
+            // stack ref1 ref2
+            super.visitInsn(DUP2_X1);
+            super.visitInsn(POP2);
+            setFrameInfo();
+            // ref1 ref2 stack
+            super.visitInsn(DUP_X2);
+            super.visitInsn(POP);
+        }
+    }
+
+    // stack_pre: ControlTaintTagStack
+    // stack_post: ControlTaintTagStack
     private void setFrameInfo() {
         // Start the frame and set the argument levels
-        super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
         PropagatingControlFlowDelegator.push(mv, nextMethodFrameInfo.getInvocationLevel());
         PropagatingControlFlowDelegator.push(mv, nextMethodFrameInfo.getNumArguments());
         CONTROL_STACK_START_FRAME.delegateVisit(mv);
@@ -126,7 +171,7 @@ public class ControlStackInitializingMV extends MethodVisitor {
                 PropagatingControlFlowDelegator.push(mv, dependencies.length);
                 super.visitIntInsn(NEWARRAY, T_INT);
                 for(int i = 0; i < dependencies.length; i++) {
-                    super.visitInsn(DUP); // Duplicate the array
+                    super.visitInsn(DUP); // Duplicate the array reference
                     PropagatingControlFlowDelegator.push(mv, i); // Push the index
                     PropagatingControlFlowDelegator.push(mv, dependencies[i]); // Push the dependency value
                     super.visitInsn(IASTORE);
@@ -137,7 +182,6 @@ public class ControlStackInitializingMV extends MethodVisitor {
                 CONTROL_STACK_SET_ARG_VARIANT.delegateVisit(mv);
             }
         }
-        super.visitInsn(POP); // Pop the ControlTaintTagStack off the runtime stack
     }
 
     private void exitLoopLevel(ExitLoopLevelInfo insn) {

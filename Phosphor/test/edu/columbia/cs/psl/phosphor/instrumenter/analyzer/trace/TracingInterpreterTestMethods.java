@@ -132,7 +132,7 @@ public class TracingInterpreterTestMethods {
         Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap = getContainingLoops(methodNode.instructions, controlFlowGraph);
         TracingInterpreter interpreter = new TracingInterpreter(Type.getInternalName(TracingInterpreterTestMethods.class),
                 methodNode, containingLoopMap, controlFlowGraph);
-        return interpreter.calculateLoopLevelMap();
+        return interpreter.getLoopLevelMap();
     }
 
     public void fieldSelfComputation() {

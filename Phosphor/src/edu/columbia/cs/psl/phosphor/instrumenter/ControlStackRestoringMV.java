@@ -125,9 +125,7 @@ public class ControlStackRestoringMV extends MethodVisitor {
     }
 
     private void restoreControlStack() {
-        if(localVariableManager.getIndexOfBranchesLV() >= 0) {
-            callPopFrame();
-        }
+        callPopFrame();
         if(excludedFromControlTrack) {
             super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             CONTROL_STACK_ENABLE.delegateVisit(mv);
@@ -135,15 +133,17 @@ public class ControlStackRestoringMV extends MethodVisitor {
     }
 
     private void callPopFrame() {
+        passThroughMV.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
         if(localVariableManager.getIndexOfBranchesLV() >= 0) {
-            passThroughMV.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             passThroughMV.visitVarInsn(ALOAD, localVariableManager.getIndexOfBranchesLV());
-            if(localVariableManager.getIndexOfMasterExceptionLV() >= 0) {
-                passThroughMV.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
-                CONTROL_STACK_POP_FRAME_EXCEPTION.delegateVisit(passThroughMV);
-            } else {
-                CONTROL_STACK_POP_FRAME.delegateVisit(passThroughMV);
-            }
+        } else {
+            passThroughMV.visitInsn(ACONST_NULL);
+        }
+        if(localVariableManager.getIndexOfMasterExceptionLV() >= 0) {
+            passThroughMV.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
+            CONTROL_STACK_POP_FRAME_EXCEPTION.delegateVisit(passThroughMV);
+        } else {
+            CONTROL_STACK_POP_FRAME.delegateVisit(passThroughMV);
         }
     }
 

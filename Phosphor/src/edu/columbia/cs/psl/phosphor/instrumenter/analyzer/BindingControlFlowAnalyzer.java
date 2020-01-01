@@ -3,7 +3,9 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.*;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace.LoopAwareConstancyInfo;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace.TracingInterpreter;
+import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
@@ -112,7 +114,24 @@ public class BindingControlFlowAnalyzer {
             instructions.insertBefore(exclusionCandidate, new InsnNode(TaintUtils.EXCLUDE_REVISABLE_BRANCHES));
         }
         markLoopExits(instructions, controlFlowGraph, containingLoopMap);
+        // Add constancy information for method calls
+        addConstancyInfoNodes(instructions, interpreter);
         return nextBranchIDAssigned;
+    }
+
+    private static void addConstancyInfoNodes(InsnList instructions, TracingInterpreter interpreter) {
+        SinglyLinkedList<AbstractInsnNode> methodCalls = new SinglyLinkedList<>();
+        Iterator<AbstractInsnNode> itr = instructions.iterator();
+        while(itr.hasNext()) {
+            AbstractInsnNode insn = itr.next();
+            if(insn instanceof MethodInsnNode || insn instanceof InvokeDynamicInsnNode) {
+                methodCalls.addLast(insn);
+            }
+        }
+        for(AbstractInsnNode insn : methodCalls) {
+            LoopAwareConstancyInfo constancyInfo = interpreter.generateMethodConstancyInfo(insn);
+            instructions.insertBefore(insn, new LdcInsnNode(constancyInfo));
+        }
     }
 
     private static void markLoopExits(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph, Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap) {

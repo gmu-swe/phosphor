@@ -1,6 +1,7 @@
-package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
+package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 
 import java.util.Iterator;

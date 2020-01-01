@@ -215,19 +215,12 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 
                 break;
             case Opcodes.IRETURN:
-            case Opcodes.DRETURN:
             case Opcodes.FRETURN:
+                wrapPrimitiveReturn(false);
+                break;
+            case Opcodes.DRETURN:
             case Opcodes.LRETURN:
-                int lv = lvs.getPreAllocatedReturnTypeVar(returnType);
-                super.visitVarInsn(Opcodes.ALOAD, lv);
-                super.visitInsn(DUP);
-                NEW_EMPTY_TAINT.delegateVisit(mv);
-                super.visitFieldInsn(Opcodes.PUTFIELD, returnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
-
-                super.visitInsn(SWAP);
-                super.visitFieldInsn(Opcodes.PUTFIELD, returnType.getInternalName(), "val", originalReturnType.getDescriptor());
-                super.visitVarInsn(Opcodes.ALOAD, lv);
-                super.visitInsn(ARETURN);
+                wrapPrimitiveReturn(true);
                 break;
             case Opcodes.LALOAD:
             case Opcodes.DALOAD:
@@ -248,6 +241,31 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                 super.visitInsn(opcode);
                 break;
         }
+    }
+
+    /**
+     * stack_pre = primitive
+     * stack_post = empty
+     *
+     * @param widePrimitive true if the primitive to be wrapped is of size two (i.e., a double or long)
+     */
+    private void wrapPrimitiveReturn(boolean widePrimitive) {
+        int lv = lvs.getPreAllocatedReturnTypeVar(returnType);
+        super.visitVarInsn(Opcodes.ALOAD, lv);
+        super.visitInsn(DUP);
+        // primitive wrapper wrapper
+        NEW_EMPTY_TAINT.delegateVisit(mv);
+        super.visitFieldInsn(Opcodes.PUTFIELD, returnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
+        // primitive wrapper
+        if(widePrimitive) {
+            super.visitInsn(DUP_X2);
+            super.visitInsn(POP);
+        } else {
+            super.visitInsn(SWAP);
+        }
+        super.visitFieldInsn(Opcodes.PUTFIELD, returnType.getInternalName(), "val", originalReturnType.getDescriptor());
+        super.visitVarInsn(Opcodes.ALOAD, lv);
+        super.visitInsn(ARETURN);
     }
 
     private void ensureBoxedAt(int n, Type t) {

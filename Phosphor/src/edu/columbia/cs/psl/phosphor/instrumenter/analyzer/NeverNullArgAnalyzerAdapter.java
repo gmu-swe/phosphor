@@ -36,6 +36,8 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.AnalyzerAdapter;
 
+import static edu.columbia.cs.psl.phosphor.TaintUtils.RAW_INSN;
+
 /**
  * A {@link MethodVisitor} that keeps track of stack map frame changes between
  * {@link #visitFrame(int, int, Object[], int, Object[]) visitFrame} calls. This
@@ -221,7 +223,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     @Override
     public void visitFrame(final int type, int nLocal,
                            Object[] local, final int nStack, final Object[] stack) {
-        if(type != Opcodes.F_NEW && type != TaintUtils.RAW_INSN) { // uncompressed frame
+        if(type != Opcodes.F_NEW && type != RAW_INSN) { // uncompressed frame
             throw new IllegalStateException(
                     "ClassReader.accept() should be called with EXPAND_FRAMES flag");
         }
@@ -329,7 +331,17 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if(mv != null) {
             mv.visitVarInsn(opcode, var);
         }
-        execute(opcode, var, null);
+        switch(opcode) {
+            case TaintUtils.BRANCH_END:
+            case TaintUtils.BRANCH_START:
+            case TaintUtils.REVISABLE_BRANCH_START:
+            case TaintUtils.FORCE_CTRL_STORE:
+            case TaintUtils.ALWAYS_AUTOBOX:
+            case TaintUtils.IGNORE_EVERYTHING:
+                break;
+            default:
+                execute(opcode, var, null);
+        }
     }
 
     @Override
@@ -1127,7 +1139,6 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
                 break;
         }
         labels = null;
-
     }
 
     public void clearLabels() {

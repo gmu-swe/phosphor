@@ -36,6 +36,12 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
     private int currentInsnIndex = -1;
     private int varIndex = -1;
 
+    /**
+     * An unmodifiable mapping from the instructions analyzed by this interpreter to their loop levels or null
+     * if this interpreter's loop level map has not yet been calculated
+     */
+    private final Map<AbstractInsnNode, LoopLevel> loopLevelMap;
+
     public TracingInterpreter(String owner, MethodNode methodNode, Map<AbstractInsnNode,
             Set<NaturalLoop<BasicBlock>>> containingLoopMap, FlowGraph<BasicBlock> controlFlowGraph) throws AnalyzerException {
         super(Configuration.ASM_VERSION);
@@ -44,51 +50,7 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
         this.blockMap = createBlockMap(controlFlowGraph);
         Analyzer<TracedValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(this);
         this.frames = analyzer.analyze(owner, methodNode);
-    }
-
-    /**
-     * The "sources" of an instructions are the values used from local variables and the runtime stack by the
-     * instruction. For operations that store a value to a local variable, field, or array any source which
-     * is the current definition of the memory location being written to by the store operation is excluded from the
-     * instruction's sources. Specifically, for a ISTORE, LSTORE, FSTORE, DSTORE, ASTORE, IASTORE, LASTORE, FASTORE,
-     * DASTORE, AASTORE, BASTORE, CASTORE, SASTORE, PUTSTATIC, or PUTFIELD  instruction that stores a value v into a
-     * memory location x where v can be expressed as an arithmetic or logical expression e, any term in e that is
-     * loaded from memory location x is excluded.
-     *
-     * @param insn   the instruction whose sources are to be calculated
-     * @param effect the effect associated with the specified instruction
-     * @return the set of source values that should be considered when calculating the loop level of the specified
-     * instructions
-     */
-    private Set<TracedValue> getSources(AbstractInsnNode insn, InstructionEffect effect) {
-        if(isLocalVariableStoreInsn(insn)) {
-            Frame<TracedValue> currentFrame = frames[instructions.indexOf(insn)];
-            int local = ((VarInsnNode) insn).var;
-            TracedValue currentDefinition = currentFrame.getLocal(local);
-            Set<TracedValue> sources = new HashSet<>();
-            DefinitionChecker checker = new LocalVariableDefinitionChecker(currentDefinition);
-            gatherSources(checker, effect.sources[0], sources, new HashSet<>());
-            return sources;
-        } else if(isFieldStoreInsn(insn)) {
-            TracedValue receiver = insn.getOpcode() == PUTSTATIC ? null : effectMap.get(insn).sources[0];
-            DefinitionChecker checker = new FieldDefinitionChecker((FieldInsnNode) insn, receiver, this);
-            Set<TracedValue> sources = new HashSet<>();
-            if(insn.getOpcode() == PUTSTATIC) {
-                gatherSources(checker, effect.sources[0], sources, new HashSet<>());
-            } else {
-                sources.add(effect.sources[0]); // Add the receiver as a source
-                gatherSources(checker, effect.sources[1], sources, new HashSet<>(sources));
-            }
-            return sources;
-        } else if(isArrayStoreInsn(insn)) {
-            DefinitionChecker checker = new ArrayDefinitionChecker((InsnNode) insn, this);
-            Set<TracedValue> sources = new HashSet<>();
-            sources.add(effect.sources[0]); // Add the array reference as a source
-            sources.add(effect.sources[1]); // Add the index as a source
-            gatherSources(checker, effect.sources[2], sources, new HashSet<>(sources));
-            return sources;
-        }
-        return new HashSet<>(Arrays.asList(effect.sources));
+        this.loopLevelMap = calculateLoopLevelMap();
     }
 
     @Override
@@ -559,60 +521,90 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
         return result;
     }
 
-    /**
-     * @param insn the instruction whose associated type's size is being calculated
-     * @return the size of the type associated with the specified instruction
-     */
-    private int getSize(AbstractInsnNode insn) {
-        int opcode = insn.getOpcode();
-        switch(opcode) {
-            case LCONST_0:
-            case LCONST_1:
-            case DCONST_0:
-            case DCONST_1:
-            case LALOAD:
-            case DALOAD:
-            case LADD:
-            case DADD:
-            case LSUB:
-            case DSUB:
-            case LMUL:
-            case DMUL:
-            case LDIV:
-            case DDIV:
-            case LREM:
-            case DREM:
-            case LSHL:
-            case LSHR:
-            case LUSHR:
-            case LAND:
-            case LOR:
-            case LXOR:
-            case LNEG:
-            case DNEG:
-            case I2L:
-            case I2D:
-            case L2D:
-            case F2L:
-            case F2D:
-            case D2L:
-                return 2;
-            case LDC:
-                Object value = ((LdcInsnNode) insn).cst;
-                return value instanceof Long || value instanceof Double ? 2 : 1;
-            case GETSTATIC:
-            case GETFIELD:
-                return Type.getType(((FieldInsnNode) insn).desc).getSize();
-            case INVOKEDYNAMIC:
-                return Type.getReturnType(((InvokeDynamicInsnNode) insn).desc).getSize();
-            case INVOKEVIRTUAL:
-            case INVOKESPECIAL:
-            case INVOKESTATIC:
-            case INVOKEINTERFACE:
-                return Type.getReturnType(((MethodInsnNode) insn).desc).getSize();
-            default:
-                return 1;
+    public LoopAwareConstancyInfo generateMethodConstancyInfo(AbstractInsnNode insn) {
+        int invocationLevel = containingLoopMap.get(insn).size();
+        LoopAwareConstancyInfo info = new LoopAwareConstancyInfo(invocationLevel);
+        InstructionEffect effect = effectMap.get(insn);
+        for(TracedValue source : effect.sources) {
+            if(source.getInsnSource() == null || !loopLevelMap.containsKey(source.getInsnSource())) {
+                info.pushArgumentLevel(new VariantLoopLevel(invocationLevel));
+            } else {
+                info.pushArgumentLevel(loopLevelMap.get(source.getInsnSource()));
+            }
         }
+        return info;
+    }
+
+    private Map<AbstractInsnNode, LoopLevel> calculateLoopLevelMap() {
+        Map<AbstractInsnNode, LoopLevel> tempLoopLevelMap = new HashMap<>();
+        for(AbstractInsnNode insn : effectMap.keySet()) {
+            Set<TracedValue> sources = getSources(insn, effectMap.get(insn));
+            if(atConstantLevel(insn, sources)) {
+                tempLoopLevelMap.put(insn, CONSTANT_LOOP_LEVEL);
+            } else if(atDependentLevel(sources)) {
+                tempLoopLevelMap.put(insn, createDependentLoopLevel(sources));
+            } else {
+                tempLoopLevelMap.put(insn, createVariantLoopLevel(insn, sources, containingLoopMap));
+            }
+        }
+        return Collections.unmodifiableMap(tempLoopLevelMap);
+    }
+
+    /**
+     * The "sources" of an instructions are the values used from local variables and the runtime stack by the
+     * instruction. For operations that store a value to a local variable, field, or array any source which
+     * is the current definition of the memory location being written to by the store operation is excluded from the
+     * instruction's sources. Specifically, for a ISTORE, LSTORE, FSTORE, DSTORE, ASTORE, IASTORE, LASTORE, FASTORE,
+     * DASTORE, AASTORE, BASTORE, CASTORE, SASTORE, PUTSTATIC, or PUTFIELD  instruction that stores a value v into a
+     * memory location x where v can be expressed as an arithmetic or logical expression e, any term in e that is
+     * loaded from memory location x is excluded.
+     *
+     * @param insn   the instruction whose sources are to be calculated
+     * @param effect the effect associated with the specified instruction
+     * @return the set of source values that should be considered when calculating the loop level of the specified
+     * instructions
+     */
+    private Set<TracedValue> getSources(AbstractInsnNode insn, InstructionEffect effect) {
+        if(isLocalVariableStoreInsn(insn)) {
+            Frame<TracedValue> currentFrame = frames[instructions.indexOf(insn)];
+            int local = ((VarInsnNode) insn).var;
+            TracedValue currentDefinition = currentFrame.getLocal(local);
+            Set<TracedValue> sources = new HashSet<>();
+            DefinitionChecker checker = new LocalVariableDefinitionChecker(currentDefinition);
+            gatherSources(checker, effect.sources[0], sources, new HashSet<>());
+            return sources;
+        } else if(isFieldStoreInsn(insn)) {
+            TracedValue receiver = insn.getOpcode() == PUTSTATIC ? null : effectMap.get(insn).sources[0];
+            DefinitionChecker checker = new FieldDefinitionChecker((FieldInsnNode) insn, receiver, this);
+            Set<TracedValue> sources = new HashSet<>();
+            if(insn.getOpcode() == PUTSTATIC) {
+                gatherSources(checker, effect.sources[0], sources, new HashSet<>());
+            } else {
+                sources.add(effect.sources[0]); // Add the receiver as a source
+                gatherSources(checker, effect.sources[1], sources, new HashSet<>(sources));
+            }
+            return sources;
+        } else if(isArrayStoreInsn(insn)) {
+            DefinitionChecker checker = new ArrayDefinitionChecker((InsnNode) insn, this);
+            Set<TracedValue> sources = new HashSet<>();
+            sources.add(effect.sources[0]); // Add the array reference as a source
+            sources.add(effect.sources[1]); // Add the index as a source
+            gatherSources(checker, effect.sources[2], sources, new HashSet<>(sources));
+            return sources;
+        }
+        return new HashSet<>(Arrays.asList(effect.sources));
+    }
+
+    public Set<AbstractInsnNode> identifyRevisionExcludedInstructions() {
+        Set<AbstractInsnNode> exclusions = new HashSet<>();
+        Iterator<AbstractInsnNode> itr = instructions.iterator();
+        while(itr.hasNext()) {
+            AbstractInsnNode insn = itr.next();
+            if(loopLevelMap.containsKey(insn) && loopLevelMap.get(insn) instanceof ConstantLoopLevel) {
+                exclusions.add(insn);
+            }
+        }
+        return exclusions;
     }
 
     /**
@@ -633,34 +625,10 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
         }
     }
 
-    public Set<AbstractInsnNode> identifyRevisionExcludedInstructions() {
-        Set<AbstractInsnNode> exclusions = new HashSet<>();
-        Iterator<AbstractInsnNode> itr = instructions.iterator();
-        Map<AbstractInsnNode, LoopLevel> levelMap = calculateLoopLevelMap();
-        while(itr.hasNext()) {
-            AbstractInsnNode insn = itr.next();
-            if(levelMap.containsKey(insn) && levelMap.get(insn) instanceof ConstantLoopLevel) {
-                exclusions.add(insn);
-            }
-        }
-        return exclusions;
-    }
-
     /**
-     * @return a mapping from the instructions analyzed by this interpreter to their loop levels
+     * @return an unmodifiable mapping from the instructions analyzed by this interpreter to their loop levels
      */
-    Map<AbstractInsnNode, LoopLevel> calculateLoopLevelMap() {
-        Map<AbstractInsnNode, LoopLevel> loopLevelMap = new HashMap<>();
-        for(AbstractInsnNode insn : effectMap.keySet()) {
-            Set<TracedValue> sources = getSources(insn, effectMap.get(insn));
-            if(atConstantLevel(insn, sources)) {
-                loopLevelMap.put(insn, CONSTANT_LOOP_LEVEL);
-            } else if(atDependentLevel(sources)) {
-                loopLevelMap.put(insn, createDependentLoopLevel(sources));
-            } else {
-                loopLevelMap.put(insn, createVariantLoopLevel(insn, sources, containingLoopMap));
-            }
-        }
+    Map<AbstractInsnNode, LoopLevel> getLoopLevelMap() {
         return loopLevelMap;
     }
 
@@ -716,6 +684,32 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
                 }
             }
         }
+    }
+
+    /**
+     * @param insn1 the first instruction to be checked
+     * @param insn2 the second instruction to be checked
+     * @return true if the specified instructions are in the same basic block and there are no instructions between
+     * the two specified instructions which call a method, write a field value, or write an array value
+     */
+    private boolean interveningRedefinitionImpossible(AbstractInsnNode insn1, AbstractInsnNode insn2) {
+        BasicBlock basicBlock = blockMap.get(insn1);
+        if(basicBlock == blockMap.get(insn2)) {
+            AbstractInsnNode cur = basicBlock.getFirstInsn();
+            while(cur != insn1 && cur != insn2) {
+                cur = cur.getNext();
+            }
+            AbstractInsnNode target = cur == insn1 ? insn2 : insn1;
+            cur = cur.getNext();
+            while(cur != target) {
+                if(cur instanceof MethodInsnNode || cur instanceof InvokeDynamicInsnNode || isArrayStoreInsn(cur) || isFieldStoreInsn(cur)) {
+                    return false;
+                }
+                cur = cur.getNext();
+            }
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -851,29 +845,59 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
     }
 
     /**
-     * @param insn1 the first instruction to be checked
-     * @param insn2 the second instruction to be checked
-     * @return true if the specified instructions are in the same basic block and there are no instructions between
-     * the two specified instructions which call a method, write a field value, or write an array value
+     * @param insn the instruction whose associated type's size is being calculated
+     * @return the size of the type associated with the specified instruction
      */
-    private boolean interveningRedefinitionImpossible(AbstractInsnNode insn1, AbstractInsnNode insn2) {
-        BasicBlock basicBlock = blockMap.get(insn1);
-        if(basicBlock == blockMap.get(insn2)) {
-            AbstractInsnNode cur = basicBlock.getFirstInsn();
-            while(cur != insn1 && cur != insn2) {
-                cur = cur.getNext();
-            }
-            AbstractInsnNode target = cur == insn1 ? insn2 : insn1;
-            cur = cur.getNext();
-            while(cur != target) {
-                if(cur instanceof MethodInsnNode || cur instanceof InvokeDynamicInsnNode || isArrayStoreInsn(cur) || isFieldStoreInsn(cur)) {
-                    return false;
-                }
-                cur = cur.getNext();
-            }
-            return true;
+    private static int getSize(AbstractInsnNode insn) {
+        int opcode = insn.getOpcode();
+        switch(opcode) {
+            case LCONST_0:
+            case LCONST_1:
+            case DCONST_0:
+            case DCONST_1:
+            case LALOAD:
+            case DALOAD:
+            case LADD:
+            case DADD:
+            case LSUB:
+            case DSUB:
+            case LMUL:
+            case DMUL:
+            case LDIV:
+            case DDIV:
+            case LREM:
+            case DREM:
+            case LSHL:
+            case LSHR:
+            case LUSHR:
+            case LAND:
+            case LOR:
+            case LXOR:
+            case LNEG:
+            case DNEG:
+            case I2L:
+            case I2D:
+            case L2D:
+            case F2L:
+            case F2D:
+            case D2L:
+                return 2;
+            case LDC:
+                Object value = ((LdcInsnNode) insn).cst;
+                return value instanceof Long || value instanceof Double ? 2 : 1;
+            case GETSTATIC:
+            case GETFIELD:
+                return Type.getType(((FieldInsnNode) insn).desc).getSize();
+            case INVOKEDYNAMIC:
+                return Type.getReturnType(((InvokeDynamicInsnNode) insn).desc).getSize();
+            case INVOKEVIRTUAL:
+            case INVOKESPECIAL:
+            case INVOKESTATIC:
+            case INVOKEINTERFACE:
+                return Type.getReturnType(((MethodInsnNode) insn).desc).getSize();
+            default:
+                return 1;
         }
-        return false;
     }
 
     private static Map<AbstractInsnNode, BasicBlock> createBlockMap(FlowGraph<BasicBlock> controlFlowGraph) {

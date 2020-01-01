@@ -358,32 +358,19 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         String newDesc = Type.getMethodDescriptor(newReturnType, newArgs);
         if((access & Opcodes.ACC_NATIVE) == 0) {
             //not a native method
-            LinkedList<String> addToSig = new LinkedList<>();
-            if(Configuration.IMPLICIT_TRACKING) {
-                addToSig.add(Type.getInternalName(ControlTaintTagStack.class));
-            }
-            if(name.equals("<init>") && isRewrittenDesc) {
-                addToSig.add(Type.getInternalName(TaintSentinel.class));
-            }
-            if((oldReturnType.getSort() != Type.VOID && oldReturnType.getSort() != Type.OBJECT && oldReturnType.getSort() != Type.ARRAY)) {
-                addToSig.add(newReturnType.getInternalName());
-            }
-            signature = TaintUtils.remapSignature(signature, addToSig);
+            signature = remapSignature(name, signature, isRewrittenDesc, oldReturnType, newReturnType);
             if(!name.contains("<") && !requiresNoChange) {
                 name = name + TaintUtils.METHOD_SUFFIX;
             }
-
+            boolean isDisabled = Configuration.ignoredMethods.contains(className + "." + originalName + desc);
             MethodVisitor mv = super.visitMethod(access, name, newDesc, signature, exceptions);
-            mv = new TaintTagFieldCastMV(mv, name);
-
-            MethodVisitor rootmV = mv;
-            MethodVisitor optimizer;
-            optimizer = mv;
-            SpecialOpcodeRemovingMV somv = new SpecialOpcodeRemovingMV(optimizer, ignoreFrames, access, className, newDesc, fixLdcClass);
-            mv = somv;
-
+            MethodVisitor rootmV = new TaintTagFieldCastMV(mv, name);
+            mv = rootmV;
+            SpecialOpcodeRemovingMV specialOpcodeRemovingMV = new SpecialOpcodeRemovingMV(mv, ignoreFrames, access, className, newDesc, fixLdcClass);
+            mv = specialOpcodeRemovingMV;
             NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
             mv = new StringTaintVerifyingMV(analyzer, (implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")), analyzer); //TODO - how do we handle directbytebuffers?
+
             ControlStackInitializingMV controlStackInitializingMV = null;
             ControlStackRestoringMV controlStackRestoringMV = null;
             MethodVisitor next = mv;
@@ -397,16 +384,19 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             }
             ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(next, className, name, analyzer);
             PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
-
             TaintPassingMV tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer, rootmV, wrapperMethodsToAdd, isImplicitLightTrackingMethod);
             tmv.setFields(fields);
-            UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, newDesc, oldReturnType, signature, exceptions, boxFixer, analyzer, ignoreFrames);
+
+            ReflectionHidingMV uninstReflectionMasker = new ReflectionHidingMV(mv, className, name, analyzer);
+            PrimitiveBoxingFixer uninstBoxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, uninstReflectionMasker, analyzer);
+
+
+            UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, newDesc, oldReturnType, signature, exceptions, uninstBoxFixer, analyzer, ignoreFrames);
             InstOrUninstChoosingMV instOrUninstChoosingMV = new InstOrUninstChoosingMV(tmv, umv);
             LocalVariableManager lvs = new LocalVariableManager(access, newDesc, instOrUninstChoosingMV, analyzer, mv, generateExtraLVDebug);
             umv.setLocalVariableSorter(lvs);
-            boolean isDisabled = Configuration.ignoredMethods.contains(className + "." + originalName + desc);
 
-            somv.setLVS(lvs);
+            specialOpcodeRemovingMV.setLVS(lvs);
             MethodArgReindexer mar = new MethodArgReindexer(lvs, access, name, newDesc, desc, wrapper, isLambda);
             TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mar, ignoreFrames, instOrUninstChoosingMV, aggressivelyReduceMethodSize | isDisabled, isImplicitLightTrackingMethod);
 
@@ -415,6 +405,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
             primitiveArrayFixer.setAnalyzer(preAnalyzer);
             boxFixer.setLocalVariableSorter(lvs);
+            uninstBoxFixer.setLocalVariableSorter(lvs);
             tmv.setArrayAnalyzer(primitiveArrayFixer);
             tmv.setLocalVariableSorter(lvs);
             if(controlStackInitializingMV != null) {
@@ -427,6 +418,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             }
             lvs.setPrimitiveArrayAnalyzer(primitiveArrayFixer); // this guy will tell the LVS what return types to prealloc
             reflectionMasker.setLvs(lvs);
+            uninstReflectionMasker.setLvs(lvs);
             final MethodVisitor prev = preAnalyzer;
             MethodNode rawMethod = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature, exceptions) {
                 @Override
@@ -484,6 +476,20 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             forMore.put(wrapper, rawMethod);
             return rawMethod;
         }
+    }
+
+    private String remapSignature(String name, String signature, boolean isRewrittenDesc, Type oldReturnType, Type newReturnType) {
+        LinkedList<String> addToSig = new LinkedList<>();
+        if(Configuration.IMPLICIT_TRACKING) {
+            addToSig.add(Type.getInternalName(ControlTaintTagStack.class));
+        }
+        if(name.equals("<init>") && isRewrittenDesc) {
+            addToSig.add(Type.getInternalName(TaintSentinel.class));
+        }
+        if((oldReturnType.getSort() != Type.VOID && oldReturnType.getSort() != Type.OBJECT && oldReturnType.getSort() != Type.ARRAY)) {
+            addToSig.add(newReturnType.getInternalName());
+        }
+        return TaintUtils.remapSignature(signature, addToSig);
     }
 
     @Override

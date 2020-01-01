@@ -428,7 +428,8 @@ public class ReflectionMasker {
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_CONSTRUCTOR_CONTROL)
-    public static Object[] fixAllArgs(Object[] in, Constructor c, ControlTaintTagStack ctrl) {
+    public static Object[] fixAllArgs(Object[] in, Constructor<?> c, ControlTaintTagStack ctrl) {
+        ctrl = ctrl.copyTop();
         return fixAllArgs(in, c, true, ctrl);
     }
 

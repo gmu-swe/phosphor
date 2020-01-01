@@ -335,13 +335,17 @@ public final class ControlTaintTagStack {
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_FRAME)
     public void popFrame(int[] branchTags) {
-        pop(branchTags);
+        if(branchTags != null) {
+            pop(branchTags);
+        }
         loopAwareControlStack.popFrame();
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_FRAME_EXCEPTION)
     public void popFrame(int[] branchTags, ExceptionalTaintData curMethod) {
-        pop(branchTags, curMethod);
+        if(branchTags != null) {
+            pop(branchTags, curMethod);
+        }
         loopAwareControlStack.popFrame();
     }
 
