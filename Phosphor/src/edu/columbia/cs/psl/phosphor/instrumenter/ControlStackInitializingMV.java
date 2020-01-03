@@ -2,11 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ExitLoopLevelInfo;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.ConstantLoopLevel;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.DependentLoopLevel;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.VariantLoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace.LoopAwareConstancyInfo;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
@@ -147,39 +143,13 @@ public class ControlStackInitializingMV extends MethodVisitor {
         CONTROL_STACK_START_FRAME.delegateVisit(mv);
         Iterator<LoopLevel> argLevels = nextMethodFrameInfo.getLevelIterator();
         while(argLevels.hasNext()) {
-            LoopLevel argLevel = argLevels.next();
-            if(argLevel instanceof ConstantLoopLevel) {
-                CONTROL_STACK_SET_ARG_CONSTANT.delegateVisit(mv);
-            } else if(argLevel instanceof DependentLoopLevel) {
-                int[] dependencies = ((DependentLoopLevel) argLevel).getDependencies();
-                // Make the dependencies array
-                PropagatingControlFlowDelegator.push(mv, dependencies.length);
-                super.visitIntInsn(NEWARRAY, T_INT);
-                for(int i = 0; i < dependencies.length; i++) {
-                    super.visitInsn(DUP); // Duplicate the array reference
-                    PropagatingControlFlowDelegator.push(mv, i); // Push the index
-                    PropagatingControlFlowDelegator.push(mv, dependencies[i]); // Push the dependency value
-                    super.visitInsn(IASTORE);
-                }
-                CONTROL_STACK_SET_ARG_DEPENDENT.delegateVisit(mv);
-            } else if(argLevel instanceof VariantLoopLevel) {
-                PropagatingControlFlowDelegator.push(mv, ((VariantLoopLevel) argLevel).getLevelOffset());
-                CONTROL_STACK_SET_ARG_VARIANT.delegateVisit(mv);
-            }
+            argLevels.next().setArgument(mv);
         }
-    }
-
-    private void exitLoopLevel(ExitLoopLevelInfo insn) {
-        super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-        PropagatingControlFlowDelegator.push(mv, insn.getLevelOffset());
-        CONTROL_STACK_EXIT_LOOP_LEVEL.delegateVisit(mv);
     }
 
     @Override
     public void visitLdcInsn(Object cst) {
-        if(cst instanceof ExitLoopLevelInfo) {
-            exitLoopLevel((ExitLoopLevelInfo) cst);
-        } else if(cst instanceof LoopAwareConstancyInfo) {
+        if(cst instanceof LoopAwareConstancyInfo) {
             nextMethodFrameInfo = (LoopAwareConstancyInfo) cst;
         } else {
             super.visitLdcInsn(cst);

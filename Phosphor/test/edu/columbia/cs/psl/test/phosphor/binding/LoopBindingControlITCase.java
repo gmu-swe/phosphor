@@ -123,7 +123,6 @@ public class LoopBindingControlITCase extends BaseMultiTaintClass {
         assertNullOrEmpty(tag);
     }
 
-
     private int partialControlExclusion(boolean condition, int[] a) {
         int result = 0;
         if(condition) {

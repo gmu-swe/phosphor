@@ -39,11 +39,6 @@ public class TaintUtils {
     public static final int CUSTOM_SIGNAL_2 = 219;
     public static final int CUSTOM_SIGNAL_3 = 220;
     public static final int LOOP_HEADER = 221;
-    // Indicates that tags pushed onto the control taint tag stack for a revisable branch should not to propagate
-    // to the next store insn
-    public static final int EXCLUDE_REVISABLE_BRANCHES = 222;
-    // Marks the start of the scope of a revisable branch edge
-    public static final int REVISABLE_BRANCH_START = 223;
     public static final String TAINT_FIELD = "PHOSPHOR_TAG";
     public static final String METHOD_SUFFIX = "$$PHOSPHORTAGGED";
     public static final String PHOSPHOR_ADDED_FIELD_PREFIX = "$$PHOSPHOR_";

@@ -87,8 +87,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
     @Override
     public void visitVarInsn(int opcode, int var) {
-        if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START || opcode == TaintUtils.REVISABLE_BRANCH_START
-                || isIgnoreEverything) {
+        if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START || isIgnoreEverything) {
             mv.visitVarInsn(opcode, var);
             return;
         }

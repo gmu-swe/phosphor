@@ -4,16 +4,16 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.*;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingLabel;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.GeneratorAdapter;
@@ -98,27 +98,30 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     @Override
     public void visitCode() {
         super.visitCode();
-        if((Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
-            controlFlowDelegator = new PropagatingControlFlowDelegator(mv, passThroughMV, analyzer, lvs, arrayAnalyzer,
-                    name, lastArg, paramTypes);
+        int numberOfBranchIDs = (arrayAnalyzer.nJumps + arrayAnalyzer.nTryCatch == 0) ? 0 : arrayAnalyzer.nJumps + arrayAnalyzer.nTryCatch + 2;
+        if(Configuration.BINDING_CONTROL_FLOWS_ONLY) {
+            controlFlowDelegator = new BindingControlFlowDelegator(mv, passThroughMV, analyzer, lvs, numberOfBranchIDs);
+        } else if((Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
+            controlFlowDelegator = new PropagatingControlFlowDelegator(mv, passThroughMV, analyzer, lvs, lastArg,
+                    paramTypes, numberOfBranchIDs);
         } else {
             controlFlowDelegator = new NoFlowControlFlowDelegator(mv);
         }
         Configuration.taintTagFactory.methodEntered(className, name, desc, passThroughMV, lvs, this);
-        controlFlowDelegator.visitedCode();
     }
 
     @Override
     public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
         super.visitTryCatchBlock(start, end, handler, type);
         exceptionHandlers.add(handler);
-        controlFlowDelegator.visitedTryCatch();
     }
 
     @Override
     public void visitIincInsn(int var, int increment) {
         if(!isIgnoreAllInstrumenting && !isRawInstruction) {
-            controlFlowDelegator.visitingIncrement(var);
+            // If accessing an argument, then map it to its taint argument
+            int shadowVar = var < lastArg && TaintUtils.isShadowedType(paramTypes[var]) ? var + 1 : lvs.varToShadowVar.get(var);
+            controlFlowDelegator.visitingIncrement(var, shadowVar);
         }
         Configuration.taintTagFactory.iincOp(var, increment, mv, lvs, this);
         mv.visitIincInsn(var, increment);
@@ -147,14 +150,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     @Override
     public void visitVarInsn(int opcode, int var) {
         if(opcode == TaintUtils.BRANCH_START) {
-            controlFlowDelegator.visitingBranchStart(var, false);
+            controlFlowDelegator.visitingBranchStart(var);
             return;
         } else if(opcode == TaintUtils.BRANCH_END) {
             controlFlowDelegator.visitingBranchEnd(var);
             analyzer.clearLabels();
-            return;
-        } else if(opcode == TaintUtils.REVISABLE_BRANCH_START) {
-            controlFlowDelegator.visitingBranchStart(var, true);
             return;
         }
         if(isIgnoreAllInstrumenting) {
@@ -163,7 +163,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             }
             return;
         }
-        boolean hasShadowVariable = true;
         switch(opcode) {
             case ISTORE:
             case FSTORE:
@@ -177,27 +176,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 return;
 
         }
-        int shadowVar = -1;
-        if(var == 0 && !isStatic) {
-            //accessing "this" so no-op, die here so we never have to worry about uninitialized this later on.
-            shadowVar = 1;
-        } else if(var < lastArg && paramTypes[var] != null && TaintUtils.getShadowTaintType(paramTypes[var].getDescriptor()) != null) {
-            //accessing an arg; remap it
-            Type localType = paramTypes[var];
-            if(TaintUtils.DEBUG_LOCAL) {
-                System.out.println(Arrays.toString(paramTypes) + ",,," + var);
-            }
-            shadowVar = var + 1;
-            if(opcode == LLOAD || opcode == LSTORE || opcode == DSTORE || opcode == DLOAD) {
-                shadowVar++;
-            }
-        } else {
-            //not accessing an arg
-            if(!lvs.varToShadowVar.containsKey(var)) {
-                lvs.varToShadowVar.put(var, lvs.newShadowLV(Type.getType(Configuration.TAINT_TAG_DESC), var));
-            }
-            shadowVar = lvs.varToShadowVar.get(var);
-        }
+        int shadowVar = getShadowVar(var, opcode);
         switch(opcode) {
             case Opcodes.ILOAD:
             case Opcodes.FLOAD:
@@ -219,7 +198,27 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitVarInsn(opcode, var);
                 return;
         }
+    }
 
+    private int getShadowVar(int local, int opcode) {
+        int shadowVar;
+        if(local == 0 && !isStatic) {
+            // Accessing "this" so no-op, die here so we never have to worry about uninitialized this later on.
+            shadowVar = 1;
+        } else if(local < lastArg && paramTypes[local] != null && TaintUtils.getShadowTaintType(paramTypes[local].getDescriptor()) != null) {
+            // Accessing an arg; remap it
+            shadowVar = local + 1;
+            if(opcode == LLOAD || opcode == LSTORE || opcode == DSTORE || opcode == DLOAD) {
+                shadowVar++;
+            }
+        } else {
+            // Not accessing an arg
+            if(!lvs.varToShadowVar.containsKey(local)) {
+                lvs.varToShadowVar.put(local, lvs.newShadowLV(Type.getType(Configuration.TAINT_TAG_DESC), local));
+            }
+            shadowVar = lvs.varToShadowVar.get(local);
+        }
+        return shadowVar;
     }
 
     @Override
@@ -451,12 +450,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     @Override
     public void visitMultiANewArrayInsn(String desc, int dims) {
-        // System.out.println("MULTIANEW " + desc + " " + dims+ ": " + analyzer.stack);
         if(isIgnoreAllInstrumenting) {
             super.visitMultiANewArrayInsn(desc, dims);
             return;
         }
-
         Type arrayType = Type.getType(desc);
         StringBuilder methodToCall = new StringBuilder("MULTIANEWARRAY_");
         StringBuilder descToCall = new StringBuilder("(");
@@ -490,6 +487,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     public void visitLdcInsn(Object cst) {
         if(cst instanceof ReferenceArrayTarget) {
             this.referenceArrayTarget = (ReferenceArrayTarget) cst;
+        } else if(cst instanceof ExitLoopLevelInfo) {
+            controlFlowDelegator.visitingExitLoopLevelInfo((ExitLoopLevelInfo) cst);
+        } else if(cst instanceof LoopAwarePopInfo) {
+            controlFlowDelegator.visitingLoopAwarePop((LoopAwarePopInfo) cst);
+        } else if(cst instanceof BranchStartInfo) {
+            controlFlowDelegator.visitingBranchStart((BranchStartInfo) cst);
+        } else if(cst instanceof CopyTagInfo) {
+            controlFlowDelegator.visitingCopyTagInfo((CopyTagInfo) cst);
         } else if(cst instanceof PhosphorInstructionInfo) {
             super.visitLdcInsn(cst);
         } else {
@@ -570,33 +575,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         super.visitInsn(SWAP);
     }
 
-    /**
-     * Inserts a NULL after the nth element from the top of the stack
-     */
-    private void insertNullAt(int n) {
-        switch(n) {
-            case 0:
-                super.visitInsn(ACONST_NULL);
-                break;
-            case 1:
-                super.visitInsn(ACONST_NULL);
-                super.visitInsn(SWAP);
-                break;
-            case 2:
-                super.visitInsn(ACONST_NULL);
-                super.visitInsn(DUP_X2);
-                super.visitInsn(POP);
-                break;
-            default:
-                LocalVariableNode[] d = storeToLocals(n);
-                super.visitInsn(ACONST_NULL);
-                for(int i = n - 1; i >= 0; i--) {
-                    loadLV(i, d);
-                }
-                freeLVs(d);
-        }
-    }
-
     private void checkCast(String type) {
         Type t = Type.getObjectType(type);
         super.visitInsn(SWAP);
@@ -606,64 +584,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             super.visitTypeInsn(CHECKCAST, type);
         }
         super.visitInsn(SWAP);
-    }
-
-    /**
-     * Pop at n means pop the nth element down from the top (pop the top is n=0)
-     */
-    private void popAt(int n) {
-        if(TaintUtils.DEBUG_DUPSWAP) {
-            System.out.println(name + " POP AT " + n + " from " + analyzer.stack);
-        }
-        switch(n) {
-            case 0:
-                Object top = analyzer.stack.get(analyzer.stack.size() - 1);
-                if(top == Opcodes.LONG || top == Opcodes.DOUBLE || top == Opcodes.TOP) {
-                    super.visitInsn(POP2);
-                } else {
-                    super.visitInsn(POP);
-                }
-                break;
-            case 1:
-                top = analyzer.stack.get(analyzer.stack.size() - 1);
-                if(top == Opcodes.LONG || top == Opcodes.DOUBLE || top == Opcodes.TOP) {
-                    Object second = analyzer.stack.get(analyzer.stack.size() - 3);
-                    if(second == Opcodes.LONG || second == Opcodes.DOUBLE || second == Opcodes.TOP) {
-                        //VV VV
-                        super.visitInsn(DUP2_X2);
-                        super.visitInsn(POP2);
-                        super.visitInsn(POP2);
-                    } else {
-                        //V VV
-                        super.visitInsn(DUP2_X1);
-                        super.visitInsn(POP2);
-                        super.visitInsn(POP);
-                    }
-                } else {
-                    Object second = analyzer.stack.get(analyzer.stack.size() - 2);
-                    if(second == Opcodes.LONG || second == Opcodes.DOUBLE || second == Opcodes.TOP) {
-                        //VV V
-                        super.visitInsn(DUP_X2);
-                        super.visitInsn(POP);
-                        super.visitInsn(POP2);
-                    } else {
-                        //V V
-                        super.visitInsn(SWAP);
-                        super.visitInsn(POP);
-                    }
-                }
-                break;
-            default:
-                LocalVariableNode[] d = storeToLocals(n);
-                super.visitInsn(POP);
-                for(int i = n - 1; i >= 0; i--) {
-                    loadLV(i, d);
-                }
-                freeLVs(d);
-        }
-        if(TaintUtils.DEBUG_CALLS) {
-            System.out.println("POST POP AT " + n + ":" + analyzer.stack);
-        }
     }
 
     @Override
@@ -983,7 +903,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             Label end = new Label();
             super.visitLabel(end);
         }
-        controlFlowDelegator.visitingMaxs(maxStack, maxLocals);
         super.visitMaxs(maxStack, maxLocals);
     }
 
@@ -1301,9 +1220,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             Configuration.taintTagFactory.signalOp(opcode, null);
             super.visitInsn(opcode);
             return;
-        } else if(opcode == TaintUtils.EXCLUDE_REVISABLE_BRANCHES) {
-            controlFlowDelegator.visitingExcludeRevisableBranches();
-            return;
         }
         if(TaintUtils.isReturnOpcode(opcode) || opcode == ATHROW) {
             controlFlowDelegator.onMethodExit(opcode);
@@ -1505,19 +1421,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     super.visitInsn(SWAP);
                 }
                 super.visitFieldInsn(GETFIELD, retType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
-
-                // } else {
-                //     super.visitInsn(opcode);
-                // }
                 break;
             case Opcodes.AASTORE:
-                //A T I T V T
+                // A T I T V T
+                controlFlowDelegator.visitingArrayStore();
                 Type array = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 6));
                 if(array.getSort() == Type.ARRAY) {
                     super.visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/phosphor/runtime/ArrayHelper", "PHOSPHOR$$AASTORE", "([Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC
                             + "I" + Configuration.TAINT_TAG_DESC + "Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
                 } else {
-                    visitPrimitiveArrayStore(opcode);
+                    visitOneDimensionalArrayStore(opcode);
                 }
                 break;
             case Opcodes.IASTORE:
@@ -1527,19 +1440,18 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.BASTORE:
             case Opcodes.CASTORE:
             case Opcodes.SASTORE:
-                visitPrimitiveArrayStore(opcode);
+                controlFlowDelegator.visitingArrayStore();
+                visitOneDimensionalArrayStore(opcode);
                 break;
             case Opcodes.POP:
                 super.visitInsn(POP2);
                 return;
             case Opcodes.POP2:
                 super.visitInsn(POP);
-                if(getTopOfStackType().getSize() == 2) {
-                    super.visitInsn(POP2);
-                } else {
+                if(getTopOfStackType().getSize() != 2) {
                     super.visitInsn(POP);
-                    super.visitInsn(POP2);
                 }
+                super.visitInsn(POP2);
                 return;
             case Opcodes.DUP:
                 super.visitInsn(Opcodes.DUP2);
@@ -1658,8 +1570,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.DCMPG:
             case Opcodes.FCMPL:
             case Opcodes.FCMPG:
-                Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
-                break;
+            case Opcodes.ARRAYLENGTH:
             case Opcodes.INEG:
             case Opcodes.FNEG:
             case Opcodes.LNEG:
@@ -1717,9 +1628,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
                 super.visitInsn(opcode);
                 break;
-            case Opcodes.ARRAYLENGTH:
-                Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
-                break;
             case Opcodes.ATHROW:
                 super.visitInsn(POP); //TODO reference tainting from thrown exceptions
                 super.visitInsn(opcode);
@@ -1731,13 +1639,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     }
 
     /**
-     * stack_pre = [lazy-arrayref?, arrayref, index-taint?, index, value-taint?, value]
+     * stack_pre = [lazy-array, reference-taint, index, index-taint, value, value-taint]
      * stack_post = []
      *
      * @param opcode the opcode of the instruction to be visited. This opcode is either IASTORE, LASTORE, FASTORE,
-     *               DASTORE, BASTORE, CASTORE, or SASTORE
+     *               DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE
      */
-    private void visitPrimitiveArrayStore(int opcode) {
+    private void visitOneDimensionalArrayStore(int opcode) {
         String elementType;
         int valuePosition = analyzer.stack.size() - (opcode == LASTORE || opcode == DASTORE ? 3 : 2);
         int indexPosition = valuePosition - 2;
@@ -1774,11 +1682,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             default:
                 throw new IllegalArgumentException();
         }
-        Type valueType = Type.getType(elementType);
-        StringBuilder descBuilder = new StringBuilder("(");
-        descBuilder.append(Configuration.TAINT_TAG_DESC); //reference taint
-        descBuilder.append("I").append(Configuration.TAINT_TAG_DESC) //index and taint
-                .append(elementType).append(Configuration.TAINT_TAG_DESC);//val and taint
+        StringBuilder descBuilder = new StringBuilder("(")
+                .append(Configuration.TAINT_TAG_DESC) // reference-taint
+                .append("I").append(Configuration.TAINT_TAG_DESC) // index and index-taint
+                .append(elementType).append(Configuration.TAINT_TAG_DESC); // val and value-taint
         if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
             super.visitVarInsn(ALOAD, lvs.getIndexOfMasterControlLV());
             descBuilder.append("Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V");

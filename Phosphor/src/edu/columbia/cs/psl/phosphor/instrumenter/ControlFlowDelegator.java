@@ -1,5 +1,9 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BranchStartInfo;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.CopyTagInfo;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ExitLoopLevelInfo;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwarePopInfo;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.objectweb.asm.Type;
 
@@ -9,44 +13,31 @@ import org.objectweb.asm.Type;
 interface ControlFlowDelegator {
 
     /**
-     * Called as a result of entering the method. Maintains the stack.
-     */
-    void visitedCode();
-
-    /**
-     * Called as a result of a visiting a try-catch block. Maintains the stack
-     */
-    void visitedTryCatch();
-
-    /**
-     * Called before an IINC instruction. Maintains the stack.
+     * Called before an IINC instruction.
      *
-     * @param var index of the local variable to be incremented
+     * @param var       index of the local variable to be incremented
+     * @param shadowVar the index of the taint tag associated with the specified local variable
      */
-    void visitingIncrement(int var);
+    void visitingIncrement(int var, int shadowVar);
 
     /**
-     * Called before a BRANCH_START instruction. Maintains the stack
+     * Called before a BRANCH_START instruction.
      *
-     * @param branchID  the identifier of the "branch" location that is starting
-     * @param revisable whether the branch being visited is a revisable branch
+     * @param branchID the identifier of the "branch" location that is starting
      */
-    void visitingBranchStart(int branchID, boolean revisable);
+    void visitingBranchStart(int branchID);
 
     /**
-     * Called before a BRANCH_END instruction. Maintains the stack.
+     * Called before a BRANCH_END instruction.
      *
      * @param branchID the identifier of the "branch" location that is ending
      */
     void visitingBranchEnd(int branchID);
 
     /**
-     * Called before a DSTORE, LSTORE, FSTORE, ISTORE, ASTORE, or FORCE_CTRL_STORE instruction. Maintains the
-     * stack.
-     * <p>
-     * If visiting a DSTORE, LSTORE, FSTORE, or ISTORE instruction: stack_pre = taint val
-     * <p>
-     * If visiting an ASTORE instruction: stack_pre = objectref
+     * Called before a DSTORE, LSTORE, FSTORE, ISTORE, ASTORE, or FORCE_CTRL_STORE instruction.
+     * stack_pre = [value taint]
+     * stack_post = [value taint]
      *
      * @param opcode the opcode of the instruction being visited
      * @param var    the operand of the instruction to be visited
@@ -54,57 +45,53 @@ interface ControlFlowDelegator {
     void storingTaintedValue(int opcode, int var);
 
     /**
-     * Called before a FORCE_CTRL_STORE_SFIELD or FORCE_CTRL_STORE field instruction. Maintains the stack.
+     * Called before a FORCE_CTRL_STORE_FIELD or FORCE_CTRL_STORE field instruction.
      *
      * @param field the field that is being marked as needing to be force control stored
      */
     void visitingForceControlStoreField(Field field);
 
     /**
-     * Called before a PUTFIELD or PUTSTATIC instruction. Maintains the stack.
-     * <p>
-     * If visiting a PUTFIELD instruction for a tainted primitive field: stack_pre = objectref taint val
-     * <p>
-     * If visiting a PUTFIELD instruction for a reference type field: stack_pre = objectref objectref
-     * <p>
-     * If visiting a PUTSTATIC instruction for a primitive field: stack_pre = taint val
-     * <p>
-     * If visiting a PUTSTATIC instruction for a reference type field: stack_pre = objectref
+     * Called before a PUTFIELD or PUTSTATIC instruction.
+     * stack_pre = [value taint]
+     * stack_post = [value taint]
      *
-     * @param isStatic        if the a PUTSTATIC instruction is being visited
+     * @param isStatic        if a PUTSTATIC instruction is being visited
      * @param type            the formal type of the field
      * @param topCarriesTaint true if the top value on the stack is tainted
      */
     void visitingPutField(boolean isStatic, Type type, boolean topCarriesTaint);
 
     /**
-     * Called to create a new taint instance. stack_post = taint
+     * Called to create a new taint instance.
+     * stack_pre = []
+     * stack_post = [taint]
      */
     void generateEmptyTaint();
 
     /**
-     * Called before an EXCEPTION_HANDLER_START instruction. Maintains the stack.
+     * Called before an EXCEPTION_HANDLER_START instruction.
      *
      * @param type the operand of the instruction to being visited
      */
     void visitingExceptionHandlerStart(String type);
 
     /**
-     * Called before an EXCEPTION_HANDLER_END instruction. Maintains the stack.
+     * Called before an EXCEPTION_HANDLER_END instruction.
      *
      * @param type the operand of the instruction to being visited
      */
     void visitingExceptionHandlerEnd(String type);
 
     /**
-     * Called before an UNTHROWN_EXCEPTION instruction. Maintains the stack.
+     * Called before an UNTHROWN_EXCEPTION instruction.
      *
      * @param type the operand of the instruction to being visited
      */
     void visitingUnthrownException(String type);
 
     /**
-     * Called before an UNTHROWN_EXCEPTION_CHECK instruction. Maintains the stack.
+     * Called before an UNTHROWN_EXCEPTION_CHECK instruction.
      *
      * @param type the operand of the instruction to being visited
      */
@@ -116,13 +103,7 @@ interface ControlFlowDelegator {
     void visitingTrackedInstanceOf();
 
     /**
-     * Called before visiting the maximum stack size and the maximum number of local variables of the method. Maintains
-     * the stack.
-     */
-    void visitingMaxs(int maxStack, int maxLocals);
-
-    /**
-     * Call before a return or exceptional return instruction. Maintains the stack.
+     * Call before a return or exceptional return instruction.
      *
      * @param opcode the opcode of the type instruction to being visited. This opcode is either ATHROW, ARETURN, IRETURN,
      *               RETURN, DRETURN, FRETURN, or LRETURN
@@ -130,12 +111,18 @@ interface ControlFlowDelegator {
     void onMethodExit(int opcode);
 
     /**
-     * Called before a FORCE_CTRL_STORE instruction. Maintains the stack.
+     * Called before a FORCE_CTRL_STORE instruction.
      */
     void visitingForceControlStore(Type stackTop);
 
     /**
      * Called before a jump operation.
+     * If visiting a IF_ACMP<cond> or IF_ICMP<cond>:
+     *      stack_pre = [value1 taint1 value2 taint2]
+     *      stack_post = [value1 value2]
+     * if visiting a IF<cond>, IFNULL, or IFNONULL:
+     *      stack_pre = [value1 taint1]
+     *      stack_post = [value1]
      *
      * @param opcode the opcode of the type instruction to being visited. This opcode is either IFEQ,
      *               IFNE, IFLT, IFGE, IFGT, IFLE, IF_ICMPEQ, IF_ICMPNE, IF_ICMPLT, IF_ICMPGE, IF_ICMPGT,
@@ -144,18 +131,44 @@ interface ControlFlowDelegator {
     void visitingJump(int opcode);
 
     /**
-     * Called before a LOOKUPSWITCH or TABLESWITCH instruction. If propagating control flows then stack_pre = taint val,
-     * otherwise stack_pre = taint val. stack_post = val
+     * Called before a LOOKUPSWITCH or TABLESWITCH instruction.
+     * stack_pre = [value taint]
+     * stack_post = [value]
      */
     void visitingSwitch();
 
     /**
-     * Called before an AASTORE instruction. Maintains the stack. stack_pre = objectref
+     * Called before a IASTORE, LASTORE, FASTORE, DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE instruction
+     * stack_pre = [taint]
+     * stack_post = [taint]
      */
-    void storingReferenceInArray();
+    void visitingArrayStore();
 
     /**
-     * Called before a EXCLUDE_REVISABLE_BRANCHES instruction. Maintains the stack.
+     * Called before a LDC ExitLoopLevelInfo instruction.
+     *
+     * @param info the constant of the LDC ExitLoopLevelInfo instruction
      */
-    void visitingExcludeRevisableBranches();
+    void visitingExitLoopLevelInfo(ExitLoopLevelInfo info);
+
+    /**
+     * Called before a LDC LoopAwarePopInfo instruction
+     *
+     * @param info the constant of the LDC LoopAwarePopInfo.
+     */
+    void visitingLoopAwarePop(LoopAwarePopInfo info);
+
+    /**
+     * Called before a LDC BranchStartInfo instruction
+     *
+     * @param info the constant of the LDC BranchStartInfo.
+     */
+    void visitingBranchStart(BranchStartInfo info);
+
+    /**
+     * Called before a LDC CopyTagInfo instruction
+     *
+     * @param info the constant of the LDC CopyTagInfo.
+     */
+    void visitingCopyTagInfo(CopyTagInfo info);
 }

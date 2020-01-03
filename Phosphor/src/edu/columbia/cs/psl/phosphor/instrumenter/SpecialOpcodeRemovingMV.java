@@ -64,7 +64,6 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
         switch(opcode) {
             case TaintUtils.BRANCH_END:
             case TaintUtils.BRANCH_START:
-            case TaintUtils.REVISABLE_BRANCH_START:
             case TaintUtils.FORCE_CTRL_STORE:
             case TaintUtils.IGNORE_EVERYTHING:
                 break;
@@ -192,7 +191,6 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
             case TaintUtils.CUSTOM_SIGNAL_3:
             case TaintUtils.FORCE_CTRL_STORE:
             case TaintUtils.LOOP_HEADER:
-            case TaintUtils.EXCLUDE_REVISABLE_BRANCHES:
                 break;
             default:
                 super.visitInsn(opcode);

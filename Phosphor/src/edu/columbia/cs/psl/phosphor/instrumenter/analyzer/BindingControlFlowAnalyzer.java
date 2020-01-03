@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
-import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BranchStartInfo.PropagatingBranchEdge;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.VariantLoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.*;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.FlowGraph.NaturalLoop;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace.LoopAwareConstancyInfo;
@@ -12,6 +13,7 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
 
 import java.util.Iterator;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.ConstantLoopLevel.CONSTANT_LOOP_LEVEL;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
@@ -83,19 +85,23 @@ public class BindingControlFlowAnalyzer {
             // Assign two unique identifiers to each source
             int branchID = nextBranchIDAssigned++;
             int revisableBranchID = nextBranchIDAssigned++;
-            instructions.insertBefore(source.getLastInsn(), new VarInsnNode(TaintUtils.BRANCH_START, branchID));
-            instructions.insertBefore(source.getLastInsn(), new VarInsnNode(TaintUtils.REVISABLE_BRANCH_START, revisableBranchID));
+            int containingLoops = containingLoopMap.get(source.getFirstInsn()).size();
+            BranchStartInfo startInfo = new BranchStartInfo.MultiIDBranch(Arrays.asList(
+                    new PropagatingBranchEdge(CONSTANT_LOOP_LEVEL, branchID, null),
+                    new PropagatingBranchEdge(new VariantLoopLevel(containingLoops), revisableBranchID, null)
+            ));
+            instructions.insertBefore(source.getLastInsn(), new LdcInsnNode(startInfo));
             Set<BasicBlock> successors = new HashSet<>(controlFlowGraph.getSuccessors(source));
-            // Add BRANCH_END instructions
+            // Add LoopAwarePopInfo LDC instructions
             for(BindingBranchEdge edge : groupedStartBlocks.get(source)) {
                 successors.remove(edge);
                 AbstractInsnNode nextInsn = findNextPrecedableInstruction(edge.target.getFirstInsn());
                 if(edge.isRevisable(controlFlowGraph, interpreter)) {
                     markBranchEnds(methodNode.instructions, edge, revisableBranchID, controlFlowGraph);
-                    instructions.insertBefore(nextInsn, new VarInsnNode(TaintUtils.BRANCH_END, branchID));
+                    instructions.insertBefore(nextInsn, new LdcInsnNode(new LoopAwarePopInfo(branchID)));
                 } else {
                     markBranchEnds(methodNode.instructions, edge, branchID, controlFlowGraph);
-                    instructions.insertBefore(nextInsn, new VarInsnNode(TaintUtils.BRANCH_END, revisableBranchID));
+                    instructions.insertBefore(nextInsn, new LdcInsnNode(new LoopAwarePopInfo(revisableBranchID)));
                 }
             }
             for(BasicBlock successor : successors) {
@@ -104,14 +110,14 @@ public class BindingControlFlowAnalyzer {
                 }
                 if(!(successor instanceof DummyBasicBlock)) {
                     AbstractInsnNode nextInsn = findNextPrecedableInstruction(successor.getFirstInsn());
-                    instructions.insertBefore(nextInsn, new VarInsnNode(TaintUtils.BRANCH_END, branchID));
-                    instructions.insertBefore(nextInsn, new VarInsnNode(TaintUtils.BRANCH_END, revisableBranchID));
+                    instructions.insertBefore(nextInsn, new LdcInsnNode(new LoopAwarePopInfo(branchID)));
+                    instructions.insertBefore(nextInsn, new LdcInsnNode(new LoopAwarePopInfo(revisableBranchID)));
                 }
             }
         }
         // Mark all revision-excluded instructions
         for(AbstractInsnNode exclusionCandidate : exclusionCandidates) {
-            instructions.insertBefore(exclusionCandidate, new InsnNode(TaintUtils.EXCLUDE_REVISABLE_BRANCHES));
+            instructions.insertBefore(exclusionCandidate, new LdcInsnNode(new CopyTagInfo(CONSTANT_LOOP_LEVEL)));
         }
         markLoopExits(instructions, controlFlowGraph, containingLoopMap);
         // Add constancy information for method calls
@@ -119,6 +125,13 @@ public class BindingControlFlowAnalyzer {
         return nextBranchIDAssigned;
     }
 
+    /**
+     * Adds LoopAwareConstancyInfo instruction nodes to the specified list before each MethodInsnNode and
+     * each InvokeDynamicInsnNode.
+     *
+     * @param instructions the instructions whose method constancy information is to be annotated
+     * @param interpreter  interpreter used to calculate the constancy information for instructions
+     */
     private static void addConstancyInfoNodes(InsnList instructions, TracingInterpreter interpreter) {
         SinglyLinkedList<AbstractInsnNode> methodCalls = new SinglyLinkedList<>();
         Iterator<AbstractInsnNode> itr = instructions.iterator();
@@ -134,6 +147,15 @@ public class BindingControlFlowAnalyzer {
         }
     }
 
+    /**
+     * Adds ExitLoopLevelInfo instruction nodes to the specified list at the beginning of each basic block v
+     * for each edge (u,v) in the control flow graph such that u is containing in some loop l and v is not contained
+     * in l.
+     *
+     * @param instructions      the instructions whose loop exits are to be marked
+     * @param controlFlowGraph  a control flow graph representing the instructions in the specified list
+     * @param containingLoopMap a mapping between each instruction in the specified list and the natural loops that contain it
+     */
     private static void markLoopExits(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph, Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap) {
         Set<NaturalLoop<BasicBlock>> loops = controlFlowGraph.getNaturalLoops();
         for(NaturalLoop<BasicBlock> loop : loops) {
@@ -187,7 +209,7 @@ public class BindingControlFlowAnalyzer {
     }
 
     /**
-     * Marks the ends of the scope for the specified edge by inserting BRANCH_END instructions.
+     * Marks the ends of the scope for the specified edge by inserting a LoopWarePopInfo instruction node.
      *
      * @param instructions     the instructions of a method
      * @param edge             a vertex that represents a binding branch edge in the specified method
@@ -198,7 +220,7 @@ public class BindingControlFlowAnalyzer {
         Set<BasicBlock> scopeEnds = edge.getScopeEnds(controlFlowGraph);
         for(BasicBlock scopeEnd : scopeEnds) {
             AbstractInsnNode insn = findNextPrecedableInstruction(scopeEnd.getFirstInsn());
-            instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, id));
+            instructions.insertBefore(insn, new LdcInsnNode(new LoopAwarePopInfo(id)));
         }
     }
 

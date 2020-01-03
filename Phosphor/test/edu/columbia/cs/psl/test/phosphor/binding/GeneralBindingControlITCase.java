@@ -11,6 +11,25 @@ import static org.junit.Assert.assertNotNull;
 
 public class GeneralBindingControlITCase extends BaseMultiTaintClass {
 
+    private static class Parent {
+        int i;
+        Parent(int i) {
+            this.i = i;
+        }
+    }
+
+    private static class Child extends Parent {
+        Child(boolean b) {
+            super(b ? 55 : 429);
+        }
+    }
+
+    @Test
+    public void testBranchBeforeSuper() {
+        Parent p = new Child(MultiTainter.taintedBoolean(true, "testBranchBeforeSuper"));
+        assertTaintHasOnlyLabel(MultiTainter.getTaint(p.i), "testBranchBeforeSuper");
+    }
+
     @Test
     public void testSimpleIfEqualTaken() {
         int a = MultiTainter.taintedInt(5, "a");
