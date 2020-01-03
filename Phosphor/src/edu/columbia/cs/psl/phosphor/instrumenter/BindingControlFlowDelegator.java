@@ -110,11 +110,6 @@ public class BindingControlFlowDelegator extends AbstractControlFlowDelegator {
     }
 
     @Override
-    public void visitingTrackedInstanceOf() {
-        // TODO
-    }
-
-    @Override
     public void visitingJump(int opcode) {
         switch(opcode) {
             case Opcodes.IFEQ:

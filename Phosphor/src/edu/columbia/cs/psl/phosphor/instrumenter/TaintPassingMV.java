@@ -174,7 +174,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case FORCE_CTRL_STORE:
                 controlFlowDelegator.storingTaintedValue(opcode, var);
                 return;
-
         }
         int shadowVar = getShadowVar(var, opcode);
         switch(opcode) {

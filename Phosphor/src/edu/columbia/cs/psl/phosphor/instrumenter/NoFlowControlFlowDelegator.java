@@ -25,12 +25,6 @@ public class NoFlowControlFlowDelegator extends AbstractControlFlowDelegator {
     }
 
     @Override
-    public void visitingTrackedInstanceOf() {
-        NEW_EMPTY_TAINT.delegateVisit(delegate);
-        delegate.visitInsn(SWAP);
-    }
-
-    @Override
     public void visitingJump(int opcode) {
         switch(opcode) {
             case IFNULL:

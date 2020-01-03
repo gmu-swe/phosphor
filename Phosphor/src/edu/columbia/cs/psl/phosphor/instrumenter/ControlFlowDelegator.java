@@ -98,11 +98,6 @@ interface ControlFlowDelegator {
     void visitingUnthrownExceptionCheck(String type);
 
     /**
-     * Called as a result of an INSTANCE_OF instruction. stack_pre = objectref, stack_post = taint objectref
-     */
-    void visitingTrackedInstanceOf();
-
-    /**
      * Call before a return or exceptional return instruction.
      *
      * @param opcode the opcode of the type instruction to being visited. This opcode is either ATHROW, ARETURN, IRETURN,

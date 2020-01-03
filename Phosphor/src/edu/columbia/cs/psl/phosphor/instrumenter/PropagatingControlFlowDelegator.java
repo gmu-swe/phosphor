@@ -190,13 +190,6 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
     }
 
     @Override
-    public void visitingTrackedInstanceOf() {
-        delegate.visitInsn(DUP);
-        GET_TAINT_OBJECT.delegateVisit(delegate);
-        delegate.visitInsn(SWAP);
-    }
-
-    @Override
     public void onMethodExit(int opcode) {
         if(opcode == ATHROW) {
             passThroughDelegate.visitInsn(DUP);
