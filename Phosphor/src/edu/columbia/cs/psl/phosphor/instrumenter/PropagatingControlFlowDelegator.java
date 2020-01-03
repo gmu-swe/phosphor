@@ -261,7 +261,12 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
     // stack_post = [taint]
     private void pushBranchStart() {
         if(nextBranchID != -1) {
-            TaintMethodRecord pushMethod = localVariableManager.getIndexOfMasterExceptionLV() >= 0 ? CONTROL_STACK_PUSH_TAG_EXCEPTION : CONTROL_STACK_PUSH_TAG;
+            TaintMethodRecord pushMethod;
+            if(localVariableManager.getIndexOfMasterExceptionLV() >= 0) {
+                pushMethod = CONTROL_STACK_PUSH_TAG_EXCEPTION;
+            } else {
+                pushMethod = CONTROL_STACK_PUSH_TAG;
+            }
             delegate.visitInsn(DUP);
             // T T
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
@@ -273,7 +278,6 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
             if(localVariableManager.getIndexOfMasterExceptionLV() >= 0) {
                 delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
             }
-            delegate.visitInsn(ICONST_0); // TODO: remove revisable
             pushMethod.delegateVisit(delegate);
             delegate.visitVarInsn(ASTORE, localVariableManager.getIndexOfBranchesLV());
         }

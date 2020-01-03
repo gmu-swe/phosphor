@@ -32,8 +32,8 @@ public enum TaintMethodRecord {
     GET_TAINT_COPY_SIMPLE(INVOKESTATIC, TaintUtils.class, "getTaintCopySimple", TAINT_TAG_OBJ_CLASS, false, Object.class),
     ENSURE_UNBOXED(INVOKESTATIC, TaintUtils.class, "ensureUnboxed", Object.class, false, Object.class),
     // Methods from ControlTaintTagStack
-    CONTROL_STACK_PUSH_TAG_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", int[].class, false, TAINT_TAG_OBJ_CLASS, int[].class, int.class, int.class, ExceptionalTaintData.class, boolean.class),
-    CONTROL_STACK_PUSH_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", int[].class, false, TAINT_TAG_OBJ_CLASS, int[].class, int.class, int.class, boolean.class),
+    CONTROL_STACK_PUSH_TAG_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", int[].class, false, TAINT_TAG_OBJ_CLASS, int[].class, int.class, int.class, ExceptionalTaintData.class),
+    CONTROL_STACK_PUSH_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", int[].class, false, TAINT_TAG_OBJ_CLASS, int[].class, int.class, int.class),
     CONTROL_STACK_POP_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int[].class, int.class, ExceptionalTaintData.class),
     CONTROL_STACK_POP(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int[].class, int.class),
     CONTROL_STACK_POP_ALL_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int[].class, ExceptionalTaintData.class),
@@ -65,7 +65,6 @@ public enum TaintMethodRecord {
     CONTROL_STACK_PUSH_VARIANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushVariant", Void.TYPE, false, Taint.class, int.class, int.class, int.class),
     CONTROL_STACK_LOOP_AWARE_POP(INVOKEVIRTUAL, ControlTaintTagStack.class, "loopAwarePop", Void.TYPE, false, int.class),
     CONTROL_STACK_EXIT_LOOP_LEVEL(INVOKEVIRTUAL, ControlTaintTagStack.class, "exitLoopLevel", Void.TYPE, false, int.class),
-    CONTROL_STACK_COPY_REVISION_EXCLUDED_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyRevisionExcludedTag", Taint.class, false),
     // Methods from ControlTaintTagStackPool
     CONTROL_STACK_POOL_INSTANCE(INVOKESTATIC, ControlTaintTagStackPool.class, "instance", ControlTaintTagStack.class, false),
     // Methods from MultiDTaintedArray

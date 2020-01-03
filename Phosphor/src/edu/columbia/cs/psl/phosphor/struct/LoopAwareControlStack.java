@@ -152,7 +152,8 @@ public final class LoopAwareControlStack<E> {
             }
             if(branchLevels[branchID] == NOT_PUSHED) {
                 branchLevels[branchID] = level;
-                levelStackMap.put(level, new Node<>(Taint.combineTags(tag, levelStackMap.get(level).tag), levelStackMap.get(level)));
+                Taint<E> combined = Taint.combineTags(tag, levelStackMap.get(level).tag);
+                levelStackMap.put(level, new Node<>(combined, levelStackMap.get(level)));
             } else {
                 Node<E> r = levelStackMap.get(level);
                 r.tag = r.tag.union(tag);

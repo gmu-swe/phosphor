@@ -11,12 +11,10 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 public final class ControlTaintTagStack {
 
     public static final int PUSHED = 1;
-    public static final int PUSHED_REVISABLE = -1;
     public static final int NOT_PUSHED = 0;
     private static ControlTaintTagStack instance = new ControlTaintTagStack(true);
 
     private final SinglyLinkedList<Taint> taintHistory = new SinglyLinkedList<>();
-    private final SinglyLinkedList<Taint> revisionExcludedTaintHistory = new SinglyLinkedList<>();
     private final LoopAwareControlStack loopAwareControlStack;
     private int disabled;
     private SinglyLinkedList<MaybeThrownException> unthrownExceptions;
@@ -27,7 +25,6 @@ public final class ControlTaintTagStack {
         unthrownExceptions = null;
         influenceExceptions = null;
         taintHistory.push(Taint.emptyTaint()); // starting taint is null/empty
-        revisionExcludedTaintHistory.push(Taint.emptyTaint()); // starting taint is null/empty
         loopAwareControlStack = new LoopAwareControlStack();
     }
 
@@ -43,7 +40,6 @@ public final class ControlTaintTagStack {
         unthrownExceptions = other.unthrownExceptions == null ? null : other.unthrownExceptions.copy();
         influenceExceptions = other.influenceExceptions == null ? null : other.influenceExceptions.copy();
         taintHistory.push(other.taintHistory.peek());
-        revisionExcludedTaintHistory.push(other.revisionExcludedTaintHistory.peek());
         loopAwareControlStack = new LoopAwareControlStack(other.loopAwareControlStack);
     }
 
@@ -156,12 +152,12 @@ public final class ControlTaintTagStack {
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG)
-    public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, boolean revisable) {
-        return push(tag, branchTags, branchID, maxSize, null, revisable);
+    public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize) {
+        return push(tag, branchTags, branchID, maxSize, null);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG_EXCEPTION)
-    public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, ExceptionalTaintData curMethod, boolean revisable) {
+    public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, ExceptionalTaintData curMethod) {
         if(disabled != 0 || tag == null || tag.isEmpty()) {
             return branchTags;
         }
@@ -174,9 +170,6 @@ public final class ControlTaintTagStack {
             if(curMethod != null) {
                 curMethod.push(tag.union(taintHistory.peek()));
             }
-            if(!revisable) {
-                revisionExcludedTaintHistory.push(tag.union(revisionExcludedTaintHistory.peek()));
-            }
         } else {
             Taint r = taintHistory.peek();
             if(r != tag && !r.isSuperset(tag)) {
@@ -188,25 +181,16 @@ public final class ControlTaintTagStack {
                     curMethod.push(curMethod.pop().union(tag));
                 }
             }
-            if(!revisable) {
-                r = revisionExcludedTaintHistory.peek();
-                if(r != tag && !r.isSuperset(tag)) {
-                    revisionExcludedTaintHistory.push(revisionExcludedTaintHistory.pop().union(tag));
-                }
-            }
         }
-        branchTags[branchID] = revisable ? PUSHED_REVISABLE : PUSHED;
+        branchTags[branchID] = PUSHED;
         return branchTags;
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_EXCEPTION)
     public final void pop(int[] branchTags, int branchID, ExceptionalTaintData curMethod) {
-        if(branchTags != null && branchTags[branchID] != NOT_PUSHED) {
+        if(branchTags != null && branchTags[branchID] == PUSHED) {
             curMethod.pop();
             taintHistory.pop();
-            if(branchTags[branchID] == PUSHED) {
-                revisionExcludedTaintHistory.pop();
-            }
             branchTags[branchID] = NOT_PUSHED;
         }
     }
@@ -214,11 +198,8 @@ public final class ControlTaintTagStack {
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP)
     public final void pop(int[] branchTags, int branchID) {
         if(branchTags != null) {
-            if(branchTags[branchID] != NOT_PUSHED) {
-                taintHistory.pop();
-            }
             if(branchTags[branchID] == PUSHED) {
-                revisionExcludedTaintHistory.pop();
+                taintHistory.pop();
             }
             branchTags[branchID] = NOT_PUSHED;
         }
@@ -238,11 +219,8 @@ public final class ControlTaintTagStack {
     public final void pop(int[] branchTags) {
         if(branchTags != null) {
             for(int i = 0; i < branchTags.length; i++) {
-                if(branchTags[i] != NOT_PUSHED) {
+                if(branchTags[i] == PUSHED) {
                     taintHistory.pop();
-                    if(branchTags[i] == PUSHED) {
-                        revisionExcludedTaintHistory.pop();
-                    }
                     branchTags[i] = NOT_PUSHED;
                 }
             }
@@ -290,11 +268,6 @@ public final class ControlTaintTagStack {
         return disabled != 0 ? Taint.emptyTaint() : taintHistory.peek();
     }
 
-    @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_REVISION_EXCLUDED_TAG)
-    public Taint copyRevisionExcludedTag() {
-        return disabled != 0 ? Taint.emptyTaint() : revisionExcludedTaintHistory.peek();
-    }
-
     public final boolean isEmpty() {
         return disabled != 0 || taintHistory.peek().isEmpty();
     }
@@ -308,11 +281,6 @@ public final class ControlTaintTagStack {
         taintHistory.clear();
         for(int i = 0; i < size; i++) {
             taintHistory.push(Taint.emptyTaint());
-        }
-        size = revisionExcludedTaintHistory.size();
-        revisionExcludedTaintHistory.clear();
-        for(int i = 0; i < size; i++) {
-            revisionExcludedTaintHistory.push(Taint.emptyTaint());
         }
         loopAwareControlStack.reset();
         if(influenceExceptions != null) {
