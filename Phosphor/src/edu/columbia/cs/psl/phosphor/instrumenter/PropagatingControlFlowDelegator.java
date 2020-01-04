@@ -6,6 +6,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAd
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -22,11 +23,6 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
      * Visitor to which instruction visiting is delegated.
      */
     private final MethodVisitor delegate;
-
-    /**
-     * Visitor to which instruction visiting that needs to "pass through" the primary delegate is delegated.
-     */
-    private final MethodVisitor passThroughDelegate;
 
     /**
      * Tracks the current stack and local variable bindings.
@@ -68,11 +64,10 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
      */
     private int nextBranchID = -1;
 
-    public PropagatingControlFlowDelegator(MethodVisitor delegate, MethodVisitor passThroughDelegate, NeverNullArgAnalyzerAdapter analyzer,
+    public PropagatingControlFlowDelegator(MethodVisitor delegate, NeverNullArgAnalyzerAdapter analyzer,
                                            LocalVariableManager localVariableManager, int lastParameterIndex,
                                            Type[] paramTypes, int numberOfBranchIDs) {
         this.delegate = delegate;
-        this.passThroughDelegate = passThroughDelegate;
         this.analyzer = analyzer;
         this.localVariableManager = localVariableManager;
         this.lastParameterIndex = lastParameterIndex;
@@ -192,9 +187,9 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
     @Override
     public void onMethodExit(int opcode) {
         if(opcode == ATHROW) {
-            passThroughDelegate.visitInsn(DUP);
-            passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(passThroughDelegate);
+            delegate.visitInsn(DUP);
+            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+            COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
         }
     }
 
@@ -207,7 +202,7 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
     }
 
     @Override
-    public void visitingJump(int opcode) {
+    public void visitingJump(int opcode, Label label) {
         switch(opcode) {
             case Opcodes.IFEQ:
             case Opcodes.IFNE:
@@ -242,12 +237,21 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
                 executeForcedControlStores();
                 break;
         }
+        delegate.visitJumpInsn(opcode, label);
     }
 
     @Override
-    public void visitingSwitch() {
+    public void visitTableSwitch(int min, int max, Label defaultLabel, Label[] labels) {
         pushBranchStart();
         delegate.visitInsn(POP); // Remove the taint tag
+        delegate.visitTableSwitchInsn(min, max, defaultLabel, labels);
+    }
+
+    @Override
+    public void visitLookupSwitch(Label defaultLabel, int[] keys, Label[] labels) {
+        pushBranchStart();
+        delegate.visitInsn(POP); // Remove the taint tag
+        delegate.visitLookupSwitchInsn(defaultLabel, keys, labels);
     }
 
     // stack_pre = [taint]
@@ -281,14 +285,14 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
         if(branchID < 0) {
             callPopAll();
         } else {
-            passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfBranchesLV());
-            push(passThroughDelegate, branchID);
+            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfBranchesLV());
+            push(delegate, branchID);
             if(localVariableManager.getIndexOfMasterExceptionLV() >= 0) {
-                passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
-                CONTROL_STACK_POP_EXCEPTION.delegateVisit(passThroughDelegate);
+                delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
+                CONTROL_STACK_POP_EXCEPTION.delegateVisit(delegate);
             } else {
-                CONTROL_STACK_POP.delegateVisit(passThroughDelegate);
+                CONTROL_STACK_POP.delegateVisit(delegate);
             }
         }
     }
@@ -298,13 +302,13 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
      * being visited.
      */
     private void callPopAll() {
-        passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-        passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfBranchesLV());
+        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfBranchesLV());
         if(localVariableManager.getIndexOfMasterExceptionLV() >= 0) {
-            passThroughDelegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
-            CONTROL_STACK_POP_ALL_EXCEPTION.delegateVisit(passThroughDelegate);
+            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
+            CONTROL_STACK_POP_ALL_EXCEPTION.delegateVisit(delegate);
         } else {
-            CONTROL_STACK_POP_ALL.delegateVisit(passThroughDelegate);
+            CONTROL_STACK_POP_ALL.delegateVisit(delegate);
         }
     }
 

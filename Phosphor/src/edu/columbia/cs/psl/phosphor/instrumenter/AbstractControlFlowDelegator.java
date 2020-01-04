@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.CopyTagInfo;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ExitLoopLevelInfo;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopAwarePopInfo;
 import edu.columbia.cs.psl.phosphor.struct.Field;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 
 public abstract class AbstractControlFlowDelegator implements ControlFlowDelegator {
@@ -91,6 +92,21 @@ public abstract class AbstractControlFlowDelegator implements ControlFlowDelegat
 
     @Override
     public void visitingCopyTagInfo(CopyTagInfo info) {
+
+    }
+
+    @Override
+    public void visitingMaxs() {
+
+    }
+
+    @Override
+    public void visitingLabel(Label label) {
+
+    }
+
+    @Override
+    public void visitingFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack) {
 
     }
 }

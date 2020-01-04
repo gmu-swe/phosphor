@@ -289,6 +289,5 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
             super.visitEnd();
             this.accept(cmv);
         }
-
     }
 }

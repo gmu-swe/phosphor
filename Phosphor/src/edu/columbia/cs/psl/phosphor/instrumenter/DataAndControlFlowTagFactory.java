@@ -278,12 +278,12 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
     @Override
     public void lookupSwitch(Label defaultLabel, int[] keys, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV) {
-        mv.visitLookupSwitchInsn(defaultLabel, keys, labels);
+
     }
 
     @Override
     public void tableSwitch(int min, int max, Label defaultLabel, Label[] labels, MethodVisitor mv, LocalVariableManager lvs, TaintPassingMV taintPassingMV) {
-        mv.visitTableSwitchInsn(min, max, defaultLabel, labels);
+
     }
 
     @Override

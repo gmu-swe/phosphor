@@ -608,28 +608,14 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
     }
 
     /**
-     * @param insn the instruction to be checked
-     * @return true if the source of each operand or value used by the specified instruction is constant
-     */
-    public boolean hasConstantSources(AbstractInsnNode insn) {
-        if(effectMap.containsKey(insn)) {
-            InstructionEffect effect = effectMap.get(insn);
-            for(TracedValue source : effect.sources) {
-                if(!(source instanceof ConstantTracedValue)) {
-                    return false;
-                }
-            }
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
      * @return an unmodifiable mapping from the instructions analyzed by this interpreter to their loop levels
      */
     Map<AbstractInsnNode, LoopLevel> getLoopLevelMap() {
         return loopLevelMap;
+    }
+
+    public LoopLevel getLoopLevel(AbstractInsnNode insn) {
+        return loopLevelMap.get(insn);
     }
 
     private boolean isSameValue(TracedValue value1, TracedValue value2) {

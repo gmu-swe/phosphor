@@ -152,5 +152,9 @@ public interface LoopLevel {
             push(mv, levelOffset);
             CONTROL_STACK_PUSH_VARIANT.delegateVisit(mv);
         }
+
+        public int getLevelOffset() {
+            return levelOffset;
+        }
     }
 }

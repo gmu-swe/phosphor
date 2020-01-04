@@ -25,6 +25,23 @@ public class GeneralBindingControlITCase extends BaseMultiTaintClass {
     }
 
     @Test
+    public void testBasicSwitch() {
+        int x = MultiTainter.taintedInt(88, "testBasicSwitch");
+        int y;
+        switch(x) {
+            case 0:
+            case 1:
+                y = 5;
+                break;
+            case 40:
+            case 88:
+            default:
+                y = 7;
+        }
+        assertTaintHasOnlyLabel(MultiTainter.getTaint(y), "testBasicSwitch");
+    }
+
+    @Test
     public void testBranchBeforeSuper() {
         Parent p = new Child(MultiTainter.taintedBoolean(true, "testBranchBeforeSuper"));
         assertTaintHasOnlyLabel(MultiTainter.getTaint(p.i), "testBranchBeforeSuper");

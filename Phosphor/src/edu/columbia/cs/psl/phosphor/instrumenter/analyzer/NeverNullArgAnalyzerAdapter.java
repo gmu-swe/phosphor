@@ -526,7 +526,6 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         this.locals = null;
         this.stack = null;
         this.stackConstantVals = null;
-
     }
 
     @Override
@@ -539,7 +538,6 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         this.locals = null;
         this.stack = null;
         this.stackConstantVals = null;
-
     }
 
     @Override

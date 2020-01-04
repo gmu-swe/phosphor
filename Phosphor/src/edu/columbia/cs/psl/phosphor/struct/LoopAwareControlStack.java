@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Arrays;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 
 public final class LoopAwareControlStack<E> {
 
@@ -237,6 +238,18 @@ public final class LoopAwareControlStack<E> {
         @SuppressWarnings("unchecked")
         static <E> Node<E> emptyNode() {
             return (Node<E>) EMPTY_NODE;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder("[");
+            for(Node<E> cur = this; cur != null; cur = cur.next) {
+                builder.append(cur.tag);
+                if(cur.next != null) {
+                    builder.append(", ");
+                }
+            }
+            return builder.append("]").toString();
         }
     }
 }

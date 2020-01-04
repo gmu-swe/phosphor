@@ -1,11 +1,10 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Collection;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Collections;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
-import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.PropagatingControlFlowDelegator.push;
+import static org.objectweb.asm.Opcodes.*;
 
 public abstract class BranchStartInfo implements PhosphorInstructionInfo {
 
@@ -13,72 +12,77 @@ public abstract class BranchStartInfo implements PhosphorInstructionInfo {
 
     }
 
-    public static final class SingleIDBranch extends BranchStartInfo {
+    public static final class JumpStartInfo extends BranchStartInfo {
+        private final EdgeInfo notTaken;
+        private final EdgeInfo label;
+
+        JumpStartInfo(EdgeInfo notTaken, EdgeInfo label) {
+            this.notTaken = notTaken;
+            this.label = label;
+        }
+
+        public EdgeInfo getNotTaken() {
+            return notTaken;
+        }
+
+        public EdgeInfo getLabel() {
+            return label;
+        }
+    }
+
+    public static final class SwitchStartInfo extends BranchStartInfo {
+        private final EdgeInfo defaultLabel;
+        private final EdgeInfo[] labels;
+
+        SwitchStartInfo(EdgeInfo defaultLabel, EdgeInfo[] labels) {
+            this.defaultLabel = defaultLabel;
+            this.labels = labels;
+        }
+
+        public EdgeInfo getDefaultLabel() {
+            return defaultLabel;
+        }
+
+        public EdgeInfo[] getLabels() {
+            return labels;
+        }
+    }
+
+    public abstract static class EdgeInfo {
+        private EdgeInfo() {
+
+        }
+
+        public abstract void pushTag(MethodVisitor mv, int indexOfMasterControlLV, int numberOfBranchIDs);
+    }
+
+    static class PropagatingEdgeInfo extends EdgeInfo {
         private final LoopLevel level;
         private final int branchID;
 
-        SingleIDBranch(LoopLevel level, int branchID) {
-            if(level == null) {
-                throw new NullPointerException();
-            }
+        PropagatingEdgeInfo(LoopLevel level, int branchID) {
             this.level = level;
             this.branchID = branchID;
         }
 
-        public LoopLevel getLevel() {
-            return level;
-        }
-
-        public int getBranchID() {
-            return branchID;
-        }
-    }
-
-    public static final class MultiIDBranch extends BranchStartInfo {
-
-        private final List<BranchEdge> edges;
-
-        MultiIDBranch(Collection<? extends BranchEdge> edges) {
-            this.edges = Collections.unmodifiableList(new ArrayList<>(edges));
-        }
-
-        public List<BranchEdge> getEdges() {
-            return edges;
+        @Override
+        public void pushTag(MethodVisitor mv, int indexOfMasterControlLV, int numberOfBranchIDs) {
+            // T
+            mv.visitVarInsn(ALOAD, indexOfMasterControlLV);
+            // T T ControlTaintTagStack
+            mv.visitInsn(SWAP);
+            // T ControlTaintTagStack T
+            push(mv, branchID);
+            push(mv, numberOfBranchIDs);
+            // T ControlTaintTagStack T int int
+            level.pushTag(mv);
         }
     }
 
-    public static class BranchEdge {
-        // Target of the branch or null if the edge is the branch no taken case
-        private final Label target;
-
-        BranchEdge(Label target) {
-            this.target = target;
-        }
-
-        public Label getTarget() {
-            return target;
-        }
-    }
-
-    public static final class PropagatingBranchEdge extends BranchEdge {
-        private final LoopLevel level;
-        private final int branchID;
-
-        PropagatingBranchEdge(LoopLevel level, int branchID, Label target) {
-            super(target);
-            if(level == null) {
-                throw new NullPointerException();
-            }
-            this.level = level;
-            this.branchID = branchID;
-        }
-
-        public LoopLevel getLevel() {
-            return level;
-        }
-
-        public int getBranchID() {
-            return branchID;
+    static class NonPropagatingEdgeInfo extends EdgeInfo {
+        @Override
+        public void pushTag(MethodVisitor mv, int indexOfMasterControlLV, int numberOfBranchIDs) {
+            mv.visitInsn(POP);
         }
     }
 }

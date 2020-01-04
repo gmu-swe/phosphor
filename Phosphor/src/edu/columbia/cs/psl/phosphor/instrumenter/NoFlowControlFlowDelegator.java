@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.NEW_EMPTY_TAINT;
@@ -25,7 +26,7 @@ public class NoFlowControlFlowDelegator extends AbstractControlFlowDelegator {
     }
 
     @Override
-    public void visitingJump(int opcode) {
+    public void visitingJump(int opcode, Label label) {
         switch(opcode) {
             case IFNULL:
             case IFNONNULL:
@@ -50,11 +51,18 @@ public class NoFlowControlFlowDelegator extends AbstractControlFlowDelegator {
                 delegate.visitInsn(POP);
                 break;
         }
+        delegate.visitJumpInsn(opcode, label);
     }
 
     @Override
-    public void visitingSwitch() {
-        // Remove the taint tag
-        delegate.visitInsn(POP);
+    public void visitTableSwitch(int min, int max, Label defaultLabel, Label[] labels) {
+        delegate.visitInsn(POP); // Remove the taint tag
+        delegate.visitTableSwitchInsn(min, max, defaultLabel, labels);
+    }
+
+    @Override
+    public void visitLookupSwitch(Label defaultLabel, int[] keys, Label[] labels) {
+        delegate.visitInsn(POP); // Remove the taint tag
+        delegate.visitLookupSwitchInsn(defaultLabel, keys, labels);
     }
 }
