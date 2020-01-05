@@ -17,6 +17,7 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
 import java.util.Iterator;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.ConstantLoopLevel.CONSTANT_LOOP_LEVEL;
+import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace.TracingInterpreter.*;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
@@ -80,21 +81,27 @@ public class BindingControlFlowAnalyzer {
         FlowGraph<BasicBlock> controlFlowGraph = creator.createControlFlowGraph(methodNode);
         Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap = getContainingLoops(instructions, controlFlowGraph);
         TracingInterpreter interpreter = new TracingInterpreter(owner, methodNode, containingLoopMap, controlFlowGraph);
-        Set<AbstractInsnNode> exclusionCandidates = interpreter.identifyRevisionExcludedInstructions();
         Set<BindingBranchEdge> bindingEdges = filterBindingEdges(creator.bindingBranchEdges, controlFlowGraph);
         int numberOfUniqueBranchIDs = assignBranchIDs(bindingEdges);
         calculateLoopLevels(bindingEdges, controlFlowGraph, containingLoopMap, interpreter);
         markBranches(instructions, controlFlowGraph, bindingEdges);
-
-        // TODO: Change to use constancy info
-        // Mark all revision-excluded instructions
-        for(AbstractInsnNode exclusionCandidate : exclusionCandidates) {
-            instructions.insertBefore(exclusionCandidate, new LdcInsnNode(new CopyTagInfo(CONSTANT_LOOP_LEVEL)));
-        }
+        addCopyTagInfo(instructions, interpreter);
         markLoopExits(instructions, controlFlowGraph, containingLoopMap);
         // Add constancy information for method calls
         addConstancyInfoNodes(instructions, interpreter);
         return numberOfUniqueBranchIDs;
+    }
+
+    private static void addCopyTagInfo(InsnList instructions, TracingInterpreter interpreter) {
+        Iterator<AbstractInsnNode> itr = instructions.iterator();
+        while(itr.hasNext()) {
+            AbstractInsnNode insn = itr.next();
+            if(isPushConstantInsn(insn) || insn.getOpcode() == IINC) {
+                instructions.insertBefore(insn, new LdcInsnNode(new CopyTagInfo(CONSTANT_LOOP_LEVEL)));
+            } else if(isArrayStoreInsn(insn) || isFieldStoreInsn(insn) || isLocalVariableStoreInsn(insn)) {
+                instructions.insertBefore(insn, new LdcInsnNode(new CopyTagInfo(interpreter.getLoopLevel(insn))));
+            }
+        }
     }
 
     private static void calculateLoopLevels(Set<BindingBranchEdge> edges, FlowGraph<BasicBlock> controlFlowGraph,

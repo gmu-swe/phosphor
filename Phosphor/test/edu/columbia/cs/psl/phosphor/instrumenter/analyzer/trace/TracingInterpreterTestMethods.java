@@ -210,16 +210,6 @@ public class TracingInterpreterTestMethods {
         a[0] = b[0] + 1; // variant +0
     }
 
-    public static void indexOf() {
-        int z = 0; // constant
-        int[] a = new int[5]; // variant +0
-        for(/* constant */ int i = 0; i < a.length; i++) {
-            if(a[i] == 0) {
-                z = i; // variant +1
-            }
-        }
-    }
-
     public static void arrayElementRedefined(int[] a1) {
         int i = a1[0]; // variant +0
         a1[0] = 9; // dependent on arg0
@@ -230,5 +220,26 @@ public class TracingInterpreterTestMethods {
         int i = a1[0]; // variant +0
         arrayElementRedefined(a1);
         a1[0] = i + 6; // variant +0
+    }
+
+    public static void indexOf() {
+        int z = 0; // constant
+        int[] a = new int[5]; // variant +0
+        for(/* constant */ int i = 0; i < a.length; i++) {
+            if(a[i] == 0) {
+                z = i; // variant +1
+            }
+        }
+    }
+
+    public static void indexOfBreak() {
+        int z = 0; // constant
+        int[] a = new int[5]; // variant +0
+        for(/*constant */ int i = 0; i < a.length; i++) {
+            if(a[i] == 0) {
+                z = i; // variant +1
+                break;
+            }
+        }
     }
 }

@@ -8,7 +8,6 @@ import org.junit.Test;
 
 import static edu.columbia.cs.psl.test.phosphor.binding.GeneralBindingControlITCase.taintWithIndices;
 
-@Ignore("Currently unimplemented")
 public class InterMethodLoopBindingControlITCase extends BaseMultiTaintClass {
 
     @Test
@@ -22,7 +21,7 @@ public class InterMethodLoopBindingControlITCase extends BaseMultiTaintClass {
                 e.setX(5);
             }
         }
-        assertNullOrEmpty(MultiTainter.getTaint(e));
+        assertNullOrEmpty(MultiTainter.getTaint(e.getX()));
     }
 
     @Test
@@ -38,7 +37,7 @@ public class InterMethodLoopBindingControlITCase extends BaseMultiTaintClass {
             }
         }
         for(int i = 0; i < values.length; i++) {
-            Taint<?> tag = MultiTainter.getTaint(es[i]);
+            Taint<?> tag = MultiTainter.getTaint(es[i].getX());
             if(i % 2 == 0) {
                 assertTaintHasOnlyLabel(tag, i);
             } else {
@@ -59,7 +58,7 @@ public class InterMethodLoopBindingControlITCase extends BaseMultiTaintClass {
                 e.setX(i);
             }
         }
-        Taint<?> tag = MultiTainter.getTaint(e);
+        Taint<?> tag = MultiTainter.getTaint(e.getX());
         assertTaintHasOnlyLabel(tag, 2);
     }
 
@@ -77,7 +76,7 @@ public class InterMethodLoopBindingControlITCase extends BaseMultiTaintClass {
             }
         }
         for(int i = 0; i < values.length; i++) {
-            Taint<?> tag = MultiTainter.getTaint(es[i]);
+            Taint<?> tag = MultiTainter.getTaint(es[i].getX());
             if(i % 2 == 0) {
                 assertTaintHasOnlyLabel(tag, i);
             } else {

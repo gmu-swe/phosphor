@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.trace;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.ConstantLoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.DependentLoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.VariantLoopLevel;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.graph.BasicBlock;
@@ -18,7 +17,6 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.Interpreter;
 
-import java.util.Iterator;
 import java.util.List;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.LoopLevel.ConstantLoopLevel.CONSTANT_LOOP_LEVEL;
@@ -535,6 +533,17 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
         return info;
     }
 
+    public LoopLevel getLoopLevel(AbstractInsnNode insn) {
+        return loopLevelMap.get(insn);
+    }
+
+    /**
+     * @return an unmodifiable mapping from the instructions analyzed by this interpreter to their loop levels
+     */
+    Map<AbstractInsnNode, LoopLevel> getLoopLevelMap() {
+        return loopLevelMap;
+    }
+
     private Map<AbstractInsnNode, LoopLevel> calculateLoopLevelMap() {
         Map<AbstractInsnNode, LoopLevel> tempLoopLevelMap = new HashMap<>();
         for(AbstractInsnNode insn : effectMap.keySet()) {
@@ -593,29 +602,6 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
             return sources;
         }
         return new HashSet<>(Arrays.asList(effect.sources));
-    }
-
-    public Set<AbstractInsnNode> identifyRevisionExcludedInstructions() {
-        Set<AbstractInsnNode> exclusions = new HashSet<>();
-        Iterator<AbstractInsnNode> itr = instructions.iterator();
-        while(itr.hasNext()) {
-            AbstractInsnNode insn = itr.next();
-            if(loopLevelMap.containsKey(insn) && loopLevelMap.get(insn) instanceof ConstantLoopLevel) {
-                exclusions.add(insn);
-            }
-        }
-        return exclusions;
-    }
-
-    /**
-     * @return an unmodifiable mapping from the instructions analyzed by this interpreter to their loop levels
-     */
-    Map<AbstractInsnNode, LoopLevel> getLoopLevelMap() {
-        return loopLevelMap;
-    }
-
-    public LoopLevel getLoopLevel(AbstractInsnNode insn) {
-        return loopLevelMap.get(insn);
     }
 
     private boolean isSameValue(TracedValue value1, TracedValue value2) {
@@ -768,16 +754,16 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
                 variantLoops.addAll(((VariantTracedValue) source).getVariantLoops());
             }
         }
-        Set<NaturalLoop<BasicBlock>> containingVariantLoops = new HashSet<>(containingLoopMap.get(insn));
-        containingVariantLoops.retainAll(variantLoops);
-        return new VariantLoopLevel(containingVariantLoops.size());
+        // Set<NaturalLoop<BasicBlock>> containingVariantLoops = new HashSet<>(containingLoopMap.get(insn));
+        // containingVariantLoops.retainAll(variantLoops);
+        return new VariantLoopLevel(variantLoops.size());
     }
 
     /**
      * @param insn the instruction being checked
      * @return true if the specified instruction stores a value into a field
      */
-    private static boolean isFieldStoreInsn(AbstractInsnNode insn) {
+    public static boolean isFieldStoreInsn(AbstractInsnNode insn) {
         return insn.getOpcode() == PUTFIELD || insn.getOpcode() == PUTSTATIC;
     }
 
@@ -785,7 +771,7 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
      * @param insn the instruction being checked
      * @return true if the specified instruction loads a value from a field
      */
-    private static boolean isFieldLoadInsn(AbstractInsnNode insn) {
+    public static boolean isFieldLoadInsn(AbstractInsnNode insn) {
         return insn.getOpcode() == GETFIELD || insn.getOpcode() == GETSTATIC;
     }
 
@@ -793,7 +779,7 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
      * @param insn the instruction being checked
      * @return true if the specified instruction stores a value into an array
      */
-    private static boolean isArrayStoreInsn(AbstractInsnNode insn) {
+    public static boolean isArrayStoreInsn(AbstractInsnNode insn) {
         return insn.getOpcode() >= IASTORE && insn.getOpcode() <= SASTORE;
     }
 
@@ -801,7 +787,7 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
      * @param insn the instruction being checked
      * @return true if the specified instruction loads a value from an array
      */
-    private static boolean isArrayLoadInsn(AbstractInsnNode insn) {
+    public static boolean isArrayLoadInsn(AbstractInsnNode insn) {
         return insn.getOpcode() >= IALOAD && insn.getOpcode() <= SALOAD;
     }
 
@@ -809,7 +795,7 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
      * @param insn the instruction being checked
      * @return true if the specified instruction stores a value into a local variable
      */
-    private static boolean isLocalVariableStoreInsn(AbstractInsnNode insn) {
+    public static boolean isLocalVariableStoreInsn(AbstractInsnNode insn) {
         return insn.getOpcode() >= ISTORE && insn.getOpcode() <= ASTORE;
     }
 
@@ -817,7 +803,7 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
      * @param insn the instruction being checked
      * @return true if the specified instruction pushes a constant onto the runtime stack
      */
-    private static boolean isPushConstantInsn(AbstractInsnNode insn) {
+    public static boolean isPushConstantInsn(AbstractInsnNode insn) {
         return insn.getOpcode() >= ACONST_NULL && insn.getOpcode() <= LDC;
     }
 
@@ -826,7 +812,7 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
      * @return true if the specified instruction performs an arithmetic or logical computation
      * runtime stack and pushes the result onto the runtime stack
      */
-    private static boolean isArithmeticOrLogicalInsn(AbstractInsnNode insn) {
+    public static boolean isArithmeticOrLogicalInsn(AbstractInsnNode insn) {
         return insn.getOpcode() >= IADD && insn.getOpcode() <= DCMPG;
     }
 

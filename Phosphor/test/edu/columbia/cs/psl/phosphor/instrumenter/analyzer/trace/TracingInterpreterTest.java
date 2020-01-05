@@ -236,19 +236,6 @@ public class TracingInterpreterTest {
     }
 
     @Test
-    public void testIndexOf() throws Exception {
-        MethodNode mn = getMethodNode("indexOf");
-        Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
-        List<LoopLevel> expected = Arrays.asList(
-                CONSTANT_LOOP_LEVEL,
-                new VariantLoopLevel(0),
-                CONSTANT_LOOP_LEVEL,
-                new VariantLoopLevel(1)
-        );
-        assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
-    }
-
-    @Test
     public void testArrayElementRedefined() throws Exception {
         MethodNode mn = getMethodNode("arrayElementRedefined");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
@@ -267,6 +254,32 @@ public class TracingInterpreterTest {
         List<LoopLevel> expected = Arrays.asList(
                 new VariantLoopLevel(0),
                 new VariantLoopLevel(0)
+        );
+        assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
+    }
+
+    @Test
+    public void testIndexOf() throws Exception {
+        MethodNode mn = getMethodNode("indexOf");
+        Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
+        List<LoopLevel> expected = Arrays.asList(
+                CONSTANT_LOOP_LEVEL,
+                new VariantLoopLevel(0),
+                CONSTANT_LOOP_LEVEL,
+                new VariantLoopLevel(1)
+        );
+        assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
+    }
+
+    @Test
+    public void testIndexOfBreak() throws Exception {
+        MethodNode mn = getMethodNode("indexOfBreak");
+        Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
+        List<LoopLevel> expected = Arrays.asList(
+                CONSTANT_LOOP_LEVEL,
+                new VariantLoopLevel(0),
+                CONSTANT_LOOP_LEVEL,
+                new VariantLoopLevel(1)
         );
         assertEquals(expected, getLoopLevels(getStoreInstructions(mn), loopLevelMap));
     }
