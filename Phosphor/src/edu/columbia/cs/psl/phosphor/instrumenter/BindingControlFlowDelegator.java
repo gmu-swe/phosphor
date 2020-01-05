@@ -23,7 +23,7 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class BindingControlFlowDelegator extends AbstractControlFlowDelegator {
 
-    private static LoopLevel defaultLevel = new VariantLoopLevel(1);
+    private static LoopLevel defaultLevel = new VariantLoopLevel(0);
 
     /**
      * Visitor to which instruction visiting is delegated.
