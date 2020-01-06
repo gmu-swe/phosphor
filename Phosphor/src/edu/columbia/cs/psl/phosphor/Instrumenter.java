@@ -91,6 +91,10 @@ public class Instrumenter {
     static Option opt_bindingControl = Option.builder("bindingControlTracking")
             .desc("Enable tag propagation due to certain control flows where values are bound to a particular.")
             .build();
+    static Option opt_quiet = Option.builder("q")
+            .longOpt("quiet")
+            .desc("Reduces the amount of command line output produced by Phosphor.")
+            .build();
     static Option help = Option.builder("help")
             .desc("print this message")
             .build();
@@ -207,7 +211,7 @@ public class Instrumenter {
             // n is shared among threads, but is used only to provide progress feedback
             // Therefore, it's ok to increment it in a non-thread-safe way
             n++;
-            if(n % 1000 == 0) {
+            if(!Configuration.QUIET_MODE && n % 1000 == 0) {
                 System.out.println("Processed: " + n + "/" + nTotal);
             }
             curPath = path;
@@ -261,6 +265,7 @@ public class Instrumenter {
         options.addOption(opt_alwaysCheckForFrames);
         options.addOption(opt_priorClassVisitor);
         options.addOption(opt_reenableCaches);
+        options.addOption(opt_quiet);
         CommandLineParser parser = new DefaultParser();
         CommandLine line;
         try {
@@ -297,6 +302,7 @@ public class Instrumenter {
         Configuration.IMPLICIT_HEADERS_NO_TRACKING = line.hasOption(opt_implicitHeadersNoTracking.getOpt());
         Configuration.BINDING_CONTROL_FLOWS_ONLY = line.hasOption(opt_bindingControl.getOpt());
         Configuration.REENABLE_CACHES = line.hasOption(opt_reenableCaches.getOpt());
+        Configuration.QUIET_MODE = line.hasOption(opt_quiet.getOpt()) || line.hasOption(opt_quiet.getLongOpt());
         String priorClassVisitorName = line.getOptionValue(opt_priorClassVisitor.getOpt());
         if(priorClassVisitorName != null) {
             try {
