@@ -262,6 +262,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     //obj taint val
                     if(descType.getSort() == Type.ARRAY || descType.getSort() == Type.OBJECT) {
                         ENSURE_UNBOXED.delegateVisit(mv);
+                        mv.visitTypeInsn(Opcodes.CHECKCAST, descType.getInternalName());
                     }
                     if(descType.getSize() == 2) {
                         super.visitInsn(DUP2_X1);
@@ -276,6 +277,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     super.visitInsn(POP);
                     if(descType.getSort() == Type.ARRAY || descType.getSort() == Type.OBJECT) {
                         ENSURE_UNBOXED.delegateVisit(mv);
+                        mv.visitTypeInsn(Opcodes.CHECKCAST, descType.getInternalName());
                     }
                     super.visitFieldInsn(opcode, owner, name, desc);
                     return;
@@ -642,7 +644,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         if(bsmArgs != null) {
 
             //Are we remapping something with a primitive return that gets ignored?
-            if(bsm.getName().equals("metafactory")) {
+            if(bsm.getName().equals("metafactory") || bsm.getName().equals("altMetafactory")) {
                 Handle implMethod = (Handle) bsmArgs[1];
 
                 boolean isNEW = implMethod.getTag() == Opcodes.H_NEWINVOKESPECIAL;

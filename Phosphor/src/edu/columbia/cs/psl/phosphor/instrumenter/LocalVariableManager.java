@@ -98,7 +98,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         }
     }
 
-    void freeTmpLV(int idx) {
+    public void freeTmpLV(int idx) {
         for(TmpLV v : tmpLVs) {
             if(v.idx == idx && v.inUse) {
                 Label lbl = new Label();
@@ -259,7 +259,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     /**
      * Gets a tmp lv capable of storing the top stack el
      */
-    int getTmpLV() {
+    public int getTmpLV() {
         Object obj = analyzer.stack.get(analyzer.stack.size() - 1);
         if(obj instanceof String) {
             return getTmpLV(Type.getObjectType((String) obj));
@@ -288,7 +288,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         return getTmpLV(Type.getType("Ljava/lang/Object;"));
     }
 
-    int getTmpLV(Type t) {
+    public int getTmpLV(Type t) {
         if(t.getDescriptor().equals("java/lang/Object;")) {
             throw new IllegalArgumentException();
         }
