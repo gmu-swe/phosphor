@@ -78,6 +78,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
     private List<FieldNode> myFields = new LinkedList<>();
     private List<MethodNode> myMethods = new LinkedList<>();
     private Set<String> nonBridgeMethodsReturnsErased = new HashSet<>();
+    private Set<String> visitedBridgeMethodsReturnsErased = new HashSet<>();
 
     public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields, Set<String> nonBridgeMethodsReturnsErased) {
         super(Configuration.ASM_VERSION, cv);
@@ -258,9 +259,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        if((Opcodes.ACC_BRIDGE & access) != 0 && nonBridgeMethodsReturnsErased.contains(name + "." + desc.substring(0, desc.indexOf(')')))) {
-            //don't instrument this, it's just a bridge method and when we rewrite the return type it will already exist
-            return super.visitMethod(access, name, desc, signature, exceptions);
+        if((Opcodes.ACC_BRIDGE & access) != 0){
+            String key = name + "."+desc.substring(0, desc.indexOf(')'));
+            if(nonBridgeMethodsReturnsErased.contains(key) || !visitedBridgeMethodsReturnsErased.add(key)) {
+                //don't instrument this, it's just a bridge method and when we rewrite the return type it will already exist
+                return super.visitMethod(access, name, desc, signature, exceptions);
+            }
         }
         if(name.equals("hashCode") && desc.equals("()I")) {
             generateHashCode = false;

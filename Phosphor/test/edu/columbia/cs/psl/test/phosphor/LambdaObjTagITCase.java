@@ -3,9 +3,9 @@ package edu.columbia.cs.psl.test.phosphor;
 import static java.security.AccessController.doPrivileged;
 import static org.junit.Assert.*;
 
-import java.io.IOException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -60,6 +60,12 @@ public class LambdaObjTagITCase extends BasePhosphorTest{
 	@Test
 	public void testLambdaIntArg() throws Exception {
 		intArg(new int[10]);
+	}
+
+	@Test
+	public void testLocalDateTimeDoesntCrash() throws Exception {
+		LocalDateTime.now();
+		//Just testing to make sure no exception
 	}
 
 	void initStreams(int[] arg) {

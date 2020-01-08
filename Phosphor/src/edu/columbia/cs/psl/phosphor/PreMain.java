@@ -183,8 +183,8 @@ public class PreMain {
                     ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
                     ClassVisitor _cv = cw;
                     if(traceClass) {
-                        System.out.println("Saving " + className);
-                        File f = new File("debug/" + className.replace("/", ".") + ".class");
+                        System.out.println("Saving " + className + " to debug-preinst/");
+                        File f = new File("debug-preinst/" + className.replace("/", ".") + ".class");
                         if(!f.getParentFile().isDirectory() && !f.getParentFile().mkdirs()) {
                             System.err.println("Failed to make debug directory: " + f);
                         } else {
@@ -237,7 +237,13 @@ public class PreMain {
                     }
                     _cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
                     cr.accept(_cv, ClassReader.EXPAND_FRAMES);
-                    return cw.toByteArray();
+                    byte[] instrumentedBytes = cw.toByteArray();
+                    if (!traceClass && (DEBUG || TaintUtils.VERIFY_CLASS_GENERATION)) {
+                        ClassReader cr2 = new ClassReader(instrumentedBytes);
+                        cr2.accept(new CheckClassAdapter(new ClassWriter(0), true), ClassReader.EXPAND_FRAMES);
+                    }
+
+                    return instrumentedBytes;
                 } catch(MethodTooLargeException ex) {
                     if(methodsToReduceSizeOf == null) {
                         methodsToReduceSizeOf = new HashSet<>();
@@ -245,9 +251,11 @@ public class PreMain {
                     methodsToReduceSizeOf.add(ex.getMethodName() + ex.getDescriptor());
                     return instrumentWithRetry(cr, classFileBuffer, isiFace, className, skipFrames, upgradeVersion, fields, nonBridgeMethodsErasedReturnTypes, methodsToReduceSizeOf, false);
                 }
-            } catch(Throwable ex) {
+            } catch (Throwable ex) {
                 INSTRUMENTATION_EXCEPTION_OCCURRED = true;
-                if(!traceClass) {
+                if (!traceClass) {
+                    System.err.println("Exception occurred while instrumenting " + className + ":");
+                    ex.printStackTrace();
                     instrumentWithRetry(cr, classFileBuffer, isiFace, className, skipFrames, upgradeVersion, fields, nonBridgeMethodsErasedReturnTypes, methodsToReduceSizeOf, true);
                     return classFileBuffer;
                 }
@@ -257,8 +265,8 @@ public class PreMain {
                     PrintWriter pw = new PrintWriter(new FileWriter("lastClass.txt"));
                     debugTracer.p.print(pw);
                     pw.flush();
-                } catch(IOException e) {
-                    e.printStackTrace();
+                } catch (IOException ex2) {
+                    ex2.printStackTrace();
                 }
                 return classFileBuffer;
             }
@@ -424,10 +432,6 @@ public class PreMain {
                         FileOutputStream fos = new FileOutputStream(f);
                         fos.write(instrumentedBytes);
                         fos.close();
-                    }
-                    if(DEBUG || TaintUtils.VERIFY_CLASS_GENERATION) {
-                        ClassReader cr2 = new ClassReader(instrumentedBytes);
-                        cr2.accept(new CheckClassAdapter(new ClassWriter(0), true), ClassReader.EXPAND_FRAMES);
                     }
 
                     if(Configuration.CACHE_DIR != null) {
