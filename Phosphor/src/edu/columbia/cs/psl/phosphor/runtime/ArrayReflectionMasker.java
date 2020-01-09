@@ -387,8 +387,10 @@ public class ArrayReflectionMasker {
                 setInt$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, (Integer) val, valTaint);
             } else if(obj instanceof LazyLongArrayObjTags) {
                 setLong$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, (Long) val, valTaint);
-            } else if(obj instanceof LazyShortArrayObjTags) {
+            } else if (obj instanceof LazyShortArrayObjTags) {
                 setShort$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, (Short) val, valTaint);
+            } else if (obj instanceof LazyReferenceArrayObjTags) {
+                ((LazyReferenceArrayObjTags) obj).set(referenceTaint, idx, idxTaint, val, valTaint);
             } else {
                 throw new ArrayStoreException("Got passed an obj of type " + obj + " to store to");
             }
@@ -416,6 +418,8 @@ public class ArrayReflectionMasker {
                 setLong$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, (Long) val, valTaint, ctrl);
             } else if(obj instanceof LazyShortArrayObjTags) {
                 setShort$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, (Short) val, valTaint, ctrl);
+            } else if(obj instanceof LazyReferenceArrayObjTags){
+                ((LazyReferenceArrayObjTags) obj).set(referenceTaint, idx, idxTaint, val, valTaint, ctrl);
             } else {
                 throw new ArrayStoreException("Got passed an obj of type " + obj + " to store to");
             }

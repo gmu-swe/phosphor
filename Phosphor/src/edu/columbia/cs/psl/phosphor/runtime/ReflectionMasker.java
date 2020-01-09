@@ -228,7 +228,7 @@ public class ReflectionMasker {
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = ADD_TYPE_PARAMS)
     public static LazyReferenceArrayObjTags addTypeParams(Class<?> clazz, LazyReferenceArrayObjTags params, boolean implicitTracking) {
-        if(isIgnoredClass(clazz) || params.val == null) {
+        if(isIgnoredClass(clazz) || params == null || params.val == null) {
             return params;
         }
         boolean needsChange = true;
