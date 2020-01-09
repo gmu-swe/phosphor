@@ -26,7 +26,7 @@ fi
 #    fi
     if [ ! -d "target/dacapo-inst-obj" ]; then
     echo "Creating obj tag instrumented dacapo";
-    java -Xmx6g -XX:MaxPermSize=512m  -jar $PHOSPHOR_JAR -forceUnboxAcmpEq -withEnumsByValue $DACAPO_DIR target/dacapo-inst-obj;
+    java -Xmx6g -XX:MaxPermSize=512m  -jar $PHOSPHOR_JAR -q -forceUnboxAcmpEq -withEnumsByValue $DACAPO_DIR target/dacapo-inst-obj;
     else
     echo "Not regenerating obj tag instrumented dacapo";
     fi
