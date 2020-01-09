@@ -300,6 +300,10 @@ public class TaintUtils {
     }
 
     public static String remapMethodDescAndIncludeReturnHolder(boolean isVirtual, String desc) {
+        return remapMethodDescAndIncludeReturnHolder(isVirtual, desc, true);
+    }
+
+    public static String remapMethodDescAndIncludeReturnHolder(boolean isVirtual, String desc, boolean addErasedTypes) {
         StringBuilder ret = new StringBuilder();
         ret.append('(');
         StringBuilder wrapped = new StringBuilder();
@@ -307,36 +311,38 @@ public class TaintUtils {
             ret.append(Configuration.TAINT_TAG_DESC);
         }
         boolean ctrlAdded = !(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING);
-        for(Type t : Type.getArgumentTypes(desc)) {
-            if(!ctrlAdded && t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
+        for (Type t : Type.getArgumentTypes(desc)) {
+            if (!ctrlAdded && t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
                 ctrlAdded = true;
                 ret.append(Type.getDescriptor(ControlTaintTagStack.class));
             }
-            if(isWrappedType(t)) {
+            if (isWrappedType(t)) {
                 ret.append(getWrapperType(t));
             } else {
                 ret.append(t);
             }
-            if(isWrappedTypeWithErasedType(t)) {
+            if (isWrappedTypeWithErasedType(t)) {
                 wrapped.append(t.getDescriptor());
             }
-            if(isShadowedType(t)) {
+            if (isShadowedType(t)) {
                 ret.append(Configuration.TAINT_TAG_DESC);
             }
         }
-        if(!ctrlAdded) {
+        if (!ctrlAdded) {
             ret.append(Type.getDescriptor(ControlTaintTagStack.class));
         }
-        if(Type.getReturnType(desc).getSort() != Type.VOID) {
+        if (Type.getReturnType(desc).getSort() != Type.VOID) {
             ret.append(getContainerReturnType(Type.getReturnType(desc)).getDescriptor());
         }
-        ret.append(wrapped);
+        if (addErasedTypes) {
+            ret.append(wrapped);
+        }
         ret.append(')');
         ret.append(getContainerReturnType(Type.getReturnType(desc)).getDescriptor());
         return ret.toString();
     }
 
-    public static String remapMethodDescAndIncludeReturnHolderNoControlStack(boolean isVirtual, String desc) {
+    public static String remapMethodDescAndIncludeReturnHolderNoControlStack(boolean isVirtual, String desc, boolean addErasedTypes) {
         StringBuilder ret = new StringBuilder();
         ret.append('(');
         StringBuilder wrapped = new StringBuilder();
@@ -359,7 +365,9 @@ public class TaintUtils {
         if(Type.getReturnType(desc).getSort() != Type.VOID) {
             ret.append(getContainerReturnType(Type.getReturnType(desc)).getDescriptor());
         }
-        ret.append(wrapped);
+        if (addErasedTypes) {
+            ret.append(wrapped);
+        }
         ret.append(')');
         ret.append(getContainerReturnType(Type.getReturnType(desc)).getDescriptor());
         return ret.toString();

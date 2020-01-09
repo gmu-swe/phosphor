@@ -395,7 +395,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             newArgTypes.add(newReturnType);
             isRewrittenDesc = true;
         }
-        newArgTypes.addAll(wrappedArgTypes);
+        if (!(name.startsWith("lambda$") && ((access & Opcodes.ACC_SYNTHETIC) != 0))) {
+            newArgTypes.addAll(wrappedArgTypes);
+        }
         Type[] newArgs = new Type[newArgTypes.size()];
         newArgs = newArgTypes.toArray(newArgs);
 

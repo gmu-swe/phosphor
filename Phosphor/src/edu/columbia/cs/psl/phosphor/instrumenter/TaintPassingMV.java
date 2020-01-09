@@ -585,11 +585,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
         String owner = bsm.getOwner();
         boolean hasNewName = !TaintUtils.remapMethodDescAndIncludeReturnHolder(bsm.getTag() != Opcodes.H_INVOKESTATIC, desc).equals(desc);
-        String newDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(bsm.getTag() != Opcodes.H_INVOKESTATIC, desc);
+        String newDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(bsm.getTag() != Opcodes.H_INVOKESTATIC, desc, false);
         boolean isPreAllocatedReturnType = TaintUtils.isPreAllocReturnType(desc);
         if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
             hasNewName = true;
-            newDesc = TaintUtils.remapMethodDescAndIncludeReturnHolderNoControlStack(bsm.getTag() != Opcodes.H_INVOKESTATIC, desc);
+            newDesc = TaintUtils.remapMethodDescAndIncludeReturnHolderNoControlStack(bsm.getTag() != Opcodes.H_INVOKESTATIC, desc, false);
         }
         if(isPreAllocatedReturnType && Type.getReturnType(desc).getSort() == Type.OBJECT) {
             //Don't change return type
@@ -649,7 +649,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
                 boolean isNEW = implMethod.getTag() == Opcodes.H_NEWINVOKESPECIAL;
                 boolean isVirtual = (implMethod.getTag() == Opcodes.H_INVOKEVIRTUAL) || implMethod.getTag() == Opcodes.H_INVOKESPECIAL || implMethod.getTag() == Opcodes.H_INVOKEINTERFACE;
-                String remappedImplDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(isVirtual, implMethod.getDesc());
+                String remappedImplDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(isVirtual, implMethod.getDesc(), !implMethod.getName().startsWith("lambda$"));
 
                 if(!Instrumenter.isIgnoredClass(implMethod.getOwner()) && !Instrumenter.isIgnoredMethod(implMethod.getOwner(), implMethod.getName(), implMethod.getDesc()) && !TaintUtils.remapMethodDescAndIncludeReturnHolder(isVirtual || isNEW, implMethod.getDesc()).equals(implMethod.getDesc())) {
                     Type uninstSamMethodType = (Type) bsmArgs[0];
