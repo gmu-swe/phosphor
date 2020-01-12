@@ -1587,64 +1587,20 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
      *               DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE
      */
     private void visitOneDimensionalArrayStore(int opcode) {
-        String elementType;
         int valuePosition = analyzer.stack.size() - (opcode == LASTORE || opcode == DASTORE ? 3 : 2);
         int indexPosition = valuePosition - 2;
         int arrayRefPosition = indexPosition - 2;
-        switch(opcode) {
-            case Opcodes.LASTORE:
-                elementType = "J";
-                break;
-            case Opcodes.DASTORE:
-                elementType = "D";
-                break;
-            case Opcodes.IASTORE:
-                elementType = "I";
-                break;
-            case Opcodes.FASTORE:
-                elementType = "F";
-                break;
-            case Opcodes.BASTORE:
-                elementType = "B";
-                Object arrayRefType = analyzer.stack.get(arrayRefPosition);
-                if(((String) arrayRefType).contains("Boolean")) {
-                    elementType = "Z";
-                }
-                break;
-            case Opcodes.CASTORE:
-                elementType = "C";
-                break;
-            case Opcodes.SASTORE:
-                elementType = "S";
-                break;
-            case Opcodes.AASTORE:
-                elementType = "Ljava/lang/Object;";
-                break;
-            default:
-                throw new IllegalArgumentException();
-        }
-        StringBuilder descBuilder = new StringBuilder("(")
-                .append(Configuration.TAINT_TAG_DESC) // reference-taint
-                .append("I").append(Configuration.TAINT_TAG_DESC) // index and index-taint
-                .append(elementType).append(Configuration.TAINT_TAG_DESC); // val and value-taint
-        if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
-            super.visitVarInsn(ALOAD, lvs.getIndexOfMasterControlLV());
-            descBuilder.append("Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;)V");
+        TaintMethodRecord setMethod;
+        if(analyzer.stack.get(arrayRefPosition) == Opcodes.NULL) {
+            setMethod = TaintMethodRecord.getTaintedArraySetRecord(opcode, "");
         } else {
-            descBuilder.append(")V");
-        }
-        Object lazyArrayType = analyzer.stack.get(arrayRefPosition);
-        if(lazyArrayType == Opcodes.NULL) {
-            super.visitMethodInsn(INVOKEVIRTUAL, "this/is/always/null", "set", descBuilder.toString(), false);
-        } else {
-            if(((String) lazyArrayType).startsWith("[")) {
-                throw new IllegalStateException("Calling XALOAD on " + lazyArrayType);
+            String arrayReferenceType = (String) analyzer.stack.get(arrayRefPosition);
+            if(arrayReferenceType.startsWith("[") || !arrayReferenceType.contains("Lazy")) {
+                throw new IllegalStateException("Calling XALOAD on " + arrayReferenceType);
             }
-            if(!((String) lazyArrayType).contains("Lazy")) {
-                throw new IllegalStateException(analyzer.stack.toString());
-            }
-            super.visitMethodInsn(INVOKEVIRTUAL, (String) lazyArrayType, "set", descBuilder.toString(), false);
+            setMethod = TaintMethodRecord.getTaintedArraySetRecord(opcode, arrayReferenceType);
         }
+        setMethod.delegateVisit(mv);
         isTaintlessArrayStore = false;
     }
 

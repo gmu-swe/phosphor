@@ -113,6 +113,12 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
     }
 
     @Override
+    public void visitingArrayStore() {
+        generateEmptyTaint();
+        COMBINE_TAGS.delegateVisit(delegate);
+    }
+
+    @Override
     public void visitingForceControlStoreField(Field field) {
         forceControlStoreFields.add(field);
     }

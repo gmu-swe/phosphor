@@ -7,6 +7,7 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Constructor;
@@ -87,7 +88,17 @@ public enum TaintMethodRecord {
     GET_METHOD(INVOKESTATIC, ReflectionMasker.class, "getMethod", TaintedReferenceWithObjTag.class, false, Class.class, Taint.class, String.class, Taint.class, LazyReferenceArrayObjTags.class, Taint.class, TaintedReferenceWithObjTag.class, Class[].class),
     ADD_TYPE_PARAMS(INVOKESTATIC, ReflectionMasker.class, "addTypeParams", LazyReferenceArrayObjTags.class, false, Class.class, LazyReferenceArrayObjTags.class, boolean.class),
     IS_INSTANCE(INVOKESTATIC, ReflectionMasker.class, "isInstance", TaintedBooleanWithObjTag.class, false, Class.class, Taint.class, Object.class, Taint.class, TaintedBooleanWithObjTag.class),
-    ENUM_VALUE_OF(INVOKESTATIC, ReflectionMasker.class, "propogateEnumValueOf", TaintedReferenceWithObjTag.class, false, TaintedReferenceWithObjTag.class, Taint.class);
+    ENUM_VALUE_OF(INVOKESTATIC, ReflectionMasker.class, "propogateEnumValueOf", TaintedReferenceWithObjTag.class, false, TaintedReferenceWithObjTag.class, Taint.class),
+    // TaintedArray methods
+    TAINTED_BOOLEAN_ARRAY_SET(INVOKEVIRTUAL, LazyBooleanArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, boolean.class, Taint.class),
+    TAINTED_BYTE_ARRAY_SET(INVOKEVIRTUAL, LazyByteArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, byte.class, Taint.class),
+    TAINTED_CHAR_ARRAY_SET(INVOKEVIRTUAL, LazyCharArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, char.class, Taint.class),
+    TAINTED_DOUBLE_ARRAY_SET(INVOKEVIRTUAL, LazyDoubleArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, double.class, Taint.class),
+    TAINTED_FLOAT_ARRAY_SET(INVOKEVIRTUAL, LazyFloatArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, float.class, Taint.class),
+    TAINTED_INT_ARRAY_SET(INVOKEVIRTUAL, LazyIntArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, int.class, Taint.class),
+    TAINTED_LONG_ARRAY_SET(INVOKEVIRTUAL, LazyLongArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, long.class, Taint.class),
+    TAINTED_REFERENCE_ARRAY_SET(INVOKEVIRTUAL, LazyReferenceArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, Object.class, Taint.class),
+    TAINTED_SHORT_ARRAY_SET(INVOKEVIRTUAL, LazyShortArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, short.class, Taint.class);
 
     private final int opcode;
     private final String owner;
@@ -159,5 +170,28 @@ public enum TaintMethodRecord {
      */
     public void delegateVisit(MethodVisitor methodVisitor) {
         methodVisitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+    }
+
+    public static TaintMethodRecord getTaintedArraySetRecord(int opcode, String arrayReferenceType) {
+        switch(opcode) {
+            case Opcodes.LASTORE:
+                return TAINTED_LONG_ARRAY_SET;
+            case Opcodes.DASTORE:
+                return TAINTED_DOUBLE_ARRAY_SET;
+            case Opcodes.IASTORE:
+                return TAINTED_INT_ARRAY_SET;
+            case Opcodes.FASTORE:
+                return TAINTED_FLOAT_ARRAY_SET;
+            case Opcodes.BASTORE:
+                return arrayReferenceType.contains("Boolean") ? TAINTED_BOOLEAN_ARRAY_SET : TAINTED_BYTE_ARRAY_SET;
+            case Opcodes.CASTORE:
+                return TAINTED_CHAR_ARRAY_SET;
+            case Opcodes.SASTORE:
+                return TAINTED_SHORT_ARRAY_SET;
+            case Opcodes.AASTORE:
+                return TAINTED_REFERENCE_ARRAY_SET;
+            default:
+                throw new IllegalArgumentException("Opcode must be an array store operation.");
+        }
     }
 }

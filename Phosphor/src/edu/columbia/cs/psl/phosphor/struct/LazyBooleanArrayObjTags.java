@@ -1,11 +1,14 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_BOOLEAN_ARRAY_SET;
 
 public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
 
@@ -31,6 +34,7 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
         this.lengthTaint = lenTaint;
     }
 
+    @InvokedViaInstrumentation(record = TAINTED_BOOLEAN_ARRAY_SET)
     public void set(Taint referenceTaint, int idx, Taint idxTag, boolean val, Taint tag) {
         set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, null));
     }
