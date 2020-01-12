@@ -353,7 +353,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 if(TaintUtils.isShadowedType(descType)) {
                     String shadowType = TaintUtils.getShadowTaintType(desc);
                     if(Type.getType(desc).getSize() == 2) {
-                        // System.out.println("First: " +analyzer.stack);
                         // R T VV T
                         int tmp = lvs.getTmpLV(Type.getType(Configuration.TAINT_TAG_DESC));
                         super.visitVarInsn(ASTORE, tmp);
@@ -373,7 +372,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         super.visitVarInsn(ALOAD, tmp);
                         super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, shadowType);
                         lvs.freeTmpLV(tmp);
-                        // System.out.println(analyzer.stack);
                         // System.exit(-1);
                         return;
                     } else {
@@ -610,16 +608,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
         Type origReturnType = Type.getReturnType(desc);
         Type returnType = TaintUtils.getContainerReturnType(Type.getReturnType(desc));
-        if(TaintUtils.DEBUG_CALLS) {
-            System.out.println("Remapped call from " + owner + "." + name + desc + " to " + owner + "." + name + newDesc);
-        }
         if(!name.contains("<") && hasNewName) {
             name += TaintUtils.METHOD_SUFFIX;
         }
-        if(TaintUtils.DEBUG_CALLS) {
-            System.out.println("Calling w/ stack: " + analyzer.stack);
-        }
-
         //if you call a method and instead of passing a primitive array you pass ACONST_NULL, we need to insert another ACONST_NULL in the stack
         //for the taint for that array
         Type[] args = Type.getArgumentTypes(newDesc);
@@ -634,9 +625,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 System.out.println("NULL on stack for calllee???" + analyzer.stack + " argsize " + argsSize);
             }
             Type callee = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - argsSize - 1));
-            if(TaintUtils.DEBUG_CALLS) {
-                System.out.println("CALLEE IS " + callee);
-            }
             if(callee.getSort() == Type.ARRAY) {
                 isCalledOnAPrimitiveArrayType = true;
             }
@@ -836,9 +824,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             NEW_EMPTY_TAINT.delegateVisit(mv);
         }
         if(isCalledOnAPrimitiveArrayType) {
-            if(TaintUtils.DEBUG_CALLS) {
-                System.out.println("Post invoke stack: " + analyzer.stack);
-            }
             if(Type.getReturnType(desc).getSort() == Type.VOID) {
                 super.visitInsn(POP);
             } else if(analyzer.stack.size() >= 2) {
@@ -867,9 +852,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitInsn(SWAP);
             }
             super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "taint", taintType);
-        }
-        if(TaintUtils.DEBUG_CALLS) {
-            System.out.println("Post invoke stack post swap pop maybe: " + analyzer.stack);
         }
     }
 
@@ -1024,9 +1006,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         boolean hasNewName = !TaintUtils.remapMethodDescAndIncludeReturnHolder(opcode != INVOKESTATIC, desc).equals(desc);
         if((Instrumenter.isIgnoredClass(owner) || Instrumenter.isIgnoredMethod(owner, name, desc)) && !isInternalTaintingClass(owner) && !name.equals("arraycopy")) {
             Type[] args = Type.getArgumentTypes(desc);
-            if(TaintUtils.DEBUG_CALLS) {
-                System.out.println("Calling non-inst: " + owner + "." + name + desc + " stack " + analyzer.stack);
-            }
             int argsSize = 0;
             //Remove all taints
             int[] tmp = new int[args.length];
@@ -1057,9 +1036,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             boolean isCalledOnAPrimitiveArrayType = false;
             if(opcode == INVOKEVIRTUAL) {
                 Type callee = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - argsSize - 1));
-                if(TaintUtils.DEBUG_CALLS) {
-                    System.out.println("CALLEE IS " + callee);
-                }
                 if(callee.getSort() == Type.ARRAY) {
                     isCalledOnAPrimitiveArrayType = true;
                 }
@@ -1076,9 +1052,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             }
             if(returnType.getSort() != Type.VOID) {
                 controlFlowDelegator.generateEmptyTaint();
-            }
-            if(TaintUtils.DEBUG_CALLS) {
-                System.out.println("Post invoke stack post swap pop maybe: " + analyzer.stack);
             }
             return;
         }
@@ -1099,14 +1072,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
         Type origReturnType = Type.getReturnType(desc);
         Type returnType = TaintUtils.getContainerReturnType(Type.getReturnType(desc));
-        if(TaintUtils.DEBUG_CALLS) {
-            System.out.println("Remapped call from " + owner + "." + name + desc + " to " + owner + "." + name + newDesc);
-        }
+
         if(!name.contains("<") && hasNewName) {
             name += TaintUtils.METHOD_SUFFIX;
-        }
-        if(TaintUtils.DEBUG_CALLS) {
-            System.out.println("Calling w/ stack: " + analyzer.stack);
         }
 
         Type[] args = Type.getArgumentTypes(newDesc);
@@ -1145,9 +1113,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
         super.visitMethodInsn(opcode, owner, name, newDesc, isInterface);
         if(isCalledOnAPrimitiveArrayType) {
-            if(TaintUtils.DEBUG_CALLS) {
-                System.out.println("Post invoke stack: " + analyzer.stack);
-            }
             if(Type.getReturnType(desc).getSort() == Type.VOID) {
                 super.visitInsn(POP);
             } else if(analyzer.stack.size() >= 2) {
@@ -1676,8 +1641,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 throw new IllegalStateException("Calling XALOAD on " + lazyArrayType);
             }
             if(!((String) lazyArrayType).contains("Lazy")) {
-                System.out.println(analyzer.stack);
-                throw new IllegalStateException();
+                throw new IllegalStateException(analyzer.stack.toString());
             }
             super.visitMethodInsn(INVOKEVIRTUAL, (String) lazyArrayType, "set", descBuilder.toString(), false);
         }
