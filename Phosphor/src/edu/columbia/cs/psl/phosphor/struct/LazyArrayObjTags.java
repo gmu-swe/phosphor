@@ -73,9 +73,7 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 
     @SuppressWarnings("unused")
     public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Taint thisTaint, Object o, Taint otherTaint, TaintedBooleanWithObjTag ret, ControlTaintTagStack controlTaintTagStack) {
-        ret.val = this.equals(o);
-        ret.taint = controlTaintTagStack.copyTag().union(thisTaint).union(otherTaint);
-        return ret;
+        return equals$$PHOSPHORTAGGED(thisTaint, o, otherTaint, ret);
     }
 
     @Override

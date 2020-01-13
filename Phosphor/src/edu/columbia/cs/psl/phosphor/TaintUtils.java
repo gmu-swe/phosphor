@@ -135,7 +135,9 @@ public class TaintUtils {
         }
     }
 
-    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint srctaint, int srcPos, Taint srcPosTaint, Object dest, Taint destTaint, int destPos, Taint destPosTaint, int length, Taint lengthTaint) {
+    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint<?> srctaint, int srcPos, Taint<?> srcPosTaint,
+                                                 Object dest, Taint<?> destTaint, int destPos, Taint<?> destPosTaint,
+                                                 int length, Taint<?> lengthTaint) {
         if(!src.getClass().isArray() && !dest.getClass().isArray()) {
             System.arraycopy(((LazyArrayObjTags) src).getVal(), srcPos, ((LazyArrayObjTags) dest).getVal(), destPos, length);
             if(((LazyArrayObjTags) src).taints != null) {
@@ -151,7 +153,9 @@ public class TaintUtils {
         }
     }
 
-    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint srctaint, int srcPos, Taint srcPosTaint, Object dest, Taint destTaint, int destPos, Taint destPosTaint, int length, Taint lengthTaint, ControlTaintTagStack ctrl) {
+    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint<?> srctaint, int srcPos, Taint<?> srcPosTaint,
+                                                 Object dest, Taint<?> destTaint, int destPos, Taint<?> destPosTaint,
+                                                 int length, Taint<?> lengthTaint, ControlTaintTagStack ctrl) {
         if(!src.getClass().isArray() && !dest.getClass().isArray()) {
             System.arraycopy(((LazyArrayObjTags) src).getVal(), srcPos, ((LazyArrayObjTags) dest).getVal(), destPos, length);
             if(((LazyArrayObjTags) src).taints != null) {

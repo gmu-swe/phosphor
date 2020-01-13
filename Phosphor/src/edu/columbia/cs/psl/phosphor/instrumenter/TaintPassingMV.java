@@ -581,7 +581,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     @Override
     public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
-        String owner = bsm.getOwner();
         boolean hasNewName = !TaintUtils.remapMethodDescAndIncludeReturnHolder(bsm.getTag() != Opcodes.H_INVOKESTATIC, desc).equals(desc);
         String newDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(bsm.getTag() != Opcodes.H_INVOKESTATIC, desc, false);
         boolean isPreAllocatedReturnType = TaintUtils.isPreAllocReturnType(desc);
@@ -594,7 +593,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             isPreAllocatedReturnType = false;
             newDesc = Type.getMethodDescriptor(Type.getReturnType(desc), Type.getArgumentTypes(newDesc));
             newDesc = newDesc.replace(Type.getDescriptor(TaintedReferenceWithObjTag.class), "");
-            // hasNewName = !newDesc.equals(desc);
             doNotUnboxTaints = true;
         }
         int opcode = INVOKEVIRTUAL;

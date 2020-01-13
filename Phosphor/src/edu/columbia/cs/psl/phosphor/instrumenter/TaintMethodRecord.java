@@ -87,7 +87,7 @@ public enum TaintMethodRecord implements MethodRecord {
     GET_METHOD(INVOKESTATIC, ReflectionMasker.class, "getMethod", TaintedReferenceWithObjTag.class, false, Class.class, Taint.class, String.class, Taint.class, LazyReferenceArrayObjTags.class, Taint.class, TaintedReferenceWithObjTag.class, Class[].class),
     ADD_TYPE_PARAMS(INVOKESTATIC, ReflectionMasker.class, "addTypeParams", LazyReferenceArrayObjTags.class, false, Class.class, LazyReferenceArrayObjTags.class, boolean.class),
     IS_INSTANCE(INVOKESTATIC, ReflectionMasker.class, "isInstance", TaintedBooleanWithObjTag.class, false, Class.class, Taint.class, Object.class, Taint.class, TaintedBooleanWithObjTag.class),
-    ENUM_VALUE_OF(INVOKESTATIC, ReflectionMasker.class, "propogateEnumValueOf", TaintedReferenceWithObjTag.class, false, TaintedReferenceWithObjTag.class, Taint.class),
+    ENUM_VALUE_OF(INVOKESTATIC, ReflectionMasker.class, "propagateEnumValueOf", TaintedReferenceWithObjTag.class, false, TaintedReferenceWithObjTag.class, Taint.class),
     // Tainted array set methods
     TAINTED_BOOLEAN_ARRAY_SET(INVOKEVIRTUAL, LazyBooleanArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, boolean.class, Taint.class),
     TAINTED_BYTE_ARRAY_SET(INVOKEVIRTUAL, LazyByteArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, byte.class, Taint.class),

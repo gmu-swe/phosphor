@@ -753,7 +753,7 @@ public class ReflectionMasker {
     }
 
     @InvokedViaInstrumentation(record = ENUM_VALUE_OF)
-    public static TaintedReferenceWithObjTag propogateEnumValueOf(TaintedReferenceWithObjTag ret, Taint tag) {
+    public static TaintedReferenceWithObjTag propagateEnumValueOf(TaintedReferenceWithObjTag ret, Taint<?> tag) {
         ret.taint = tag; //TODO also from string?
         return ret;
     }
