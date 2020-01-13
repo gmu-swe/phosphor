@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_INT_ARRAY_GET;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_INT_ARRAY_SET;
 
 public final class LazyIntArrayObjTags extends LazyArrayObjTags {
@@ -59,6 +60,7 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
         set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, ctrl));
     }
 
+    @InvokedViaInstrumentation(record = TAINTED_INT_ARRAY_GET)
     public TaintedIntWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedIntWithObjTag ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
     }

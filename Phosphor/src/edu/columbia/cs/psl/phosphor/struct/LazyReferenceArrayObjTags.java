@@ -10,6 +10,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Array;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_REFERENCE_ARRAY_GET;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_REFERENCE_ARRAY_SET;
 
 public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
@@ -66,6 +67,7 @@ public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
         set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, ctrl));
     }
 
+    @InvokedViaInstrumentation(record = TAINTED_REFERENCE_ARRAY_GET)
     public TaintedReferenceWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedReferenceWithObjTag ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
     }

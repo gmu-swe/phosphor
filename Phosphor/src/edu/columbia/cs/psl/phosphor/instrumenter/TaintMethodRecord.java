@@ -6,7 +6,6 @@ import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
@@ -18,10 +17,10 @@ import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 /**
- * Represent some method that is used to ensure that taint tags are correctly propagated. Stores the information needed
- * by ASM method visitors to visit the method.
+ * Represents some method to which Phosphor adds calls during instrumentation.
+ * Stores the information needed by an ASM method visitor to add a call to the method.
  */
-public enum TaintMethodRecord {
+public enum TaintMethodRecord implements MethodRecord {
 
     // Methods from Taint
     COMBINE_TAGS_ON_OBJECT_CONTROL(INVOKESTATIC, Taint.class, "combineTagsOnObject", Void.TYPE, false, Object.class, ControlTaintTagStack.class),
@@ -89,7 +88,7 @@ public enum TaintMethodRecord {
     ADD_TYPE_PARAMS(INVOKESTATIC, ReflectionMasker.class, "addTypeParams", LazyReferenceArrayObjTags.class, false, Class.class, LazyReferenceArrayObjTags.class, boolean.class),
     IS_INSTANCE(INVOKESTATIC, ReflectionMasker.class, "isInstance", TaintedBooleanWithObjTag.class, false, Class.class, Taint.class, Object.class, Taint.class, TaintedBooleanWithObjTag.class),
     ENUM_VALUE_OF(INVOKESTATIC, ReflectionMasker.class, "propogateEnumValueOf", TaintedReferenceWithObjTag.class, false, TaintedReferenceWithObjTag.class, Taint.class),
-    // TaintedArray methods
+    // Tainted array set methods
     TAINTED_BOOLEAN_ARRAY_SET(INVOKEVIRTUAL, LazyBooleanArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, boolean.class, Taint.class),
     TAINTED_BYTE_ARRAY_SET(INVOKEVIRTUAL, LazyByteArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, byte.class, Taint.class),
     TAINTED_CHAR_ARRAY_SET(INVOKEVIRTUAL, LazyCharArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, char.class, Taint.class),
@@ -98,13 +97,24 @@ public enum TaintMethodRecord {
     TAINTED_INT_ARRAY_SET(INVOKEVIRTUAL, LazyIntArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, int.class, Taint.class),
     TAINTED_LONG_ARRAY_SET(INVOKEVIRTUAL, LazyLongArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, long.class, Taint.class),
     TAINTED_REFERENCE_ARRAY_SET(INVOKEVIRTUAL, LazyReferenceArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, Object.class, Taint.class),
-    TAINTED_SHORT_ARRAY_SET(INVOKEVIRTUAL, LazyShortArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, short.class, Taint.class);
+    TAINTED_SHORT_ARRAY_SET(INVOKEVIRTUAL, LazyShortArrayObjTags.class, "set", Void.TYPE, false, Taint.class, int.class, Taint.class, short.class, Taint.class),
+    // Tainted array get methods
+    TAINTED_BOOLEAN_ARRAY_GET(INVOKEVIRTUAL, LazyBooleanArrayObjTags.class, "get", TaintedBooleanWithObjTag.class, false, Taint.class, int.class, Taint.class, TaintedBooleanWithObjTag.class),
+    TAINTED_BYTE_ARRAY_GET(INVOKEVIRTUAL, LazyByteArrayObjTags.class, "get", TaintedByteWithObjTag.class, false, Taint.class, int.class, Taint.class, TaintedByteWithObjTag.class),
+    TAINTED_CHAR_ARRAY_GET(INVOKEVIRTUAL, LazyCharArrayObjTags.class, "get", TaintedCharWithObjTag.class, false, Taint.class, int.class, Taint.class, TaintedCharWithObjTag.class),
+    TAINTED_DOUBLE_ARRAY_GET(INVOKEVIRTUAL, LazyDoubleArrayObjTags.class, "get", TaintedDoubleWithObjTag.class, false, Taint.class, int.class, Taint.class, TaintedDoubleWithObjTag.class),
+    TAINTED_FLOAT_ARRAY_GET(INVOKEVIRTUAL, LazyFloatArrayObjTags.class, "get", TaintedFloatWithObjTag.class, false, Taint.class, int.class, Taint.class, TaintedFloatWithObjTag.class),
+    TAINTED_INT_ARRAY_GET(INVOKEVIRTUAL, LazyIntArrayObjTags.class, "get", TaintedIntWithObjTag.class, false, Taint.class, int.class, Taint.class, TaintedIntWithObjTag.class),
+    TAINTED_LONG_ARRAY_GET(INVOKEVIRTUAL, LazyLongArrayObjTags.class, "get", TaintedLongWithObjTag.class, false, Taint.class, int.class, Taint.class, TaintedLongWithObjTag.class),
+    TAINTED_REFERENCE_ARRAY_GET(INVOKEVIRTUAL, LazyReferenceArrayObjTags.class, "get", TaintedReferenceWithObjTag.class, false, Taint.class, int.class, Taint.class, TaintedReferenceWithObjTag.class),
+    TAINTED_SHORT_ARRAY_GET(INVOKEVIRTUAL, LazyShortArrayObjTags.class, "get", TaintedShortWithObjTag.class, false, Taint.class, int.class, Taint.class, TaintedShortWithObjTag.class);
 
     private final int opcode;
     private final String owner;
     private final String name;
     private final String descriptor;
     private final boolean isInterface;
+    private final Class<?> returnType;
 
     /**
      * Constructs a new method.
@@ -121,58 +131,59 @@ public enum TaintMethodRecord {
         this.owner = Type.getInternalName(owner);
         this.name = name;
         this.isInterface = isInterface;
-        Type[] parameters = new Type[parameterTypes.length];
-        for(int i = 0; i < parameters.length; i++) {
-            parameters[i] = Type.getType(parameterTypes[i]);
-        }
-        this.descriptor = Type.getMethodDescriptor(Type.getType(returnType), parameters);
+        this.descriptor = MethodRecord.createDescriptor(returnType, parameterTypes);
+        this.returnType = returnType;
     }
 
     /**
-     * @return the opcode of the type instruction associated with this method
+     * {@inheritDoc}
      */
+    @Override
     public int getOpcode() {
         return opcode;
     }
 
     /**
-     * @return the internal name of this method's owner class
+     * {@inheritDoc}
      */
+    @Override
     public String getOwner() {
         return owner;
     }
 
     /**
-     * @return this method's name
+     * {@inheritDoc}
      */
+    @Override
     public String getName() {
         return name;
     }
 
     /**
-     * @return this method's descriptor
+     * {@inheritDoc}
      */
+    @Override
     public String getDescriptor() {
         return descriptor;
     }
 
     /**
-     * @return true if this method's owner class is an interface
+     * {@inheritDoc}
      */
+    @Override
     public boolean isInterface() {
         return isInterface;
     }
 
     /**
-     * Tells the specified method visitor to visit a method instruction for this method.
-     *
-     * @param methodVisitor the method visitor that should visit this method
+     * {@inheritDoc}
      */
-    public void delegateVisit(MethodVisitor methodVisitor) {
-        methodVisitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+    @Override
+    public Class<?> getReturnType() {
+        return returnType;
     }
 
-    public static TaintMethodRecord getTaintedArraySetRecord(int opcode, String arrayReferenceType) {
+    public static TaintMethodRecord getTaintedArrayRecord(int opcode, String arrayReferenceType) {
         switch(opcode) {
             case Opcodes.LASTORE:
                 return TAINTED_LONG_ARRAY_SET;
@@ -190,8 +201,24 @@ public enum TaintMethodRecord {
                 return TAINTED_SHORT_ARRAY_SET;
             case Opcodes.AASTORE:
                 return TAINTED_REFERENCE_ARRAY_SET;
+            case Opcodes.LALOAD:
+                return TAINTED_LONG_ARRAY_GET;
+            case Opcodes.DALOAD:
+                return TAINTED_DOUBLE_ARRAY_GET;
+            case Opcodes.IALOAD:
+                return TAINTED_INT_ARRAY_GET;
+            case Opcodes.FALOAD:
+                return TAINTED_FLOAT_ARRAY_GET;
+            case Opcodes.BALOAD:
+                return arrayReferenceType.contains("Boolean") ? TAINTED_BOOLEAN_ARRAY_GET : TAINTED_BYTE_ARRAY_GET;
+            case Opcodes.CALOAD:
+                return TAINTED_CHAR_ARRAY_GET;
+            case Opcodes.SALOAD:
+                return TAINTED_SHORT_ARRAY_GET;
+            case Opcodes.AALOAD:
+                return TAINTED_REFERENCE_ARRAY_GET;
             default:
-                throw new IllegalArgumentException("Opcode must be an array store operation.");
+                throw new IllegalArgumentException("Opcode must be an array store or load operation.");
         }
     }
 }

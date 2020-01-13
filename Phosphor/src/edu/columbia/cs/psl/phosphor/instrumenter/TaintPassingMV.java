@@ -1272,108 +1272,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.CALOAD:
             case Opcodes.SALOAD:
             case Opcodes.AALOAD:
-                String elType = null;
-                String elName = null;
-
-                Object _onStack = analyzer.stack.get(analyzer.stack.size() - 4);
-                String onStack = "[Ljava/lang/Object;";
-                if(_onStack instanceof String) {
-                    onStack = (String) _onStack;
-                }
-                switch(opcode) {
-                    case Opcodes.LALOAD:
-                        elName = "Long";
-                        elType = "J";
-                        break;
-                    case Opcodes.DALOAD:
-                        elName = "Double";
-                        elType = "D";
-                        break;
-                    case Opcodes.IALOAD:
-                        elName = "Int";
-                        elType = "I";
-                        break;
-                    case Opcodes.FALOAD:
-                        elName = "Float";
-                        elType = "F";
-                        break;
-                    case Opcodes.BALOAD:
-                        elName = "Byte";
-                        if (onStack.contains("Boolean")) {
-                            elType = "Z";
-                        } else {
-                            elType = "B";
-                        }
-                        break;
-                    case Opcodes.CALOAD:
-                        elName = "Char";
-                        elType = "C";
-                        break;
-                    case Opcodes.SALOAD:
-                        elName = "Short";
-                        elType = "S";
-                        break;
-                    case Opcodes.AALOAD:
-                        elName = "Reference";
-                        elType = "Ljava/lang/Object;";
-                        break;
-                }
-                if(onStack.startsWith("[")) {
-                    //A TA I T
-                    //TODO reference array taint propogation?
-                    super.visitInsn(POP);
-                    //A TA I
-                    super.visitInsn(SWAP);
-                    super.visitInsn(POP);
-                    //A I
-                    super.visitInsn(opcode);
-                    controlFlowDelegator.generateEmptyTaint(); //TODO should come from the array taint?
-                    return;
-                }
-                if(elType.equals("Z")) {
-                    elName = "Boolean";
-                }
-                Type retType = Type.getObjectType("edu/columbia/cs/psl/phosphor/struct/Tainted" + elName + "WithObjTag");
-                int prealloc = lvs.getPreAllocatedReturnTypeVar(retType);
-                super.visitVarInsn(ALOAD, prealloc);
-                String methodName = "get";
-                if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
-                    super.visitVarInsn(ALOAD, lvs.getIndexOfMasterControlLV());
-                }
-                super.visitMethodInsn(INVOKEVIRTUAL, "edu/columbia/cs/psl/phosphor/struct/Lazy" + elName + "ArrayObjTags", methodName,
-                        "(" + Configuration.TAINT_TAG_DESC + "I" + Configuration.TAINT_TAG_DESC + retType.getDescriptor() + (Configuration.IMPLICIT_TRACKING || isImplicitLightTracking ? "Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;" : "") + ")" + retType.getDescriptor(), false);
-                super.visitInsn(DUP);
-                super.visitFieldInsn(GETFIELD, retType.getInternalName(), "val", elType);
-                if(elType.equals("Ljava/lang/Object;") && referenceArrayTarget != null) {
-                    Type originalArrayType = Type.getType(referenceArrayTarget.getOriginalArrayType());
-                    String castTo = Type.getType(originalArrayType.getDescriptor().substring(1)).getInternalName();
-                    if(originalArrayType.getDimensions() == 2) {
-                        castTo = TaintUtils.getWrapperType(Type.getType(castTo)).getInternalName();
-                    } else if(originalArrayType.getDimensions() > 2) {
-                        castTo = Type.getInternalName(LazyReferenceArrayObjTags.class);
-                    }
-
-                    super.visitTypeInsn(CHECKCAST, castTo);
-                }
-                if(elType.equals("J") || elType.equals("D")) {
-                    super.visitInsn(DUP2_X1);
-                    super.visitInsn(POP2);
-                } else {
-                    super.visitInsn(SWAP);
-                }
-                super.visitFieldInsn(GETFIELD, retType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
+                visitArrayLoad(opcode);
                 break;
             case Opcodes.AASTORE:
-                // A T I T V T
-                controlFlowDelegator.visitingArrayStore();
-                Type array = getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 6));
-                if(array.getSort() == Type.ARRAY) {
-                    super.visitMethodInsn(INVOKESTATIC, "edu/columbia/cs/psl/phosphor/runtime/ArrayHelper", "PHOSPHOR$$AASTORE", "([Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC
-                            + "I" + Configuration.TAINT_TAG_DESC + "Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-                } else {
-                    visitOneDimensionalArrayStore(opcode);
-                }
-                break;
             case Opcodes.IASTORE:
             case Opcodes.LASTORE:
             case Opcodes.FASTORE:
@@ -1381,8 +1282,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.BASTORE:
             case Opcodes.CASTORE:
             case Opcodes.SASTORE:
-                controlFlowDelegator.visitingArrayStore();
-                visitOneDimensionalArrayStore(opcode);
+                visitArrayStore(opcode);
                 break;
             case Opcodes.POP:
                 super.visitInsn(POP2);
@@ -1580,28 +1480,85 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     }
 
     /**
-     * stack_pre = [lazy-array, reference-taint, index, index-taint, value, value-taint]
+     * stack_pre = [arrayref, reference-taint, index, index-taint, value, value-taint]
      * stack_post = []
      *
-     * @param opcode the opcode of the instruction to be visited. This opcode is either IASTORE, LASTORE, FASTORE,
-     *               DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE
+     * @param opcode the opcode of the instruction originally to be visited. This opcode is either IASTORE, LASTORE,
+     *               FASTORE,DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE.
      */
-    private void visitOneDimensionalArrayStore(int opcode) {
+    private void visitArrayStore(int opcode) {
+        // A T I T V T
+        controlFlowDelegator.visitingArrayStore();
         int valuePosition = analyzer.stack.size() - (opcode == LASTORE || opcode == DASTORE ? 3 : 2);
         int indexPosition = valuePosition - 2;
         int arrayRefPosition = indexPosition - 2;
-        TaintMethodRecord setMethod;
+        MethodRecord setMethod;
         if(analyzer.stack.get(arrayRefPosition) == Opcodes.NULL) {
-            setMethod = TaintMethodRecord.getTaintedArraySetRecord(opcode, "");
+            setMethod = TaintMethodRecord.getTaintedArrayRecord(opcode, "");
+        } else {
+            String arrayReferenceType = (String) analyzer.stack.get(arrayRefPosition);
+            if(arrayReferenceType.startsWith("[") || !arrayReferenceType.contains("Lazy")) {
+                throw new IllegalStateException("Calling XASTORE on " + arrayReferenceType);
+            }
+            setMethod = TaintMethodRecord.getTaintedArrayRecord(opcode, arrayReferenceType);
+        }
+        setMethod.delegateVisit(mv);
+        isTaintlessArrayStore = false;
+    }
+
+    /**
+     * stack_pre = [arrayref, reference-taint, index, index-taint]
+     * stack_post = [value, value-taint]
+     *
+     * @param opcode the opcode of the instruction originally to be visited. This opcode is either LALOAD, DALOAD,
+     *               IALOAD, FALOAD, BALOAD, CALOAD, SALOAD, or AALOAD.
+     */
+    private void visitArrayLoad(int opcode) {
+        int arrayRefPosition = analyzer.stack.size() - 4;
+        MethodRecord getMethod;
+        if(analyzer.stack.get(arrayRefPosition) == Opcodes.NULL) {
+            getMethod = TaintMethodRecord.getTaintedArrayRecord(opcode, "");
         } else {
             String arrayReferenceType = (String) analyzer.stack.get(arrayRefPosition);
             if(arrayReferenceType.startsWith("[") || !arrayReferenceType.contains("Lazy")) {
                 throw new IllegalStateException("Calling XALOAD on " + arrayReferenceType);
             }
-            setMethod = TaintMethodRecord.getTaintedArraySetRecord(opcode, arrayReferenceType);
+            getMethod = TaintMethodRecord.getTaintedArrayRecord(opcode, arrayReferenceType);
         }
-        setMethod.delegateVisit(mv);
-        isTaintlessArrayStore = false;
+        int preAllocated = lvs.getPreAllocatedReturnTypeVar(Type.getType(getMethod.getReturnType()));
+        super.visitVarInsn(ALOAD, preAllocated);
+        getMethod.delegateVisit(mv);
+        unwrap(getMethod.getReturnType());
+    }
+
+    /**
+     * stack_pre = [TaintedPrimitiveWithObjTag]
+     * stack_post = [value value-taint]
+     *
+     * @param wrapperType the type of the TaintedPrimitiveWithObjTag instance to be unwrapped
+     */
+    private void unwrap(Class<?> wrapperType) {
+        super.visitInsn(DUP);
+        String wrapperName = Type.getInternalName(wrapperType);
+        String valueType = Type.getDescriptor(TaintUtils.getUnwrappedClass(wrapperType));
+        super.visitFieldInsn(GETFIELD, wrapperName, "val", valueType);
+        if(TaintedReferenceWithObjTag.class.equals(wrapperType) && referenceArrayTarget != null) {
+            Type originalArrayType = Type.getType(referenceArrayTarget.getOriginalArrayType());
+            String castTo = Type.getType(originalArrayType.getDescriptor().substring(1)).getInternalName();
+            if(originalArrayType.getDimensions() == 2) {
+                castTo = TaintUtils.getWrapperType(Type.getType(castTo)).getInternalName();
+            } else if(originalArrayType.getDimensions() > 2) {
+                castTo = Type.getInternalName(LazyReferenceArrayObjTags.class);
+            }
+            super.visitTypeInsn(CHECKCAST, castTo);
+        }
+        if(TaintedLongWithObjTag.class.equals(wrapperType) || TaintedDoubleWithObjTag.class.equals(wrapperType)) {
+            super.visitInsn(DUP2_X1);
+            super.visitInsn(POP2);
+        } else {
+            super.visitInsn(SWAP);
+        }
+        super.visitFieldInsn(GETFIELD, wrapperName, "taint", Configuration.TAINT_TAG_DESC);
     }
 
     @Override

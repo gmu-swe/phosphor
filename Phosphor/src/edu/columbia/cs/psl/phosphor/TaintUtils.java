@@ -568,11 +568,45 @@ public class TaintUtils {
     }
 
     /* Returns the class instance resulting from removing any phosphor taint wrapping from the specified class. */
-    public static Class<?> getUnwrappedClass(Class<?> clazz) {
-        try {
-            return Class.forName(SourceSinkManager.remapReturnType(Type.getType(clazz)));
-        } catch(ClassNotFoundException e) {
-            return clazz;
+    public static Class<?> getUnwrappedClass(Class<?> wrappedClass) {
+        if(wrappedClass.equals(LazyBooleanArrayObjTags.class)) {
+            return boolean[].class;
+        } else if(wrappedClass.equals(LazyByteArrayObjTags.class)) {
+            return byte[].class;
+        } else if(wrappedClass.equals(LazyCharArrayObjTags.class)) {
+            return char[].class;
+        } else if(wrappedClass.equals(LazyDoubleArrayObjTags.class)) {
+            return double[].class;
+        } else if(wrappedClass.equals(LazyFloatArrayObjTags.class)) {
+            return float[].class;
+        } else if(wrappedClass.equals(LazyIntArrayObjTags.class)) {
+            return int[].class;
+        } else if(wrappedClass.equals(LazyLongArrayObjTags.class)) {
+            return long[].class;
+        } else if(wrappedClass.equals(LazyReferenceArrayObjTags.class)) {
+            return Object[].class;
+        } else if(wrappedClass.equals(LazyShortArrayObjTags.class)) {
+            return short[].class;
+        } else if(wrappedClass.equals(TaintedBooleanWithObjTag.class)) {
+            return boolean.class;
+        } else if(wrappedClass.equals(TaintedByteWithObjTag.class)) {
+            return byte.class;
+        } else if(wrappedClass.equals(TaintedCharWithObjTag.class)) {
+            return char.class;
+        } else if(wrappedClass.equals(TaintedDoubleWithObjTag.class)) {
+            return double.class;
+        } else if(wrappedClass.equals(TaintedFloatWithObjTag.class)) {
+            return float.class;
+        } else if(wrappedClass.equals(TaintedIntWithObjTag.class)) {
+            return int.class;
+        } else if(wrappedClass.equals(TaintedLongWithObjTag.class)) {
+            return long.class;
+        } else if(wrappedClass.equals(TaintedReferenceWithObjTag.class)) {
+            return Object.class;
+        } else if(wrappedClass.equals(TaintedShortWithObjTag.class)) {
+            return short.class;
+        } else {
+            return wrappedClass;
         }
     }
 
