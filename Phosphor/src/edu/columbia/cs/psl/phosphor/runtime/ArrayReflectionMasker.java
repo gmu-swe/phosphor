@@ -419,7 +419,7 @@ public class ArrayReflectionMasker {
             } else if(obj instanceof LazyShortArrayObjTags) {
                 setShort$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, (Short) val, valTaint, ctrl);
             } else if(obj instanceof LazyReferenceArrayObjTags){
-                ((LazyReferenceArrayObjTags) obj).set(referenceTaint, idx, idxTaint, val, valTaint, ctrl);
+                ((LazyReferenceArrayObjTags) obj).set(referenceTaint, idx, idxTaint, val, Taint.combineTags(valTaint, ctrl));
             } else {
                 throw new ArrayStoreException("Got passed an obj of type " + obj + " to store to");
             }

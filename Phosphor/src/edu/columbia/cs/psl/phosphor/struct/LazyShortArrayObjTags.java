@@ -55,19 +55,9 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
         }
     }
 
-    public void set(Taint referenceTaint, int idx, Taint idxTag, short val, Taint tag, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTag, idx, ctrl);
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, ctrl));
-    }
-
     @InvokedViaInstrumentation(record = TAINTED_SHORT_ARRAY_GET)
     public TaintedShortWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedShortWithObjTag ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
-    }
-
-    public TaintedShortWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedShortWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTaint, idx, ctrl);
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
     }
 
     public static LazyShortArrayObjTags factory(Taint referenceTaint, short[] array) {
@@ -80,13 +70,6 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
     public TaintedShortWithObjTag get(int idx, TaintedShortWithObjTag ret) {
         ret.val = val[idx];
         ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
-    }
-
-    public TaintedShortWithObjTag get(int idx, TaintedShortWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(null, idx, ctrl);
-        get(idx, ret);
-        ret.taint = Taint.combineTags(ret.taint, ctrl);
         return ret;
     }
 

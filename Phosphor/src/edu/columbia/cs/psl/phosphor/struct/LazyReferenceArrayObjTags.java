@@ -62,19 +62,9 @@ public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
         }
     }
 
-    public void set(Taint referenceTaint, int idx, Taint idxTag, Object val, Taint tag, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTag, idx, ctrl);
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, ctrl));
-    }
-
     @InvokedViaInstrumentation(record = TAINTED_REFERENCE_ARRAY_GET)
     public TaintedReferenceWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedReferenceWithObjTag ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
-    }
-
-    public TaintedReferenceWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTaint, idx, ctrl);
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
     }
 
     //"Uninstrumented" code is allowed to see LazyReferenceArrays, so uses this to retrieve items.
@@ -88,13 +78,6 @@ public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
     public TaintedReferenceWithObjTag get(int idx, TaintedReferenceWithObjTag ret) {
         ret.val = val[idx];
         ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
-    }
-
-    public TaintedReferenceWithObjTag get(int idx, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(null, idx, ctrl);
-        get(idx, ret);
-        ret.taint = Taint.combineTags(ret.taint, ctrl);
         return ret;
     }
 

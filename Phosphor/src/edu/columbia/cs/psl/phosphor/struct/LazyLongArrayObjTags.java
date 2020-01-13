@@ -55,19 +55,9 @@ public final class LazyLongArrayObjTags extends LazyArrayObjTags {
         }
     }
 
-    public void set(Taint referenceTaint, int idx, Taint idxTag, long val, Taint tag, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTag, idx, ctrl);
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, ctrl));
-    }
-
     @InvokedViaInstrumentation(record = TAINTED_LONG_ARRAY_GET)
     public TaintedLongWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedLongWithObjTag ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
-    }
-
-    public TaintedLongWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedLongWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTaint, idx, ctrl);
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
     }
 
     public static LazyLongArrayObjTags factory(Taint referenceTaint, long[] array) {
@@ -80,13 +70,6 @@ public final class LazyLongArrayObjTags extends LazyArrayObjTags {
     public TaintedLongWithObjTag get(int idx, TaintedLongWithObjTag ret) {
         ret.val = val[idx];
         ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
-    }
-
-    public TaintedLongWithObjTag get(int idx, TaintedLongWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(null, idx, ctrl);
-        get(idx, ret);
-        ret.taint = Taint.combineTags(ret.taint, ctrl);
         return ret;
     }
 
