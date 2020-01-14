@@ -51,18 +51,15 @@ public class NoFlowControlFlowDelegator extends AbstractControlFlowDelegator {
                 delegate.visitInsn(POP);
                 break;
         }
-        delegate.visitJumpInsn(opcode, label);
     }
 
     @Override
     public void visitTableSwitch(int min, int max, Label defaultLabel, Label[] labels) {
         delegate.visitInsn(POP); // Remove the taint tag
-        delegate.visitTableSwitchInsn(min, max, defaultLabel, labels);
     }
 
     @Override
     public void visitLookupSwitch(Label defaultLabel, int[] keys, Label[] labels) {
         delegate.visitInsn(POP); // Remove the taint tag
-        delegate.visitLookupSwitchInsn(defaultLabel, keys, labels);
     }
 }

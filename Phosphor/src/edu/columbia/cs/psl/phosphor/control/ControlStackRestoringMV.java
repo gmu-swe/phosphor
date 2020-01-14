@@ -70,7 +70,7 @@ public class ControlStackRestoringMV extends MethodVisitor {
     @Override
     public void visitCode() {
         super.visitCode();
-        this.numberOfExceptionHandlersRemaining = arrayAnalyzer.nTryCatch;
+        this.numberOfExceptionHandlersRemaining = arrayAnalyzer.getNumberOfTryCatch();
         if(excludedFromControlTrack) {
             super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             CONTROL_STACK_DISABLE.delegateVisit(mv);

@@ -1,9 +1,6 @@
 package edu.columbia.cs.psl.phosphor.control;
 
-import edu.columbia.cs.psl.phosphor.control.binding.BranchStartInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.CopyTagInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.ExitLoopLevelInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.LoopAwarePopInfo;
+import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
@@ -112,10 +109,9 @@ public interface ControlFlowDelegator {
     void visitingForceControlStore(Type stackTop);
 
     /**
-     * Called for a jump operation. The delegator is responsible for visiting the jump instruction itself.
-     * If visiting a IF_ACMP<cond> or IF_ICMP<cond>: stack_pre = [value1 taint1 value2 taint2].
-     * If visiting a IF<cond>, IFNULL, or IFNONULL: stack_pre = [value1 taint1].
-     * stack_post = []
+     * Called for a jump operation.
+     * If visiting a IF_ACMP<cond> or IF_ICMP<cond>: stack_pre = [value1 taint1 value2 taint2], stack_post=[value1 value2]
+     * If visiting a IF<cond>, IFNULL, or IFNONULL: stack_pre = [value1 taint1], stack_post = [value1]
      *
      * @param opcode the opcode of the type instruction to being visited. This opcode is either IFEQ,
      *               IFNE, IFLT, IFGE, IFGT, IFLE, IF_ICMPEQ, IF_ICMPNE, IF_ICMPLT, IF_ICMPGE, IF_ICMPGT,
@@ -125,9 +121,9 @@ public interface ControlFlowDelegator {
     void visitingJump(int opcode, Label label);
 
     /**
-     * Called for a TABLESWITCH instruction. The delegator is responsible for visiting the switch instruction itself.
+     * Called for a TABLESWITCH instruction.
      * stack_pre = [value taint]
-     * stack_post = []
+     * stack_post = [value]
      *
      * @param min          the minimum key value.
      * @param max          the maximum key value.
@@ -138,9 +134,9 @@ public interface ControlFlowDelegator {
     void visitTableSwitch(int min, int max, Label defaultLabel, Label[] labels);
 
     /**
-     * Called for a LOOKUPSWITCH instruction. The delegator is responsible for visiting the switch instruction itself.
+     * Called for a LOOKUPSWITCH instruction.
      * stack_pre = [value taint]
-     * stack_post = []
+     * stack_post = [value]
      *
      * @param defaultLabel beginning of the default handler block.
      * @param keys         the values of the keys.
@@ -155,34 +151,6 @@ public interface ControlFlowDelegator {
      * stack_post = [taint]
      */
     void visitingArrayStore();
-
-    /**
-     * Called before a LDC ExitLoopLevelInfo instruction.
-     *
-     * @param info the constant of the LDC ExitLoopLevelInfo instruction
-     */
-    void visitingExitLoopLevelInfo(ExitLoopLevelInfo info);
-
-    /**
-     * Called before a LDC LoopAwarePopInfo instruction
-     *
-     * @param info the constant of the LDC LoopAwarePopInfo.
-     */
-    void visitingLoopAwarePop(LoopAwarePopInfo info);
-
-    /**
-     * Called before a LDC BranchStartInfo instruction
-     *
-     * @param info the constant of the LDC BranchStartInfo.
-     */
-    void visitingBranchStart(BranchStartInfo info);
-
-    /**
-     * Called before a LDC CopyTagInfo instruction
-     *
-     * @param info the constant of the LDC CopyTagInfo.
-     */
-    void visitingCopyTagInfo(CopyTagInfo info);
 
     /**
      * Called before visitMaxs
@@ -206,4 +174,11 @@ public interface ControlFlowDelegator {
      * @param stack    the operand stack types in this frame
      */
     void visitingFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack);
+
+    /**
+     * Called before a LdcInsn with a PhosphorInstructionInfo constant
+     *
+     * @param info the constant of the LdcInsn
+     */
+    void visitingPhosphorInstructionInfo(PhosphorInstructionInfo info);
 }

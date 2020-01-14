@@ -17,7 +17,7 @@ public interface LoopLevel {
     // stack_post = [Taint]
     void copyTag(MethodVisitor mv);
 
-    // stack_pre = [ControlTaintTagStack, Taint, branchID, numBranches]
+    // stack_pre = [ControlTaintTagStack, branchID, numBranches]
     // stack_post = []
     void pushTag(MethodVisitor mv);
 

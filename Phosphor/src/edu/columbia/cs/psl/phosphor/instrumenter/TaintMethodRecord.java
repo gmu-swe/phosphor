@@ -60,9 +60,10 @@ public enum TaintMethodRecord implements MethodRecord {
     CONTROL_STACK_COPY_TAG_CONSTANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyTagConstant", Taint.class, false),
     CONTROL_STACK_COPY_TAG_DEPENDENT(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyTagDependent", Taint.class, false, int[].class),
     CONTROL_STACK_COPY_TAG_VARIANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyTagVariant", Taint.class, false, int.class),
-    CONTROL_STACK_PUSH_CONSTANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushConstant", Void.TYPE, false, Taint.class, int.class, int.class),
-    CONTROL_STACK_PUSH_DEPENDENT(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushDependent", Void.TYPE, false, Taint.class, int.class, int.class, int[].class),
-    CONTROL_STACK_PUSH_VARIANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushVariant", Void.TYPE, false, Taint.class, int.class, int.class, int.class),
+    CONTROL_STACK_PUSH_CONSTANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushConstant", Void.TYPE, false, int.class, int.class),
+    CONTROL_STACK_PUSH_DEPENDENT(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushDependent", Void.TYPE, false, int.class, int.class, int[].class),
+    CONTROL_STACK_PUSH_VARIANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushVariant", Void.TYPE, false, int.class, int.class, int.class),
+    CONTROL_STACK_SET_NEXT_BRANCH_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "setNextBranchTag", Void.TYPE, false, Taint.class),
     CONTROL_STACK_LOOP_AWARE_POP(INVOKEVIRTUAL, ControlTaintTagStack.class, "loopAwarePop", Void.TYPE, false, int.class),
     CONTROL_STACK_EXIT_LOOP_LEVEL(INVOKEVIRTUAL, ControlTaintTagStack.class, "exitLoopLevel", Void.TYPE, false, int.class),
     // Methods from ControlTaintTagStackPool

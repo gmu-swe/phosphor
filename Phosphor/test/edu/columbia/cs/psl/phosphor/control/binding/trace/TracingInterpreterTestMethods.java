@@ -1,25 +1,23 @@
 package edu.columbia.cs.psl.phosphor.control.binding.trace;
 
 import edu.columbia.cs.psl.phosphor.control.binding.LoopLevel;
-import edu.columbia.cs.psl.phosphor.control.graph.BaseControlFlowGraphCreator;
-import edu.columbia.cs.psl.phosphor.control.graph.BasicBlock;
-import edu.columbia.cs.psl.phosphor.control.graph.ControlFlowGraphCreator;
-import edu.columbia.cs.psl.phosphor.control.graph.FlowGraph;
+import edu.columbia.cs.psl.phosphor.control.graph.*;
 import edu.columbia.cs.psl.phosphor.control.graph.FlowGraph.NaturalLoop;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import jdk.nashorn.internal.codegen.types.Type;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
-
-import static edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowAnalyzer.getContainingLoops;
 
 @SuppressWarnings("unused")
 public class TracingInterpreterTestMethods {
@@ -133,6 +131,30 @@ public class TracingInterpreterTestMethods {
         TracingInterpreter interpreter = new TracingInterpreter(Type.getInternalName(TracingInterpreterTestMethods.class),
                 methodNode, containingLoopMap, controlFlowGraph);
         return interpreter.getLoopLevelMap();
+    }
+
+    public static Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> getContainingLoops(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph) {
+        Set<NaturalLoop<BasicBlock>> loops = controlFlowGraph.getNaturalLoops();
+        Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> loopMap = new HashMap<>();
+        Iterator<AbstractInsnNode> itr = instructions.iterator();
+        while(itr.hasNext()) {
+            loopMap.put(itr.next(), new HashSet<>());
+        }
+        for(NaturalLoop<BasicBlock> loop : loops) {
+            for(BasicBlock basicBlock : loop.getVertices()) {
+                if(basicBlock instanceof SimpleBasicBlock) {
+                    AbstractInsnNode start = basicBlock.getFirstInsn();
+                    while(start != null) {
+                        loopMap.get(start).add(loop);
+                        if(start == basicBlock.getLastInsn()) {
+                            break;
+                        }
+                        start = start.getNext();
+                    }
+                }
+            }
+        }
+        return loopMap;
     }
 
     public void fieldSelfComputation() {

@@ -4,13 +4,13 @@ import edu.columbia.cs.psl.phosphor.instrumenter.MethodRecord;
 
 public interface ControlFlowPropagationManager {
 
-    MethodRecord getCreateEnabledStackMethod();
+    MethodRecord getRecordForCreateEnabledStack();
 
-    MethodRecord getAccessSharedDisabledStackMethod();
+    MethodRecord getRecordForGetSharedDisabledStack();
 
     ControlFlowStack createEnabledStack();
 
-    ControlFlowStack accessSharedDisabledStack();
+    ControlFlowStack getSharedDisabledStack();
 
     ControlFlowAnalyzer createAnalyzer();
 

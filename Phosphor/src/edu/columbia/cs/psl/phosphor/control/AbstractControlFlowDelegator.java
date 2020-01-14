@@ -1,9 +1,6 @@
 package edu.columbia.cs.psl.phosphor.control;
 
-import edu.columbia.cs.psl.phosphor.control.binding.BranchStartInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.CopyTagInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.ExitLoopLevelInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.LoopAwarePopInfo;
+import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
@@ -76,26 +73,6 @@ public abstract class AbstractControlFlowDelegator implements ControlFlowDelegat
     }
 
     @Override
-    public void visitingExitLoopLevelInfo(ExitLoopLevelInfo info) {
-
-    }
-
-    @Override
-    public void visitingLoopAwarePop(LoopAwarePopInfo info) {
-
-    }
-
-    @Override
-    public void visitingBranchStart(BranchStartInfo info) {
-
-    }
-
-    @Override
-    public void visitingCopyTagInfo(CopyTagInfo info) {
-
-    }
-
-    @Override
     public void visitingMaxs() {
 
     }
@@ -107,6 +84,11 @@ public abstract class AbstractControlFlowDelegator implements ControlFlowDelegat
 
     @Override
     public void visitingFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack) {
+
+    }
+
+    @Override
+    public void visitingPhosphorInstructionInfo(PhosphorInstructionInfo info) {
 
     }
 }

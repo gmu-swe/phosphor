@@ -19,6 +19,7 @@ public final class ControlTaintTagStack {
     private int disabled;
     private SinglyLinkedList<MaybeThrownException> unthrownExceptions;
     private SinglyLinkedList<MaybeThrownException> influenceExceptions;
+    private Taint nextBranchTag = Taint.emptyTaint();
 
     public ControlTaintTagStack() {
         disabled = 0;
@@ -361,19 +362,24 @@ public final class ControlTaintTagStack {
         return loopAwareControlStack.copyTagVariant(levelOffset);
     }
 
+    @InvokedViaInstrumentation(record = CONTROL_STACK_SET_NEXT_BRANCH_TAG)
+    public void setNextBranchTag(Taint tag) {
+        nextBranchTag = tag;
+    }
+
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_CONSTANT)
-    public void pushConstant(Taint tag, int branchID, int branchesSize) {
-        loopAwareControlStack.pushConstant(tag, branchID, branchesSize);
+    public void pushConstant(int branchID, int branchesSize) {
+        loopAwareControlStack.pushConstant(nextBranchTag, branchID, branchesSize);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_DEPENDENT)
-    public void pushDependent(Taint tag, int branchID, int branchesSize, int[] dependencies) {
-        loopAwareControlStack.pushDependent(tag, branchID, branchesSize, dependencies);
+    public void pushDependent(int branchID, int branchesSize, int[] dependencies) {
+        loopAwareControlStack.pushDependent(nextBranchTag, branchID, branchesSize, dependencies);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_VARIANT)
-    public void pushVariant(Taint tag, int branchID, int branchesSize, int levelOffset) {
-        loopAwareControlStack.pushVariant(tag, branchID, branchesSize, levelOffset);
+    public void pushVariant(int branchID, int branchesSize, int levelOffset) {
+        loopAwareControlStack.pushVariant(nextBranchTag, branchID, branchesSize, levelOffset);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_LOOP_AWARE_POP)

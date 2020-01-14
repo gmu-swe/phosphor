@@ -2,10 +2,10 @@ package edu.columbia.cs.psl.phosphor.control;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
-import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
 import edu.columbia.cs.psl.phosphor.control.binding.LoopLevel;
 import edu.columbia.cs.psl.phosphor.control.binding.trace.LoopAwareConstancyInfo;
+import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
+import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
 import org.objectweb.asm.Handle;
@@ -39,6 +39,13 @@ public class ControlStackInitializingMV extends MethodVisitor {
         this.localVariableManager = localVariableManager;
     }
 
+    /**
+     * Creates a local variable for a {@link ControlFlowStack ControlFlowStack} instance.
+     * Adds code to ensure that the ControlFlowStack instance is initialized and cast to the proper type.
+     * Calls {@link ControlFlowPropagationPolicy#visitingCode()} visitingCode} to allow the policy to create any
+     * local variables that it needs.
+     * Adds a call to {@link ControlFlowStack#pushFrame() pushFrame} on the ControlFlowStack instance.
+     */
     @Override
     public void visitCode() {
         super.visitCode();
@@ -57,11 +64,11 @@ public class ControlStackInitializingMV extends MethodVisitor {
             );
             localVariableManager.createdLVs.add(phosphorJumpControlTagIndex);
         }
-        if(Configuration.IMPLICIT_EXCEPTION_FLOW && arrayAnalyzer.nTryCatch > 0) {
+        if(Configuration.IMPLICIT_EXCEPTION_FLOW && arrayAnalyzer.getNumberOfTryCatch() > 0) {
             super.visitInsn(Opcodes.ACONST_NULL);
             super.visitVarInsn(ASTORE, localVariableManager.createControlExceptionTaintLV());
         }
-        if(Configuration.IMPLICIT_EXCEPTION_FLOW && arrayAnalyzer.nThrow > 0) {
+        if(Configuration.IMPLICIT_EXCEPTION_FLOW && arrayAnalyzer.getNumberOfThrows() > 0) {
             // Create a local variable for the exception data
             int exceptionTaintIndex = localVariableManager.createMasterExceptionTaintLV();
             super.visitTypeInsn(NEW, Type.getInternalName(ExceptionalTaintData.class));
@@ -69,7 +76,7 @@ public class ControlStackInitializingMV extends MethodVisitor {
             super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ExceptionalTaintData.class), "<init>", "()V", false);
             super.visitVarInsn(ASTORE, exceptionTaintIndex);
         }
-        int numberOfBranchIDs = (arrayAnalyzer.nJumps + arrayAnalyzer.nTryCatch == 0) ? 0 : arrayAnalyzer.nJumps + arrayAnalyzer.nTryCatch + 2;
+        int numberOfBranchIDs = (arrayAnalyzer.getNumberOfJumps() + arrayAnalyzer.getNumberOfTryCatch() == 0) ? 0 : arrayAnalyzer.getNumberOfJumps() + arrayAnalyzer.getNumberOfTryCatch() + 2;
         if(!Configuration.IMPLICIT_HEADERS_NO_TRACKING && !Configuration.WITHOUT_PROPAGATION && numberOfBranchIDs > 0) {
             // Create a local variable for the array used to track tags pushed for each "branch" location
             super.visitInsn(Opcodes.ACONST_NULL);
@@ -80,6 +87,10 @@ public class ControlStackInitializingMV extends MethodVisitor {
         CONTROL_STACK_PUSH_FRAME.delegateVisit(mv);
     }
 
+    /**
+     * If the method being called is not ignored by Phosphor and is passed a ControlFlowStack, adds code to prepares the
+     * ControlFlowStack being passed to the call for the call.
+     */
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
         boolean copyStack = "<init>".equals(name);

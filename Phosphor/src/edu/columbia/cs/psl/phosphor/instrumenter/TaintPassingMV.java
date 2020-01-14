@@ -8,11 +8,8 @@ import edu.columbia.cs.psl.phosphor.control.BindingControlFlowDelegator;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowDelegator;
 import edu.columbia.cs.psl.phosphor.control.NoFlowControlFlowDelegator;
 import edu.columbia.cs.psl.phosphor.control.PropagatingControlFlowDelegator;
-import edu.columbia.cs.psl.phosphor.control.binding.BranchStartInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.CopyTagInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.ExitLoopLevelInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.LoopAwarePopInfo;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.*;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingLabel;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
@@ -106,7 +103,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     @Override
     public void visitCode() {
         super.visitCode();
-        int numberOfBranchIDs = (arrayAnalyzer.nJumps + arrayAnalyzer.nTryCatch == 0) ? 0 : arrayAnalyzer.nJumps + arrayAnalyzer.nTryCatch + 2;
+        int numberOfBranchIDs = (arrayAnalyzer.getNumberOfJumps() + arrayAnalyzer.getNumberOfTryCatch() == 0) ? 0 : arrayAnalyzer.getNumberOfJumps() + arrayAnalyzer.getNumberOfTryCatch() + 2;
         if(Configuration.BINDING_CONTROL_FLOWS_ONLY) {
             controlFlowDelegator = new BindingControlFlowDelegator(mv, lvs, numberOfBranchIDs);
         } else if((Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
@@ -489,15 +486,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     public void visitLdcInsn(Object cst) {
         if(cst instanceof ReferenceArrayTarget) {
             this.referenceArrayTarget = (ReferenceArrayTarget) cst;
-        } else if(cst instanceof ExitLoopLevelInfo) {
-            controlFlowDelegator.visitingExitLoopLevelInfo((ExitLoopLevelInfo) cst);
-        } else if(cst instanceof LoopAwarePopInfo) {
-            controlFlowDelegator.visitingLoopAwarePop((LoopAwarePopInfo) cst);
-        } else if(cst instanceof BranchStartInfo) {
-            controlFlowDelegator.visitingBranchStart((BranchStartInfo) cst);
-        } else if(cst instanceof CopyTagInfo) {
-            controlFlowDelegator.visitingCopyTagInfo((CopyTagInfo) cst);
         } else if(cst instanceof PhosphorInstructionInfo) {
+            controlFlowDelegator.visitingPhosphorInstructionInfo((PhosphorInstructionInfo) cst);
             super.visitLdcInsn(cst);
         } else {
             super.visitLdcInsn(cst);
@@ -1569,33 +1559,30 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     @Override
     public void visitTableSwitchInsn(int min, int max, Label defaultLabel, Label[] labels) {
-        if(isIgnoreAllInstrumenting) {
-            super.visitTableSwitchInsn(min, max, defaultLabel, labels);
-        } else {
+        if(!isIgnoreAllInstrumenting) {
             Configuration.taintTagFactory.tableSwitch(min, max, defaultLabel, labels, mv, lvs, this);
             controlFlowDelegator.visitTableSwitch(min, max, defaultLabel, labels);
         }
+        super.visitTableSwitchInsn(min, max, defaultLabel, labels);
     }
 
     @Override
     public void visitLookupSwitchInsn(Label defaultLabel, int[] keys, Label[] labels) {
-        if(isIgnoreAllInstrumenting) {
-            super.visitLookupSwitchInsn(defaultLabel, keys, labels);
-        } else {
+        if(!isIgnoreAllInstrumenting) {
             Configuration.taintTagFactory.lookupSwitch(defaultLabel, keys, labels, mv, lvs, this);
             controlFlowDelegator.visitLookupSwitch(defaultLabel, keys, labels);
         }
+        super.visitLookupSwitchInsn(defaultLabel, keys, labels);
     }
 
     @Override
     public void visitJumpInsn(int opcode, Label label) {
-        if(isIgnoreAllInstrumenting) {
-            super.visitJumpInsn(opcode, label);
-        } else {
+        if(!isIgnoreAllInstrumenting) {
             unboxForReferenceCompare(opcode);
             Configuration.taintTagFactory.jumpOp(opcode, label, mv, lvs, this);
             controlFlowDelegator.visitingJump(opcode, label);
         }
+        super.visitJumpInsn(opcode, label);
     }
 
     private void unboxForReferenceCompare(int opcode) {

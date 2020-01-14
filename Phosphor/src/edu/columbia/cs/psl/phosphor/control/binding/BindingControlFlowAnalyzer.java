@@ -1,16 +1,13 @@
 package edu.columbia.cs.psl.phosphor.control.binding;
 
-import edu.columbia.cs.psl.phosphor.control.binding.BranchStartInfo.EdgeInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.BranchStartInfo.JumpStartInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.BranchStartInfo.NonPropagatingEdgeInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.BranchStartInfo.PropagatingEdgeInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.LoopLevel.VariantLoopLevel;
-import edu.columbia.cs.psl.phosphor.control.graph.*;
-import edu.columbia.cs.psl.phosphor.control.graph.FlowGraph.NaturalLoop;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.control.binding.trace.LoopAwareConstancyInfo;
 import edu.columbia.cs.psl.phosphor.control.binding.trace.TracingInterpreter;
+import edu.columbia.cs.psl.phosphor.control.graph.*;
+import edu.columbia.cs.psl.phosphor.control.graph.FlowGraph.NaturalLoop;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 
@@ -62,190 +59,63 @@ import static org.objectweb.asm.Opcodes.*;
  * </ul>
  * A revision-excluded instruction is considered to be outside of the scope of all revisable branch edges.
  */
-public class BindingControlFlowAnalyzer {
+public class BindingControlFlowAnalyzer implements ControlFlowAnalyzer {
 
-    private BindingControlFlowAnalyzer() {
-        // Prevents this class from being instantiated
+    /**
+     * The instructions of the method being analyzed
+     */
+    private InsnList instructions;
+
+    /**
+     * A control flow graph representing the method
+     */
+    private FlowGraph<BasicBlock> controlFlowGraph;
+
+    /**
+     * Interpreter used to determine the constancy level of instructions in the method
+     */
+    private TracingInterpreter interpreter;
+
+    /**
+     * A mapping between each instruction in the method and the natural loops that contain it
+     */
+    private Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap;
+
+    /**
+     * The number of unique IDs assigned to branches in the method
+     */
+    private int numberOfUniqueBranchIDs = 0;
+
+    public int getNumberOfUniqueBranchIDs() {
+        return numberOfUniqueBranchIDs;
     }
 
     /**
      * @param methodNode the method to be analyzed and possibly modified
-     * @return the number of unique branch ids used in added instructions
      */
-    public static int analyzeAndModify(String owner, MethodNode methodNode) throws AnalyzerException {
-        InsnList instructions = methodNode.instructions;
-        if(instructions.size() == 0) {
-            return 0;
-        }
-        BindingControlFlowGraphCreator creator = new BindingControlFlowGraphCreator();
-        FlowGraph<BasicBlock> controlFlowGraph = creator.createControlFlowGraph(methodNode);
-        Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap = getContainingLoops(instructions, controlFlowGraph);
-        TracingInterpreter interpreter = new TracingInterpreter(owner, methodNode, containingLoopMap, controlFlowGraph);
-        Set<BindingBranchEdge> bindingEdges = filterBindingEdges(creator.bindingBranchEdges, controlFlowGraph);
-        int numberOfUniqueBranchIDs = assignBranchIDs(bindingEdges);
-        calculateLoopLevels(bindingEdges, controlFlowGraph, containingLoopMap, interpreter);
-        markBranches(instructions, controlFlowGraph, bindingEdges);
-        addCopyTagInfo(instructions, interpreter);
-        markLoopExits(instructions, controlFlowGraph, containingLoopMap);
-        // Add constancy information for method calls
-        addConstancyInfoNodes(instructions, interpreter);
-        return numberOfUniqueBranchIDs;
-    }
-
-    private static void addCopyTagInfo(InsnList instructions, TracingInterpreter interpreter) {
-        Iterator<AbstractInsnNode> itr = instructions.iterator();
-        while(itr.hasNext()) {
-            AbstractInsnNode insn = itr.next();
-            if(isPushConstantInsn(insn) || insn.getOpcode() == IINC) {
-                instructions.insertBefore(insn, new LdcInsnNode(new CopyTagInfo(CONSTANT_LOOP_LEVEL)));
-            } else if(isArrayStoreInsn(insn) || isFieldStoreInsn(insn) || isLocalVariableStoreInsn(insn)) {
-                instructions.insertBefore(insn, new LdcInsnNode(new CopyTagInfo(interpreter.getLoopLevel(insn))));
-            }
-        }
-    }
-
-    private static void calculateLoopLevels(Set<BindingBranchEdge> edges, FlowGraph<BasicBlock> controlFlowGraph,
-                                            Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap, TracingInterpreter interpreter) {
-        for(BindingBranchEdge edge : edges) {
-            edge.calculateLoopLevel(controlFlowGraph, containingLoopMap.get(edge.source.getLastInsn()), interpreter);
-        }
-    }
-
-    private static int assignBranchIDs(Set<BindingBranchEdge> edges) {
-        int nextBranchIDAssigned = 0;
-        for(BindingBranchEdge edge : edges) {
-            edge.branchID = nextBranchIDAssigned++;
-        }
-        return nextBranchIDAssigned;
-    }
-
-    private static void markBranches(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph, Set<BindingBranchEdge> bindingEdges) {
-        // Add BranchStartInfo instructions
-        Map<BasicBlock, Set<BindingBranchEdge>> edgeGroupings = groupEdgesBySource(bindingEdges);
-        for(BasicBlock source : edgeGroupings.keySet()) {
-            BranchStartInfo startInfo = createBranchStartInfo(source, edgeGroupings.get(source));
-            instructions.insertBefore(source.getLastInsn(), new LdcInsnNode(startInfo));
-
-        }
-        // Add LoopAwarePopInfo instructions
-        for(BindingBranchEdge bindingEdge : bindingEdges) {
-            markBranchEnds(instructions, bindingEdge, bindingEdge.branchID, controlFlowGraph);
-        }
-    }
-
-    private static BranchStartInfo createBranchStartInfo(BasicBlock source, Set<BindingBranchEdge> bindingBranchEdges) {
-        Map<LabelNode, BindingBranchEdge> edgeTargetMap = new HashMap<>();
-        for(BindingBranchEdge edge : bindingBranchEdges) {
-            edgeTargetMap.put(edge.targetLabel, edge);
-        }
-        if(source.getLastInsn() instanceof JumpInsnNode) {
-            JumpInsnNode insn = (JumpInsnNode) source.getLastInsn();
-            EdgeInfo notTaken = createEdgeInfo(null, edgeTargetMap);
-            EdgeInfo label = createEdgeInfo(insn.label, edgeTargetMap);
-            return new JumpStartInfo(notTaken, label);
-        } else if(source.getLastInsn() instanceof LookupSwitchInsnNode) {
-            LookupSwitchInsnNode insn = (LookupSwitchInsnNode) source.getLastInsn();
-            EdgeInfo defaultLabel = createEdgeInfo(insn.dflt, edgeTargetMap);
-            EdgeInfo[] labels = new EdgeInfo[insn.labels.size()];
-            int i = 0;
-            for(LabelNode labelNode : insn.labels) {
-                labels[i++] = createEdgeInfo(labelNode, edgeTargetMap);
-            }
-            return new BranchStartInfo.SwitchStartInfo(defaultLabel, labels);
-        } else if(source.getLastInsn() instanceof TableSwitchInsnNode) {
-            TableSwitchInsnNode insn = (TableSwitchInsnNode) source.getLastInsn();
-            EdgeInfo defaultLabel = createEdgeInfo(insn.dflt, edgeTargetMap);
-            EdgeInfo[] labels = new EdgeInfo[insn.labels.size()];
-            int i = 0;
-            for(LabelNode labelNode : insn.labels) {
-                labels[i++] = createEdgeInfo(labelNode, edgeTargetMap);
-            }
-            return new BranchStartInfo.SwitchStartInfo(defaultLabel, labels);
-        } else {
-            throw new IllegalStateException();
-        }
-    }
-
-    private static EdgeInfo createEdgeInfo(LabelNode target, Map<LabelNode, BindingBranchEdge> edgeTargetMap) {
-        if(edgeTargetMap.containsKey(target)) {
-            BindingBranchEdge edge = edgeTargetMap.get(target);
-            return new PropagatingEdgeInfo(edge.level, edge.branchID);
-        } else {
-            return new NonPropagatingEdgeInfo();
-        }
-    }
-
-    private static Map<BasicBlock, Set<BindingBranchEdge>> groupEdgesBySource(Set<BindingBranchEdge> bindingEdges) {
-        Map<BasicBlock, Set<BindingBranchEdge>> edgeGroupings = new HashMap<>();
-        for(BindingBranchEdge edge : bindingEdges) {
-            if(!edgeGroupings.containsKey(edge.source)) {
-                edgeGroupings.put(edge.source, new HashSet<>());
-            }
-            edgeGroupings.get(edge.source).add(edge);
-        }
-        return edgeGroupings;
-    }
-
-    /**
-     * Adds LoopAwareConstancyInfo instruction nodes to the specified list before each MethodInsnNode and
-     * each InvokeDynamicInsnNode.
-     *
-     * @param instructions the instructions whose method constancy information is to be annotated
-     * @param interpreter  interpreter used to calculate the constancy information for instructions
-     */
-    private static void addConstancyInfoNodes(InsnList instructions, TracingInterpreter interpreter) {
-        SinglyLinkedList<AbstractInsnNode> methodCalls = new SinglyLinkedList<>();
-        Iterator<AbstractInsnNode> itr = instructions.iterator();
-        while(itr.hasNext()) {
-            AbstractInsnNode insn = itr.next();
-            if(insn instanceof MethodInsnNode || insn instanceof InvokeDynamicInsnNode) {
-                methodCalls.addLast(insn);
-            }
-        }
-        for(AbstractInsnNode insn : methodCalls) {
-            LoopAwareConstancyInfo constancyInfo = interpreter.generateMethodConstancyInfo(insn);
-            instructions.insertBefore(insn, new LdcInsnNode(constancyInfo));
+    @Override
+    public void annotate(String owner, MethodNode methodNode) throws AnalyzerException {
+        numberOfUniqueBranchIDs = 0;
+        instructions = methodNode.instructions;
+        if(instructions.size() > 0) {
+            Set<BindingBranchEdge> bindingEdges = new HashSet<>();
+            BindingControlFlowGraphCreator creator = new BindingControlFlowGraphCreator(bindingEdges);
+            controlFlowGraph = creator.createControlFlowGraph(methodNode);
+            containingLoopMap = calculateContainingLoops();
+            interpreter = new TracingInterpreter(owner, methodNode, containingLoopMap, controlFlowGraph);
+            bindingEdges = processBindingEdges(bindingEdges);
+            markBranchEnds(bindingEdges);
+            markBranchStarts(bindingEdges);
+            addCopyTagInfo();
+            addConstancyInfoNodes();
+            markLoopExits();
         }
     }
 
     /**
-     * Adds ExitLoopLevelInfo instruction nodes to the specified list at the beginning of each basic block v
-     * for each edge (u,v) in the control flow graph such that u is containing in some loop l and v is not contained
-     * in l.
-     *
-     * @param instructions      the instructions whose loop exits are to be marked
-     * @param controlFlowGraph  a control flow graph representing the instructions in the specified list
-     * @param containingLoopMap a mapping between each instruction in the specified list and the natural loops that contain it
+     * @return a mapping between each instruction and the natural loops that contain it
      */
-    private static void markLoopExits(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph, Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> containingLoopMap) {
-        Set<NaturalLoop<BasicBlock>> loops = controlFlowGraph.getNaturalLoops();
-        for(NaturalLoop<BasicBlock> loop : loops) {
-            BasicBlock header = loop.getHeader();
-            if(header instanceof SimpleBasicBlock) {
-                Set<SimpleBasicBlock> exits = new HashSet<>();
-                for(BasicBlock vertex : loop.getVertices()) {
-                    for(BasicBlock target : controlFlowGraph.getSuccessors(vertex)) {
-                        if(target instanceof SimpleBasicBlock && !loop.contains(target)) {
-                            exits.add((SimpleBasicBlock) target);
-                        }
-                    }
-                }
-                int numContainingLoops = containingLoopMap.get(header.getFirstInsn()).size();
-                ExitLoopLevelInfo exitLoopLevelInfo = new ExitLoopLevelInfo(numContainingLoops);
-                for(BasicBlock exit : exits) {
-                    AbstractInsnNode nextInsn = findNextPrecedableInstruction(exit.getFirstInsn());
-                    instructions.insertBefore(nextInsn, new LdcInsnNode(exitLoopLevelInfo));
-                }
-            }
-        }
-    }
-
-    /**
-     * @param instructions     the instructions whose containing loops are to be calculated
-     * @param controlFlowGraph a control flow graph representing the instructions in the specified list
-     * @return a mapping between each instruction in the specified list and the natural loops that contain it
-     */
-    public static Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> getContainingLoops(InsnList instructions, FlowGraph<BasicBlock> controlFlowGraph) {
+    private Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> calculateContainingLoops() {
         Set<NaturalLoop<BasicBlock>> loops = controlFlowGraph.getNaturalLoops();
         Map<AbstractInsnNode, Set<NaturalLoop<BasicBlock>>> loopMap = new HashMap<>();
         Iterator<AbstractInsnNode> itr = instructions.iterator();
@@ -270,19 +140,215 @@ public class BindingControlFlowAnalyzer {
     }
 
     /**
-     * Marks the ends of the scope for the specified edge by inserting a LoopWarePopInfo instruction node.
-     *
-     * @param instructions     the instructions of a method
-     * @param edge             a vertex that represents a binding branch edge in the specified method
-     * @param id               the unique identifier assigned to the specified branch edge
-     * @param controlFlowGraph the control flow graph of the method
+     * Adds CopyTagInfo nodes before IINC, constant storing, array store, field store, and local variable store
+     * instructions.
      */
-    private static void markBranchEnds(InsnList instructions, BindingBranchEdge edge, int id, FlowGraph<BasicBlock> controlFlowGraph) {
-        Set<BasicBlock> scopeEnds = edge.getScopeEnds(controlFlowGraph);
-        for(BasicBlock scopeEnd : scopeEnds) {
-            AbstractInsnNode insn = findNextPrecedableInstruction(scopeEnd.getFirstInsn());
-            instructions.insertBefore(insn, new LdcInsnNode(new LoopAwarePopInfo(id)));
+    private void addCopyTagInfo() {
+        Iterator<AbstractInsnNode> itr = instructions.iterator();
+        while(itr.hasNext()) {
+            AbstractInsnNode insn = itr.next();
+            if(isPushConstantInsn(insn) || insn.getOpcode() == IINC) {
+                instructions.insertBefore(insn, new LdcInsnNode(new CopyTagInfo(CONSTANT_LOOP_LEVEL)));
+            } else if(isArrayStoreInsn(insn) || isFieldStoreInsn(insn) || isLocalVariableStoreInsn(insn)) {
+                instructions.insertBefore(insn, new LdcInsnNode(new CopyTagInfo(interpreter.getLoopLevel(insn))));
+            }
         }
+    }
+
+    /**
+     * Adds LoopAwareConstancyInfo nodes before MethodInsnNodes and InvokeDynamicInsnNodes.
+     */
+    private void addConstancyInfoNodes() {
+        SinglyLinkedList<AbstractInsnNode> methodCalls = new SinglyLinkedList<>();
+        Iterator<AbstractInsnNode> itr = instructions.iterator();
+        while(itr.hasNext()) {
+            AbstractInsnNode insn = itr.next();
+            if(insn instanceof MethodInsnNode || insn instanceof InvokeDynamicInsnNode) {
+                methodCalls.addLast(insn);
+            }
+        }
+        for(AbstractInsnNode insn : methodCalls) {
+            LoopAwareConstancyInfo constancyInfo = interpreter.generateMethodConstancyInfo(insn);
+            instructions.insertBefore(insn, new LdcInsnNode(constancyInfo));
+        }
+    }
+
+    /**
+     * Adds ExitLoopLevelInfo nodes at the beginning of each basic block v for each edge (u,v) in the
+     * control flow graph such that u is containing in some loop l and v is not contained in l.
+     */
+    private void markLoopExits() {
+        Set<NaturalLoop<BasicBlock>> loops = controlFlowGraph.getNaturalLoops();
+        for(NaturalLoop<BasicBlock> loop : loops) {
+            BasicBlock header = loop.getHeader();
+            if(header instanceof SimpleBasicBlock) {
+                Set<SimpleBasicBlock> exits = new HashSet<>();
+                for(BasicBlock vertex : loop.getVertices()) {
+                    for(BasicBlock target : controlFlowGraph.getSuccessors(vertex)) {
+                        if(target instanceof SimpleBasicBlock && !loop.contains(target)) {
+                            exits.add((SimpleBasicBlock) target);
+                        }
+                    }
+                }
+                int numContainingLoops = containingLoopMap.get(header.getFirstInsn()).size();
+                ExitLoopLevelInfo exitLoopLevelInfo = new ExitLoopLevelInfo(numContainingLoops);
+                for(BasicBlock exit : exits) {
+                    AbstractInsnNode nextInsn = findNextPrecedableInstruction(exit.getFirstInsn());
+                    instructions.insertBefore(nextInsn, new LdcInsnNode(exitLoopLevelInfo));
+                }
+            }
+        }
+    }
+
+    /**
+     * Marks the ends of the scopes of the specified binding edges by inserting LoopAwarePopInfo nodes.
+     */
+    private void markBranchEnds(Set<BindingBranchEdge> bindingEdges) {
+        for(BindingBranchEdge bindingEdge : bindingEdges) {
+            Set<BasicBlock> scopeEnds = bindingEdge.getScopeEnds(controlFlowGraph);
+            for(BasicBlock scopeEnd : scopeEnds) {
+                AbstractInsnNode insn = findNextPrecedableInstruction(scopeEnd.getFirstInsn());
+                instructions.insertBefore(insn, new LdcInsnNode(new LoopAwarePopInfo(bindingEdge.id)));
+            }
+        }
+    }
+
+    /**
+     * Marks the starts of the scopes of the specified binding edges by inserting BranchStartInfo nodes.
+     */
+    private void markBranchStarts(Set<BindingBranchEdge> bindingEdges) {
+        for(BindingBranchEdge bindingEdge : bindingEdges) {
+            BranchStartInfo scopeStart = new BranchStartInfo(bindingEdge.level, bindingEdge.id);
+            AbstractInsnNode scopeStartNode = new LdcInsnNode(scopeStart);
+            AbstractInsnNode targetInsn = bindingEdge.target.getFirstInsn();
+            if(bindingEdge.branchTaken) {
+                // Adjust the control flow
+                FrameNode targetFrame = findNextFrame(targetInsn);
+                LabelNode newTarget = new LabelNode(new Label());
+                instructions.add(newTarget);
+                FrameNode targetFrameCopy = new FrameNode(targetFrame.type, targetFrame.local.size(), targetFrame.local.toArray(),
+                        targetFrame.stack.size(), targetFrame.stack.toArray());
+                instructions.add(targetFrameCopy);
+                instructions.add(scopeStartNode);
+                instructions.add(new JumpInsnNode(GOTO, ((LabelNode) targetInsn)));
+                // Swap the target label of the jump/switch instruction at the source
+                swapLabel(bindingEdge.source.getLastInsn(), ((LabelNode) targetInsn), newTarget);
+            } else {
+                instructions.insertBefore(findNextPrecedableInstruction(targetInsn), scopeStartNode);
+            }
+        }
+    }
+
+    private void swapLabel(AbstractInsnNode insn, LabelNode originalTarget, LabelNode newTarget) {
+        if(insn instanceof JumpInsnNode) {
+            JumpInsnNode jump = (JumpInsnNode) insn;
+            if(jump.label == originalTarget) {
+                jump.label = newTarget;
+            } else {
+                throw new IllegalArgumentException();
+            }
+        } else if(insn instanceof LookupSwitchInsnNode) {
+            LookupSwitchInsnNode switchInsn = (LookupSwitchInsnNode) insn;
+            boolean found = false;
+            if(switchInsn.dflt == originalTarget) {
+                switchInsn.dflt = newTarget;
+                found = true;
+            }
+            java.util.List<LabelNode> newLabels = new java.util.LinkedList<>();
+            for(LabelNode label : switchInsn.labels) {
+                if(label == originalTarget) {
+                    found = true;
+                    newLabels.add(newTarget);
+                } else {
+                    newLabels.add(label);
+                }
+            }
+            switchInsn.labels = newLabels;
+            if(!found) {
+                throw new IllegalArgumentException();
+            }
+        } else if(insn instanceof TableSwitchInsnNode) {
+            TableSwitchInsnNode switchInsn = (TableSwitchInsnNode) insn;
+            boolean found = false;
+            if(switchInsn.dflt == originalTarget) {
+                switchInsn.dflt = newTarget;
+                found = true;
+            }
+            java.util.List<LabelNode> newLabels = new java.util.LinkedList<>();
+            for(LabelNode label : switchInsn.labels) {
+                if(label == originalTarget) {
+                    found = true;
+                    newLabels.add(newTarget);
+                } else {
+                    newLabels.add(label);
+                }
+            }
+            switchInsn.labels = newLabels;
+            if(!found) {
+                throw new IllegalArgumentException();
+            }
+        } else {
+            throw new IllegalArgumentException();
+        }
+    }
+
+    private FrameNode findNextFrame(AbstractInsnNode insn) {
+        while(insn != null && !(insn instanceof FrameNode)) {
+            insn = insn.getNext();
+        }
+        return (FrameNode) insn;
+    }
+
+    private Set<BindingBranchEdge> processBindingEdges(Set<BindingBranchEdge> bindingEdges) {
+        bindingEdges = filterBindingEdges(bindingEdges);
+        numberOfUniqueBranchIDs = assignBranchIDs(bindingEdges);
+        calculateLoopLevels(bindingEdges);
+        return bindingEdges;
+    }
+
+    private Set<BindingBranchEdge> filterBindingEdges(Collection<BindingBranchEdge> bindingEdges) {
+        Set<BindingBranchEdge> filtered = new HashSet<>();
+        for(BindingBranchEdge edge : bindingEdges) {
+            if(edge.hasNonEmptyScope(controlFlowGraph)) {
+                filtered.add(edge);
+            }
+        }
+        return filtered;
+    }
+
+    private int assignBranchIDs(Set<BindingBranchEdge> edges) {
+        int nextBranchIDAssigned = 0;
+        for(BindingBranchEdge edge : edges) {
+            edge.id = nextBranchIDAssigned++;
+        }
+        return nextBranchIDAssigned;
+    }
+
+    private void calculateLoopLevels(Set<BindingBranchEdge> bindingEdges) {
+        for(BindingBranchEdge bindingEdge : bindingEdges) {
+            LoopLevel level = interpreter.getLoopLevel(bindingEdge.source.getLastInsn());
+            if(level instanceof LoopLevel.VariantLoopLevel && ((LoopLevel.VariantLoopLevel) level).getLevelOffset() != 0) {
+                int revisableLoops = calculateRevisableContainingLoops(bindingEdge);
+                if(((LoopLevel.VariantLoopLevel) level).getLevelOffset() > revisableLoops) {
+                    level = new LoopLevel.VariantLoopLevel(revisableLoops);
+                }
+            }
+            bindingEdge.level = level;
+        }
+    }
+
+    private int calculateRevisableContainingLoops(BindingBranchEdge bindingEdge) {
+        Set<NaturalLoop<BasicBlock>> containingLoops = containingLoopMap.get(bindingEdge.source.getLastInsn());
+        int revisableLoops = 0;
+        for(NaturalLoop<BasicBlock> containingLoop : containingLoops) {
+            for(BasicBlock successor : controlFlowGraph.getSuccessors(bindingEdge.source)) {
+                if(!successor.equals(bindingEdge) && controlFlowGraph.containsPath(successor, containingLoop.getHeader())) {
+                    revisableLoops++;
+                    break;
+                }
+            }
+        }
+        return revisableLoops;
     }
 
     private static AbstractInsnNode findNextPrecedableInstruction(AbstractInsnNode insn) {
@@ -293,16 +359,6 @@ public class BindingControlFlowAnalyzer {
         return insn;
     }
 
-    private static Set<BindingBranchEdge> filterBindingEdges(Collection<BindingBranchEdge> bindingEdges, FlowGraph<BasicBlock> controlFlowGraph) {
-        Set<BindingBranchEdge> filtered = new HashSet<>();
-        for(BindingBranchEdge edge : bindingEdges) {
-            if(edge.hasNonEmptyScope(controlFlowGraph)) {
-                filtered.add(edge);
-            }
-        }
-        return filtered;
-    }
-
     /**
      * A BindingBranchEdge w is used in conjunction with the edges (u, w) and (w, v) to represent some edge
      * (u, v).
@@ -310,26 +366,28 @@ public class BindingControlFlowAnalyzer {
     private static class BindingBranchEdge extends DummyBasicBlock {
 
         /**
-         * The source vertex of this edge, the last instruction in the source block should be a conditional jump
-         * instruction
+         * The source vertex of this edge.
          */
         private final BasicBlock source;
 
         /**
-         * The target vertex of this edge
+         * The target vertex of this edge.
          */
         private final BasicBlock target;
 
-        private final LabelNode targetLabel;
+        /**
+         * True if this edge represents a jump occurring
+         */
+        private final boolean branchTaken;
 
         private LoopLevel level = null;
 
-        private int branchID = -1;
+        private int id = -1;
 
-        BindingBranchEdge(BasicBlock source, BasicBlock target, LabelNode targetLabel) {
-            this.source = source;
+        BindingBranchEdge(BasicBlock sourceBlock, BasicBlock target, boolean branchTaken) {
+            this.source = sourceBlock;
             this.target = target;
-            this.targetLabel = targetLabel;
+            this.branchTaken = branchTaken;
         }
 
         /**
@@ -371,29 +429,6 @@ public class BindingControlFlowAnalyzer {
             return scopeEnds;
         }
 
-        void calculateLoopLevel(FlowGraph<BasicBlock> controlFlowGraph, Set<NaturalLoop<BasicBlock>> containingLoops, TracingInterpreter interpreter) {
-            level = interpreter.getLoopLevel(source.getLastInsn());
-            if(level instanceof VariantLoopLevel && ((VariantLoopLevel) level).getLevelOffset() != 0) {
-                int revisableLoops = calculateRevisableContainingLoops(controlFlowGraph, containingLoops);
-                if(((VariantLoopLevel) level).getLevelOffset() > revisableLoops) {
-                    level = new VariantLoopLevel(revisableLoops);
-                }
-            }
-        }
-
-        int calculateRevisableContainingLoops(FlowGraph<BasicBlock> controlFlowGraph, Set<NaturalLoop<BasicBlock>> containingLoops) {
-            int revisableLoops = 0;
-            for(NaturalLoop<BasicBlock> containingLoop : containingLoops) {
-                for(BasicBlock successor : controlFlowGraph.getSuccessors(source)) {
-                    if(!successor.equals(this) && controlFlowGraph.containsPath(successor, containingLoop.getHeader())) {
-                        revisableLoops++;
-                        break;
-                    }
-                }
-            }
-            return revisableLoops;
-        }
-
         @Override
         public boolean equals(Object o) {
             if(this == o) {
@@ -401,8 +436,11 @@ public class BindingControlFlowAnalyzer {
             } else if(!(o instanceof BindingBranchEdge)) {
                 return false;
             }
-            BindingBranchEdge edge = (BindingBranchEdge) o;
-            return source.equals(edge.source) && target.equals(edge.target);
+            BindingBranchEdge that = (BindingBranchEdge) o;
+            if(!source.equals(that.source)) {
+                return false;
+            }
+            return target.equals(that.target);
         }
 
         @Override
@@ -427,7 +465,11 @@ public class BindingControlFlowAnalyzer {
         /**
          * A set containing the vertices used to represent binding branch edges in the control flow graph
          */
-        Set<BindingBranchEdge> bindingBranchEdges = new HashSet<>();
+        private final Set<? super BindingBranchEdge> bindingBranchEdges;
+
+        BindingControlFlowGraphCreator(Set<? super BindingBranchEdge> bindingBranchEdges) {
+            this.bindingBranchEdges = bindingBranchEdges;
+        }
 
         @Override
         protected void addBranchTakenEdge(BasicBlock source, BasicBlock target) {
@@ -436,7 +478,7 @@ public class BindingControlFlowAnalyzer {
                 case IFNE:
                 case IF_ICMPEQ:
                 case IF_ACMPEQ:
-                    addBindingBranchEdge(source, target, (LabelNode) target.getFirstInsn());
+                    addBindingBranchEdge(source, target, true);
                     break;
                 default:
                     super.addBranchTakenEdge(source, target);
@@ -450,7 +492,7 @@ public class BindingControlFlowAnalyzer {
                 case IFNE:
                 case IF_ICMPNE:
                 case IF_ACMPNE:
-                    addBindingBranchEdge(source, target, null);
+                    addBindingBranchEdge(source, target, false);
                     break;
                 default:
                     super.addBranchNotTakenEdge(source, target);
@@ -459,23 +501,24 @@ public class BindingControlFlowAnalyzer {
 
         @Override
         protected void addNonDefaultCaseSwitchEdge(BasicBlock source, BasicBlock target) {
-            addBindingBranchEdge(source, target, (LabelNode) target.getFirstInsn());
+            addBindingBranchEdge(source, target, true);
         }
 
         @Override
         protected void addDefaultCaseSwitchEdge(BasicBlock source, BasicBlock target) {
-            addBindingBranchEdge(source, target, (LabelNode) target.getFirstInsn());
+            addBindingBranchEdge(source, target, true);
         }
 
         /**
          * If the specified (source, target) edge is not already represented in the graph adds a new vertex w to the graph
          * and the edges (source, w) and (w, target).
          *
-         * @param source the source vertex of the binding branch edge to be represented in the graph
-         * @param target the target vertex of the binding branch edge to be represented in the graph
+         * @param source      the source vertex of the binding branch edge to be represented in the graph
+         * @param target      the target vertex of the binding branch edge to be represented in the graph
+         * @param branchTaken true if the edge being added represents a jump occurring
          */
-        private void addBindingBranchEdge(BasicBlock source, BasicBlock target, LabelNode targetLabel) {
-            BindingBranchEdge bindingBranchEdge = new BindingBranchEdge(source, target, targetLabel);
+        private void addBindingBranchEdge(BasicBlock source, BasicBlock target, boolean branchTaken) {
+            BindingBranchEdge bindingBranchEdge = new BindingBranchEdge(source, target, branchTaken);
             if(bindingBranchEdges.add(bindingBranchEdge)) {
                 builder.addVertex(bindingBranchEdge);
                 builder.addEdge(source, bindingBranchEdge);
