@@ -334,7 +334,6 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         switch(opcode) {
             case TaintUtils.BRANCH_END:
             case TaintUtils.BRANCH_START:
-            case TaintUtils.FORCE_CTRL_STORE:
             case TaintUtils.IGNORE_EVERYTHING:
                 break;
             default:

@@ -21,38 +21,24 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public class TaintUtils {
 
+    public static final int BRANCH_START = 214;
+    public static final int BRANCH_END = 215;
+    public static final int EXCEPTION_HANDLER_START = 205;
+    public static final int EXCEPTION_HANDLER_END = 206;
+    public static final int UNTHROWN_EXCEPTION_CHECK = 214; //When we are returning from a method and are covered directly by a "try"
+    public static final int UNTHROWN_EXCEPTION = 215; //When we are returning but might have otherwise thrown some exception
+    //
     public static final int RAW_INSN = 201;
     public static final int NO_TAINT_STORE_INSN = 202;
     public static final int IGNORE_EVERYTHING = 203;
     public static final int IS_TMP_STORE = 213;
-    public static final int BRANCH_START = 214;
-    public static final int BRANCH_END = 215;
-    public static final int FORCE_CTRL_STORE = 216;
-    public static final int FORCE_CTRL_STORE_WIDE = 217;
-    public static final int EXCEPTION_HANDLER_START = 205;
-    public static final int EXCEPTION_HANDLER_END = 206;
-    public static final int UNTHROWN_EXCEPTION = 215; //When we are returning but might have otherwise thrown some exception
-    public static final int UNTHROWN_EXCEPTION_CHECK = 214; //When we are returning from a method and are covered directly by a "try"
-    public static final int FORCE_CTRL_STORE_SFIELD = 217;
     public static final int FOLLOWED_BY_FRAME = 217;
-    public static final int CUSTOM_SIGNAL_1 = 218;
-    public static final int CUSTOM_SIGNAL_2 = 219;
-    public static final int CUSTOM_SIGNAL_3 = 220;
-    public static final int LOOP_HEADER = 221;
     public static final String TAINT_FIELD = "PHOSPHOR_TAG";
     public static final String METHOD_SUFFIX = "$$PHOSPHORTAGGED";
     public static final String PHOSPHOR_ADDED_FIELD_PREFIX = "$$PHOSPHOR_";
     public static final String MARK_FIELD = PHOSPHOR_ADDED_FIELD_PREFIX + "MARK";
     public static final String ADDED_SVUID_SENTINEL = PHOSPHOR_ADDED_FIELD_PREFIX + "REMOVE_SVUID";
     public static final String CLASS_OFFSET_CACHE_ADDED_FIELD = PHOSPHOR_ADDED_FIELD_PREFIX + "OFFSET_CACHE";
-    public static final boolean DEBUG_UNSAFE = true;
-    public static final boolean DEBUG_ALL = false;
-    public static final boolean DEBUG_DUPSWAP = DEBUG_ALL;
-    public static final boolean DEBUG_FRAMES = DEBUG_ALL;
-    public static final boolean DEBUG_FIELDS = DEBUG_ALL;
-    public static final boolean DEBUG_LOCAL = DEBUG_ALL;
-    public static final boolean DEBUG_CALLS = DEBUG_ALL;
-    public static final boolean DEBUG_OPT = false;
     public static final String METHOD_SUFFIX_UNINST = "$$PHOSPHORUNTAGGED";
     public static final String TAINT_WRAPPER_FIELD = "PHOSPHOR_WRAPPER";
     public static boolean VERIFY_CLASS_GENERATION = false;

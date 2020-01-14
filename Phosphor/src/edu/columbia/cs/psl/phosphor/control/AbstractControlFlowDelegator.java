@@ -1,8 +1,6 @@
 package edu.columbia.cs.psl.phosphor.control;
 
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
-import edu.columbia.cs.psl.phosphor.struct.Field;
-import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 
 public abstract class AbstractControlFlowDelegator implements ControlFlowDelegator {
@@ -24,11 +22,6 @@ public abstract class AbstractControlFlowDelegator implements ControlFlowDelegat
 
     @Override
     public void storingTaintedValue(int opcode, int var) {
-
-    }
-
-    @Override
-    public void visitingForceControlStoreField(Field field) {
 
     }
 
@@ -63,27 +56,12 @@ public abstract class AbstractControlFlowDelegator implements ControlFlowDelegat
     }
 
     @Override
-    public void visitingForceControlStore(Type stackTop) {
-
-    }
-
-    @Override
     public void visitingArrayStore() {
 
     }
 
     @Override
     public void visitingMaxs() {
-
-    }
-
-    @Override
-    public void visitingLabel(Label label) {
-
-    }
-
-    @Override
-    public void visitingFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack) {
 
     }
 

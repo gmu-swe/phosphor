@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.control;
 
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
-import edu.columbia.cs.psl.phosphor.struct.Field;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 
@@ -33,7 +32,7 @@ public interface ControlFlowDelegator {
     void visitingBranchEnd(int branchID);
 
     /**
-     * Called before a DSTORE, LSTORE, FSTORE, ISTORE, ASTORE, or FORCE_CTRL_STORE instruction.
+     * Called before a DSTORE, LSTORE, FSTORE, ISTORE, or ASTORE instruction.
      * stack_pre = [value taint]
      * stack_post = [value taint]
      *
@@ -41,13 +40,6 @@ public interface ControlFlowDelegator {
      * @param var    the operand of the instruction to be visited
      */
     void storingTaintedValue(int opcode, int var);
-
-    /**
-     * Called before a FORCE_CTRL_STORE_FIELD or FORCE_CTRL_STORE field instruction.
-     *
-     * @param field the field that is being marked as needing to be force control stored
-     */
-    void visitingForceControlStoreField(Field field);
 
     /**
      * Called before a PUTFIELD or PUTSTATIC instruction.
@@ -104,11 +96,6 @@ public interface ControlFlowDelegator {
     void onMethodExit(int opcode);
 
     /**
-     * Called before a FORCE_CTRL_STORE instruction.
-     */
-    void visitingForceControlStore(Type stackTop);
-
-    /**
      * Called for a jump operation.
      * If visiting a IF_ACMP<cond> or IF_ICMP<cond>: stack_pre = [value1 taint1 value2 taint2], stack_post=[value1 value2]
      * If visiting a IF<cond>, IFNULL, or IFNONULL: stack_pre = [value1 taint1], stack_post = [value1]
@@ -156,24 +143,6 @@ public interface ControlFlowDelegator {
      * Called before visitMaxs
      */
     void visitingMaxs();
-
-    /**
-     * Called before visitLabel
-     *
-     * @param label the label about to be visited
-     */
-    void visitingLabel(Label label);
-
-    /**
-     * Called before visitFrame
-     *
-     * @param type     the type of this stack map frame
-     * @param numLocal the number of local variables in the visited frame
-     * @param local    the local variable types in this frame
-     * @param numStack the number of operand stack elements in the visited frame.
-     * @param stack    the operand stack types in this frame
-     */
-    void visitingFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack);
 
     /**
      * Called before a LdcInsn with a PhosphorInstructionInfo constant

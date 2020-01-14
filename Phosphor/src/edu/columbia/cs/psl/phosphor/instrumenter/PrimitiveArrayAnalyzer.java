@@ -3,13 +3,13 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.control.graph.BaseControlFlowGraphCreator;
 import edu.columbia.cs.psl.phosphor.control.graph.BasicBlock;
 import edu.columbia.cs.psl.phosphor.control.graph.FlowGraph;
 import edu.columbia.cs.psl.phosphor.control.graph.FlowGraph.NaturalLoop;
 import edu.columbia.cs.psl.phosphor.control.graph.SimpleBasicBlock;
+import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
@@ -19,6 +19,8 @@ import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.Frame;
 import org.objectweb.asm.tree.analysis.*;
+
+import static edu.columbia.cs.psl.phosphor.LoopHeaderInfo.LOOP_HEADER;
 
 public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
@@ -304,7 +306,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         for(NaturalLoop<BasicBlock> loop : cfg.getNaturalLoops()) {
             AbstractInsnNode header = loop.getHeader().getLastInsn();
             if(loop.getHeader() instanceof SimpleBasicBlock) {
-                mn.instructions.insertBefore(header, new InsnNode(TaintUtils.LOOP_HEADER));
+                mn.instructions.insertBefore(header, new LdcInsnNode(LOOP_HEADER));
             }
         }
     }

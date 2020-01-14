@@ -7,7 +7,7 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.BindingControlFlowDelegator;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowDelegator;
 import edu.columbia.cs.psl.phosphor.control.NoFlowControlFlowDelegator;
-import edu.columbia.cs.psl.phosphor.control.PropagatingControlFlowDelegator;
+import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowDelegator;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingLabel;
@@ -26,7 +26,6 @@ import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import static edu.columbia.cs.psl.phosphor.TaintUtils.FORCE_CTRL_STORE;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public class TaintPassingMV extends TaintAdapter implements Opcodes {
@@ -107,7 +106,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         if(Configuration.BINDING_CONTROL_FLOWS_ONLY) {
             controlFlowDelegator = new BindingControlFlowDelegator(mv, lvs, numberOfBranchIDs);
         } else if((Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
-            controlFlowDelegator = new PropagatingControlFlowDelegator(mv, analyzer, lvs, lastArg,
+            controlFlowDelegator = new StandardControlFlowDelegator(mv, analyzer, lvs, lastArg,
                     paramTypes, numberOfBranchIDs);
         } else {
             controlFlowDelegator = new NoFlowControlFlowDelegator(mv);
@@ -140,17 +139,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         if(exceptionHandlers.contains(label)) {
             isAtStartOfExceptionHandler = true;
         }
-        if(controlFlowDelegator != null) {
-            controlFlowDelegator.visitingLabel(label);
-        }
         super.visitLabel(label);
     }
 
     @Override
     public void visitFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack) {
-        if(controlFlowDelegator != null) {
-            controlFlowDelegator.visitingFrame(type, numLocal, local, numStack, stack);
-        }
         super.visitFrame(type, numLocal, local, numStack, stack);
         if(isAtStartOfExceptionHandler) {
             isAtStartOfExceptionHandler = false;
@@ -169,22 +162,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             return;
         }
         if(isIgnoreAllInstrumenting) {
-            if(opcode != FORCE_CTRL_STORE) {
-                super.visitVarInsn(opcode, var);
-            }
+            super.visitVarInsn(opcode, var);
             return;
-        }
-        switch(opcode) {
-            case ISTORE:
-            case FSTORE:
-            case DSTORE:
-            case LSTORE:
-            case ASTORE:
-                controlFlowDelegator.storingTaintedValue(opcode, var);
-                break;
-            case FORCE_CTRL_STORE:
-                controlFlowDelegator.storingTaintedValue(opcode, var);
-                return;
         }
         int shadowVar = getShadowVar(var, opcode);
         switch(opcode) {
@@ -204,6 +183,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.FSTORE:
             case Opcodes.DSTORE:
             case Opcodes.ASTORE:
+                controlFlowDelegator.storingTaintedValue(opcode, var);
                 super.visitVarInsn(ASTORE, shadowVar);
                 super.visitVarInsn(opcode, var);
         }
@@ -233,10 +213,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     @Override
     public void visitFieldInsn(int opcode, String owner, String name, String desc) {
         Type descType = Type.getType(desc);
-        if(opcode == FORCE_CTRL_STORE || opcode == TaintUtils.FORCE_CTRL_STORE_SFIELD) {
-            controlFlowDelegator.visitingForceControlStoreField(new Field(opcode == TaintUtils.FORCE_CTRL_STORE_SFIELD, owner, name, desc));
-            return;
-        }
         if(isIgnoreAllInstrumenting) {
             super.visitFieldInsn(opcode, owner, name, desc);
             return;
@@ -1153,12 +1129,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     @Override
     public void visitInsn(int opcode) {
-        if(opcode == TaintUtils.CUSTOM_SIGNAL_1 || opcode == TaintUtils.CUSTOM_SIGNAL_2
-                || opcode == TaintUtils.CUSTOM_SIGNAL_3 || opcode == TaintUtils.LOOP_HEADER) {
-            Configuration.taintTagFactory.signalOp(opcode, null);
-            super.visitInsn(opcode);
-            return;
-        }
         if(TaintUtils.isReturnOpcode(opcode) || opcode == ATHROW) {
             controlFlowDelegator.onMethodExit(opcode);
         }
@@ -1207,12 +1177,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitInsn(ARETURN);
             } else {
                 super.visitInsn(opcode);
-            }
-            return;
-        } else if(opcode == FORCE_CTRL_STORE) {
-            if(!analyzer.stack.isEmpty() && !topOfStackIsNull()) {
-                // There is something on the stack right now
-                controlFlowDelegator.visitingForceControlStore(getTopOfStackType());
             }
             return;
         } else if(opcode == TaintUtils.RAW_INSN) {

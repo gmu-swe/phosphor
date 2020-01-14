@@ -4,6 +4,8 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowAnalyzer;
+import edu.columbia.cs.psl.phosphor.control.standard.ForceControlStore.ForceControlStoreField;
+import edu.columbia.cs.psl.phosphor.control.standard.ForceControlStore.ForceControlStoreLocal;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.struct.Field;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
@@ -14,7 +16,10 @@ import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.*;
 
 import java.util.Iterator;
-import java.util.Objects;
+
+import static edu.columbia.cs.psl.phosphor.control.standard.ExecuteForceControlStore.EXECUTE_FORCE_CONTROL_STORE;
+import static edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter.OBJECT_TYPE;
+import static org.objectweb.asm.Type.*;
 
 public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
 
@@ -232,147 +237,13 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
                     }
                 }
             }
-            HashMap<AnnotatedInstruction, Integer> jumpIDs = new HashMap<>();
+            Map<AnnotatedInstruction, Integer> jumpIDs = new HashMap<>();
             int jumpID = 0;
             for(AnnotatedInstruction r : implicitAnalysisBlocks.values()) {
                 if(r.isTryBlockStart) {
-                    //Need to actually insert this code at every exit from the SCC that is this try-catch block.
-                    //Find the end of the handler
-                    //this is any block that succeeds the handler and either: has no successors or has a successor in common with the start block
-                    LinkedList<AnnotatedInstruction> handlerEndBlock = new LinkedList<>();
-                    LinkedList<AnnotatedInstruction> toCheck = new LinkedList<>(r.handledAt.successors);
-                    HashSet<AnnotatedInstruction> visited = new HashSet<>();
-                    while(!toCheck.isEmpty()) {
-                        AnnotatedInstruction e = toCheck.poll();
-                        if(!visited.add(e)) {
-                            continue;
-                        }
-                        if(e.successors.isEmpty()) {
-                            handlerEndBlock.add(e);
-                        } else if(r.postDominators.contains(e)) {
-                            handlerEndBlock.add(e);
-                        } else {
-                            toCheck.addAll(e.successors);
-                        }
-                    }
-
-                    AbstractInsnNode lastInstructionInTryBlock = r.tryBlockEnd.insn;
-                    while(lastInstructionInTryBlock.getType() == AbstractInsnNode.FRAME || lastInstructionInTryBlock.getType() == AbstractInsnNode.LINE || lastInstructionInTryBlock.getType() == AbstractInsnNode.LABEL) {
-                        lastInstructionInTryBlock = lastInstructionInTryBlock.getNext();
-                    }
-                    //Set up the force control store's at the bottom of the try block
-                    HashSet<LVAccess> lvsOnlyInHandler = new HashSet<>(r.varsWrittenFalseSide);
-                    lvsOnlyInHandler.removeAll(r.varsWrittenTrueSide);
-                    HashSet<Field> fieldsOnlyInHandler = new HashSet<>(r.fieldsWrittenFalseSide);
-                    fieldsOnlyInHandler.removeAll(r.fieldsWrittenTrueSide);
-                    for(LVAccess i : lvsOnlyInHandler) {
-                        instructions.insertBefore(lastInstructionInTryBlock, i.getNewForceCtrlStoreNode());
-                    }
-                    for(Field f : fieldsOnlyInHandler) {
-                        instructions.insertBefore(lastInstructionInTryBlock, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
-                    }
-                    AbstractInsnNode handledAtInsn = r.handledAt.insn;
-                    HashSet<String> handledHereAlready = new HashSet<>();
-                    HashSet<Integer> forceStoreAlready = new HashSet<>();
-                    while(handledAtInsn.getType() == AbstractInsnNode.FRAME || handledAtInsn.getType() == AbstractInsnNode.LINE || handledAtInsn.getType() == AbstractInsnNode.LABEL || handledAtInsn.getOpcode() > 200) {
-                        if(handledAtInsn.getOpcode() == TaintUtils.EXCEPTION_HANDLER_START) {
-                            TypeInsnNode tin = (TypeInsnNode) handledAtInsn;
-                            if(tin.desc != null) {
-                                handledHereAlready.add(tin.desc);
-                            }
-                        } else if(handledAtInsn.getOpcode() == TaintUtils.FORCE_CTRL_STORE && handledAtInsn.getType() == AbstractInsnNode.VAR_INSN) {
-                            VarInsnNode vn = (VarInsnNode) handledAtInsn;
-                            forceStoreAlready.add(vn.var);
-                        }
-                        handledAtInsn = handledAtInsn.getNext();
-                    }
-
-                    //Then do all of the force-ctr-stores
-                    //In the exception handler, force a store of what was written
-                    HashSet<LVAccess> diff = new HashSet<>();
-
-                    diff.addAll(r.varsWrittenTrueSide);
-                    diff.removeAll(r.varsWrittenFalseSide);
-
-                    HashSet<Field> diffFields = new HashSet<>();
-                    diffFields.addAll(r.fieldsWrittenTrueSide);
-                    diffFields.removeAll(r.fieldsWrittenFalseSide);
-
-                    for(LVAccess i : diff) {
-                        if(!forceStoreAlready.contains(i.idx)) {
-                            instructions.insertBefore(handledAtInsn, i.getNewForceCtrlStoreNode());
-                        }
-                    }
-                    for(Field f : diffFields) {
-                        instructions.insertBefore(handledAtInsn, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
-                    }
-
-                    //At the START of the handler, note that it's the start...
-                    if(handledHereAlready.isEmpty()) {
-                        instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, null));
-                    }
-                    for(String ex : r.exceptionsHandled) {
-                        if(ex == null) {
-                            ex = "java/lang/Throwable";
-                        }
-                        if(!handledHereAlready.contains(ex)) {
-                            instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, ex));
-                        }
-                        instructions.insertBefore(lastInstructionInTryBlock, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_END, ex));
-                    }
-
-                    //At the END of the handler, remove this exception from the queue
-                    for(AnnotatedInstruction b : handlerEndBlock) {
-                        AbstractInsnNode insn = b.insn;
-                        //Peek backwards to see if we are behind a GOTO
-                        while(insn != null && insn.getPrevious() != null && mightEndBlock(insn.getPrevious())) {
-                            insn = insn.getPrevious();
-                        }
-                        if(insn.getType() == AbstractInsnNode.LABEL || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.FRAME) {
-                            insn = b.insn;
-                        }
-                        instructions.insertBefore(insn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_END, null));
-                    }
+                    annotateExceptionHandler(instructions, r);
                 } else if(r.isJump) {
-                    jumpID++;
-
-                    HashSet<LVAccess> common = new HashSet<>();
-                    common.addAll(r.varsWrittenFalseSide);
-                    common.retainAll(r.varsWrittenTrueSide);
-                    HashSet<LVAccess> diff = new HashSet<>();
-                    diff.addAll(r.varsWrittenTrueSide);
-                    diff.addAll(r.varsWrittenFalseSide);
-                    diff.removeAll(common);
-
-                    HashSet<Field> commonFields = new HashSet<>();
-                    commonFields.addAll(r.fieldsWrittenTrueSide);
-                    commonFields.retainAll(r.fieldsWrittenFalseSide);
-                    HashSet<Field> diffFields = new HashSet<>();
-                    diffFields.addAll(r.fieldsWrittenFalseSide);
-                    diffFields.addAll(r.fieldsWrittenTrueSide);
-                    diffFields.removeAll(common);
-
-                    HashSet<String> commonExceptionsThrown = new HashSet<>();
-                    commonExceptionsThrown.addAll(r.exceptionsThrownFalseSide);
-                    commonExceptionsThrown.retainAll(r.exceptionsThrownTrueSide);
-                    HashSet<String> diffExceptions = new HashSet<>();
-                    diffExceptions.addAll(r.exceptionsThrownTrueSide);
-                    diffExceptions.addAll(r.exceptionsThrownFalseSide);
-                    diffExceptions.removeAll(commonExceptionsThrown);
-
-                    instructions.insertBefore(r.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
-                    jumpIDs.put(r, jumpID);
-                    if(r.isTwoOperandJumpInstruction) {
-                        jumpID++;
-                    }
-
-                    for(LVAccess i : diff) {
-                        instructions.insertBefore(r.insn, i.getNewForceCtrlStoreNode());
-                    }
-                    for(Field f : diffFields) {
-                        instructions.insertBefore(r.insn, new FieldInsnNode((f.isStatic ? TaintUtils.FORCE_CTRL_STORE_SFIELD : TaintUtils.FORCE_CTRL_STORE), f.owner, f.name, f.description));
-                    }
-
+                    jumpID = annotateJump(instructions, r, jumpID, jumpIDs);
                 } else if(shouldTrackExceptions && r.insn.getOpcode() >= Opcodes.IRETURN && r.insn.getOpcode() <= Opcodes.RETURN) {
                     //Return statement: check to see how we might have gotten here, and then find which exceptions we might have thrown if we came otherwise
                     HashSet<String> missedExceptions = new HashSet<>();
@@ -432,12 +303,158 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
                 }
                 // In light tracking mode no need to POP off of control at RETURN/THROW, because we don't reuse the obj
                 if(b.successors.isEmpty() && !isImplicitLightTracking) {
-                    instructions.insertBefore(b.insn, new InsnNode(TaintUtils.FORCE_CTRL_STORE));
+                    instructions.insertBefore(b.insn, new LdcInsnNode(EXECUTE_FORCE_CONTROL_STORE));
                     instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, -1));
                 }
             }
             this.numberOfJumps = jumpID;
         }
+    }
+
+    private void annotateExceptionHandler(InsnList instructions, AnnotatedInstruction r) {
+        //Need to actually insert this code at every exit from the SCC that is this try-catch block.
+        //Find the end of the handler
+        //this is any block that succeeds the handler and either: has no successors or has a successor in common with the start block
+        LinkedList<AnnotatedInstruction> handlerEndBlock = new LinkedList<>();
+        LinkedList<AnnotatedInstruction> toCheck = new LinkedList<>(r.handledAt.successors);
+        Set<AnnotatedInstruction> visited = new HashSet<>();
+        while(!toCheck.isEmpty()) {
+            AnnotatedInstruction e = toCheck.poll();
+            if(!visited.add(e)) {
+                continue;
+            }
+            if(e.successors.isEmpty()) {
+                handlerEndBlock.add(e);
+            } else if(r.postDominators.contains(e)) {
+                handlerEndBlock.add(e);
+            } else {
+                toCheck.addAll(e.successors);
+            }
+        }
+
+        AbstractInsnNode lastInstructionInTryBlock = r.tryBlockEnd.insn;
+        while(lastInstructionInTryBlock.getType() == AbstractInsnNode.FRAME
+                || lastInstructionInTryBlock.getType() == AbstractInsnNode.LINE
+                || lastInstructionInTryBlock.getType() == AbstractInsnNode.LABEL) {
+            lastInstructionInTryBlock = lastInstructionInTryBlock.getNext();
+        }
+        //Set up the force control store's at the bottom of the try block
+        Set<ForceControlStoreLocal> lvsOnlyInHandler = new HashSet<>(r.varsWrittenFalseSide);
+        lvsOnlyInHandler.removeAll(r.varsWrittenTrueSide);
+        HashSet<Field> fieldsOnlyInHandler = new HashSet<>(r.fieldsWrittenFalseSide);
+        fieldsOnlyInHandler.removeAll(r.fieldsWrittenTrueSide);
+        for(ForceControlStoreLocal i : lvsOnlyInHandler) {
+            instructions.insertBefore(lastInstructionInTryBlock, new LdcInsnNode(i));
+        }
+        for(Field f : fieldsOnlyInHandler) {
+            LdcInsnNode force = new LdcInsnNode(new ForceControlStoreField(f));
+            instructions.insertBefore(lastInstructionInTryBlock, force);
+        }
+        AbstractInsnNode handledAtInsn = r.handledAt.insn;
+        Set<String> handledHereAlready = new HashSet<>();
+        Set<ForceControlStoreLocal> forceStoreAlready = new HashSet<>();
+        while(handledAtInsn.getType() == AbstractInsnNode.FRAME || handledAtInsn.getType() == AbstractInsnNode.LINE
+                || handledAtInsn.getType() == AbstractInsnNode.LABEL || handledAtInsn.getOpcode() > 200
+                || (handledAtInsn instanceof LdcInsnNode && ((LdcInsnNode) handledAtInsn).cst instanceof PhosphorInstructionInfo)) {
+            if(handledAtInsn.getOpcode() == TaintUtils.EXCEPTION_HANDLER_START) {
+                TypeInsnNode tin = (TypeInsnNode) handledAtInsn;
+                if(tin.desc != null) {
+                    handledHereAlready.add(tin.desc);
+                }
+            } else if(handledAtInsn instanceof LdcInsnNode && ((LdcInsnNode) handledAtInsn).cst instanceof ForceControlStoreLocal) {
+                forceStoreAlready.add((ForceControlStoreLocal) ((LdcInsnNode) handledAtInsn).cst);
+            }
+            handledAtInsn = handledAtInsn.getNext();
+        }
+
+        //Then do all of the force-ctr-stores
+        //In the exception handler, force a store of what was written
+        Set<ForceControlStoreLocal> diff = new HashSet<>();
+
+        diff.addAll(r.varsWrittenTrueSide);
+        diff.removeAll(r.varsWrittenFalseSide);
+
+        HashSet<Field> diffFields = new HashSet<>();
+        diffFields.addAll(r.fieldsWrittenTrueSide);
+        diffFields.removeAll(r.fieldsWrittenFalseSide);
+
+        for(ForceControlStoreLocal i : diff) {
+            if(!forceStoreAlready.contains(i)) {
+                instructions.insertBefore(handledAtInsn, new LdcInsnNode(i));
+            }
+        }
+        for(Field f : diffFields) {
+            LdcInsnNode force = new LdcInsnNode(new ForceControlStoreField(f));
+            instructions.insertBefore(handledAtInsn, force);
+        }
+
+        //At the START of the handler, note that it's the start...
+        if(handledHereAlready.isEmpty()) {
+            instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, null));
+        }
+        for(String ex : r.exceptionsHandled) {
+            if(ex == null) {
+                ex = "java/lang/Throwable";
+            }
+            if(!handledHereAlready.contains(ex)) {
+                instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, ex));
+            }
+            instructions.insertBefore(lastInstructionInTryBlock, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_END, ex));
+        }
+
+        //At the END of the handler, remove this exception from the queue
+        for(AnnotatedInstruction b : handlerEndBlock) {
+            AbstractInsnNode insn = b.insn;
+            //Peek backwards to see if we are behind a GOTO
+            while(insn != null && insn.getPrevious() != null && mightEndBlock(insn.getPrevious())) {
+                insn = insn.getPrevious();
+            }
+            if(insn.getType() == AbstractInsnNode.LABEL || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.FRAME) {
+                insn = b.insn;
+            }
+            instructions.insertBefore(insn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_END, null));
+        }
+    }
+
+    private int annotateJump(InsnList instructions, AnnotatedInstruction r, int jumpID, Map<AnnotatedInstruction, Integer> jumpIDs) {
+        jumpID++;
+        Set<ForceControlStoreLocal> common = new HashSet<>();
+        common.addAll(r.varsWrittenFalseSide);
+        common.retainAll(r.varsWrittenTrueSide);
+        Set<ForceControlStoreLocal> diff = new HashSet<>();
+        diff.addAll(r.varsWrittenTrueSide);
+        diff.addAll(r.varsWrittenFalseSide);
+        diff.removeAll(common);
+
+        HashSet<Field> commonFields = new HashSet<>();
+        commonFields.addAll(r.fieldsWrittenTrueSide);
+        commonFields.retainAll(r.fieldsWrittenFalseSide);
+        HashSet<Field> diffFields = new HashSet<>();
+        diffFields.addAll(r.fieldsWrittenFalseSide);
+        diffFields.addAll(r.fieldsWrittenTrueSide);
+        diffFields.removeAll(common);
+
+        HashSet<String> commonExceptionsThrown = new HashSet<>();
+        commonExceptionsThrown.addAll(r.exceptionsThrownFalseSide);
+        commonExceptionsThrown.retainAll(r.exceptionsThrownTrueSide);
+        HashSet<String> diffExceptions = new HashSet<>();
+        diffExceptions.addAll(r.exceptionsThrownTrueSide);
+        diffExceptions.addAll(r.exceptionsThrownFalseSide);
+        diffExceptions.removeAll(commonExceptionsThrown);
+
+        instructions.insertBefore(r.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
+        jumpIDs.put(r, jumpID);
+        if(r.isTwoOperandJumpInstruction) {
+            jumpID++;
+        }
+        for(ForceControlStoreLocal i : diff) {
+            instructions.insertBefore(r.insn, new LdcInsnNode(i));
+        }
+        for(Field f : diffFields) {
+            LdcInsnNode force = new LdcInsnNode(new ForceControlStoreField(f));
+            instructions.insertBefore(r.insn, force);
+        }
+        return jumpID;
     }
 
     public int getNumberOfJumps() {
@@ -622,21 +639,25 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
                 successorBlock.insn = instructions.get(successor);
                 implicitAnalysisBlocks.put(successor, successorBlock);
                 if(successorBlock.insn.getType() == AbstractInsnNode.IINC_INSN) {
-                    successorBlock.varsWritten.add(new LVAccess(((IincInsnNode) successorBlock.insn).var, "I"));
+                    ForceControlStoreLocal local = new ForceControlStoreLocal(((IincInsnNode) successorBlock.insn).var, INT_TYPE);
+                    successorBlock.varsWritten.add(local);
                 } else if(successorBlock.insn.getType() == AbstractInsnNode.VAR_INSN) {
+                    int index = ((VarInsnNode) successorBlock.insn).var;
                     switch(successorBlock.insn.getOpcode()) {
                         case ISTORE:
-                            successorBlock.varsWritten.add(new LVAccess(((VarInsnNode) successorBlock.insn).var, "I"));
+                            successorBlock.varsWritten.add(new ForceControlStoreLocal(index, INT_TYPE));
                             break;
                         case ASTORE:
-                            successorBlock.varsWritten.add(new LVAccess(((VarInsnNode) successorBlock.insn).var, "Ljava/lang/Object;"));
+                            successorBlock.varsWritten.add(new ForceControlStoreLocal(index, OBJECT_TYPE));
                             break;
                         case DSTORE:
-                            successorBlock.varsWritten.add(new LVAccess(((VarInsnNode) successorBlock.insn).var, "D"));
+                            successorBlock.varsWritten.add(new ForceControlStoreLocal(index, DOUBLE_TYPE));
                             break;
                         case LSTORE:
-                            successorBlock.varsWritten.add(new LVAccess(((VarInsnNode) successorBlock.insn).var, "J"));
+                            successorBlock.varsWritten.add(new ForceControlStoreLocal(index, LONG_TYPE));
                             break;
+                        case FSTORE:
+                            successorBlock.varsWritten.add(new ForceControlStoreLocal(index, FLOAT_TYPE));
                     }
                 } else if(successorBlock.insn.getType() == AbstractInsnNode.FIELD_INSN) {
                     FieldInsnNode fin = (FieldInsnNode) successorBlock.insn;
@@ -704,13 +725,13 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
         Set<AnnotatedInstruction> resolvedBlocks = new HashSet<>();
         Set<AnnotatedInstruction> onFalseSideOfJumpFrom = new HashSet<>();
         Set<AnnotatedInstruction> onTrueSideOfJumpFrom = new HashSet<>();
-        Set<LVAccess> varsWritten = new HashSet<>();
+        Set<ForceControlStoreLocal> varsWritten = new HashSet<>();
         Set<Field> fieldsWritten = new HashSet<>();
         Set<String> exceptionsThrown = new HashSet<>();
         Set<String> exceptionsThrownTrueSide = new HashSet<>();
         Set<String> exceptionsThrownFalseSide = new HashSet<>();
-        Set<LVAccess> varsWrittenTrueSide = new HashSet<>();
-        Set<LVAccess> varsWrittenFalseSide = new HashSet<>();
+        Set<ForceControlStoreLocal> varsWrittenTrueSide = new HashSet<>();
+        Set<ForceControlStoreLocal> varsWrittenFalseSide = new HashSet<>();
         Set<Field> fieldsWrittenTrueSide = new HashSet<>();
         Set<Field> fieldsWrittenFalseSide = new HashSet<>();
 
@@ -721,48 +742,6 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
         @Override
         public String toString() {
             return "" + idx;
-        }
-    }
-
-    private static class LVAccess {
-        int idx;
-        String desc;
-
-        LVAccess(int idx, String desc) {
-            this.idx = idx;
-            this.desc = desc;
-        }
-
-        @Override
-        public String toString() {
-            return "LVAccess{" +
-                    "idx=" + idx +
-                    ", desc='" + desc + '\'' +
-                    '}';
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if(this == o) {
-                return true;
-            }
-            if(o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            LVAccess lvAccess = (LVAccess) o;
-            return idx == lvAccess.idx && Objects.equals(desc, lvAccess.desc);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(idx, desc);
-        }
-
-        VarInsnNode getNewForceCtrlStoreNode() {
-            if(this.desc.equals("J") || this.desc.equals("D")) {
-                return new VarInsnNode(TaintUtils.FORCE_CTRL_STORE_WIDE, idx);
-            }
-            return new VarInsnNode(TaintUtils.FORCE_CTRL_STORE, idx);
         }
     }
 }

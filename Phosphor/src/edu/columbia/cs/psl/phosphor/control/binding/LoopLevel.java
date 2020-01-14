@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.phosphor.control.binding;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Arrays;
 import org.objectweb.asm.MethodVisitor;
 
-import static edu.columbia.cs.psl.phosphor.control.PropagatingControlFlowDelegator.push;
+import static edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy.push;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 import static org.objectweb.asm.Opcodes.*;
 

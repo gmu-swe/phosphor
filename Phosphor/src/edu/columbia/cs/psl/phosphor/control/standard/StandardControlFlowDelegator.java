@@ -1,7 +1,11 @@
-package edu.columbia.cs.psl.phosphor.control;
+package edu.columbia.cs.psl.phosphor.control.standard;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.control.AbstractControlFlowDelegator;
+import edu.columbia.cs.psl.phosphor.control.standard.ForceControlStore.ForceControlStoreField;
+import edu.columbia.cs.psl.phosphor.control.standard.ForceControlStore.ForceControlStoreLocal;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
@@ -14,13 +18,14 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import static edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy.push;
 import static edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager.*;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 /**
  * Propagates control flows through a method by delegating instruction visits to a MethodVisitor.
  */
-public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegator {
+public class StandardControlFlowDelegator extends AbstractControlFlowDelegator {
 
     /**
      * Visitor to which instruction visiting is delegated.
@@ -67,9 +72,9 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
      */
     private int nextBranchID = -1;
 
-    public PropagatingControlFlowDelegator(MethodVisitor delegate, NeverNullArgAnalyzerAdapter analyzer,
-                                           LocalVariableManager localVariableManager, int lastParameterIndex,
-                                           Type[] paramTypes, int numberOfBranchIDs) {
+    public StandardControlFlowDelegator(MethodVisitor delegate, NeverNullArgAnalyzerAdapter analyzer,
+                                        LocalVariableManager localVariableManager, int lastParameterIndex,
+                                        Type[] paramTypes, int numberOfBranchIDs) {
         this.delegate = delegate;
         this.analyzer = analyzer;
         this.localVariableManager = localVariableManager;
@@ -110,8 +115,6 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
                 delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
                 COMBINE_TAGS_CONTROL.delegateVisit(delegate);
                 break;
-            case TaintUtils.FORCE_CTRL_STORE:
-                forceControlStoreVariables.add(var);
         }
     }
 
@@ -119,11 +122,6 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
     public void visitingArrayStore() {
         generateEmptyTaint();
         COMBINE_TAGS.delegateVisit(delegate);
-    }
-
-    @Override
-    public void visitingForceControlStoreField(Field field) {
-        forceControlStoreFields.add(field);
     }
 
     @Override
@@ -203,14 +201,6 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
     }
 
     @Override
-    public void visitingForceControlStore(Type stackTop) {
-        if(!Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            COMBINE_TAGS_CONTROL.delegateVisit(delegate);
-        }
-    }
-
-    @Override
     public void visitingJump(int opcode, Label label) {
         switch(opcode) {
             case Opcodes.IFEQ:
@@ -260,8 +250,10 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
         delegate.visitInsn(POP); // Remove the taint tag
     }
 
-    // stack_pre = [taint]
-    // stack_post = [taint]
+    /**
+     * stack_pre = [taint]
+     * stack_post = [taint]
+     **/
     private void pushBranchStart() {
         if(nextBranchID != -1) {
             TaintMethodRecord pushMethod;
@@ -396,21 +388,17 @@ public class PropagatingControlFlowDelegator extends AbstractControlFlowDelegato
         }
     }
 
-    /**
-     * Loads the specified value onto the stack.
-     *
-     * @param delegate the method visitor that should be used to load the specified value onto the stack
-     * @param value    the value to be pushed onto the stack
-     */
-    public static void push(MethodVisitor delegate, int value) {
-        if(value >= -1 && value <= 5) {
-            delegate.visitInsn(Opcodes.ICONST_0 + value);
-        } else if(value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
-            delegate.visitIntInsn(Opcodes.BIPUSH, value);
-        } else if(value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
-            delegate.visitIntInsn(Opcodes.SIPUSH, value);
-        } else {
-            delegate.visitLdcInsn(value);
+    @Override
+    public void visitingPhosphorInstructionInfo(PhosphorInstructionInfo info) {
+        if(info instanceof ForceControlStoreField) {
+            forceControlStoreFields.add(((ForceControlStoreField) info).getField());
+        } else if(info instanceof ForceControlStoreLocal) {
+            forceControlStoreVariables.add(((ForceControlStoreLocal) info).getLocalVariableIndex());
+        } else if(info instanceof ExecuteForceControlStore) {
+            if(!analyzer.stack.isEmpty() && !Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
+                delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+                COMBINE_TAGS_CONTROL.delegateVisit(delegate);
+            }
         }
     }
 }

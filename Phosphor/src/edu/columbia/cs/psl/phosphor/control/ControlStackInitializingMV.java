@@ -151,8 +151,8 @@ public class ControlStackInitializingMV extends MethodVisitor {
     // stack_post: ControlTaintTagStack
     private void setFrameInfo() {
         // Start the frame and set the argument levels
-        PropagatingControlFlowDelegator.push(mv, nextMethodFrameInfo.getInvocationLevel());
-        PropagatingControlFlowDelegator.push(mv, nextMethodFrameInfo.getNumArguments());
+        ControlFlowPropagationPolicy.push(mv, nextMethodFrameInfo.getInvocationLevel());
+        ControlFlowPropagationPolicy.push(mv, nextMethodFrameInfo.getNumArguments());
         CONTROL_STACK_START_FRAME.delegateVisit(mv);
         Iterator<LoopLevel> argLevels = nextMethodFrameInfo.getLevelIterator();
         while(argLevels.hasNext()) {

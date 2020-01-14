@@ -9,7 +9,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import static edu.columbia.cs.psl.phosphor.control.PropagatingControlFlowDelegator.push;
+import static edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy.push;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 import static org.objectweb.asm.Opcodes.*;
 

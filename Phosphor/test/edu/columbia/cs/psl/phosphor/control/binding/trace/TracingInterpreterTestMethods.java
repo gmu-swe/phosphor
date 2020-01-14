@@ -20,7 +20,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 @SuppressWarnings("unused")
-public class TracingInterpreterTestMethods {
+class TracingInterpreterTestMethods {
 
     private int a = 1;
     private int[] a1 = new int[1];
@@ -29,18 +29,6 @@ public class TracingInterpreterTestMethods {
         for(/* constant */ int i = 0; i < 5; i++) {
             a1[0] = a1[0] * 2; // this.a1 may have been redefined - variant +1
         }
-    }
-
-    public static MethodNode getMethodNode(String methodName) throws NoSuchMethodException, IOException {
-        ClassReader cr = new ClassReader(TracingInterpreterTestMethods.class.getName());
-        ClassNode classNode = new ClassNode();
-        cr.accept(classNode, 0);
-        for(MethodNode mn : classNode.methods) {
-            if(mn.name.equals(methodName)) {
-                return mn;
-            }
-        }
-        throw new NoSuchMethodException();
     }
 
     public static void allLocalAssignmentsConstant(boolean condition) {

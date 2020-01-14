@@ -14,9 +14,9 @@ import org.objectweb.asm.tree.MethodNode;
 import java.util.Iterator;
 import java.util.function.Predicate;
 
+import static edu.columbia.cs.psl.phosphor.control.ControlAnalysisTestUtil.getMethodNode;
 import static edu.columbia.cs.psl.phosphor.control.binding.LoopLevel.ConstantLoopLevel.CONSTANT_LOOP_LEVEL;
 import static edu.columbia.cs.psl.phosphor.control.binding.trace.TracingInterpreterTestMethods.calculateLoopLevelMap;
-import static edu.columbia.cs.psl.phosphor.control.binding.trace.TracingInterpreterTestMethods.getMethodNode;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.objectweb.asm.Opcodes.*;
@@ -40,7 +40,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testArgDependentAssignment() throws Exception {
-        MethodNode mn = getMethodNode("argDependentAssignment");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "argDependentAssignment");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 new DependentLoopLevel(new int[]{1}),
@@ -53,7 +53,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testArgDependentBranching() throws Exception {
-        MethodNode mn = getMethodNode("argDependentBranching");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "argDependentBranching");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -69,7 +69,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testLocalSelfComputation() throws Exception {
-        MethodNode mn = getMethodNode("localSelfComputation");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "localSelfComputation");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -80,7 +80,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testArraySelfComputation() throws Exception {
-        MethodNode mn = getMethodNode("arraySelfComputation");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "arraySelfComputation");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -91,7 +91,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testMultiArraySelfComputation() throws Exception {
-        MethodNode mn = getMethodNode("multiArraySelfComputation");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "multiArraySelfComputation");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -102,7 +102,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testFieldSelfComputation() throws Exception {
-        MethodNode mn = getMethodNode("fieldSelfComputation");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "fieldSelfComputation");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -113,7 +113,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testArrayFieldSelfComputation() throws Exception {
-        MethodNode mn = getMethodNode("arrayFieldSelfComputation");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "arrayFieldSelfComputation");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -124,7 +124,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testLocalAssignedVariantValue() throws Exception {
-        MethodNode mn = getMethodNode("localAssignedVariantValue");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "localAssignedVariantValue");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -135,7 +135,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testArrayAssignedVariantValue() throws Exception {
-        MethodNode mn = getMethodNode("arrayAssignedVariantValue");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "arrayAssignedVariantValue");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -146,7 +146,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testMultiArrayAssignedVariantValue() throws Exception {
-        MethodNode mn = getMethodNode("multiArrayAssignedVariantValue");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "multiArrayAssignedVariantValue");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -157,7 +157,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testFieldAssignedVariantValue() throws Exception {
-        MethodNode mn = getMethodNode("fieldAssignedVariantValue");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "fieldAssignedVariantValue");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -168,7 +168,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testArrayFieldAssignedVariantValue() throws Exception {
-        MethodNode mn = getMethodNode("arrayFieldAssignedVariantValue");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "arrayFieldAssignedVariantValue");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -179,7 +179,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testVariantArray() throws Exception {
-        MethodNode mn = getMethodNode("variantArray");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "variantArray");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -190,7 +190,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testVariantArray2() throws Exception {
-        MethodNode mn = getMethodNode("variantArray2");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "variantArray2");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 new VariantLoopLevel(0),
@@ -203,7 +203,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testTwoArrays() throws Exception {
-        MethodNode mn = getMethodNode("twoArrays");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "twoArrays");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -215,7 +215,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testArrayAliasing() throws Exception {
-        MethodNode mn = getMethodNode("arrayAliasing");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "arrayAliasing");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 new DependentLoopLevel(new int[]{0}),
@@ -226,7 +226,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testArrayAliasingVariant() throws Exception {
-        MethodNode mn = getMethodNode("arrayAliasingVariant");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "arrayAliasingVariant");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 new DependentLoopLevel(new int[]{0}),
@@ -237,7 +237,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testArrayElementRedefined() throws Exception {
-        MethodNode mn = getMethodNode("arrayElementRedefined");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "arrayElementRedefined");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 new VariantLoopLevel(0),
@@ -249,7 +249,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testMethodCallBetweenUses() throws Exception {
-        MethodNode mn = getMethodNode("methodCallBetweenUses");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "methodCallBetweenUses");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 new VariantLoopLevel(0),
@@ -260,7 +260,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testIndexOf() throws Exception {
-        MethodNode mn = getMethodNode("indexOf");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "indexOf");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -273,7 +273,7 @@ public class TracingInterpreterTest {
 
     @Test
     public void testIndexOfBreak() throws Exception {
-        MethodNode mn = getMethodNode("indexOfBreak");
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, "indexOfBreak");
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         List<LoopLevel> expected = Arrays.asList(
                 CONSTANT_LOOP_LEVEL,
@@ -331,7 +331,7 @@ public class TracingInterpreterTest {
     }
 
     private static void checkAllStoresConstant(String methodName) throws Exception {
-        MethodNode mn = getMethodNode(methodName);
+        MethodNode mn = getMethodNode(TracingInterpreterTestMethods.class, methodName);
         Map<AbstractInsnNode, LoopLevel> loopLevelMap = calculateLoopLevelMap(mn);
         for(AbstractInsnNode insn : getStoreInstructions(mn)) {
             assertTrue("Expected instruction to be at constant loop level:" + insn, loopLevelMap.get(insn) instanceof LoopLevel.ConstantLoopLevel);

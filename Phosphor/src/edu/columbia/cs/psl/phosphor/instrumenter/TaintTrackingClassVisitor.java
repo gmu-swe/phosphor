@@ -314,10 +314,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         if(Configuration.WITH_ENUM_BY_VAL && className.equals("java/lang/Enum") && name.equals("clone")) {
             return null;
         }
-        if(TaintUtils.DEBUG_CALLS || TaintUtils.DEBUG_FIELDS || TaintUtils.DEBUG_FRAMES || TaintUtils.DEBUG_LOCAL) {
-            System.out.println("Instrumenting " + name + "\n\n\n\n\n\n");
-        }
-
         if(Instrumenter.IS_KAFFE_INST && className.equals("java/lang/VMSystem")) {
             access = access | Opcodes.ACC_PUBLIC;
         } else if(Instrumenter.IS_HARMONY_INST && className.endsWith("java/lang/VMMemoryManager")) {
