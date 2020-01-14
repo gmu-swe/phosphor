@@ -23,13 +23,13 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     public static final String MASTER_EXCEPTION_INTERNAL_NAME = Type.getInternalName(ExceptionalTaintData.class);
 
     Map<Integer, Integer> varToShadowVar = new HashMap<>();
-    Set<LocalVariableNode> createdLVs = new HashSet<>();
+    public Set<LocalVariableNode> createdLVs = new HashSet<>();
     private int indexOfMasterControlLV = -1;
     private int indexOfMasterExceptionLV = -1;
     private int indexOfControlExceptionLV = -1;
     private int indexOfBranchesLV = -1;
-    Label end;
-    Label newStartLabel = new Label();
+    public Label end;
+    public Label newStartLabel = new Label();
     private List<Type> oldArgTypes = new ArrayList<>();
     private boolean isIgnoreEverything = false;
     private Map<Integer, Integer> origLVMap = new HashMap<>();
@@ -162,7 +162,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         return indexOfControlExceptionLV;
     }
 
-    int createMasterExceptionTaintLV() {
+    public int createMasterExceptionTaintLV() {
         indexOfMasterExceptionLV = super.newLocal(Type.getType(ExceptionalTaintData.class));
         ensureControlTagStartLabelHasBeenVisited();
         LocalVariableNode newLVN = new LocalVariableNode("phosphorExceptionTaintData", Type.getDescriptor(ExceptionalTaintData.class), null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), indexOfMasterExceptionLV);
@@ -171,7 +171,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         return indexOfMasterExceptionLV;
     }
 
-    int createMasterControlTaintLV() {
+    public int createMasterControlTaintLV() {
         int idx = super.newLocal(Type.getType(ControlTaintTagStack.class));
         ensureControlTagStartLabelHasBeenVisited();
         LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
@@ -182,7 +182,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         return idx;
     }
 
-    int createBranchesLV() {
+    public int createBranchesLV() {
         Type type = Type.getType(int[].class);
         indexOfBranchesLV = super.newLocal(type);
         ensureControlTagStartLabelHasBeenVisited();
@@ -193,7 +193,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         return indexOfBranchesLV;
     }
 
-    int createControlExceptionTaintLV() {
+    public int createControlExceptionTaintLV() {
         Type t = Type.getType(EnqueuedTaint.class);
         indexOfControlExceptionLV = super.newLocal(t);
         ensureControlTagStartLabelHasBeenVisited();
@@ -579,6 +579,10 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
 
     public void disable() {
         disabled = true;
+    }
+
+    public Map<Integer, Integer> getVarToShadowVar() {
+        return Collections.unmodifiableMap(varToShadowVar);
     }
 
     private static class TmpLV {

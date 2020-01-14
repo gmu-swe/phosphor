@@ -3,6 +3,8 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.control.ControlStackInitializingMV;
+import edu.columbia.cs.psl.phosphor.control.ControlStackRestoringMV;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
