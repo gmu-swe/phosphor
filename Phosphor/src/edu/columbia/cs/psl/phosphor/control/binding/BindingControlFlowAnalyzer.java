@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.control.binding.trace.LoopAwareConstancyInfo
 import edu.columbia.cs.psl.phosphor.control.binding.trace.TracingInterpreter;
 import edu.columbia.cs.psl.phosphor.control.graph.*;
 import edu.columbia.cs.psl.phosphor.control.graph.FlowGraph.NaturalLoop;
+import edu.columbia.cs.psl.phosphor.control.standard.BranchEnd;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.Label;
@@ -201,24 +202,24 @@ public class BindingControlFlowAnalyzer implements ControlFlowAnalyzer {
     }
 
     /**
-     * Marks the ends of the scopes of the specified binding edges by inserting LoopAwarePopInfo nodes.
+     * Marks the ends of the scopes of the specified binding edges by inserting BranchEnd nodes.
      */
     private void markBranchEnds(Set<BindingBranchEdge> bindingEdges) {
         for(BindingBranchEdge bindingEdge : bindingEdges) {
             Set<BasicBlock> scopeEnds = bindingEdge.getScopeEnds(controlFlowGraph);
             for(BasicBlock scopeEnd : scopeEnds) {
                 AbstractInsnNode insn = findNextPrecedableInstruction(scopeEnd.getFirstInsn());
-                instructions.insertBefore(insn, new LdcInsnNode(new LoopAwarePopInfo(bindingEdge.id)));
+                instructions.insertBefore(insn, new LdcInsnNode(new BranchEnd(bindingEdge.id)));
             }
         }
     }
 
     /**
-     * Marks the starts of the scopes of the specified binding edges by inserting BranchStartInfo nodes.
+     * Marks the starts of the scopes of the specified binding edges by inserting BindingBranchStart nodes.
      */
     private void markBranchStarts(Set<BindingBranchEdge> bindingEdges) {
         for(BindingBranchEdge bindingEdge : bindingEdges) {
-            BranchStartInfo scopeStart = new BranchStartInfo(bindingEdge.level, bindingEdge.id);
+            BindingBranchStart scopeStart = new BindingBranchStart(bindingEdge.level, bindingEdge.id);
             AbstractInsnNode scopeStartNode = new LdcInsnNode(scopeStart);
             AbstractInsnNode targetInsn = bindingEdge.target.getFirstInsn();
             if(bindingEdge.branchTaken) {

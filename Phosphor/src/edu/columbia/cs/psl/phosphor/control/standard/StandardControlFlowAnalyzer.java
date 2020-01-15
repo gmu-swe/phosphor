@@ -37,7 +37,7 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
 
     /**
      * This method should:
-     * BRANCH_START, BRANCH_END signals to the instruction stream
+     * BranchStart, BranchEnd signals to the instruction stream
      * <p>
      * For branch not taken:
      * Add FORCE_CONTROL_STORE for:
@@ -266,7 +266,7 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
                             s = s.substring(0, s.indexOf('#'));
                         }
                         if(filtered.add(s)) {
-                            instructions.insertBefore(r.insn, new TypeInsnNode(TaintUtils.UNTHROWN_EXCEPTION, s));
+                            instructions.insertBefore(r.insn, new LdcInsnNode(new UnthrownException(s)));
                         }
                     }
                 } else if(shouldTrackExceptions && (r.insn.getType() == AbstractInsnNode.METHOD_INSN
@@ -276,7 +276,7 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
                         if(s == null) {
                             s = "java/lang/Throwable";
                         }
-                        instructions.insert(r.insn, new TypeInsnNode(TaintUtils.UNTHROWN_EXCEPTION_CHECK, s));
+                        instructions.insert(r.insn, new LdcInsnNode(new UnthrownExceptionCheck(s)));
                     }
                 }
             }
@@ -287,15 +287,18 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
                 }
                 if(b.resolvedHereBlocks.size() == jumpIDs.size()) {
                     //Everything is resolved
-                    instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, -1));
+                    BranchEnd end = new BranchEnd(-1);
+                    instructions.insertBefore(insn, new LdcInsnNode(end));
                 } else {
                     for(AnnotatedInstruction r : b.resolvedHereBlocks) {
                         if(!r.isTryBlockStart) {
                             if(!b.successors.isEmpty()) {
                                 // For any return or athrow, we'll just bulk pop-all
-                                instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r)));
+                                BranchEnd end = new BranchEnd(jumpIDs.get(r));
+                                instructions.insertBefore(insn, new LdcInsnNode(end));
                                 if(r.isTwoOperandJumpInstruction) {
-                                    instructions.insertBefore(insn, new VarInsnNode(TaintUtils.BRANCH_END, jumpIDs.get(r) + 1));
+                                    end = new BranchEnd(jumpIDs.get(r) + 1);
+                                    instructions.insertBefore(insn, new LdcInsnNode(end));
                                 }
                             }
                         }
@@ -304,7 +307,7 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
                 // In light tracking mode no need to POP off of control at RETURN/THROW, because we don't reuse the obj
                 if(b.successors.isEmpty() && !isImplicitLightTracking) {
                     instructions.insertBefore(b.insn, new LdcInsnNode(EXECUTE_FORCE_CONTROL_STORE));
-                    instructions.insertBefore(b.insn, new VarInsnNode(TaintUtils.BRANCH_END, -1));
+                    instructions.insertBefore(b.insn, new LdcInsnNode(new BranchEnd(-1)));
                 }
             }
             this.numberOfJumps = jumpID;
@@ -356,10 +359,10 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
         while(handledAtInsn.getType() == AbstractInsnNode.FRAME || handledAtInsn.getType() == AbstractInsnNode.LINE
                 || handledAtInsn.getType() == AbstractInsnNode.LABEL || handledAtInsn.getOpcode() > 200
                 || (handledAtInsn instanceof LdcInsnNode && ((LdcInsnNode) handledAtInsn).cst instanceof PhosphorInstructionInfo)) {
-            if(handledAtInsn.getOpcode() == TaintUtils.EXCEPTION_HANDLER_START) {
-                TypeInsnNode tin = (TypeInsnNode) handledAtInsn;
-                if(tin.desc != null) {
-                    handledHereAlready.add(tin.desc);
+            if(handledAtInsn instanceof LdcInsnNode && ((LdcInsnNode) handledAtInsn).cst instanceof ExceptionHandlerStart) {
+                String exceptionType = ((ExceptionHandlerStart) ((LdcInsnNode) handledAtInsn).cst).getExceptionType();
+                if(exceptionType != null) {
+                    handledHereAlready.add(exceptionType);
                 }
             } else if(handledAtInsn instanceof LdcInsnNode && ((LdcInsnNode) handledAtInsn).cst instanceof ForceControlStoreLocal) {
                 forceStoreAlready.add((ForceControlStoreLocal) ((LdcInsnNode) handledAtInsn).cst);
@@ -390,16 +393,16 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
 
         //At the START of the handler, note that it's the start...
         if(handledHereAlready.isEmpty()) {
-            instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, null));
+            instructions.insertBefore(handledAtInsn, new LdcInsnNode(new ExceptionHandlerStart(null)));
         }
         for(String ex : r.exceptionsHandled) {
             if(ex == null) {
                 ex = "java/lang/Throwable";
             }
             if(!handledHereAlready.contains(ex)) {
-                instructions.insertBefore(handledAtInsn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_START, ex));
+                instructions.insertBefore(handledAtInsn, new LdcInsnNode(new ExceptionHandlerStart(ex)));
             }
-            instructions.insertBefore(lastInstructionInTryBlock, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_END, ex));
+            instructions.insertBefore(lastInstructionInTryBlock, new LdcInsnNode(new ExceptionHandlerEnd(ex)));
         }
 
         //At the END of the handler, remove this exception from the queue
@@ -412,7 +415,7 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
             if(insn.getType() == AbstractInsnNode.LABEL || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.FRAME) {
                 insn = b.insn;
             }
-            instructions.insertBefore(insn, new TypeInsnNode(TaintUtils.EXCEPTION_HANDLER_END, null));
+            instructions.insertBefore(insn, new LdcInsnNode(new ExceptionHandlerEnd(null)));
         }
     }
 
@@ -442,7 +445,7 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
         diffExceptions.addAll(r.exceptionsThrownFalseSide);
         diffExceptions.removeAll(commonExceptionsThrown);
 
-        instructions.insertBefore(r.insn, new VarInsnNode(TaintUtils.BRANCH_START, jumpID));
+        instructions.insertBefore(r.insn, new LdcInsnNode(new BranchStart(jumpID)));
         jumpIDs.put(r, jumpID);
         if(r.isTwoOperandJumpInstruction) {
             jumpID++;

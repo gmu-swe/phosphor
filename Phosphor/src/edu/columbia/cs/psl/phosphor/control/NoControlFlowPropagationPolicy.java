@@ -9,14 +9,14 @@ import static org.objectweb.asm.Opcodes.*;
 /**
  * Specifies that control flow should not propagate.
  */
-public class NoFlowControlFlowDelegator extends AbstractControlFlowDelegator {
+public class NoControlFlowPropagationPolicy extends AbstractControlFlowPropagationPolicy {
 
     /**
      * Visitor to which instruction visiting is delegated.
      */
     private final MethodVisitor delegate;
 
-    public NoFlowControlFlowDelegator(MethodVisitor delegate) {
+    public NoControlFlowPropagationPolicy(MethodVisitor delegate) {
         this.delegate = delegate;
     }
 

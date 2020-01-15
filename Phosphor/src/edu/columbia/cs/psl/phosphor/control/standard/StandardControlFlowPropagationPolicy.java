@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.phosphor.control.standard;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.control.AbstractControlFlowDelegator;
+import edu.columbia.cs.psl.phosphor.control.AbstractControlFlowPropagationPolicy;
 import edu.columbia.cs.psl.phosphor.control.standard.ForceControlStore.ForceControlStoreField;
 import edu.columbia.cs.psl.phosphor.control.standard.ForceControlStore.ForceControlStoreLocal;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
@@ -25,7 +25,7 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 /**
  * Propagates control flows through a method by delegating instruction visits to a MethodVisitor.
  */
-public class StandardControlFlowDelegator extends AbstractControlFlowDelegator {
+public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPropagationPolicy {
 
     /**
      * Visitor to which instruction visiting is delegated.
@@ -72,9 +72,9 @@ public class StandardControlFlowDelegator extends AbstractControlFlowDelegator {
      */
     private int nextBranchID = -1;
 
-    public StandardControlFlowDelegator(MethodVisitor delegate, NeverNullArgAnalyzerAdapter analyzer,
-                                        LocalVariableManager localVariableManager, int lastParameterIndex,
-                                        Type[] paramTypes, int numberOfBranchIDs) {
+    public StandardControlFlowPropagationPolicy(MethodVisitor delegate, NeverNullArgAnalyzerAdapter analyzer,
+                                                LocalVariableManager localVariableManager, int lastParameterIndex,
+                                                Type[] paramTypes, int numberOfBranchIDs) {
         this.delegate = delegate;
         this.analyzer = analyzer;
         this.localVariableManager = localVariableManager;
@@ -92,19 +92,7 @@ public class StandardControlFlowDelegator extends AbstractControlFlowDelegator {
     }
 
     @Override
-    public void visitingBranchStart(int branchID) {
-        nextBranchID = branchID;
-    }
-
-    @Override
-    public void visitingBranchEnd(int branchID) {
-        if(localVariableManager.getIndexOfBranchesLV() != -1) {
-            callPopControlTaint(branchID);
-        }
-    }
-
-    @Override
-    public void storingTaintedValue(int opcode, int var) {
+    public void visitingLocalVariableStore(int opcode, int var) {
         switch(opcode) {
             case ISTORE:
             case FSTORE:
@@ -125,7 +113,7 @@ public class StandardControlFlowDelegator extends AbstractControlFlowDelegator {
     }
 
     @Override
-    public void visitingPutField(boolean isStatic, Type type, boolean topCarriesTaint) {
+    public void visitingFieldStore(boolean isStatic, Type type, boolean topCarriesTaint) {
         // val taint
         delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
         COMBINE_TAGS_CONTROL.delegateVisit(delegate);
@@ -139,56 +127,6 @@ public class StandardControlFlowDelegator extends AbstractControlFlowDelegator {
         } else {
             CONTROL_STACK_COPY_TAG.delegateVisit(delegate);
         }
-    }
-
-    @Override
-    public void visitingExceptionHandlerStart(String type) {
-        if(type == null) {
-            delegate.visitInsn(DUP2);
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            delegate.visitInsn(DUP_X2);
-            delegate.visitInsn(POP);
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfControlExceptionLV());
-            CONTROL_STACK_EXCEPTION_HANDLER_START.delegateVisit(delegate);
-            delegate.visitVarInsn(ASTORE, localVariableManager.getIndexOfControlExceptionLV());
-            executeForcedControlStores();
-        } else {
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            delegate.visitLdcInsn(Type.getObjectType(type));
-            CONTROL_STACK_EXCEPTION_HANDLER_START_VOID.delegateVisit(delegate);
-        }
-    }
-
-    @Override
-    public void visitingExceptionHandlerEnd(String type) {
-        if(type == null) {
-            // End of a handler
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfControlExceptionLV());
-            CONTROL_STACK_EXCEPTION_HANDLER_END.delegateVisit(delegate);
-        } else {
-            // End of a try block
-            executeForcedControlStores();
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            delegate.visitLdcInsn(Type.getObjectType(type));
-            CONTROL_STACK_TRY_BLOCK_END.delegateVisit(delegate);
-        }
-    }
-
-    @Override
-    public void visitingUnthrownException(String type) {
-        // Records that we are returning and might instead have thrown an exception
-        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
-        delegate.visitLdcInsn(Type.getObjectType(type));
-        CONTROL_STACK_ADD_UNTHROWN_EXCEPTION.delegateVisit(delegate);
-    }
-
-    @Override
-    public void visitingUnthrownExceptionCheck(String type) {
-        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-        delegate.visitLdcInsn(Type.getObjectType(type));
-        CONTROL_STACK_APPLY_POSSIBLY_UNTHROWN_EXCEPTION.delegateVisit(delegate);
     }
 
     @Override
@@ -248,6 +186,35 @@ public class StandardControlFlowDelegator extends AbstractControlFlowDelegator {
     public void visitLookupSwitch(Label defaultLabel, int[] keys, Label[] labels) {
         pushBranchStart();
         delegate.visitInsn(POP); // Remove the taint tag
+    }
+
+    @Override
+    public void visitingPhosphorInstructionInfo(PhosphorInstructionInfo info) {
+        if(info instanceof ForceControlStoreField) {
+            forceControlStoreFields.add(((ForceControlStoreField) info).getField());
+        } else if(info instanceof ForceControlStoreLocal) {
+            forceControlStoreVariables.add(((ForceControlStoreLocal) info).getLocalVariableIndex());
+        } else if(info instanceof ExecuteForceControlStore) {
+            if(!analyzer.stack.isEmpty() && !Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
+                delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+                COMBINE_TAGS_CONTROL.delegateVisit(delegate);
+            }
+        } else if(info instanceof BranchStart) {
+            nextBranchID = ((BranchStart) info).getBranchID();
+        } else if(info instanceof BranchEnd) {
+            int branchID = ((BranchEnd) info).getBranchID();
+            if(localVariableManager.getIndexOfBranchesLV() != -1) {
+                callPopControlTaint(branchID);
+            }
+        } else if(info instanceof ExceptionHandlerStart) {
+            exceptionHandlerStart(((ExceptionHandlerStart) info).getExceptionType());
+        } else if(info instanceof ExceptionHandlerEnd) {
+            exceptionHandlerEnd(((ExceptionHandlerEnd) info).getExceptionType());
+        } else if(info instanceof UnthrownException) {
+            unthrownException(((UnthrownException) info).getExceptionType());
+        } else if(info instanceof UnthrownExceptionCheck) {
+            unthrownExceptionCheck(((UnthrownExceptionCheck) info).getExceptionType());
+        }
     }
 
     /**
@@ -388,17 +355,50 @@ public class StandardControlFlowDelegator extends AbstractControlFlowDelegator {
         }
     }
 
-    @Override
-    public void visitingPhosphorInstructionInfo(PhosphorInstructionInfo info) {
-        if(info instanceof ForceControlStoreField) {
-            forceControlStoreFields.add(((ForceControlStoreField) info).getField());
-        } else if(info instanceof ForceControlStoreLocal) {
-            forceControlStoreVariables.add(((ForceControlStoreLocal) info).getLocalVariableIndex());
-        } else if(info instanceof ExecuteForceControlStore) {
-            if(!analyzer.stack.isEmpty() && !Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
-                delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                COMBINE_TAGS_CONTROL.delegateVisit(delegate);
-            }
+
+    private void exceptionHandlerStart(String type) {
+        if(type == null) {
+            delegate.visitInsn(DUP2);
+            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+            delegate.visitInsn(DUP_X2);
+            delegate.visitInsn(POP);
+            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfControlExceptionLV());
+            CONTROL_STACK_EXCEPTION_HANDLER_START.delegateVisit(delegate);
+            delegate.visitVarInsn(ASTORE, localVariableManager.getIndexOfControlExceptionLV());
+            executeForcedControlStores();
+        } else {
+            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+            delegate.visitLdcInsn(Type.getObjectType(type));
+            CONTROL_STACK_EXCEPTION_HANDLER_START_VOID.delegateVisit(delegate);
         }
+    }
+
+    private void exceptionHandlerEnd(String type) {
+        if(type == null) {
+            // End of a handler
+            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfControlExceptionLV());
+            CONTROL_STACK_EXCEPTION_HANDLER_END.delegateVisit(delegate);
+        } else {
+            // End of a try block
+            executeForcedControlStores();
+            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+            delegate.visitLdcInsn(Type.getObjectType(type));
+            CONTROL_STACK_TRY_BLOCK_END.delegateVisit(delegate);
+        }
+    }
+
+    private void unthrownException(String type) {
+        // Records that we are returning and might instead have thrown an exception
+        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
+        delegate.visitLdcInsn(Type.getObjectType(type));
+        CONTROL_STACK_ADD_UNTHROWN_EXCEPTION.delegateVisit(delegate);
+    }
+
+    private void unthrownExceptionCheck(String type) {
+        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+        delegate.visitLdcInsn(Type.getObjectType(type));
+        CONTROL_STACK_APPLY_POSSIBLY_UNTHROWN_EXCEPTION.delegateVisit(delegate);
     }
 }

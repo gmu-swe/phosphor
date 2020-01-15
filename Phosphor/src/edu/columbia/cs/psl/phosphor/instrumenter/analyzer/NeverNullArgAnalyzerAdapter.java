@@ -331,13 +331,8 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if(mv != null) {
             mv.visitVarInsn(opcode, var);
         }
-        switch(opcode) {
-            case TaintUtils.BRANCH_END:
-            case TaintUtils.BRANCH_START:
-            case TaintUtils.IGNORE_EVERYTHING:
-                break;
-            default:
-                execute(opcode, var, null);
+        if(opcode != TaintUtils.IGNORE_EVERYTHING) {
+            execute(opcode, var, null);
         }
     }
 

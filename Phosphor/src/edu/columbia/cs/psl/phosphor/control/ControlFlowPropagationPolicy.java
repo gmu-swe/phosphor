@@ -6,6 +6,9 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+/**
+ * Implementing classes specify how control flows should propagation in visited methods by delegating instruction visits.
+ */
 public interface ControlFlowPropagationPolicy {
 
     /**
@@ -17,13 +20,6 @@ public interface ControlFlowPropagationPolicy {
      * Called before visitMaxs
      */
     void visitingMaxs();
-
-    /**
-     * Called before a LdcInsn with a PhosphorInstructionInfo constant
-     *
-     * @param info the constant of the LdcInsn
-     */
-    void visitingPhosphorInstructionInfo(PhosphorInstructionInfo info);
 
     /**
      * stack_pre = [ControlFlowStack]
@@ -42,13 +38,6 @@ public interface ControlFlowPropagationPolicy {
     void visitingIncrement(int var, int shadowVar);
 
     /**
-     * Called before a IASTORE, LASTORE, FASTORE, DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE instruction
-     * stack_pre = [taint]
-     * stack_post = [taint]
-     */
-    void visitingArrayStore();
-
-    /**
      * Called before a DSTORE, LSTORE, FSTORE, ISTORE, or ASTORE instruction.
      * stack_pre = [value taint]
      * stack_post = [value taint]
@@ -57,6 +46,13 @@ public interface ControlFlowPropagationPolicy {
      * @param var    the operand of the instruction to be visited
      */
     void visitingLocalVariableStore(int opcode, int var);
+
+    /**
+     * Called before a IASTORE, LASTORE, FASTORE, DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE instruction
+     * stack_pre = [taint]
+     * stack_post = [taint]
+     */
+    void visitingArrayStore();
 
     /**
      * Called before a PUTFIELD or PUTSTATIC instruction.
@@ -83,7 +79,6 @@ public interface ControlFlowPropagationPolicy {
      *               RETURN, DRETURN, FRETURN, or LRETURN
      */
     void onMethodExit(int opcode);
-
 
     /**
      * Called for a jump operation.
@@ -121,6 +116,13 @@ public interface ControlFlowPropagationPolicy {
      *                     handler block for the {@code keys[i]} key.
      */
     void visitLookupSwitch(Label defaultLabel, int[] keys, Label[] labels);
+
+    /**
+     * Called before a LdcInsn with a PhosphorInstructionInfo constant
+     *
+     * @param info the constant of the LdcInsn
+     */
+    void visitingPhosphorInstructionInfo(PhosphorInstructionInfo info);
 
     /**
      * Loads the specified value onto the stack.

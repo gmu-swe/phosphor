@@ -61,13 +61,8 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
     @Override
     public void visitVarInsn(int opcode, int var) {
-        switch(opcode) {
-            case TaintUtils.BRANCH_END:
-            case TaintUtils.BRANCH_START:
-            case TaintUtils.IGNORE_EVERYTHING:
-                break;
-            default:
-                super.visitVarInsn(opcode, var);
+        if(opcode != TaintUtils.IGNORE_EVERYTHING) {
+            super.visitVarInsn(opcode, var);
         }
     }
 

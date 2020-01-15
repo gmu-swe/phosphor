@@ -1,8 +1,9 @@
-package edu.columbia.cs.psl.phosphor.control;
+package edu.columbia.cs.psl.phosphor.control.binding;
 
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
-import edu.columbia.cs.psl.phosphor.control.binding.*;
+import edu.columbia.cs.psl.phosphor.control.AbstractControlFlowPropagationPolicy;
 import edu.columbia.cs.psl.phosphor.control.binding.LoopLevel.VariantLoopLevel;
+import edu.columbia.cs.psl.phosphor.control.standard.BranchEnd;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -13,7 +14,7 @@ import static edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy.
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 import static org.objectweb.asm.Opcodes.*;
 
-public class BindingControlFlowDelegator extends AbstractControlFlowDelegator {
+public class BindingControlFlowPropagationPolicy extends AbstractControlFlowPropagationPolicy {
 
     private static LoopLevel defaultLevel = new VariantLoopLevel(0);
 
@@ -38,7 +39,7 @@ public class BindingControlFlowDelegator extends AbstractControlFlowDelegator {
      */
     private LoopLevel nextCopyTagInfo = defaultLevel;
 
-    public BindingControlFlowDelegator(MethodVisitor delegate, LocalVariableManager localVariableManager, int numberOfBranchIDs) {
+    public BindingControlFlowPropagationPolicy(MethodVisitor delegate, LocalVariableManager localVariableManager, int numberOfBranchIDs) {
         this.delegate = delegate;
         this.localVariableManager = localVariableManager;
         this.numberOfBranchIDs = numberOfBranchIDs;
@@ -53,7 +54,7 @@ public class BindingControlFlowDelegator extends AbstractControlFlowDelegator {
     }
 
     @Override
-    public void storingTaintedValue(int opcode, int var) {
+    public void visitingLocalVariableStore(int opcode, int var) {
         switch(opcode) {
             case ISTORE:
             case FSTORE:
@@ -66,7 +67,7 @@ public class BindingControlFlowDelegator extends AbstractControlFlowDelegator {
     }
 
     @Override
-    public void visitingPutField(boolean isStatic, Type type, boolean topCarriesTaint) {
+    public void visitingFieldStore(boolean isStatic, Type type, boolean topCarriesTaint) {
         copyTag();
         COMBINE_TAGS.delegateVisit(delegate);
     }
@@ -147,15 +148,15 @@ public class BindingControlFlowDelegator extends AbstractControlFlowDelegator {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             push(delegate, ((ExitLoopLevelInfo) info).getLevelOffset());
             CONTROL_STACK_EXIT_LOOP_LEVEL.delegateVisit(delegate);
-        } else if(info instanceof LoopAwarePopInfo) {
+        } else if(info instanceof BranchEnd) {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            push(delegate, ((LoopAwarePopInfo) info).getBranchID());
+            push(delegate, ((BranchEnd) info).getBranchID());
             CONTROL_STACK_LOOP_AWARE_POP.delegateVisit(delegate);
-        } else if(info instanceof BranchStartInfo) {
+        } else if(info instanceof BindingBranchStart) {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            push(delegate, ((BranchStartInfo) info).getBranchID());
+            push(delegate, ((BindingBranchStart) info).getBranchID());
             push(delegate, numberOfBranchIDs);
-            ((BranchStartInfo) info).getLevel().pushTag(delegate);
+            ((BindingBranchStart) info).getLevel().pushTag(delegate);
         } else if(info instanceof CopyTagInfo) {
             nextCopyTagInfo = ((CopyTagInfo) info).getLevel();
         }

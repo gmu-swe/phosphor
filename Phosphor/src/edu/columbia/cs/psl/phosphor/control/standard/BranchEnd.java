@@ -1,12 +1,12 @@
-package edu.columbia.cs.psl.phosphor.control.binding;
+package edu.columbia.cs.psl.phosphor.control.standard;
 
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 
-public final class LoopAwarePopInfo implements PhosphorInstructionInfo {
+public class BranchEnd implements PhosphorInstructionInfo {
 
     private final int branchID;
 
-    LoopAwarePopInfo(int branchID) {
+    public BranchEnd(int branchID) {
         this.branchID = branchID;
     }
 
@@ -15,18 +15,13 @@ public final class LoopAwarePopInfo implements PhosphorInstructionInfo {
     }
 
     @Override
-    public String toString() {
-        return String.format("LoopAwarePop(%d)", branchID);
-    }
-
-    @Override
     public boolean equals(Object o) {
         if(this == o) {
             return true;
-        } else if(!(o instanceof LoopAwarePopInfo)) {
+        } else if(!(o instanceof BranchEnd)) {
             return false;
         }
-        LoopAwarePopInfo that = (LoopAwarePopInfo) o;
+        BranchEnd that = (BranchEnd) o;
         return branchID == that.branchID;
     }
 

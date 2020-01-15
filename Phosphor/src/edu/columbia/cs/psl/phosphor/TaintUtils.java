@@ -21,13 +21,6 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public class TaintUtils {
 
-    public static final int BRANCH_START = 214;
-    public static final int BRANCH_END = 215;
-    public static final int EXCEPTION_HANDLER_START = 205;
-    public static final int EXCEPTION_HANDLER_END = 206;
-    public static final int UNTHROWN_EXCEPTION_CHECK = 214; //When we are returning from a method and are covered directly by a "try"
-    public static final int UNTHROWN_EXCEPTION = 215; //When we are returning but might have otherwise thrown some exception
-    //
     public static final int RAW_INSN = 201;
     public static final int NO_TAINT_STORE_INSN = 202;
     public static final int IGNORE_EVERYTHING = 203;
