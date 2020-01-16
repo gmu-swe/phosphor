@@ -519,9 +519,9 @@ public final class TracingInterpreter extends Interpreter<TracedValue> {
         return result;
     }
 
-    public LoopAwareConstancyInfo generateMethodConstancyInfo(AbstractInsnNode insn) {
+    public FrameConstancyInfo generateMethodConstancyInfo(AbstractInsnNode insn) {
         int invocationLevel = containingLoopMap.get(insn).size();
-        LoopAwareConstancyInfo info = new LoopAwareConstancyInfo(invocationLevel);
+        FrameConstancyInfo info = new FrameConstancyInfo(invocationLevel);
         InstructionEffect effect = effectMap.get(insn);
         for(TracedValue source : effect.sources) {
             if(source.getInsnSource() == null || !loopLevelMap.containsKey(source.getInsnSource())) {

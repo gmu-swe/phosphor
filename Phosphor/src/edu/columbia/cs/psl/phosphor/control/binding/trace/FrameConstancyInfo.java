@@ -6,12 +6,12 @@ import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 
 import java.util.Iterator;
 
-public class LoopAwareConstancyInfo implements PhosphorInstructionInfo {
+public class FrameConstancyInfo implements PhosphorInstructionInfo {
 
     private final int invocationLevel;
     private final SinglyLinkedList<LoopLevel> argumentLevels = new SinglyLinkedList<>();
 
-    LoopAwareConstancyInfo(int invocationLevel) {
+    FrameConstancyInfo(int invocationLevel) {
         this.invocationLevel = invocationLevel;
     }
 

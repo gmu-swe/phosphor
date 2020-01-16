@@ -2,16 +2,16 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
-public class ExceptionalTaintData {
+public class ExceptionalTaintData<E> {
 
-    private final SinglyLinkedList<Taint> taintHistory;
+    private final SinglyLinkedList<Taint<E>> taintHistory;
 
     public ExceptionalTaintData() {
         taintHistory = new SinglyLinkedList<>();
         taintHistory.push(Taint.emptyTaint()); // starting taint is null/empty
     }
 
-    public Taint getCurrentTaint() {
+    public Taint<E> getCurrentTaint() {
         return taintHistory.peek();
     }
 
@@ -20,19 +20,11 @@ public class ExceptionalTaintData {
         taintHistory.push(Taint.emptyTaint()); // starting taint is null/empty
     }
 
-    @SuppressWarnings("unchecked")
-    public void push(Taint tag) {
+    public void push(Taint<E> tag) {
         taintHistory.push(tag.union(taintHistory.peek()));
     }
 
-    public Taint pop() {
+    public Taint<E> pop() {
         return taintHistory.pop();
-    }
-
-    public void unionWithCurrentTaint(Taint tag) {
-        Taint top = getCurrentTaint();
-        if(!top.isSuperset(tag)) {
-            push(tag.union(pop()));
-        }
     }
 }

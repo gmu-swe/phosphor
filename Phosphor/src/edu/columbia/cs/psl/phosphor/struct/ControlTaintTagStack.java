@@ -1,83 +1,50 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
+import edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowStack;
+import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowStack;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
-import java.util.Iterator;
-
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
-@SuppressWarnings({"unused", "rawtypes", "unchecked"})
+@SuppressWarnings({"rawtypes", "unchecked"})
 public final class ControlTaintTagStack {
 
-    public static final int PUSHED = 1;
-    public static final int NOT_PUSHED = 0;
     private static ControlTaintTagStack instance = new ControlTaintTagStack(true);
 
-    private final SinglyLinkedList<Taint> taintHistory = new SinglyLinkedList<>();
-    private final LoopAwareControlStack loopAwareControlStack;
-    private int disabled;
-    private SinglyLinkedList<MaybeThrownException> unthrownExceptions;
-    private SinglyLinkedList<MaybeThrownException> influenceExceptions;
-    private Taint nextBranchTag = Taint.emptyTaint();
+    private final StandardControlFlowStack standardControlFlowStack;
+    private final BindingControlFlowStack bindingControlFlowStack;
 
     public ControlTaintTagStack() {
-        disabled = 0;
-        unthrownExceptions = null;
-        influenceExceptions = null;
-        taintHistory.push(Taint.emptyTaint()); // starting taint is null/empty
-        loopAwareControlStack = new LoopAwareControlStack();
+        standardControlFlowStack = new StandardControlFlowStack<>();
+        bindingControlFlowStack = new BindingControlFlowStack<>();
     }
 
     private ControlTaintTagStack(boolean disabled) {
         this();
         if(disabled) {
-            this.disabled = 1;
+            disable();
         }
     }
 
     private ControlTaintTagStack(ControlTaintTagStack other) {
-        disabled = other.disabled;
-        unthrownExceptions = other.unthrownExceptions == null ? null : other.unthrownExceptions.copy();
-        influenceExceptions = other.influenceExceptions == null ? null : other.influenceExceptions.copy();
-        taintHistory.push(other.taintHistory.peek());
-        loopAwareControlStack = new LoopAwareControlStack(other.loopAwareControlStack);
+        standardControlFlowStack = other.standardControlFlowStack.copyTop();
+        bindingControlFlowStack = other.bindingControlFlowStack.copyTop();
     }
 
-    /**
-     * Called ONCE at the start of each exception handler. Should inspect the taint tag on the
-     * exception, and if there is one, we'll need to add it to the current ControlTaintTagStack and
-     * return a pointer so it can later be removed
-     */
     @InvokedViaInstrumentation(record = CONTROL_STACK_EXCEPTION_HANDLER_START)
-    public final EnqueuedTaint exceptionHandlerStart(Throwable exceptionCaught, Taint exceptionTaint, EnqueuedTaint eq) {
-        if(exceptionCaught instanceof TaintedWithObjTag) {
-            Taint<?> t = (Taint) ((TaintedWithObjTag) exceptionCaught).getPHOSPHOR_TAG();
-            if(t != null) {
-                return push(t, eq);
-            }
-        }
-        return null;
+    public EnqueuedTaint exceptionHandlerStart(Throwable exceptionCaught, Taint exceptionTaint, EnqueuedTaint enqueuedTaint) {
+        return standardControlFlowStack.exceptionHandlerStart(exceptionCaught, exceptionTaint, enqueuedTaint);
     }
 
-    /**
-     * At the start of an exception handler, this method is called once for each exception type handled by the handler.
-     * Removes elements from the unthrown exception list whose exception type either is or is a subtype of the specified type.
-     */
-    @InvokedViaInstrumentation(record = CONTROL_STACK_EXCEPTION_HANDLER_START_VOID)
-    public final void exceptionHandlerStart(Class<? extends Throwable> exTypeHandled) {
-        tryBlockEnd(exTypeHandled);
+    @InvokedViaInstrumentation(record = CONTROL_STACK_EXCEPTION_HANDLER_START_TYPES)
+    public void exceptionHandlerStart(Class<? extends Throwable> handledExceptionType) {
+        standardControlFlowStack.exceptionHandlerStart(handledExceptionType);
     }
 
-    /**
-     * Called ONCE at the end of each handler to remove an exception from influencing the control state
-     * Passed the same MaybeThrownException from the start method
-     */
     @InvokedViaInstrumentation(record = CONTROL_STACK_EXCEPTION_HANDLER_END)
-    public final void exceptionHandlerEnd(EnqueuedTaint ex) {
-        if(ex != null) {
-            pop(ex);
-        }
+    public void exceptionHandlerEnd(EnqueuedTaint enqueuedTaint) {
+        standardControlFlowStack.exceptionHandlerEnd(enqueuedTaint);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TOP)
@@ -85,311 +52,147 @@ public final class ControlTaintTagStack {
         return new ControlTaintTagStack(this);
     }
 
-    /**
-     * Called N times at the end of each try block to clear unthrown exceptions, one time for each handled exception type
-     */
     @InvokedViaInstrumentation(record = CONTROL_STACK_TRY_BLOCK_END)
-    public final void tryBlockEnd(Class<? extends Throwable> exTypeHandled) {
-        if(influenceExceptions == null) {
-            return;
-        }
-        Iterator<MaybeThrownException> itr = influenceExceptions.iterator();
-        while(itr.hasNext()) {
-            MaybeThrownException mte = itr.next();
-            if(exTypeHandled.isAssignableFrom(mte.getClazz())) {
-                itr.remove();
-            }
-        }
+    public void tryBlockEnd(Class<? extends Throwable> handledExceptionType) {
+        standardControlFlowStack.tryBlockEnd(handledExceptionType);
     }
 
-    /**
-     * If there is some maybeThrownException (e.g. from something we are returning to), and we are now in code that
-     * follows that code in a "try" block, then that unthrown exception
-     * is currently affecting the current flow (at least until the end of the catch block)
-     */
     @InvokedViaInstrumentation(record = CONTROL_STACK_APPLY_POSSIBLY_UNTHROWN_EXCEPTION)
-    public final void applyPossiblyUnthrownExceptionToTaint(Class<? extends Throwable> t) {
-        if(unthrownExceptions == null) {
-            return;
-        }
-        Iterator<MaybeThrownException> itr = unthrownExceptions.iterator();
-        while(itr.hasNext()) {
-            MaybeThrownException mte = itr.next();
-            if(t.isAssignableFrom(mte.getClazz())) {
-                itr.remove();
-                if(influenceExceptions == null) {
-                    influenceExceptions = new SinglyLinkedList<>();
-                }
-                influenceExceptions.push(mte);
-            }
-        }
+    public void applyPossiblyUnthrownExceptionToTaint(Class<? extends Throwable> type) {
+        standardControlFlowStack.applyPossiblyUnthrownExceptionToTaint(type);
     }
 
-    /**
-     * The "lazy" approach to handling exceptions:
-     * Based on the simple static analysis that we do: if we are at a return statement, and we COULD have thrown
-     * an exception if we went down some branch differently, we note that, along with whatever taints
-     * were applied in this method only
-     */
     @InvokedViaInstrumentation(record = CONTROL_STACK_ADD_UNTHROWN_EXCEPTION)
-    public final void addUnthrownException(ExceptionalTaintData taints, Class<? extends Throwable> t) {
-        if(taints != null && taints.getCurrentTaint() != null) {
-            if(unthrownExceptions == null) {
-                unthrownExceptions = new SinglyLinkedList<>();
-            }
-            boolean found = false;
-            for(MaybeThrownException mte : unthrownExceptions) {
-                if(mte != null && mte.getClazz() == t) {
-                    found = true;
-                    mte.unionTag(taints.getCurrentTaint());
-                    break;
-                }
-            }
-            if(!found) {
-                MaybeThrownException ex = new MaybeThrownException(t, taints.getCurrentTaint());
-                unthrownExceptions.push(ex);
-            }
-        }
+    public void addUnthrownException(ExceptionalTaintData taints, Class<? extends Throwable> type) {
+        standardControlFlowStack.addUnthrownException(taints, type);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG)
-    public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize) {
-        return push(tag, branchTags, branchID, maxSize, null);
+    public int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize) {
+        return standardControlFlowStack.push(tag, branchTags, branchID, maxSize, null);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_TAG_EXCEPTION)
-    public final int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, ExceptionalTaintData curMethod) {
-        if(disabled != 0 || tag == null || tag.isEmpty()) {
-            return branchTags;
-        }
-        if(branchTags == null) {
-            branchTags = new int[maxSize];
-        }
-        if(branchTags[branchID] == NOT_PUSHED) {
-            // Adding a label for this branch for the first time
-            taintHistory.push(tag.union(taintHistory.peek()));
-            if(curMethod != null) {
-                curMethod.push(tag.union(taintHistory.peek()));
-            }
-        } else {
-            Taint r = taintHistory.peek();
-            if(r != tag && !r.isSuperset(tag)) {
-                taintHistory.push(taintHistory.pop().union(tag));
-            }
-            if(curMethod != null) {
-                r = curMethod.getCurrentTaint();
-                if(r != tag && !r.isSuperset(tag)) {
-                    curMethod.push(curMethod.pop().union(tag));
-                }
-            }
-        }
-        branchTags[branchID] = PUSHED;
-        return branchTags;
+    public int[] push(Taint<?> tag, int[] branchTags, int branchID, int maxSize, ExceptionalTaintData curMethod) {
+        return standardControlFlowStack.push(tag, branchTags, branchID, maxSize, curMethod);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_EXCEPTION)
-    public final void pop(int[] branchTags, int branchID, ExceptionalTaintData curMethod) {
-        if(branchTags != null && branchTags[branchID] == PUSHED) {
-            curMethod.pop();
-            taintHistory.pop();
-            branchTags[branchID] = NOT_PUSHED;
-        }
+    public void pop(int[] branchTags, int branchID, ExceptionalTaintData curMethod) {
+        standardControlFlowStack.pop(branchTags, branchID, curMethod);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP)
-    public final void pop(int[] branchTags, int branchID) {
-        if(branchTags != null) {
-            if(branchTags[branchID] == PUSHED) {
-                taintHistory.pop();
-            }
-            branchTags[branchID] = NOT_PUSHED;
-        }
+    public void pop(int[] branchTags, int branchID) {
+        standardControlFlowStack.pop(branchTags, branchID);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_ALL_EXCEPTION)
-    public final void pop(int[] branchTags, ExceptionalTaintData curMethod) {
-        if(branchTags != null) {
-            pop(branchTags);
-            if(curMethod != null) {
-                curMethod.reset();
-            }
-        }
+    public void pop(int[] branchTags, ExceptionalTaintData curMethod) {
+        standardControlFlowStack.pop(branchTags, curMethod);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_ALL)
-    public final void pop(int[] branchTags) {
-        if(branchTags != null) {
-            for(int i = 0; i < branchTags.length; i++) {
-                if(branchTags[i] == PUSHED) {
-                    taintHistory.pop();
-                    branchTags[i] = NOT_PUSHED;
-                }
-            }
-        }
-    }
-
-    public final void pop(EnqueuedTaint enq) {
-        if(enq != null) {
-            while(enq.activeCount > 0) {
-                taintHistory.pop();
-                enq.activeCount--;
-            }
-        }
-    }
-
-    public final EnqueuedTaint push(Taint tag, EnqueuedTaint prev) {
-        if(tag == null || tag.isEmpty() || tag == taintHistory.peek() || disabled != 0) {
-            return null;
-        }
-        EnqueuedTaint ret = prev == null ? new EnqueuedTaint() : prev;
-        ret.activeCount++;
-        taintHistory.push(tag.union(taintHistory.peek()));
-        return ret;
-    }
-
-    @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_EXCEPTIONS)
-    public Taint copyTagExceptions() {
-        if(isEmpty() && lacksInfluenceExceptions()) {
-            return Taint.emptyTaint();
-        }
-        Taint ret = taintHistory.peek();
-        if(lacksInfluenceExceptions()) {
-            return ret;
-        }
-        for(MaybeThrownException mte : influenceExceptions) {
-            if(mte != null && mte.getTag() != null) {
-                ret = ret.union(mte.getTag());
-            }
-        }
-        return ret;
+    public void pop(int[] branchTags) {
+        standardControlFlowStack.pop(branchTags);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG)
-    public Taint copyTag() {
-        return disabled != 0 ? Taint.emptyTaint() : taintHistory.peek();
-    }
-
-    public final boolean isEmpty() {
-        return disabled != 0 || taintHistory.peek().isEmpty();
-    }
-
-    public boolean lacksInfluenceExceptions() {
-        return influenceExceptions == null || influenceExceptions.isEmpty();
+    public Taint<?> copyTag() {
+        return standardControlFlowStack.copyTag();
     }
 
     public void reset() {
-        int size = taintHistory.size();
-        taintHistory.clear();
-        for(int i = 0; i < size; i++) {
-            taintHistory.push(Taint.emptyTaint());
-        }
-        loopAwareControlStack.reset();
-        if(influenceExceptions != null) {
-            influenceExceptions.clear();
-        }
-        if(unthrownExceptions != null) {
-            unthrownExceptions.clear();
-        }
+        bindingControlFlowStack.reset();
+        standardControlFlowStack.reset();
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_ENABLE)
     public void enable() {
-        disabled--;
+        standardControlFlowStack.enable();
+        bindingControlFlowStack.enable();
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_DISABLE)
     public void disable() {
-        disabled++;
+        standardControlFlowStack.disable();
+        bindingControlFlowStack.disable();
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_FRAME)
-    public void popFrame(int[] branchTags) {
-        if(branchTags != null) {
-            pop(branchTags);
-        }
-        loopAwareControlStack.popFrame();
-    }
-
-    @InvokedViaInstrumentation(record = CONTROL_STACK_POP_FRAME_EXCEPTION)
-    public void popFrame(int[] branchTags, ExceptionalTaintData curMethod) {
-        if(branchTags != null) {
-            pop(branchTags, curMethod);
-        }
-        loopAwareControlStack.popFrame();
+    public void popFrame() {
+        standardControlFlowStack.popFrame();
+        bindingControlFlowStack.popFrame();
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_FRAME)
     public void pushFrame() {
-        loopAwareControlStack.pushFrame();
+        standardControlFlowStack.pushFrame();
+        bindingControlFlowStack.pushFrame();
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_START_FRAME)
     public ControlTaintTagStack startFrame(int invocationLevel, int numArguments) {
-        loopAwareControlStack.startFrame(invocationLevel, numArguments);
+        bindingControlFlowStack.startFrame(invocationLevel, numArguments);
         return this;
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_SET_ARG_CONSTANT)
     public ControlTaintTagStack setNextFrameArgConstant() {
-        loopAwareControlStack.setNextFrameArgConstant();
+        bindingControlFlowStack.setNextFrameArgConstant();
         return this;
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_SET_ARG_DEPENDENT)
     public ControlTaintTagStack setNextFrameArgDependent(int[] dependencies) {
-        loopAwareControlStack.setNextFrameArgDependent(dependencies);
+        bindingControlFlowStack.setNextFrameArgDependent(dependencies);
         return this;
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_SET_ARG_VARIANT)
     public ControlTaintTagStack setNextFrameArgVariant(int levelOffset) {
-        loopAwareControlStack.setNextFrameArgVariant(levelOffset);
+        bindingControlFlowStack.setNextFrameArgVariant(levelOffset);
         return this;
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_CONSTANT)
     public Taint copyTagConstant() {
-        return loopAwareControlStack.copyTagConstant();
+        return bindingControlFlowStack.copyTagConstant();
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_DEPENDENT)
     public Taint copyTagDependent(int[] dependencies) {
-        return loopAwareControlStack.copyTagDependent(dependencies);
+        return bindingControlFlowStack.copyTagDependent(dependencies);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_COPY_TAG_VARIANT)
     public Taint copyTagVariant(int levelOffset) {
-        return loopAwareControlStack.copyTagVariant(levelOffset);
+        return bindingControlFlowStack.copyTagVariant(levelOffset);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_SET_NEXT_BRANCH_TAG)
     public void setNextBranchTag(Taint tag) {
-        nextBranchTag = tag;
+        bindingControlFlowStack.setNextBranchTag(tag);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_CONSTANT)
     public void pushConstant(int branchID, int branchesSize) {
-        loopAwareControlStack.pushConstant(nextBranchTag, branchID, branchesSize);
+        bindingControlFlowStack.pushConstant(branchID, branchesSize);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_DEPENDENT)
     public void pushDependent(int branchID, int branchesSize, int[] dependencies) {
-        loopAwareControlStack.pushDependent(nextBranchTag, branchID, branchesSize, dependencies);
+        bindingControlFlowStack.pushDependent(branchID, branchesSize, dependencies);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_PUSH_VARIANT)
     public void pushVariant(int branchID, int branchesSize, int levelOffset) {
-        loopAwareControlStack.pushVariant(nextBranchTag, branchID, branchesSize, levelOffset);
-    }
-
-    @InvokedViaInstrumentation(record = CONTROL_STACK_LOOP_AWARE_POP)
-    public void loopAwarePop(int branchID) {
-        loopAwareControlStack.pop(branchID);
+        bindingControlFlowStack.pushVariant(branchID, branchesSize, levelOffset);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_EXIT_LOOP_LEVEL)
     public void exitLoopLevel(int levelOffset) {
-        loopAwareControlStack.exitLoopLevel(levelOffset);
+        bindingControlFlowStack.exitLoopLevel(levelOffset);
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_FACTORY)

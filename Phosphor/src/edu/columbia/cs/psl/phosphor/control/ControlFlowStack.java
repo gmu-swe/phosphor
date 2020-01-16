@@ -2,6 +2,9 @@ package edu.columbia.cs.psl.phosphor.control;
 
 public abstract class ControlFlowStack {
 
+    /**
+     * 0 if copying and pushing tags is enabled for this stack
+     */
     private int disabled;
 
     public ControlFlowStack(boolean disabled) {
@@ -23,4 +26,8 @@ public abstract class ControlFlowStack {
     public abstract void pushFrame();
 
     public abstract void popFrame();
+
+    public boolean isDisabled() {
+        return disabled != 0;
+    }
 }

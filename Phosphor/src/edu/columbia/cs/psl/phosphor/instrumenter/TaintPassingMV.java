@@ -5,9 +5,6 @@ import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy;
-import edu.columbia.cs.psl.phosphor.control.NoControlFlowPropagationPolicy;
-import edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowPropagationPolicy;
-import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowPropagationPolicy;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingLabel;
@@ -15,10 +12,9 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.GeneratorAdapter;
@@ -38,80 +34,56 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     static final String CHARACTER_NAME = "java/lang/Character";
     static final String DOUBLE_NAME = "java/lang/Double";
     static final String SHORT_NAME = "java/lang/Short";
-    private boolean isImplicitLightTracking;
-    private int lastArg;
-    private Type[] paramTypes;
+    private final int lastArg;
+    private final Type[] paramTypes;
     private boolean isIgnoreAllInstrumenting;
     private boolean isRawInstruction = false;
     private boolean isTaintlessArrayStore = false;
     private boolean doNotUnboxTaints;
-    private Type originalMethodReturnType;
-    private Type newReturnType;
-    private String name;
-    private boolean isStatic;
-    private String className;
-    private String desc;
-    private MethodVisitor passThroughMV;
-    private boolean rewriteLVDebug;
-    private boolean isLambda;
+    private final Type originalMethodReturnType;
+    private final Type newReturnType;
+    private final String name;
+    private final boolean isStatic;
+    private final String owner;
+    private final String descriptor;
+    private final MethodVisitor passThroughMV;
+    private final boolean rewriteLVDebug;
+    private final boolean isLambda;
     private final boolean isObjOutputStream;
     ReferenceArrayTarget referenceArrayTarget;
     int line = 0;
-    private PrimitiveArrayAnalyzer arrayAnalyzer;
-    private ControlFlowPropagationPolicy controlFlowPolicy;
+    private final ControlFlowPropagationPolicy controlFlowPolicy;
     private boolean isAtStartOfExceptionHandler;
-    private LinkedList<MethodNode> wrapperMethodsToAdd;
-    private HashSet<Label> exceptionHandlers = new HashSet<>();
+    private final List<MethodNode> wrapperMethodsToAdd;
+    private final Set<Label> exceptionHandlers = new HashSet<>();
 
-    public TaintPassingMV(MethodVisitor mv, int access, String className, String name, String desc, String signature,
+    public TaintPassingMV(MethodVisitor mv, int access, String owner, String name, String descriptor, String signature,
                           String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,
-                          MethodVisitor passThroughMV, LinkedList<MethodNode> wrapperMethodsToAdd, boolean isImplicitLightTracking) {
-        super(access, className, name, desc, signature, exceptions, mv, analyzer);
-        Configuration.taintTagFactory.instrumentationStarting(access, name, desc);
-        this.isLambda = this.isIgnoreAllInstrumenting = className.contains("$Lambda$");
+                          MethodVisitor passThroughMV, LinkedList<MethodNode> wrapperMethodsToAdd,
+                          ControlFlowPropagationPolicy controlFlowPolicy) {
+        super(access, owner, name, descriptor, signature, exceptions, mv, analyzer);
+        Configuration.taintTagFactory.instrumentationStarting(access, name, descriptor);
+        this.isLambda = this.isIgnoreAllInstrumenting = owner.contains("$Lambda$");
         this.name = name;
-        this.className = className;
+        this.owner = owner;
         this.wrapperMethodsToAdd = wrapperMethodsToAdd;
-        this.isImplicitLightTracking = isImplicitLightTracking;
-        this.rewriteLVDebug = className.equals("java/lang/invoke/MethodType");
+        this.rewriteLVDebug = owner.equals("java/lang/invoke/MethodType");
         this.passThroughMV = passThroughMV;
-        this.desc = desc;
+        this.descriptor = descriptor;
         this.isStatic = (access & Opcodes.ACC_STATIC) != 0;
-        this.isObjOutputStream = (className.equals("java/io/ObjectOutputStream") && name.startsWith("writeObject0")) ||
-                (className.equals("java/io/ObjectInputStream") && name.startsWith("defaultReadFields"));
-
-        Type[] newArgTypes = Type.getArgumentTypes(desc);
-        lastArg = isStatic ? 0 : 1; // If non-static, then arg[0] = this
-        for(Type t : newArgTypes) {
-            lastArg += t.getSize();
-        }
-        originalMethodReturnType = Type.getReturnType(originalDesc);
-        newReturnType = Type.getReturnType(desc);
-        paramTypes = new Type[lastArg + 1];
-        int n = (isStatic ? 0 : 1);
-        for(Type newArgType : newArgTypes) {
-            paramTypes[n] = newArgType;
-            n += newArgType.getSize();
-        }
-    }
-
-    void setArrayAnalyzer(PrimitiveArrayAnalyzer primitiveArrayFixer) {
-        this.arrayAnalyzer = primitiveArrayFixer;
+        this.isObjOutputStream = (owner.equals("java/io/ObjectOutputStream") && name.startsWith("writeObject0"))
+                || (owner.equals("java/io/ObjectInputStream") && name.startsWith("defaultReadFields"));
+        this.paramTypes = calculateParamTypes(isStatic, descriptor);
+        this.lastArg = paramTypes.length - 1;
+        this.originalMethodReturnType = Type.getReturnType(originalDesc);
+        this.newReturnType = Type.getReturnType(descriptor);
+        this.controlFlowPolicy = controlFlowPolicy;
     }
 
     @Override
     public void visitCode() {
         super.visitCode();
-        int numberOfBranchIDs = (arrayAnalyzer.getNumberOfJumps() + arrayAnalyzer.getNumberOfTryCatch() == 0) ? 0 : arrayAnalyzer.getNumberOfJumps() + arrayAnalyzer.getNumberOfTryCatch() + 2;
-        if(Configuration.BINDING_CONTROL_FLOWS_ONLY) {
-            controlFlowPolicy = new BindingControlFlowPropagationPolicy(mv, lvs, numberOfBranchIDs);
-        } else if((Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) && !Configuration.WITHOUT_PROPAGATION) {
-            controlFlowPolicy = new StandardControlFlowPropagationPolicy(mv, analyzer, lvs, lastArg,
-                    paramTypes, numberOfBranchIDs);
-        } else {
-            controlFlowPolicy = new NoControlFlowPropagationPolicy(mv);
-        }
-        Configuration.taintTagFactory.methodEntered(className, name, desc, passThroughMV, lvs, this);
+        Configuration.taintTagFactory.methodEntered(owner, name, descriptor, passThroughMV, lvs, this);
     }
 
     @Override
@@ -403,14 +375,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.NEWARRAY:
                 super.visitInsn(SWAP);
                 super.visitIntInsn(opcode, operand);
-                //                if(nextLoadIsTracked) {
                 String arType = MultiDTaintedArray.getTaintArrayInternalName(operand);
                 String arrayDescriptor = MultiDTaintedArray.getArrayDescriptor(operand);
                 super.visitMethodInsn(INVOKESTATIC, arType, "factory", "(" + Configuration.TAINT_TAG_DESC + arrayDescriptor + ")L" + arType + ";", false);
                 controlFlowPolicy.generateEmptyTaint();
-                //                    super.visitInsn(SWAP);
-                //                    analyzer.setTopOfStackTagged();
-                //                }
                 break;
             default:
                 throw new IllegalArgumentException();
@@ -475,24 +443,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             case Opcodes.ANEWARRAY:
                 if(!Configuration.WITHOUT_PROPAGATION) {
                     Type t = Type.getObjectType(type);
-                    // if(t.getSort() == Type.ARRAY) {
-                    //     e.g. [I for a 2 D array -> MultiDTaintedIntArray
-                    //     type = MultiDTaintedArray.getTypeForType(t).getInternalName();
-                    // }
                     //L TL
                     super.visitInsn(SWAP);
                     if(t.getSort() == Type.ARRAY) {
                         type = TaintUtils.getWrapperType(t).getInternalName();
                     }
                     super.visitTypeInsn(opcode, type);
-                    // if(t.getSort() != Type.ARRAY) {
                     //2D arrays are just 1D arrays, not wrapped 1Darrays
                     Type arType = Type.getType(LazyReferenceArrayObjTags.class);
                     super.visitMethodInsn(INVOKESTATIC, arType.getInternalName(), "factory", "(" + Configuration.TAINT_TAG_DESC + "[Ljava/lang/Object;)" + arType.getDescriptor(), false);
-                    // } else{
-                    //     super.visitInsn(SWAP);
-                    //     super.visitInsn(POP);
-                    // }
                     //TODO what should we make the reference taint be here? how shoudl we use the array length?
                     controlFlowPolicy.generateEmptyTaint();
                 }
@@ -670,13 +629,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         }
 
                         ga.visitMethodInsn(opToCall, implMethod.getOwner(), implMethod.getName(), implMethod.getDesc(), isInterface);
-
-                        // if (boxPrimitiveReturn) {
-                        //     ga.box(originalReturnType);
-                        // }
-                        // if (unboxPrimitiveReturn) {
-                        //     ga.unbox(uninstSamMethodType.getReturnType());
-                        // }
                         ga.returnValue();
                         ga.visitMaxs(0, 0);
                         ga.visitEnd();
@@ -685,11 +637,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         wrapperMethodsToAdd.add(mn);
 
                         //Change the bsmArgs to point to the new wrapper (which may or may not get the suffix)
-
                         // String taintedWrapperDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(false, wrapperDesc.getDescriptor());
-
                         String targetName = wrapperName + TaintUtils.METHOD_SUFFIX;
-                        bsmArgs[1] = new Handle(Opcodes.H_INVOKESTATIC, className, targetName, wrapperDesc.getDescriptor(), false);
+                        bsmArgs[1] = new Handle(Opcodes.H_INVOKESTATIC, owner, targetName, wrapperDesc.getDescriptor(), false);
 
                         //build the new instantiated desntutilsc
                         for(int j = 0; j < instantiatedMethodArgs.length; j++) {
@@ -823,7 +773,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             super.visitMethodInsn(opcode, owner, name, desc, isInterface);
             return;
         }
-        if(name.equals("getProperty") && className.equals("org/eclipse/jdt/core/tests/util/Util")) {
+        if(name.equals("getProperty") && this.owner.equals("org/eclipse/jdt/core/tests/util/Util")) {
             // Workaround for eclipse benchmark
             super.visitInsn(POP); //remove the taint
             owner = Type.getInternalName(ReflectionMasker.class);
@@ -1114,7 +1064,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
         if(isLambda && opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN) {
             //Do we need to box?
-            Type returnType = Type.getReturnType(this.desc);
+            Type returnType = Type.getReturnType(this.descriptor);
             if(returnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct")) {
                 String t = null;
                 if(returnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct/Tainted")) {
@@ -1531,7 +1481,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     private void unboxForReferenceCompare(int opcode) {
         if((opcode == IF_ACMPEQ || opcode == IF_ACMPNE) && Configuration.WITH_UNBOX_ACMPEQ
-                && !className.equals("java/io/ObjectOutputStream$HandleTable")) {
+                && !owner.equals("java/io/ObjectOutputStream$HandleTable")) {
             // v1 t1 v2 t2
             super.visitInsn(SWAP);
             ENSURE_UNBOXED.delegateVisit(mv);
@@ -1602,5 +1552,20 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             default:
                 return false;
         }
+    }
+
+    public static Type[] calculateParamTypes(boolean isStatic, String descriptor) {
+        Type[] newArgTypes = Type.getArgumentTypes(descriptor);
+        int lastArg = isStatic ? 0 : 1; // If non-static, then arg[0] = this
+        for(Type t : newArgTypes) {
+            lastArg += t.getSize();
+        }
+        Type[] paramTypes = new Type[lastArg + 1];
+        int n = (isStatic ? 0 : 1);
+        for(Type newArgType : newArgTypes) {
+            paramTypes[n] = newArgType;
+            n += newArgType.getSize();
+        }
+        return paramTypes;
     }
 }

@@ -3,13 +3,13 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowAnalyzer;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.control.graph.BaseControlFlowGraphCreator;
 import edu.columbia.cs.psl.phosphor.control.graph.BasicBlock;
 import edu.columbia.cs.psl.phosphor.control.graph.FlowGraph;
 import edu.columbia.cs.psl.phosphor.control.graph.FlowGraph.NaturalLoop;
 import edu.columbia.cs.psl.phosphor.control.graph.SimpleBasicBlock;
-import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowAnalyzer;
+import edu.columbia.cs.psl.phosphor.control.standard.NoControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
@@ -27,22 +27,25 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     public MethodNode mn;
     boolean isEmptyMethod = true;
     Set<Type> wrapperTypesToPreAlloc = new HashSet<>();
-    private int numberOfJumps;
     private int numberOfTryCatch;
-    private int numberOfThrows;
     private NeverNullArgAnalyzerAdapter analyzer;
     private Map<Label, List<Label>> newLabels = new HashMap<>();
     private boolean isImplicitLightTracking;
     private Label newFirstLabel = new Label();
     private Label oldFirstLabel;
     private boolean fixLDCClass;
+    private final ControlFlowAnalyzer flowAnalyzer;
 
-    public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, final boolean isImplicitLightTracking, final boolean fixLDCClass) {
+    public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc,
+                                  String signature, String[] exceptions, final MethodVisitor cmv,
+                                  final boolean isImplicitLightTracking, final boolean fixLDCClass,
+                                  ControlFlowAnalyzer flowAnalyzer) {
         super(Configuration.ASM_VERSION);
         this.mn = new PrimitiveArrayAnalyzerMN(access, name, desc, signature, exceptions, className, cmv);
         this.mv = mn;
         this.isImplicitLightTracking = isImplicitLightTracking;
         this.fixLDCClass = fixLDCClass;
+        this.flowAnalyzer = flowAnalyzer;
     }
 
     public PrimitiveArrayAnalyzer(Type singleWrapperTypeToAdd) {
@@ -51,6 +54,7 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         if(singleWrapperTypeToAdd.getSort() == Type.OBJECT && singleWrapperTypeToAdd.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/Tainted")) {
             this.wrapperTypesToPreAlloc.add(singleWrapperTypeToAdd);
         }
+        flowAnalyzer = new NoControlFlowAnalyzer();
     }
 
     @Override
@@ -184,7 +188,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 }
                 break;
             case Opcodes.ATHROW:
-                numberOfThrows++;
                 break;
         }
         super.visitInsn(opcode);
@@ -247,16 +250,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         numberOfTryCatch++;
     }
 
-    public int getNumberOfJumps() {
-        return numberOfJumps;
-    }
-
     public int getNumberOfTryCatch() {
         return numberOfTryCatch;
-    }
-
-    public int getNumberOfThrows() {
-        return numberOfThrows;
     }
 
     private static void patchFrames(InsnList instructions) {
@@ -390,26 +385,8 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             if(Configuration.ANNOTATE_LOOPS) {
                 annotateLoops(this);
             }
-            if(Configuration.BINDING_CONTROL_FLOWS_ONLY) {
-                try {
-                    BindingControlFlowAnalyzer flowAnalyzer = new BindingControlFlowAnalyzer();
-                    flowAnalyzer.annotate(className, this);
-                    numberOfJumps = flowAnalyzer.getNumberOfUniqueBranchIDs();
-                } catch(AnalyzerException e) {
-                    numberOfJumps = 0;
-                }
-                patchFrames(instructions);
-            } else if(Configuration.IMPLICIT_TRACKING || isImplicitLightTracking) {
-                try {
-                    StandardControlFlowAnalyzer flowAnalyzer = new StandardControlFlowAnalyzer(isImplicitLightTracking);
-                    flowAnalyzer.annotate(className, this);
-                    numberOfJumps = flowAnalyzer.getNumberOfJumps();
-                } catch(AnalyzerException e) {
-                    numberOfJumps = 0;
-                }
-                patchFrames(instructions);
-            }
-
+            flowAnalyzer.annotate(className, this);
+            patchFrames(instructions);
             this.maxStack += 100;
 
             for(Map.Entry<AbstractInsnNode, String> each : referenceArraysToCheckCast.entrySet()) {

@@ -2,36 +2,29 @@ package edu.columbia.cs.psl.phosphor.control.binding;
 
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.control.AbstractControlFlowPropagationPolicy;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy;
 import edu.columbia.cs.psl.phosphor.control.binding.LoopLevel.VariantLoopLevel;
+import edu.columbia.cs.psl.phosphor.control.binding.trace.FrameConstancyInfo;
 import edu.columbia.cs.psl.phosphor.control.standard.BranchEnd;
-import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import java.util.Iterator;
+
 import static edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy.push;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 import static org.objectweb.asm.Opcodes.*;
 
-public class BindingControlFlowPropagationPolicy extends AbstractControlFlowPropagationPolicy {
+public class BindingControlFlowPropagationPolicy extends AbstractControlFlowPropagationPolicy<BindingControlFlowAnalyzer> {
 
     private static LoopLevel defaultLevel = new VariantLoopLevel(0);
 
     /**
-     * Visitor to which instruction visiting is delegated.
+     * The number of unique IDs assigned to branches in the method
      */
-    private final MethodVisitor delegate;
-
-    /**
-     * Manager that handles freeing and allocating local variables.
-     */
-    private final LocalVariableManager localVariableManager;
-
-    /**
-     * The number of unique identifiers for branch locations in the method being visited.
-     */
-    private final int numberOfBranchIDs;
+    private int numberOfUniqueBranchIDs = 0;
 
     /**
      * The loop level information associated with the next instruction to be visited or null if no information
@@ -39,10 +32,30 @@ public class BindingControlFlowPropagationPolicy extends AbstractControlFlowProp
      */
     private LoopLevel nextCopyTagInfo = defaultLevel;
 
-    public BindingControlFlowPropagationPolicy(MethodVisitor delegate, LocalVariableManager localVariableManager, int numberOfBranchIDs) {
-        this.delegate = delegate;
-        this.localVariableManager = localVariableManager;
-        this.numberOfBranchIDs = numberOfBranchIDs;
+    private FrameConstancyInfo nextMethodFrameInfo = null;
+
+    public BindingControlFlowPropagationPolicy(BindingControlFlowAnalyzer flowAnalyzer) {
+        super(flowAnalyzer);
+    }
+
+    @Override
+    public void initializeLocalVariables(MethodVisitor mv) {
+        numberOfUniqueBranchIDs = flowAnalyzer.getNumberOfUniqueBranchIDs();
+    }
+
+    @Override
+    public void preparingFrame() {
+        if(nextMethodFrameInfo != null) {
+            // Start the frame and set the argument levels
+            ControlFlowPropagationPolicy.push(delegate, nextMethodFrameInfo.getInvocationLevel());
+            ControlFlowPropagationPolicy.push(delegate, nextMethodFrameInfo.getNumArguments());
+            CONTROL_STACK_START_FRAME.delegateVisit(delegate);
+            Iterator<LoopLevel> argLevels = nextMethodFrameInfo.getLevelIterator();
+            while(argLevels.hasNext()) {
+                argLevels.next().setArgument(delegate);
+            }
+        }
+        nextMethodFrameInfo = null;
     }
 
     @Override
@@ -83,8 +96,6 @@ public class BindingControlFlowPropagationPolicy extends AbstractControlFlowProp
         COMBINE_TAGS.delegateVisit(delegate);
     }
 
-    // stack_pre = []
-    // stack_post = [taint]
     private void copyTag() {
         delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
         nextCopyTagInfo.copyTag(delegate);
@@ -151,14 +162,16 @@ public class BindingControlFlowPropagationPolicy extends AbstractControlFlowProp
         } else if(info instanceof BranchEnd) {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             push(delegate, ((BranchEnd) info).getBranchID());
-            CONTROL_STACK_LOOP_AWARE_POP.delegateVisit(delegate);
+            CONTROL_STACK_POP.delegateVisit(delegate);
         } else if(info instanceof BindingBranchStart) {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             push(delegate, ((BindingBranchStart) info).getBranchID());
-            push(delegate, numberOfBranchIDs);
+            push(delegate, numberOfUniqueBranchIDs);
             ((BindingBranchStart) info).getLevel().pushTag(delegate);
         } else if(info instanceof CopyTagInfo) {
             nextCopyTagInfo = ((CopyTagInfo) info).getLevel();
+        } else if(info instanceof FrameConstancyInfo) {
+            nextMethodFrameInfo = (FrameConstancyInfo) info;
         }
     }
 }

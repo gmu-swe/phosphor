@@ -47,270 +47,274 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
      * Static fields
      */
     @Override
-    public void annotate(String owner, MethodNode methodNode) throws AnalyzerException {
+    public void annotate(String owner, MethodNode methodNode) {
         this.numberOfTryCatch = methodNode.tryCatchBlocks.size();
         countThrows(methodNode.instructions);
-        FlowAnalyzer fa = new FlowAnalyzer((methodNode.access & Opcodes.ACC_STATIC) != 0, new HashMap<>(), methodNode.instructions);
-        fa.analyze(owner, methodNode);
-        boolean hasJumps = false;
-        InsnList instructions = methodNode.instructions;
-        HashSet<AnnotatedInstruction> tryCatchHandlers = new HashSet<>();
-        if(shouldTrackExceptions && numberOfTryCatch > 0) {
-            int exceptionHandlerCount = 1;
-            hasJumps = true;
-            for(Object o : methodNode.tryCatchBlocks) {
-                TryCatchBlockNode t = (TryCatchBlockNode) o;
-                AnnotatedInstruction startBlock = null;
-                AnnotatedInstruction handlerBlock = null;
-                AnnotatedInstruction endBlock = null;
-                Integer startKey = null;
-                Integer endKey = null;
-                for(Map.Entry<Integer, AnnotatedInstruction> e : implicitAnalysisBlocks.entrySet()) {
-                    AnnotatedInstruction b = e.getValue();
-                    Integer i = e.getKey();
-                    if(b.insn == t.handler) {
-                        handlerBlock = b;
-                    }
-                    if(b.insn == t.start) {
-                        startBlock = b;
-                        startKey = i;
-                    }
-                    if(b.insn == t.end) {
-                        endBlock = b;
-                        endKey = i;
-                    }
-                    if(startBlock != null && handlerBlock != null && endBlock != null) {
-                        break;
-                    }
-                }
-                if(startBlock == handlerBlock || endBlock == null) {
-                    continue;
-                }
-                //Identify all of the instructions in this try block
-                if(startBlock != null) {
-                    for(int i = startKey; i <= endKey; i++) {
-                        if(implicitAnalysisBlocks.get(i) != null) {
-                            implicitAnalysisBlocks.get(i).coveredByTryBlockFor.add(t.type);
-                        }
-                    }
-                }
-                handlerBlock.exceptionsHandled.add(t.type);
-                tryCatchHandlers.add(handlerBlock);
-                startBlock.isTryBlockStart = true;
-                startBlock.exceptionsHandled.add(t.type);
-                handlerBlock.onFalseSideOfJumpFrom.add(startBlock);
-                handlerBlock.handlerForRegionStartingAt.add(startBlock);
-                startBlock.successors.add(handlerBlock);
-                startBlock.ex_count = exceptionHandlerCount;
-                startBlock.tryBlockEnd = endBlock;
-                startBlock.handledAt = handlerBlock;
-                exceptionHandlerCount++;
-                for(AnnotatedInstruction suc : startBlock.successors) {
-                    if(!suc.onFalseSideOfJumpFrom.contains(startBlock)) {
-                        suc.onTrueSideOfJumpFrom.add(startBlock);
-                    }
-                }
-            }
-        }
-        for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-            if(b.isJump) {
+        try {
+            FlowAnalyzer fa = new FlowAnalyzer((methodNode.access & Opcodes.ACC_STATIC) != 0, new HashMap<>(), methodNode.instructions);
+            fa.analyze(owner, methodNode);
+            boolean hasJumps = false;
+            InsnList instructions = methodNode.instructions;
+            HashSet<AnnotatedInstruction> tryCatchHandlers = new HashSet<>();
+            if(shouldTrackExceptions && numberOfTryCatch > 0) {
+                int exceptionHandlerCount = 1;
                 hasJumps = true;
-                break;
-            }
-        }
-        if(implicitAnalysisBlocks.size() > 1 && hasJumps) {
-            Stack<AnnotatedInstruction> stack = new Stack<>();
-            //Fix successors to only point to jumps or labels
-            boolean changed = true;
-            while(changed) {
-                changed = false;
-                for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                    for(AnnotatedInstruction s : b.successors) {
-                        if(s.isInteresting()) {
-                            changed |= b.basicBlockStartingSuccessors.add(s);
-                        } else {
-                            changed |= b.basicBlockStartingSuccessors.addAll(s.basicBlockStartingSuccessors);
+                for(Object o : methodNode.tryCatchBlocks) {
+                    TryCatchBlockNode t = (TryCatchBlockNode) o;
+                    AnnotatedInstruction startBlock = null;
+                    AnnotatedInstruction handlerBlock = null;
+                    AnnotatedInstruction endBlock = null;
+                    Integer startKey = null;
+                    Integer endKey = null;
+                    for(Map.Entry<Integer, AnnotatedInstruction> e : implicitAnalysisBlocks.entrySet()) {
+                        AnnotatedInstruction b = e.getValue();
+                        Integer i = e.getKey();
+                        if(b.insn == t.handler) {
+                            handlerBlock = b;
+                        }
+                        if(b.insn == t.start) {
+                            startBlock = b;
+                            startKey = i;
+                        }
+                        if(b.insn == t.end) {
+                            endBlock = b;
+                            endKey = i;
+                        }
+                        if(startBlock != null && handlerBlock != null && endBlock != null) {
+                            break;
+                        }
+                    }
+                    if(startBlock == handlerBlock || endBlock == null) {
+                        continue;
+                    }
+                    //Identify all of the instructions in this try block
+                    if(startBlock != null) {
+                        for(int i = startKey; i <= endKey; i++) {
+                            if(implicitAnalysisBlocks.get(i) != null) {
+                                implicitAnalysisBlocks.get(i).coveredByTryBlockFor.add(t.type);
+                            }
+                        }
+                    }
+                    handlerBlock.exceptionsHandled.add(t.type);
+                    tryCatchHandlers.add(handlerBlock);
+                    startBlock.isTryBlockStart = true;
+                    startBlock.exceptionsHandled.add(t.type);
+                    handlerBlock.onFalseSideOfJumpFrom.add(startBlock);
+                    handlerBlock.handlerForRegionStartingAt.add(startBlock);
+                    startBlock.successors.add(handlerBlock);
+                    startBlock.ex_count = exceptionHandlerCount;
+                    startBlock.tryBlockEnd = endBlock;
+                    startBlock.handledAt = handlerBlock;
+                    exceptionHandlerCount++;
+                    for(AnnotatedInstruction suc : startBlock.successors) {
+                        if(!suc.onFalseSideOfJumpFrom.contains(startBlock)) {
+                            suc.onTrueSideOfJumpFrom.add(startBlock);
                         }
                     }
                 }
             }
-            // Post dominator analysis
-            HashSet<AnnotatedInstruction> interestingBlocks = new HashSet<>();
             for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                if(b.isInteresting()) {
-                    interestingBlocks.add(b);
+                if(b.isJump) {
+                    hasJumps = true;
+                    break;
                 }
             }
-            for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                if(b.basicBlockStartingSuccessors.isEmpty()) {
-                    b.postDominators.add(b);
-                } else {
-                    b.postDominators.addAll(interestingBlocks);
-                }
-            }
-            changed = true;
-            while(changed) {
-                changed = false;
-                for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                    if(!b.basicBlockStartingSuccessors.isEmpty() && b.isInteresting()) {
-                        Iterator<AnnotatedInstruction> iter = b.basicBlockStartingSuccessors.iterator();
-                        AnnotatedInstruction successor = iter.next();
-                        HashSet<AnnotatedInstruction> intersectionOfPredecessors = new HashSet<>(successor.postDominators);
-                        while(iter.hasNext()) {
-                            successor = iter.next();
-                            intersectionOfPredecessors.retainAll(successor.postDominators);
-                        }
-                        intersectionOfPredecessors.add(b);
-                        if(!b.postDominators.equals(intersectionOfPredecessors)) {
-                            changed = true;
-                            b.postDominators = intersectionOfPredecessors;
-                        }
-                    }
-                }
-            }
-            // Add in markings for where jumps are resolved
-            for(AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
-                if(j.isJump || j.isTryBlockStart) {
-                    j.postDominators.remove(j);
-                    HashSet<AnnotatedInstruction> visited = new HashSet<>();
-                    AnnotatedInstruction min = findImmediatePostDominator(j, visited);
-                    if(min != null) {
-                        min.resolvedBlocks.add(j);
-                        min.resolvedHereBlocks.add(j);
-                    } else {
-                        // There are no post-dominators of this branch. That means that one leg of the
-                        // branch goes to a return. So, we'll say that this gets resolved at each return that
-                        // is a successor
-                        for(AnnotatedInstruction b : visited) {
-                            if(isExitInstruction(b.insn)) {
-                                b.resolvedHereBlocks.add(j);
+            if(implicitAnalysisBlocks.size() > 1 && hasJumps) {
+                Stack<AnnotatedInstruction> stack = new Stack<>();
+                //Fix successors to only point to jumps or labels
+                boolean changed = true;
+                while(changed) {
+                    changed = false;
+                    for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
+                        for(AnnotatedInstruction s : b.successors) {
+                            if(s.isInteresting()) {
+                                changed |= b.basicBlockStartingSuccessors.add(s);
+                            } else {
+                                changed |= b.basicBlockStartingSuccessors.addAll(s.basicBlockStartingSuccessors);
                             }
                         }
                     }
                 }
-            }
-            // Propagate forward true-side/false-side to determine which vars are written
-            stack.add(implicitAnalysisBlocks.get(0));
-            while(!stack.isEmpty()) {
-                AnnotatedInstruction b = stack.pop();
-                if(b.visited) {
-                    continue;
+                // Post dominator analysis
+                HashSet<AnnotatedInstruction> interestingBlocks = new HashSet<>();
+                for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
+                    if(b.isInteresting()) {
+                        interestingBlocks.add(b);
+                    }
                 }
-                b.visited = true;
-                b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
-                b.onTrueSideOfJumpFrom.removeAll(b.resolvedBlocks);
-                // Propagate markings to successors
-                for(AnnotatedInstruction s : b.successors) {
-                    s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
-                    s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
-                    s.resolvedBlocks.addAll(b.resolvedBlocks);
-                    s.onFalseSideOfJumpFrom.remove(s);
-                    s.onTrueSideOfJumpFrom.remove(s);
-                    stack.add(s);
+                for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
+                    if(b.basicBlockStartingSuccessors.isEmpty()) {
+                        b.postDominators.add(b);
+                    } else {
+                        b.postDominators.addAll(interestingBlocks);
+                    }
                 }
-            }
-            for(AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
-                j.visited = false;
-
-            }
-            for(AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
-                if(j.isJump || j.isTryBlockStart) {
-                    stack = new Stack<>();
-                    stack.addAll(j.successors);
-                    Set<AnnotatedInstruction> visited = new HashSet<>();
-                    while(!stack.isEmpty()) {
-                        AnnotatedInstruction b = stack.pop();
-                        if(!visited.add(b)) {
-                            continue;
-                        }
-                        if(b.onTrueSideOfJumpFrom.contains(j)) {
-                            j.varsWrittenTrueSide.addAll(b.varsWritten);
-                            j.fieldsWrittenTrueSide.addAll(b.fieldsWritten);
-                            j.exceptionsThrownTrueSide.addAll(b.exceptionsThrown);
-                            stack.addAll(b.successors);
-                        } else if(b.onFalseSideOfJumpFrom.contains(j)) {
-                            j.varsWrittenFalseSide.addAll(b.varsWritten);
-                            j.fieldsWrittenFalseSide.addAll(b.fieldsWritten);
-                            j.exceptionsThrownFalseSide.addAll(b.exceptionsThrown);
-                            stack.addAll(b.successors);
+                changed = true;
+                while(changed) {
+                    changed = false;
+                    for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
+                        if(!b.basicBlockStartingSuccessors.isEmpty() && b.isInteresting()) {
+                            Iterator<AnnotatedInstruction> iter = b.basicBlockStartingSuccessors.iterator();
+                            AnnotatedInstruction successor = iter.next();
+                            HashSet<AnnotatedInstruction> intersectionOfPredecessors = new HashSet<>(successor.postDominators);
+                            while(iter.hasNext()) {
+                                successor = iter.next();
+                                intersectionOfPredecessors.retainAll(successor.postDominators);
+                            }
+                            intersectionOfPredecessors.add(b);
+                            if(!b.postDominators.equals(intersectionOfPredecessors)) {
+                                changed = true;
+                                b.postDominators = intersectionOfPredecessors;
+                            }
                         }
                     }
                 }
-            }
-            Map<AnnotatedInstruction, Integer> jumpIDs = new HashMap<>();
-            int jumpID = 0;
-            for(AnnotatedInstruction r : implicitAnalysisBlocks.values()) {
-                if(r.isTryBlockStart) {
-                    annotateExceptionHandler(instructions, r);
-                } else if(r.isJump) {
-                    jumpID = annotateJump(instructions, r, jumpID, jumpIDs);
-                } else if(shouldTrackExceptions && r.insn.getOpcode() >= Opcodes.IRETURN && r.insn.getOpcode() <= Opcodes.RETURN) {
-                    //Return statement: check to see how we might have gotten here, and then find which exceptions we might have thrown if we came otherwise
-                    HashSet<String> missedExceptions = new HashSet<>();
-                    for(AnnotatedInstruction b : r.onFalseSideOfJumpFrom) {
-                        HashSet<String> tmp = new HashSet<>(b.exceptionsThrownTrueSide);
-                        tmp.removeAll(b.exceptionsThrownFalseSide);
-                        missedExceptions.addAll(tmp);
-                    }
-                    for(AnnotatedInstruction b : r.onTrueSideOfJumpFrom) {
-                        HashSet<String> tmp = new HashSet<>(b.exceptionsThrownFalseSide);
-                        tmp.removeAll(b.exceptionsThrownTrueSide);
-                        missedExceptions.addAll(tmp);
-                    }
-                    HashSet<String> filtered = new HashSet<>();
-                    for(String s : missedExceptions) {
-                        if(s == null) {
-                            s = "java/lang/Throwable";
-                        }
-                        if(s.contains("#")) {
-                            s = s.substring(0, s.indexOf('#'));
-                        }
-                        if(filtered.add(s)) {
-                            instructions.insertBefore(r.insn, new LdcInsnNode(new UnthrownException(s)));
-                        }
-                    }
-                } else if(shouldTrackExceptions && (r.insn.getType() == AbstractInsnNode.METHOD_INSN
-                        || r.insn.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN)) {
-                    // Are we in a try handler? If so, after this instruction, we should note that our execution may be contingent on some exception
-                    for(String s : r.coveredByTryBlockFor) {
-                        if(s == null) {
-                            s = "java/lang/Throwable";
-                        }
-                        instructions.insert(r.insn, new LdcInsnNode(new UnthrownExceptionCheck(s)));
-                    }
-                }
-            }
-            for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
-                AbstractInsnNode insn = b.insn;
-                while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL) {
-                    insn = insn.getNext();
-                }
-                if(b.resolvedHereBlocks.size() == jumpIDs.size()) {
-                    //Everything is resolved
-                    BranchEnd end = new BranchEnd(-1);
-                    instructions.insertBefore(insn, new LdcInsnNode(end));
-                } else {
-                    for(AnnotatedInstruction r : b.resolvedHereBlocks) {
-                        if(!r.isTryBlockStart) {
-                            if(!b.successors.isEmpty()) {
-                                // For any return or athrow, we'll just bulk pop-all
-                                BranchEnd end = new BranchEnd(jumpIDs.get(r));
-                                instructions.insertBefore(insn, new LdcInsnNode(end));
-                                if(r.isTwoOperandJumpInstruction) {
-                                    end = new BranchEnd(jumpIDs.get(r) + 1);
-                                    instructions.insertBefore(insn, new LdcInsnNode(end));
+                // Add in markings for where jumps are resolved
+                for(AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
+                    if(j.isJump || j.isTryBlockStart) {
+                        j.postDominators.remove(j);
+                        HashSet<AnnotatedInstruction> visited = new HashSet<>();
+                        AnnotatedInstruction min = findImmediatePostDominator(j, visited);
+                        if(min != null) {
+                            min.resolvedBlocks.add(j);
+                            min.resolvedHereBlocks.add(j);
+                        } else {
+                            // There are no post-dominators of this branch. That means that one leg of the
+                            // branch goes to a return. So, we'll say that this gets resolved at each return that
+                            // is a successor
+                            for(AnnotatedInstruction b : visited) {
+                                if(isExitInstruction(b.insn)) {
+                                    b.resolvedHereBlocks.add(j);
                                 }
                             }
                         }
                     }
                 }
-                // In light tracking mode no need to POP off of control at RETURN/THROW, because we don't reuse the obj
-                if(b.successors.isEmpty() && !isImplicitLightTracking) {
-                    instructions.insertBefore(b.insn, new LdcInsnNode(EXECUTE_FORCE_CONTROL_STORE));
-                    instructions.insertBefore(b.insn, new LdcInsnNode(new BranchEnd(-1)));
+                // Propagate forward true-side/false-side to determine which vars are written
+                stack.add(implicitAnalysisBlocks.get(0));
+                while(!stack.isEmpty()) {
+                    AnnotatedInstruction b = stack.pop();
+                    if(b.visited) {
+                        continue;
+                    }
+                    b.visited = true;
+                    b.onFalseSideOfJumpFrom.removeAll(b.resolvedBlocks);
+                    b.onTrueSideOfJumpFrom.removeAll(b.resolvedBlocks);
+                    // Propagate markings to successors
+                    for(AnnotatedInstruction s : b.successors) {
+                        s.onFalseSideOfJumpFrom.addAll(b.onFalseSideOfJumpFrom);
+                        s.onTrueSideOfJumpFrom.addAll(b.onTrueSideOfJumpFrom);
+                        s.resolvedBlocks.addAll(b.resolvedBlocks);
+                        s.onFalseSideOfJumpFrom.remove(s);
+                        s.onTrueSideOfJumpFrom.remove(s);
+                        stack.add(s);
+                    }
                 }
+                for(AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
+                    j.visited = false;
+
+                }
+                for(AnnotatedInstruction j : implicitAnalysisBlocks.values()) {
+                    if(j.isJump || j.isTryBlockStart) {
+                        stack = new Stack<>();
+                        stack.addAll(j.successors);
+                        Set<AnnotatedInstruction> visited = new HashSet<>();
+                        while(!stack.isEmpty()) {
+                            AnnotatedInstruction b = stack.pop();
+                            if(!visited.add(b)) {
+                                continue;
+                            }
+                            if(b.onTrueSideOfJumpFrom.contains(j)) {
+                                j.varsWrittenTrueSide.addAll(b.varsWritten);
+                                j.fieldsWrittenTrueSide.addAll(b.fieldsWritten);
+                                j.exceptionsThrownTrueSide.addAll(b.exceptionsThrown);
+                                stack.addAll(b.successors);
+                            } else if(b.onFalseSideOfJumpFrom.contains(j)) {
+                                j.varsWrittenFalseSide.addAll(b.varsWritten);
+                                j.fieldsWrittenFalseSide.addAll(b.fieldsWritten);
+                                j.exceptionsThrownFalseSide.addAll(b.exceptionsThrown);
+                                stack.addAll(b.successors);
+                            }
+                        }
+                    }
+                }
+                Map<AnnotatedInstruction, Integer> jumpIDs = new HashMap<>();
+                int jumpID = 0;
+                for(AnnotatedInstruction r : implicitAnalysisBlocks.values()) {
+                    if(r.isTryBlockStart) {
+                        annotateExceptionHandler(instructions, r);
+                    } else if(r.isJump) {
+                        jumpID = annotateJump(instructions, r, jumpID, jumpIDs);
+                    } else if(shouldTrackExceptions && r.insn.getOpcode() >= Opcodes.IRETURN && r.insn.getOpcode() <= Opcodes.RETURN) {
+                        //Return statement: check to see how we might have gotten here, and then find which exceptions we might have thrown if we came otherwise
+                        HashSet<String> missedExceptions = new HashSet<>();
+                        for(AnnotatedInstruction b : r.onFalseSideOfJumpFrom) {
+                            HashSet<String> tmp = new HashSet<>(b.exceptionsThrownTrueSide);
+                            tmp.removeAll(b.exceptionsThrownFalseSide);
+                            missedExceptions.addAll(tmp);
+                        }
+                        for(AnnotatedInstruction b : r.onTrueSideOfJumpFrom) {
+                            HashSet<String> tmp = new HashSet<>(b.exceptionsThrownFalseSide);
+                            tmp.removeAll(b.exceptionsThrownTrueSide);
+                            missedExceptions.addAll(tmp);
+                        }
+                        HashSet<String> filtered = new HashSet<>();
+                        for(String s : missedExceptions) {
+                            if(s == null) {
+                                s = "java/lang/Throwable";
+                            }
+                            if(s.contains("#")) {
+                                s = s.substring(0, s.indexOf('#'));
+                            }
+                            if(filtered.add(s)) {
+                                instructions.insertBefore(r.insn, new LdcInsnNode(new UnthrownException(s)));
+                            }
+                        }
+                    } else if(shouldTrackExceptions && (r.insn.getType() == AbstractInsnNode.METHOD_INSN
+                            || r.insn.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN)) {
+                        // Are we in a try handler? If so, after this instruction, we should note that our execution may be contingent on some exception
+                        for(String s : r.coveredByTryBlockFor) {
+                            if(s == null) {
+                                s = "java/lang/Throwable";
+                            }
+                            instructions.insert(r.insn, new LdcInsnNode(new UnthrownExceptionCheck(s)));
+                        }
+                    }
+                }
+                for(AnnotatedInstruction b : implicitAnalysisBlocks.values()) {
+                    AbstractInsnNode insn = b.insn;
+                    while(insn.getType() == AbstractInsnNode.FRAME || insn.getType() == AbstractInsnNode.LINE || insn.getType() == AbstractInsnNode.LABEL) {
+                        insn = insn.getNext();
+                    }
+                    if(b.resolvedHereBlocks.size() == jumpIDs.size()) {
+                        //Everything is resolved
+                        BranchEnd end = new BranchEnd(-1);
+                        instructions.insertBefore(insn, new LdcInsnNode(end));
+                    } else {
+                        for(AnnotatedInstruction r : b.resolvedHereBlocks) {
+                            if(!r.isTryBlockStart) {
+                                if(!b.successors.isEmpty()) {
+                                    // For any return or athrow, we'll just bulk pop-all
+                                    BranchEnd end = new BranchEnd(jumpIDs.get(r));
+                                    instructions.insertBefore(insn, new LdcInsnNode(end));
+                                    if(r.isTwoOperandJumpInstruction) {
+                                        end = new BranchEnd(jumpIDs.get(r) + 1);
+                                        instructions.insertBefore(insn, new LdcInsnNode(end));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // In light tracking mode no need to POP off of control at RETURN/THROW, because we don't reuse the obj
+                    if(b.successors.isEmpty() && !isImplicitLightTracking) {
+                        instructions.insertBefore(b.insn, new LdcInsnNode(EXECUTE_FORCE_CONTROL_STORE));
+                        instructions.insertBefore(b.insn, new LdcInsnNode(new BranchEnd(-1)));
+                    }
+                }
+                this.numberOfJumps = jumpID;
             }
-            this.numberOfJumps = jumpID;
+        } catch(AnalyzerException e) {
+            numberOfJumps = 0;
         }
     }
 
@@ -460,8 +464,16 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
         return jumpID;
     }
 
-    public int getNumberOfJumps() {
-        return numberOfJumps;
+    public int getNumberOfUniqueBranchIDs() {
+        return (numberOfJumps + numberOfTryCatch == 0) ? 0 : numberOfJumps + numberOfTryCatch + 2;
+    }
+
+    public int getNumberOfTryCatch() {
+        return numberOfTryCatch;
+    }
+
+    public int getNumberOfThrows() {
+        return numberOfThrows;
     }
 
     private void countThrows(InsnList instructions) {

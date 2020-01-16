@@ -1,7 +1,7 @@
-package edu.columbia.cs.psl.phosphor.control;
+package edu.columbia.cs.psl.phosphor.control.standard;
 
+import edu.columbia.cs.psl.phosphor.control.AbstractControlFlowPropagationPolicy;
 import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.NEW_EMPTY_TAINT;
 import static org.objectweb.asm.Opcodes.*;
@@ -9,15 +9,10 @@ import static org.objectweb.asm.Opcodes.*;
 /**
  * Specifies that control flow should not propagate.
  */
-public class NoControlFlowPropagationPolicy extends AbstractControlFlowPropagationPolicy {
+public class NoControlFlowPropagationPolicy extends AbstractControlFlowPropagationPolicy<NoControlFlowAnalyzer> {
 
-    /**
-     * Visitor to which instruction visiting is delegated.
-     */
-    private final MethodVisitor delegate;
-
-    public NoControlFlowPropagationPolicy(MethodVisitor delegate) {
-        this.delegate = delegate;
+    public NoControlFlowPropagationPolicy(NoControlFlowAnalyzer flowAnalyzer) {
+        super(flowAnalyzer);
     }
 
     @Override

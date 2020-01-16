@@ -1,6 +1,8 @@
 package edu.columbia.cs.psl.phosphor.control;
 
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
+import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -11,10 +13,16 @@ import org.objectweb.asm.Type;
  */
 public interface ControlFlowPropagationPolicy {
 
+    ControlFlowAnalyzer getFlowAnalyzer();
+
+    void initialize(MethodVisitor delegate, LocalVariableManager localVariableManager, NeverNullArgAnalyzerAdapter analyzer);
+
     /**
      * Called before visitCode
+     *
+     * @param mv method visitor that should be used as the delegate in this method
      */
-    void visitingCode();
+    void initializeLocalVariables(MethodVisitor mv);
 
     /**
      * Called before visitMaxs
@@ -27,7 +35,16 @@ public interface ControlFlowPropagationPolicy {
      * <p>
      * Called before a MethodInsn or InvokeDynamicInsn that is not ignored by Phosphor and is passed a ControlFlowStack.
      */
-    void prepareFrame();
+    void preparingFrame();
+
+    /**
+     * Called before adding a call to to popFrame
+     *
+     * @param mv method visitor that should be used as the delegate in this method
+     */
+    void poppingFrame(MethodVisitor mv);
+
+    LocalVariable[] createdLocalVariables();
 
     /**
      * Called before an IINC instruction.

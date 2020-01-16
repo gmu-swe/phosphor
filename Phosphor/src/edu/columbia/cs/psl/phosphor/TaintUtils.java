@@ -143,7 +143,7 @@ public class TaintUtils {
                 }
                 System.arraycopy(((LazyArrayObjTags) src).taints, srcPos, ((LazyArrayObjTags) dest).taints, destPos, length);
             }
-            if(!ctrl.isEmpty()) {
+            if(!ctrl.copyTag().isEmpty()) {
                 if(((LazyArrayObjTags) dest).taints == null) {
                     ((LazyArrayObjTags) dest).taints = new Taint[((LazyArrayObjTags) dest).getLength()];
                 }

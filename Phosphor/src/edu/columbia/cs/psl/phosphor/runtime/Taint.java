@@ -174,38 +174,14 @@ public abstract class Taint<T> implements Serializable {
 
     @SuppressWarnings("unchecked")
     public static <T> Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags) {
-        if(t1 == null && tags.isEmpty() && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.lacksInfluenceExceptions())) {
-            return null;
-        }
-        Taint tagsTaint;
-        if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
-            if(tags.lacksInfluenceExceptions()) {
-                //Can do a direct check of taint subsumption, no exception data to look at
-                if(tags.isEmpty()) {
-                    return t1;
-                }
-                if(t1 == null) {
-                    return tags.copyTag();
-                }
-                if(t1.isSuperset(tags.copyTag())) {
-                    return t1;
-                }
-                if(tags.copyTag().isSuperset(t1)) {
-                    return tags.copyTag();
-                }
-            }
-            tagsTaint = tags.copyTagExceptions();
-        } else {
-            tagsTaint = tags.copyTag();
-        }
+        Taint tagsTaint = tags.copyTag();
         if(t1 == null || t1.isEmpty()) {
             return tagsTaint;
         } else if(tagsTaint == null || tagsTaint.isEmpty()) {
             return t1;
         } else if(t1 == tagsTaint) {
             return t1;
-        }
-        if(IGNORE_TAINTING) {
+        } else if(IGNORE_TAINTING) {
             return t1;
         }
         return tagsTaint.union(t1);
@@ -213,7 +189,7 @@ public abstract class Taint<T> implements Serializable {
 
     @InvokedViaInstrumentation(record = COMBINE_TAGS_CONTROL)
     public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags) {
-        if(tags == null || (tags.isEmpty() && tags.lacksInfluenceExceptions())) {
+        if(tags == null) {
             return t1;
         }
         return _combineTagsInternal(t1, tags);
@@ -242,7 +218,7 @@ public abstract class Taint<T> implements Serializable {
     @SuppressWarnings("rawtypes")
     @InvokedViaInstrumentation(record = COMBINE_TAGS_ON_OBJECT_CONTROL)
     public static void combineTagsOnObject(Object o, ControlTaintTagStack tags) {
-        if((tags.isEmpty() || IGNORE_TAINTING) && (!Configuration.IMPLICIT_EXCEPTION_FLOW || tags.lacksInfluenceExceptions())) {
+        if(tags.copyTag().isEmpty() || IGNORE_TAINTING) {
             return;
         }
         if(Configuration.derivedTaintListener != null) {

@@ -2,37 +2,27 @@ package edu.columbia.cs.psl.phosphor.control;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.control.binding.LoopLevel;
-import edu.columbia.cs.psl.phosphor.control.binding.trace.LoopAwareConstancyInfo;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
-import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
-import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 
-import java.util.Iterator;
-
 import static edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager.CONTROL_STACK_INTERNAL_NAME;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_COPY_TOP;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_PUSH_FRAME;
 import static org.objectweb.asm.Opcodes.*;
 
 public class ControlStackInitializingMV extends MethodVisitor {
 
     private LocalVariableManager localVariableManager;
-    private PrimitiveArrayAnalyzer arrayAnalyzer;
-    private LoopAwareConstancyInfo nextMethodFrameInfo = null;
+    private final ControlFlowPropagationPolicy controlFlowPolicy;
 
-    public ControlStackInitializingMV(MethodVisitor methodVisitor) {
+    public ControlStackInitializingMV(MethodVisitor methodVisitor, ControlFlowPropagationPolicy controlFlowPolicy) {
         super(Configuration.ASM_VERSION, methodVisitor);
-    }
-
-    public void setArrayAnalyzer(PrimitiveArrayAnalyzer arrayAnalyzer) {
-        this.arrayAnalyzer = arrayAnalyzer;
+        this.controlFlowPolicy = controlFlowPolicy;
     }
 
     public void setLocalVariableManager(LocalVariableManager localVariableManager) {
@@ -42,7 +32,7 @@ public class ControlStackInitializingMV extends MethodVisitor {
     /**
      * Creates a local variable for a {@link ControlFlowStack ControlFlowStack} instance.
      * Adds code to ensure that the ControlFlowStack instance is initialized and cast to the proper type.
-     * Calls {@link ControlFlowPropagationPolicy#visitingCode()} visitingCode} to allow the policy to create any
+     * Calls {@link ControlFlowPropagationPolicy#initializeLocalVariables(MethodVisitor)} visitingCode} to allow the policy to create any
      * local variables that it needs.
      * Adds a call to {@link ControlFlowStack#pushFrame() pushFrame} on the ControlFlowStack instance.
      */
@@ -64,27 +54,9 @@ public class ControlStackInitializingMV extends MethodVisitor {
             );
             localVariableManager.createdLVs.add(phosphorJumpControlTagIndex);
         }
-        if(Configuration.IMPLICIT_EXCEPTION_FLOW && arrayAnalyzer.getNumberOfTryCatch() > 0) {
-            super.visitInsn(Opcodes.ACONST_NULL);
-            super.visitVarInsn(ASTORE, localVariableManager.createControlExceptionTaintLV());
-        }
-        if(Configuration.IMPLICIT_EXCEPTION_FLOW && arrayAnalyzer.getNumberOfThrows() > 0) {
-            // Create a local variable for the exception data
-            int exceptionTaintIndex = localVariableManager.createMasterExceptionTaintLV();
-            super.visitTypeInsn(NEW, Type.getInternalName(ExceptionalTaintData.class));
-            super.visitInsn(DUP);
-            super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ExceptionalTaintData.class), "<init>", "()V", false);
-            super.visitVarInsn(ASTORE, exceptionTaintIndex);
-        }
-        int numberOfBranchIDs = (arrayAnalyzer.getNumberOfJumps() + arrayAnalyzer.getNumberOfTryCatch() == 0) ? 0 : arrayAnalyzer.getNumberOfJumps() + arrayAnalyzer.getNumberOfTryCatch() + 2;
-        if(!Configuration.IMPLICIT_HEADERS_NO_TRACKING && !Configuration.WITHOUT_PROPAGATION && numberOfBranchIDs > 0) {
-            // Create a local variable for the array used to track tags pushed for each "branch" location
-            super.visitInsn(Opcodes.ACONST_NULL);
-            super.visitVarInsn(Opcodes.ASTORE, localVariableManager.createBranchesLV());
-            // Push a frame for the method invocation
-        }
         super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
         CONTROL_STACK_PUSH_FRAME.delegateVisit(mv);
+        controlFlowPolicy.initializeLocalVariables(mv);
     }
 
     /**
@@ -95,8 +67,7 @@ public class ControlStackInitializingMV extends MethodVisitor {
     public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
         boolean copyStack = "<init>".equals(name);
         int controlStackDistance = methodNotIgnoredAndPassedControlStack(owner, name, descriptor);
-        setUpStackForCall(controlStackDistance, copyStack, nextMethodFrameInfo != null);
-        nextMethodFrameInfo = null;
+        setUpStackForCall(controlStackDistance, copyStack);
         super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
     }
 
@@ -104,8 +75,7 @@ public class ControlStackInitializingMV extends MethodVisitor {
     public void visitInvokeDynamicInsn(String name, String descriptor, Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
         String owner = bootstrapMethodHandle.getOwner();
         int controlStackDistance = methodNotIgnoredAndPassedControlStack(owner, name, descriptor);
-        setUpStackForCall(controlStackDistance, false, nextMethodFrameInfo != null);
-        nextMethodFrameInfo = null;
+        setUpStackForCall(controlStackDistance, false);
         super.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
     }
 
@@ -126,8 +96,8 @@ public class ControlStackInitializingMV extends MethodVisitor {
         return -1;
     }
 
-    private void setUpStackForCall(int controlStackDistance, boolean copy, boolean setInfo) {
-        if(controlStackDistance == -1 || (!copy && !setInfo)) {
+    private void setUpStackForCall(int controlStackDistance, boolean copy) {
+        if(controlStackDistance == -1) {
             return;
         }
         int[] temp = new int[controlStackDistance];
@@ -138,34 +108,10 @@ public class ControlStackInitializingMV extends MethodVisitor {
         if(copy) {
             CONTROL_STACK_COPY_TOP.delegateVisit(mv);
         }
-        if(setInfo) {
-            setFrameInfo();
-        }
+        controlFlowPolicy.preparingFrame();
         for(int i = temp.length - 1; i >= 0; i--) {
             super.visitVarInsn(ALOAD, temp[i]);
             localVariableManager.freeTmpLV(temp[i]);
-        }
-    }
-
-    // stack_pre: ControlTaintTagStack
-    // stack_post: ControlTaintTagStack
-    private void setFrameInfo() {
-        // Start the frame and set the argument levels
-        ControlFlowPropagationPolicy.push(mv, nextMethodFrameInfo.getInvocationLevel());
-        ControlFlowPropagationPolicy.push(mv, nextMethodFrameInfo.getNumArguments());
-        CONTROL_STACK_START_FRAME.delegateVisit(mv);
-        Iterator<LoopLevel> argLevels = nextMethodFrameInfo.getLevelIterator();
-        while(argLevels.hasNext()) {
-            argLevels.next().setArgument(mv);
-        }
-    }
-
-    @Override
-    public void visitLdcInsn(Object cst) {
-        if(cst instanceof LoopAwareConstancyInfo) {
-            nextMethodFrameInfo = (LoopAwareConstancyInfo) cst;
-        } else {
-            super.visitLdcInsn(cst);
         }
     }
 

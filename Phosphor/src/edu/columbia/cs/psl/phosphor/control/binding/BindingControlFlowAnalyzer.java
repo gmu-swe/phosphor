@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.control.binding;
 
 import edu.columbia.cs.psl.phosphor.control.ControlFlowAnalyzer;
-import edu.columbia.cs.psl.phosphor.control.binding.trace.LoopAwareConstancyInfo;
+import edu.columbia.cs.psl.phosphor.control.binding.trace.FrameConstancyInfo;
 import edu.columbia.cs.psl.phosphor.control.binding.trace.TracingInterpreter;
 import edu.columbia.cs.psl.phosphor.control.graph.*;
 import edu.columbia.cs.psl.phosphor.control.graph.FlowGraph.NaturalLoop;
@@ -95,22 +95,27 @@ public class BindingControlFlowAnalyzer implements ControlFlowAnalyzer {
      * @param methodNode the method to be analyzed and possibly modified
      */
     @Override
-    public void annotate(String owner, MethodNode methodNode) throws AnalyzerException {
+    public void annotate(String owner, MethodNode methodNode) {
         numberOfUniqueBranchIDs = 0;
         instructions = methodNode.instructions;
-        if(instructions.size() > 0) {
-            Set<BindingBranchEdge> bindingEdges = new HashSet<>();
-            BindingControlFlowGraphCreator creator = new BindingControlFlowGraphCreator(bindingEdges);
-            controlFlowGraph = creator.createControlFlowGraph(methodNode);
-            containingLoopMap = calculateContainingLoops();
-            interpreter = new TracingInterpreter(owner, methodNode, containingLoopMap, controlFlowGraph);
-            bindingEdges = processBindingEdges(bindingEdges);
-            markBranchEnds(bindingEdges);
-            markBranchStarts(bindingEdges);
-            addCopyTagInfo();
-            addConstancyInfoNodes();
-            markLoopExits();
+        try {
+            if(instructions.size() > 0) {
+                Set<BindingBranchEdge> bindingEdges = new HashSet<>();
+                BindingControlFlowGraphCreator creator = new BindingControlFlowGraphCreator(bindingEdges);
+                controlFlowGraph = creator.createControlFlowGraph(methodNode);
+                containingLoopMap = calculateContainingLoops();
+                interpreter = new TracingInterpreter(owner, methodNode, containingLoopMap, controlFlowGraph);
+                bindingEdges = processBindingEdges(bindingEdges);
+                markBranchEnds(bindingEdges);
+                markBranchStarts(bindingEdges);
+                addCopyTagInfo();
+                addConstancyInfoNodes();
+                markLoopExits();
+            }
+        } catch(AnalyzerException e) {
+            numberOfUniqueBranchIDs = 0;
         }
+
     }
 
     /**
@@ -157,7 +162,7 @@ public class BindingControlFlowAnalyzer implements ControlFlowAnalyzer {
     }
 
     /**
-     * Adds LoopAwareConstancyInfo nodes before MethodInsnNodes and InvokeDynamicInsnNodes.
+     * Adds FrameConstancyInfo nodes before MethodInsnNodes and InvokeDynamicInsnNodes.
      */
     private void addConstancyInfoNodes() {
         SinglyLinkedList<AbstractInsnNode> methodCalls = new SinglyLinkedList<>();
@@ -169,7 +174,7 @@ public class BindingControlFlowAnalyzer implements ControlFlowAnalyzer {
             }
         }
         for(AbstractInsnNode insn : methodCalls) {
-            LoopAwareConstancyInfo constancyInfo = interpreter.generateMethodConstancyInfo(insn);
+            FrameConstancyInfo constancyInfo = interpreter.generateMethodConstancyInfo(insn);
             instructions.insertBefore(insn, new LdcInsnNode(constancyInfo));
         }
     }

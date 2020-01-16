@@ -4,12 +4,14 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.AbstractControlFlowPropagationPolicy;
+import edu.columbia.cs.psl.phosphor.control.LocalVariable;
 import edu.columbia.cs.psl.phosphor.control.standard.ForceControlStore.ForceControlStoreField;
 import edu.columbia.cs.psl.phosphor.control.standard.ForceControlStore.ForceControlStoreLocal;
-import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
+import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
 import edu.columbia.cs.psl.phosphor.struct.Field;
+import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
@@ -21,31 +23,17 @@ import org.objectweb.asm.Type;
 import static edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy.push;
 import static edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager.*;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintPassingMV.calculateParamTypes;
 
 /**
  * Propagates control flows through a method by delegating instruction visits to a MethodVisitor.
  */
-public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPropagationPolicy {
+public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPropagationPolicy<StandardControlFlowAnalyzer> {
 
     /**
-     * Visitor to which instruction visiting is delegated.
+     * The number of unique IDs assigned to branches in the method
      */
-    private final MethodVisitor delegate;
-
-    /**
-     * Tracks the current stack and local variable bindings.
-     */
-    private final NeverNullArgAnalyzerAdapter analyzer;
-
-    /**
-     * Manager that handles freeing and allocating local variables.
-     */
-    private final LocalVariableManager localVariableManager;
-
-    /**
-     * The number of unique identifiers for "branch" location in the method being visited.
-     */
-    private final int numberOfBranchIDs;
+    private int numberOfUniqueBranchIDs = 0;
 
     /**
      * Set containing the indices of local variables that need to be force stored.
@@ -72,22 +60,56 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
      */
     private int nextBranchID = -1;
 
-    public StandardControlFlowPropagationPolicy(MethodVisitor delegate, NeverNullArgAnalyzerAdapter analyzer,
-                                                LocalVariableManager localVariableManager, int lastParameterIndex,
-                                                Type[] paramTypes, int numberOfBranchIDs) {
-        this.delegate = delegate;
-        this.analyzer = analyzer;
-        this.localVariableManager = localVariableManager;
-        this.lastParameterIndex = lastParameterIndex;
-        this.paramTypes = paramTypes;
-        this.numberOfBranchIDs = numberOfBranchIDs;
+    private LocalVariable[] createdLocalVariables = new LocalVariable[0];
+
+    public StandardControlFlowPropagationPolicy(StandardControlFlowAnalyzer flowAnalyzer, boolean isStatic, String descriptor) {
+        super(flowAnalyzer);
+        this.paramTypes = calculateParamTypes(isStatic, descriptor);
+        this.lastParameterIndex = paramTypes.length - 1;
+    }
+
+    @Override
+    public void poppingFrame(MethodVisitor mv) {
+        callPopAll(mv);
+    }
+
+    @Override
+    public LocalVariable[] createdLocalVariables() {
+        return createdLocalVariables;
+    }
+
+    @Override
+    public void initializeLocalVariables(MethodVisitor mv) {
+        numberOfUniqueBranchIDs = flowAnalyzer.getNumberOfUniqueBranchIDs();
+        SinglyLinkedList<LocalVariable> newLocalVariables = new SinglyLinkedList<>();
+        if(Configuration.IMPLICIT_EXCEPTION_FLOW && flowAnalyzer.getNumberOfTryCatch() > 0) {
+            mv.visitInsn(Opcodes.ACONST_NULL);
+            mv.visitVarInsn(ASTORE, localVariableManager.createControlExceptionTaintLV());
+            newLocalVariables.push(new LocalVariable(localVariableManager.getIndexOfControlExceptionLV(), Type.getInternalName(EnqueuedTaint.class)));
+        }
+        if(Configuration.IMPLICIT_EXCEPTION_FLOW && flowAnalyzer.getNumberOfThrows() > 0) {
+            // Create a local variable for the exception data
+            int exceptionTaintIndex = localVariableManager.createMasterExceptionTaintLV();
+            mv.visitTypeInsn(NEW, Type.getInternalName(ExceptionalTaintData.class));
+            mv.visitInsn(DUP);
+            delegate.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ExceptionalTaintData.class), "<init>", "()V", false);
+            delegate.visitVarInsn(ASTORE, exceptionTaintIndex);
+            newLocalVariables.push(new LocalVariable(localVariableManager.getIndexOfMasterExceptionLV(), MASTER_EXCEPTION_INTERNAL_NAME));
+        }
+        if(!Configuration.IMPLICIT_HEADERS_NO_TRACKING && !Configuration.WITHOUT_PROPAGATION && numberOfUniqueBranchIDs > 0) {
+            // Create a local variable for the array used to track tags pushed for each "branch" location
+            mv.visitInsn(Opcodes.ACONST_NULL);
+            mv.visitVarInsn(Opcodes.ASTORE, localVariableManager.createBranchesLV());
+            newLocalVariables.push(new LocalVariable(localVariableManager.getIndexOfBranchesLV(), Type.getInternalName(int[].class)));
+        }
+        createdLocalVariables = newLocalVariables.toArray(new LocalVariable[0]);
     }
 
     @Override
     public void visitingIncrement(int var, int shadowVar) {
         delegate.visitVarInsn(ALOAD, shadowVar); // Current tag
-        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-        COMBINE_TAGS_CONTROL.delegateVisit(delegate);
+        copyTag();
+        COMBINE_TAGS.delegateVisit(delegate);
         delegate.visitVarInsn(ASTORE, shadowVar);
     }
 
@@ -100,41 +122,35 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
             case LSTORE:
             case ASTORE:
                 // value taint
-                delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                COMBINE_TAGS_CONTROL.delegateVisit(delegate);
+                copyTag();
+                COMBINE_TAGS.delegateVisit(delegate);
                 break;
         }
     }
 
     @Override
     public void visitingArrayStore() {
-        generateEmptyTaint();
+        copyTag();
         COMBINE_TAGS.delegateVisit(delegate);
     }
 
     @Override
     public void visitingFieldStore(boolean isStatic, Type type, boolean topCarriesTaint) {
-        // val taint
-        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-        COMBINE_TAGS_CONTROL.delegateVisit(delegate);
+        copyTag();
+        COMBINE_TAGS.delegateVisit(delegate);
     }
 
     @Override
     public void generateEmptyTaint() {
-        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-        if(Configuration.IMPLICIT_EXCEPTION_FLOW) {
-            CONTROL_STACK_COPY_TAG_EXCEPTIONS.delegateVisit(delegate);
-        } else {
-            CONTROL_STACK_COPY_TAG.delegateVisit(delegate);
-        }
+        copyTag();
     }
 
     @Override
     public void onMethodExit(int opcode) {
         if(opcode == ATHROW) {
-            delegate.visitInsn(DUP);
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
+            // Exception Taint
+            copyTag();
+            COMBINE_TAGS.delegateVisit(delegate);
         }
     }
 
@@ -196,8 +212,8 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
             forceControlStoreVariables.add(((ForceControlStoreLocal) info).getLocalVariableIndex());
         } else if(info instanceof ExecuteForceControlStore) {
             if(!analyzer.stack.isEmpty() && !Configuration.WITHOUT_BRANCH_NOT_TAKEN) {
-                delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                COMBINE_TAGS_CONTROL.delegateVisit(delegate);
+                copyTag();
+                COMBINE_TAGS.delegateVisit(delegate);
             }
         } else if(info instanceof BranchStart) {
             nextBranchID = ((BranchStart) info).getBranchID();
@@ -236,7 +252,7 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
             // T ControlTaintTagStack T
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfBranchesLV());
             push(delegate, nextBranchID);
-            push(delegate, numberOfBranchIDs);
+            push(delegate, numberOfUniqueBranchIDs);
             if(localVariableManager.getIndexOfMasterExceptionLV() >= 0) {
                 delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
             }
@@ -248,7 +264,7 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
 
     private void callPopControlTaint(int branchID) {
         if(branchID < 0) {
-            callPopAll();
+            callPopAll(delegate);
         } else {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfBranchesLV());
@@ -266,14 +282,16 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
      * Pops off of the stack all of the tags pushed onto the ControlTaintTagStack during the execution of the method
      * being visited.
      */
-    private void callPopAll() {
-        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfBranchesLV());
-        if(localVariableManager.getIndexOfMasterExceptionLV() >= 0) {
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
-            CONTROL_STACK_POP_ALL_EXCEPTION.delegateVisit(delegate);
-        } else {
-            CONTROL_STACK_POP_ALL.delegateVisit(delegate);
+    private void callPopAll(MethodVisitor mv) {
+        if(localVariableManager.getIndexOfBranchesLV() >= 0) {
+            mv.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+            mv.visitVarInsn(ALOAD, localVariableManager.getIndexOfBranchesLV());
+            if(localVariableManager.getIndexOfMasterExceptionLV() >= 0) {
+                mv.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterExceptionLV());
+                CONTROL_STACK_POP_ALL_EXCEPTION.delegateVisit(mv);
+            } else {
+                CONTROL_STACK_POP_ALL.delegateVisit(mv);
+            }
         }
     }
 
@@ -311,11 +329,13 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
                 }
                 if(shadowVar >= 0) {
                     delegate.visitVarInsn(ALOAD, shadowVar);
-                    delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-                    COMBINE_TAGS_CONTROL.delegateVisit(delegate);
+                    copyTag();
+                    COMBINE_TAGS.delegateVisit(delegate);
                     delegate.visitVarInsn(ASTORE, shadowVar);
                 } else {
                     if(!(analyzer.locals.get(var) instanceof Integer)) {
+                        // Probably wrong since reference tainting update
+                        // TODO fix or remove
                         delegate.visitVarInsn(ALOAD, var);
                         delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
                         COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
@@ -342,10 +362,12 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
                 delegate.visitInsn(DUP);
             }
             delegate.visitFieldInsn(getFieldOpcode, field.owner, field.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
-            delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
-            COMBINE_TAGS_CONTROL.delegateVisit(delegate);
+            copyTag();
+            COMBINE_TAGS.delegateVisit(delegate);
             delegate.visitFieldInsn(putFieldOpcode, field.owner, field.name + TaintUtils.TAINT_FIELD, Configuration.TAINT_TAG_DESC);
         } else if(Type.getType(field.description).getSort() == Type.OBJECT) {
+            // Probably wrong since reference tainting update
+            // TODO fix or remove
             if(!field.isStatic) {
                 delegate.visitVarInsn(ALOAD, 0); // Load this onto the stack
             }
@@ -354,7 +376,6 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
             COMBINE_TAGS_ON_OBJECT_CONTROL.delegateVisit(delegate);
         }
     }
-
 
     private void exceptionHandlerStart(String type) {
         if(type == null) {
@@ -369,7 +390,7 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
         } else {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             delegate.visitLdcInsn(Type.getObjectType(type));
-            CONTROL_STACK_EXCEPTION_HANDLER_START_VOID.delegateVisit(delegate);
+            CONTROL_STACK_EXCEPTION_HANDLER_START_TYPES.delegateVisit(delegate);
         }
     }
 
@@ -400,5 +421,10 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
         delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
         delegate.visitLdcInsn(Type.getObjectType(type));
         CONTROL_STACK_APPLY_POSSIBLY_UNTHROWN_EXCEPTION.delegateVisit(delegate);
+    }
+
+    private void copyTag() {
+        delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
+        CONTROL_STACK_COPY_TAG.delegateVisit(delegate);
     }
 }
