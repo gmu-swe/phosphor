@@ -17,6 +17,7 @@ import org.objectweb.asm.signature.SignatureVisitor;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public class TaintUtils {
@@ -274,7 +275,7 @@ public class TaintUtils {
             }
         }
         if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
-            ret.append(Type.getDescriptor(ControlTaintTagStack.class));
+            ret.append(CONTROL_STACK_DESC);
         }
         ret.append(wrapped);
         ret.append(')');
@@ -297,7 +298,7 @@ public class TaintUtils {
         for (Type t : Type.getArgumentTypes(desc)) {
             if (!ctrlAdded && t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
                 ctrlAdded = true;
-                ret.append(Type.getDescriptor(ControlTaintTagStack.class));
+                ret.append(CONTROL_STACK_DESC);
             }
             if (isWrappedType(t)) {
                 ret.append(getWrapperType(t));
@@ -312,7 +313,7 @@ public class TaintUtils {
             }
         }
         if (!ctrlAdded) {
-            ret.append(Type.getDescriptor(ControlTaintTagStack.class));
+            ret.append(CONTROL_STACK_DESC);
         }
         if (Type.getReturnType(desc).getSort() != Type.VOID) {
             ret.append(getContainerReturnType(Type.getReturnType(desc)).getDescriptor());

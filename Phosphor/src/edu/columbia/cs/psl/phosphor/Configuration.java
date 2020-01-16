@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationManager;
+import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowPropagationManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.DataAndControlFlowTagFactory;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTagFactory;
@@ -19,6 +21,7 @@ import java.util.Properties;
 public class Configuration {
 
     public static final int ASM_VERSION = Opcodes.ASM7;
+
     public static final String TAINT_TAG_DESC = "Ledu/columbia/cs/psl/phosphor/runtime/Taint;";
     public static final String TAINT_TAG_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/runtime/Taint";
 
@@ -71,6 +74,8 @@ public class Configuration {
     public static String CACHE_DIR = null;
     public static boolean TAINT_THROUGH_SERIALIZATION = true;
 
+    public static ControlFlowPropagationManager controlPropagationManager;
+
     private Configuration() {
         // Prevents this class from being instantiated
     }
@@ -78,8 +83,11 @@ public class Configuration {
     public static void init() {
         if(BINDING_CONTROL_FLOWS_ONLY) {
             IMPLICIT_TRACKING = true;
-            IMPLICIT_EXCEPTION_FLOW = false;
-            WITHOUT_BRANCH_NOT_TAKEN = true;
+        }
+        if(controlPropagationManager == null) {
+            controlPropagationManager = new StandardControlFlowPropagationManager();
+        } else {
+            IMPLICIT_TRACKING = true;
         }
         OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING && !IMPLICIT_LIGHT_TRACKING;
         if(IMPLICIT_TRACKING || IMPLICIT_LIGHT_TRACKING) {

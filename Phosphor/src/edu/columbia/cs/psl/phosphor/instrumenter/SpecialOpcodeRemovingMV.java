@@ -4,7 +4,6 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Label;
@@ -12,6 +11,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.NEW_EMPTY_TAINT;
 
 public class SpecialOpcodeRemovingMV extends MethodVisitor {
@@ -30,7 +30,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
             n++;
         }
         for(Type t : Type.getArgumentTypes(desc)) {
-            if(t.getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class))) {
+            if(t.getDescriptor().equals(CONTROL_STACK_DESC)) {
                 this.localIdxOfControlTag = n;
             }
             n += t.getSize();
@@ -129,7 +129,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
                 if(this.localIdxOfControlTag < 0) {
                     localIdxOfControlTag = lvs.getIndexOfMasterControlLV();
                 }
-                String ctrlDesc = Type.getDescriptor(ControlTaintTagStack.class);
+                String ctrlDesc = CONTROL_STACK_DESC;
                 //Str Taint 0 taint ThisClazz Taint
                 super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
                 super.visitVarInsn(Opcodes.ALOAD, prealloc);

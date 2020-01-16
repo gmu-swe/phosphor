@@ -115,7 +115,7 @@ public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
             val = new Object[len]; //TODO probably should serialize the array type then make it correctly?
             TaintedReferenceWithObjTag ret = new TaintedReferenceWithObjTag();
             if(Configuration.IMPLICIT_TRACKING) {
-                ControlTaintTagStack dummy = new ControlTaintTagStack();
+                ControlTaintTagStack dummy = Configuration.controlPropagationManager.getStack(false);
                 dummy.disable();
                 for(int i = 0; i < len; i++) {
                     val[i] = stream.readObject$$PHOSPHORTAGGED(Taint.emptyTaint(), dummy, ret).val; //Need to ensure that this doesn't get unwrapped!

@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.runtime.ControlTaintTagStackPool;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.*;
@@ -47,7 +46,6 @@ public enum TaintMethodRecord implements MethodRecord {
     CONTROL_STACK_TRY_BLOCK_END(INVOKEVIRTUAL, ControlTaintTagStack.class, "tryBlockEnd", Void.TYPE, false, Class.class),
     CONTROL_STACK_APPLY_POSSIBLY_UNTHROWN_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "applyPossiblyUnthrownExceptionToTaint", Void.TYPE, false, Class.class),
     CONTROL_STACK_ADD_UNTHROWN_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "addUnthrownException", Void.TYPE, false, ExceptionalTaintData.class, Class.class),
-    CONTROL_STACK_FACTORY(INVOKESTATIC, ControlTaintTagStack.class, "factory", ControlTaintTagStack.class, false),
     CONTROL_STACK_POP_FRAME(INVOKEVIRTUAL, ControlTaintTagStack.class, "popFrame", Void.TYPE, false),
     CONTROL_STACK_PUSH_FRAME(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushFrame", Void.TYPE, false),
     CONTROL_STACK_COPY_TOP(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyTop", ControlTaintTagStack.class, false),
@@ -64,8 +62,8 @@ public enum TaintMethodRecord implements MethodRecord {
     CONTROL_STACK_SET_NEXT_BRANCH_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "setNextBranchTag", Void.TYPE, false, Taint.class),
     CONTROL_STACK_EXIT_LOOP_LEVEL(INVOKEVIRTUAL, ControlTaintTagStack.class, "exitLoopLevel", Void.TYPE, false, int.class),
     CONTROL_STACK_POP_BINDING(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int.class),
+    CONTROL_STACK_FACTORY(INVOKESTATIC, ControlTaintTagStack.class, "factory", ControlTaintTagStack.class, false, boolean.class),
     // Methods from ControlTaintTagStackPool
-    CONTROL_STACK_POOL_INSTANCE(INVOKESTATIC, ControlTaintTagStackPool.class, "instance", ControlTaintTagStack.class, false),
     // Methods from MultiDTaintedArray
     BOX_IF_NECESSARY(INVOKESTATIC, MultiDTaintedArray.class, "boxIfNecessary", Object.class, false, Object.class),
     // Methods from ReflectionMasker

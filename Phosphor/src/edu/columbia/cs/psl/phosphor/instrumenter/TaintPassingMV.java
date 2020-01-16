@@ -833,7 +833,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 && !owner.equals(Type.getInternalName(PowerSetTree.class))
                 && !owner.equals("edu/columbia/cs/psl/phosphor/util/IgnoredTestUtil")
                 && !owner.equals(Configuration.TAINT_TAG_INTERNAL_NAME)
-                && !owner.equals(Type.getInternalName(ControlTaintTagStack.class))) {
+                && !owner.equals(TaintTrackingClassVisitor.CONTROL_STACK_INTERNAL_NAME)) {
             Configuration.taintTagFactory.methodOp(opcode, owner, name, desc, isInterface, mv, lvs, this);
             super.visitMethodInsn(opcode, owner, name, desc, isInterface);
             if(Type.getReturnType(desc).getSort() != Type.VOID) {
@@ -960,7 +960,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         String newDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(opcode != INVOKESTATIC, desc);
         if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
             if((isInternalTaintingClass(owner) || owner.startsWith("[")) && !name.equals("getControlFlow") && !name.startsWith("hashCode") && !name.startsWith("equals")) {
-                newDesc = newDesc.replace(Type.getDescriptor(ControlTaintTagStack.class), "");
+                newDesc = newDesc.replace(TaintTrackingClassVisitor.CONTROL_STACK_DESC, "");
             } else {
                 super.visitVarInsn(ALOAD, lvs.getIndexOfMasterControlLV());
             }

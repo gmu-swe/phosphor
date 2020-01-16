@@ -3,10 +3,10 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import org.objectweb.asm.*;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_TYPE;
 import static edu.columbia.cs.psl.phosphor.SourceSinkManager.remapMethodDescToRemoveTaintsAndReturnType;
 
 public class SerializationFixingCV extends ClassVisitor implements Opcodes {
@@ -113,8 +113,8 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
                         super.visitInsn(POP);
                         super.visitMethodInsn(opcode, owner, untaintedMethod, untaintedDesc, isInterface);
                         return;
-                    } else if(args.length == 4 && args[3].equals(Type.getType(ControlTaintTagStack.class))) {
-                        //Taint primitive taint Controltaint
+                    } else if(args.length == 4 && args[3].equals(CONTROL_STACK_TYPE)) {
+                        //Taint primitive taint ControlTaintTagStack
                         super.visitInsn(POP);
                         super.visitInsn(POP);
                         //Taint primitive

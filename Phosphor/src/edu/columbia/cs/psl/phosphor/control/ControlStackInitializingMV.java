@@ -3,14 +3,14 @@ package edu.columbia.cs.psl.phosphor.control;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager.CONTROL_STACK_INTERNAL_NAME;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_INTERNAL_NAME;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_COPY_TOP;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_PUSH_FRAME;
 import static org.objectweb.asm.Opcodes.*;
@@ -41,13 +41,11 @@ public class ControlStackInitializingMV extends MethodVisitor {
         super.visitCode();
         if(localVariableManager.getIndexOfMasterControlLV() < 0) {
             int tmpLV = localVariableManager.createMasterControlTaintLV();
-            super.visitTypeInsn(NEW, Type.getInternalName(ControlTaintTagStack.class));
-            super.visitInsn(DUP);
-            super.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(ControlTaintTagStack.class), "<init>", "()V", false);
+            Configuration.controlPropagationManager.visitCreateStack(mv, false);
             super.visitVarInsn(ASTORE, tmpLV);
         } else {
             LocalVariableNode phosphorJumpControlTagIndex = new LocalVariableNode("phosphorJumpControlTag",
-                    Type.getDescriptor(ControlTaintTagStack.class), null,
+                    CONTROL_STACK_DESC, null,
                     new LabelNode(localVariableManager.newStartLabel),
                     new LabelNode(localVariableManager.end),
                     localVariableManager.getIndexOfMasterControlLV()

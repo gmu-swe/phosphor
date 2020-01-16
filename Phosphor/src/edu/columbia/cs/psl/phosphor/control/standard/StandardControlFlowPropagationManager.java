@@ -3,35 +3,26 @@ package edu.columbia.cs.psl.phosphor.control.standard;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationManager;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy;
-import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowPropagationPolicy;
-import edu.columbia.cs.psl.phosphor.instrumenter.MethodRecord;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
+import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public enum StandardControlFlowPropagationManager implements ControlFlowPropagationManager {
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_FACTORY;
 
-    INSTANCE;
+public class StandardControlFlowPropagationManager implements ControlFlowPropagationManager {
 
     @Override
-    public MethodRecord getRecordForCreateEnabledStack() {
-        return null;
+    public void visitCreateStack(MethodVisitor mv, boolean disabled) {
+        mv.visitInsn(disabled ? Opcodes.ICONST_1: Opcodes.ICONST_0);
+        CONTROL_STACK_FACTORY.delegateVisit(mv);
     }
 
     @Override
-    public MethodRecord getRecordForGetSharedDisabledStack() {
-        return null;
-    }
-
-    @Override
-    public ControlFlowStack createEnabledStack() {
-        return null;
-    }
-
-    @Override
-    public ControlFlowStack getSharedDisabledStack() {
-        return null;
+    public ControlTaintTagStack getStack(boolean disabled) {
+        return ControlTaintTagStack.factory(disabled);
     }
 
     @Override

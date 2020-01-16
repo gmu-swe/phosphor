@@ -4,7 +4,6 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
 import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
@@ -18,7 +17,6 @@ import org.objectweb.asm.tree.LocalVariableNode;
 public class LocalVariableManager extends OurLocalVariablesSorter implements Opcodes {
     private static final boolean DEBUG = false;
     public static final String BRANCHES_INTERNAL_NAME = Type.getInternalName(int[].class);
-    public static final String CONTROL_STACK_INTERNAL_NAME = Type.getInternalName(ControlTaintTagStack.class);
     public static final String MASTER_EXCEPTION_INTERNAL_NAME = Type.getInternalName(ExceptionalTaintData.class);
 
     Map<Integer, Integer> varToShadowVar = new HashMap<>();
@@ -43,7 +41,6 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     private int createdLVIdx = 0;
     private Map<Integer, LocalVariableNode> curLocalIdxToLVNode = new HashMap<>();
     private MethodVisitor uninstMV;
-    private Type returnType;
     private int lastArg;
     private NeverNullArgAnalyzerAdapter analyzer;
     private boolean isInMethodThatIsTooBig;
@@ -161,15 +158,38 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         return indexOfMasterExceptionLV;
     }
 
-    public int createMasterControlTaintLV() {
-        int idx = super.newLocal(Type.getType(ControlTaintTagStack.class));
-        ensureControlTagStartLabelHasBeenVisited();
-        LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, Type.getDescriptor(ControlTaintTagStack.class), null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
-        createdLVs.add(newLVN);
-        analyzer.locals.add(idx, CONTROL_STACK_INTERNAL_NAME);
-        this.indexOfMasterControlLV = idx;
-        jumpIdx++;
-        return idx;
+    public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean generateExtraDebug) {
+        super(Configuration.ASM_VERSION, access, desc, mv);
+        this.analyzer = analyzer;
+        this.uninstMV = uninstMV;
+        Type returnType = Type.getReturnType(desc);
+        args = Type.getArgumentTypes(desc);
+        if((access & Opcodes.ACC_STATIC) == 0) {
+            lastArg++;
+            oldArgTypes.add(Type.getType("Lthis;"));
+        } else {
+            isStatic = true;
+        }
+        for(Type arg : args) {
+            if(arg.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
+                preAllocatedReturnTypes.put(returnType, lastArg);
+            }
+            lastArg += arg.getSize();
+            oldArgTypes.add(arg);
+            if(arg.getSize() > 1) {
+                oldArgTypes.add(Type.getType("Ltop;"));
+            }
+            if(arg.getDescriptor().equals(TaintTrackingClassVisitor.CONTROL_STACK_DESC)) {
+                extraLVsInArg++;
+                indexOfMasterControlLV = lastArg - 1;
+            }
+            if(arg.getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
+                extraLVsInArg++;
+            }
+        }
+        lastArg--;
+        end = new Label();
+        this.generateExtraDebug = generateExtraDebug;
     }
 
     public int createBranchesLV() {
@@ -200,38 +220,15 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         }
     }
 
-    public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, MethodVisitor uninstMV, boolean generateExtraDebug) {
-        super(Configuration.ASM_VERSION, access, desc, mv);
-        this.analyzer = analyzer;
-        this.uninstMV = uninstMV;
-        returnType = Type.getReturnType(desc);
-        args = Type.getArgumentTypes(desc);
-        if((access & Opcodes.ACC_STATIC) == 0) {
-            lastArg++;
-            oldArgTypes.add(Type.getType("Lthis;"));
-        } else {
-            isStatic = true;
-        }
-        for(Type arg : args) {
-            if(arg.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
-                preAllocatedReturnTypes.put(returnType, lastArg);
-            }
-            lastArg += arg.getSize();
-            oldArgTypes.add(arg);
-            if(arg.getSize() > 1) {
-                oldArgTypes.add(Type.getType("Ltop;"));
-            }
-            if(arg.getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class))) {
-                extraLVsInArg++;
-                indexOfMasterControlLV = lastArg - 1;
-            }
-            if(arg.getDescriptor().equals(Configuration.TAINT_TAG_DESC)) {
-                extraLVsInArg++;
-            }
-        }
-        lastArg--;
-        end = new Label();
-        this.generateExtraDebug = generateExtraDebug;
+    public int createMasterControlTaintLV() {
+        int idx = super.newLocal(TaintTrackingClassVisitor.CONTROL_STACK_TYPE);
+        ensureControlTagStartLabelHasBeenVisited();
+        LocalVariableNode newLVN = new LocalVariableNode("phosphorJumpControlTag" + jumpIdx, TaintTrackingClassVisitor.CONTROL_STACK_DESC, null, new LabelNode(ctrlTagStartLbl), new LabelNode(end), idx);
+        createdLVs.add(newLVN);
+        analyzer.locals.add(idx, TaintTrackingClassVisitor.CONTROL_STACK_INTERNAL_NAME);
+        this.indexOfMasterControlLV = idx;
+        jumpIdx++;
+        return idx;
     }
 
     private int newPreAllocatedReturnType(Type type) {

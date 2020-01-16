@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
@@ -59,7 +60,7 @@ public abstract class SourceSinkManager {
             }
         }
         for(Type t : Type.getArgumentTypes(desc)) {
-            if(t.getDescriptor().equals("Ledu/columbia/cs/psl/phosphor/struct/ControlTaintTagStack;")) {
+            if(t.getDescriptor().equals(TaintTrackingClassVisitor.CONTROL_STACK_DESC)) {
                 //
             } else if(t.getDescriptor().equals("Ledu/columbia/cs/psl/phosphor/struct/LazyReferenceArrayObjTags;")) {
                 r += wrappedTypes.remove();

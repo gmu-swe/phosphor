@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
@@ -97,6 +98,10 @@ public class Instrumenter {
             .build();
     static Option help = Option.builder("help")
             .desc("print this message")
+            .build();
+    static Option opt_controlPropagationManager = Option.builder("controlPropagationManager")
+            .desc("Can be used to specify the name of a class to be used as the ControlFlowPropagationManager during instrumentation. " +
+                    "This class must implement ControlFlowPropagationManager.")
             .build();
     private static ClassFileTransformer addlTransformer;
     private static File rootOutputDir;
@@ -304,6 +309,7 @@ public class Instrumenter {
         Configuration.REENABLE_CACHES = line.hasOption(opt_reenableCaches.getOpt());
         Configuration.QUIET_MODE = line.hasOption(opt_quiet.getOpt()) || line.hasOption(opt_quiet.getLongOpt());
         String priorClassVisitorName = line.getOptionValue(opt_priorClassVisitor.getOpt());
+        String controlPropagationManagerClass = line.getOptionValue(opt_controlPropagationManager.getOpt());
         if(priorClassVisitorName != null) {
             try {
                 @SuppressWarnings("unchecked")
@@ -311,6 +317,15 @@ public class Instrumenter {
                 Configuration.PRIOR_CLASS_VISITOR = temp;
             } catch(Exception e) {
                 System.err.println("Failed to create specified prior class visitor: " + priorClassVisitorName);
+            }
+        }
+        if(controlPropagationManagerClass != null) {
+            try {
+                @SuppressWarnings("unchecked")
+                Class<? extends ControlFlowPropagationManager> temp = (Class<? extends ControlFlowPropagationManager>) Class.forName(controlPropagationManagerClass);
+                Configuration.controlPropagationManager = temp.newInstance();
+            } catch(Exception e) {
+                System.err.println("Failed to create control propagation manager: " +controlPropagationManagerClass);
             }
         }
         Configuration.init();

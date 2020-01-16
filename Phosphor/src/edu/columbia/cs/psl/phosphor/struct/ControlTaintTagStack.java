@@ -10,18 +10,14 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 @SuppressWarnings({"rawtypes", "unchecked"})
 public final class ControlTaintTagStack {
 
-    private static ControlTaintTagStack instance = new ControlTaintTagStack(true);
+    private static ControlTaintTagStack disabledInstance = new ControlTaintTagStack(true);
 
     private final StandardControlFlowStack standardControlFlowStack;
     private final BindingControlFlowStack bindingControlFlowStack;
 
-    public ControlTaintTagStack() {
+    private ControlTaintTagStack(boolean disabled) {
         standardControlFlowStack = new StandardControlFlowStack<>();
         bindingControlFlowStack = new BindingControlFlowStack<>();
-    }
-
-    private ControlTaintTagStack(boolean disabled) {
-        this();
         if(disabled) {
             disable();
         }
@@ -201,7 +197,11 @@ public final class ControlTaintTagStack {
     }
 
     @InvokedViaInstrumentation(record = CONTROL_STACK_FACTORY)
-    public static ControlTaintTagStack factory() {
-        return instance;
+    public static ControlTaintTagStack factory(boolean disabled) {
+        if(disabled) {
+            return disabledInstance;
+        } else {
+            return new ControlTaintTagStack(false);
+        }
     }
 }

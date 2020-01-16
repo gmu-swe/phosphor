@@ -4,11 +4,13 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.LocalVariablePhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_INTERNAL_NAME;
 
 public class MethodArgReindexer extends MethodVisitor {
 
@@ -171,7 +173,7 @@ public class MethodArgReindexer extends MethodVisitor {
             }
             super.visitLocalVariable(name, desc, signature, start, end, oldArgMappings[index]);
             if(index == originalLastArgIdx - 1 && (Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
-                super.visitLocalVariable("Phopshor$$ImplicitTaintTrackingFromParent", Type.getDescriptor(ControlTaintTagStack.class), null, start, end, oldArgMappings[index] + 1);
+                super.visitLocalVariable("Phopshor$$ImplicitTaintTrackingFromParent", CONTROL_STACK_DESC, null, start, end, oldArgMappings[index] + 1);
             }
             if((index == originalLastArgIdx - Type.getType(desc).getSize()) && hasPreAllocatedReturnAddress) {
                 super.visitLocalVariable("Phosphor$$ReturnPreAllocated", newReturnType.getDescriptor(), null, start, end, oldArgMappings[index] + ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) ? 2 : 1));
@@ -216,7 +218,7 @@ public class MethodArgReindexer extends MethodVisitor {
             //Special cases of no args
             if(origNumArgs == 0 && isStatic) {
                 if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")) {
-                    remappedLocals[thisLocalIndexInNewFrame] = Type.getInternalName(ControlTaintTagStack.class);
+                    remappedLocals[thisLocalIndexInNewFrame] = CONTROL_STACK_INTERNAL_NAME;
                     thisLocalIndexInNewFrame++;
                     nLocal++;
                 }
@@ -274,7 +276,7 @@ public class MethodArgReindexer extends MethodVisitor {
                         thisLocalIndexInNewFrame++;
                         nLocal++;
                     }
-                    remappedLocals[thisLocalIndexInNewFrame] = Type.getInternalName(ControlTaintTagStack.class);
+                    remappedLocals[thisLocalIndexInNewFrame] = CONTROL_STACK_INTERNAL_NAME;
                     thisLocalIndexInNewFrame++;
                     nLocal++;
                 }

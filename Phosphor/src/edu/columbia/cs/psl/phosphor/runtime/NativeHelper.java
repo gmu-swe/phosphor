@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
@@ -89,14 +90,14 @@ public final class NativeHelper {
                             ex.printStackTrace();
                         }
                     }
-                    tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.boxIfNecessary(o), new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+                    tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.boxIfNecessary(o), Configuration.controlPropagationManager.getStack(false), new TaintedBooleanWithObjTag());
                 } else {
                     break;
                 }
             }
             if(tmp != null) {
                 in.clear();
-                tmp.add$$PHOSPHORTAGGED(tmp, new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+                tmp.add$$PHOSPHORTAGGED(tmp, Configuration.controlPropagationManager.getStack(false), new TaintedBooleanWithObjTag());
             }
         }
         return in;
@@ -170,7 +171,7 @@ public final class NativeHelper {
                             ex.printStackTrace();
                         }
                     }
-                    tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.unboxRaw(o), new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+                    tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.unboxRaw(o), Configuration.controlPropagationManager.getStack(false), new TaintedBooleanWithObjTag());
 
                 } else {
                     break;
@@ -178,7 +179,7 @@ public final class NativeHelper {
             }
             if(tmp != null) {
                 in.clear();
-                tmp.add$$PHOSPHORTAGGED(tmp, new ControlTaintTagStack(), new TaintedBooleanWithObjTag());
+                tmp.add$$PHOSPHORTAGGED(tmp, Configuration.controlPropagationManager.getStack(false), new TaintedBooleanWithObjTag());
             }
         }
         return in;
