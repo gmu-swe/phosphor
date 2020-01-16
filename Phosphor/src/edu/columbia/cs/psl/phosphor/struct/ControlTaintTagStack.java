@@ -195,6 +195,11 @@ public final class ControlTaintTagStack {
         bindingControlFlowStack.exitLoopLevel(levelOffset);
     }
 
+    @InvokedViaInstrumentation(record = CONTROL_STACK_POP_BINDING)
+    public void pop(int branchID) {
+        bindingControlFlowStack.pop(branchID);
+    }
+
     @InvokedViaInstrumentation(record = CONTROL_STACK_FACTORY)
     public static ControlTaintTagStack factory() {
         return instance;

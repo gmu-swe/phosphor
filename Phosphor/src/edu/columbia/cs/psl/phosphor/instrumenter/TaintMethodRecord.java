@@ -63,6 +63,7 @@ public enum TaintMethodRecord implements MethodRecord {
     CONTROL_STACK_PUSH_VARIANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushVariant", Void.TYPE, false, int.class, int.class, int.class),
     CONTROL_STACK_SET_NEXT_BRANCH_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "setNextBranchTag", Void.TYPE, false, Taint.class),
     CONTROL_STACK_EXIT_LOOP_LEVEL(INVOKEVIRTUAL, ControlTaintTagStack.class, "exitLoopLevel", Void.TYPE, false, int.class),
+    CONTROL_STACK_POP_BINDING(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int.class),
     // Methods from ControlTaintTagStackPool
     CONTROL_STACK_POOL_INSTANCE(INVOKESTATIC, ControlTaintTagStackPool.class, "instance", ControlTaintTagStack.class, false),
     // Methods from MultiDTaintedArray

@@ -162,7 +162,7 @@ public class BindingControlFlowPropagationPolicy extends AbstractControlFlowProp
         } else if(info instanceof BranchEnd) {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             push(delegate, ((BranchEnd) info).getBranchID());
-            CONTROL_STACK_POP.delegateVisit(delegate);
+            CONTROL_STACK_POP_BINDING.delegateVisit(delegate);
         } else if(info instanceof BindingBranchStart) {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             push(delegate, ((BindingBranchStart) info).getBranchID());
