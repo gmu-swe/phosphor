@@ -1,6 +1,6 @@
 package edu.columbia.cs.psl.phosphor;
 
-import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationManager;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
@@ -89,9 +89,6 @@ public class Instrumenter {
     static Option opt_reenableCaches = Option.builder("reenableCaches")
             .desc("Prevent Phosphor from disabling caches.")
             .build();
-    static Option opt_bindingControl = Option.builder("bindingControlTracking")
-            .desc("Enable tag propagation due to certain control flows where values are bound to a particular.")
-            .build();
     static Option opt_quiet = Option.builder("q")
             .longOpt("quiet")
             .desc("Reduces the amount of command line output produced by Phosphor.")
@@ -99,13 +96,12 @@ public class Instrumenter {
     static Option help = Option.builder("help")
             .desc("print this message")
             .build();
-    static Option opt_controlPropagationManager = Option.builder("controlPropagationManager")
-            .desc("Can be used to specify the name of a class to be used as the ControlFlowPropagationManager during instrumentation. " +
-                    "This class must implement ControlFlowPropagationManager.")
+    static Option opt_controlPropagationManager = Option.builder("controlFlowManager")
+            .hasArg()
+            .desc("Can be used to specify the name of a class to be used as the ControlFlowManager during instrumentation. " +
+                    "This class must implement ControlFlowManager.")
             .build();
     private static ClassFileTransformer addlTransformer;
-    private static File rootOutputDir;
-    private static long START;
 
     static {
         classes.putAll(ClassSupertypeReadingTransformer.classNodes);
@@ -246,14 +242,14 @@ public class Instrumenter {
     }
 
     public static void main(String[] args) {
-        START = System.currentTimeMillis();
+        long START = System.currentTimeMillis();
         Options options = new Options();
         options.addOption(help);
         OptionGroup controlPropagationGroup = new OptionGroup()
                 .addOption(opt_controlTrack)
                 .addOption(opt_controlLightTrack)
                 .addOption(opt_implicitHeadersNoTracking)
-                .addOption(opt_bindingControl);
+                .addOption(opt_controlPropagationManager);
         options.addOptionGroup(controlPropagationGroup);
         options.addOption(opt_controlTrackExceptions);
         options.addOption(opt_withoutDataTrack);
@@ -305,7 +301,6 @@ public class Instrumenter {
         Configuration.SKIP_LOCAL_VARIABLE_TABLE = line.hasOption(opt_disableLocalsInfo.getOpt());
         Configuration.ALWAYS_CHECK_FOR_FRAMES = line.hasOption(opt_alwaysCheckForFrames.getOpt());
         Configuration.IMPLICIT_HEADERS_NO_TRACKING = line.hasOption(opt_implicitHeadersNoTracking.getOpt());
-        Configuration.BINDING_CONTROL_FLOWS_ONLY = line.hasOption(opt_bindingControl.getOpt());
         Configuration.REENABLE_CACHES = line.hasOption(opt_reenableCaches.getOpt());
         Configuration.QUIET_MODE = line.hasOption(opt_quiet.getOpt()) || line.hasOption(opt_quiet.getLongOpt());
         String priorClassVisitorName = line.getOptionValue(opt_priorClassVisitor.getOpt());
@@ -322,7 +317,7 @@ public class Instrumenter {
         if(controlPropagationManagerClass != null) {
             try {
                 @SuppressWarnings("unchecked")
-                Class<? extends ControlFlowPropagationManager> temp = (Class<? extends ControlFlowPropagationManager>) Class.forName(controlPropagationManagerClass);
+                Class<? extends ControlFlowManager> temp = (Class<? extends ControlFlowManager>) Class.forName(controlPropagationManagerClass);
                 Configuration.controlPropagationManager = temp.newInstance();
             } catch(Exception e) {
                 System.err.println("Failed to create control propagation manager: " +controlPropagationManagerClass);
@@ -361,7 +356,7 @@ public class Instrumenter {
         }
 
         String outputFolder = args[1];
-        rootOutputDir = new File(outputFolder);
+        File rootOutputDir = new File(outputFolder);
         if(!rootOutputDir.exists()) {
             rootOutputDir.mkdir();
         }

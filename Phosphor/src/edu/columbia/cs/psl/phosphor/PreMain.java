@@ -1,6 +1,6 @@
 package edu.columbia.cs.psl.phosphor;
 
-import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationManager;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.*;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurJSRInlinerAdapter;
@@ -130,16 +130,13 @@ public class PreMain {
                 } else if(s.startsWith("ignoredMethod=")) {
                     String methodName = s.substring(14);
                     Configuration.ignoredMethods.add(methodName);
-                } else if(s.equals(Instrumenter.opt_bindingControl.getOpt())) {
-                    Configuration.BINDING_CONTROL_FLOWS_ONLY = true;
-                    Configuration.IMPLICIT_TRACKING = true;
                 } else if(s.equals(Instrumenter.opt_reenableCaches.getOpt())) {
                     Configuration.REENABLE_CACHES = true;
                 } else if(s.startsWith(Instrumenter.opt_controlPropagationManager.getOpt() + "=")) {
                     String name = s.substring(Instrumenter.opt_controlPropagationManager.getOpt().length() + 1);
                     try {
                         @SuppressWarnings("unchecked")
-                        Class<? extends ControlFlowPropagationManager> temp = (Class<? extends ControlFlowPropagationManager>) Class.forName(name);
+                        Class<? extends ControlFlowManager> temp = (Class<? extends ControlFlowManager>) Class.forName(name);
                         Configuration.controlPropagationManager = temp.newInstance();
                     } catch(Exception e) {
                         System.err.println("Failed to create control propagation manager: " + name);

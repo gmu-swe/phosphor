@@ -1,10 +1,8 @@
 package edu.columbia.cs.psl.phosphor.control.standard;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationManager;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowManager;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy;
-import edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowAnalyzer;
-import edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowPropagationPolicy;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import org.objectweb.asm.MethodVisitor;
@@ -12,11 +10,11 @@ import org.objectweb.asm.Opcodes;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_FACTORY;
 
-public class StandardControlFlowPropagationManager implements ControlFlowPropagationManager {
+public class StandardControlFlowManager implements ControlFlowManager {
 
     @Override
     public void visitCreateStack(MethodVisitor mv, boolean disabled) {
-        mv.visitInsn(disabled ? Opcodes.ICONST_1: Opcodes.ICONST_0);
+        mv.visitInsn(disabled ? Opcodes.ICONST_1 : Opcodes.ICONST_0);
         CONTROL_STACK_FACTORY.delegateVisit(mv);
     }
 
@@ -28,9 +26,7 @@ public class StandardControlFlowPropagationManager implements ControlFlowPropaga
     @Override
     public ControlFlowPropagationPolicy createPropagationPolicy(int access, String owner, String name, String descriptor) {
         boolean isImplicitLightTrackingMethod = TaintTrackingClassVisitor.isImplicitLightMethod(owner, name, descriptor);
-        if(Configuration.BINDING_CONTROL_FLOWS_ONLY) {
-            return new BindingControlFlowPropagationPolicy(new BindingControlFlowAnalyzer());
-        } else if((Configuration.IMPLICIT_TRACKING || isImplicitLightTrackingMethod) && !Configuration.WITHOUT_PROPAGATION) {
+        if((Configuration.IMPLICIT_TRACKING || isImplicitLightTrackingMethod) && !Configuration.WITHOUT_PROPAGATION) {
             StandardControlFlowAnalyzer flowAnalyzer = new StandardControlFlowAnalyzer(isImplicitLightTrackingMethod);
             boolean isStatic = (access & Opcodes.ACC_STATIC) != 0;
             return new StandardControlFlowPropagationPolicy(flowAnalyzer, isStatic, descriptor);

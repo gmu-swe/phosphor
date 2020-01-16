@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
-import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationManager;
-import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowPropagationManager;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowManager;
+import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.DataAndControlFlowTagFactory;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTagFactory;
@@ -44,7 +44,6 @@ public class Configuration {
     public static boolean IMPLICIT_HEADERS_NO_TRACKING = false;
     public static boolean IMPLICIT_EXCEPTION_FLOW = false;
     public static boolean WITHOUT_BRANCH_NOT_TAKEN = false;
-    public static boolean BINDING_CONTROL_FLOWS_ONLY = false;
     public static boolean SINGLE_TAINT_LABEL = false;
     public static boolean ANNOTATE_LOOPS = false;
     public static boolean WITH_ENUM_BY_VAL = false;
@@ -74,18 +73,15 @@ public class Configuration {
     public static String CACHE_DIR = null;
     public static boolean TAINT_THROUGH_SERIALIZATION = true;
 
-    public static ControlFlowPropagationManager controlPropagationManager;
+    public static ControlFlowManager controlPropagationManager;
 
     private Configuration() {
         // Prevents this class from being instantiated
     }
 
     public static void init() {
-        if(BINDING_CONTROL_FLOWS_ONLY) {
-            IMPLICIT_TRACKING = true;
-        }
         if(controlPropagationManager == null) {
-            controlPropagationManager = new StandardControlFlowPropagationManager();
+            controlPropagationManager = new StandardControlFlowManager();
         } else {
             IMPLICIT_TRACKING = true;
         }

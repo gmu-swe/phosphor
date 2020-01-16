@@ -3,8 +3,8 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowAnalyzer;
-import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationManager;
-import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowPropagationManager;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowManager;
+import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.InstMethodSinkInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.PFrame;
@@ -108,7 +108,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                     }
                 };
                 mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true, null, false, false);
-                ControlFlowPropagationManager controlManager = new StandardControlFlowPropagationManager();
+                ControlFlowManager controlManager = new StandardControlFlowManager();
                 ControlFlowAnalyzer flowAnalyzer = controlManager.createPropagationPolicy(access, className, name, desc).getFlowAnalyzer();
                 PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, mv, false, false, flowAnalyzer);
                 NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(className, access, name, desc, paa);

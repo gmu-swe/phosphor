@@ -327,7 +327,7 @@
                                     <argLine>
                                         -Dphosphor.verify=true
                                         -Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-binding-control,bindingControlTracking,taintSources=src/taint-sources,taintSinks=src/taint-sinks,taintThrough=src/taint-through
+                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-binding-control,controlFlowManager=edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowManager
                                     </argLine>
                                 </configuration>
                                 <goals>

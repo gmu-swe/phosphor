@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.phosphor.control;
 import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import org.objectweb.asm.MethodVisitor;
 
-public interface ControlFlowPropagationManager {
+public interface ControlFlowManager {
 
     void visitCreateStack(MethodVisitor mv, boolean disabled);
 
