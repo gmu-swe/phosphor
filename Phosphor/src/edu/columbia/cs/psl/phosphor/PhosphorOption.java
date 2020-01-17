@@ -383,7 +383,8 @@ public enum PhosphorOption {
             line = parser.parse(options, args);
         } catch(org.apache.commons.cli.ParseException exp) {
             if(forRuntimeInst) {
-                throw new IllegalArgumentException();
+                System.err.println(exp.getMessage());
+                return null;
             }
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
