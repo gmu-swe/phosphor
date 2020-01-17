@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
@@ -41,14 +42,14 @@ public final class NativeHelper {
         }
     }
 
-    public static TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object o, Taint t, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object o, Taint t, ControlFlowStack ctrl, TaintedIntWithObjTag ret) {
         ret.val = o.hashCode();
         ret.taint = t;
         return ret;
     }
 
 
-    public static TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o1, Taint t1, Object o2, Taint t2, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
+    public static TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o1, Taint t1, Object o2, Taint t2, ControlFlowStack ctrl, TaintedBooleanWithObjTag ret) {
         if(o1 instanceof TaintedObjectWithObjCtrlTag) {
             return ((TaintedObjectWithObjCtrlTag) o1).equals$$PHOSPHORTAGGED(o2, ctrl, ret);
         } else if(o1 instanceof LazyArrayObjTags) {

@@ -6,13 +6,10 @@ import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.LocalVariableNode;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_INTERNAL_NAME;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_COPY_TOP;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.CONTROL_STACK_PUSH_FRAME;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_INTERNAL_NAME;
 import static org.objectweb.asm.Opcodes.*;
 
 public class ControlStackInitializingMV extends MethodVisitor {
@@ -39,19 +36,15 @@ public class ControlStackInitializingMV extends MethodVisitor {
     @Override
     public void visitCode() {
         super.visitCode();
-        if(localVariableManager.getIndexOfMasterControlLV() < 0) {
-            int tmpLV = localVariableManager.createMasterControlTaintLV();
+        int currentIndex = localVariableManager.getIndexOfMasterControlLV();
+        localVariableManager.createMasterControlStackLV();
+        if(currentIndex == -1) {
             Configuration.controlPropagationManager.visitCreateStack(mv, false);
-            super.visitVarInsn(ASTORE, tmpLV);
         } else {
-            LocalVariableNode phosphorJumpControlTagIndex = new LocalVariableNode("phosphorJumpControlTag",
-                    CONTROL_STACK_DESC, null,
-                    new LabelNode(localVariableManager.newStartLabel),
-                    new LabelNode(localVariableManager.end),
-                    localVariableManager.getIndexOfMasterControlLV()
-            );
-            localVariableManager.createdLVs.add(phosphorJumpControlTagIndex);
+            super.visitVarInsn(ALOAD, currentIndex);
+            super.visitTypeInsn(CHECKCAST, Type.getInternalName(Configuration.controlPropagationManager.getControlStackClass()));
         }
+        super.visitVarInsn(ASTORE, localVariableManager.getIndexOfMasterControlLV());
         super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
         CONTROL_STACK_PUSH_FRAME.delegateVisit(mv);
         controlFlowPolicy.initializeLocalVariables(mv);
@@ -101,10 +94,11 @@ public class ControlStackInitializingMV extends MethodVisitor {
         int[] temp = new int[controlStackDistance];
         for(int i = 0; i < temp.length; i++) {
             temp[i] = localVariableManager.getTmpLV();
-            super.visitVarInsn(ASTORE, temp[i]); // Only reference types should be after the ControlTaintTagStack
+            super.visitVarInsn(ASTORE, temp[i]); // Only reference types should be after the ControlFlowStack
         }
         if(copy) {
             CONTROL_STACK_COPY_TOP.delegateVisit(mv);
+            super.visitTypeInsn(CHECKCAST, Type.getInternalName(Configuration.controlPropagationManager.getControlStackClass()));
         }
         controlFlowPolicy.preparingFrame();
         for(int i = temp.length - 1; i >= 0; i--) {

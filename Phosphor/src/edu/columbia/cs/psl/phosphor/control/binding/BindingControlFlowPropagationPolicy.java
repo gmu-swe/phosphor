@@ -14,7 +14,8 @@ import org.objectweb.asm.Type;
 import java.util.Iterator;
 
 import static edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy.push;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
+import static edu.columbia.cs.psl.phosphor.control.binding.BindingMethodRecord.*;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.COMBINE_TAGS;
 import static org.objectweb.asm.Opcodes.*;
 
 public class BindingControlFlowPropagationPolicy extends AbstractControlFlowPropagationPolicy<BindingControlFlowAnalyzer> {
@@ -49,7 +50,7 @@ public class BindingControlFlowPropagationPolicy extends AbstractControlFlowProp
             // Start the frame and set the argument levels
             ControlFlowPropagationPolicy.push(delegate, nextMethodFrameInfo.getInvocationLevel());
             ControlFlowPropagationPolicy.push(delegate, nextMethodFrameInfo.getNumArguments());
-            CONTROL_STACK_START_FRAME.delegateVisit(delegate);
+            BINDING_CONTROL_STACK_START_FRAME.delegateVisit(delegate);
             Iterator<LoopLevel> argLevels = nextMethodFrameInfo.getLevelIterator();
             while(argLevels.hasNext()) {
                 argLevels.next().setArgument(delegate);
@@ -150,7 +151,7 @@ public class BindingControlFlowPropagationPolicy extends AbstractControlFlowProp
     private void setNextBranchTag() {
         delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
         delegate.visitInsn(SWAP);
-        CONTROL_STACK_SET_NEXT_BRANCH_TAG.delegateVisit(delegate);
+        BINDING_CONTROL_STACK_SET_NEXT_BRANCH_TAG.delegateVisit(delegate);
     }
 
     @Override
@@ -158,11 +159,11 @@ public class BindingControlFlowPropagationPolicy extends AbstractControlFlowProp
         if(info instanceof ExitLoopLevelInfo) {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             push(delegate, ((ExitLoopLevelInfo) info).getLevelOffset());
-            CONTROL_STACK_EXIT_LOOP_LEVEL.delegateVisit(delegate);
+            BINDING_CONTROL_STACK_EXIT_LOOP_LEVEL.delegateVisit(delegate);
         } else if(info instanceof BranchEnd) {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             push(delegate, ((BranchEnd) info).getBranchID());
-            CONTROL_STACK_POP_BINDING.delegateVisit(delegate);
+            BINDING_CONTROL_STACK_POP.delegateVisit(delegate);
         } else if(info instanceof BindingBranchStart) {
             delegate.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
             push(delegate, ((BindingBranchStart) info).getBranchID());

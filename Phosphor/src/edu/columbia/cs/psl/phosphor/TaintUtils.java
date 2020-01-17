@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.SignatureReWriter;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
@@ -135,7 +136,7 @@ public class TaintUtils {
 
     public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint<?> srctaint, int srcPos, Taint<?> srcPosTaint,
                                                  Object dest, Taint<?> destTaint, int destPos, Taint<?> destPosTaint,
-                                                 int length, Taint<?> lengthTaint, ControlTaintTagStack ctrl) {
+                                                 int length, Taint<?> lengthTaint, ControlFlowStack ctrl) {
         if(!src.getClass().isArray() && !dest.getClass().isArray()) {
             System.arraycopy(((LazyArrayObjTags) src).getVal(), srcPos, ((LazyArrayObjTags) dest).getVal(), destPos, length);
             if(((LazyArrayObjTags) src).taints != null) {
@@ -410,7 +411,7 @@ public class TaintUtils {
         return ret;
     }
 
-    public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name, ControlTaintTagStack ctrl) {
+    public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name, ControlFlowStack ctrl) {
         T ret = Enum.valueOf(enumType, name);
         Taint tag = (Taint) ((TaintedWithObjTag) ((Object) name)).getPHOSPHOR_TAG();
         tag = Taint.combineTags(tag, ctrl);

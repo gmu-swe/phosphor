@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
@@ -9,11 +10,11 @@ public final class MultiTainter {
         // Prevents this class from being instantiated
     }
 
-    public static ControlTaintTagStack getControlFlow() {
+    public static ControlFlowStack getControlFlow() {
         throw new IllegalStateException();
     }
 
-    public static TaintedReferenceWithObjTag getControlFlow$$PHOSPHORTAGGED(ControlTaintTagStack ctrl, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getControlFlow$$PHOSPHORTAGGED(ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
         ret.taint = Taint.emptyTaint();
         ret.val = ctrl;
         return ret;
@@ -292,7 +293,7 @@ public final class MultiTainter {
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(Object obj, Taint theTaint, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(Object obj, Taint theTaint, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
         return getTaint$$PHOSPHORTAGGED(obj, theTaint, ret);
     }
 
@@ -313,7 +314,7 @@ public final class MultiTainter {
     }
 
     @SuppressWarnings("unused")
-    public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint oldTag, Taint tag, Taint tagTag, ControlTaintTagStack ctrl) {
+    public static void taintedObject$$PHOSPHORTAGGED(Object obj, Taint oldTag, Taint tag, Taint tagTag, ControlFlowStack ctrl) {
         taintedObject(obj, tag);
     }
 
@@ -336,7 +337,7 @@ public final class MultiTainter {
     }
 
     @SuppressWarnings("unused")
-    public static void setPrimitiveArrayTaints$$PHOSPHORTAGGED(Object obj, Taint oldTag, Taint tag, Taint tagTag, ControlTaintTagStack ctrl) {
+    public static void setPrimitiveArrayTaints$$PHOSPHORTAGGED(Object obj, Taint oldTag, Taint tag, Taint tagTag, ControlFlowStack ctrl) {
         setPrimitiveArrayTaints(obj, tag);
     }
 
@@ -363,7 +364,7 @@ public final class MultiTainter {
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag getMergedTaint$$PHOSPHORTAGGED(Object obj, Taint taint, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+    public static TaintedReferenceWithObjTag getMergedTaint$$PHOSPHORTAGGED(Object obj, Taint taint, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
         ret.taint = Taint.emptyTaint();
         ret.val = getMergedTaint(obj);
         return ret;

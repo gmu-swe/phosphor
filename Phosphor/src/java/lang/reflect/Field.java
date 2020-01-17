@@ -31,7 +31,7 @@
  */
 package java.lang.reflect;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 
 import java.lang.annotation.Annotation;
@@ -843,7 +843,7 @@ public final class Field extends AccessibleObject implements Member {
         return ret;
     }
 
-    public TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Taint fieldTaint, Object obj, Taint objTaint, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag ret) {
+    public TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
         return null;
     }
 }

@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.struct.*;
 
@@ -72,7 +73,7 @@ public abstract class Taint<T> implements Serializable {
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag isEmpty$$PHOSPHORTAGGED(Taint referenceTaint, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
+    public TaintedBooleanWithObjTag isEmpty$$PHOSPHORTAGGED(Taint referenceTaint, ControlFlowStack ctrl, TaintedBooleanWithObjTag ret) {
         ret.val = isEmpty();
         ret.taint = null;
         return ret;
@@ -89,7 +90,7 @@ public abstract class Taint<T> implements Serializable {
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag isSuperset$$PHOSPHORTAGGED(Taint myRefTaint, Taint<T> that, Taint thatTaint, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
+    public TaintedBooleanWithObjTag isSuperset$$PHOSPHORTAGGED(Taint myRefTaint, Taint<T> that, Taint thatTaint, TaintedBooleanWithObjTag ret, ControlFlowStack ctrl) {
         ret.taint = null;
         ret.val = isSuperset(that);
         return ret;
@@ -107,7 +108,7 @@ public abstract class Taint<T> implements Serializable {
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag containsOnlyLabels$$PHOSPHORTAGGED(Taint referenceTaint, LazyReferenceArrayObjTags labels, Taint tag, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl, Object[] unused) {
+    public TaintedBooleanWithObjTag containsOnlyLabels$$PHOSPHORTAGGED(Taint referenceTaint, LazyReferenceArrayObjTags labels, Taint tag, TaintedBooleanWithObjTag ret, ControlFlowStack ctrl, Object[] unused) {
         ret.taint = null;
         ret.val = containsOnlyLabels(labels.val);
         return ret;
@@ -134,7 +135,7 @@ public abstract class Taint<T> implements Serializable {
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag containsLabel$$PHOSPHORTAGGED(Taint referenceTaint, Object label, Taint tag, TaintedBooleanWithObjTag ret, ControlTaintTagStack ctrl) {
+    public TaintedBooleanWithObjTag containsLabel$$PHOSPHORTAGGED(Taint referenceTaint, Object label, Taint tag, TaintedBooleanWithObjTag ret, ControlFlowStack ctrl) {
         ret.taint = null;
         ret.val = containsLabel(label);
         return ret;
@@ -173,7 +174,7 @@ public abstract class Taint<T> implements Serializable {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> Taint<T> _combineTagsInternal(Taint<T> t1, ControlTaintTagStack tags) {
+    public static <T> Taint<T> _combineTagsInternal(Taint<T> t1, ControlFlowStack tags) {
         Taint tagsTaint = tags.copyTag();
         if(t1 == null || t1.isEmpty()) {
             return tagsTaint;
@@ -188,7 +189,7 @@ public abstract class Taint<T> implements Serializable {
     }
 
     @InvokedViaInstrumentation(record = COMBINE_TAGS_CONTROL)
-    public static <T> Taint<T> combineTags(Taint<T> t1, ControlTaintTagStack tags) {
+    public static <T> Taint<T> combineTags(Taint<T> t1, ControlFlowStack tags) {
         if(tags == null) {
             return t1;
         }
@@ -217,7 +218,7 @@ public abstract class Taint<T> implements Serializable {
 
     @SuppressWarnings("rawtypes")
     @InvokedViaInstrumentation(record = COMBINE_TAGS_ON_OBJECT_CONTROL)
-    public static void combineTagsOnObject(Object o, ControlTaintTagStack tags) {
+    public static void combineTagsOnObject(Object o, ControlFlowStack tags) {
         if(tags.copyTag().isEmpty() || IGNORE_TAINTING) {
             return;
         }
@@ -231,7 +232,7 @@ public abstract class Taint<T> implements Serializable {
         }
     }
 
-    private static void combineTagsOnString(String str, ControlTaintTagStack ctrl) {
+    private static void combineTagsOnString(String str, ControlFlowStack ctrl) {
         Taint existing = str.PHOSPHOR_TAG;
         str.PHOSPHOR_TAG = combineTags(existing, ctrl);
 

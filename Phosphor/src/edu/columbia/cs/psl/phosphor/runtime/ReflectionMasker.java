@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
@@ -36,7 +37,7 @@ public class ReflectionMasker {
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag getObject$$PHOSPHORTAGGED(Unsafe u, Taint uT, Object obj, Taint<?> tag, long offset, Taint oT, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getObject$$PHOSPHORTAGGED(Unsafe u, Taint uT, Object obj, Taint<?> tag, long offset, Taint oT, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
         RuntimeUnsafePropagator.getObject$$PHOSPHORTAGGED(u, uT, obj, tag, offset, oT, ret);
         return ret;
     }
@@ -48,7 +49,7 @@ public class ReflectionMasker {
     }
 
     @SuppressWarnings("unused")
-    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Taint unsafetaint, Object obj, Taint<?> tag, long fieldOffset, Taint offsetTag, Object val, Taint valTaint, ControlTaintTagStack ctrl) {
+    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Taint unsafetaint, Object obj, Taint<?> tag, long fieldOffset, Taint offsetTag, Object val, Taint valTaint, ControlFlowStack ctrl) {
         RuntimeUnsafePropagator.putObject$$PHOSPHORTAGGED(u, unsafetaint, obj, tag, fieldOffset, offsetTag, val, valTaint);
     }
 
@@ -148,7 +149,7 @@ public class ReflectionMasker {
             newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
         }
         if(controlTracking) {
-            newArgs.add(ControlTaintTagStack.class);
+            newArgs.add(ControlFlowStack.class);
         }
         final Class returnType = m.getReturnType();
         if(returnType != Void.TYPE) {
@@ -208,9 +209,9 @@ public class ReflectionMasker {
             } else if(LazyArrayObjTags.class.isAssignableFrom(paramType)) {
                 // Add the type of the 1D primitive array for which the current parameter is the taint array
                 originalParamTypes.add(TaintUtils.getUnwrappedClass(paramType));
-            } else if(!paramType.equals(ControlTaintTagStack.class)
+            } else if(!paramType.equals(ControlFlowStack.class)
                     && !TaintedPrimitiveWithObjTag.class.isAssignableFrom(paramType) && !paramType.equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
-                // Add the type as is if it is not TaintSentinel, ControlTaintTagStack or a TaintedPrimitiveWithXTags
+                // Add the type as is if it is not TaintSentinel, ControlFlowStack or a TaintedPrimitiveWithXTags
                 originalParamTypes.add(paramType);
             }
         }
@@ -249,7 +250,7 @@ public class ReflectionMasker {
             newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
         }
         if(implicitTracking) {
-            newParams.add(ControlTaintTagStack.class);
+            newParams.add(ControlFlowStack.class);
         }
         newParams.addAll(wrapped);
         Class[] ret = new Class[newParams.size()];
@@ -318,13 +319,13 @@ public class ReflectionMasker {
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_CONSTRUCTOR_CONTROL)
-    public static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused) {
+    public static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused) {
         ctrl = ctrl.copyTop();
         return fixAllArgs(c, cTaint, in, argstaint, prealloc, true, ctrl, unused);
     }
 
     private static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, TaintedReferenceWithObjTag prealloc, boolean implicitTracking,
-                                           ControlTaintTagStack ctrl, Object[] unused) {
+                                           ControlFlowStack ctrl, Object[] unused) {
         MethodInvoke ret = new MethodInvoke();
         ret.c = c;
         ret.c_taint = cTaint;
@@ -427,7 +428,7 @@ public class ReflectionMasker {
      */
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_METHOD_CONTROL)
-    public static MethodInvoke fixAllArgs(Method m, Taint mTaint, Object owner, Taint ownerTaint, LazyReferenceArrayObjTags in, Taint inTaint, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused) {
+    public static MethodInvoke fixAllArgs(Method m, Taint mTaint, Object owner, Taint ownerTaint, LazyReferenceArrayObjTags in, Taint inTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused) {
         MethodInvoke ret = new MethodInvoke();
         ret.m_taint = mTaint;
         ret.o_taint = ownerTaint;

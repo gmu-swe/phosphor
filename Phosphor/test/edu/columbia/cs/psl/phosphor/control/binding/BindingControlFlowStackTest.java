@@ -1,4 +1,4 @@
-package edu.columbia.cs.psl.phosphor.struct;
+package edu.columbia.cs.psl.phosphor.control.binding;
 
 import edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;

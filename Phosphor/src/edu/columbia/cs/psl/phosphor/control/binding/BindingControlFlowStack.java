@@ -9,13 +9,19 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 
 public final class BindingControlFlowStack<E> extends ControlFlowStack {
 
+    @SuppressWarnings("rawtypes")
+    private static final BindingControlFlowStack disabledInstance = new BindingControlFlowStack(true);
     private static final int NOT_PUSHED = -1;
     private ControlFrame<E> stackTop;
     private ControlFrameBuilder<E> frameBuilder;
     private Taint<E> nextBranchTag;
 
     public BindingControlFlowStack() {
-        super(false);
+        this(false);
+    }
+
+    public BindingControlFlowStack(boolean disabled) {
+        super(disabled);
         stackTop = new ControlFrame<>(0, null, null);
         frameBuilder = new ControlFrameBuilder<>();
         nextBranchTag = Taint.emptyTaint();
@@ -115,6 +121,11 @@ public final class BindingControlFlowStack<E> extends ControlFlowStack {
 
     public void setNextBranchTag(Taint<E> nextBranchTag) {
         this.nextBranchTag = nextBranchTag;
+    }
+
+    @Override
+    public Taint<E> copyTag() {
+        return isDisabled() ? Taint.emptyTaint() : stackTop.copyTag(getLevel(Integer.MAX_VALUE));
     }
 
     private static final class ControlFrame<E> {
@@ -272,6 +283,15 @@ public final class BindingControlFlowStack<E> extends ControlFlowStack {
                 }
             }
             return builder.append("]").toString();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <E> BindingControlFlowStack<E> factory(boolean disabled) {
+        if(disabled) {
+            return disabledInstance;
+        } else {
+            return new BindingControlFlowStack<>(false);
         }
     }
 }

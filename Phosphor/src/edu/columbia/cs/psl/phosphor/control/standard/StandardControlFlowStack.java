@@ -2,15 +2,14 @@ package edu.columbia.cs.psl.phosphor.control.standard;
 
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
-import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
-import edu.columbia.cs.psl.phosphor.struct.MaybeThrownException;
-import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
+import edu.columbia.cs.psl.phosphor.struct.*;
 
 import java.util.Iterator;
 
 public class StandardControlFlowStack<E> extends ControlFlowStack {
 
+    @SuppressWarnings("rawtypes")
+    private static final StandardControlFlowStack disabledInstance = new StandardControlFlowStack(true);
     public static final int PUSHED = 1;
     public static final int NOT_PUSHED = 0;
 
@@ -18,8 +17,8 @@ public class StandardControlFlowStack<E> extends ControlFlowStack {
     private SinglyLinkedList<MaybeThrownException<E>> unthrownExceptions = null;
     private SinglyLinkedList<MaybeThrownException<E>> influenceExceptions = null;
 
-    public StandardControlFlowStack() {
-        super(false);
+    public StandardControlFlowStack(boolean disabled) {
+        super(disabled);
         taintHistory.push(Taint.emptyTaint()); // Starting taint is null/empty
     }
 
@@ -239,6 +238,7 @@ public class StandardControlFlowStack<E> extends ControlFlowStack {
         }
     }
 
+    @Override
     public Taint<E> copyTag() {
         if(isDisabled()) {
             return Taint.emptyTaint();
@@ -252,5 +252,14 @@ public class StandardControlFlowStack<E> extends ControlFlowStack {
             }
         }
         return ret;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <E> StandardControlFlowStack<E> factory(boolean disabled) {
+        if(disabled) {
+            return disabledInstance;
+        } else {
+            return new StandardControlFlowStack<>(false);
+        }
     }
 }

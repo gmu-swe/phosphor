@@ -1,6 +1,6 @@
 package java.util;
 
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 
 public abstract class AbstractCollection<E> implements Collection<E> {
@@ -67,7 +67,7 @@ public abstract class AbstractCollection<E> implements Collection<E> {
         return null;
     }
 
-    public TaintedBooleanWithObjTag add$$PHOSPHORTAGGED(Object o, ControlTaintTagStack t, TaintedBooleanWithObjTag ret) {
+    public TaintedBooleanWithObjTag add$$PHOSPHORTAGGED(Object o, ControlFlowStack t, TaintedBooleanWithObjTag ret) {
         return null;
     }
 }

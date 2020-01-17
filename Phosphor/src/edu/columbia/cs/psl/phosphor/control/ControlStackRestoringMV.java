@@ -6,10 +6,10 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Arrays;
+import jdk.internal.org.objectweb.asm.Type;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_INTERNAL_NAME;
 import static edu.columbia.cs.psl.phosphor.TaintUtils.max;
 import static edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager.*;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
@@ -22,7 +22,7 @@ public class ControlStackRestoringMV extends MethodVisitor {
     private final MethodVisitor passThroughMV;
 
     /**
-     * True if the ControlTaintTagStack should be disabled in this method.
+     * True if the ControlFlowStack should be disabled in this method.
      */
     private final boolean excludedFromControlTrack;
 
@@ -120,7 +120,7 @@ public class ControlStackRestoringMV extends MethodVisitor {
         for(LocalVariable lv : createdLocalVariables) {
             baseLvs[lv.getIndex()] = lv.getTypeInternalName();
         }
-        baseLvs[indexOfMasterControl] = CONTROL_STACK_INTERNAL_NAME;
+        baseLvs[indexOfMasterControl] = Type.getInternalName(Configuration.controlPropagationManager.getControlStackClass());
         super.visitFrame(F_NEW, baseLvs.length, baseLvs, 1, new Object[]{"java/lang/Throwable"});
         restoreControlStack();
         super.visitInsn(ATHROW);

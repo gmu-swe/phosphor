@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
@@ -115,7 +116,7 @@ public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
             val = new Object[len]; //TODO probably should serialize the array type then make it correctly?
             TaintedReferenceWithObjTag ret = new TaintedReferenceWithObjTag();
             if(Configuration.IMPLICIT_TRACKING) {
-                ControlTaintTagStack dummy = Configuration.controlPropagationManager.getStack(false);
+                ControlFlowStack dummy = Configuration.controlPropagationManager.getStack(false);
                 dummy.disable();
                 for(int i = 0; i < len; i++) {
                     val[i] = stream.readObject$$PHOSPHORTAGGED(Taint.emptyTaint(), dummy, ret).val; //Need to ensure that this doesn't get unwrapped!

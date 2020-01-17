@@ -114,7 +114,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
                         super.visitMethodInsn(opcode, owner, untaintedMethod, untaintedDesc, isInterface);
                         return;
                     } else if(args.length == 4 && args[3].equals(CONTROL_STACK_TYPE)) {
-                        //Taint primitive taint ControlTaintTagStack
+                        //Taint primitive taint ControlFlowStack
                         super.visitInsn(POP);
                         super.visitInsn(POP);
                         //Taint primitive

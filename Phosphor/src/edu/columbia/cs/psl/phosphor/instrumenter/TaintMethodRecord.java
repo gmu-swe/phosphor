@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.*;
@@ -22,48 +23,20 @@ import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 public enum TaintMethodRecord implements MethodRecord {
 
     // Methods from Taint
-    COMBINE_TAGS_ON_OBJECT_CONTROL(INVOKESTATIC, Taint.class, "combineTagsOnObject", Void.TYPE, false, Object.class, ControlTaintTagStack.class),
+    COMBINE_TAGS_ON_OBJECT_CONTROL(INVOKESTATIC, Taint.class, "combineTagsOnObject", Void.TYPE, false, Object.class, ControlFlowStack.class),
     COMBINE_TAGS(INVOKESTATIC, Taint.class, "combineTags", TAINT_TAG_OBJ_CLASS, false, TAINT_TAG_OBJ_CLASS, TAINT_TAG_OBJ_CLASS),
-    COMBINE_TAGS_CONTROL(INVOKESTATIC, Taint.class, "combineTags", TAINT_TAG_OBJ_CLASS, false, TAINT_TAG_OBJ_CLASS, ControlTaintTagStack.class),
+    COMBINE_TAGS_CONTROL(INVOKESTATIC, Taint.class, "combineTags", TAINT_TAG_OBJ_CLASS, false, TAINT_TAG_OBJ_CLASS, ControlFlowStack.class),
     NEW_EMPTY_TAINT(INVOKESTATIC, Taint.class, "emptyTaint", TAINT_TAG_OBJ_CLASS, false),
     // Methods from TaintUtils
     GET_TAINT_OBJECT(INVOKESTATIC, TaintUtils.class, "getTaintObj", TAINT_TAG_OBJ_CLASS, false, Object.class),
     GET_TAINT_COPY_SIMPLE(INVOKESTATIC, TaintUtils.class, "getTaintCopySimple", TAINT_TAG_OBJ_CLASS, false, Object.class),
     ENSURE_UNBOXED(INVOKESTATIC, TaintUtils.class, "ensureUnboxed", Object.class, false, Object.class),
-    // Methods from ControlTaintTagStack
-    CONTROL_STACK_PUSH_TAG_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", int[].class, false, TAINT_TAG_OBJ_CLASS, int[].class, int.class, int.class, ExceptionalTaintData.class),
-    CONTROL_STACK_PUSH_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "push", int[].class, false, TAINT_TAG_OBJ_CLASS, int[].class, int.class, int.class),
-    CONTROL_STACK_POP_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int[].class, int.class, ExceptionalTaintData.class),
-    CONTROL_STACK_POP(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int[].class, int.class),
-    CONTROL_STACK_POP_ALL_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int[].class, ExceptionalTaintData.class),
-    CONTROL_STACK_POP_ALL(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int[].class),
-    CONTROL_STACK_ENABLE(INVOKEVIRTUAL, ControlTaintTagStack.class, "enable", Void.TYPE, false),
-    CONTROL_STACK_DISABLE(INVOKEVIRTUAL, ControlTaintTagStack.class, "disable", Void.TYPE, false),
-    CONTROL_STACK_COPY_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyTag", TAINT_TAG_OBJ_CLASS, false),
-    CONTROL_STACK_EXCEPTION_HANDLER_START(INVOKEVIRTUAL, ControlTaintTagStack.class, "exceptionHandlerStart", EnqueuedTaint.class, false, Throwable.class, Taint.class, EnqueuedTaint.class),
-    CONTROL_STACK_EXCEPTION_HANDLER_START_TYPES(INVOKEVIRTUAL, ControlTaintTagStack.class, "exceptionHandlerStart", Void.TYPE, false, Class.class),
-    CONTROL_STACK_EXCEPTION_HANDLER_END(INVOKEVIRTUAL, ControlTaintTagStack.class, "exceptionHandlerEnd", Void.TYPE, false, EnqueuedTaint.class),
-    CONTROL_STACK_TRY_BLOCK_END(INVOKEVIRTUAL, ControlTaintTagStack.class, "tryBlockEnd", Void.TYPE, false, Class.class),
-    CONTROL_STACK_APPLY_POSSIBLY_UNTHROWN_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "applyPossiblyUnthrownExceptionToTaint", Void.TYPE, false, Class.class),
-    CONTROL_STACK_ADD_UNTHROWN_EXCEPTION(INVOKEVIRTUAL, ControlTaintTagStack.class, "addUnthrownException", Void.TYPE, false, ExceptionalTaintData.class, Class.class),
-    CONTROL_STACK_POP_FRAME(INVOKEVIRTUAL, ControlTaintTagStack.class, "popFrame", Void.TYPE, false),
-    CONTROL_STACK_PUSH_FRAME(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushFrame", Void.TYPE, false),
-    CONTROL_STACK_COPY_TOP(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyTop", ControlTaintTagStack.class, false),
-    CONTROL_STACK_START_FRAME(INVOKEVIRTUAL, ControlTaintTagStack.class, "startFrame", ControlTaintTagStack.class, false, int.class, int.class),
-    CONTROL_STACK_SET_ARG_CONSTANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "setNextFrameArgConstant", ControlTaintTagStack.class, false),
-    CONTROL_STACK_SET_ARG_DEPENDENT(INVOKEVIRTUAL, ControlTaintTagStack.class, "setNextFrameArgDependent", ControlTaintTagStack.class, false, int[].class),
-    CONTROL_STACK_SET_ARG_VARIANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "setNextFrameArgVariant", ControlTaintTagStack.class, false, int.class),
-    CONTROL_STACK_COPY_TAG_CONSTANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyTagConstant", Taint.class, false),
-    CONTROL_STACK_COPY_TAG_DEPENDENT(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyTagDependent", Taint.class, false, int[].class),
-    CONTROL_STACK_COPY_TAG_VARIANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "copyTagVariant", Taint.class, false, int.class),
-    CONTROL_STACK_PUSH_CONSTANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushConstant", Void.TYPE, false, int.class, int.class),
-    CONTROL_STACK_PUSH_DEPENDENT(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushDependent", Void.TYPE, false, int.class, int.class, int[].class),
-    CONTROL_STACK_PUSH_VARIANT(INVOKEVIRTUAL, ControlTaintTagStack.class, "pushVariant", Void.TYPE, false, int.class, int.class, int.class),
-    CONTROL_STACK_SET_NEXT_BRANCH_TAG(INVOKEVIRTUAL, ControlTaintTagStack.class, "setNextBranchTag", Void.TYPE, false, Taint.class),
-    CONTROL_STACK_EXIT_LOOP_LEVEL(INVOKEVIRTUAL, ControlTaintTagStack.class, "exitLoopLevel", Void.TYPE, false, int.class),
-    CONTROL_STACK_POP_BINDING(INVOKEVIRTUAL, ControlTaintTagStack.class, "pop", Void.TYPE, false, int.class),
-    CONTROL_STACK_FACTORY(INVOKESTATIC, ControlTaintTagStack.class, "factory", ControlTaintTagStack.class, false, boolean.class),
-    // Methods from ControlTaintTagStackPool
+    // Methods from ControlFlowStack
+    CONTROL_STACK_ENABLE(INVOKEVIRTUAL, ControlFlowStack.class, "enable", Void.TYPE, false),
+    CONTROL_STACK_DISABLE(INVOKEVIRTUAL, ControlFlowStack.class, "disable", Void.TYPE, false),
+    CONTROL_STACK_POP_FRAME(INVOKEVIRTUAL, ControlFlowStack.class, "popFrame", Void.TYPE, false),
+    CONTROL_STACK_PUSH_FRAME(INVOKEVIRTUAL, ControlFlowStack.class, "pushFrame", Void.TYPE, false),
+    CONTROL_STACK_COPY_TOP(INVOKEVIRTUAL, ControlFlowStack.class, "copyTop", ControlFlowStack.class, false),
     // Methods from MultiDTaintedArray
     BOX_IF_NECESSARY(INVOKESTATIC, MultiDTaintedArray.class, "boxIfNecessary", Object.class, false, Object.class),
     // Methods from ReflectionMasker
@@ -77,9 +50,9 @@ public enum TaintMethodRecord implements MethodRecord {
     GET_ORIGINAL_METHOD(INVOKESTATIC, ReflectionMasker.class, "getOriginalMethod", Method.class, false, Method.class),
     GET_ORIGINAL_CONSTRUCTOR(INVOKESTATIC, ReflectionMasker.class, "getOriginalConstructor", Constructor.class, false, Constructor.class),
     FIX_ALL_ARGS_METHOD(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", MethodInvoke.class, false, Method.class, Taint.class, Object.class, Taint.class, LazyReferenceArrayObjTags.class, Taint.class, TaintedReferenceWithObjTag.class, Object[].class),
-    FIX_ALL_ARGS_METHOD_CONTROL(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", MethodInvoke.class, false, Method.class, Taint.class, Object.class, Taint.class, LazyReferenceArrayObjTags.class, Taint.class, ControlTaintTagStack.class, TaintedReferenceWithObjTag.class, Object[].class),
+    FIX_ALL_ARGS_METHOD_CONTROL(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", MethodInvoke.class, false, Method.class, Taint.class, Object.class, Taint.class, LazyReferenceArrayObjTags.class, Taint.class, ControlFlowStack.class, TaintedReferenceWithObjTag.class, Object[].class),
     FIX_ALL_ARGS_CONSTRUCTOR(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", MethodInvoke.class, false, Constructor.class, Taint.class, LazyReferenceArrayObjTags.class, Taint.class, TaintedReferenceWithObjTag.class, Object[].class),
-    FIX_ALL_ARGS_CONSTRUCTOR_CONTROL(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", MethodInvoke.class, false, Constructor.class, Taint.class, LazyReferenceArrayObjTags.class, Taint.class, ControlTaintTagStack.class, TaintedReferenceWithObjTag.class, Object[].class),
+    FIX_ALL_ARGS_CONSTRUCTOR_CONTROL(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", MethodInvoke.class, false, Constructor.class, Taint.class, LazyReferenceArrayObjTags.class, Taint.class, ControlFlowStack.class, TaintedReferenceWithObjTag.class, Object[].class),
     GET_DECLARED_METHOD(INVOKESTATIC, ReflectionMasker.class, "getDeclaredMethod", TaintedReferenceWithObjTag.class, false, Class.class, Taint.class, String.class, Taint.class, LazyReferenceArrayObjTags.class, Taint.class, TaintedReferenceWithObjTag.class, Class[].class),
     GET_METHOD(INVOKESTATIC, ReflectionMasker.class, "getMethod", TaintedReferenceWithObjTag.class, false, Class.class, Taint.class, String.class, Taint.class, LazyReferenceArrayObjTags.class, Taint.class, TaintedReferenceWithObjTag.class, Class[].class),
     ADD_TYPE_PARAMS(INVOKESTATIC, ReflectionMasker.class, "addTypeParams", LazyReferenceArrayObjTags.class, false, Class.class, LazyReferenceArrayObjTags.class, boolean.class),

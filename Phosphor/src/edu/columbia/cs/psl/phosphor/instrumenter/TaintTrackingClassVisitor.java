@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.control.ControlStackInitializingMV;
 import edu.columbia.cs.psl.phosphor.control.ControlStackRestoringMV;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
@@ -39,9 +40,9 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
  */
 public class TaintTrackingClassVisitor extends ClassVisitor {
 
-    public static final String CONTROL_STACK_DESC = Type.getDescriptor(ControlTaintTagStack.class);
-    public static final String CONTROL_STACK_INTERNAL_NAME = Type.getInternalName(ControlTaintTagStack.class);
-    public static final Type CONTROL_STACK_TYPE = Type.getType(ControlTaintTagStack.class);
+    public static final String CONTROL_STACK_DESC = Type.getDescriptor(ControlFlowStack.class);
+    public static final String CONTROL_STACK_INTERNAL_NAME = Type.getInternalName(ControlFlowStack.class);
+    public static final Type CONTROL_STACK_TYPE = Type.getType(ControlFlowStack.class);
 
     private static final boolean NATIVE_BOX_UNBOX = true;
     public static boolean IS_RUNTIME_INST = true;
@@ -896,7 +897,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     }
                 }
                 if(Configuration.IMPLICIT_TRACKING && !newArgs.isEmpty()) {
-                    newArgs.removeLast();//remove ControlTaintTagStack
+                    newArgs.removeLast();//remove ControlFlowStack
                 }
                 String newDesc = "(";
                 for(Type _t : newArgs) {

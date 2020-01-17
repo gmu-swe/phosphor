@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.WeakHashMap;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
@@ -26,7 +27,7 @@ public class RuntimeReflectionPropagator {
         return unsafe;
     }
 
-    public static TaintedReferenceWithObjTag getType$$PHOSPHORTAGGED(Field f, Taint fieldtaint, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getType$$PHOSPHORTAGGED(Field f, Taint fieldtaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
         return getType$$PHOSPHORTAGGED(f, fieldtaint, ret);
     }
 
@@ -61,7 +62,7 @@ public class RuntimeReflectionPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
         if(f.getType().isPrimitive()) {
             return get$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, ret);
         }
@@ -115,35 +116,35 @@ public class RuntimeReflectionPropagator {
         return _ret;
     }
 
-    public static TaintedBooleanWithObjTag getBoolean$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+    public static TaintedBooleanWithObjTag getBoolean$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedBooleanWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
         return getBoolean$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, ret);
     }
 
-    public static TaintedByteWithObjTag getByte$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlTaintTagStack ctrl, TaintedByteWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+    public static TaintedByteWithObjTag getByte$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedByteWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
         return getByte$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, ret);
     }
 
-    public static TaintedCharWithObjTag getChar$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlTaintTagStack ctrl, TaintedCharWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+    public static TaintedCharWithObjTag getChar$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedCharWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
         return getChar$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, ret);
     }
 
-    public static TaintedDoubleWithObjTag getDouble$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlTaintTagStack ctrl, TaintedDoubleWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+    public static TaintedDoubleWithObjTag getDouble$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedDoubleWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
         return getDouble$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, ret);
     }
 
-    public static TaintedFloatWithObjTag getFloat$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlTaintTagStack ctrl, TaintedFloatWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+    public static TaintedFloatWithObjTag getFloat$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedFloatWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
         return getFloat$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, ret);
     }
 
-    public static TaintedIntWithObjTag getInt$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+    public static TaintedIntWithObjTag getInt$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedIntWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
         return getInt$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, ret);
     }
 
-    public static TaintedLongWithObjTag getLong$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+    public static TaintedLongWithObjTag getLong$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedLongWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
         return getLong$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, ret);
     }
 
-    public static TaintedShortWithObjTag getShort$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlTaintTagStack ctrl, TaintedShortWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+    public static TaintedShortWithObjTag getShort$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedShortWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
         return getShort$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, ret);
     }
 
@@ -373,7 +374,7 @@ public class RuntimeReflectionPropagator {
         }
     }
 
-    public static void setAccessible$$PHOSPHORTAGGED(Field f, Taint<?> tag, boolean flag, Taint<?> flagTag, ControlTaintTagStack ctrl) {
+    public static void setAccessible$$PHOSPHORTAGGED(Field f, Taint<?> tag, boolean flag, Taint<?> flagTag, ControlFlowStack ctrl) {
         f.setAccessible(flag);
         if(isPrimitiveOrPrimitiveArrayType(f.getType())) {
             try {
@@ -384,42 +385,42 @@ public class RuntimeReflectionPropagator {
         }
     }
 
-    public static void setBoolean$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, boolean val, Taint<?> tag, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+    public static void setBoolean$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, boolean val, Taint<?> tag, ControlFlowStack ctrl) throws IllegalArgumentException, IllegalAccessException {
         tag = Taint.combineTags(tag, ctrl);
         setBoolean$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, val, tag);
     }
 
-    public static void setByte$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, byte val, Taint<?> tag, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+    public static void setByte$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, byte val, Taint<?> tag, ControlFlowStack ctrl) throws IllegalArgumentException, IllegalAccessException {
         tag = Taint.combineTags(tag, ctrl);
         setByte$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, val, tag);
     }
 
-    public static void setChar$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, char val, Taint<?> tag, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+    public static void setChar$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, char val, Taint<?> tag, ControlFlowStack ctrl) throws IllegalArgumentException, IllegalAccessException {
         tag = Taint.combineTags(tag, ctrl);
         setChar$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, val, tag);
     }
 
-    public static void setDouble$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, double val, Taint<?> tag, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+    public static void setDouble$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, double val, Taint<?> tag, ControlFlowStack ctrl) throws IllegalArgumentException, IllegalAccessException {
         tag = Taint.combineTags(tag, ctrl);
         setDouble$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, val, tag);
     }
 
-    public static void setFloat$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, float val, Taint<?> tag, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+    public static void setFloat$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, float val, Taint<?> tag, ControlFlowStack ctrl) throws IllegalArgumentException, IllegalAccessException {
         tag = Taint.combineTags(tag, ctrl);
         setFloat$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, val, tag);
     }
 
-    public static void setInt$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, int val, Taint<?> tag, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+    public static void setInt$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, int val, Taint<?> tag, ControlFlowStack ctrl) throws IllegalArgumentException, IllegalAccessException {
         tag = Taint.combineTags(tag, ctrl);
         setInt$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, val, tag);
     }
 
-    public static void setLong$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, long val, Taint<?> tag, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+    public static void setLong$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, long val, Taint<?> tag, ControlFlowStack ctrl) throws IllegalArgumentException, IllegalAccessException {
         tag = Taint.combineTags(tag, ctrl);
         setLong$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, val, tag);
     }
 
-    public static void setShort$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, short val, Taint<?> tag, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+    public static void setShort$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, short val, Taint<?> tag, ControlFlowStack ctrl) throws IllegalArgumentException, IllegalAccessException {
         tag = Taint.combineTags(tag, ctrl);
         setShort$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, val, tag);
     }
@@ -660,7 +661,7 @@ public class RuntimeReflectionPropagator {
         return val.getClass().getField("value" + TaintUtils.TAINT_FIELD).getInt(val);
     }
 
-    public static void set$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, Object val, Taint valTaint, ControlTaintTagStack ctrl) throws IllegalArgumentException, IllegalAccessException {
+    public static void set$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, Object val, Taint valTaint, ControlFlowStack ctrl) throws IllegalArgumentException, IllegalAccessException {
         if(f.getType().isPrimitive()) {
             if(val instanceof Integer && f.getType().equals(Integer.TYPE)) {
                 Integer i = (Integer) val;

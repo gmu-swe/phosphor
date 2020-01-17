@@ -4,20 +4,20 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.Arrays;
 import org.objectweb.asm.MethodVisitor;
 
 import static edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy.push;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
+import static edu.columbia.cs.psl.phosphor.control.binding.BindingMethodRecord.*;
 import static org.objectweb.asm.Opcodes.*;
 
 public interface LoopLevel {
 
-    // stack_pre = [ControlTaintTagStack]
-    // stack_post = [ControlTaintTagStack]
+    // stack_pre = [ControlFlowStack]
+    // stack_post = [ControlFlowStack]
     void setArgument(MethodVisitor mv);
 
-    // stack_pre = [ControlTaintTagStack]
+    // stack_pre = [ControlFlowStack]
     // stack_post = [Taint]
     void copyTag(MethodVisitor mv);
 
-    // stack_pre = [ControlTaintTagStack, branchID, numBranches]
+    // stack_pre = [ControlFlowStack, branchID, numBranches]
     // stack_post = []
     void pushTag(MethodVisitor mv);
 
@@ -31,17 +31,17 @@ public interface LoopLevel {
 
         @Override
         public void setArgument(MethodVisitor mv) {
-            CONTROL_STACK_SET_ARG_CONSTANT.delegateVisit(mv);
+            BINDING_CONTROL_STACK_SET_ARG_CONSTANT.delegateVisit(mv);
         }
 
         @Override
         public void copyTag(MethodVisitor mv) {
-            CONTROL_STACK_COPY_TAG_CONSTANT.delegateVisit(mv);
+            BINDING_CONTROL_STACK_COPY_TAG_CONSTANT.delegateVisit(mv);
         }
 
         @Override
         public void pushTag(MethodVisitor mv) {
-            CONTROL_STACK_PUSH_CONSTANT.delegateVisit(mv);
+            BINDING_CONTROL_STACK_PUSH_CONSTANT.delegateVisit(mv);
         }
     }
 
@@ -78,19 +78,19 @@ public interface LoopLevel {
         @Override
         public void setArgument(MethodVisitor mv) {
             pushDependencies(mv);
-            CONTROL_STACK_SET_ARG_DEPENDENT.delegateVisit(mv);
+            BINDING_CONTROL_STACK_SET_ARG_DEPENDENT.delegateVisit(mv);
         }
 
         @Override
         public void copyTag(MethodVisitor mv) {
             pushDependencies(mv);
-            CONTROL_STACK_COPY_TAG_DEPENDENT.delegateVisit(mv);
+            BINDING_CONTROL_STACK_COPY_TAG_DEPENDENT.delegateVisit(mv);
         }
 
         @Override
         public void pushTag(MethodVisitor mv) {
             pushDependencies(mv);
-            CONTROL_STACK_PUSH_DEPENDENT.delegateVisit(mv);
+            BINDING_CONTROL_STACK_PUSH_DEPENDENT.delegateVisit(mv);
         }
 
         private void pushDependencies(MethodVisitor mv) {
@@ -138,19 +138,19 @@ public interface LoopLevel {
         @Override
         public void setArgument(MethodVisitor mv) {
             push(mv, levelOffset);
-            CONTROL_STACK_SET_ARG_VARIANT.delegateVisit(mv);
+            BINDING_CONTROL_STACK_SET_ARG_VARIANT.delegateVisit(mv);
         }
 
         @Override
         public void copyTag(MethodVisitor mv) {
             push(mv, levelOffset);
-            CONTROL_STACK_COPY_TAG_VARIANT.delegateVisit(mv);
+            BINDING_CONTROL_STACK_COPY_TAG_VARIANT.delegateVisit(mv);
         }
 
         @Override
         public void pushTag(MethodVisitor mv) {
             push(mv, levelOffset);
-            CONTROL_STACK_PUSH_VARIANT.delegateVisit(mv);
+            BINDING_CONTROL_STACK_PUSH_VARIANT.delegateVisit(mv);
         }
 
         public int getLevelOffset() {
