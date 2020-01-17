@@ -167,7 +167,7 @@ public final class BindingControlFlowStack<E> extends ControlFlowStack {
         }
 
         Taint<E> copyTag(int level) {
-            Taint<E> tag = null;
+            Taint<E> tag = Taint.emptyTaint();
             for(Integer key : levelStackMap.keySet()) {
                 if(key <= level) {
                     tag = Taint.combineTags(tag, levelStackMap.get(key).tag);
