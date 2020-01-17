@@ -60,7 +60,7 @@ public enum PhosphorOption {
             Configuration.WITHOUT_BRANCH_NOT_TAKEN = isPresent;
         }
     },
-    WITH_ARRAY_INDEX_TAINTS(new PhosphorOptionBuilder("Propagates taint tags from array indices to values get/set",
+    WITH_ARRAY_INDEX_TAGS(new PhosphorOptionBuilder("Propagates taint tags from array indices to values get/set",
             true, true)
             .alternativeName("arrayindex")) {
         @Override
@@ -132,7 +132,7 @@ public enum PhosphorOption {
             Configuration.ALWAYS_CHECK_FOR_FRAMES = isPresent;
         }
     },
-    RENABLE_CACHES(new PhosphorOptionBuilder("Prevent Phosphor from disabling caches.", true, true)) {
+    REENABLE_CACHES(new PhosphorOptionBuilder("Prevent Phosphor from disabling caches.", true, true)) {
         @Override
         public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
             Configuration.REENABLE_CACHES = isPresent;
