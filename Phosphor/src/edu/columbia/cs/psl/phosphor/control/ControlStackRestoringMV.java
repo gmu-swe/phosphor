@@ -120,7 +120,7 @@ public class ControlStackRestoringMV extends MethodVisitor {
         for(LocalVariable lv : createdLocalVariables) {
             baseLvs[lv.getIndex()] = lv.getTypeInternalName();
         }
-        baseLvs[indexOfMasterControl] = Type.getInternalName(Configuration.controlPropagationManager.getControlStackClass());
+        baseLvs[indexOfMasterControl] = Type.getInternalName(Configuration.controlFlowManager.getControlStackClass());
         super.visitFrame(F_NEW, baseLvs.length, baseLvs, 1, new Object[]{"java/lang/Throwable"});
         restoreControlStack();
         super.visitInsn(ATHROW);

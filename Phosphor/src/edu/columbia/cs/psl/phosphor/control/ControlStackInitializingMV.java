@@ -39,10 +39,10 @@ public class ControlStackInitializingMV extends MethodVisitor {
         int currentIndex = localVariableManager.getIndexOfMasterControlLV();
         localVariableManager.createMasterControlStackLV();
         if(currentIndex == -1) {
-            Configuration.controlPropagationManager.visitCreateStack(mv, false);
+            Configuration.controlFlowManager.visitCreateStack(mv, false);
         } else {
             super.visitVarInsn(ALOAD, currentIndex);
-            super.visitTypeInsn(CHECKCAST, Type.getInternalName(Configuration.controlPropagationManager.getControlStackClass()));
+            super.visitTypeInsn(CHECKCAST, Type.getInternalName(Configuration.controlFlowManager.getControlStackClass()));
         }
         super.visitVarInsn(ASTORE, localVariableManager.getIndexOfMasterControlLV());
         super.visitVarInsn(ALOAD, localVariableManager.getIndexOfMasterControlLV());
@@ -98,7 +98,7 @@ public class ControlStackInitializingMV extends MethodVisitor {
         }
         if(copy) {
             CONTROL_STACK_COPY_TOP.delegateVisit(mv);
-            super.visitTypeInsn(CHECKCAST, Type.getInternalName(Configuration.controlPropagationManager.getControlStackClass()));
+            super.visitTypeInsn(CHECKCAST, Type.getInternalName(Configuration.controlFlowManager.getControlStackClass()));
         }
         controlFlowPolicy.preparingFrame();
         for(int i = temp.length - 1; i >= 0; i--) {

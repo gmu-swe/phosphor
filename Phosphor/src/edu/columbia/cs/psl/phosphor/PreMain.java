@@ -1,13 +1,12 @@
 package edu.columbia.cs.psl.phosphor;
 
-import edu.columbia.cs.psl.phosphor.control.ControlFlowManager;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.instrumenter.*;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurJSRInlinerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUIDAdder;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
-import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
+import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
@@ -22,7 +21,6 @@ import java.io.*;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.ProtectionDomain;
@@ -54,95 +52,7 @@ public class PreMain {
         inst.addTransformer(new ClassSupertypeReadingTransformer());
         RUNTIME_INST = true;
         if(args != null) {
-            String[] aaa = args.split(",");
-            for(String s : aaa) {
-                if(s.equals("acmpeq")) {
-                    Configuration.WITH_UNBOX_ACMPEQ = true;
-                } else if(s.equals("enum")) {
-                    Configuration.WITH_ENUM_BY_VAL = true;
-                } else if(s.startsWith("cacheDir=")) {
-                    Configuration.CACHE_DIR = s.substring(9);
-                    File f = new File(Configuration.CACHE_DIR);
-                    if(!f.exists()) {
-                        if(!f.mkdir()) {
-                            // The cache directory did not exist and the attempt to create it failed
-                            System.err.printf("Failed to create cache directory: %s. Generated files are not being cached.\n", Configuration.CACHE_DIR);
-                            Configuration.CACHE_DIR = null;
-                        }
-                    }
-                } else if(s.equals("objmethods")) {
-                    Configuration.WITH_HEAVY_OBJ_EQUALS_HASHCODE = true;
-                } else if(s.equals("lightImplicit")) {
-                    Configuration.IMPLICIT_LIGHT_TRACKING = true;
-                } else if(s.equals("arrayindex")) {
-                    Configuration.ARRAY_INDEX_TRACKING = true;
-                } else if(s.startsWith("taintSources=")) {
-                    try {
-                        Instrumenter.sourcesFile = new FileInputStream(s.substring(13));
-                    } catch(FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                } else if(s.startsWith("taintSinks=")) {
-                    try {
-                        Instrumenter.sinksFile = new FileInputStream(s.substring(11));
-                    } catch(FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                } else if(s.startsWith("taintThrough=")) {
-                    try {
-                        Instrumenter.taintThroughFile = new FileInputStream(s.substring(13));
-                    } catch(FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                } else if(s.startsWith("taintSourceWrapper=")) {
-                    Class c;
-                    try {
-                        c = Class.forName(s.substring(19));
-                        Configuration.autoTainter = (TaintSourceWrapper) c.newInstance();
-                    } catch(ClassNotFoundException | IllegalAccessException | InstantiationException e) {
-                        e.printStackTrace();
-                    }
-                } else if(s.startsWith("taintTagFactory=")) {
-                    Class c;
-                    try {
-                        c = Class.forName(s.substring(16));
-                        Configuration.taintTagFactory = (TaintTagFactory) c.newInstance();
-                    } catch(ClassNotFoundException | IllegalAccessException | InstantiationException e) {
-                        e.printStackTrace();
-                    }
-                } else if(s.startsWith("serialization")) {
-                    Configuration.TAINT_THROUGH_SERIALIZATION = true;
-                } else if(s.startsWith("implicitExceptions")) {
-                    Configuration.IMPLICIT_EXCEPTION_FLOW = true;
-                } else if(s.startsWith("ignore=")) {
-                    Configuration.ADDL_IGNORE = s.substring(7);
-                } else if(s.equals("withoutBranchNotTaken")) {
-                    Configuration.WITHOUT_BRANCH_NOT_TAKEN = true;
-                } else if(s.startsWith(Instrumenter.opt_priorClassVisitor.getOpt() + "=")) {
-                    String priorClassVisitorName = s.substring(Instrumenter.opt_priorClassVisitor.getOpt().length() + 1);
-                    try {
-                        @SuppressWarnings("unchecked")
-                        Class<? extends ClassVisitor> temp = (Class<? extends ClassVisitor>) Class.forName(priorClassVisitorName);
-                        Configuration.PRIOR_CLASS_VISITOR = temp;
-                    } catch(Exception e) {
-                        System.err.println("Failed to create specified prior class visitor: " + priorClassVisitorName);
-                    }
-                } else if(s.startsWith("ignoredMethod=")) {
-                    String methodName = s.substring(14);
-                    Configuration.ignoredMethods.add(methodName);
-                } else if(s.equals(Instrumenter.opt_reenableCaches.getOpt())) {
-                    Configuration.REENABLE_CACHES = true;
-                } else if(s.startsWith(Instrumenter.opt_controlPropagationManager.getOpt() + "=")) {
-                    String name = s.substring(Instrumenter.opt_controlPropagationManager.getOpt().length() + 1);
-                    try {
-                        @SuppressWarnings("unchecked")
-                        Class<? extends ControlFlowManager> temp = (Class<? extends ControlFlowManager>) Class.forName(name);
-                        Configuration.controlPropagationManager = temp.newInstance();
-                    } catch(Exception e) {
-                        System.err.println("Failed to create control propagation manager: " + name);
-                    }
-                }
-            }
+            PhosphorOption.configure(true, parseArgs(args));
         }
         if(System.getProperty("phosphorCacheDirectory") != null) {
             Configuration.CACHE_DIR = System.getProperty("phosphorCacheDirectory");
@@ -165,6 +75,23 @@ public class PreMain {
         instrumentation = inst;
     }
 
+    private static String[] parseArgs(String argString) {
+        String[] args = argString.split(",");
+        SinglyLinkedList<String> argList = new SinglyLinkedList<>();
+        for(String arg : args) {
+            int split = arg.indexOf('=');
+            if(split == -1) {
+                argList.addLast("-" + arg);
+            } else {
+                String option = arg.substring(0, split);
+                String value = arg.substring(split + 1);
+                argList.addLast("-" + option);
+                argList.addLast(value);
+            }
+        }
+        return argList.toArray(new String[0]);
+    }
+
     public static Instrumentation getInstrumentation() {
         return instrumentation;
     }
@@ -183,7 +110,7 @@ public class PreMain {
             return _transform(loader, className2, classBeingRedefined, protectionDomain, classfileBuffer);
         }
 
-        static byte[] instrumentWithRetry(ClassReader cr, byte[] classFileBuffer, boolean isiFace, String className, boolean skipFrames, boolean upgradeVersion, List<FieldNode> fields, Set<String> nonBridgeMethodsErasedReturnTypes, Set<String> methodsToReduceSizeOf, boolean traceClass) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        static byte[] instrumentWithRetry(ClassReader cr, byte[] classFileBuffer, boolean isiFace, String className, boolean skipFrames, boolean upgradeVersion, List<FieldNode> fields, Set<String> nonBridgeMethodsErasedReturnTypes, Set<String> methodsToReduceSizeOf, boolean traceClass) throws InstantiationException {
             TraceClassVisitor debugTracer = null;
             try {
                 try {

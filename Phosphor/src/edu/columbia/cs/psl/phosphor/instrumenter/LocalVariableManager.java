@@ -162,7 +162,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     }
 
     public void createMasterControlStackLV() {
-        indexOfMasterControlLV = createPermanentLocalVariable(Configuration.controlPropagationManager.getControlStackClass(), "phosphorJumpControlTag");
+        indexOfMasterControlLV = createPermanentLocalVariable(Configuration.controlFlowManager.getControlStackClass(), "phosphorJumpControlTag");
     }
 
     public int createPermanentLocalVariable(Class<?> clazz, String name) {

@@ -40,7 +40,7 @@ public class ClinitRetransformMV extends MethodVisitor {
                       will be Java.lang.Class.forName(), which likely won't be in the same classloader
                       as the target class.
                     */
-                    Configuration.controlPropagationManager.visitCreateStack(mv, true);
+                    Configuration.controlFlowManager.visitCreateStack(mv, true);
                     super.visitTypeInsn(Opcodes.NEW, Type.getInternalName(TaintedReferenceWithObjTag.class));
                     super.visitInsn(Opcodes.DUP);
                     super.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(TaintedReferenceWithObjTag.class), "<init>", "()V", false);

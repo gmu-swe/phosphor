@@ -56,6 +56,7 @@ public class Configuration {
     public static boolean ALWAYS_CHECK_FOR_FRAMES = false;
     public static boolean REENABLE_CACHES = false;
     public static Class<? extends ClassVisitor> PRIOR_CLASS_VISITOR = null;
+    public static ControlFlowManager controlFlowManager;
     public static boolean QUIET_MODE = false;
 
     public static Set<String> ignoredMethods = new HashSet<>();
@@ -73,15 +74,13 @@ public class Configuration {
     public static String CACHE_DIR = null;
     public static boolean TAINT_THROUGH_SERIALIZATION = true;
 
-    public static ControlFlowManager controlPropagationManager;
-
     private Configuration() {
         // Prevents this class from being instantiated
     }
 
     public static void init() {
-        if(controlPropagationManager == null) {
-            controlPropagationManager = new StandardControlFlowManager();
+        if(controlFlowManager == null) {
+            controlFlowManager = new StandardControlFlowManager();
         } else {
             IMPLICIT_TRACKING = true;
         }

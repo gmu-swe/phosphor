@@ -354,7 +354,7 @@ public class ReflectionMasker {
         } else if(in == null && c.getParameterTypes().length == 2) {
             ret.a = new LazyReferenceArrayObjTags(new Object[2]);
             ret.a.val[0] = Taint.emptyTaint();
-            ret.a.val[1] = implicitTracking ? ctrl : Configuration.controlPropagationManager.getStack(false);
+            ret.a.val[1] = implicitTracking ? ctrl : Configuration.controlFlowManager.getStack(false);
             return ret;
         }
         return ret;

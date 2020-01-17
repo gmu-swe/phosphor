@@ -91,14 +91,14 @@ public final class NativeHelper {
                             ex.printStackTrace();
                         }
                     }
-                    tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.boxIfNecessary(o), Configuration.controlPropagationManager.getStack(false), new TaintedBooleanWithObjTag());
+                    tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.boxIfNecessary(o), Configuration.controlFlowManager.getStack(false), new TaintedBooleanWithObjTag());
                 } else {
                     break;
                 }
             }
             if(tmp != null) {
                 in.clear();
-                tmp.add$$PHOSPHORTAGGED(tmp, Configuration.controlPropagationManager.getStack(false), new TaintedBooleanWithObjTag());
+                tmp.add$$PHOSPHORTAGGED(tmp, Configuration.controlFlowManager.getStack(false), new TaintedBooleanWithObjTag());
             }
         }
         return in;
@@ -172,7 +172,7 @@ public final class NativeHelper {
                             ex.printStackTrace();
                         }
                     }
-                    tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.unboxRaw(o), Configuration.controlPropagationManager.getStack(false), new TaintedBooleanWithObjTag());
+                    tmp.add$$PHOSPHORTAGGED(MultiDTaintedArrayWithObjTag.unboxRaw(o), Configuration.controlFlowManager.getStack(false), new TaintedBooleanWithObjTag());
 
                 } else {
                     break;
@@ -180,7 +180,7 @@ public final class NativeHelper {
             }
             if(tmp != null) {
                 in.clear();
-                tmp.add$$PHOSPHORTAGGED(tmp, Configuration.controlPropagationManager.getStack(false), new TaintedBooleanWithObjTag());
+                tmp.add$$PHOSPHORTAGGED(tmp, Configuration.controlFlowManager.getStack(false), new TaintedBooleanWithObjTag());
             }
         }
         return in;

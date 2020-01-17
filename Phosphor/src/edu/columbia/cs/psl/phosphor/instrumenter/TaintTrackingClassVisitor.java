@@ -28,7 +28,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 import static edu.columbia.cs.psl.phosphor.Configuration.TAINT_TAG_INTERNAL_NAME;
-import static edu.columbia.cs.psl.phosphor.Configuration.controlPropagationManager;
+import static edu.columbia.cs.psl.phosphor.Configuration.controlFlowManager;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 /**
@@ -439,7 +439,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
             mv = new DefaultTaintCheckingMethodVisitor(analyzer, access, className, name, newDesc, (implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")), analyzer, fields); //TODO - how do we handle directbytebuffers?
 
-            ControlFlowPropagationPolicy controlFlowPolicy = controlPropagationManager.createPropagationPolicy(access, className, name, newDesc);
+            ControlFlowPropagationPolicy controlFlowPolicy = controlFlowManager.createPropagationPolicy(access, className, name, newDesc);
 
             ControlStackInitializingMV controlStackInitializingMV = null;
             ControlStackRestoringMV controlStackRestoringMV = null;
@@ -1065,10 +1065,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         }
                         if(Configuration.IMPLICIT_TRACKING) {
                             newDesc += CONTROL_STACK_DESC;
-                            controlPropagationManager.visitCreateStack(ga, false);
+                            controlFlowManager.visitCreateStack(ga, false);
                         } else if(Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                             newDesc += CONTROL_STACK_DESC;
-                            controlPropagationManager.visitCreateStack(ga, true);
+                            controlFlowManager.visitCreateStack(ga, true);
                         }
                         if(needToPrealloc) {
                             newDesc += returnTypeToHackOnLambda == null ? newReturn.getDescriptor() : returnTypeToHackOnLambda.getDescriptor();
