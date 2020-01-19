@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.SignatureReWriter;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
@@ -17,6 +18,7 @@ import org.objectweb.asm.signature.SignatureVisitor;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public class TaintUtils {
@@ -25,34 +27,13 @@ public class TaintUtils {
     public static final int NO_TAINT_STORE_INSN = 202;
     public static final int IGNORE_EVERYTHING = 203;
     public static final int IS_TMP_STORE = 213;
-    public static final int BRANCH_START = 214;
-    public static final int BRANCH_END = 215;
-    public static final int FORCE_CTRL_STORE = 216;
-    public static final int FORCE_CTRL_STORE_WIDE = 217;
-    public static final int EXCEPTION_HANDLER_START = 205;
-    public static final int EXCEPTION_HANDLER_END = 206;
-    public static final int UNTHROWN_EXCEPTION = 215; //When we are returning but might have otherwise thrown some exception
-    public static final int UNTHROWN_EXCEPTION_CHECK = 214; //When we are returning from a method and are covered directly by a "try"
-    public static final int FORCE_CTRL_STORE_SFIELD = 217;
     public static final int FOLLOWED_BY_FRAME = 217;
-    public static final int CUSTOM_SIGNAL_1 = 218;
-    public static final int CUSTOM_SIGNAL_2 = 219;
-    public static final int CUSTOM_SIGNAL_3 = 220;
-    public static final int LOOP_HEADER = 221;
     public static final String TAINT_FIELD = "PHOSPHOR_TAG";
     public static final String METHOD_SUFFIX = "$$PHOSPHORTAGGED";
     public static final String PHOSPHOR_ADDED_FIELD_PREFIX = "$$PHOSPHOR_";
     public static final String MARK_FIELD = PHOSPHOR_ADDED_FIELD_PREFIX + "MARK";
     public static final String ADDED_SVUID_SENTINEL = PHOSPHOR_ADDED_FIELD_PREFIX + "REMOVE_SVUID";
     public static final String CLASS_OFFSET_CACHE_ADDED_FIELD = PHOSPHOR_ADDED_FIELD_PREFIX + "OFFSET_CACHE";
-    public static final boolean DEBUG_UNSAFE = true;
-    public static final boolean DEBUG_ALL = false;
-    public static final boolean DEBUG_DUPSWAP = DEBUG_ALL;
-    public static final boolean DEBUG_FRAMES = DEBUG_ALL;
-    public static final boolean DEBUG_FIELDS = DEBUG_ALL;
-    public static final boolean DEBUG_LOCAL = DEBUG_ALL;
-    public static final boolean DEBUG_CALLS = DEBUG_ALL;
-    public static final boolean DEBUG_OPT = false;
     public static final String METHOD_SUFFIX_UNINST = "$$PHOSPHORUNTAGGED";
     public static final String TAINT_WRAPPER_FIELD = "PHOSPHOR_WRAPPER";
     public static boolean VERIFY_CLASS_GENERATION = false;
@@ -135,7 +116,9 @@ public class TaintUtils {
         }
     }
 
-    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint srctaint, int srcPos, Taint srcPosTaint, Object dest, Taint destTaint, int destPos, Taint destPosTaint, int length, Taint lengthTaint) {
+    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint<?> srctaint, int srcPos, Taint<?> srcPosTaint,
+                                                 Object dest, Taint<?> destTaint, int destPos, Taint<?> destPosTaint,
+                                                 int length, Taint<?> lengthTaint) {
         if(!src.getClass().isArray() && !dest.getClass().isArray()) {
             System.arraycopy(((LazyArrayObjTags) src).getVal(), srcPos, ((LazyArrayObjTags) dest).getVal(), destPos, length);
             if(((LazyArrayObjTags) src).taints != null) {
@@ -151,7 +134,9 @@ public class TaintUtils {
         }
     }
 
-    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint srctaint, int srcPos, Taint srcPosTaint, Object dest, Taint destTaint, int destPos, Taint destPosTaint, int length, Taint lengthTaint, ControlTaintTagStack ctrl) {
+    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint<?> srctaint, int srcPos, Taint<?> srcPosTaint,
+                                                 Object dest, Taint<?> destTaint, int destPos, Taint<?> destPosTaint,
+                                                 int length, Taint<?> lengthTaint, ControlFlowStack ctrl) {
         if(!src.getClass().isArray() && !dest.getClass().isArray()) {
             System.arraycopy(((LazyArrayObjTags) src).getVal(), srcPos, ((LazyArrayObjTags) dest).getVal(), destPos, length);
             if(((LazyArrayObjTags) src).taints != null) {
@@ -160,7 +145,7 @@ public class TaintUtils {
                 }
                 System.arraycopy(((LazyArrayObjTags) src).taints, srcPos, ((LazyArrayObjTags) dest).taints, destPos, length);
             }
-            if(!ctrl.isEmpty()) {
+            if(!ctrl.copyTag().isEmpty()) {
                 if(((LazyArrayObjTags) dest).taints == null) {
                     ((LazyArrayObjTags) dest).taints = new Taint[((LazyArrayObjTags) dest).getLength()];
                 }
@@ -291,7 +276,7 @@ public class TaintUtils {
             }
         }
         if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
-            ret.append(Type.getDescriptor(ControlTaintTagStack.class));
+            ret.append(CONTROL_STACK_DESC);
         }
         ret.append(wrapped);
         ret.append(')');
@@ -314,7 +299,7 @@ public class TaintUtils {
         for (Type t : Type.getArgumentTypes(desc)) {
             if (!ctrlAdded && t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
                 ctrlAdded = true;
-                ret.append(Type.getDescriptor(ControlTaintTagStack.class));
+                ret.append(CONTROL_STACK_DESC);
             }
             if (isWrappedType(t)) {
                 ret.append(getWrapperType(t));
@@ -329,7 +314,7 @@ public class TaintUtils {
             }
         }
         if (!ctrlAdded) {
-            ret.append(Type.getDescriptor(ControlTaintTagStack.class));
+            ret.append(CONTROL_STACK_DESC);
         }
         if (Type.getReturnType(desc).getSort() != Type.VOID) {
             ret.append(getContainerReturnType(Type.getReturnType(desc)).getDescriptor());
@@ -426,7 +411,7 @@ public class TaintUtils {
         return ret;
     }
 
-    public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name, ControlTaintTagStack ctrl) {
+    public static <T extends Enum<T>> T enumValueOf(Class<T> enumType, String name, ControlFlowStack ctrl) {
         T ret = Enum.valueOf(enumType, name);
         Taint tag = (Taint) ((TaintedWithObjTag) ((Object) name)).getPHOSPHOR_TAG();
         tag = Taint.combineTags(tag, ctrl);
@@ -568,11 +553,45 @@ public class TaintUtils {
     }
 
     /* Returns the class instance resulting from removing any phosphor taint wrapping from the specified class. */
-    public static Class<?> getUnwrappedClass(Class<?> clazz) {
-        try {
-            return Class.forName(SourceSinkManager.remapReturnType(Type.getType(clazz)));
-        } catch(ClassNotFoundException e) {
-            return clazz;
+    public static Class<?> getUnwrappedClass(Class<?> wrappedClass) {
+        if(wrappedClass.equals(LazyBooleanArrayObjTags.class)) {
+            return boolean[].class;
+        } else if(wrappedClass.equals(LazyByteArrayObjTags.class)) {
+            return byte[].class;
+        } else if(wrappedClass.equals(LazyCharArrayObjTags.class)) {
+            return char[].class;
+        } else if(wrappedClass.equals(LazyDoubleArrayObjTags.class)) {
+            return double[].class;
+        } else if(wrappedClass.equals(LazyFloatArrayObjTags.class)) {
+            return float[].class;
+        } else if(wrappedClass.equals(LazyIntArrayObjTags.class)) {
+            return int[].class;
+        } else if(wrappedClass.equals(LazyLongArrayObjTags.class)) {
+            return long[].class;
+        } else if(wrappedClass.equals(LazyReferenceArrayObjTags.class)) {
+            return Object[].class;
+        } else if(wrappedClass.equals(LazyShortArrayObjTags.class)) {
+            return short[].class;
+        } else if(wrappedClass.equals(TaintedBooleanWithObjTag.class)) {
+            return boolean.class;
+        } else if(wrappedClass.equals(TaintedByteWithObjTag.class)) {
+            return byte.class;
+        } else if(wrappedClass.equals(TaintedCharWithObjTag.class)) {
+            return char.class;
+        } else if(wrappedClass.equals(TaintedDoubleWithObjTag.class)) {
+            return double.class;
+        } else if(wrappedClass.equals(TaintedFloatWithObjTag.class)) {
+            return float.class;
+        } else if(wrappedClass.equals(TaintedIntWithObjTag.class)) {
+            return int.class;
+        } else if(wrappedClass.equals(TaintedLongWithObjTag.class)) {
+            return long.class;
+        } else if(wrappedClass.equals(TaintedReferenceWithObjTag.class)) {
+            return Object.class;
+        } else if(wrappedClass.equals(TaintedShortWithObjTag.class)) {
+            return short.class;
+        } else {
+            return wrappedClass;
         }
     }
 

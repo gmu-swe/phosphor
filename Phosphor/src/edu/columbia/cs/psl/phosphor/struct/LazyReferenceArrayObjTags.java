@@ -1,6 +1,8 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
+import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
@@ -8,6 +10,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Array;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_REFERENCE_ARRAY_GET;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_REFERENCE_ARRAY_SET;
 
 public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
 
@@ -39,6 +44,7 @@ public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
         return new LazyReferenceArrayObjTags(val.clone(), (taints != null) ? taints.clone() : null);
     }
 
+    @InvokedViaInstrumentation(record = TAINTED_REFERENCE_ARRAY_SET)
     public void set(Taint referenceTaint, int idx, Taint idxTag, Object val, Taint tag) {
         set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, null));
     }
@@ -57,18 +63,9 @@ public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
         }
     }
 
-    public void set(Taint referenceTaint, int idx, Taint idxTag, Object val, Taint tag, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTag, idx, ctrl);
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, ctrl));
-    }
-
+    @InvokedViaInstrumentation(record = TAINTED_REFERENCE_ARRAY_GET)
     public TaintedReferenceWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedReferenceWithObjTag ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
-    }
-
-    public TaintedReferenceWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTaint, idx, ctrl);
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
     }
 
     //"Uninstrumented" code is allowed to see LazyReferenceArrays, so uses this to retrieve items.
@@ -82,13 +79,6 @@ public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
     public TaintedReferenceWithObjTag get(int idx, TaintedReferenceWithObjTag ret) {
         ret.val = val[idx];
         ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
-    }
-
-    public TaintedReferenceWithObjTag get(int idx, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(null, idx, ctrl);
-        get(idx, ret);
-        ret.taint = Taint.combineTags(ret.taint, ctrl);
         return ret;
     }
 
@@ -126,7 +116,7 @@ public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
             val = new Object[len]; //TODO probably should serialize the array type then make it correctly?
             TaintedReferenceWithObjTag ret = new TaintedReferenceWithObjTag();
             if(Configuration.IMPLICIT_TRACKING) {
-                ControlTaintTagStack dummy = new ControlTaintTagStack();
+                ControlFlowStack dummy = Configuration.controlFlowManager.getStack(false);
                 dummy.disable();
                 for(int i = 0; i < len; i++) {
                     val[i] = stream.readObject$$PHOSPHORTAGGED(Taint.emptyTaint(), dummy, ret).val; //Need to ensure that this doesn't get unwrapped!

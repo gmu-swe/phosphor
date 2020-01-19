@@ -1,9 +1,7 @@
 package edu.columbia.cs.psl.test.phosphor;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import junit.framework.AssertionFailedError;
-import org.junit.Before;
 import org.junit.Test;
 
 public class ExceptionImplicitITCase extends BaseMultiTaintClass{

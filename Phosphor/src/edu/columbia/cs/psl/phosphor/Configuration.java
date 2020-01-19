@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.control.ControlFlowManager;
+import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.DataAndControlFlowTagFactory;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTagFactory;
@@ -19,6 +21,7 @@ import java.util.Properties;
 public class Configuration {
 
     public static final int ASM_VERSION = Opcodes.ASM7;
+
     public static final String TAINT_TAG_DESC = "Ledu/columbia/cs/psl/phosphor/runtime/Taint;";
     public static final String TAINT_TAG_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/runtime/Taint";
 
@@ -41,7 +44,6 @@ public class Configuration {
     public static boolean IMPLICIT_HEADERS_NO_TRACKING = false;
     public static boolean IMPLICIT_EXCEPTION_FLOW = false;
     public static boolean WITHOUT_BRANCH_NOT_TAKEN = false;
-    public static boolean BINDING_CONTROL_FLOWS_ONLY = false;
     public static boolean SINGLE_TAINT_LABEL = false;
     public static boolean ANNOTATE_LOOPS = false;
     public static boolean WITH_ENUM_BY_VAL = false;
@@ -54,6 +56,7 @@ public class Configuration {
     public static boolean ALWAYS_CHECK_FOR_FRAMES = false;
     public static boolean REENABLE_CACHES = false;
     public static Class<? extends ClassVisitor> PRIOR_CLASS_VISITOR = null;
+    public static ControlFlowManager controlFlowManager;
     public static boolean QUIET_MODE = false;
 
     public static Set<String> ignoredMethods = new HashSet<>();
@@ -76,10 +79,10 @@ public class Configuration {
     }
 
     public static void init() {
-        if(BINDING_CONTROL_FLOWS_ONLY) {
+        if(controlFlowManager == null) {
+            controlFlowManager = new StandardControlFlowManager();
+        } else {
             IMPLICIT_TRACKING = true;
-            IMPLICIT_EXCEPTION_FLOW = false;
-            WITHOUT_BRANCH_NOT_TAKEN = true;
         }
         OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING && !IMPLICIT_LIGHT_TRACKING;
         if(IMPLICIT_TRACKING || IMPLICIT_LIGHT_TRACKING) {

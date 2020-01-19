@@ -2,31 +2,31 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeReflectionPropagator;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeUnsafePropagator;
-import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.LazyReferenceArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.MethodInvoke;
+import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
     private final String className;
-    private final NeverNullArgAnalyzerAdapter analyzer;
     private final String methodName;
     private final boolean disable;
     private final boolean isEnumValueOf;
     private LocalVariableManager lvs;
 
-    public ReflectionHidingMV(MethodVisitor mv, String className, String name, NeverNullArgAnalyzerAdapter analyzer, boolean isEnum) {
+    public ReflectionHidingMV(MethodVisitor mv, String className, String name, boolean isEnum) {
         super(Configuration.ASM_VERSION, mv);
         this.className = className;
-        this.analyzer = analyzer;
         this.methodName = name;
         this.disable = shouldDisable(className, name);
         this.isEnumValueOf = isEnum && name.equals("valueOf$$PHOSPHORTAGGED");
@@ -207,17 +207,6 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         }
     }
 
-    /* Changes calls to methods added to Unsafe by Phosphor which set the value of a field of a Java heap object to instead
-     * call a method in RuntimeUnsafePropagator. */
-    private void maskUnsafeFieldSetter(String nameWithoutSuffix, Type[] args) {
-        popControlTaintTagStack();
-        // wrapPrimitive(argStack);
-        // removeOffsetTagAndCastOffset(argStack);
-        // String name = nameWithoutSuffix.contains("Volatile") ? "putVolatile" : (nameWithoutSuffix.contains("Ordered") ? "putOrdered" : "put");
-        super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), nameWithoutSuffix,
-                "(Lsun/misc/Unsafe;Ljava/lang/Object;JLjava/lang/Object;)V", false);
-    }
-
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * for a compareAndSwap method. */
     private boolean isUnsafeCAS(String owner, String name, String nameWithoutSuffix) {
@@ -236,83 +225,6 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         } else {
             return "copyMemory".equals(nameWithoutSuffix);
         }
-    }
-
-    /* Swaps the top stack value of the specified type with the value below it of the specified other type. */
-    private void swap(Type top, Type below) {
-        if(top.getSize() == 1) {
-            if(below.getSize() == 1) {
-                super.visitInsn(SWAP);
-            } else {
-                super.visitInsn(DUP_X2);
-                super.visitInsn(POP);
-            }
-        } else {
-            super.visitInsn((below.getSize() == 1) ? DUP2_X1 : DUP2_X2);
-            super.visitInsn(POP2);
-        }
-    }
-
-    /* If the the type at the top of the specified stack is a ControlTaintTagStack type or the top type is a tainted
-     * primitive container type and the type under it is a ControlTaintTagStack type pops the ControlTaintTagStack off of
-     * the stack and updates the stack to reflect the changes made. */
-    private void popControlTaintTagStack() {
-        if(Configuration.IMPLICIT_TRACKING) {
-            super.visitInsn(POP);
-        }
-    }
-
-    /* If the type at the top of the specified stack is a primitive type wraps that primitive into a
-     * TaintedPrimitiveWithObjTag instance. */
-    private void wrapPrimitive(SinglyLinkedList<Type> argStack) {
-        int sort = argStack.peek().getSort();
-        if(sort != Type.ARRAY && sort != Type.OBJECT) {
-            // Store the primitive into a local variable
-            int lv = lvs.getTmpLV();
-            super.visitVarInsn(argStack.peek().getOpcode(ISTORE), lv);
-            Type containerType = TaintUtils.getContainerReturnType(argStack.peek());
-            super.visitTypeInsn(NEW, containerType.getInternalName());
-            super.visitInsn(DUP_X1);
-            super.visitInsn(DUP_X1);
-            super.visitInsn(POP);
-            // Load the primitive from the local variable
-            super.visitVarInsn(argStack.peek().getOpcode(ILOAD), lv);
-            lvs.freeTmpLV(lv);
-            super.visitMethodInsn(INVOKESPECIAL, containerType.getInternalName(), "<init>", "(" + Configuration.TAINT_TAG_DESC +
-                    argStack.peek().getDescriptor() + ")V", false);
-            argStack.pop();
-            argStack.pop();
-            argStack.push(Type.getType(Object.class));
-        }
-    }
-
-    /* The stack when entering this method should have a Object followed by either an int or a long and then the taint tag
-     * for that int or long. Removes the taint tag from the stack and ensures that the second value is always a long. */
-    private void removeOffsetTagAndCastOffset(SinglyLinkedList<Type> argStack) {
-        System.out.println(analyzer.stack);
-        Type top = argStack.pop();
-        Type second = argStack.pop();
-        swap(top, second);
-        // Cast the second value if necessary
-        if(second.getSort() == Type.INT) {
-            super.visitInsn(I2L);
-        }
-        // Store the long into a local variable
-        int lv = lvs.getTmpLV();
-        super.visitVarInsn(LSTORE, lv);
-        // Pop the taint tag off of the stack
-        super.visitInsn(SWAP);
-        super.visitInsn(POP);
-        // Load the long from the local variable
-        super.visitVarInsn(LLOAD, lv);
-        lvs.freeTmpLV(lv);
-        // Swap the long and the object so that the object is back on the top of the stack
-        swap(Type.LONG_TYPE, top);
-        // Update argStack
-        argStack.pop();
-        argStack.push(Type.LONG_TYPE);
-        argStack.push(top);
-        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -451,7 +363,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
             }
             if(isUnsafeFieldGetter(opcode, owner, name, args, nameWithoutSuffix)) {
                 if(Configuration.IMPLICIT_TRACKING) {
-                    desc = desc.replace(Type.getDescriptor(ControlTaintTagStack.class), "");
+                    desc = desc.replace(CONTROL_STACK_DESC, "");
                     super.visitInsn(SWAP);
                     super.visitInsn(POP);
                 }
@@ -460,7 +372,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 return;
             } else if(isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
                 if(Configuration.IMPLICIT_TRACKING) {
-                    desc = desc.replace(Type.getDescriptor(ControlTaintTagStack.class), "");
+                    desc = desc.replace(CONTROL_STACK_DESC, "");
                     super.visitInsn(POP);
                 }
                 desc = "(Lsun/misc/Unsafe;" + desc.substring(1);
@@ -468,7 +380,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 return;
             } else if(isUnsafeCAS(owner, name, nameWithoutSuffix) || isUnsafeCopyMemory(owner, name, nameWithoutSuffix)) {
                 if(Configuration.IMPLICIT_TRACKING) {
-                    desc = desc.replace(Type.getDescriptor(ControlTaintTagStack.class), "");
+                    desc = desc.replace(CONTROL_STACK_DESC, "");
                     super.visitInsn(SWAP);
                     super.visitInsn(POP);
                 }
@@ -507,7 +419,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     }
 
     private String controlTrackDescOrNone() {
-        return (Configuration.IMPLICIT_TRACKING ? Type.getDescriptor(ControlTaintTagStack.class) : "");
+        return (Configuration.IMPLICIT_TRACKING ? CONTROL_STACK_DESC : "");
     }
 
     /**

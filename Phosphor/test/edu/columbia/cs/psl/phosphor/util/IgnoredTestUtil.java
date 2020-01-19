@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.util;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
 import sun.misc.Unsafe;
 
@@ -45,7 +45,7 @@ public class IgnoredTestUtil {
     }
 
     @SuppressWarnings("unused")
-    public static void setStringCharTaints$$PHOSPHORTAGGED(String str, Object label, ControlTaintTagStack ctrl) {
+    public static void setStringCharTaints$$PHOSPHORTAGGED(String str, Object label, ControlFlowStack ctrl) {
         setStringCharTaints(str, label);
     }
 

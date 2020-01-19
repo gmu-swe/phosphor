@@ -4,7 +4,6 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Label;
@@ -12,6 +11,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.NEW_EMPTY_TAINT;
 
 public class SpecialOpcodeRemovingMV extends MethodVisitor {
@@ -30,7 +30,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
             n++;
         }
         for(Type t : Type.getArgumentTypes(desc)) {
-            if(t.getDescriptor().equals(Type.getDescriptor(ControlTaintTagStack.class))) {
+            if(t.getDescriptor().equals(CONTROL_STACK_DESC)) {
                 this.localIdxOfControlTag = n;
             }
             n += t.getSize();
@@ -61,14 +61,8 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
 
     @Override
     public void visitVarInsn(int opcode, int var) {
-        switch(opcode) {
-            case TaintUtils.BRANCH_END:
-            case TaintUtils.BRANCH_START:
-            case TaintUtils.FORCE_CTRL_STORE:
-            case TaintUtils.IGNORE_EVERYTHING:
-                break;
-            default:
-                super.visitVarInsn(opcode, var);
+        if(opcode != TaintUtils.IGNORE_EVERYTHING) {
+            super.visitVarInsn(opcode, var);
         }
     }
 
@@ -135,7 +129,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
                 if(this.localIdxOfControlTag < 0) {
                     localIdxOfControlTag = lvs.getIndexOfMasterControlLV();
                 }
-                String ctrlDesc = Type.getDescriptor(ControlTaintTagStack.class);
+                String ctrlDesc = CONTROL_STACK_DESC;
                 //Str Taint 0 taint ThisClazz Taint
                 super.visitVarInsn(Opcodes.ALOAD, localIdxOfControlTag);
                 super.visitVarInsn(Opcodes.ALOAD, prealloc);
@@ -186,11 +180,6 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
             case TaintUtils.NO_TAINT_STORE_INSN:
             case TaintUtils.IGNORE_EVERYTHING:
             case TaintUtils.IS_TMP_STORE:
-            case TaintUtils.CUSTOM_SIGNAL_1:
-            case TaintUtils.CUSTOM_SIGNAL_2:
-            case TaintUtils.CUSTOM_SIGNAL_3:
-            case TaintUtils.FORCE_CTRL_STORE:
-            case TaintUtils.LOOP_HEADER:
                 break;
             default:
                 super.visitInsn(opcode);

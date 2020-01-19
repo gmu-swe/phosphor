@@ -1,5 +1,8 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.control.ControlFlowAnalyzer;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowManager;
+import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import org.objectweb.asm.ClassReader;
@@ -56,7 +59,9 @@ public class DebugPrinter {
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-                mv = new PrimitiveArrayAnalyzer(cr.getClassName(), access, name, desc, signature, exceptions, mv, false, false);
+                ControlFlowManager controlManager = new StandardControlFlowManager();
+                ControlFlowAnalyzer flowAnalyzer = controlManager.createPropagationPolicy(access, cr.getClassName(), name, desc).getFlowAnalyzer();
+                mv = new PrimitiveArrayAnalyzer(cr.getClassName(), access, name, desc, signature, exceptions, mv, false, false, flowAnalyzer);
                 NeverNullArgAnalyzerAdapter an = new NeverNullArgAnalyzerAdapter(cr.getClassName(), access, name, desc, mv);
                 ((PrimitiveArrayAnalyzer) mv).setAnalyzer(an);
                 mv = an;

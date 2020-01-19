@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Type;
@@ -34,11 +35,11 @@ public class ArrayReflectionMasker {
         throw new IllegalArgumentException("Not an array type: " + obj.getClass());
     }
 
-    public static TaintedIntWithObjTag getLength$$PHOSPHORTAGGED(Object obj, Taint objTaint, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag getLength$$PHOSPHORTAGGED(Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedIntWithObjTag ret) {
         return getLength$$PHOSPHORTAGGED(obj, objTaint, ret);
     }
 
-    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazzTaint, int len, Taint lenTaint, ControlTaintTagStack zz, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazzTaint, int len, Taint lenTaint, ControlFlowStack zz, TaintedReferenceWithObjTag ret) {
         return newInstance$$PHOSPHORTAGGED(clazz, clazzTaint, len, lenTaint, ret);
     }
 
@@ -85,7 +86,7 @@ public class ArrayReflectionMasker {
         }
     }
 
-    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazztaint, LazyIntArrayObjTags dimsTaint, Taint actualDimsTaint, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazztaint, LazyIntArrayObjTags dimsTaint, Taint actualDimsTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
         return newInstance$$PHOSPHORTAGGED(clazz, clazztaint, dimsTaint, actualDimsTaint, ret);
     }
 
@@ -227,7 +228,7 @@ public class ArrayReflectionMasker {
         return _ret;
     }
 
-    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlTaintTagStack ctrl, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
         return get$$PHOSPHORTAGGED(obj, null, idx, null, ret);
     }
 
@@ -289,35 +290,35 @@ public class ArrayReflectionMasker {
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
-    public static TaintedBooleanWithObjTag getBoolean$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlTaintTagStack ctrl, TaintedBooleanWithObjTag ret) {
+    public static TaintedBooleanWithObjTag getBoolean$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlFlowStack ctrl, TaintedBooleanWithObjTag ret) {
         return getBoolean$$PHOSPHORTAGGED(obj, objTaint, idx, idxTaint, ret);
     }
 
-    public static TaintedIntWithObjTag getInt$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlTaintTagStack ctrl, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag getInt$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlFlowStack ctrl, TaintedIntWithObjTag ret) {
         return getInt$$PHOSPHORTAGGED(obj, objTaint, idx, idxTaint, ret);
     }
 
-    public static TaintedCharWithObjTag getChar$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlTaintTagStack ctrl, TaintedCharWithObjTag ret) {
+    public static TaintedCharWithObjTag getChar$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlFlowStack ctrl, TaintedCharWithObjTag ret) {
         return getChar$$PHOSPHORTAGGED(obj, objTaint, idx, idxTaint, ret);
     }
 
-    public static TaintedDoubleWithObjTag getDouble$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlTaintTagStack ctrl, TaintedDoubleWithObjTag ret) {
+    public static TaintedDoubleWithObjTag getDouble$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlFlowStack ctrl, TaintedDoubleWithObjTag ret) {
         return getDouble$$PHOSPHORTAGGED(obj, objTaint, idx, idxTaint, ret);
     }
 
-    public static TaintedFloatWithObjTag getFloat$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlTaintTagStack ctrl, TaintedFloatWithObjTag ret) {
+    public static TaintedFloatWithObjTag getFloat$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlFlowStack ctrl, TaintedFloatWithObjTag ret) {
         return getFloat$$PHOSPHORTAGGED(obj, objTaint, idx, idxTaint, ret);
     }
 
-    public static TaintedShortWithObjTag getShort$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlTaintTagStack ctrl, TaintedShortWithObjTag ret) {
+    public static TaintedShortWithObjTag getShort$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlFlowStack ctrl, TaintedShortWithObjTag ret) {
         return getShort$$PHOSPHORTAGGED(obj, objTaint, idx, idxTaint, ret);
     }
 
-    public static TaintedLongWithObjTag getLong$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlTaintTagStack ctrl, TaintedLongWithObjTag ret) {
+    public static TaintedLongWithObjTag getLong$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlFlowStack ctrl, TaintedLongWithObjTag ret) {
         return getLong$$PHOSPHORTAGGED(obj, objTaint, idx, idxTaint, ret);
     }
 
-    public static TaintedByteWithObjTag getByte$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlTaintTagStack ctrl, TaintedByteWithObjTag ret) {
+    public static TaintedByteWithObjTag getByte$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlFlowStack ctrl, TaintedByteWithObjTag ret) {
         return getByte$$PHOSPHORTAGGED(obj, objTaint, idx, idxTaint, ret);
     }
 
@@ -399,7 +400,7 @@ public class ArrayReflectionMasker {
         }
     }
 
-    public static void set$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, Object val, Taint valTaint, ControlTaintTagStack ctrl) {
+    public static void set$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, Object val, Taint valTaint, ControlFlowStack ctrl) {
         if(obj != null && !obj.getClass().isArray()) {
             //in this case obj will be boxed, and we need to pull the taint out of val when we unbox it
             if(obj instanceof LazyBooleanArrayObjTags) {
@@ -419,7 +420,7 @@ public class ArrayReflectionMasker {
             } else if(obj instanceof LazyShortArrayObjTags) {
                 setShort$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, (Short) val, valTaint, ctrl);
             } else if(obj instanceof LazyReferenceArrayObjTags){
-                ((LazyReferenceArrayObjTags) obj).set(referenceTaint, idx, idxTaint, val, valTaint, ctrl);
+                ((LazyReferenceArrayObjTags) obj).set(referenceTaint, idx, idxTaint, val, Taint.combineTags(valTaint, ctrl));
             } else {
                 throw new ArrayStoreException("Got passed an obj of type " + obj + " to store to");
             }
@@ -428,42 +429,42 @@ public class ArrayReflectionMasker {
         }
     }
 
-    public static void setBoolean$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, boolean val, Taint taint, ControlTaintTagStack ctrl) {
+    public static void setBoolean$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, boolean val, Taint taint, ControlFlowStack ctrl) {
         taint = Taint.combineTags(taint, ctrl);
         setBoolean$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, val, taint);
     }
 
-    public static void setByte$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, byte val, Taint taint, ControlTaintTagStack ctrl) {
+    public static void setByte$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, byte val, Taint taint, ControlFlowStack ctrl) {
         taint = Taint.combineTags(taint, ctrl);
         setByte$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, val, taint);
     }
 
-    public static void setChar$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, char val, Taint taint, ControlTaintTagStack ctrl) {
+    public static void setChar$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, char val, Taint taint, ControlFlowStack ctrl) {
         taint = Taint.combineTags(taint, ctrl);
         setChar$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, val, taint);
     }
 
-    public static void setDouble$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, double val, Taint taint, ControlTaintTagStack ctrl) {
+    public static void setDouble$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, double val, Taint taint, ControlFlowStack ctrl) {
         taint = Taint.combineTags(taint, ctrl);
         setDouble$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, val, taint);
     }
 
-    public static void setFloat$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, float val, Taint taint, ControlTaintTagStack ctrl) {
+    public static void setFloat$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, float val, Taint taint, ControlFlowStack ctrl) {
         taint = Taint.combineTags(taint, ctrl);
         setFloat$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, val, taint);
     }
 
-    public static void setInt$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, int val, Taint taint, ControlTaintTagStack ctrl) {
+    public static void setInt$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, int val, Taint taint, ControlFlowStack ctrl) {
         taint = Taint.combineTags(taint, ctrl);
         setInt$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, val, taint);
     }
 
-    public static void setLong$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, long val, Taint taint, ControlTaintTagStack ctrl) {
+    public static void setLong$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, long val, Taint taint, ControlFlowStack ctrl) {
         taint = Taint.combineTags(taint, ctrl);
         setLong$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, val, taint);
     }
 
-    public static void setShort$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, short val, Taint taint, ControlTaintTagStack ctrl) {
+    public static void setShort$$PHOSPHORTAGGED(Object obj, Taint referenceTaint, int idx, Taint idxTaint, short val, Taint taint, ControlFlowStack ctrl) {
         taint = Taint.combineTags(taint, ctrl);
         setShort$$PHOSPHORTAGGED(obj, referenceTaint, idx, idxTaint, val, taint);
     }

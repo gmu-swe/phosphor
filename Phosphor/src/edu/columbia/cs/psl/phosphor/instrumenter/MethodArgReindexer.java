@@ -1,14 +1,16 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
+import edu.columbia.cs.psl.phosphor.LocalVariablePhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_INTERNAL_NAME;
 
 public class MethodArgReindexer extends MethodVisitor {
 
@@ -135,8 +137,9 @@ public class MethodArgReindexer extends MethodVisitor {
 
     @Override
     public void visitLdcInsn(Object cst) {
-        if(cst instanceof PhosphorInstructionInfo) {
-            mv.visitLdcInsn(cst);
+        if(cst instanceof LocalVariablePhosphorInstructionInfo) {
+            LocalVariablePhosphorInstructionInfo info = (LocalVariablePhosphorInstructionInfo) cst;
+            super.visitLdcInsn(info.setLocalVariableIndex(remapLocal(info.getLocalVariableIndex())));
         } else {
             super.visitLdcInsn(cst);
         }
@@ -170,7 +173,7 @@ public class MethodArgReindexer extends MethodVisitor {
             }
             super.visitLocalVariable(name, desc, signature, start, end, oldArgMappings[index]);
             if(index == originalLastArgIdx - 1 && (Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
-                super.visitLocalVariable("Phopshor$$ImplicitTaintTrackingFromParent", Type.getDescriptor(ControlTaintTagStack.class), null, start, end, oldArgMappings[index] + 1);
+                super.visitLocalVariable("Phopshor$$ImplicitTaintTrackingFromParent", CONTROL_STACK_DESC, null, start, end, oldArgMappings[index] + 1);
             }
             if((index == originalLastArgIdx - Type.getType(desc).getSize()) && hasPreAllocatedReturnAddress) {
                 super.visitLocalVariable("Phosphor$$ReturnPreAllocated", newReturnType.getDescriptor(), null, start, end, oldArgMappings[index] + ((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) ? 2 : 1));
@@ -215,7 +218,7 @@ public class MethodArgReindexer extends MethodVisitor {
             //Special cases of no args
             if(origNumArgs == 0 && isStatic) {
                 if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")) {
-                    remappedLocals[thisLocalIndexInNewFrame] = Type.getInternalName(ControlTaintTagStack.class);
+                    remappedLocals[thisLocalIndexInNewFrame] = CONTROL_STACK_INTERNAL_NAME;
                     thisLocalIndexInNewFrame++;
                     nLocal++;
                 }
@@ -273,7 +276,7 @@ public class MethodArgReindexer extends MethodVisitor {
                         thisLocalIndexInNewFrame++;
                         nLocal++;
                     }
-                    remappedLocals[thisLocalIndexInNewFrame] = Type.getInternalName(ControlTaintTagStack.class);
+                    remappedLocals[thisLocalIndexInNewFrame] = CONTROL_STACK_INTERNAL_NAME;
                     thisLocalIndexInNewFrame++;
                     nLocal++;
                 }
@@ -370,9 +373,6 @@ public class MethodArgReindexer extends MethodVisitor {
                 var += newArgOffset;
             }
         }
-        if(TaintUtils.DEBUG_LOCAL) {
-            System.out.println("\t\t" + origVar + "->" + var);
-        }
         super.visitIincInsn(var, increment);
     }
 
@@ -382,24 +382,20 @@ public class MethodArgReindexer extends MethodVisitor {
     }
 
     public void visitVarInsn(int opcode, int var) {
-        if(opcode == TaintUtils.BRANCH_END || opcode == TaintUtils.BRANCH_START) {
-            super.visitVarInsn(opcode, var);
-            return;
-        }
-        int origVar = var;
-        if(isStatic || var != 0) {
-            if(var < originalLastArgIdx) {
+        super.visitVarInsn(opcode, remapLocal(var));
+    }
+
+    private int remapLocal(int originalVar) {
+        if(isStatic || originalVar != 0) {
+            if(originalVar < originalLastArgIdx) {
                 //accessing an arg; remap it
-                var = oldArgMappings[var];// + (isStatic?0:1);
+                return oldArgMappings[originalVar];
             } else {
-                //not accessing an arg. just add offset.
-                var += newArgOffset;
+                return originalVar + newArgOffset;
             }
+        } else {
+            return originalVar;
         }
-        if(TaintUtils.DEBUG_LOCAL) {
-            System.out.println("MAR\t\t" + origVar + "->" + var + " " + originalLastArgIdx);
-        }
-        super.visitVarInsn(opcode, var);
     }
 
     private static Type getTypeForStackTypeTOPAsNull(Object obj) {

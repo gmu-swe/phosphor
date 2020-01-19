@@ -1,6 +1,6 @@
 package sun.misc;
 
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 
 public class VM {
@@ -9,7 +9,7 @@ public class VM {
         return in;
     }
 
-    public static TaintedBooleanWithObjTag isBooted$$PHOSPHORTAGGED(ControlTaintTagStack z, TaintedBooleanWithObjTag in) {
+    public static TaintedBooleanWithObjTag isBooted$$PHOSPHORTAGGED(ControlFlowStack z, TaintedBooleanWithObjTag in) {
         return in;
     }
 

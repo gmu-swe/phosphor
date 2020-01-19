@@ -18,7 +18,7 @@
 package java.lang;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 
 /**
@@ -311,7 +311,7 @@ public final class Double extends Number implements Comparable<Double> {
         return null;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(double d, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(double d, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
         return null;
     }
     /**

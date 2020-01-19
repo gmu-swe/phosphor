@@ -20,7 +20,7 @@
 package java.lang;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 
 /**
@@ -85,7 +85,7 @@ public final class Long extends Number implements Comparable<Long> {
         this.value = value;
     }
     
-    public Long(long value, Taint t, ControlTaintTagStack ctrl) {
+    public Long(long value, Taint t, ControlFlowStack ctrl) {
         this.value = value;
     }
 
@@ -832,7 +832,7 @@ public final class Long extends Number implements Comparable<Long> {
 		return null;
 	}
 
-    public static TaintedReferenceWithObjTag valueOf$$PHOSPHORTAGGED(long l, Taint t, TaintedReferenceWithObjTag ret, ControlTaintTagStack ctrl) {
+    public static TaintedReferenceWithObjTag valueOf$$PHOSPHORTAGGED(long l, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
         return null;
     }
 }

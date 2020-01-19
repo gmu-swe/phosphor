@@ -1,11 +1,15 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_BYTE_ARRAY_GET;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_BYTE_ARRAY_SET;
 
 public final class LazyByteArrayObjTags extends LazyArrayObjTags {
 
@@ -31,6 +35,7 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
         this.lengthTaint = lenTaint;
     }
 
+    @InvokedViaInstrumentation(record = TAINTED_BYTE_ARRAY_SET)
     public void set(Taint referenceTaint, int idx, Taint idxTag, byte val, Taint tag) {
         set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, null));
     }
@@ -50,18 +55,9 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
         }
     }
 
-    public void set(Taint referenceTaint, int idx, Taint idxTag, byte val, Taint tag, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTag, idx, ctrl);
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, ctrl));
-    }
-
+    @InvokedViaInstrumentation(record = TAINTED_BYTE_ARRAY_GET)
     public TaintedByteWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedByteWithObjTag ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
-    }
-
-    public TaintedByteWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedByteWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTaint, idx, ctrl);
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
     }
 
     public static LazyByteArrayObjTags factory(Taint referenceTaint, byte[] array) {
@@ -74,13 +70,6 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
     public TaintedByteWithObjTag get(int idx, TaintedByteWithObjTag ret) {
         ret.val = val[idx];
         ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
-    }
-
-    public TaintedByteWithObjTag get(int idx, TaintedByteWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(null, idx, ctrl);
-        get(idx, ret);
-        ret.taint = Taint.combineTags(ret.taint, ctrl);
         return ret;
     }
 

@@ -30,7 +30,7 @@
 package edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.LocalVariablePhosphorInstructionInfo;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.LocalVariablesSorter;
 
@@ -48,8 +48,7 @@ import org.objectweb.asm.commons.LocalVariablesSorter;
  */
 public class OurLocalVariablesSorter extends MethodVisitor {
 
-    protected static final Type OBJECT_TYPE = Type
-            .getObjectType("java/lang/Object");
+    public static final Type OBJECT_TYPE = Type.getObjectType("java/lang/Object");
     /**
      * Index of the first local variable, after formal parameters.
      */
@@ -135,17 +134,12 @@ public class OurLocalVariablesSorter extends MethodVisitor {
             case Opcodes.ISTORE:
                 type = Type.INT_TYPE;
                 break;
-
             default:
                 // case Opcodes.ALOAD:
                 // case Opcodes.ASTORE:
                 // case RET:
                 type = OBJECT_TYPE;
                 break;
-        }
-        if(opcode == TaintUtils.FORCE_CTRL_STORE_WIDE) {
-            type = Type.LONG_TYPE;
-            opcode = TaintUtils.FORCE_CTRL_STORE;
         }
         mv.visitVarInsn(opcode, remap(var, type));
     }
@@ -397,5 +391,15 @@ public class OurLocalVariablesSorter extends MethodVisitor {
         int local = nextLocal;
         nextLocal += type.getSize();
         return local;
+    }
+
+    @Override
+    public void visitLdcInsn(Object value) {
+        if(value instanceof LocalVariablePhosphorInstructionInfo) {
+            LocalVariablePhosphorInstructionInfo info = (LocalVariablePhosphorInstructionInfo) value;
+            super.visitLdcInsn(info.setLocalVariableIndex(remap(info.getLocalVariableIndex(), info.getType())));
+        } else {
+            super.visitLdcInsn(value);
+        }
     }
 }

@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
@@ -27,19 +26,9 @@ public class PhosphorTextifier extends Textifier {
         MORE_OPCODES[11] = "BOX_JMP";
         MORE_OPCODES[12] = "UNBOX_JMP";
         MORE_OPCODES[13] = "IS_TMP_STORE";
-        MORE_OPCODES[14] = "BRANCH_START";
-        MORE_OPCODES[15] = "BRANCH_END";
-        MORE_OPCODES[16] = "FORCE_CTRL_STORE";
         MORE_OPCODES[17] = "FOLLOWED_BY_FRAME";
-        MORE_OPCODES[21] = "LOOP_HEADER";
         TYPE_OR_INT_OPCODES = new String[25];
         System.arraycopy(MORE_OPCODES, 0, TYPE_OR_INT_OPCODES, 0, 25);
-        TYPE_OR_INT_OPCODES[TaintUtils.EXCEPTION_HANDLER_END - 200] = "EXCEPTION_HANDLER_END";
-        TYPE_OR_INT_OPCODES[TaintUtils.EXCEPTION_HANDLER_START - 200] = "EXCEPTION_HANDLER_START";
-        TYPE_OR_INT_OPCODES[TaintUtils.UNTHROWN_EXCEPTION - 200] = "UNTHROWN_EXCEPTION";
-        TYPE_OR_INT_OPCODES[TaintUtils.UNTHROWN_EXCEPTION_CHECK - 200] = "UNTHROWN_EXCEPTION_CHECK";
-        TYPE_OR_INT_OPCODES[TaintUtils.FORCE_CTRL_STORE_SFIELD - 200] = "FORCE_CTRL_STORE_SFIELD";
-        // MORE_OPCODES[22] = "LOOP_HEADER";
         /*
          *
          * public static final int RAW_INSN = 201; public static final int
@@ -52,12 +41,7 @@ public class PhosphorTextifier extends Textifier {
          * = 209; public static final int ALWAYS_AUTOBOX = 210; ublic static
          * final int IS_TMP_STORE = 213;
          *
-         * public static final int BRANCH_START = 214; public static final int
-         * BRANCH_END = 215; public static final int FORCE_CTRL_STORE = 216;
-         *
-         * public static final int FOLLOWED_BY_FRAME = 217; public static final
-         * int CUSTOM_SIGNAL_1 = 218; public static final int CUSTOM_SIGNAL_2 =
-         * 219; public static final int CUSTOM_SIGNAL_3 = 220;
+         * public static final int FOLLOWED_BY_FRAME = 217;
          */
     }
 

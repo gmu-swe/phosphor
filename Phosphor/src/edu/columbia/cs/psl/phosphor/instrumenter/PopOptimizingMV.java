@@ -157,9 +157,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
         }
 
         private int doOptPass() {
-            if(TaintUtils.DEBUG_OPT) {
-                System.out.println("Optimizing: " + name);
-            }
             HashMap<Integer, Boolean> lvIsWrittenNotRead = new HashMap<>();
             int nChanges = 0;
             AbstractInsnNode insn = this.instructions.getFirst();
@@ -181,9 +178,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                                 && insn.getPrevious().getPrevious().getPrevious().getPrevious().getPrevious().getPrevious().getOpcode() == ALOAD) {
                             AbstractInsnNode next = insn.getNext();
                             AbstractInsnNode insertBefore = insn.getPrevious().getPrevious().getPrevious().getPrevious().getPrevious().getPrevious();
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("Float up the iaload");
-                            }
                             this.instructions.remove(insn.getPrevious().getPrevious());
                             this.instructions.remove(insn.getPrevious());
                             this.instructions.remove(insn);
@@ -216,9 +210,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                             AbstractInsnNode next = insn.getNext();
                             this.instructions.insert(insn, insn.getPrevious().clone(null));
                             this.instructions.remove(insn);
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("Dup -> ALOAD");
-                            }
                             nChanges++;
                             insn = next;
                             continue;
@@ -229,9 +220,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                         if(is1WordLoadOp(prev)) {
                             int tmpVar = ((VarInsnNode) insn.getNext()).var;
                             AbstractInsnNode next = insn.getNext().getNext();
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("Tmp store -> replace constant");
-                            }
                             this.instructions.remove(prev);
                             this.instructions.remove(insn.getNext());
                             this.instructions.remove(insn);
@@ -252,9 +240,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                             int tmpVar = ((VarInsnNode) insn.getNext()).var;
                             AbstractInsnNode next = insn.getNext().getNext();
                             AbstractInsnNode prevprev = prev.getPrevious();
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("Tmp store -> replace constant");
-                            }
                             this.instructions.remove(prev);
                             this.instructions.remove(prevprev);
                             this.instructions.remove(insn.getNext());
@@ -280,9 +265,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                             AbstractInsnNode tmpInsn = insn.getNext();
                             this.instructions.remove(insn.getPrevious());
                             this.instructions.remove(insn);
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("Remove double swap");
-                            }
                             nChanges++;
                             insn = tmpInsn;
                             continue;
@@ -292,9 +274,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                             AbstractInsnNode next = insn.getNext();
                             this.instructions.insert(insn, orig);
                             this.instructions.remove(insn);
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("swap -> reorder loads");
-                            }
                             insn = next;
                             nChanges++;
                             continue;
@@ -305,9 +284,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                             this.instructions.remove(val);
                             this.instructions.insert(insn, val);
                             this.instructions.remove(insn);
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("swap -> reorder getfield");
-                            }
                             insn = next;
                             nChanges++;
                             continue;
@@ -318,9 +294,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                             AbstractInsnNode prev3 = prev2.getPrevious();
                             AbstractInsnNode prev4 = prev3.getPrevious();
                             AbstractInsnNode next = insn.getNext();
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("swap -> reorder getfield2");
-                            }
                             this.instructions.remove(prev3);
                             this.instructions.remove(prev4);
                             this.instructions.insert(insn, prev3);
@@ -334,9 +307,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                             this.instructions.remove(later);
                             this.instructions.insert(insn, later);
                             this.instructions.remove(insn);
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("swap -> reorder stores");
-                            }
                             insn = later;
                             nChanges++;
                             continue;
@@ -349,9 +319,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                                 this.instructions.remove(insn.getPrevious().getPrevious().getPrevious());
                                 this.instructions.remove(insn.getPrevious());
                                 this.instructions.remove(insn);
-                                if(TaintUtils.DEBUG_OPT) {
-                                    System.out.println("pop, swap over constant");
-                                }
                                 insn = tmp;
                                 nChanges++;
                                 continue;
@@ -364,9 +331,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                                     this.instructions.remove(insn.getPrevious().getPrevious().getPrevious().getPrevious().getPrevious().getPrevious().getPrevious());
                                     this.instructions.remove(insn.getPrevious());
                                     this.instructions.remove(insn);
-                                    if(TaintUtils.DEBUG_OPT) {
-                                        System.out.println("pop swap 2");
-                                    }
                                     insn = tmp;
                                     nChanges++;
                                     continue;
@@ -377,9 +341,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                                 this.instructions.remove(insn.getPrevious());
                                 this.instructions.remove(insn);
                                 this.instructions.remove(insn);
-                                if(TaintUtils.DEBUG_OPT) {
-                                    System.out.println("pop swap 3");
-                                }
                                 insn = tmp;
                                 nChanges++;
                                 continue;
@@ -390,9 +351,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                                 this.instructions.remove(insn.getPrevious().getPrevious().getPrevious().getPrevious().getPrevious());
                                 this.instructions.remove(insn.getPrevious());
                                 this.instructions.remove(insn);
-                                if(TaintUtils.DEBUG_OPT) {
-                                    System.out.println("pop swap 4");
-                                }
                                 insn = tmp;
                                 nChanges++;
                                 continue;
@@ -403,9 +361,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                                 this.instructions.insertBefore(insn.getPrevious().getPrevious().getPrevious().getPrevious().getPrevious(), new InsnNode(POP));
                                 this.instructions.remove(insn.getPrevious());
                                 this.instructions.remove(insn);
-                                if(TaintUtils.DEBUG_OPT) {
-                                    System.out.println("pop swap 5");
-                                }
                                 insn = next;
                                 nChanges++;
                                 continue;
@@ -444,9 +399,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                                     this.instructions.insert(insn, wayAbove3);
                                     this.instructions.insert(insn, wayAbove4);
                                     this.instructions.remove(insn);
-                                    if(TaintUtils.DEBUG_OPT) {
-                                        System.out.println("pop swap 6");
-                                    }
                                     insn = next;
                                     nChanges++;
                                     continue;
@@ -462,17 +414,11 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                                 this.instructions.insert(insn, up);
                                 this.instructions.insert(insn, up2);
                                 this.instructions.remove(insn);
-                                if(TaintUtils.DEBUG_OPT) {
-                                    System.out.println("pop swap 7");
-                                }
                                 insn = next;
                                 nChanges++;
                                 continue;
                             }
                         } else if(isStoreOp(insn.getPrevious().getOpcode()) && is1WordLoadOp(insn.getPrevious().getPrevious())) {
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("float up pop");
-                            }
                             AbstractInsnNode next = insn.getNext();
                             AbstractInsnNode insertBefore = insn.getPrevious().getPrevious();
                             this.instructions.remove(insn);
@@ -482,9 +428,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                             continue;
                         } else if(is1WordLoadOp(insn.getPrevious())) {
                             AbstractInsnNode next = insn.getNext();
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("pop over load");
-                            }
                             this.instructions.remove(insn.getPrevious());
                             this.instructions.remove(insn);
                             insn = next;
@@ -495,9 +438,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                             this.instructions.remove(insn.getPrevious().getPrevious());
                             this.instructions.remove(insn.getPrevious());
                             this.instructions.remove(insn);
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("pop over getfield");
-                            }
                             insn = next;
                             nChanges++;
                             continue;
@@ -506,9 +446,6 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                             this.instructions.insert(insn, new InsnNode(Opcodes.POP2));
                             this.instructions.remove(insn.getPrevious());
                             this.instructions.remove(insn);
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("pop over iaload");
-                            }
                             insn = next;
                             nChanges++;
                             continue;
@@ -522,25 +459,10 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                                     && is1WordLoadOp(insn.getPrevious().getPrevious().getPrevious().getPrevious())) {
                                 AbstractInsnNode next = insn.getNext();
                                 AbstractInsnNode val = insn.getPrevious().getPrevious().getPrevious().getPrevious();
-                                if(TaintUtils.DEBUG_OPT) {
-                                    System.out.println("POP2 over DUP2_X1, prevs are " + insn.getPrevious().getPrevious() + ", " + insn.getPrevious().getPrevious().getPrevious() + ","
-                                            + insn.getPrevious().getPrevious().getPrevious().getPrevious());
-                                }
                                 this.instructions.remove(val);
-                                if(TaintUtils.DEBUG_OPT) {
-                                    System.out.println("removing " + insn.getPrevious());
-                                }
                                 this.instructions.remove(insn.getPrevious());
-                                if(TaintUtils.DEBUG_OPT) {
-                                    System.out.println("adding " + val);
-                                }
                                 this.instructions.insert(insn, val);
-                                if(TaintUtils.DEBUG_OPT) {
-                                    System.out.println("removing " + insn);
-                                }
-
                                 this.instructions.remove(insn);
-
                                 insn = next;
                                 nChanges++;
                                 continue;
@@ -588,15 +510,9 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                 }
                 insn = insn.getNext();
             }
-            if(TaintUtils.DEBUG_OPT) {
-                System.out.println(owner + "." + name + "NPOP: " + nPop);
-            }
             HashSet<Integer> lvsToObliterate = new HashSet<>();
             for(Entry<Integer, Boolean> i : lvIsWrittenNotRead.entrySet()) {
                 if(i.getValue()) {
-                    if(TaintUtils.DEBUG_OPT) {
-                        System.out.println("BLow away: " + i.getKey());
-                    }
                     lvsToObliterate.add(i.getKey());
                 }
             }
@@ -606,29 +522,17 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
                     if(insn.getType() == AbstractInsnNode.VAR_INSN) {
                         if(lvsToObliterate.contains(((VarInsnNode) insn).var) && insn.getOpcode() == ISTORE) {
                             AbstractInsnNode next = insn.getNext();
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("remove " + insn);
-                            }
                             this.instructions.insert(insn, new InsnNode(Opcodes.POP));
                             this.instructions.remove(insn);
                             nChanges++;
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("removed a store");
-                            }
                             insn = next;
                             continue;
                         }
                     } else if(insn.getType() == AbstractInsnNode.IINC_INSN) {
                         if(lvsToObliterate.contains(((IincInsnNode) insn).var)) {
                             AbstractInsnNode next = insn.getNext();
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("remove " + insn);
-                            }
                             this.instructions.remove(insn);
                             nChanges++;
-                            if(TaintUtils.DEBUG_OPT) {
-                                System.out.println("removed a store");
-                            }
                             insn = next;
                             continue;
                         }
@@ -642,15 +546,8 @@ public class PopOptimizingMV extends MethodVisitor implements Opcodes {
         @Override
         public void visitEnd() {
             int nChanges = doOptPass();
-            if(TaintUtils.DEBUG_OPT) {
-                System.out.println("Optimizations: " + nChanges);
-            }
             while(nChanges > 0) {
-
                 nChanges = doOptPass();
-                if(TaintUtils.DEBUG_OPT) {
-                    System.out.println("Optimizations: " + nChanges);
-                }
             }
             this.accept(cmv);
             super.visitEnd();

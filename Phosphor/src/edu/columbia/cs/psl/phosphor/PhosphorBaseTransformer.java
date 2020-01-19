@@ -2,7 +2,7 @@ package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 
@@ -37,7 +37,7 @@ public abstract class PhosphorBaseTransformer implements ClassFileTransformer {
                                                                 Taint classBeingRedefinedTaint, ProtectionDomain protectionDomain,
                                                                 Taint protectionDomainTaint, LazyByteArrayObjTags clazz,
                                                                 Taint clazzTaint,
-                                                                ControlTaintTagStack ctrl,
+                                                                ControlFlowStack ctrl,
                                                                 TaintedReferenceWithObjTag ret) throws IllegalClassFormatException {
         if(!INITED) {
             Configuration.IMPLICIT_TRACKING = true;

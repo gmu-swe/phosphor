@@ -1,11 +1,15 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_DOUBLE_ARRAY_GET;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_DOUBLE_ARRAY_SET;
 
 public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
 
@@ -31,6 +35,7 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
         this.lengthTaint = lenTaint;
     }
 
+    @InvokedViaInstrumentation(record = TAINTED_DOUBLE_ARRAY_SET)
     public void set(Taint referenceTaint, int idx, Taint idxTag, double val, Taint tag) {
         set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, null));
     }
@@ -50,18 +55,9 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
         }
     }
 
-    public void set(Taint referenceTaint, int idx, Taint idxTag, double val, Taint tag, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTag, idx, ctrl);
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, ctrl));
-    }
-
+    @InvokedViaInstrumentation(record = TAINTED_DOUBLE_ARRAY_GET)
     public TaintedDoubleWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedDoubleWithObjTag ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
-    }
-
-    public TaintedDoubleWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedDoubleWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(idxTaint, idx, ctrl);
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, ctrl);
     }
 
     public static LazyDoubleArrayObjTags factory(Taint referenceTaint, double[] array) {
@@ -74,13 +70,6 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
     public TaintedDoubleWithObjTag get(int idx, TaintedDoubleWithObjTag ret) {
         ret.val = val[idx];
         ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
-    }
-
-    public TaintedDoubleWithObjTag get(int idx, TaintedDoubleWithObjTag ret, ControlTaintTagStack ctrl) {
-        checkAIOOB(null, idx, ctrl);
-        get(idx, ret);
-        ret.taint = Taint.combineTags(ret.taint, ctrl);
         return ret;
     }
 

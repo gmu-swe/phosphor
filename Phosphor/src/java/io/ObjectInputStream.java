@@ -18,7 +18,7 @@
 package java.io;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 
 import java.lang.reflect.Array;
@@ -2033,7 +2033,7 @@ public class ObjectInputStream extends InputStream implements ObjectInput,
         return null;
     }
 
-    public TaintedReferenceWithObjTag readObject$$PHOSPHORTAGGED(Taint emptyTaint, ControlTaintTagStack dummy, TaintedReferenceWithObjTag ret) {
+    public TaintedReferenceWithObjTag readObject$$PHOSPHORTAGGED(Taint emptyTaint, ControlFlowStack dummy, TaintedReferenceWithObjTag ret) {
         return null;
     }
 

@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.ControlTaintTagStack;
+import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
@@ -431,7 +431,7 @@ public final class String implements Serializable, Comparable<String>,
             throw new StringIndexOutOfBoundsException();
         }
     }
-    public String(LazyCharArrayObjTags t, Taint tags, ControlTaintTagStack ctrl)
+    public String(LazyCharArrayObjTags t, Taint tags, ControlFlowStack ctrl)
     {
 
     }
