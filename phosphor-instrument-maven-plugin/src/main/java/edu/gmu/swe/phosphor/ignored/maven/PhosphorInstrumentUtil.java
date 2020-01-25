@@ -145,8 +145,14 @@ public class PhosphorInstrumentUtil {
         } else {
             StringBuilder builder = new StringBuilder().append("=");
             Set<String> propNames = properties.stringPropertyNames();
+            boolean first = true;
             for(String propName : propNames) {
-                builder.append(',').append(propName);
+                if(first) {
+                    first = false;
+                } else {
+                    builder.append(',');
+                }
+                builder.append(propName);
                 if(!"true".equals(properties.getProperty(propName))) {
                     builder.append('=').append(properties.getProperty(propName));
                 }
