@@ -1,10 +1,54 @@
-*.class
-Trishul
-artifact
-exp2
-experiments
+/bin
+/target
+.project
+.classpath
+.settings
+dacapo
+test.tmp.out
 
-# Package Files #
+# Remove dynamically generated pom
+dependency-reduced-pom.xml
+
+# Ignore vim .swp files
+**/*.swp
+
+
+# Ignore intellij files
+*.iml
+.idea
+
+# Compiled class files
+**/target/*
+*.class
+
+# Package files
 *.jar
 *.war
 *.ear
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
