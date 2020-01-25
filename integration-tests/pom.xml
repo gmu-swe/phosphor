@@ -13,16 +13,13 @@
         <dacapo.skip>true</dacapo.skip>
         <skipDataFlowTests>false</skipDataFlowTests>
         <skipControlFlowTests>false</skipControlFlowTests>
-        <skipBindingFlowTests>false</skipBindingFlowTests>
         <auto.taint>
             taintSources=${basedir}/src/test/resources/taint-sources,taintSinks=${basedir}/src/test/resources/taint-sinks,taintThrough=${basedir}/src/test/resources/taint-through
         </auto.taint>
         <data.flow.cache>${project.build.directory}/cached-data-flows</data.flow.cache>
         <control.flow.cache>${project.build.directory}/cached-control-flows</control.flow.cache>
-        <binding.flow.cache>${project.build.directory}/cached-binding-flows</binding.flow.cache>
         <data.flow.jvm>jvm-inst-data</data.flow.jvm>
         <control.flow.jvm>jvm-inst-control</control.flow.jvm>
-        <binding.flow.jvm>jvm-inst-binding</binding.flow.jvm>
     </properties>
     <build>
         <plugins>
@@ -79,28 +76,6 @@
                             </options>
                             <associatedCaches>
                                 <associatedCache>${control.flow.cache}</associatedCache>
-                            </associatedCaches>
-                            <reinstrumentBasedOnChecksum>false</reinstrumentBasedOnChecksum>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>binding-flows</id>
-                        <goals>
-                            <goal>instrument</goal>
-                        </goals>
-                        <phase>none</phase>
-                        <configuration>
-                            <targetName>${binding.flow.jvm}</targetName>
-                            <options>
-                                <controlFlowManager>
-                                    edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowManager
-                                </controlFlowManager>
-                                <forceUnboxAcmpEq/>
-                                <withEnumsByValue/>
-                                <quiet/>
-                            </options>
-                            <associatedCaches>
-                                <associatedCache>${binding.flow.cache}</associatedCache>
                             </associatedCaches>
                             <reinstrumentBasedOnChecksum>false</reinstrumentBasedOnChecksum>
                         </configuration>
@@ -199,10 +174,6 @@
                                 <id>control-flows</id>
                                 <phase>process-test-resources</phase>
                             </execution>
-                            <execution>
-                                <id>binding-flows</id>
-                                <phase>process-test-resources</phase>
-                            </execution>
                         </executions>
                     </plugin>
                     <plugin>
@@ -238,24 +209,6 @@
                                     <reuseForks>false</reuseForks>
                                     <argLine>
                                         ${argLine.prefix},enum,acmpeq,implicitExceptions,cacheDir=${control.flow.cache}
-                                    </argLine>
-                                </configuration>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>integration-test-binding-flows</id>
-                                <configuration>
-                                    <skipTests>${skipBindingFlowTests}</skipTests>
-                                    <jvm>${project.build.directory}/${binding.flow.jvm}/bin/java</jvm>
-                                    <includes>
-                                        <include>**/*BindingControlITCase.java</include>
-                                    </includes>
-                                    <reuseForks>false</reuseForks>
-                                    <argLine>
-                                        ${argLine.prefix},enum,acmpeq,cacheDir=${binding.flow.cache},controlFlowManager=edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowManager
                                     </argLine>
                                 </configuration>
                                 <goals>
