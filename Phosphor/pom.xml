@@ -1,54 +1,23 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
     <modelVersion>4.0.0</modelVersion>
-    <groupId>edu.gmu.swe.phosphor</groupId>
     <artifactId>Phosphor</artifactId>
     <name>Phosphor</name>
-    <version>0.0.5-SNAPSHOT</version>
-    <properties>
-        <dacapo.skip>true</dacapo.skip>
-        <skipIntTagNoInstTests>true</skipIntTagNoInstTests>
-        <skipLightImplicitTests>true</skipLightImplicitTests>
-        <skipObjTagTestsArrayLength>true</skipObjTagTestsArrayLength>
-        <maven.compiler.testSource>1.8</maven.compiler.testSource>
-        <maven.compiler.testTarget>1.8</maven.compiler.testTarget>
-        <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
-        <checkstyle.version>8.26</checkstyle.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    </properties>
-    <licenses>
-        <license>
-            <name>MIT License</name>
-            <url>http://www.opensource.org/licenses/mit-license.php</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-    <url>https://github.com/gmu-swe/phosphor/</url>
-    <developers>
-        <developer>
-            <id>jbell</id>
-            <name>Jonathan Bell</name>
-            <email>bellj@gmu.edu</email>
-        </developer>
-    </developers>
-    <scm>
-        <url>git@github.com:gmu-swe/phosphor.git</url>
-    </scm>
+    <packaging>jar</packaging>
     <description>Dynamic Taint Tracker</description>
-
+    <parent>
+        <groupId>edu.gmu.swe.phosphor</groupId>
+        <artifactId>phosphor-parent</artifactId>
+        <version>0.0.5-SNAPSHOT</version>
+    </parent>
     <build>
-        <sourceDirectory>src</sourceDirectory>
-        <testSourceDirectory>test</testSourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.3.1</version>
                 <configuration>
                     <archive>
-                        <manifestFile>resources/META-INF/MANIFEST.MF</manifestFile>
+                        <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
                     </archive>
                     <excludes>
                         <exclude>java/</exclude>
@@ -57,19 +26,8 @@
                 </configuration>
             </plugin>
             <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.5.1</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                    <compilerArgument>-XDignore.symbol.file</compilerArgument>
-                    <fork>true</fork>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.1.1</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -95,75 +53,24 @@
                                     <artifact>org.ow2.asm:asm-tree</artifact>
                                     <artifact>org.ow2.asm:asm-analysis</artifact>
                                     <excludes>
-                                        <!-- These classes will be overridden 
+                                        <!-- These classes will be overridden
                                             by the ones inside the JAR -->
                                         <exclude>edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/FrameNode.class
                                         </exclude>
                                     </excludes>
                                 </filter>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
                             </filters>
                             <minimizeJar>true</minimizeJar>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.9.1</version>
-                <configuration>
-                    <additionalparam>-Xdoclint:none</additionalparam>
-                    <quiet>true</quiet>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadoc</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>${maven.checkstyle.version}</version>
-                <configuration>
-                    <configLocation>checkstyle-configuration.xml</configLocation>
-                    <encoding>UTF-8</encoding>
-                    <consoleOutput>true</consoleOutput>
-                    <failsOnError>true</failsOnError>
-                    <excludes>
-                        **/java/lang/**/*.java,**/java/util/**/*.java,**/sun/misc/**/*.java,
-                        **/struct/harmony/**/*.java, **/org/objectweb/asm/**/*.java
-                    </excludes>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.puppycrawl.tools</groupId>
-                        <artifactId>checkstyle</artifactId>
-                        <version>${checkstyle.version}</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <phase>test-compile</phase>
                     </execution>
                 </executions>
             </plugin>
@@ -196,160 +103,8 @@
                 </plugins>
             </build>
         </profile>
-        <profile>
-            <id>runTests</id>
-            <activation>
-                <property>
-                    <name>!skipTests</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <version>1.6.0</version>
-                        <executions>
-                            <execution>
-                                <id>instrument-jre</id>
-                                <phase>pre-integration-test</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <executable>${basedir}/instrumentJRE.sh</executable>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>run-dacapo</id>
-                                <phase>integration-test</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <skip>${dacapo.skip}</skip>
-                                    <executable>${basedir}/runDacapo.sh</executable>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <version>2.18.1</version>
-                        <executions>
-                            <execution>
-                                <id>integration-test-obj-tags</id>
-                                <configuration>
-                                    <skipTests>${skipObjTagTests}</skipTests>
-                                    <jvm>${project.build.directory}/jre-inst-obj/bin/java</jvm>
-                                    <includes>
-                                        <include>**/*ObjTagITCase.java</include>
-                                    </includes>
-                                    <reuseForks>false</reuseForks>
-                                    <argLine>
-                                        -Dphosphor.verify=true
-                                        -Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,objmethods,acmpeq,cacheDir=${project.build.directory}/cached-obj,taintSources=src/taint-sources,taintSinks=src/taint-sinks,taintThrough=src/taint-through
-                                    </argLine>
-                                </configuration>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>integration-test-obj-tags-array-length</id>
-                                <configuration>
-                                    <skipTests>${skipObjTagTestsArrayLength}</skipTests>
-                                    <jvm>${project.build.directory}/jre-inst-obj-alen/bin/java</jvm>
-                                    <includes>
-                                        <include>**/*ObjTagITCase.java</include>
-                                    </includes>
-                                    <reuseForks>false</reuseForks>
-                                    <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                        -agentpath:target/libphosphor.so
-                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-obj-alen,arraylength,arrayindex
-                                    </argLine>
-                                </configuration>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>integration-test-implicit-tracking</id>
-                                <configuration>
-                                    <skipTests>${skipImplicitTests}</skipTests>
-                                    <jvm>${project.build.directory}/jre-inst-implicit/bin/java</jvm>
-                                    <includes>
-                                        <include>**/*ImplicitITCase.java</include>
-                                    </includes>
-                                    <reuseForks>false</reuseForks>
-                                    <argLine>
-                                        -Dphosphor.verify=true
-                                        -Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-implicit,implicitExceptions,taintSources=src/taint-sources,taintSinks=src/taint-sinks,taintThrough=src/taint-through
-                                    </argLine>
-                                </configuration>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>integration-test-light-implicit-tracking</id>
-                                <configuration>
-                                    <skipTests>${skipLightImplicitTests}</skipTests>
-                                    <jvm>${project.build.directory}/jre-inst-obj/bin/java</jvm>
-                                    <includes>
-                                        <include>**/*ImplicitLightITCase.java</include>
-                                    </includes>
-                                    <reuseForks>false</reuseForks>
-                                    <argLine>-Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-light-implicit,lightImplicit
-                                    </argLine>
-                                </configuration>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>integration-test-binding-control-tracking</id>
-                                <configuration>
-                                    <skipTests>${skipBindingControlTests}</skipTests>
-                                    <jvm>${project.build.directory}/jre-inst-binding-control/bin/java</jvm>
-                                    <includes>
-                                        <include>**/*BindingControlITCase.java</include>
-                                    </includes>
-                                    <reuseForks>false</reuseForks>
-                                    <argLine>
-                                        -Dphosphor.verify=true
-                                        -Xbootclasspath/p:${project.build.directory}/${project.build.finalName}.jar
-                                        -javaagent:${project.build.directory}/${project.build.finalName}.jar=enum,acmpeq,cacheDir=${project.build.directory}/cached-binding-control,controlFlowManager=edu.columbia.cs.psl.phosphor.control.binding.BindingControlFlowManager
-                                    </argLine>
-                                </configuration>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
     </profiles>
     <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.11</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>commons-cli</groupId>
             <artifactId>commons-cli</artifactId>
@@ -381,15 +136,4 @@
             <version>7.1</version>
         </dependency>
     </dependencies>
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
-
 </project>
