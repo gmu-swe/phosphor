@@ -123,7 +123,6 @@
                                 <property name="phosphor.jar" value="${maven.dependency.edu.gmu.swe.phosphor.Phosphor.jar.path}"/>
                                 <property name="argLine.prefix"
                                           value="-Dphosphor.verify=true -Xbootclasspath/p:${phosphor.jar} -javaagent:${phosphor.jar}=${auto.taint}"/>
-                                <echo message="${argLine.prefix}"/>
                             </target>
                         </configuration>
                     </execution>
