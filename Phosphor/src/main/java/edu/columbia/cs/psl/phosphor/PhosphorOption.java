@@ -183,6 +183,7 @@ public enum PhosphorOption {
                     Class<? extends ControlFlowManager> clazz = (Class<? extends ControlFlowManager>) commandLine.getParsedOptionValue(optionName);
                     if(clazz != null) {
                         Configuration.controlFlowManager = clazz.newInstance();
+                        Configuration.IMPLICIT_TRACKING = true;
                     }
                 } catch(Exception e) {
                     System.err.println("Failed to create control propagation manager: " + commandLine.getOptionValue(optionName));

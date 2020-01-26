@@ -81,8 +81,6 @@ public class Configuration {
     public static void init() {
         if(controlFlowManager == null) {
             controlFlowManager = new StandardControlFlowManager();
-        } else {
-            IMPLICIT_TRACKING = true;
         }
         OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING && !IMPLICIT_LIGHT_TRACKING;
         if(IMPLICIT_TRACKING || IMPLICIT_LIGHT_TRACKING) {
