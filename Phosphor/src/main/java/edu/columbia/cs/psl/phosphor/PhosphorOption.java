@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.control.ControlFlowManager;
+import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTagFactory;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.EnumMap;
@@ -187,7 +188,7 @@ public enum PhosphorOption {
                     System.err.println("Failed to create control propagation manager: " + commandLine.getOptionValue(optionName));
                 }
             } else {
-                Configuration.controlFlowManager = null;
+                Configuration.controlFlowManager = new StandardControlFlowManager();
             }
         }
     },
