@@ -113,7 +113,7 @@ public enum PhosphorOption {
         @Override
         public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
             if(forRuntimeInst && isPresent) {
-                Configuration.TAINT_THROUGH_SERIALIZATION = isPresent;
+                Configuration.TAINT_THROUGH_SERIALIZATION = true;
             }
         }
     },
@@ -165,6 +165,8 @@ public enum PhosphorOption {
                 } catch(ParseException e) {
                     System.err.println("Failed to create specified prior class visitor: " + optionName);
                 }
+            } else {
+                Configuration.PRIOR_CLASS_VISITOR = null;
             }
         }
     },
@@ -184,6 +186,8 @@ public enum PhosphorOption {
                 } catch(Exception e) {
                     System.err.println("Failed to create control propagation manager: " + commandLine.getOptionValue(optionName));
                 }
+            } else {
+                Configuration.controlFlowManager = null;
             }
         }
     },
@@ -201,6 +205,8 @@ public enum PhosphorOption {
                         Configuration.CACHE_DIR = null;
                     }
                 }
+            } else {
+                Configuration.CACHE_DIR = null;
             }
         }
     },
