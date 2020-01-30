@@ -14,6 +14,9 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisito
 
 public class MethodArgReindexer extends MethodVisitor {
 
+    int line;
+    HashSet<Label> tryCatchHandlers = new HashSet<>();
+    boolean isHandler;
     private int originalLastArgIdx;
     private int[] oldArgMappings;
     private int newArgOffset;
@@ -24,36 +27,12 @@ public class MethodArgReindexer extends MethodVisitor {
     private List<Type> oldArgTypesList;
     private MethodNode lvStore;
     private int nNewArgs = 0;
-    int line;
     private boolean hasPreAllocatedReturnAddress;
     private Type newReturnType;
-
     private Map<String, Integer> parameters = new HashMap<>();
     private int indexOfControlTagsInLocals;
-    HashSet<Label> tryCatchHandlers = new HashSet<>();
-
-    public int getNewArgOffset() {
-        return newArgOffset;
-    }
-
-    @Override
-    public void visitParameter(String name, int access) {
-        super.visitParameter(name, access);
-        parameters.put(name, access);
-    }
-
-    @Override
-    public void visitEnd() {
-        super.visitEnd();
-        if(!parameters.isEmpty()) {
-            // Add fake params
-            for(int i = 0; i < nNewArgs; i++) {
-                super.visitParameter("Phosphor$$Param$$" + i, 0);
-            }
-        }
-    }
-    boolean isHandler;
     private int nWrappers = 0;
+
     MethodArgReindexer(MethodVisitor mv, int access, String name, String desc, String originalDesc, MethodNode lvStore, boolean isLambda) {
         super(Configuration.ASM_VERSION, mv);
         this.lvStore = lvStore;
@@ -135,6 +114,27 @@ public class MethodArgReindexer extends MethodVisitor {
         newArgOffset += nWrappers;
     }
 
+    public int getNewArgOffset() {
+        return newArgOffset;
+    }
+
+    @Override
+    public void visitParameter(String name, int access) {
+        super.visitParameter(name, access);
+        parameters.put(name, access);
+    }
+
+    @Override
+    public void visitEnd() {
+        super.visitEnd();
+        if(!parameters.isEmpty()) {
+            // Add fake params
+            for(int i = 0; i < nNewArgs; i++) {
+                super.visitParameter("Phosphor$$Param$$" + i, 0);
+            }
+        }
+    }
+
     @Override
     public void visitLdcInsn(Object cst) {
         if(cst instanceof LocalVariablePhosphorInstructionInfo) {
@@ -148,7 +148,7 @@ public class MethodArgReindexer extends MethodVisitor {
     @Override
     public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
         Type t = Type.getType(desc);
-        if (TaintUtils.isWrappedType(t)) {
+        if(TaintUtils.isWrappedType(t)) {
             desc = TaintUtils.getWrapperType(t).getDescriptor();
         }
         if(index < originalLastArgIdx) {
@@ -236,37 +236,28 @@ public class MethodArgReindexer extends MethodVisitor {
 
             //Iterate over every LV slot. Some LV slots may be high end of 2-word vars.
             int idxInOldLocals = 0;
-            int idxInOldArgs = 0;
-            boolean isAllTOPs = true;
-            for(Object o : local) {
-                if(o != Integer.valueOf(0)) {
-                    isAllTOPs = false;
-                    break;
-                }
-            }
-            if(!isAllTOPs) {
-                for(idxInOldArgs = 0; idxInOldArgs < Math.min(nLocal, oldArgTypesList.size()); idxInOldArgs++) {
-                    Type t = oldArgTypesList.get(idxInOldArgs);
-                    if(TaintUtils.isWrappedType(t)) {
-                        remappedLocals[thisLocalIndexInNewFrame] = TaintUtils.getWrapperType(t).getInternalName();
-                    } else {
-                        remappedLocals[thisLocalIndexInNewFrame] = local[idxInOldLocals];
-                        if(local[idxInOldLocals] == Opcodes.TOP && t.getSize() == 2) {
-                            thisLocalIndexInNewFrame++;
-                            remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
-                            idxInOldLocals++;
-                        }
-                    }
-                    thisLocalIndexInNewFrame++;
-                    if(local[idxInOldLocals] == Opcodes.TOP) {
+            int idxInOldArgs;
+            for(idxInOldArgs = 0; idxInOldArgs < Math.min(nLocal, oldArgTypesList.size()); idxInOldArgs++) {
+                Type t = oldArgTypesList.get(idxInOldArgs);
+                if(TaintUtils.isWrappedType(t)) {
+                    remappedLocals[thisLocalIndexInNewFrame] = TaintUtils.getWrapperType(t).getInternalName();
+                } else {
+                    remappedLocals[thisLocalIndexInNewFrame] = local[idxInOldLocals];
+                    if(local[idxInOldLocals] == Opcodes.TOP && t.getSize() == 2) {
+                        thisLocalIndexInNewFrame++;
                         remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
-                    } else {
-                        remappedLocals[thisLocalIndexInNewFrame] = Configuration.TAINT_TAG_INTERNAL_NAME;
+                        idxInOldLocals++;
                     }
-                    nLocal++;
-                    thisLocalIndexInNewFrame++;
-                    idxInOldLocals++;
                 }
+                thisLocalIndexInNewFrame++;
+                if(local[idxInOldLocals] == Opcodes.TOP) {
+                    remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
+                } else {
+                    remappedLocals[thisLocalIndexInNewFrame] = Configuration.TAINT_TAG_INTERNAL_NAME;
+                }
+                nLocal++;
+                thisLocalIndexInNewFrame++;
+                idxInOldLocals++;
             }
             if(origNumArgs != 0) {
                 if(Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) {
@@ -324,7 +315,6 @@ public class MethodArgReindexer extends MethodVisitor {
         stack2 = newStack.toArray();
         // System.out.println("Out frame: " + Arrays.toString(remappedLocals));
         super.visitFrame(type, nLocal, remappedLocals, nStack, stack2);
-
     }
 
     @Override
