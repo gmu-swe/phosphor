@@ -14,6 +14,9 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisito
 
 public class MethodArgReindexer extends MethodVisitor {
 
+    int line;
+    HashSet<Label> tryCatchHandlers = new HashSet<>();
+    boolean isHandler;
     private int originalLastArgIdx;
     private int[] oldArgMappings;
     private int newArgOffset;
@@ -24,36 +27,12 @@ public class MethodArgReindexer extends MethodVisitor {
     private List<Type> oldArgTypesList;
     private MethodNode lvStore;
     private int nNewArgs = 0;
-    int line;
     private boolean hasPreAllocatedReturnAddress;
     private Type newReturnType;
-
     private Map<String, Integer> parameters = new HashMap<>();
     private int indexOfControlTagsInLocals;
-    HashSet<Label> tryCatchHandlers = new HashSet<>();
-
-    public int getNewArgOffset() {
-        return newArgOffset;
-    }
-
-    @Override
-    public void visitParameter(String name, int access) {
-        super.visitParameter(name, access);
-        parameters.put(name, access);
-    }
-
-    @Override
-    public void visitEnd() {
-        super.visitEnd();
-        if(!parameters.isEmpty()) {
-            // Add fake params
-            for(int i = 0; i < nNewArgs; i++) {
-                super.visitParameter("Phosphor$$Param$$" + i, 0);
-            }
-        }
-    }
-    boolean isHandler;
     private int nWrappers = 0;
+
     MethodArgReindexer(MethodVisitor mv, int access, String name, String desc, String originalDesc, MethodNode lvStore, boolean isLambda) {
         super(Configuration.ASM_VERSION, mv);
         this.lvStore = lvStore;
@@ -135,6 +114,27 @@ public class MethodArgReindexer extends MethodVisitor {
         newArgOffset += nWrappers;
     }
 
+    public int getNewArgOffset() {
+        return newArgOffset;
+    }
+
+    @Override
+    public void visitParameter(String name, int access) {
+        super.visitParameter(name, access);
+        parameters.put(name, access);
+    }
+
+    @Override
+    public void visitEnd() {
+        super.visitEnd();
+        if(!parameters.isEmpty()) {
+            // Add fake params
+            for(int i = 0; i < nNewArgs; i++) {
+                super.visitParameter("Phosphor$$Param$$" + i, 0);
+            }
+        }
+    }
+
     @Override
     public void visitLdcInsn(Object cst) {
         if(cst instanceof LocalVariablePhosphorInstructionInfo) {
@@ -148,7 +148,7 @@ public class MethodArgReindexer extends MethodVisitor {
     @Override
     public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
         Type t = Type.getType(desc);
-        if (TaintUtils.isWrappedType(t)) {
+        if(TaintUtils.isWrappedType(t)) {
             desc = TaintUtils.getWrapperType(t).getDescriptor();
         }
         if(index < originalLastArgIdx) {
@@ -208,103 +208,14 @@ public class MethodArgReindexer extends MethodVisitor {
 
     @Override
     public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
-        Object[] remappedLocals = new Object[Math.max(local.length, origNumArgs) + newArgOffset + 1]; //was +1, not sure why??
-        int nLocalsInputFrame = nLocal;
         boolean isExceptionHandler = isHandler;
         isHandler = false;
         if(type == Opcodes.F_FULL || type == Opcodes.F_NEW) {
-            // System.out.println("In frame: " + Arrays.toString(local));
-            int thisLocalIndexInNewFrame = 0; //does not account for long/double
-            //Special cases of no args
-            if(origNumArgs == 0 && isStatic) {
-                if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")) {
-                    remappedLocals[thisLocalIndexInNewFrame] = CONTROL_STACK_INTERNAL_NAME;
-                    thisLocalIndexInNewFrame++;
-                    nLocal++;
-                }
-                if(hasPreAllocatedReturnAddress) {
-                    remappedLocals[thisLocalIndexInNewFrame] = newReturnType.getInternalName();
-                    thisLocalIndexInNewFrame++;
-                    nLocal++;
-                }
-                for(int i = 0; i < nWrappers; i++) {
-                    remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
-                    thisLocalIndexInNewFrame++;
-                    nLocal++;
-                }
-            }
-
-            //Iterate over every LV slot. Some LV slots may be high end of 2-word vars.
-            int idxInOldLocals = 0;
-            int idxInOldArgs = 0;
-            boolean isAllTOPs = true;
-            for(Object o : local) {
-                if(o != Integer.valueOf(0)) {
-                    isAllTOPs = false;
-                    break;
-                }
-            }
-            if(!isAllTOPs) {
-                for(idxInOldArgs = 0; idxInOldArgs < Math.min(nLocal, oldArgTypesList.size()); idxInOldArgs++) {
-                    Type t = oldArgTypesList.get(idxInOldArgs);
-                    if(TaintUtils.isWrappedType(t)) {
-                        remappedLocals[thisLocalIndexInNewFrame] = TaintUtils.getWrapperType(t).getInternalName();
-                    } else {
-                        remappedLocals[thisLocalIndexInNewFrame] = local[idxInOldLocals];
-                        if(local[idxInOldLocals] == Opcodes.TOP && t.getSize() == 2) {
-                            thisLocalIndexInNewFrame++;
-                            remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
-                            idxInOldLocals++;
-                        }
-                    }
-                    thisLocalIndexInNewFrame++;
-                    if(local[idxInOldLocals] == Opcodes.TOP) {
-                        remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
-                    } else {
-                        remappedLocals[thisLocalIndexInNewFrame] = Configuration.TAINT_TAG_INTERNAL_NAME;
-                    }
-                    nLocal++;
-                    thisLocalIndexInNewFrame++;
-                    idxInOldLocals++;
-                }
-            }
-            if(origNumArgs != 0) {
-                if(Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) {
-                    while(thisLocalIndexInNewFrame < indexOfControlTagsInLocals) {
-                        //There are no locals in this frame, BUT there were args on the method - make sure metadata goes to the right spot
-                        remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
-                        thisLocalIndexInNewFrame++;
-                        nLocal++;
-                    }
-                    remappedLocals[thisLocalIndexInNewFrame] = CONTROL_STACK_INTERNAL_NAME;
-                    thisLocalIndexInNewFrame++;
-                    nLocal++;
-                }
-                if(hasPreAllocatedReturnAddress) {
-                    remappedLocals[thisLocalIndexInNewFrame] = newReturnType.getInternalName();
-                    thisLocalIndexInNewFrame++;
-                    nLocal++;
-                }
-                for(int i = 0; i < nWrappers; i++) {
-                    remappedLocals[thisLocalIndexInNewFrame] = Opcodes.TOP;
-                    thisLocalIndexInNewFrame++;
-                    nLocal++;
-                }
-            }
-            for(int i = idxInOldLocals; i < nLocalsInputFrame; i++) {
-                remappedLocals[thisLocalIndexInNewFrame] = local[i];
-                Type t = getTypeForStackTypeTOPAsNull(local[i]);
-                if(TaintUtils.isWrappedType(t)) {
-                    remappedLocals[thisLocalIndexInNewFrame] = TaintUtils.getWrapperType(Type.getObjectType((String) local[i])).getInternalName();
-                }
-                thisLocalIndexInNewFrame++;
-            }
-
-        } else {
-            remappedLocals = local;
+            Object[] remappedLocals = new Object[Math.max(local.length, origNumArgs) + newArgOffset + 1]; //was +1, not sure why??
+            nLocal = remapLocals(nLocal, local, remappedLocals);
+            local = remappedLocals;
         }
-
-        if(nLocal > remappedLocals.length) {
+        if(nLocal > local.length) {
             throw new IllegalStateException();
         }
         ArrayList<Object> newStack = new ArrayList<>();
@@ -322,9 +233,47 @@ public class MethodArgReindexer extends MethodVisitor {
         }
         Object[] stack2;
         stack2 = newStack.toArray();
-        // System.out.println("Out frame: " + Arrays.toString(remappedLocals));
-        super.visitFrame(type, nLocal, remappedLocals, nStack, stack2);
+        super.visitFrame(type, nLocal, local, nStack, stack2);
+    }
 
+    private int remapLocals(int nLocal, Object[] local, Object[] remappedLocals) {
+        int oldLocalIndex;
+        int newLocalIndex = 0;
+        for(oldLocalIndex = 0; oldLocalIndex < Math.min(oldArgTypesList.size(), nLocal); oldLocalIndex++) {
+            Type oldArgType = oldArgTypesList.get(oldLocalIndex);
+            if(TaintUtils.isWrappedType(oldArgType)) {
+                remappedLocals[newLocalIndex++] = TaintUtils.getWrapperType(oldArgType).getInternalName();
+            } else {
+                remappedLocals[newLocalIndex++] = local[oldLocalIndex];
+            }
+            if(local[oldLocalIndex] == Opcodes.TOP) {
+                remappedLocals[newLocalIndex++] = Opcodes.TOP;
+            } else {
+                remappedLocals[newLocalIndex++] = Configuration.TAINT_TAG_INTERNAL_NAME;
+            }
+        }
+        if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")) {
+            while(newLocalIndex < indexOfControlTagsInLocals) {
+                remappedLocals[newLocalIndex++] = Opcodes.TOP;
+            }
+            remappedLocals[newLocalIndex++] = CONTROL_STACK_INTERNAL_NAME;
+        }
+        if(hasPreAllocatedReturnAddress) {
+            remappedLocals[newLocalIndex++] = newReturnType.getInternalName();
+        }
+        for(int i = 0; i < nWrappers; i++) {
+            remappedLocals[newLocalIndex++] = Opcodes.TOP;
+        }
+        for(; oldLocalIndex < nLocal; oldLocalIndex++) {
+            Type t = getTypeForStackTypeTOPAsNull(local[oldLocalIndex]);
+            if(TaintUtils.isWrappedType(t)) {
+                remappedLocals[newLocalIndex++] = TaintUtils.getWrapperType(Type.getObjectType((String) local[oldLocalIndex])).getInternalName();
+            } else {
+                remappedLocals[newLocalIndex++] = local[oldLocalIndex];
+
+            }
+        }
+        return newLocalIndex;
     }
 
     @Override
