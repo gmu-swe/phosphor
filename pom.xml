@@ -33,7 +33,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.checkstyle.version>3.1.0</maven.checkstyle.version>
-        <checkstyle.version>8.26</checkstyle.version>
+        <checkstyle.version>8.29</checkstyle.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
