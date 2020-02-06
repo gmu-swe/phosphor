@@ -298,16 +298,10 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                         return;
                     } else if(nameWithoutSuffix.equals("getConstructor") || nameWithoutSuffix.equals("getDeclaredConstructor")) {
                         // Constructor<T> getDeclaredConstructor(Class<?>... parameterTypes)
-                        if(Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
-                            super.visitInsn(POP);
-                            super.visitInsn(SWAP);
-                            super.visitInsn(POP);
-                            super.visitInsn(ACONST_NULL);
-                            throw new UnsupportedOperationException();
-                        }
+
                         super.visitInsn(POP); //for the fake array
                         int prealloc = lvs.getTmpLV(Type.getType(TaintedReferenceWithObjTag.class));
-                        if(Configuration.IMPLICIT_TRACKING) {
+                        if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                             //Class taint array taint ctrl prealloc
                             super.visitInsn(SWAP);
                             super.visitInsn(POP);
@@ -362,7 +356,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 }
             }
             if(isUnsafeFieldGetter(opcode, owner, name, args, nameWithoutSuffix)) {
-                if(Configuration.IMPLICIT_TRACKING) {
+                if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                     desc = desc.replace(CONTROL_STACK_DESC, "");
                     super.visitInsn(SWAP);
                     super.visitInsn(POP);
@@ -371,7 +365,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name, desc, false);
                 return;
             } else if(isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
-                if(Configuration.IMPLICIT_TRACKING) {
+                if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                     desc = desc.replace(CONTROL_STACK_DESC, "");
                     super.visitInsn(POP);
                 }
@@ -379,7 +373,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(RuntimeUnsafePropagator.class), name, desc, false);
                 return;
             } else if(isUnsafeCAS(owner, name, nameWithoutSuffix) || isUnsafeCopyMemory(owner, name, nameWithoutSuffix)) {
-                if(Configuration.IMPLICIT_TRACKING) {
+                if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                     desc = desc.replace(CONTROL_STACK_DESC, "");
                     super.visitInsn(SWAP);
                     super.visitInsn(POP);
