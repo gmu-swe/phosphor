@@ -115,7 +115,7 @@ public final class LazyReferenceArrayObjTags extends LazyArrayObjTags {
         } else {
             val = new Object[len]; //TODO probably should serialize the array type then make it correctly?
             TaintedReferenceWithObjTag ret = new TaintedReferenceWithObjTag();
-            if(Configuration.IMPLICIT_TRACKING) {
+            if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                 ControlFlowStack dummy = Configuration.controlFlowManager.getStack(false);
                 dummy.disable();
                 for(int i = 0; i < len; i++) {

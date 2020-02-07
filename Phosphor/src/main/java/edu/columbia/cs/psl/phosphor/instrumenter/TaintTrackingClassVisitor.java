@@ -417,7 +417,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         if((access & Opcodes.ACC_NATIVE) == 0) {
             //not a native method
             LinkedList<String> addToSig = new LinkedList<>();
-            if(Configuration.IMPLICIT_TRACKING) {
+            if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                 addToSig.add(CONTROL_STACK_INTERNAL_NAME);
             }
             if((oldReturnType.getSort() != Type.VOID && oldReturnType.getSort() != Type.OBJECT && oldReturnType.getSort() != Type.ARRAY)) {
@@ -838,7 +838,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     }
 
                 }
-                if(Configuration.IMPLICIT_TRACKING && !newArgs.isEmpty()) {
+                if((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) && !newArgs.isEmpty()) {
                     newArgs.removeLast(); //remove control taint tag
                 }
                 StringBuilder newDesc = new StringBuilder("(");
@@ -896,7 +896,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         newArgs.removeLast();
                     }
                 }
-                if(Configuration.IMPLICIT_TRACKING && !newArgs.isEmpty()) {
+                if((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) && !newArgs.isEmpty()) {
                     newArgs.removeLast();//remove ControlFlowStack
                 }
                 String newDesc = "(";
@@ -1320,7 +1320,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         ga.visitLabel(start.getLabel());
         if(isLambda) {
             if(m.name.equals("equals")) {
-                int retVar = (Configuration.IMPLICIT_TRACKING ? 5 : 4);
+                int retVar = (Configuration.IMPLICIT_TRACKING  || Configuration.IMPLICIT_HEADERS_NO_TRACKING ? 5 : 4);
                 ga.visitVarInsn(Opcodes.ALOAD, retVar);
                 NEW_EMPTY_TAINT.delegateVisit(ga);
                 ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
@@ -1334,7 +1334,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", "Z");
                 ga.visitInsn(Opcodes.ARETURN);
                 ga.visitLabel(eq);
-                if(Configuration.IMPLICIT_TRACKING) {
+                if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                     ga.visitFrame(Opcodes.F_NEW, 4, new Object[]{className, TAINT_TAG_INTERNAL_NAME, "java/lang/Object", TAINT_TAG_INTERNAL_NAME, CONTROL_STACK_INTERNAL_NAME, newReturn.getInternalName()}, 0, new Object[]{});
                 } else {
                     ga.visitFrame(Opcodes.F_NEW, 3, new Object[]{className, TAINT_TAG_INTERNAL_NAME, "java/lang/Object", TAINT_TAG_INTERNAL_NAME, newReturn.getInternalName()}, 0, new Object[]{});
@@ -1344,7 +1344,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 ga.visitInsn(Opcodes.ICONST_1);
                 ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", "Z");
             } else if(m.name.equals("hashCode")) {
-                int retVar = (Configuration.IMPLICIT_TRACKING ? 3 : 2);
+                int retVar = (Configuration.IMPLICIT_TRACKING  || Configuration.IMPLICIT_HEADERS_NO_TRACKING ? 3 : 2);
                 ga.visitVarInsn(Opcodes.ALOAD, retVar);
                 ga.visitInsn(Opcodes.DUP);
                 ga.visitInsn(Opcodes.DUP);

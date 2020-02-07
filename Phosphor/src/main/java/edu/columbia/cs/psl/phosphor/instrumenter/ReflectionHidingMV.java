@@ -413,7 +413,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     }
 
     private String controlTrackDescOrNone() {
-        return (Configuration.IMPLICIT_TRACKING ? CONTROL_STACK_DESC : "");
+        return (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING ? CONTROL_STACK_DESC : "");
     }
 
     /**

@@ -125,7 +125,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
             super.visitLdcInsn(clazz.replace("/", "."));
             NEW_EMPTY_TAINT.delegateVisit(mv);
 
-            if(Configuration.IMPLICIT_TRACKING) {
+            if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                 if(this.localIdxOfControlTag < 0) {
                     localIdxOfControlTag = lvs.getIndexOfMasterControlLV();
                 }

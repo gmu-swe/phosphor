@@ -33,7 +33,7 @@ public class ClinitRetransformMV extends MethodVisitor {
                 // onto the stack by making a call to Class.forName
                 super.visitLdcInsn(className.replace("/", "."));
                 NEW_EMPTY_TAINT.delegateVisit(mv);
-                if(Configuration.IMPLICIT_TRACKING) {
+                if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                     /*If in implicit mode,  Class.forName is wrapped for the control tags.
                       If we call the wrapper, we'll get NoClassDefFound, because it will look
                       at the caller's  class in order to decide which class loader to use - and the caller
