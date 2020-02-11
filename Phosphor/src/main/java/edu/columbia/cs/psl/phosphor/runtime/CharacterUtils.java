@@ -186,7 +186,7 @@ public class CharacterUtils {
         return _ret;
     }
 
-    public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(int idx, Taint idxTaint, LazyCharArrayObjTags array, Taint t, int dstIdx, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag toChars$$PHOSPHORTAGGED(int idx, Taint idxTaint, LazyCharArrayObjTags array, Taint t, int dstIdx, Taint dstIdxTaint, TaintedIntWithObjTag ret) {
 
         ret.val = Character.toChars(idx, array.val, dstIdx);
 
