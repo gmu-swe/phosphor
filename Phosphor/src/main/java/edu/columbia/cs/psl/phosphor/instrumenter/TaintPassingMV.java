@@ -603,8 +603,23 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                             ga.visitInsn(DUP);
                         }
                         int offset = 0;
-                        for(Type t : uninstNewWrapperArgs) {
+                        int i = 0;
+                        for (Type t : uninstNewWrapperArgs) {
                             ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), offset);
+                            if (t.getSort() == Type.INT) {
+                                switch (implMethodArgs[i].getSort()) {
+                                    case Type.LONG:
+                                        ga.visitInsn(Opcodes.I2L);
+                                        break;
+                                    case Type.FLOAT:
+                                        ga.visitInsn(Opcodes.I2F);
+                                        break;
+                                    case Type.DOUBLE:
+                                        ga.visitInsn(Opcodes.I2D);
+                                        break;
+                                }
+                            }
+                            i++;
                             offset += t.getSize();
                         }
                         int opToCall;
