@@ -2,7 +2,10 @@ package edu.columbia.cs.psl.phosphor.control.standard;
 
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.EnqueuedTaint;
+import edu.columbia.cs.psl.phosphor.struct.ExceptionalTaintData;
+import edu.columbia.cs.psl.phosphor.struct.MaybeThrownException;
+import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 
 import java.util.Iterator;
 
@@ -238,18 +241,22 @@ public class StandardControlFlowStack<E> extends ControlFlowStack {
         }
     }
 
+    private Taint<E> _copyTagExceptions(Taint<E> ret){
+        for(MaybeThrownException<E> mte : influenceExceptions) {
+            if(mte != null && mte.getTag() != null) {
+                ret = ret.union(mte.getTag());
+            }
+        }
+        return ret;
+    }
     @Override
     public Taint<E> copyTag() {
         if(isDisabled()) {
             return Taint.emptyTaint();
         }
         Taint<E> ret = taintHistory.peek();
-        if(influenceExceptions != null) {
-            for(MaybeThrownException<E> mte : influenceExceptions) {
-                if(mte != null && mte.getTag() != null) {
-                    ret = ret.union(mte.getTag());
-                }
-            }
+        if (influenceExceptions != null) {
+            ret = _copyTagExceptions(ret);
         }
         return ret;
     }

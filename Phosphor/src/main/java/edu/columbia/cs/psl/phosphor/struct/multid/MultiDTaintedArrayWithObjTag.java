@@ -631,117 +631,122 @@ public abstract class MultiDTaintedArrayWithObjTag {
         return in;
     }
 
-    public static Object boxIfNecessary(final Object in) {
-        if(in != null && in.getClass().isArray()) {
-            if(!in.getClass().getComponentType().isArray()) {
-                //Is prim arraytype
-                Class tmp = in.getClass();
-                int dims = 0;
-                while(tmp.isArray()) {
-                    tmp = tmp.getComponentType();
-                    dims++;
-                }
-                if(dims > 1) { //this should never be possible.
-                    Type t = Type.getType(in.getClass());
-                    initWithEmptyTaints((Object[]) in, t.getElementType().getSort(), t.getDimensions());
-                } else {
-                    if(tmp == Boolean.TYPE) {
-                        return new LazyBooleanArrayObjTags((boolean[]) in);
-                    }
-                    if(tmp == Byte.TYPE) {
-                        return new LazyByteArrayObjTags(((byte[]) in));
-                    }
-                    if(tmp == Character.TYPE) {
-                        return new LazyCharArrayObjTags(((char[]) in));
-                    }
-                    if(tmp == Double.TYPE) {
-                        return new LazyDoubleArrayObjTags(((double[]) in));
-                    }
-                    if(tmp == Float.TYPE) {
-                        return new LazyFloatArrayObjTags(((float[]) in));
-                    }
-                    if(tmp == Integer.TYPE) {
-                        return new LazyIntArrayObjTags(((int[]) in));
-                    }
-                    if(tmp == Long.TYPE) {
-                        return new LazyLongArrayObjTags(((long[]) in));
-                    }
-                    if(tmp == Short.TYPE) {
-                        return new LazyShortArrayObjTags(((short[]) in));
-                    }
-                    return new LazyReferenceArrayObjTags((Object[]) in);
-                }
-            } else if(in.getClass().getComponentType().isArray() && in.getClass().getComponentType().getComponentType().isPrimitive()) {
-                //THIS array is an prim[][] array
-                Object[] _in = (Object[]) in;
-
-                Class tmp = in.getClass();
-                while(tmp.isArray()) {
-                    tmp = tmp.getComponentType();
-                }
+    private static Object _boxIfNecessary(final Object in){
+        if(!in.getClass().getComponentType().isArray()) {
+            //Is prim arraytype
+            Class tmp = in.getClass();
+            int dims = 0;
+            while(tmp.isArray()) {
+                tmp = tmp.getComponentType();
+                dims++;
+            }
+            if(dims > 1) { //this should never be possible.
+                Type t = Type.getType(in.getClass());
+                initWithEmptyTaints((Object[]) in, t.getElementType().getSort(), t.getDimensions());
+            } else {
                 if(tmp == Boolean.TYPE) {
-                    LazyBooleanArrayObjTags[] ret = new LazyBooleanArrayObjTags[_in.length];
-                    for(int i = 0; i < _in.length; i++) {
-                        ret[i] = new LazyBooleanArrayObjTags((boolean[]) _in[i]);
-                    }
-                    return ret;
+                    return new LazyBooleanArrayObjTags((boolean[]) in);
                 }
                 if(tmp == Byte.TYPE) {
-                    LazyByteArrayObjTags[] ret = new LazyByteArrayObjTags[_in.length];
-                    for(int i = 0; i < _in.length; i++) {
-                        ret[i] = new LazyByteArrayObjTags((byte[]) _in[i]);
-                    }
-                    return ret;
+                    return new LazyByteArrayObjTags(((byte[]) in));
                 }
                 if(tmp == Character.TYPE) {
-                    LazyCharArrayObjTags[] ret = new LazyCharArrayObjTags[_in.length];
-                    for(int i = 0; i < _in.length; i++) {
-                        ret[i] = new LazyCharArrayObjTags((char[]) _in[i]);
-                    }
-                    return ret;
+                    return new LazyCharArrayObjTags(((char[]) in));
                 }
                 if(tmp == Double.TYPE) {
-                    LazyDoubleArrayObjTags[] ret = new LazyDoubleArrayObjTags[_in.length];
-                    for(int i = 0; i < _in.length; i++) {
-                        ret[i] = new LazyDoubleArrayObjTags((double[]) _in[i]);
-                    }
-                    return ret;
+                    return new LazyDoubleArrayObjTags(((double[]) in));
                 }
                 if(tmp == Float.TYPE) {
-                    LazyFloatArrayObjTags[] ret = new LazyFloatArrayObjTags[_in.length];
-                    for(int i = 0; i < _in.length; i++) {
-                        ret[i] = new LazyFloatArrayObjTags((float[]) _in[i]);
-                    }
-                    return ret;
+                    return new LazyFloatArrayObjTags(((float[]) in));
                 }
                 if(tmp == Integer.TYPE) {
-                    LazyIntArrayObjTags[] ret = new LazyIntArrayObjTags[_in.length];
-                    for(int i = 0; i < _in.length; i++) {
-                        ret[i] = new LazyIntArrayObjTags((int[]) _in[i]);
-                    }
-                    return ret;
-                }
-                if(tmp == Short.TYPE) {
-                    LazyShortArrayObjTags[] ret = new LazyShortArrayObjTags[_in.length];
-                    for(int i = 0; i < _in.length; i++) {
-                        ret[i] = new LazyShortArrayObjTags((short[]) _in[i]);
-                    }
-                    return ret;
+                    return new LazyIntArrayObjTags(((int[]) in));
                 }
                 if(tmp == Long.TYPE) {
-                    LazyLongArrayObjTags[] ret = new LazyLongArrayObjTags[_in.length];
-                    for(int i = 0; i < _in.length; i++) {
-                        ret[i] = new LazyLongArrayObjTags((long[]) _in[i]);
-                    }
-                    return ret;
+                    return new LazyLongArrayObjTags(((long[]) in));
                 }
-                throw new UnsupportedOperationException();
-            } else if(in.getClass().getComponentType().getName().equals("java.lang.Object")) {
-                Object[] _in = (Object[]) in;
-                for(int i = 0; i < _in.length; i++) {
-                    _in[i] = boxIfNecessary(_in[i], new HashSet<Object>());
+                if(tmp == Short.TYPE) {
+                    return new LazyShortArrayObjTags(((short[]) in));
                 }
+                return new LazyReferenceArrayObjTags((Object[]) in);
             }
+        } else if(in.getClass().getComponentType().isArray() && in.getClass().getComponentType().getComponentType().isPrimitive()) {
+            //THIS array is an prim[][] array
+            Object[] _in = (Object[]) in;
+
+            Class tmp = in.getClass();
+            while(tmp.isArray()) {
+                tmp = tmp.getComponentType();
+            }
+            if(tmp == Boolean.TYPE) {
+                LazyBooleanArrayObjTags[] ret = new LazyBooleanArrayObjTags[_in.length];
+                for(int i = 0; i < _in.length; i++) {
+                    ret[i] = new LazyBooleanArrayObjTags((boolean[]) _in[i]);
+                }
+                return ret;
+            }
+            if(tmp == Byte.TYPE) {
+                LazyByteArrayObjTags[] ret = new LazyByteArrayObjTags[_in.length];
+                for(int i = 0; i < _in.length; i++) {
+                    ret[i] = new LazyByteArrayObjTags((byte[]) _in[i]);
+                }
+                return ret;
+            }
+            if(tmp == Character.TYPE) {
+                LazyCharArrayObjTags[] ret = new LazyCharArrayObjTags[_in.length];
+                for(int i = 0; i < _in.length; i++) {
+                    ret[i] = new LazyCharArrayObjTags((char[]) _in[i]);
+                }
+                return ret;
+            }
+            if(tmp == Double.TYPE) {
+                LazyDoubleArrayObjTags[] ret = new LazyDoubleArrayObjTags[_in.length];
+                for(int i = 0; i < _in.length; i++) {
+                    ret[i] = new LazyDoubleArrayObjTags((double[]) _in[i]);
+                }
+                return ret;
+            }
+            if(tmp == Float.TYPE) {
+                LazyFloatArrayObjTags[] ret = new LazyFloatArrayObjTags[_in.length];
+                for(int i = 0; i < _in.length; i++) {
+                    ret[i] = new LazyFloatArrayObjTags((float[]) _in[i]);
+                }
+                return ret;
+            }
+            if(tmp == Integer.TYPE) {
+                LazyIntArrayObjTags[] ret = new LazyIntArrayObjTags[_in.length];
+                for(int i = 0; i < _in.length; i++) {
+                    ret[i] = new LazyIntArrayObjTags((int[]) _in[i]);
+                }
+                return ret;
+            }
+            if(tmp == Short.TYPE) {
+                LazyShortArrayObjTags[] ret = new LazyShortArrayObjTags[_in.length];
+                for(int i = 0; i < _in.length; i++) {
+                    ret[i] = new LazyShortArrayObjTags((short[]) _in[i]);
+                }
+                return ret;
+            }
+            if(tmp == Long.TYPE) {
+                LazyLongArrayObjTags[] ret = new LazyLongArrayObjTags[_in.length];
+                for(int i = 0; i < _in.length; i++) {
+                    ret[i] = new LazyLongArrayObjTags((long[]) _in[i]);
+                }
+                return ret;
+            }
+            throw new UnsupportedOperationException();
+        } else if(in.getClass().getComponentType().getName().equals("java.lang.Object")) {
+            Object[] _in = (Object[]) in;
+            for(int i = 0; i < _in.length; i++) {
+                _in[i] = boxIfNecessary(_in[i], new HashSet<Object>());
+            }
+        }
+        return in;
+    }
+
+    public static Object boxIfNecessary(final Object in) {
+        if(in != null && in.getClass().isArray()) {
+            return _boxIfNecessary(in);
         }
         return in;
     }
