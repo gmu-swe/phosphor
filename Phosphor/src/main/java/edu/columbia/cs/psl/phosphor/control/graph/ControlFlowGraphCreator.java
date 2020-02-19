@@ -8,6 +8,8 @@ import org.objectweb.asm.tree.*;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import static org.objectweb.asm.Opcodes.GOTO;
+
 /**
  * Creates control flow graphs that represents all of the possible execution paths through a method.
  */
@@ -25,7 +27,6 @@ public abstract class ControlFlowGraphCreator {
         AbstractInsnNode[] instructions = methodNode.instructions.toArray();
         if(instructions.length == 0) {
             addEntryExitEdge();
-            return buildGraph();
         } else {
             int[] leaderIndices = calculateLeaders(methodNode.instructions, methodNode.tryCatchBlocks);
             // Add a basic block for each leader
@@ -38,8 +39,8 @@ public abstract class ControlFlowGraphCreator {
                 start = end;
             }
             addControlFlowEdges(basicBlocks, methodNode.tryCatchBlocks);
-            return buildGraph();
         }
+        return buildGraph();
     }
 
     /**
@@ -179,7 +180,7 @@ public abstract class ControlFlowGraphCreator {
             BasicBlock currentBasicBlock = basicBlocks.get(i);
             BasicBlock nextBasicBlock = i < (basicBlocks.size() - 1) ? basicBlocks.get(i + 1) : null;
             AbstractInsnNode lastInsn = currentBasicBlock.getLastInsn();
-            if(lastInsn instanceof JumpInsnNode && lastInsn.getOpcode() == Opcodes.GOTO) {
+            if(lastInsn instanceof JumpInsnNode && lastInsn.getOpcode() == GOTO) {
                 addUnconditionalJumpEdge(currentBasicBlock, labelBlockMap.get(((JumpInsnNode) lastInsn).label));
             } else if(lastInsn instanceof JumpInsnNode) {
                 addBranchTakenEdge(currentBasicBlock, labelBlockMap.get(((JumpInsnNode) lastInsn).label));
@@ -221,8 +222,7 @@ public abstract class ControlFlowGraphCreator {
             AbstractInsnNode insn = itr.next();
             if(insn instanceof JumpInsnNode) {
                 leaders.add(((JumpInsnNode) insn).label); // Mark the target of the jump as a leader
-                if(insn.getNext() != null) {
-                    //TODO JB found null here when processing JDK classes like com.sun.corba.se.impl.orb.ORBImpl
+                if(insn.getOpcode() != GOTO) {
                     leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
                 }
             } else if(insn instanceof TableSwitchInsnNode) {
