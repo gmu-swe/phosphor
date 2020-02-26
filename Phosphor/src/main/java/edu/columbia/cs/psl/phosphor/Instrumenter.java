@@ -3,7 +3,6 @@ package edu.columbia.cs.psl.phosphor;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.ConcurrentHashMap;
 import org.apache.commons.cli.CommandLine;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -28,7 +27,7 @@ public class Instrumenter {
     public static ClassLoader loader;
     public static boolean IS_KAFFE_INST = Boolean.parseBoolean(System.getProperty("KAFFE", "false"));
     public static boolean IS_HARMONY_INST = Boolean.parseBoolean(System.getProperty("HARMONY", "false"));
-    public static Map<String, ClassNode> classes = new ConcurrentHashMap<>();
+    public static Map<String, ClassNode> classes = Collections.synchronizedMap(new HashMap<>());
     public static InputStream sourcesFile;
     public static InputStream sinksFile;
     public static InputStream taintThroughFile;
