@@ -24,23 +24,6 @@ public class ExceptionalControlFlowTestMethods {
         return i;
     }
 
-    public int explicitIOException(int[] a) {
-        blockID = 0;
-        int i = 0;
-        try {
-            if(a[0] < 2) {
-                blockID = 1;
-                throw new IOException();
-            }
-            blockID = 2;
-        } catch(IOException e) {
-            blockID = 3;
-            e.printStackTrace();
-        }
-        blockID = 4;
-        return i;
-    }
-
     public void exceptionThrowingMethod() throws IOException {
         throw new FileNotFoundException();
     }
@@ -74,5 +57,38 @@ public class ExceptionalControlFlowTestMethods {
             blockID = 4;
         }
         blockID = 5;
+    }
+
+    public int explicitlyThrowCaughtException(int[] a) {
+        blockID = 0;
+        int i = 0;
+        try {
+            if(a[0] < 2) {
+                blockID = 1;
+                throw new IOException();
+            }
+            blockID = 2;
+        } catch(IOException e) {
+            blockID = 3;
+            e.printStackTrace();
+        }
+        blockID = 4;
+        return i;
+    }
+
+    public int explicitlyThrowUncaughtException(int[] a, IOException e) throws IOException {
+        blockID = 0;
+        int i = 0;
+        try {
+            if(a[0] < 2) {
+                blockID = 1;
+                throw e;
+            }
+            blockID = 2;
+        } catch(IllegalArgumentException e2) {
+            blockID = 3;
+        }
+        blockID = 4;
+        return i;
     }
 }

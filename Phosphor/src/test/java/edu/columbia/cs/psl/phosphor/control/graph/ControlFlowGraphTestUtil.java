@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.analysis.AnalyzerException;
 
 import java.io.IOException;
 
@@ -15,7 +16,7 @@ public class ControlFlowGraphTestUtil {
     public static MethodNode getMethodNode(Class<?> clazz, String methodName) throws NoSuchMethodException, IOException {
         ClassReader cr = new ClassReader(clazz.getName());
         ClassNode classNode = new ClassNode();
-        cr.accept(classNode, 0);
+        cr.accept(classNode, ClassReader.EXPAND_FRAMES);
         for(MethodNode mn : classNode.methods) {
             if(mn.name.equals(methodName)) {
                 return mn;
@@ -108,17 +109,19 @@ public class ControlFlowGraphTestUtil {
     }
 
     public static Map<Integer, Set<Integer>> calculateSuccessors(Class<?> clazz, String methodName, boolean addExceptionalEdges)
-            throws NoSuchMethodException, IOException {
+            throws NoSuchMethodException, IOException, AnalyzerException {
+        String owner = clazz.getName().replace(".", "/");
         MethodNode mn = getMethodNode(clazz, methodName);
-        FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator(addExceptionalEdges).createControlFlowGraph(mn);
+        FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator(addExceptionalEdges).createControlFlowGraph(owner, mn);
         Map<BasicBlock, Integer> blockIDMap = createBasicBlockIDMap(clazz, mn, cfg.getVertices());
         return convertBasicBlocksToIDs(blockIDMap, cfg.getSuccessors());
     }
 
     public static Map<Integer, Set<Integer>> calculateLoops(Class<?> clazz, String methodName, boolean addExceptionalEdges)
-            throws NoSuchMethodException, IOException {
+            throws NoSuchMethodException, IOException, AnalyzerException {
+        String owner = clazz.getName().replace(".", "/");
         MethodNode mn = getMethodNode(clazz, methodName);
-        FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator(addExceptionalEdges).createControlFlowGraph(mn);
+        FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator(addExceptionalEdges).createControlFlowGraph(owner, mn);
         Map<BasicBlock, Integer> blockIDMap = createBasicBlockIDMap(clazz, mn, cfg.getVertices());
         Map<BasicBlock, Set<BasicBlock>> loops = new HashMap<>();
         for(FlowGraph.NaturalLoop<BasicBlock> loop : cfg.getNaturalLoops()) {

@@ -184,7 +184,7 @@ public class BasicArrayInterpreter extends BasicInterpreter {
         }
     }
 
-    public class BasicThisFieldValue extends BasicValue {
+    public static class BasicThisFieldValue extends BasicValue {
         private Field field;
 
         public BasicThisFieldValue(Type t, Field f) {
