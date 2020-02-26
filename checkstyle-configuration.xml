@@ -50,7 +50,6 @@
         <module name="IllegalInstantiation"/>
         <module name="SimplifyBooleanExpression"/>
         <module name="SimplifyBooleanReturn"/>
-        <module name="HideUtilityClassConstructor"/>
         <module name="InterfaceIsType"/>
         <!-- Checks comments are indented at the same level as surrounding code -->
         <module name="CommentsIndentation"/>

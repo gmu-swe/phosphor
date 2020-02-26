@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.control.graph;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
@@ -8,12 +9,29 @@ import org.objectweb.asm.tree.*;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import static edu.columbia.cs.psl.phosphor.control.OpcodesUtil.couldThrowHandledException;
 import static org.objectweb.asm.Opcodes.GOTO;
 
 /**
  * Creates control flow graphs that represents all of the possible execution paths through a method.
  */
 public abstract class ControlFlowGraphCreator {
+
+    /**
+     * True if edges from instructions inside exceptional handlers that can potentially throw an exception
+     * handled by the handler to the start of the exception handler should be added.
+     * Otherwise, in order to connect exception handlers into the graph, "dummy" edges are added from the distinguished
+     * start node of the graph to the start of the exception handlers.
+     */
+    private final boolean addExceptionalEdges;
+
+    public ControlFlowGraphCreator(boolean addExceptionalEdges) {
+        this.addExceptionalEdges = addExceptionalEdges;
+    }
+
+    public ControlFlowGraphCreator() {
+        this(false);
+    }
 
     /**
      * Returns a flow graph that represents all of the possible execution paths through the specified method.
@@ -28,7 +46,13 @@ public abstract class ControlFlowGraphCreator {
         if(instructions.length == 0) {
             addEntryExitEdge();
         } else {
-            int[] leaderIndices = calculateLeaders(methodNode.instructions, methodNode.tryCatchBlocks);
+            Map<AbstractInsnNode, Set<TryCatchBlockNode>> handlers;
+            if(addExceptionalEdges) {
+                handlers = calculateHandlers(methodNode);
+            } else {
+                handlers = Collections.emptyMap();
+            }
+            int[] leaderIndices = calculateLeaders(methodNode.instructions, methodNode.tryCatchBlocks, handlers);
             // Add a basic block for each leader
             List<BasicBlock> basicBlocks = new ArrayList<>();
             int l = 0; // Current index into leaderIndices
@@ -38,7 +62,7 @@ public abstract class ControlFlowGraphCreator {
                 basicBlocks.add(addBasicBlock(Arrays.copyOfRange(instructions, start, end), i));
                 start = end;
             }
-            addControlFlowEdges(basicBlocks, methodNode.tryCatchBlocks);
+            addControlFlowEdges(basicBlocks, methodNode.tryCatchBlocks, handlers);
         }
         return buildGraph();
     }
@@ -87,6 +111,17 @@ public abstract class ControlFlowGraphCreator {
     protected abstract void addExceptionalEdgeFromEntryPoint(BasicBlock target, TryCatchBlockNode tryCatchBlockNode);
 
     /**
+     * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
+     * the specified target block being the start of an exception handler that may catch an exception thrown by
+     * the specified source block.
+     *
+     * @param source the source vertex of the directed edge being added
+     * @param target the target vertex of the directed edge being added
+     */
+    protected abstract void addExceptionalEdge(BasicBlock source, BasicBlock target);
+
+
+    /**
      * Adds a directed edge from the specified basic block to the exit vertex of the graph as result of the specified
      * block ending in a return instruction.
      *
@@ -114,7 +149,7 @@ public abstract class ControlFlowGraphCreator {
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
-     * of the target block being the unconditional jump target of the specified source block.
+     * the target block being the unconditional jump target of the specified source block.
      *
      * @param source the source vertex of the directed edge being added
      * @param target the target vertex of the directed edge being added
@@ -123,7 +158,7 @@ public abstract class ControlFlowGraphCreator {
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
-     * of the target block containing the conditional jump target of the specified source block.
+     * the target block containing the conditional jump target of the specified source block.
      *
      * @param source the source vertex of the directed edge being added
      * @param target the target vertex of the directed edge being added
@@ -132,7 +167,7 @@ public abstract class ControlFlowGraphCreator {
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
-     * of the target block following the specified source block in the sequential execution and the specified source
+     * the target block following the specified source block in the sequential execution and the specified source
      * block ending with a conditional jump.
      *
      * @param source the source vertex of the directed edge being added
@@ -142,7 +177,7 @@ public abstract class ControlFlowGraphCreator {
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
-     * of the target block containing a non-default case label for the specified source block's switch statement
+     * the target block containing a non-default case label for the specified source block's switch statement.
      *
      * @param source the source vertex of the directed edge being added
      * @param target the target vertex of the directed edge being added
@@ -151,7 +186,7 @@ public abstract class ControlFlowGraphCreator {
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
-     * of the target block containing the default case label for the specified source block's switch statement
+     * the target block containing the default case label for the specified source block's switch statement.
      *
      * @param source the source vertex of the directed edge being added
      * @param target the target vertex of the directed edge being added
@@ -172,8 +207,10 @@ public abstract class ControlFlowGraphCreator {
      * @param basicBlocks    a list containing all of the basic blocks for a method in increasing order by the index of the
      *                       first instruction in the block.
      * @param tryCatchBlocks the try catch blocks for the method
+     * @param handlers       maps instructions to the try catch blocks to which execution can flow from the instruction
      */
-    private void addControlFlowEdges(List<BasicBlock> basicBlocks, java.util.List<TryCatchBlockNode> tryCatchBlocks) {
+    private void addControlFlowEdges(List<BasicBlock> basicBlocks, java.util.List<TryCatchBlockNode> tryCatchBlocks,
+                                     Map<AbstractInsnNode, Set<TryCatchBlockNode>> handlers) {
         Map<LabelNode, BasicBlock> labelBlockMap = createLabelBlockMapping(basicBlocks);
         addStandardEdgeFromEntryPoint(basicBlocks.get(0));
         for(int i = 0; i < basicBlocks.size(); i++) {
@@ -198,23 +235,40 @@ public abstract class ControlFlowGraphCreator {
             } else if(TaintUtils.isReturnOpcode(lastInsn.getOpcode())) {
                 addStandardEdgeToExitPoint(currentBasicBlock);
             } else if(lastInsn.getOpcode() == Opcodes.ATHROW) {
+                // TODO considered whether the throw exception is caught
                 addExceptionalEdgeToExitPoint(currentBasicBlock);
             } else if(nextBasicBlock != null) {
                 addSequentialEdge(currentBasicBlock, nextBasicBlock);
             }
         }
-        for(TryCatchBlockNode tryCatch : tryCatchBlocks) {
-            addExceptionalEdgeFromEntryPoint(labelBlockMap.get(tryCatch.handler), tryCatch);
+        if(addExceptionalEdges) {
+            // Add edges from instructions to exception handlers to which execution could flow from the instruction
+            for(int i = 0; i < basicBlocks.size(); i++) {
+                BasicBlock currentBasicBlock = basicBlocks.get(i);
+                AbstractInsnNode insn = currentBasicBlock.getLastInsn();
+                if(handlers.containsKey(insn)) {
+                    for(TryCatchBlockNode tryCatch : handlers.get(insn)) {
+                        addExceptionalEdge(currentBasicBlock, labelBlockMap.get(tryCatch.handler));
+                    }
+                }
+            }
+        } else {
+            // Add fake edges from the distinguished start node to connect the exception handling blocks into the graph
+            for(TryCatchBlockNode tryCatch : tryCatchBlocks) {
+                addExceptionalEdgeFromEntryPoint(labelBlockMap.get(tryCatch.handler), tryCatch);
+            }
         }
     }
 
     /**
      * @param instructions   a sequence of instructions that form a method
      * @param tryCatchBlocks the try catch blocks for the method
+     * @param handlers       maps instructions to the try catch blocks to which execution can flow from the instruction
      * @return a list in ascending order of the indices of instructions that are the first instruction of some basic
      * block for the method
      */
-    private static int[] calculateLeaders(InsnList instructions, java.util.List<TryCatchBlockNode> tryCatchBlocks) {
+    private static int[] calculateLeaders(InsnList instructions, java.util.List<TryCatchBlockNode> tryCatchBlocks,
+                                          Map<AbstractInsnNode, Set<TryCatchBlockNode>> handlers) {
         Set<AbstractInsnNode> leaders = new HashSet<>();
         leaders.add(instructions.getFirst()); // First instruction is the leader for the first block
         Iterator<AbstractInsnNode> itr = instructions.iterator();
@@ -239,8 +293,14 @@ public abstract class ControlFlowGraphCreator {
                     leaders.add(node);
                 }
                 leaders.add(insn.getNext()); // Mark the instruction following the jump as a leader
-            } else if(isExitInstruction(insn) && insn.getNext() != null) {
+            } else if(OpcodesUtil.isExitInstruction(insn) && insn.getNext() != null) {
                 leaders.add(insn.getNext()); // Mark the instruction following the return as a leader
+            }
+        }
+        for(AbstractInsnNode insn : handlers.keySet()) {
+            if(!handlers.get(insn).isEmpty() && insn.getNext() != null) {
+                // Mark the instruction following an instruction from which execution can flow into an exception handler
+                leaders.add(insn.getNext());
             }
         }
         // Add the start labels for exception handlers as leaders
@@ -257,14 +317,6 @@ public abstract class ControlFlowGraphCreator {
     }
 
     /**
-     * @param instruction the instruction to be checked
-     * @return true if the specified instruction triggers a method exit
-     */
-    private static boolean isExitInstruction(AbstractInsnNode instruction) {
-        return instruction.getOpcode() == Opcodes.ATHROW || TaintUtils.isReturnOpcode(instruction.getOpcode());
-    }
-
-    /**
      * @param basicBlocks a list containing all of the basic blocks for a method in increasing order by the index of the
      *                    first instruction in the block
      * @return a mapping from LabelNodes to the basic block that they start
@@ -278,5 +330,29 @@ public abstract class ControlFlowGraphCreator {
             }
         }
         return Collections.unmodifiableMap(labelBlockMap);
+    }
+
+    /**
+     * @param method the method whose instructions and exception handlers are to analyzed
+     * @return a mapping from instructions to the set of exceptions handler that contain the instruction in their range
+     * and handler an exception of a type potentially thrown by the instruction
+     */
+    private static Map<AbstractInsnNode, Set<TryCatchBlockNode>> calculateHandlers(MethodNode method) {
+        Map<AbstractInsnNode, Set<TryCatchBlockNode>> handlers = new HashMap<>();
+        for(TryCatchBlockNode tryCatchBlock : method.tryCatchBlocks) {
+            int startIndex = method.instructions.indexOf(tryCatchBlock.start);
+            int endIndex = method.instructions.indexOf(tryCatchBlock.end);
+            for(int i = startIndex; i < endIndex; i++) {
+                AbstractInsnNode insn = method.instructions.get(i);
+                // TODO pass thrownExceptionType for ATHROWs
+                if(couldThrowHandledException(insn, tryCatchBlock, null)) {
+                    if(!handlers.containsKey(insn)) {
+                        handlers.put(insn, new HashSet<>());
+                    }
+                    handlers.get(insn).add(tryCatchBlock);
+                }
+            }
+        }
+        return handlers;
     }
 }

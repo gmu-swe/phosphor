@@ -13,7 +13,8 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
  * Department of Computer Science Technical Report 06-33870, 2006.
  * http://www.cs.rice.edu/~keith/EMBED/dom.pdf
  *
- * <p>Uses the algorithm for gathering the set of nodes in a natural loop from Compilers: Principles, Techniques, and
+ * <p>Uses the algorithm for gathering the set of nodes in a natural loop from the following:<br>
+ * Compilers: Principles, Techniques, and
  * Tools (2nd Edition) by Alfred V. Aho, Monica S. Lam, Ravi Sethi, and Jeffrey D. Ullman in section 9.6.6.
  *
  * @param <V> the type of the graph's vertices

@@ -1,8 +1,8 @@
 package edu.columbia.cs.psl.phosphor.control.graph;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.PhosphorTextifier;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
@@ -18,6 +18,13 @@ import java.io.StringWriter;
 public class BaseControlFlowGraphCreator extends ControlFlowGraphCreator {
 
     protected FlowGraphBuilder<BasicBlock> builder = new FlowGraphBuilder<>();
+
+    public BaseControlFlowGraphCreator(boolean addExceptionalEdges) {
+        super(addExceptionalEdges);
+    }
+
+    public BaseControlFlowGraphCreator() {
+    }
 
     @Override
     protected void addEntryPoint() {
@@ -49,6 +56,11 @@ public class BaseControlFlowGraphCreator extends ControlFlowGraphCreator {
     @Override
     protected void addExceptionalEdgeFromEntryPoint(BasicBlock target, TryCatchBlockNode tryCatchBlockNode) {
         builder.addEdge(builder.getEntryPoint(), target);
+    }
+
+    @Override
+    protected void addExceptionalEdge(BasicBlock source, BasicBlock target) {
+        builder.addEdge(source, target);
     }
 
     @Override

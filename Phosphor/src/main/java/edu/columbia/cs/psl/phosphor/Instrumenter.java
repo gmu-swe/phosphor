@@ -3,10 +3,13 @@ package edu.columbia.cs.psl.phosphor;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.ConcurrentHashMap;
 import org.apache.commons.cli.CommandLine;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 
 import java.io.*;
 import java.lang.instrument.ClassFileTransformer;
@@ -25,7 +28,7 @@ public class Instrumenter {
     public static ClassLoader loader;
     public static boolean IS_KAFFE_INST = Boolean.parseBoolean(System.getProperty("KAFFE", "false"));
     public static boolean IS_HARMONY_INST = Boolean.parseBoolean(System.getProperty("HARMONY", "false"));
-    public static Map<String, ClassNode> classes = new HashMap<>();
+    public static Map<String, ClassNode> classes = new ConcurrentHashMap<>();
     public static InputStream sourcesFile;
     public static InputStream sinksFile;
     public static InputStream taintThroughFile;
@@ -690,14 +693,23 @@ public class Instrumenter {
             }
             ClassReader cr = new ClassReader(is);
             cr.accept(new ClassVisitor(Configuration.ASM_VERSION) {
+                private ClassNode cn;
+
                 @Override
                 public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
                     super.visit(version, access, name, signature, superName, interfaces);
-                    ClassNode cn = new ClassNode();
+                    cn = new ClassNode();
                     cn.name = name;
                     cn.superName = superName;
                     cn.interfaces = new java.util.ArrayList<>(java.util.Arrays.asList(interfaces));
+                    cn.methods = new java.util.LinkedList<>();
                     classes.put(name, cn);
+                }
+
+                @Override
+                public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                    cn.methods.add(new MethodNode(access, name, descriptor, signature, exceptions));
+                    return super.visitMethod(access, name, descriptor, signature, exceptions);
                 }
             }, ClassReader.SKIP_CODE);
             is.close();
