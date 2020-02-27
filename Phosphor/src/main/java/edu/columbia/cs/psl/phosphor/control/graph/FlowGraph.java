@@ -4,6 +4,10 @@ import edu.columbia.cs.psl.phosphor.struct.IntSinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.util.function.Function;
+
 /**
  * A flow graph composed of a set of vertices connected by directed edges. The graph is unweighted and has single point
  * of entry (source) and a single point of exit (sink).
@@ -477,6 +481,48 @@ public final class FlowGraph<V> {
         result = 31 * result + (exitPoint != null ? exitPoint.hashCode() : 0);
         result = 31 * result + successors.hashCode();
         return result;
+    }
+
+    /**
+     * Writes a representation of this graph in the DOT language to the specified writer.
+     *
+     * @param writer           the writer to which the graph will be written
+     * @param graphName        name used as a label for the graph, this should adhere to DOT label requirements
+     * @param vertexComparator comparator that determine the order in which vertices appear in the DOT output, if null
+     *                         the order if undefined
+     * @param printer          function used to create labels for the vertices, this should produce labels that
+     *                         adhere to DOT label requirements
+     * @param fontSize         value used for the fontsize attribute of the graph
+     * @throws NullPointerException     if writer is null or printer is null
+     * @throws IOException              if an I/O error occurs while writing to the specified writer
+     * @throws IllegalArgumentException if fontSize <= 0
+     */
+    public void write(Writer writer, String graphName, Comparator<V> vertexComparator,
+                      Function<V, String> printer, int fontSize) throws IOException {
+        if(fontSize <= 0) {
+            throw new IllegalArgumentException("Invalid font size: " + fontSize);
+        }
+        List<V> sortedVertices = new LinkedList<>(successors.keySet());
+        if(vertexComparator != null) {
+            Collections.sort(sortedVertices, vertexComparator);
+        }
+        Map<V, Integer> vertexIndexMap = new HashMap<>();
+        writer.write(String.format("digraph {%n"));
+        writer.write(String.format("\tnode [shape=box]%n"));
+        int i = 0;
+        for(V vertex : sortedVertices) {
+            writer.write(String.format("\t%d [label=%s]%n", i, printer.apply(vertex)));
+            vertexIndexMap.put(vertex, i++);
+        }
+        for(V vertex : sortedVertices) {
+            int vertexIndex = vertexIndexMap.get(vertex);
+            for(V successor : successors.get(vertex)) {
+                int successorIndex = vertexIndexMap.get(successor);
+                writer.write(String.format("\t%d -> %d%n", vertexIndex, successorIndex));
+            }
+        }
+        writer.write(String.format("\tlabel=%s%n", graphName));
+        writer.write(String.format("\tfontsize=%d%n}%n", fontSize));
     }
 
     /**

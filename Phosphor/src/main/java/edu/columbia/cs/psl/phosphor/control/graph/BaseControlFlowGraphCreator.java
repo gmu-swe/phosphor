@@ -1,19 +1,19 @@
 package edu.columbia.cs.psl.phosphor.control.graph;
 
-import edu.columbia.cs.psl.phosphor.instrumenter.PhosphorTextifier;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Comparator;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
-import org.objectweb.asm.util.Printer;
-import org.objectweb.asm.util.TraceMethodVisitor;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.PrintWriter;
-import java.io.StringWriter;
+
+import static edu.columbia.cs.psl.phosphor.control.graph.BasicBlock.getNumericLabelNames;
 
 public class BaseControlFlowGraphCreator extends ControlFlowGraphCreator {
 
@@ -111,98 +111,43 @@ public class BaseControlFlowGraphCreator extends ControlFlowGraphCreator {
     }
 
     public static void main(String[] args) throws Exception {
-        if(args.length != 2) {
-            throw new IllegalArgumentException("Usage: class_file output_file");
-        }
-        ClassReader cr = new ClassReader(new FileInputStream(args[0]));
-        ClassNode classNode = new ClassNode();
-        cr.accept(classNode, 0);
-        Printer printer = new PhosphorTextifier();
-        TraceMethodVisitor tmv = new TraceMethodVisitor(printer);
-        try(PrintWriter writer = new PrintWriter(args[1])) {
-            writer.println("[");
-            int methodNum = 0;
-            for(MethodNode mn : classNode.methods) {
-                writer.println("\t{");
-                writer.println("\t\t\"name\": \"" + mn.name + "\",");
-                writer.println("\t\t\"desc\": \"" + mn.desc + "\",");
-                writer.println("\t\t\"vertices\": [");
-                FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator().createControlFlowGraph(mn);
-                Map<BasicBlock, Integer> blockNumbers = new HashMap<>();
-                int nextBlockNum = 0;
-                List<BasicBlock> blocks = new LinkedList<>(cfg.getVertices());
-                Collections.sort(blocks, (b1, b2) -> {
-                    if(b1 instanceof EntryPoint || b2 instanceof ExitPoint) {
-                        return -1;
-                    } else if(b1 instanceof ExitPoint || b2 instanceof EntryPoint) {
-                        return 1;
-                    }
-                    AbstractInsnNode insn1 = b1.getFirstInsn();
-                    AbstractInsnNode insn2 = b2.getFirstInsn();
-                    if(insn1 == null && insn2 == null) {
-                        return 0;
-                    } else if(insn1 == null) {
-                        return 1;
-                    } else if(insn2 == null) {
-                        return -1;
-                    } else {
-                        return Integer.compare(mn.instructions.indexOf(insn1), mn.instructions.indexOf(insn2));
-                    }
-                });
-                for(BasicBlock vertex : blocks) {
-                    writer.println("\t\t\t{");
-                    writer.println("\t\t\t\t\"id\": \"" + nextBlockNum + "\",");
-                    StringBuilder label = new StringBuilder();
-                    if(vertex instanceof EntryPoint) {
-                        label = new StringBuilder("ENTRY");
-                    } else if(vertex instanceof ExitPoint) {
-                        label = new StringBuilder("EXIT");
-                    } else if(vertex.getFirstInsn() != null) {
-                        AbstractInsnNode insn = vertex.getFirstInsn();
-                        do {
-                            label.append(insnToString(tmv, printer, insn).replace("\"", "\\\""));
-                            if(insn == vertex.getLastInsn()) {
-                                break;
-                            }
-                            insn = insn.getNext();
-                        } while(insn != null);
-                    }
-                    blockNumbers.put(vertex, nextBlockNum++);
-                    writer.println("\t\t\t\t\"label\": \"" + label.toString().replace("\n\n", "\\\\n")
-                            .replace("\n", "\\\\n") + "\"");
-                    if(nextBlockNum == cfg.getVertices().size()) {
-                        writer.println("\t\t\t}");
-                    } else {
-                        writer.println("\t\t\t},");
-
-                    }
-                }
-                writer.println("\t\t],");
-                writer.println("\t\t\"edges\": [");
-                List<String> edges = new LinkedList<>();
-                for(BasicBlock vertex : cfg.getVertices()) {
-                    for(BasicBlock successor : cfg.getSuccessors(vertex)) {
-                        edges.add("\t\t\t[" + "\n\t\t\t\t\"" + blockNumbers.get(vertex) + "\"," + "\n\t\t\t\t\""
-                                + blockNumbers.get(successor) + "\"" + "\n\t\t\t]");
-                    }
-                }
-                writer.println(String.join(",\n", edges));
-                writer.println("\t\t]");
-                if(++methodNum == classNode.methods.size()) {
-                    writer.println("\t}");
-                } else {
-                    writer.println("\t},");
-                }
+        File classFile;
+        File outputDirectory;
+        boolean includeExceptionalEdges;
+        try {
+            classFile = new File(args[0]);
+            outputDirectory = new File(args[1]);
+            includeExceptionalEdges = Boolean.parseBoolean(args[2]);
+            if(!classFile.isFile() || !(outputDirectory.isDirectory() || outputDirectory.mkdirs())) {
+                throw new IllegalArgumentException();
             }
-            writer.println("]");
+        } catch(Exception e) {
+            throw new IllegalArgumentException("Usage: class-file output-directory include-exceptional-edges", e);
         }
-    }
-
-    private static String insnToString(TraceMethodVisitor tmv, Printer printer, AbstractInsnNode insn) {
-        insn.accept(tmv);
-        StringWriter stringWriter = new StringWriter();
-        printer.print(new PrintWriter(stringWriter));
-        printer.getText().clear();
-        return stringWriter.toString();
+        ClassNode classNode = new ClassNode();
+        new ClassReader(new FileInputStream(classFile)).accept(classNode, ClassReader.EXPAND_FRAMES);
+        int methodNum = 0;
+        Comparator<BasicBlock> comparator = (b1, b2) -> {
+            if(b1 instanceof EntryPoint || b2 instanceof ExitPoint) {
+                return -1;
+            } else if(b1 instanceof ExitPoint || b2 instanceof EntryPoint) {
+                return 1;
+            } else if(b1 instanceof SimpleBasicBlock && b2 instanceof SimpleBasicBlock) {
+                return Integer.compare(((SimpleBasicBlock) b1).getIdentifier(), ((SimpleBasicBlock) b2).getIdentifier());
+            } else {
+                return 0;
+            }
+        };
+        String[] classNameParts = classNode.name.split("/");
+        String className = classNameParts[classNameParts.length - 1];
+        for(MethodNode mn : classNode.methods) {
+            FlowGraph<BasicBlock> cfg = new BaseControlFlowGraphCreator(includeExceptionalEdges)
+                    .createControlFlowGraph(mn);
+            Map<Label, String> labelNames = getNumericLabelNames(mn.instructions);
+            try(PrintWriter writer = new PrintWriter(new File(outputDirectory, String.format("%s%d.gv", mn.name, methodNum)))) {
+                cfg.write(writer, String.format("\"%s.%s%s\"", className, mn.name, mn.desc), comparator, (b) -> b.toDotString(labelNames), 20);
+                methodNum++;
+            }
+        }
     }
 }

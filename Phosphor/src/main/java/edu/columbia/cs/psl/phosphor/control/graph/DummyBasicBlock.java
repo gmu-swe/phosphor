@@ -1,5 +1,7 @@
 package edu.columbia.cs.psl.phosphor.control.graph;
 
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnNode;
@@ -19,5 +21,15 @@ public class DummyBasicBlock implements BasicBlock {
     @Override
     public AbstractInsnNode getLastInsn() {
         return insn;
+    }
+
+    @Override
+    public String toDotString(Map<Label, String> labelNames) {
+        return "NOP";
+    }
+
+    @Override
+    public String toString() {
+        return "DummyBasicBlock";
     }
 }

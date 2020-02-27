@@ -103,6 +103,34 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>make-graph</id>
+            <properties>
+                <maven.test.skip>true</maven.test.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                                <configuration>
+                                    <mainClass>edu.columbia.cs.psl.phosphor.control.graph.BaseControlFlowGraphCreator
+                                    </mainClass>
+                                    <arguments>{$exec.args}</arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
     <dependencies>
         <dependency>
