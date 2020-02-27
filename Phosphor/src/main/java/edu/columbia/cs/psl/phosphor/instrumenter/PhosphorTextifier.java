@@ -6,7 +6,6 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.Textifier;
 
-
 public class PhosphorTextifier extends Textifier {
     static String[] MORE_OPCODES;
     static String[] TYPE_OR_INT_OPCODES;
@@ -225,5 +224,4 @@ public class PhosphorTextifier extends Textifier {
             super.visitTypeInsn(opcode, type);
         }
     }
-
 }

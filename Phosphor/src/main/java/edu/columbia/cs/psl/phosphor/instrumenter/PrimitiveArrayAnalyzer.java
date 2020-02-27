@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.control.graph.BaseControlFlowGraphCreator;
@@ -12,18 +11,21 @@ import edu.columbia.cs.psl.phosphor.control.graph.SimpleBasicBlock;
 import edu.columbia.cs.psl.phosphor.control.standard.NoControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.PhosphorOpcodeIgnoringAnalyzer;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
+import edu.columbia.cs.psl.phosphor.org.objectweb.asm.analysis.Analyzer;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.Frame;
-import org.objectweb.asm.tree.analysis.*;
 
 import static edu.columbia.cs.psl.phosphor.LoopHeaderInfo.LOOP_HEADER;
 
 public class PrimitiveArrayAnalyzer extends MethodVisitor {
 
+    private final ControlFlowAnalyzer flowAnalyzer;
     public MethodNode mn;
     boolean isEmptyMethod = true;
     Set<Type> wrapperTypesToPreAlloc = new HashSet<>();
@@ -34,7 +36,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     private Label newFirstLabel = new Label();
     private Label oldFirstLabel;
     private boolean fixLDCClass;
-    private final ControlFlowAnalyzer flowAnalyzer;
 
     public PrimitiveArrayAnalyzer(final String className, int access, final String name, final String desc,
                                   String signature, String[] exceptions, final MethodVisitor cmv,
@@ -354,7 +355,9 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
         @Override
         public void visitEnd() {
             final HashMap<AbstractInsnNode, String> referenceArraysToCheckCast = new HashMap<>();
-            Analyzer<BasicValue> a = new BasicArrayAnalyzer((this.access & Opcodes.ACC_STATIC) != 0, isImplicitLightTracking, referenceArraysToCheckCast);
+            BasicArrayInterpreter interpreter = new BasicArrayInterpreter((this.access & Opcodes.ACC_STATIC) != 0,
+                    isImplicitLightTracking, referenceArraysToCheckCast);
+            Analyzer<BasicValue> a = new PhosphorOpcodeIgnoringAnalyzer<>(interpreter);
             try {
                 Frame<BasicValue>[] frames = a.analyze(className, this);
                 for(int i = 0; i < instructions.size(); i++) {
@@ -388,7 +391,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             flowAnalyzer.annotate(className, this);
             patchFrames(instructions);
             this.maxStack += 100;
-
             for(Map.Entry<AbstractInsnNode, String> each : referenceArraysToCheckCast.entrySet()) {
                 AbstractInsnNode existing = each.getKey().getPrevious();
                 if(existing instanceof LdcInsnNode) {
@@ -418,26 +420,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
                 insn = insn.getNext();
             }
             this.accept(cmv);
-        }
-    }
-
-    private static final class BasicArrayAnalyzer extends Analyzer<BasicValue> {
-
-        public BasicArrayAnalyzer(boolean isStatic, boolean isImplicitLightTracking, HashMap<AbstractInsnNode, String> referenceArraysToCheckCast) {
-            super(new BasicArrayInterpreter(isStatic, isImplicitLightTracking, referenceArraysToCheckCast));
-        }
-
-        @Override
-        protected Frame<BasicValue> newFrame(int nLocals, int nStack) {
-            return new Frame<BasicValue>(nLocals, nStack) {
-                @Override
-                public void execute(AbstractInsnNode insn, Interpreter<BasicValue> interpreter) throws AnalyzerException {
-                    if(insn.getOpcode() > 200 || (insn instanceof LdcInsnNode && ((LdcInsnNode) insn).cst instanceof PhosphorInstructionInfo)) {
-                        return;
-                    }
-                    super.execute(insn, interpreter);
-                }
-            };
         }
     }
 }
