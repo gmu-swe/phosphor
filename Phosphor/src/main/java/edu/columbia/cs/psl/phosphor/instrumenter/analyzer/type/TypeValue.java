@@ -6,7 +6,6 @@ import org.objectweb.asm.tree.analysis.Value;
 public final class TypeValue implements Value {
 
     public static final TypeValue UNINITIALIZED_VALUE = new TypeValue(null);
-    public static final TypeValue NULL_VALUE = new TypeValue(Type.getObjectType("null"));
     public static final TypeValue BOOLEAN_VALUE = new TypeValue(Type.BOOLEAN_TYPE);
     public static final TypeValue BYTE_VALUE = new TypeValue(Type.BYTE_TYPE);
     public static final TypeValue CHAR_VALUE = new TypeValue(Type.CHAR_TYPE);
@@ -23,6 +22,8 @@ public final class TypeValue implements Value {
     public static final TypeValue CHAR_ARRAY = new TypeValue(Type.getType("[C"));
     public static final TypeValue BOOLEAN_ARRAY = new TypeValue(Type.getType("[Z"));
     public static final TypeValue SHORT_ARRAY = new TypeValue(Type.getType("[S"));
+    static final Type nullType = Type.getObjectType("null");
+    public static final TypeValue NULL_VALUE = new TypeValue(nullType);
 
     private final Type type;
 
@@ -57,12 +58,11 @@ public final class TypeValue implements Value {
 
     @Override
     public String toString() {
-        return type.toString();
+        return type == null ? "uninitialized" : type.toString();
     }
 
-    public boolean isIntType() {
+    public boolean canWidenType() {
         switch(type.getSort()) {
-            case Type.BOOLEAN:
             case Type.CHAR:
             case Type.BYTE:
             case Type.SHORT:
@@ -70,6 +70,30 @@ public final class TypeValue implements Value {
                 return true;
             default:
                 return false;
+        }
+    }
+
+    public static TypeValue widenType(TypeValue value1, TypeValue value2) {
+        if(!(value1.canWidenType()) || !value2.canWidenType()) {
+            throw new IllegalArgumentException();
+        }
+        switch(value1.type.getSort()) {
+            case Type.CHAR:
+                if(value2.getType().getSort() == Type.CHAR) {
+                    return CHAR_VALUE;
+                }
+            case Type.BYTE:
+                if(value2.getType().getSort() == Type.CHAR || value2.getType().getSort() == Type.BYTE) {
+                    return BYTE_VALUE;
+                }
+            case Type.SHORT:
+                if(value2.getType().getSort() != Type.INT) {
+                    return SHORT_VALUE;
+                }
+            case Type.INT:
+                return INT_VALUE;
+            default:
+                throw new AssertionError();
         }
     }
 

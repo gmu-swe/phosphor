@@ -301,8 +301,12 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             return UNINITIALIZED_VALUE;
         } else if(value1.equals(value2)) {
             return value1;
-        } else if(value1.isIntType() && value2.isIntType()) {
-            return INT_VALUE;
+        } else if(value2 == NULL_VALUE) {
+            return value1;
+        } else if(value1 == NULL_VALUE) {
+            return value2;
+        } else if(value1.canWidenType() && value2.canWidenType()) {
+            return TypeValue.widenType(value1, value2);
         }
         AbstractInsnNode insn = instructions.get(instructionIndexOfNextMerge);
         if(insn instanceof LabelNode && fullFrameMap.containsKey(((LabelNode) insn).getLabel())) {
