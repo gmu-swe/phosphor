@@ -109,6 +109,76 @@ public class TypeInterpreterTest {
         checkFrames(expectedLocals, expectedStackElements, calculateTypeFrames(methodNode));
     }
 
+    @Test
+    public void testSetBooleanTrue() throws Exception {
+        MethodNode methodNode = getMethodNode(TypeInterpreterTestMethods.class, "setBooleanTrue");
+        Type[][] expectedLocals = new Type[][]{
+                {ownerType, Type.BOOLEAN_TYPE}, //     0: iconst_1
+                {ownerType, Type.BOOLEAN_TYPE}, //     1: istore_1
+                {ownerType, Type.BOOLEAN_TYPE}, //     2: return
+        };
+        Type[][] expectedStackElements = new Type[][]{
+                {}, //     0: iconst_1
+                {Type.INT_TYPE}, //     1: istore_1
+                {}, //     2: return
+        };
+        checkFrames(expectedLocals, expectedStackElements, calculateTypeFrames(methodNode));
+    }
+
+    @Test
+    public void testSetBooleanFalse() throws Exception {
+        MethodNode methodNode = getMethodNode(TypeInterpreterTestMethods.class, "setBooleanTrue");
+        Type[][] expectedLocals = new Type[][]{
+                {ownerType, Type.BOOLEAN_TYPE}, //     0: iconst_0
+                {ownerType, Type.BOOLEAN_TYPE}, //     1: istore_1
+                {ownerType, Type.BOOLEAN_TYPE}, //     2: return
+        };
+        Type[][] expectedStackElements = new Type[][]{
+                {}, //     0: iconst_0
+                {Type.INT_TYPE}, //     1: istore_1
+                {}, //     2: return
+        };
+        checkFrames(expectedLocals, expectedStackElements, calculateTypeFrames(methodNode));
+    }
+
+    @Test
+    public void testInstanceOf() throws Exception {
+        MethodNode methodNode = getMethodNode(TypeInterpreterTestMethods.class, "instanceOf");
+        Type[][] expectedLocals = new Type[][]{
+                {ownerType, Type.getType(Object.class)}, //     0: aload_1
+                {ownerType, Type.getType(Object.class)}, //     1: instanceof
+                {ownerType, Type.getType(Object.class)}, //     4: istore_2
+                {ownerType, Type.getType(Object.class), Type.BOOLEAN_TYPE}, //     5: return
+        };
+        Type[][] expectedStackElements = new Type[][]{
+                {}, //     0: aload_1
+                {Type.getType(Object.class)}, //     1: instanceof
+                {Type.BOOLEAN_TYPE}, //     4: istore_2
+                {}, //     5: return
+        };
+        checkFrames(expectedLocals, expectedStackElements, calculateTypeFrames(methodNode));
+    }
+
+    @Test
+    public void testBooleanArray() throws Exception {
+        MethodNode methodNode = getMethodNode(TypeInterpreterTestMethods.class, "booleanArray");
+        Type[][] expectedLocals = new Type[][]{
+                {ownerType, Type.getType(boolean[].class)}, //    0: aload_1
+                {ownerType, Type.getType(boolean[].class)}, // 1: iconst_0
+                {ownerType, Type.getType(boolean[].class)}, // 2: baload
+                {ownerType, Type.getType(boolean[].class)}, // 3: istore_2
+                {ownerType, Type.getType(boolean[].class), Type.BOOLEAN_TYPE} // 4: return
+        };
+        Type[][] expectedStackElements = new Type[][]{
+                {}, //    0: aload_1
+                {Type.getType(boolean[].class)}, // 1: iconst_0
+                {Type.getType(boolean[].class), Type.INT_TYPE}, // 2: baload
+                {Type.BOOLEAN_TYPE}, // 3: istore_2
+                {} // 4: return
+        };
+        checkFrames(expectedLocals, expectedStackElements, calculateTypeFrames(methodNode));
+    }
+    
     private static Frame<TypeValue>[] calculateTypeFrames(MethodNode methodNode) throws AnalyzerException {
         Analyzer<TypeValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(new TypeInterpreter(owner, methodNode));
         Frame<TypeValue>[] typeFrames = analyzer.analyze(owner, methodNode);

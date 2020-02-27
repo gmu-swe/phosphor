@@ -45,7 +45,7 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
     public TypeValue newOperation(AbstractInsnNode insn) throws AnalyzerException {
         switch(insn.getOpcode()) {
             case ACONST_NULL:
-                return TypeValue.NULL_VALUE;
+                return NULL_VALUE;
             case ICONST_M1:
             case ICONST_0:
             case ICONST_1:
@@ -53,29 +53,31 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             case ICONST_3:
             case ICONST_4:
             case ICONST_5:
+                return INT_VALUE;
             case BIPUSH:
+                return BYTE_VALUE;
             case SIPUSH:
-                return TypeValue.INT_VALUE;
+                return SHORT_VALUE;
             case LCONST_0:
             case LCONST_1:
-                return TypeValue.LONG_VALUE;
+                return LONG_VALUE;
             case FCONST_0:
             case FCONST_1:
             case FCONST_2:
-                return TypeValue.FLOAT_VALUE;
+                return FLOAT_VALUE;
             case DCONST_0:
             case DCONST_1:
-                return TypeValue.DOUBLE_VALUE;
+                return DOUBLE_VALUE;
             case LDC:
                 Object value = ((LdcInsnNode) insn).cst;
                 if(value instanceof Integer) {
-                    return TypeValue.INT_VALUE;
+                    return INT_VALUE;
                 } else if(value instanceof Float) {
-                    return TypeValue.FLOAT_VALUE;
+                    return FLOAT_VALUE;
                 } else if(value instanceof Long) {
-                    return TypeValue.LONG_VALUE;
+                    return LONG_VALUE;
                 } else if(value instanceof Double) {
-                    return TypeValue.DOUBLE_VALUE;
+                    return DOUBLE_VALUE;
                 } else if(value instanceof String) {
                     return newValue(Type.getObjectType("java/lang/String"));
                 } else if(value instanceof Type) {
@@ -107,49 +109,63 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
     public TypeValue copyOperation(AbstractInsnNode insn, TypeValue value) {
         int opcode = insn.getOpcode();
         if(opcode == ILOAD || opcode == ISTORE) {
-            int localIndex = ((VarInsnNode) insn).var;
-            int insnIndex = instructions.indexOf(insn);
-            LocalVariableNode local = localVariableDefinitions[localIndex][insnIndex];
-            return local == null ? TypeValue.INT_VALUE : newValue(Type.getType(local.desc));
+            return getTypeValueForIntLocalVariable(insn);
         } else {
             return value;
         }
+    }
+
+    private TypeValue getTypeValueForIntLocalVariable(AbstractInsnNode insn) {
+        int localIndex;
+        if(insn instanceof VarInsnNode) {
+            localIndex = ((VarInsnNode) insn).var;
+        } else if(insn instanceof IincInsnNode) {
+            localIndex = ((IincInsnNode) insn).var;
+        } else {
+            throw new IllegalArgumentException();
+        }
+        int insnIndex = instructions.indexOf(insn);
+        if(insn.getOpcode() == ISTORE && (insnIndex + 1) < instructions.size()) {
+            insnIndex++;
+        }
+        LocalVariableNode local = localVariableDefinitions[localIndex][insnIndex];
+        return local == null ? INT_VALUE : newValue(Type.getType(local.desc));
     }
 
     @Override
     public TypeValue unaryOperation(AbstractInsnNode insn, TypeValue value) {
         switch(insn.getOpcode()) {
             case INEG:
-                return value;
-            case IINC:
             case L2I:
             case F2I:
             case D2I:
             case ARRAYLENGTH:
-                return TypeValue.INT_VALUE;
+                return INT_VALUE;
+            case IINC:
+                return getTypeValueForIntLocalVariable(insn);
             case INSTANCEOF:
                 return BOOLEAN_VALUE;
             case I2B:
-                return TypeValue.BYTE_VALUE;
+                return BYTE_VALUE;
             case I2C:
-                return TypeValue.CHAR_VALUE;
+                return CHAR_VALUE;
             case I2S:
-                return TypeValue.SHORT_VALUE;
+                return SHORT_VALUE;
             case FNEG:
             case I2F:
             case L2F:
             case D2F:
-                return TypeValue.FLOAT_VALUE;
+                return FLOAT_VALUE;
             case LNEG:
             case I2L:
             case F2L:
             case D2L:
-                return TypeValue.LONG_VALUE;
+                return LONG_VALUE;
             case DNEG:
             case I2D:
             case L2D:
             case F2D:
-                return TypeValue.DOUBLE_VALUE;
+                return DOUBLE_VALUE;
             case IFEQ:
             case IFNE:
             case IFLT:
@@ -206,11 +222,8 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
     public TypeValue binaryOperation(AbstractInsnNode insn, TypeValue value1, TypeValue value2) {
         switch(insn.getOpcode()) {
             case BALOAD:
-                return TypeValue.BYTE_VALUE;
             case CALOAD:
-                return TypeValue.CHAR_VALUE;
             case SALOAD:
-                return TypeValue.SHORT_VALUE;
             case IALOAD:
             case AALOAD:
                 return newValue(value1.getType().getElementType());
@@ -230,14 +243,14 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             case FCMPG:
             case DCMPL:
             case DCMPG:
-                return TypeValue.INT_VALUE;
+                return INT_VALUE;
             case FALOAD:
             case FADD:
             case FSUB:
             case FMUL:
             case FDIV:
             case FREM:
-                return TypeValue.FLOAT_VALUE;
+                return FLOAT_VALUE;
             case LALOAD:
             case LADD:
             case LSUB:
@@ -250,14 +263,14 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             case LAND:
             case LOR:
             case LXOR:
-                return TypeValue.LONG_VALUE;
+                return LONG_VALUE;
             case DALOAD:
             case DADD:
             case DSUB:
             case DMUL:
             case DDIV:
             case DREM:
-                return TypeValue.DOUBLE_VALUE;
+                return DOUBLE_VALUE;
             case IF_ICMPEQ:
             case IF_ICMPNE:
             case IF_ICMPLT:
@@ -305,8 +318,11 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             return value1;
         } else if(value1 == NULL_VALUE) {
             return value2;
-        } else if(value1.canWidenType() && value2.canWidenType()) {
-            return TypeValue.widenType(value1, value2);
+        } else if(value1.isIntType() && value2.isIntType() && slotTypeOfNextMerge == FrameSlotType.LOCAL_VARIABLE) {
+            LocalVariableNode local = localVariableDefinitions[frameIndexOfNextMerge][instructionIndexOfNextMerge];
+            return local == null ? UNINITIALIZED_VALUE : newValue(Type.getType(local.desc));
+        } else if(value1.isIntType() && value2.isIntType()) {
+            return INT_VALUE;
         }
         AbstractInsnNode insn = instructions.get(instructionIndexOfNextMerge);
         if(insn instanceof LabelNode && fullFrameMap.containsKey(((LabelNode) insn).getLabel())) {

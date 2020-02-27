@@ -61,39 +61,16 @@ public final class TypeValue implements Value {
         return type == null ? "uninitialized" : type.toString();
     }
 
-    public boolean canWidenType() {
+    public boolean isIntType() {
         switch(type.getSort()) {
             case Type.CHAR:
+            case Type.BOOLEAN:
             case Type.BYTE:
             case Type.SHORT:
             case Type.INT:
                 return true;
             default:
                 return false;
-        }
-    }
-
-    public static TypeValue widenType(TypeValue value1, TypeValue value2) {
-        if(!(value1.canWidenType()) || !value2.canWidenType()) {
-            throw new IllegalArgumentException();
-        }
-        switch(value1.type.getSort()) {
-            case Type.CHAR:
-                if(value2.getType().getSort() == Type.CHAR) {
-                    return CHAR_VALUE;
-                }
-            case Type.BYTE:
-                if(value2.getType().getSort() == Type.CHAR || value2.getType().getSort() == Type.BYTE) {
-                    return BYTE_VALUE;
-                }
-            case Type.SHORT:
-                if(value2.getType().getSort() != Type.INT) {
-                    return SHORT_VALUE;
-                }
-            case Type.INT:
-                return INT_VALUE;
-            default:
-                throw new AssertionError();
         }
     }
 
