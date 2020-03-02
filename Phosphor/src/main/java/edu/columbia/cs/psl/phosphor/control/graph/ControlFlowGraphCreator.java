@@ -74,7 +74,7 @@ public abstract class ControlFlowGraphCreator {
                 AbstractInsnNode insn = itr.next();
                 if(insn.getOpcode() == ATHROW) {
                     Frame<TypeValue> frame = frames[i];
-                    TypeValue top = frame.pop();
+                    TypeValue top = frame.getStack(frame.getStackSize() - 1);
                     Type type = top.getType();
                     explicitlyThrownExceptionTypes.put(insn, type.getClassName().replace(".", "/"));
                 }
