@@ -68,20 +68,27 @@ public final class FlowGraph<V> {
     private int[] dominators = null;
 
     /**
-     * A unmodifiable mapping from each reachable vertex in this graph to its immediate dominator null if the immediate
+     * An unmodifiable mapping from each reachable vertex in this graph to its immediate dominator null if the immediate
      * dominators of this graph have not yet been calculated (this value is lazily calculated).
      */
     private Map<V, V> immediateDominators = null;
 
     /**
-     * A unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set containing the vertices
+     * An unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set of the vertices that it
+     * immediately dominates (i.e., its children in the dominator tree) or null if the dominator tree of this graph
+     * have not yet been calculated (this value is lazily calculated).
+     */
+    private Map<V, Set<V>> dominatorTree = null;
+
+    /**
+     * An unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set containing the vertices
      * that it dominates or null if the dominator sets of this graph have not yet been calculated (this value is lazily
      * calculated).
      */
     private Map<V, Set<V>> dominatorSets = null;
 
     /**
-     * A unmodifiable mapping from each reachable vertex in this graph to a unmodifiable set containing the vertices in
+     * An unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set containing the vertices in
      * its dominance frontier or null if the dominance frontiers of this graph have not yet been calculated
      * (this value is lazily calculated).
      */
@@ -307,16 +314,41 @@ public final class FlowGraph<V> {
     }
 
     /**
+     * @return an unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set of the vertices
+     * that it immediately dominates (i.e., its children in the dominator tree)
+     */
+    public Map<V, Set<V>> getDominatorTree() {
+        if(dominatorTree == null) {
+            getImmediateDominators(); // ensure that immediate dominators have been calculated
+            dominatorTree = new HashMap<>();
+            for(V child : immediateDominators.keySet()) {
+                dominatorTree.put(child, new HashSet<>());
+            }
+            for(V child : immediateDominators.keySet()) {
+                V parent = immediateDominators.get(child);
+                if(parent != null) {
+                    dominatorTree.get(parent).add(child);
+                }
+            }
+            for(V key : dominatorTree.keySet()) {
+                dominatorTree.put(key, Collections.unmodifiableSet(dominatorTree.get(key)));
+            }
+            dominatorTree = Collections.unmodifiableMap(dominatorTree);
+        }
+        return dominatorTree;
+    }
+
+    /**
      * @return an unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set of the
      * vertices that dominate it
      */
     public Map<V, Set<V>> getDominatorSets() {
         if(dominatorSets == null) {
+            getImmediateDominators(); // ensure that immediate dominators have been calculated
             dominatorSets = new HashMap<>();
-            Map<V, V> immediateDominatorsMap = getImmediateDominators();
-            for(V key : immediateDominatorsMap.keySet()) {
+            for(V key : immediateDominators.keySet()) {
                 Set<V> tempDominators = new HashSet<>();
-                for(V current = key; current != null; current = immediateDominatorsMap.get(current)) {
+                for(V current = key; current != null; current = immediateDominators.get(current)) {
                     tempDominators.add(current);
                 }
                 dominatorSets.put(key, Collections.unmodifiableSet(tempDominators));
