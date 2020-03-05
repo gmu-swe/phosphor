@@ -320,7 +320,7 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             return value2;
         } else if(value1.isIntType() && value2.isIntType() && slotTypeOfNextMerge == FrameSlotType.LOCAL_VARIABLE) {
             LocalVariableNode local = localVariableDefinitions[frameIndexOfNextMerge][instructionIndexOfNextMerge];
-            return local == null ? UNINITIALIZED_VALUE : newValue(Type.getType(local.desc));
+            return local == null ? INT_VALUE : newValue(Type.getType(local.desc));
         } else if(value1.isIntType() && value2.isIntType()) {
             return INT_VALUE;
         }
