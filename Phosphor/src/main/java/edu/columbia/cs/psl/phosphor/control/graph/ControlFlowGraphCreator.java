@@ -23,7 +23,7 @@ import static org.objectweb.asm.Opcodes.GOTO;
 /**
  * Creates control flow graphs that represents all of the possible execution paths through a method.
  */
-public abstract class ControlFlowGraphCreator {
+public abstract class ControlFlowGraphCreator<V extends BasicBlock> {
 
     /**
      * True if edges from instructions inside exceptional handlers that can potentially throw an exception
@@ -48,7 +48,7 @@ public abstract class ControlFlowGraphCreator {
      * @param methodNode the method whose flow graph is being constructed
      * @return a flow graph that represents all of the possible execution paths through the specified method
      */
-    public final FlowGraph<BasicBlock> createControlFlowGraph(MethodNode methodNode) {
+    public final FlowGraph<V> createControlFlowGraph(MethodNode methodNode) {
         return createControlFlowGraph(methodNode, Collections.emptyMap());
     }
 
@@ -60,7 +60,7 @@ public abstract class ControlFlowGraphCreator {
      * @return a flow graph that represents all of the possible execution paths through the specified method
      * @throws AnalyzerException if unable to calculate the type of the exceptions thrown by ATHROW instructions
      */
-    public final FlowGraph<BasicBlock> createControlFlowGraph(String owner, MethodNode methodNode) throws AnalyzerException {
+    public final FlowGraph<V> createControlFlowGraph(String owner, MethodNode methodNode) throws AnalyzerException {
         if(owner == null || methodNode == null) {
             throw new NullPointerException();
         }
@@ -94,8 +94,8 @@ public abstract class ControlFlowGraphCreator {
      * @return a flow graph that represents all of the possible execution paths through the specified method
      * @throws NullPointerException if methodNode is null or explicitlyThrownExceptionTypes is null
      */
-    public final FlowGraph<BasicBlock> createControlFlowGraph(MethodNode methodNode,
-                                                              Map<AbstractInsnNode, String> explicitlyThrownExceptionTypes) {
+    public final FlowGraph<V> createControlFlowGraph(MethodNode methodNode,
+                                                     Map<AbstractInsnNode, String> explicitlyThrownExceptionTypes) {
         if(methodNode == null || explicitlyThrownExceptionTypes == null) {
             throw new NullPointerException();
         }
@@ -113,7 +113,7 @@ public abstract class ControlFlowGraphCreator {
             }
             int[] leaderIndices = calculateLeaders(methodNode.instructions, methodNode.tryCatchBlocks, handlers);
             // Add a basic block for each leader
-            List<BasicBlock> basicBlocks = new ArrayList<>();
+            List<V> basicBlocks = new ArrayList<>();
             int l = 0; // Current index into leaderIndices
             int start = leaderIndices[l++];
             for(int i = 0; i < leaderIndices.length; i++) {
@@ -145,7 +145,7 @@ public abstract class ControlFlowGraphCreator {
      *                     order by the index of their leader
      * @return a newly created basic block that represents the specified sequence of instructions
      */
-    protected abstract BasicBlock addBasicBlock(AbstractInsnNode[] instructions, int index);
+    protected abstract V addBasicBlock(AbstractInsnNode[] instructions, int index);
 
     /**
      * Adds a directed edge from the entry vertex to the exit vertex of the graph being created
@@ -158,7 +158,7 @@ public abstract class ControlFlowGraphCreator {
      *
      * @param target the target vertex of the directed edge being added
      */
-    protected abstract void addStandardEdgeFromEntryPoint(BasicBlock target);
+    protected abstract void addStandardEdgeFromEntryPoint(V target);
 
     /**
      * Adds a directed edge from the entry vertex of the graph being created to the specified basic block as a result of
@@ -167,7 +167,7 @@ public abstract class ControlFlowGraphCreator {
      * @param target            the target vertex of the directed edge being added
      * @param tryCatchBlockNode the try-catch block for which the specified target block contains the start label
      */
-    protected abstract void addExceptionalEdgeFromEntryPoint(BasicBlock target, TryCatchBlockNode tryCatchBlockNode);
+    protected abstract void addExceptionalEdgeFromEntryPoint(V target, TryCatchBlockNode tryCatchBlockNode);
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
@@ -177,7 +177,7 @@ public abstract class ControlFlowGraphCreator {
      * @param source the source vertex of the directed edge being added
      * @param target the target vertex of the directed edge being added
      */
-    protected abstract void addExceptionalEdge(BasicBlock source, BasicBlock target);
+    protected abstract void addExceptionalEdge(V source, V target);
 
     /**
      * Adds a directed edge from the specified basic block to the exit vertex of the graph as result of the specified
@@ -185,7 +185,7 @@ public abstract class ControlFlowGraphCreator {
      *
      * @param source the source vertex of the directed edge being added
      */
-    protected abstract void addStandardEdgeToExitPoint(BasicBlock source);
+    protected abstract void addStandardEdgeToExitPoint(V source);
 
     /**
      * Adds a directed edge from the specified basic block to the exit vertex of the graph as result of the specified
@@ -193,7 +193,7 @@ public abstract class ControlFlowGraphCreator {
      *
      * @param source the source vertex of the directed edge being added
      */
-    protected abstract void addExceptionalEdgeToExitPoint(BasicBlock source);
+    protected abstract void addExceptionalEdgeToExitPoint(V source);
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
@@ -203,7 +203,7 @@ public abstract class ControlFlowGraphCreator {
      * @param source the source vertex of the directed edge being added
      * @param target the target vertex of the directed edge being added
      */
-    protected abstract void addSequentialEdge(BasicBlock source, BasicBlock target);
+    protected abstract void addSequentialEdge(V source, V target);
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
@@ -212,7 +212,7 @@ public abstract class ControlFlowGraphCreator {
      * @param source the source vertex of the directed edge being added
      * @param target the target vertex of the directed edge being added
      */
-    protected abstract void addUnconditionalJumpEdge(BasicBlock source, BasicBlock target);
+    protected abstract void addUnconditionalJumpEdge(V source, V target);
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
@@ -221,7 +221,7 @@ public abstract class ControlFlowGraphCreator {
      * @param source the source vertex of the directed edge being added
      * @param target the target vertex of the directed edge being added
      */
-    protected abstract void addBranchTakenEdge(BasicBlock source, BasicBlock target);
+    protected abstract void addBranchTakenEdge(V source, V target);
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
@@ -231,7 +231,7 @@ public abstract class ControlFlowGraphCreator {
      * @param source the source vertex of the directed edge being added
      * @param target the target vertex of the directed edge being added
      */
-    protected abstract void addBranchNotTakenEdge(BasicBlock source, BasicBlock target);
+    protected abstract void addBranchNotTakenEdge(V source, V target);
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
@@ -240,7 +240,7 @@ public abstract class ControlFlowGraphCreator {
      * @param source the source vertex of the directed edge being added
      * @param target the target vertex of the directed edge being added
      */
-    protected abstract void addNonDefaultCaseSwitchEdge(BasicBlock source, BasicBlock target);
+    protected abstract void addNonDefaultCaseSwitchEdge(V source, V target);
 
     /**
      * Adds a directed edge from the specified source basic block to the specified target basic block as a result of
@@ -249,7 +249,7 @@ public abstract class ControlFlowGraphCreator {
      * @param source the source vertex of the directed edge being added
      * @param target the target vertex of the directed edge being added
      */
-    protected abstract void addDefaultCaseSwitchEdge(BasicBlock source, BasicBlock target);
+    protected abstract void addDefaultCaseSwitchEdge(V source, V target);
 
     /**
      * Builds a flow graph representing the vertices and edges added to this creator. Then, resets this creator and
@@ -257,7 +257,7 @@ public abstract class ControlFlowGraphCreator {
      *
      * @return a flow graph representing the vertices and edges added to this creator
      */
-    protected abstract FlowGraph<BasicBlock> buildGraph();
+    protected abstract FlowGraph<V> buildGraph();
 
     /**
      * Adds edges to the graph being created for the based on the specified basic blocks and try-catch blocks
@@ -267,13 +267,13 @@ public abstract class ControlFlowGraphCreator {
      * @param tryCatchBlocks the try catch blocks for the method
      * @param handlers       maps instructions to the try catch blocks to which execution can flow from the instruction
      */
-    private void addControlFlowEdges(List<BasicBlock> basicBlocks, java.util.List<TryCatchBlockNode> tryCatchBlocks,
+    private void addControlFlowEdges(List<V> basicBlocks, java.util.List<TryCatchBlockNode> tryCatchBlocks,
                                      Map<AbstractInsnNode, Set<TryCatchBlockNode>> handlers) {
-        Map<LabelNode, BasicBlock> labelBlockMap = createLabelBlockMapping(basicBlocks);
+        Map<LabelNode, V> labelBlockMap = createLabelBlockMapping(basicBlocks);
         addStandardEdgeFromEntryPoint(basicBlocks.get(0));
         for(int i = 0; i < basicBlocks.size(); i++) {
-            BasicBlock currentBasicBlock = basicBlocks.get(i);
-            BasicBlock nextBasicBlock = i < (basicBlocks.size() - 1) ? basicBlocks.get(i + 1) : null;
+            V currentBasicBlock = basicBlocks.get(i);
+            V nextBasicBlock = i < (basicBlocks.size() - 1) ? basicBlocks.get(i + 1) : null;
             AbstractInsnNode lastInsn = currentBasicBlock.getLastInsn();
             if(lastInsn instanceof JumpInsnNode && lastInsn.getOpcode() == GOTO) {
                 addUnconditionalJumpEdge(currentBasicBlock, labelBlockMap.get(((JumpInsnNode) lastInsn).label));
@@ -302,7 +302,7 @@ public abstract class ControlFlowGraphCreator {
         if(addExceptionalEdges) {
             // Add edges from instructions to exception handlers to which execution could flow from the instruction
             for(int i = 0; i < basicBlocks.size(); i++) {
-                BasicBlock currentBasicBlock = basicBlocks.get(i);
+                V currentBasicBlock = basicBlocks.get(i);
                 AbstractInsnNode insn = currentBasicBlock.getLastInsn();
                 if(handlers.containsKey(insn)) {
                     for(TryCatchBlockNode tryCatch : handlers.get(insn)) {
@@ -379,9 +379,9 @@ public abstract class ControlFlowGraphCreator {
      *                    first instruction in the block
      * @return a mapping from LabelNodes to the basic block that they start
      */
-    private static Map<LabelNode, BasicBlock> createLabelBlockMapping(List<BasicBlock> basicBlocks) {
-        Map<LabelNode, BasicBlock> labelBlockMap = new HashMap<>();
-        for(BasicBlock block : basicBlocks) {
+    private static <V extends BasicBlock> Map<LabelNode, V> createLabelBlockMapping(List<V> basicBlocks) {
+        Map<LabelNode, V> labelBlockMap = new HashMap<>();
+        for(V block : basicBlocks) {
             AbstractInsnNode insn = block.getFirstInsn();
             if(insn instanceof LabelNode) {
                 labelBlockMap.put((LabelNode) insn, block);

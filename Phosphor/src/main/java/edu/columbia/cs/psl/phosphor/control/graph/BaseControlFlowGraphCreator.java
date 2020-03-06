@@ -15,7 +15,7 @@ import java.io.PrintWriter;
 
 import static edu.columbia.cs.psl.phosphor.control.graph.BasicBlock.getNumericLabelNames;
 
-public class BaseControlFlowGraphCreator extends ControlFlowGraphCreator {
+public class BaseControlFlowGraphCreator extends ControlFlowGraphCreator<BasicBlock> {
 
     protected FlowGraphBuilder<BasicBlock> builder = new FlowGraphBuilder<>();
 
