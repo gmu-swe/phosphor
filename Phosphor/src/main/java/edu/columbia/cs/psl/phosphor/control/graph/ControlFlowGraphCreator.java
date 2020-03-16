@@ -319,6 +319,37 @@ public abstract class ControlFlowGraphCreator<V extends BasicBlock> {
     }
 
     /**
+     * @param method                         the method whose instructions and exception handlers are to analyzed
+     * @param explicitlyThrownExceptionTypes a mapping from ATHROW instructions to the string type of the exception that
+     *                                       they throw, if an ATHROW instruction does not have an entry in the map
+     *                                       assumes that it could throw any exception
+     * @return a mapping from instructions to the set of exceptions handler that contain the instruction in their range
+     * and handler an exception of a type potentially thrown by the instruction
+     */
+    protected Map<AbstractInsnNode, Set<TryCatchBlockNode>> calculateHandlers(MethodNode method,
+                                                                              Map<AbstractInsnNode, String> explicitlyThrownExceptionTypes) {
+        Map<AbstractInsnNode, Set<TryCatchBlockNode>> handlers = new HashMap<>();
+        for(TryCatchBlockNode tryCatchBlock : method.tryCatchBlocks) {
+            int startIndex = method.instructions.indexOf(tryCatchBlock.start);
+            int endIndex = method.instructions.indexOf(tryCatchBlock.end);
+            for(int i = startIndex; i < endIndex; i++) {
+                AbstractInsnNode insn = method.instructions.get(i);
+                String explicitlyThrownExceptionType = null;
+                if(insn.getOpcode() == ATHROW) {
+                    explicitlyThrownExceptionType = explicitlyThrownExceptionTypes.get(insn);
+                }
+                if(couldThrowHandledException(insn, tryCatchBlock, explicitlyThrownExceptionType)) {
+                    if(!handlers.containsKey(insn)) {
+                        handlers.put(insn, new HashSet<>());
+                    }
+                    handlers.get(insn).add(tryCatchBlock);
+                }
+            }
+        }
+        return handlers;
+    }
+
+    /**
      * @param instructions   a sequence of instructions that form a method
      * @param tryCatchBlocks the try catch blocks for the method
      * @param handlers       maps instructions to the try catch blocks to which execution can flow from the instruction
@@ -388,36 +419,5 @@ public abstract class ControlFlowGraphCreator<V extends BasicBlock> {
             }
         }
         return Collections.unmodifiableMap(labelBlockMap);
-    }
-
-    /**
-     * @param method                         the method whose instructions and exception handlers are to analyzed
-     * @param explicitlyThrownExceptionTypes a mapping from ATHROW instructions to the string type of the exception that
-     *                                       they throw, if an ATHROW instruction does not have an entry in the map
-     *                                       assumes that it could throw any exception
-     * @return a mapping from instructions to the set of exceptions handler that contain the instruction in their range
-     * and handler an exception of a type potentially thrown by the instruction
-     */
-    private static Map<AbstractInsnNode, Set<TryCatchBlockNode>> calculateHandlers(MethodNode method,
-                                                                                   Map<AbstractInsnNode, String> explicitlyThrownExceptionTypes) {
-        Map<AbstractInsnNode, Set<TryCatchBlockNode>> handlers = new HashMap<>();
-        for(TryCatchBlockNode tryCatchBlock : method.tryCatchBlocks) {
-            int startIndex = method.instructions.indexOf(tryCatchBlock.start);
-            int endIndex = method.instructions.indexOf(tryCatchBlock.end);
-            for(int i = startIndex; i < endIndex; i++) {
-                AbstractInsnNode insn = method.instructions.get(i);
-                String explicitlyThrownExceptionType = null;
-                if(insn.getOpcode() == ATHROW) {
-                    explicitlyThrownExceptionType = explicitlyThrownExceptionTypes.get(insn);
-                }
-                if(couldThrowHandledException(insn, tryCatchBlock, explicitlyThrownExceptionType)) {
-                    if(!handlers.containsKey(insn)) {
-                        handlers.put(insn, new HashSet<>());
-                    }
-                    handlers.get(insn).add(tryCatchBlock);
-                }
-            }
-        }
-        return handlers;
     }
 }
