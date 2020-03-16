@@ -1,12 +1,10 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.type;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
-import org.objectweb.asm.*;
-import org.objectweb.asm.commons.AnalyzerAdapter;
+import org.objectweb.asm.ConstantDynamic;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 
@@ -38,7 +36,17 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
                 }
             }
         }
-        new FrameCalculatingMV(owner, methodNode, fullFrameMap);
+        Iterator<AbstractInsnNode> itr = methodNode.instructions.iterator();
+        LabelNode lastLabel = null;
+        while(itr.hasNext()) {
+            AbstractInsnNode insn = itr.next();
+            if(insn instanceof LabelNode) {
+                lastLabel = (LabelNode) insn;
+            } else if(insn instanceof FrameNode && lastLabel != null) {
+                fullFrameMap.put(lastLabel, (FrameNode) insn);
+                lastLabel = null;
+            }
+        }
     }
 
     @Override
@@ -341,12 +349,14 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             if(slots != null && frameIndexOfNextMerge < slots.size()) {
                 Object slotType = slots.get(frameIndexOfNextMerge);
                 if(slotType instanceof String) {
-                    String desc = "L" + ((String) slotType).replace("/", ".") + ";";
+                    String desc = "L" + slotType + ";";
                     return newValue(Type.getType(desc));
                 }
+            } else {
+                return UNINITIALIZED_VALUE;
             }
         }
-        return UNINITIALIZED_VALUE;
+        return value2;
     }
 
     @Override
@@ -368,50 +378,5 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
 
     public enum FrameSlotType {
         LOCAL_VARIABLE, STACK_ELEMENT
-    }
-
-    private static class FrameCalculatingMV extends MethodVisitor {
-
-        private final Map<LabelNode, FrameNode> fullFrameMap;
-        private final AnalyzerAdapter adapter;
-        private final Map<Label, LabelNode> labelNodeMap = new HashMap<>();
-
-        FrameCalculatingMV(String owner, MethodNode methodNode, Map<LabelNode, FrameNode> fullFrameMap) {
-            super(Configuration.ASM_VERSION, new VersionConfiguredAnalyzerAdapter(owner, methodNode.access,
-                    methodNode.name, methodNode.desc, null));
-            this.adapter = (AnalyzerAdapter) mv;
-            this.fullFrameMap = fullFrameMap;
-            removePhosphorInstructions(methodNode).accept(this);
-        }
-
-        @Override
-        public void visitLabel(Label label) {
-            super.visitLabel(label);
-            Object[] localArray = adapter.locals != null ? adapter.locals.toArray() : new Object[0];
-            Object[] stackArray = adapter.stack != null ? adapter.stack.toArray() : new Object[0];
-            FrameNode fullFrame = new FrameNode(F_FULL, localArray.length, localArray, stackArray.length, stackArray);
-            fullFrameMap.put(labelNodeMap.get(label), fullFrame);
-        }
-
-        private MethodNode removePhosphorInstructions(MethodNode mn) {
-            MethodNode copy = new MethodNode(Configuration.ASM_VERSION, mn.access, mn.name, mn.desc, mn.signature,
-                    mn.exceptions.toArray(new String[0]));
-            mn.accept(copy);
-            Iterator<AbstractInsnNode> itr = mn.instructions.iterator();
-            Iterator<AbstractInsnNode> copyItr = copy.instructions.iterator();
-            while(itr.hasNext() && copyItr.hasNext()) {
-                AbstractInsnNode insn = itr.next();
-                AbstractInsnNode copyInsn = copyItr.next();
-                if((insn instanceof LdcInsnNode && ((LdcInsnNode) insn).cst instanceof PhosphorInstructionInfo)
-                        || insn.getOpcode() >= TaintUtils.RAW_INSN) {
-                    copyItr.remove();
-                } else {
-                    if(insn instanceof LabelNode && copyInsn instanceof LabelNode) {
-                        labelNodeMap.put(((LabelNode) copyInsn).getLabel(), (LabelNode) insn);
-                    }
-                }
-            }
-            return copy;
-        }
     }
 }
