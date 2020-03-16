@@ -76,7 +76,11 @@ public abstract class ControlFlowGraphCreator<V extends BasicBlock> {
                     Frame<TypeValue> frame = frames[i];
                     TypeValue top = frame.getStack(frame.getStackSize() - 1);
                     Type type = top.getType();
-                    explicitlyThrownExceptionTypes.put(insn, type.getClassName().replace(".", "/"));
+                    if(type == null) {
+                        explicitlyThrownExceptionTypes.put(insn, "java/lang/Throwable");
+                    } else {
+                        explicitlyThrownExceptionTypes.put(insn, type.getClassName().replace(".", "/"));
+                    }
                 }
                 i++;
             }
