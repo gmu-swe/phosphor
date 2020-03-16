@@ -29,11 +29,13 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
         instructions = methodNode.instructions;
         localVariableDefinitions = new LocalVariableNode[methodNode.maxLocals][instructions.size()];
         Iterable<LocalVariableNode> locals = methodNode.localVariables;
-        for(LocalVariableNode local : locals) {
-            int start = instructions.indexOf(local.start);
-            int end = instructions.indexOf(local.end);
-            for(int i = start; i < end; i++) {
-                localVariableDefinitions[local.index][i] = local;
+        if(locals != null) {
+            for(LocalVariableNode local : locals) {
+                int start = instructions.indexOf(local.start);
+                int end = instructions.indexOf(local.end);
+                for(int i = start; i < end; i++) {
+                    localVariableDefinitions[local.index][i] = local;
+                }
             }
         }
         new FrameCalculatingMV(owner, methodNode, fullFrameMap);
