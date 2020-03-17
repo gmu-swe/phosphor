@@ -110,38 +110,6 @@ public class TypeInterpreterTest {
     }
 
     @Test
-    public void testSetBooleanTrue() throws Exception {
-        MethodNode methodNode = getMethodNode(TypeInterpreterTestMethods.class, "setBooleanTrue");
-        Type[][] expectedLocals = new Type[][]{
-                {ownerType, Type.BOOLEAN_TYPE}, //     0: iconst_1
-                {ownerType, Type.BOOLEAN_TYPE}, //     1: istore_1
-                {ownerType, Type.BOOLEAN_TYPE}, //     2: return
-        };
-        Type[][] expectedStackElements = new Type[][]{
-                {}, //     0: iconst_1
-                {Type.INT_TYPE}, //     1: istore_1
-                {}, //     2: return
-        };
-        checkFrames(expectedLocals, expectedStackElements, calculateTypeFrames(methodNode));
-    }
-
-    @Test
-    public void testSetBooleanFalse() throws Exception {
-        MethodNode methodNode = getMethodNode(TypeInterpreterTestMethods.class, "setBooleanTrue");
-        Type[][] expectedLocals = new Type[][]{
-                {ownerType, Type.BOOLEAN_TYPE}, //     0: iconst_0
-                {ownerType, Type.BOOLEAN_TYPE}, //     1: istore_1
-                {ownerType, Type.BOOLEAN_TYPE}, //     2: return
-        };
-        Type[][] expectedStackElements = new Type[][]{
-                {}, //     0: iconst_0
-                {Type.INT_TYPE}, //     1: istore_1
-                {}, //     2: return
-        };
-        checkFrames(expectedLocals, expectedStackElements, calculateTypeFrames(methodNode));
-    }
-
-    @Test
     public void testInstanceOf() throws Exception {
         MethodNode methodNode = getMethodNode(TypeInterpreterTestMethods.class, "instanceOf");
         Type[][] expectedLocals = new Type[][]{
@@ -178,9 +146,9 @@ public class TypeInterpreterTest {
         };
         checkFrames(expectedLocals, expectedStackElements, calculateTypeFrames(methodNode));
     }
-    
+
     private static Frame<TypeValue>[] calculateTypeFrames(MethodNode methodNode) throws AnalyzerException {
-        Analyzer<TypeValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(new TypeInterpreter(owner, methodNode));
+        Analyzer<TypeValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(new TypeInterpreter(methodNode));
         Frame<TypeValue>[] typeFrames = analyzer.analyze(owner, methodNode);
         @SuppressWarnings("unchecked")
         Frame<TypeValue>[] temp = (Frame<TypeValue>[]) new Frame[0];

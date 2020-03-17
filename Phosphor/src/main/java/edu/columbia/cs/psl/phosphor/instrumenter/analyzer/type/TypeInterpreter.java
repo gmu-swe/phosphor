@@ -19,26 +19,14 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
 
-    private final LocalVariableNode[][] localVariableDefinitions;
     private final InsnList instructions;
     private final Map<LabelNode, Frame<TypeValue>> fullFrameMap = new HashMap<>();
     private int instructionIndexOfNextMerge = -1;
     private int frameIndexOfNextMerge = -1;
     private FrameSlotType slotTypeOfNextMerge = null;
 
-    public TypeInterpreter(String owner, MethodNode methodNode) {
+    public TypeInterpreter(MethodNode methodNode) {
         instructions = methodNode.instructions;
-        localVariableDefinitions = new LocalVariableNode[methodNode.maxLocals][instructions.size()];
-        Iterable<LocalVariableNode> locals = methodNode.localVariables;
-        if(locals != null) {
-            for(LocalVariableNode local : locals) {
-                int start = instructions.indexOf(local.start);
-                int end = instructions.indexOf(local.end);
-                for(int i = start; i < end; i++) {
-                    localVariableDefinitions[local.index][i] = local;
-                }
-            }
-        }
         Iterator<AbstractInsnNode> itr = methodNode.instructions.iterator();
         LabelNode lastLabel = null;
         while(itr.hasNext()) {
@@ -123,29 +111,7 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
 
     @Override
     public TypeValue copyOperation(AbstractInsnNode insn, TypeValue value) {
-        int opcode = insn.getOpcode();
-        if(opcode == ILOAD || opcode == ISTORE) {
-            return getTypeValueForIntLocalVariable(insn);
-        } else {
-            return value;
-        }
-    }
-
-    private TypeValue getTypeValueForIntLocalVariable(AbstractInsnNode insn) {
-        int localIndex;
-        if(insn instanceof VarInsnNode) {
-            localIndex = ((VarInsnNode) insn).var;
-        } else if(insn instanceof IincInsnNode) {
-            localIndex = ((IincInsnNode) insn).var;
-        } else {
-            throw new IllegalArgumentException();
-        }
-        int insnIndex = instructions.indexOf(insn);
-        if(insn.getOpcode() == ISTORE && (insnIndex + 1) < instructions.size()) {
-            insnIndex++;
-        }
-        LocalVariableNode local = localVariableDefinitions[localIndex][insnIndex];
-        return local == null ? INT_VALUE : newValue(Type.getType(local.desc));
+        return value;
     }
 
     @Override
@@ -156,9 +122,8 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             case F2I:
             case D2I:
             case ARRAYLENGTH:
-                return INT_VALUE;
             case IINC:
-                return getTypeValueForIntLocalVariable(insn);
+                return INT_VALUE;
             case INSTANCEOF:
                 return BOOLEAN_VALUE;
             case I2B:
@@ -334,9 +299,6 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             return value1;
         } else if(value1 == NULL_VALUE) {
             return value2;
-        } else if(value1.isIntType() && value2.isIntType() && slotTypeOfNextMerge == FrameSlotType.LOCAL_VARIABLE) {
-            LocalVariableNode local = localVariableDefinitions[frameIndexOfNextMerge][instructionIndexOfNextMerge];
-            return local == null ? INT_VALUE : newValue(Type.getType(local.desc));
         } else if(value1.isIntType() && value2.isIntType()) {
             return INT_VALUE;
         }

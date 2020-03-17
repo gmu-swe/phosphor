@@ -28,14 +28,6 @@ public class TypeInterpreterTestMethods {
         s2 = s;
     }
 
-    public void setBooleanTrue(boolean b) {
-        b = true;
-    }
-
-    public void setBooleanFalse(boolean b) {
-        b = false;
-    }
-
     public void instanceOf(Object o) {
         boolean b = o instanceof String;
     }

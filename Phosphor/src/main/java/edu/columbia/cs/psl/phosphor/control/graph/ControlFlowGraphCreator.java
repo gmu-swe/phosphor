@@ -66,7 +66,7 @@ public abstract class ControlFlowGraphCreator<V extends BasicBlock> {
         }
         Map<AbstractInsnNode, String> explicitlyThrownExceptionTypes = new HashMap<>();
         if(addExceptionalEdges) {
-            Analyzer<TypeValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(new TypeInterpreter(owner, methodNode));
+            Analyzer<TypeValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(new TypeInterpreter(methodNode));
             Frame<TypeValue>[] frames = analyzer.analyze(owner, methodNode);
             int i = 0;
             Iterator<AbstractInsnNode> itr = methodNode.instructions.iterator();
