@@ -1,15 +1,18 @@
 package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.type;
 
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.Handle;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
+import org.objectweb.asm.tree.analysis.Frame;
 
 import java.util.Iterator;
-import java.util.List;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.type.TypeValue.*;
 import static org.objectweb.asm.Opcodes.*;
@@ -18,7 +21,7 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
 
     private final LocalVariableNode[][] localVariableDefinitions;
     private final InsnList instructions;
-    private final Map<LabelNode, FrameNode> fullFrameMap = new HashMap<>();
+    private final Map<LabelNode, Frame<TypeValue>> fullFrameMap = new HashMap<>();
     private int instructionIndexOfNextMerge = -1;
     private int frameIndexOfNextMerge = -1;
     private FrameSlotType slotTypeOfNextMerge = null;
@@ -43,7 +46,7 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             if(insn instanceof LabelNode) {
                 lastLabel = (LabelNode) insn;
             } else if(insn instanceof FrameNode && lastLabel != null) {
-                fullFrameMap.put(lastLabel, (FrameNode) insn);
+                fullFrameMap.put(lastLabel, convertFrameNode((FrameNode) insn));
                 lastLabel = null;
             }
         }
@@ -339,22 +342,17 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
         }
         AbstractInsnNode insn = instructions.get(instructionIndexOfNextMerge);
         if(insn instanceof LabelNode && fullFrameMap.containsKey(insn)) {
-            FrameNode fullFrame = fullFrameMap.get(insn);
-            List<Object> slots;
+            Frame<TypeValue> fullFrame = fullFrameMap.get(insn);
             if(slotTypeOfNextMerge == FrameSlotType.LOCAL_VARIABLE) {
-                slots = fullFrame.local;
-            } else {
-                slots = fullFrame.stack;
-            }
-            if(slots != null && frameIndexOfNextMerge < slots.size()) {
-                Object slotType = slots.get(frameIndexOfNextMerge);
-                if(slotType instanceof String) {
-                    String desc = "L" + slotType + ";";
-                    return newValue(Type.getType(desc));
+                if(frameIndexOfNextMerge < fullFrame.getLocals()) {
+                    return fullFrame.getLocal(frameIndexOfNextMerge);
                 }
             } else {
-                return UNINITIALIZED_VALUE;
+                if(frameIndexOfNextMerge < fullFrame.getStackSize()) {
+                    return fullFrame.getStack(frameIndexOfNextMerge);
+                }
             }
+            return UNINITIALIZED_VALUE;
         }
         return value2;
     }
@@ -374,6 +372,48 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
     public void mergingStackElement(int stackIndexOfNextMerge, int numLocals, int stackSize) {
         frameIndexOfNextMerge = stackIndexOfNextMerge;
         slotTypeOfNextMerge = FrameSlotType.STACK_ELEMENT;
+    }
+
+    public Frame<TypeValue> convertFrameNode(FrameNode node) {
+        List<TypeValue> local = convertFrameObjects(node.local);
+        List<TypeValue> stack = convertFrameObjects(node.stack);
+        Frame<TypeValue> frame = new Frame<>(local.size(), stack.size());
+        for(int i = 0; i < local.size(); i++) {
+            frame.setLocal(i, local.get(i));
+        }
+        for(TypeValue v : stack) {
+            frame.push(v);
+        }
+        return frame;
+    }
+
+    private List<TypeValue> convertFrameObjects(Iterable<Object> frameObjects) {
+        List<TypeValue> types = new ArrayList<>();
+        for(Object local : frameObjects) {
+            if(local.equals(Opcodes.TOP)) {
+                types.add(UNINITIALIZED_VALUE);
+            } else if(local.equals(Opcodes.INTEGER)) {
+                types.add(INT_VALUE);
+            } else if(local.equals(Opcodes.FLOAT)) {
+                types.add(FLOAT_VALUE);
+            } else if(local.equals(Opcodes.DOUBLE)) {
+                types.add(DOUBLE_VALUE);
+                types.add(UNINITIALIZED_VALUE);
+            } else if(local.equals(Opcodes.LONG)) {
+                types.add(LONG_VALUE);
+                types.add(UNINITIALIZED_VALUE);
+            } else if(local.equals(Opcodes.NULL)) {
+                types.add(NULL_VALUE);
+            } else if(local.equals(Opcodes.UNINITIALIZED_THIS)) {
+                types.add(UNINITIALIZED_VALUE);
+            } else if(local instanceof String) {
+                String desc = "L" + local + ";";
+                types.add(newValue(Type.getType(desc)));
+            } else {
+                types.add(UNINITIALIZED_VALUE);
+            }
+        }
+        return types;
     }
 
     public enum FrameSlotType {
