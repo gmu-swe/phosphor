@@ -36,10 +36,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     static final String SHORT_NAME = "java/lang/Short";
     private final int lastArg;
     private final Type[] paramTypes;
-    private boolean isIgnoreAllInstrumenting;
-    private boolean isRawInstruction = false;
-    private boolean isTaintlessArrayStore = false;
-    private boolean doNotUnboxTaints;
     private final Type originalMethodReturnType;
     private final Type newReturnType;
     private final String name;
@@ -50,12 +46,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     private final boolean rewriteLVDebug;
     private final boolean isLambda;
     private final boolean isObjOutputStream;
-    ReferenceArrayTarget referenceArrayTarget;
-    int line = 0;
     private final ControlFlowPropagationPolicy controlFlowPolicy;
-    private boolean isAtStartOfExceptionHandler;
     private final List<MethodNode> wrapperMethodsToAdd;
     private final Set<Label> exceptionHandlers = new HashSet<>();
+    ReferenceArrayTarget referenceArrayTarget;
+    int line = 0;
+    private boolean isIgnoreAllInstrumenting;
+    private boolean isRawInstruction = false;
+    private boolean isTaintlessArrayStore = false;
+    private boolean doNotUnboxTaints;
+    private boolean isAtStartOfExceptionHandler;
 
     public TaintPassingMV(MethodVisitor mv, int access, String owner, String name, String descriptor, String signature,
                           String[] exceptions, String originalDesc, NeverNullArgAnalyzerAdapter analyzer,
@@ -232,7 +232,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         boolean thisIsTracked = TaintUtils.isShadowedType(descType);
 
         if(opcode == PUTFIELD || opcode == PUTSTATIC) {
-            controlFlowPolicy.visitingFieldStore(opcode == PUTSTATIC, descType, true);
+            controlFlowPolicy.visitingFieldStore(opcode, owner, name, desc);
         }
         Configuration.taintTagFactory.fieldOp(opcode, owner, name, desc, mv, lvs, this, thisIsTracked);
         switch(opcode) {
@@ -249,11 +249,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 }
                 break;
             case Opcodes.GETFIELD:
-                //TODO what to do with reference taint? POP'ing for now.
-                super.visitInsn(POP);
-                if(TaintUtils.isShadowedType(descType)) {
-                    super.visitInsn(DUP);
-                }
+                // [objectref taint1]
+                super.visitInsn(SWAP);
+                super.visitInsn(DUP);
                 if(TaintUtils.isWrappedTypeWithSeparateField(descType)) {
                     Type wrapper = TaintUtils.getWrapperType(descType);
                     super.visitLdcInsn(new ReferenceArrayTarget(desc));
@@ -261,17 +259,20 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 } else {
                     super.visitFieldInsn(opcode, owner, name, desc);
                 }
-                if(TaintUtils.isShadowedType(descType)) {
-                    String shadowType = TaintUtils.getShadowTaintType(desc);
-                    if(descType.getSize() == 1) {
-                        super.visitInsn(SWAP);
-                        super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, shadowType);
-                    } else {
-                        super.visitInsn(DUP2_X1);
-                        super.visitInsn(POP2);
-                        super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, shadowType);
-                    }
+                // [taint1 objectref value]
+                if(descType.getSize() == 1) {
+                    super.visitInsn(DUP_X2);
+                    super.visitInsn(POP);
+                } else {
+                    super.visitInsn(DUP2_X2);
+                    super.visitInsn(POP2);
                 }
+                // [value taint1 objectref]
+                super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_FIELD, TaintUtils.getShadowTaintType(desc));
+                // [value taint1 taint2]
+                controlFlowPolicy.visitingInstanceFieldLoad(owner, name, desc);
+                COMBINE_TAGS.delegateVisit(mv);
+                // [value taint]
                 break;
             case Opcodes.PUTSTATIC:
                 if(TaintUtils.isShadowedType(descType)) {
@@ -604,10 +605,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         }
                         int offset = 0;
                         int i = 0;
-                        for (Type t : uninstNewWrapperArgs) {
+                        for(Type t : uninstNewWrapperArgs) {
                             ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), offset);
-                            if (t.getSort() == Type.INT) {
-                                switch (implMethodArgs[i].getSort()) {
+                            if(t.getSort() == Type.INT) {
+                                switch(implMethodArgs[i].getSort()) {
                                     case Type.LONG:
                                         ga.visitInsn(Opcodes.I2L);
                                         break;
@@ -1393,7 +1394,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
      */
     private void visitArrayStore(int opcode) {
         // A T I T V T
-        controlFlowPolicy.visitingArrayStore();
+        controlFlowPolicy.visitingArrayStore(opcode);
         int valuePosition = analyzer.stack.size() - (opcode == LASTORE || opcode == DASTORE ? 3 : 2);
         int indexPosition = valuePosition - 2;
         int arrayRefPosition = indexPosition - 2;
@@ -1419,6 +1420,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
      *               IALOAD, FALOAD, BALOAD, CALOAD, SALOAD, or AALOAD.
      */
     private void visitArrayLoad(int opcode) {
+        LocalVariableNode[] d = storeToLocals(3);
+        loadLV(2, d);
+        loadLV(1, d);
+        loadLV(0, d);
         int arrayRefPosition = analyzer.stack.size() - 4;
         MethodRecord getMethod;
         if(analyzer.stack.get(arrayRefPosition) == Opcodes.NULL) {
@@ -1434,6 +1439,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         super.visitVarInsn(ALOAD, preAllocated);
         getMethod.delegateVisit(mv);
         unwrap(getMethod.getReturnType());
+        // [value, value-taint]
+        loadLV(2, d);
+        freeLVs(d);
+        super.visitInsn(SWAP);
+        // [value, reference-taint, value-taint]
+        controlFlowPolicy.visitingArrayLoad(opcode);
+        COMBINE_TAGS.delegateVisit(mv);
     }
 
     /**

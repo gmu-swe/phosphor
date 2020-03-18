@@ -4,7 +4,6 @@ import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Type;
 
 public abstract class AbstractControlFlowPropagationPolicy<T extends ControlFlowAnalyzer> implements ControlFlowPropagationPolicy {
 
@@ -80,12 +79,22 @@ public abstract class AbstractControlFlowPropagationPolicy<T extends ControlFlow
     }
 
     @Override
-    public void visitingArrayStore() {
+    public void visitingArrayStore(int opcode) {
 
     }
 
     @Override
-    public void visitingFieldStore(boolean isStatic, Type type, boolean topCarriesTaint) {
+    public void visitingArrayLoad(int opcode) {
+
+    }
+
+    @Override
+    public void visitingFieldStore(int opcode, String owner, String name, String descriptor) {
+
+    }
+
+    @Override
+    public void visitingInstanceFieldLoad(String owner, String name, String descriptor) {
 
     }
 

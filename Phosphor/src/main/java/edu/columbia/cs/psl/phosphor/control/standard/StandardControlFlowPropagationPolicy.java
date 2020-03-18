@@ -33,30 +33,25 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.TaintPassingMV.calculate
 public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPropagationPolicy<StandardControlFlowAnalyzer> {
 
     /**
-     * The number of unique IDs assigned to branches in the method
-     */
-    private int numberOfUniqueBranchIDs = 0;
-
-    /**
      * Set containing the indices of local variables that need to be force stored.
      */
     private final Set<Integer> forceControlStoreVariables = new HashSet<>();
-
     /**
      * Set containing field that need to be force stored.
      */
     private final Set<Field> forceControlStoreFields = new HashSet<>();
-
     /**
      * Index of the last parameter of the method being visited.
      */
     private final int lastParameterIndex;
-
     /**
      * The types of parameters of the method being visited.
      */
     private final Type[] paramTypes;
-
+    /**
+     * The number of unique IDs assigned to branches in the method
+     */
+    private int numberOfUniqueBranchIDs = 0;
     /**
      * The ID of the next branch instruction encountered or -1
      */
@@ -148,13 +143,13 @@ public class StandardControlFlowPropagationPolicy extends AbstractControlFlowPro
     }
 
     @Override
-    public void visitingArrayStore() {
+    public void visitingArrayStore(int opcode) {
         copyTag();
         COMBINE_TAGS.delegateVisit(delegate);
     }
 
     @Override
-    public void visitingFieldStore(boolean isStatic, Type type, boolean topCarriesTaint) {
+    public void visitingFieldStore(int opcode, String owner, String name, String descriptor) {
         copyTag();
         COMBINE_TAGS.delegateVisit(delegate);
     }

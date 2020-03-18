@@ -6,7 +6,6 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAd
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
 /**
  * Implementing classes specify how control flows should propagation in visited methods by delegating instruction visits.
@@ -68,19 +67,50 @@ public interface ControlFlowPropagationPolicy {
      * Called before a IASTORE, LASTORE, FASTORE, DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE instruction
      * stack_pre = [taint]
      * stack_post = [taint]
+     *
+     * @param opcode the opcode of the type instruction to being visited, either IASTORE, LASTORE, FASTORE, DASTORE,
+     *               BASTORE, CASTORE, SASTORE, or AASTORE
      */
-    void visitingArrayStore();
+    void visitingArrayStore(int opcode);
+
+    /**
+     * Called before a IALOAD, LALOAD, FALOAD, DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE instruction
+     * stack_pre = [value, reference-taint, value-taint]
+     * stack_post = [value, reference-taint, value-taint]
+     * <p>
+     * reference-taint is the taint tag of the array reference whose element was loaded.
+     * value-taint is the taint tag for the array element that was loaded onto the stack.
+     *
+     * @param opcode the opcode of the type instruction to being visited, either IALOAD, LALOAD, FALOAD, DASTORE,
+     *               BASTORE, CASTORE, SASTORE, or AASTORE
+     */
+    void visitingArrayLoad(int opcode);
 
     /**
      * Called before a PUTFIELD or PUTSTATIC instruction.
      * stack_pre = [value taint]
      * stack_post = [value taint]
      *
-     * @param isStatic        if a PUTSTATIC instruction is being visited
-     * @param type            the formal type of the field
-     * @param topCarriesTaint true if the top value on the stack is tainted
+     * @param opcode     the opcode of the type instruction to being visited, either PUTFIELD or PUTSTATIC
+     * @param owner      the internal name of the field's owner class
+     * @param name       the field's name.
+     * @param descriptor the field's descriptor
      */
-    void visitingFieldStore(boolean isStatic, Type type, boolean topCarriesTaint);
+    void visitingFieldStore(int opcode, String owner, String name, String descriptor);
+
+    /**
+     * Called before a GETFIELD instruction.
+     * stack_pre =  [value, reference-taint, value-taint]
+     * stack_post = [value, reference-taint, value-taint]
+     * <p>
+     * reference-taint is the taint tag of the object reference whose field was loaded.
+     * value-taint is the taint tag for the value of the field that was loaded onto the stack.
+     *
+     * @param owner      the internal name of the field's owner class
+     * @param name       the field's name.
+     * @param descriptor the field's descriptor
+     */
+    void visitingInstanceFieldLoad(String owner, String name, String descriptor);
 
     /**
      * Called to create a new taint instance.

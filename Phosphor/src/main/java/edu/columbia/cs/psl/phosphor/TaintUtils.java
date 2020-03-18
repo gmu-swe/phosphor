@@ -18,8 +18,8 @@ import org.objectweb.asm.signature.SignatureVisitor;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
 
 public class TaintUtils {
 
@@ -134,7 +134,7 @@ public class TaintUtils {
         }
     }
 
-    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint<?> srctaint, int srcPos, Taint<?> srcPosTaint,
+    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint<?> srcTaint, int srcPos, Taint<?> srcPosTaint,
                                                  Object dest, Taint<?> destTaint, int destPos, Taint<?> destPosTaint,
                                                  int length, Taint<?> lengthTaint, ControlFlowStack ctrl) {
         if(!src.getClass().isArray() && !dest.getClass().isArray()) {
@@ -145,17 +145,22 @@ public class TaintUtils {
                 }
                 System.arraycopy(((LazyArrayObjTags) src).taints, srcPos, ((LazyArrayObjTags) dest).taints, destPos, length);
             }
-            if(!ctrl.copyTag().isEmpty()) {
-                if(((LazyArrayObjTags) dest).taints == null) {
-                    ((LazyArrayObjTags) dest).taints = new Taint[((LazyArrayObjTags) dest).getLength()];
+            if(srcTaint != null && !srcTaint.isEmpty()) {
+                LazyArrayObjTags destTags = (LazyArrayObjTags) dest;
+                if(destTags.taints == null) {
+                    destTags.taints = new Taint[destTags.getLength()];
                 }
-                Taint[] taints = ((LazyArrayObjTags) dest).taints;
-                for(int i = 0; i < taints.length; i++) {
-                    if(taints[i] == null || taints[i].isEmpty()) {
-                        taints[i] = ctrl.copyTag();
-                    } else {
-                        taints[i] = taints[i].union(ctrl.copyTag());
-                    }
+                for(int i = destPos; i < destPos + length; i++) {
+                    destTags.taints[i] = Taint.combineTags(destTags.taints[i], srcTaint);
+                }
+            }
+            if(!ctrl.copyTag().isEmpty()) {
+                LazyArrayObjTags destTags = (LazyArrayObjTags) dest;
+                if(destTags.taints == null) {
+                    destTags.taints = new Taint[destTags.getLength()];
+                }
+                for(int i = destPos; i < destPos + length; i++) {
+                    destTags.taints[i] = Taint.combineTags(destTags.taints[i], ctrl.copyTag());
                 }
             }
         } else if(!dest.getClass().isArray()) {
@@ -228,10 +233,10 @@ public class TaintUtils {
     }
 
     public static Type getUnwrappedType(Type wrappedType) {
-        if (wrappedType.getSort() != Type.OBJECT) {
+        if(wrappedType.getSort() != Type.OBJECT) {
             return wrappedType;
         }
-        switch (wrappedType.getDescriptor()) {
+        switch(wrappedType.getDescriptor()) {
             case "Ledu/columbia/cs/psl/phosphor/struct/LazyBooleanArrayObjTags;":
                 return Type.getType("[Z");
             case "Ledu/columbia/cs/psl/phosphor/struct/LazyByteArrayObjTags;":
@@ -296,30 +301,30 @@ public class TaintUtils {
             ret.append(Configuration.TAINT_TAG_DESC);
         }
         boolean ctrlAdded = !(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING);
-        for (Type t : Type.getArgumentTypes(desc)) {
-            if (!ctrlAdded && t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
+        for(Type t : Type.getArgumentTypes(desc)) {
+            if(!ctrlAdded && t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
                 ctrlAdded = true;
                 ret.append(CONTROL_STACK_DESC);
             }
-            if (isWrappedType(t)) {
+            if(isWrappedType(t)) {
                 ret.append(getWrapperType(t));
             } else {
                 ret.append(t);
             }
-            if (isWrappedTypeWithErasedType(t)) {
+            if(isWrappedTypeWithErasedType(t)) {
                 wrapped.append(t.getDescriptor());
             }
-            if (isShadowedType(t)) {
+            if(isShadowedType(t)) {
                 ret.append(Configuration.TAINT_TAG_DESC);
             }
         }
-        if (!ctrlAdded) {
+        if(!ctrlAdded) {
             ret.append(CONTROL_STACK_DESC);
         }
-        if (Type.getReturnType(desc).getSort() != Type.VOID) {
+        if(Type.getReturnType(desc).getSort() != Type.VOID) {
             ret.append(getContainerReturnType(Type.getReturnType(desc)).getDescriptor());
         }
-        if (addErasedTypes) {
+        if(addErasedTypes) {
             ret.append(wrapped);
         }
         ret.append(')');
@@ -350,7 +355,7 @@ public class TaintUtils {
         if(Type.getReturnType(desc).getSort() != Type.VOID) {
             ret.append(getContainerReturnType(Type.getReturnType(desc)).getDescriptor());
         }
-        if (addErasedTypes) {
+        if(addErasedTypes) {
             ret.append(wrapped);
         }
         ret.append(')');
