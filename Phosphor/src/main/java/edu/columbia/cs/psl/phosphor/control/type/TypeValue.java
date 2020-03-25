@@ -1,4 +1,4 @@
-package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.type;
+package edu.columbia.cs.psl.phosphor.control.type;
 
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.analysis.Value;
@@ -6,10 +6,6 @@ import org.objectweb.asm.tree.analysis.Value;
 public final class TypeValue implements Value {
 
     public static final TypeValue UNINITIALIZED_VALUE = new TypeValue(null);
-    public static final TypeValue BOOLEAN_VALUE = new TypeValue(Type.BOOLEAN_TYPE);
-    public static final TypeValue BYTE_VALUE = new TypeValue(Type.BYTE_TYPE);
-    public static final TypeValue CHAR_VALUE = new TypeValue(Type.CHAR_TYPE);
-    public static final TypeValue SHORT_VALUE = new TypeValue(Type.SHORT_TYPE);
     public static final TypeValue INT_VALUE = new TypeValue(Type.INT_TYPE);
     public static final TypeValue FLOAT_VALUE = new TypeValue(Type.FLOAT_TYPE);
     public static final TypeValue LONG_VALUE = new TypeValue(Type.LONG_TYPE);
@@ -58,20 +54,7 @@ public final class TypeValue implements Value {
 
     @Override
     public String toString() {
-        return type == null ? "uninitialized" : type.toString();
-    }
-
-    public boolean isIntType() {
-        switch(type.getSort()) {
-            case Type.CHAR:
-            case Type.BOOLEAN:
-            case Type.BYTE:
-            case Type.SHORT:
-            case Type.INT:
-                return true;
-            default:
-                return false;
-        }
+        return type == null ? "." : type.toString();
     }
 
     public static TypeValue getInstance(Type type) {
@@ -82,13 +65,9 @@ public final class TypeValue implements Value {
             case Type.VOID:
                 return null;
             case Type.BOOLEAN:
-                return BOOLEAN_VALUE;
             case Type.CHAR:
-                return CHAR_VALUE;
             case Type.BYTE:
-                return BYTE_VALUE;
             case Type.SHORT:
-                return SHORT_VALUE;
             case Type.INT:
                 return INT_VALUE;
             case Type.FLOAT:

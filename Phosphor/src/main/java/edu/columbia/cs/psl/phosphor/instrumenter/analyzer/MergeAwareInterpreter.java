@@ -1,4 +1,4 @@
-package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.type;
+package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.tree.analysis.Interpreter;

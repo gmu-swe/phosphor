@@ -17,7 +17,7 @@ public class ControlFlowGraphSuccessorsTest {
         }
         expected.put(7, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "basicTableSwitch", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "basicTableSwitch");
         assertEquals(expected, successors);
     }
 
@@ -31,7 +31,7 @@ public class ControlFlowGraphSuccessorsTest {
         }
         expected.put(7, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "basicLookupSwitch", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "basicLookupSwitch");
         assertEquals(expected, successors);
     }
 
@@ -44,7 +44,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(2, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(3, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "tryCatchWithIf", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "tryCatchWithIf");
         assertEquals(expected, successors);
     }
 
@@ -62,7 +62,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(7, new HashSet<>(Arrays.asList(1)));
         expected.put(8, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "multipleReturnLoop", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "multipleReturnLoop");
         assertEquals(expected, successors);
     }
 
@@ -77,7 +77,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(4, new HashSet<>(Arrays.asList(3)));
         expected.put(5, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "ifElseIntoWhileLoop", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "ifElseIntoWhileLoop");
         assertEquals(expected, successors);
     }
 
@@ -92,7 +92,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(4, new HashSet<>(Arrays.asList(1)));
         expected.put(5, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "forLoopWithReturn", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "forLoopWithReturn");
         assertEquals(expected, successors);
     }
 
@@ -107,7 +107,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(4, new HashSet<>(Arrays.asList(1)));
         expected.put(5, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "forLoopWithBreak", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "forLoopWithBreak");
         assertEquals(expected, successors);
     }
 
@@ -121,7 +121,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(3, new HashSet<>(Arrays.asList(1)));
         expected.put(4, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "forLoopWithOr", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "forLoopWithOr");
         assertEquals(expected, successors);
     }
 
@@ -135,7 +135,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(3, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(4, new HashSet<>(Arrays.asList(3)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "whileTrue", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "whileTrue");
         assertEquals(expected, successors);
     }
 
@@ -155,7 +155,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(9, new HashSet<>(Arrays.asList(1)));
         expected.put(10, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "nestedLoopsMultipleExits", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "nestedLoopsMultipleExits");
         assertEquals(expected, successors);
     }
 
@@ -174,7 +174,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(8, new HashSet<>(Arrays.asList(9)));
         expected.put(9, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "multipleTryBlocks", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "multipleTryBlocks");
         assertEquals(expected, successors);
     }
 
@@ -192,7 +192,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(7, new HashSet<>(Arrays.asList(1)));
         expected.put(8, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "labeledBreak", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "labeledBreak");
         assertEquals(expected, successors);
     }
 
@@ -204,7 +204,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(1, new HashSet<>(Arrays.asList(1, 2)));
         expected.put(2, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "doWhile", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "doWhile");
         assertEquals(expected, successors);
     }
 
@@ -219,7 +219,7 @@ public class ControlFlowGraphSuccessorsTest {
         expected.put(4, new HashSet<>(Arrays.asList(1)));
         expected.put(5, new HashSet<>(Arrays.asList(ControlFlowGraphTestUtil.EXIT_NODE_ID)));
         expected.put(ControlFlowGraphTestUtil.EXIT_NODE_ID, new HashSet<>());
-        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "continueWhile", false);
+        Map<Integer, Set<Integer>> successors = ControlFlowGraphTestUtil.calculateSuccessors(ControlFlowGraphTestMethods.class, "continueWhile");
         assertEquals(expected, successors);
     }
 }

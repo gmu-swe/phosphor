@@ -253,8 +253,9 @@ public class OpcodesUtil {
      *
      * @param insn                          the instruction to be checked
      * @param handler                       the exception handler
-     * @param explicitlyThrownExceptionType the type of the explicitly thrown if the specified instruction is an ATHROW exception,
-     *                                      otherwise null
+     * @param explicitlyThrownExceptionType the name of the class of the explicitly thrown if the specified instruction
+     *                                      is an ATHROW exception (as returned by Class.getName(), but with the '.'s
+     *                                      replaced with '/'s), otherwise null
      * @return true if the execution of the specified instruction could result in an exception being throw that the
      * specified handler can catch
      * @throws NullPointerException if insn or handler are null

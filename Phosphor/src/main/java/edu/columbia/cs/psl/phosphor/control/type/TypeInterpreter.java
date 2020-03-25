@@ -1,5 +1,7 @@
-package edu.columbia.cs.psl.phosphor.instrumenter.analyzer.type;
+package edu.columbia.cs.psl.phosphor.control.type;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.MergeAwareInterpreter;
+import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.PhosphorOpcodeIgnoringAnalyzer;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
@@ -9,24 +11,31 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
-import org.objectweb.asm.tree.analysis.AnalyzerException;
-import org.objectweb.asm.tree.analysis.Frame;
+import org.objectweb.asm.tree.analysis.*;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.analyzer.type.TypeValue.*;
+import static edu.columbia.cs.psl.phosphor.control.type.TypeValue.*;
 import static org.objectweb.asm.Opcodes.*;
 
 public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
 
     private final InsnList instructions;
-    private final Map<LabelNode, Frame<TypeValue>> fullFrameMap = new HashMap<>();
+    private final Map<LabelNode, Frame<TypeValue>> labelFullFrameMap = new HashMap<>();
+    private final Frame<BasicValue>[] basicFrames;
     private int instructionIndexOfNextMerge = -1;
     private int frameIndexOfNextMerge = -1;
     private FrameSlotType slotTypeOfNextMerge = null;
 
-    public TypeInterpreter(MethodNode methodNode) {
+    public TypeInterpreter(String owner, MethodNode methodNode) throws AnalyzerException {
+        PhosphorOpcodeIgnoringAnalyzer<BasicValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(new BasicInterpreter());
+        basicFrames = analyzer.analyze(owner, methodNode);
         instructions = methodNode.instructions;
+        initializeLabelFullFrameMap(methodNode);
+    }
+
+    private void initializeLabelFullFrameMap(MethodNode methodNode) {
         Iterator<AbstractInsnNode> itr = methodNode.instructions.iterator();
         LabelNode lastLabel = null;
         while(itr.hasNext()) {
@@ -34,7 +43,7 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             if(insn instanceof LabelNode) {
                 lastLabel = (LabelNode) insn;
             } else if(insn instanceof FrameNode && lastLabel != null) {
-                fullFrameMap.put(lastLabel, convertFrameNode((FrameNode) insn));
+                labelFullFrameMap.put(lastLabel, convertFrameNode((FrameNode) insn));
                 lastLabel = null;
             }
         }
@@ -57,11 +66,9 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             case ICONST_3:
             case ICONST_4:
             case ICONST_5:
-                return INT_VALUE;
             case BIPUSH:
-                return BYTE_VALUE;
             case SIPUSH:
-                return SHORT_VALUE;
+                return INT_VALUE;
             case LCONST_0:
             case LCONST_1:
                 return LONG_VALUE;
@@ -123,15 +130,11 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             case D2I:
             case ARRAYLENGTH:
             case IINC:
-                return INT_VALUE;
             case INSTANCEOF:
-                return BOOLEAN_VALUE;
             case I2B:
-                return BYTE_VALUE;
             case I2C:
-                return CHAR_VALUE;
             case I2S:
-                return SHORT_VALUE;
+                return INT_VALUE;
             case FNEG:
             case I2F:
             case L2F:
@@ -291,7 +294,22 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
 
     @Override
     public TypeValue merge(TypeValue value1, TypeValue value2) {
-        if(value1 == UNINITIALIZED_VALUE || value2 == UNINITIALIZED_VALUE) {
+        Frame<BasicValue> basicFrame = basicFrames[instructionIndexOfNextMerge];
+        if(!hasFrameSlotItem(slotTypeOfNextMerge, frameIndexOfNextMerge, basicFrame)) {
+            return UNINITIALIZED_VALUE;
+        }
+        BasicValue basicValue = getFrameSlotItem(slotTypeOfNextMerge, frameIndexOfNextMerge, basicFrame);
+        AbstractInsnNode insn = instructions.get(instructionIndexOfNextMerge);
+        TypeValue defaultValue = value2;
+        if(labelFullFrameMap.containsKey(insn)) {
+            Frame<TypeValue> fullFrame = labelFullFrameMap.get(insn);
+            if(hasFrameSlotItem(slotTypeOfNextMerge, frameIndexOfNextMerge, fullFrame)) {
+                defaultValue = getFrameSlotItem(slotTypeOfNextMerge, frameIndexOfNextMerge, fullFrame);
+            } else {
+                return UNINITIALIZED_VALUE;
+            }
+        }
+        if(basicValue.equals(BasicValue.UNINITIALIZED_VALUE)) {
             return UNINITIALIZED_VALUE;
         } else if(value1.equals(value2)) {
             return value1;
@@ -299,24 +317,8 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             return value1;
         } else if(value1 == NULL_VALUE) {
             return value2;
-        } else if(value1.isIntType() && value2.isIntType()) {
-            return INT_VALUE;
         }
-        AbstractInsnNode insn = instructions.get(instructionIndexOfNextMerge);
-        if(insn instanceof LabelNode && fullFrameMap.containsKey(insn)) {
-            Frame<TypeValue> fullFrame = fullFrameMap.get(insn);
-            if(slotTypeOfNextMerge == FrameSlotType.LOCAL_VARIABLE) {
-                if(frameIndexOfNextMerge < fullFrame.getLocals()) {
-                    return fullFrame.getLocal(frameIndexOfNextMerge);
-                }
-            } else {
-                if(frameIndexOfNextMerge < fullFrame.getStackSize()) {
-                    return fullFrame.getStack(frameIndexOfNextMerge);
-                }
-            }
-            return UNINITIALIZED_VALUE;
-        }
-        return value2;
+        return defaultValue;
     }
 
     @Override
@@ -336,7 +338,22 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
         slotTypeOfNextMerge = FrameSlotType.STACK_ELEMENT;
     }
 
-    public Frame<TypeValue> convertFrameNode(FrameNode node) {
+    private static boolean hasFrameSlotItem(FrameSlotType slotTypeOfNextMerge, int frameIndex, Frame<?> frame) {
+        return (slotTypeOfNextMerge == FrameSlotType.LOCAL_VARIABLE && frameIndex < frame.getLocals())
+                || (slotTypeOfNextMerge == FrameSlotType.STACK_ELEMENT && frameIndex < frame.getStackSize());
+    }
+
+    private static <T extends Value> T getFrameSlotItem(FrameSlotType slotTypeOfNextMerge, int frameIndex, Frame<T> frame) {
+        if(slotTypeOfNextMerge == FrameSlotType.LOCAL_VARIABLE && frameIndex < frame.getLocals()) {
+            return frame.getLocal(frameIndex);
+        } else if(slotTypeOfNextMerge == FrameSlotType.STACK_ELEMENT && frameIndex < frame.getStackSize()) {
+            return frame.getStack(frameIndex);
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
+
+    public static Frame<TypeValue> convertFrameNode(FrameNode node) {
         List<TypeValue> local = convertFrameObjects(node.local);
         List<TypeValue> stack = convertFrameObjects(node.stack);
         Frame<TypeValue> frame = new Frame<>(local.size(), stack.size());
@@ -349,7 +366,7 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
         return frame;
     }
 
-    private List<TypeValue> convertFrameObjects(Iterable<Object> frameObjects) {
+    private static List<TypeValue> convertFrameObjects(Iterable<Object> frameObjects) {
         List<TypeValue> types = new ArrayList<>();
         for(Object local : frameObjects) {
             if(local.equals(Opcodes.TOP)) {
@@ -369,10 +386,15 @@ public class TypeInterpreter extends MergeAwareInterpreter<TypeValue> {
             } else if(local.equals(Opcodes.UNINITIALIZED_THIS)) {
                 types.add(UNINITIALIZED_VALUE);
             } else if(local instanceof String) {
-                String desc = "L" + local + ";";
-                types.add(newValue(Type.getType(desc)));
-            } else {
+                String desc = (String) local;
+                if(!desc.startsWith("[")) {
+                    desc = "L" + desc + ";";
+                }
+                types.add(TypeValue.getInstance((Type.getType(desc))));
+            } else if(local instanceof LabelNode) {
                 types.add(UNINITIALIZED_VALUE);
+            } else {
+                throw new IllegalArgumentException();
             }
         }
         return types;

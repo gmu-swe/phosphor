@@ -24,6 +24,7 @@ public class BaseControlFlowGraphCreator extends ControlFlowGraphCreator<BasicBl
     }
 
     public BaseControlFlowGraphCreator() {
+        this(false);
     }
 
     @Override

@@ -11,19 +11,19 @@ public class ControlFlowGraphLoopsTest {
 
     @Test
     public void testBasicTableSwitch() throws Exception {
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "basicTableSwitch", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "basicTableSwitch");
         assertTrue(loops.isEmpty());
     }
 
     @Test
     public void testBasicLookupSwitch() throws Exception {
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "basicLookupSwitch", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "basicLookupSwitch");
         assertTrue(loops.isEmpty());
     }
 
     @Test
     public void testTryCatchWithIf() throws Exception {
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "tryCatchWithIf", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "tryCatchWithIf");
         assertTrue(loops.isEmpty());
     }
 
@@ -31,7 +31,7 @@ public class ControlFlowGraphLoopsTest {
     public void testMultipleReturnLoop() throws Exception {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(1, new HashSet<>(Arrays.asList(1, 2, 3, 5, 6, 7)));
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "multipleReturnLoop", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "multipleReturnLoop");
         assertEquals(expected, loops);
     }
 
@@ -39,7 +39,7 @@ public class ControlFlowGraphLoopsTest {
     public void testIfElseIntoWhileLoop() throws Exception {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(3, new HashSet<>(Arrays.asList(3, 4)));
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "ifElseIntoWhileLoop", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "ifElseIntoWhileLoop");
         assertEquals(expected, loops);
     }
 
@@ -47,7 +47,7 @@ public class ControlFlowGraphLoopsTest {
     public void testForLoopWithReturn() throws Exception {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(1, new HashSet<>(Arrays.asList(1, 2, 4)));
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "forLoopWithReturn", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "forLoopWithReturn");
         assertEquals(expected, loops);
     }
 
@@ -55,7 +55,7 @@ public class ControlFlowGraphLoopsTest {
     public void testForLoopWithBreak() throws Exception {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(1, new HashSet<>(Arrays.asList(1, 2, 4)));
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "forLoopWithBreak", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "forLoopWithBreak");
         assertEquals(expected, loops);
     }
 
@@ -63,7 +63,7 @@ public class ControlFlowGraphLoopsTest {
     public void testForLoopWithOr() throws Exception {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(1, new HashSet<>(Arrays.asList(1, 2, 3)));
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "forLoopWithOr", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "forLoopWithOr");
         assertEquals(expected, loops);
     }
 
@@ -71,7 +71,7 @@ public class ControlFlowGraphLoopsTest {
     public void testWhileTrue() throws Exception {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(1, new HashSet<>(Arrays.asList(1, 2)));
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "whileTrue", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "whileTrue");
         assertEquals(expected, loops);
     }
 
@@ -80,7 +80,7 @@ public class ControlFlowGraphLoopsTest {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(1, new HashSet<>(Arrays.asList(1, 2, 4, 5, 6, 7, 9)));
         expected.put(5, new HashSet<>(Arrays.asList(5, 6, 7)));
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "nestedLoopsMultipleExits", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "nestedLoopsMultipleExits");
         assertEquals(expected, loops);
     }
 
@@ -88,7 +88,7 @@ public class ControlFlowGraphLoopsTest {
     public void testMultipleTryBlocks() throws Exception {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(1, new HashSet<>(Arrays.asList(1, 2)));
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "multipleTryBlocks", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "multipleTryBlocks");
         assertEquals(expected, loops);
     }
 
@@ -97,7 +97,7 @@ public class ControlFlowGraphLoopsTest {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(1, new HashSet<>(Arrays.asList(1, 2, 3, 4, 6, 7)));
         expected.put(3, new HashSet<>(Arrays.asList(3, 4, 6)));
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "labeledBreak", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "labeledBreak");
         assertEquals(expected, loops);
     }
 
@@ -105,7 +105,7 @@ public class ControlFlowGraphLoopsTest {
     public void testDoWhile() throws Exception {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(1, new HashSet<>(Arrays.asList(1)));
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "doWhile", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "doWhile");
         assertEquals(expected, loops);
     }
 
@@ -113,7 +113,7 @@ public class ControlFlowGraphLoopsTest {
     public void testContinueWhile() throws Exception {
         Map<Integer, Set<Integer>> expected = new HashMap<>();
         expected.put(1, new HashSet<>(Arrays.asList(1, 2, 3, 4)));
-        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "continueWhile", false);
+        Map<Integer, Set<Integer>> loops = calculateLoops(ControlFlowGraphTestMethods.class, "continueWhile");
         assertEquals(expected, loops);
     }
 }

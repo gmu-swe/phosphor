@@ -2,16 +2,9 @@ package edu.columbia.cs.psl.phosphor.control.graph;
 
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.PhosphorOpcodeIgnoringAnalyzer;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.type.TypeInterpreter;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.type.TypeValue;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.analysis.Analyzer;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
-import org.objectweb.asm.tree.analysis.AnalyzerException;
-import org.objectweb.asm.tree.analysis.Frame;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -37,13 +30,9 @@ public abstract class ControlFlowGraphCreator<V extends BasicBlock> {
         this.addExceptionalEdges = addExceptionalEdges;
     }
 
-    public ControlFlowGraphCreator() {
-        this(false);
-    }
-
     /**
      * Returns a flow graph that represents all of the possible execution paths through the specified method.
-     * Conservatively assumes that ATHROW instruction could throw an exception of any type.
+     * Conservatively assumes that ATHROW instructions throw an exception of type Throwable.
      *
      * @param methodNode the method whose flow graph is being constructed
      * @return a flow graph that represents all of the possible execution paths through the specified method
@@ -54,47 +43,12 @@ public abstract class ControlFlowGraphCreator<V extends BasicBlock> {
 
     /**
      * Returns a flow graph that represents all of the possible execution paths through the specified method.
-     * If adding exceptional edges, calculates the type of the exceptions thrown by ATHROW instructions.
-     *
-     * @param methodNode the method whose flow graph is being constructed
-     * @return a flow graph that represents all of the possible execution paths through the specified method
-     * @throws AnalyzerException if unable to calculate the type of the exceptions thrown by ATHROW instructions
-     */
-    public final FlowGraph<V> createControlFlowGraph(String owner, MethodNode methodNode) throws AnalyzerException {
-        if(owner == null || methodNode == null) {
-            throw new NullPointerException();
-        }
-        Map<AbstractInsnNode, String> explicitlyThrownExceptionTypes = new HashMap<>();
-        if(addExceptionalEdges) {
-            Analyzer<TypeValue> analyzer = new PhosphorOpcodeIgnoringAnalyzer<>(new TypeInterpreter(methodNode));
-            Frame<TypeValue>[] frames = analyzer.analyze(owner, methodNode);
-            int i = 0;
-            Iterator<AbstractInsnNode> itr = methodNode.instructions.iterator();
-            while(itr.hasNext()) {
-                AbstractInsnNode insn = itr.next();
-                if(insn.getOpcode() == ATHROW) {
-                    Frame<TypeValue> frame = frames[i];
-                    TypeValue top = frame.getStack(frame.getStackSize() - 1);
-                    Type type = top.getType();
-                    if(type == null) {
-                        explicitlyThrownExceptionTypes.put(insn, "java/lang/Throwable");
-                    } else {
-                        explicitlyThrownExceptionTypes.put(insn, type.getClassName().replace(".", "/"));
-                    }
-                }
-                i++;
-            }
-        }
-        return createControlFlowGraph(methodNode, explicitlyThrownExceptionTypes);
-    }
-
-    /**
-     * Returns a flow graph that represents all of the possible execution paths through the specified method.
      *
      * @param methodNode                     the method whose flow graph is being constructed
-     * @param explicitlyThrownExceptionTypes a mapping from ATHROW instructions to the string type of the exception that
+     * @param explicitlyThrownExceptionTypes a mapping from ATHROW instructions to the class name (as returned by
+     *                                       Class.getName(), but with the '.'s replaced with '/'s) of the exception that
      *                                       they throw, if an ATHROW instruction does not have an entry in the map
-     *                                       assumes that it could throw any exception
+     *                                       assumes that it throws an exception of type Throwable
      * @return a flow graph that represents all of the possible execution paths through the specified method
      * @throws NullPointerException if methodNode is null or explicitlyThrownExceptionTypes is null
      */
@@ -324,14 +278,15 @@ public abstract class ControlFlowGraphCreator<V extends BasicBlock> {
 
     /**
      * @param method                         the method whose instructions and exception handlers are to analyzed
-     * @param explicitlyThrownExceptionTypes a mapping from ATHROW instructions to the string type of the exception that
-     *                                       they throw, if an ATHROW instruction does not have an entry in the map
-     *                                       assumes that it could throw any exception
+     * @param explicitlyThrownExceptionTypes a mapping from ATHROW instructions to the name (as returned by
+     *                                       Class.getName(), but with the '.'s replaced with '/'s) of the type of
+     *                                       exception that they throw, if an ATHROW instruction does not have an entry
+     *                                       in the map assumes that it throws an exception of type Throwable
      * @return a mapping from instructions to the set of exceptions handler that contain the instruction in their range
      * and handler an exception of a type potentially thrown by the instruction
      */
-    protected Map<AbstractInsnNode, Set<TryCatchBlockNode>> calculateHandlers(MethodNode method,
-                                                                              Map<AbstractInsnNode, String> explicitlyThrownExceptionTypes) {
+    private Map<AbstractInsnNode, Set<TryCatchBlockNode>> calculateHandlers(MethodNode method,
+                                                                            Map<AbstractInsnNode, String> explicitlyThrownExceptionTypes) {
         Map<AbstractInsnNode, Set<TryCatchBlockNode>> handlers = new HashMap<>();
         for(TryCatchBlockNode tryCatchBlock : method.tryCatchBlocks) {
             int startIndex = method.instructions.indexOf(tryCatchBlock.start);
@@ -340,7 +295,12 @@ public abstract class ControlFlowGraphCreator<V extends BasicBlock> {
                 AbstractInsnNode insn = method.instructions.get(i);
                 String explicitlyThrownExceptionType = null;
                 if(insn.getOpcode() == ATHROW) {
-                    explicitlyThrownExceptionType = explicitlyThrownExceptionTypes.get(insn);
+                    if(explicitlyThrownExceptionTypes.containsKey(insn)) {
+                        explicitlyThrownExceptionType = explicitlyThrownExceptionTypes.get(insn);
+                    } else {
+                        // Type of exception throw is unknown conservatively say its Throwable
+                        explicitlyThrownExceptionType = "java/lang/Throwable";
+                    }
                 }
                 if(couldThrowHandledException(insn, tryCatchBlock, explicitlyThrownExceptionType)) {
                     if(!handlers.containsKey(insn)) {

@@ -3,7 +3,6 @@ package edu.columbia.cs.psl.phosphor.instrumenter.analyzer;
 
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.type.MergeAwareInterpreter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.analysis.Analyzer;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.analysis.Subroutine;
 import org.objectweb.asm.tree.AbstractInsnNode;
