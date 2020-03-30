@@ -81,6 +81,13 @@ public class Instrumenter {
                 || clazz.startsWith("java/lang/Short");
     }
 
+    public static boolean isIgnoredClassWithStubsButNoTracking(String owner) {
+        return (StringUtils.startsWith(owner, "java/lang/invoke/MethodHandle")  && !"java/lang/invoke/MethodHandleImpl$Intrinsic".equals(owner))
+                || (StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle") && !StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle$Factory"))
+                || StringUtils.startsWith(owner, "java/lang/invoke/DelegatingMethodHandle")
+                || owner.equals("java/lang/invoke/DirectMethodHandle");
+    }
+
     public static boolean isIgnoredClass(String owner) {
         return Configuration.taintTagFactory.isIgnoredClass(owner)
                 || (Configuration.ADDL_IGNORE != null && StringUtils.startsWith(owner, Configuration.ADDL_IGNORE))
@@ -117,12 +124,7 @@ public class Instrumenter {
                 || StringUtils.startsWith(owner, "java/lang/invoke/LambdaForm")
                 || StringUtils.startsWith(owner, "java/lang/invoke/LambdaMetafactory")
                 || StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor/struct/TaintedWith")
-                || StringUtils.startsWith(owner, "java/util/regex/HashDecompositions") //Huge constant array/hashmap
-                || StringUtils.startsWith(owner, "java/lang/invoke/MethodHandle")
-                || (StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle") && !StringUtils.startsWith(owner, "java/lang/invoke/BoundMethodHandle$Factory"))
-                || StringUtils.startsWith(owner, "java/lang/invoke/DelegatingMethodHandle")
-                || owner.equals("java/lang/invoke/DirectMethodHandle")
-                || StringUtils.startsWith(owner, "java/util/function/Function");
+                || StringUtils.startsWith(owner, "java/util/regex/HashDecompositions"); //Huge constant array/hashmap
     }
 
     public static void analyzeClass(InputStream is) {
@@ -662,7 +664,7 @@ public class Instrumenter {
         if(name.equals("wait") && desc.equals("(JI)V")) {
             return true;
         }
-        return Configuration.IMPLICIT_TRACKING && owner.equals("java/lang/invoke/MethodHandle")
+        return owner.equals("java/lang/invoke/MethodHandle")
                 && ((name.equals("invoke") || name.equals("invokeBasic") || name.startsWith("linkTo")));
     }
 

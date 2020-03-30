@@ -78,6 +78,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
     private boolean implementsSerializable;
     private boolean fixLdcClass;
     private boolean isEnum;
+    private boolean isUninstMethods;
     private String classSource;
     private String classDebug;
     private Set<String> aggressivelyReduceMethodSize;
@@ -229,6 +230,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         }
         this.className = name;
         this.superName = superName;
+
+        this.isUninstMethods = Instrumenter.isIgnoredClassWithStubsButNoTracking(className);
     }
 
     private void collectUninstrumentedInterfaceMethods(String[] interfaces) {
@@ -414,7 +417,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             methodsToAddWrappersFor.add(wrapper);
         }
         String newDesc = Type.getMethodDescriptor(newReturnType, newArgs);
-        if((access & Opcodes.ACC_NATIVE) == 0) {
+        if(!isUninstMethods && (access & Opcodes.ACC_NATIVE) == 0) {
             //not a native method
             LinkedList<String> addToSig = new LinkedList<>();
             if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
@@ -559,6 +562,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
     @Override
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+        if(Instrumenter.isIgnoredClassWithStubsButNoTracking(className)){
+            return super.visitField(access, name, desc, signature, value);
+        }
         if(shouldMakeFieldPublic(className, name)) {
             access = access & ~Opcodes.ACC_PRIVATE;
             access = access & ~Opcodes.ACC_PROTECTED;
@@ -963,7 +969,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     fullMethod.accept(mv);
                     continue;
                 }
-                if((m.access & Opcodes.ACC_NATIVE) == 0) {
+                if((m.access & Opcodes.ACC_NATIVE) == 0 && !isUninstMethods) {
                     if((m.access & Opcodes.ACC_ABSTRACT) == 0) {
                         //not native
                         MethodNode fullMethod = forMore.get(m);
