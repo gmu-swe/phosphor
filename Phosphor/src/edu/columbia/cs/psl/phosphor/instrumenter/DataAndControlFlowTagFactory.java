@@ -510,6 +510,28 @@ public class DataAndControlFlowTagFactory implements TaintTagFactory, Opcodes {
 
 			}
 			break;
+			case Opcodes.LALOAD:
+			case Opcodes.DALOAD:
+			case Opcodes.IALOAD:
+			case Opcodes.FALOAD:
+			case Opcodes.BALOAD:
+			case Opcodes.CALOAD:
+			case Opcodes.SALOAD:
+			case Opcodes.AALOAD:
+				mv.visitInsn(SWAP);
+				mv.visitInsn(POP);
+				adapter.analyzer.clearTopOfStackTagged();
+				break;
+			case AASTORE:
+				//Not supported
+				//Array Taint Index Val
+				mv.visitInsn(DUP2_X1);
+				//Array Index Val Taint Index Val
+				mv.visitInsn(POP2);
+				//Array Index Val Taint
+				mv.visitInsn(POP);
+				//Array Index Val
+				break;
 		}
 	}
 

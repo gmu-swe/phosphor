@@ -3151,9 +3151,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				if (nextLoadisTracked)
 					doingLoadWithIdxTaint = true;
 				else {
-					super.visitInsn(SWAP);
-					super.visitInsn(POP);
-					analyzer.clearTopOfStackTagged();
+					Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
 				}
 			}
 			String elType = null;
@@ -3234,11 +3232,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 			taintType  = Type.getType(Configuration.TAINT_TAG_DESC);
 			if(Configuration.ARRAY_INDEX_TRACKING && topCarriesTaint())
 			{
-				super.visitInsn(SWAP);
-//				lvForIdxtaint = lvs.getTmpLV(taintType);
-//				super.visitVarInsn(taintType.getOpcode(ISTORE), lvForIdxtaint);
-				super.visitInsn(POP);
-				analyzer.clearTopOfStackTagged();
+			    Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
 			}
 			//?TA A I
 //			System.out.println("AALOAD " + analyzer.stackTagStatus);
@@ -3320,14 +3314,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 //				}
 				if(idxTainted)
 				{
-					//Not supported
-					//Array Taint Index Val
-					super.visitInsn(DUP2_X1);
-					//Array Index Val Taint Index Val
-					super.visitInsn(POP2);
-					//Array Index Val Taint
-					super.visitInsn(POP);
-					//Array Index Val
+					Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
 				}
 				super.visitInsn(opcode);
 			} else {
@@ -3677,6 +3664,31 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 							else
 							{
 								//!0, 1,2,!3
+							}
+						}
+						else{
+							//!0,1 !2
+							if(nextDupCopiesTaint3){
+								//!0, 1, !2, 3
+							}
+							else{
+								//!0, 1, !2, !3
+								// Goal: V1 T2 V2 -> V1 T2 V2 V1 V2
+								// V1 T2 V2
+								super.visitInsn(DUP_X2);
+								// V2 V1 T2 V2
+								super.visitInsn(POP);
+								// V2 V1 T2
+								super.visitInsn(DUP2_X1);
+								// V1 T2 V2 V1 T2
+								super.visitInsn(POP);
+								// V1 T2 V2 V1
+								super.visitInsn(SWAP);
+								// V1 T2 V1 V2
+								super.visitInsn(DUP_X1);
+								// V1 T2 V2 V1 V2
+								analyzer.clearTopOfStackTagged();
+								return;
 							}
 						}
 					}
