@@ -95,9 +95,8 @@ public class LambdaObjTagITCase extends BaseMultiTaintClass {
 	}
 
 	@Test
-	public void streamReduce() {
-		List<Integer> l = Arrays.asList(0, 1, 2);
-		Stream<Integer> stream = l.stream();
-		int i = stream.reduce(0, Integer::sum);
+	public void testBoxingLambda() {
+		BinaryOperator<Integer> sum = Integer::sum;
+		Integer result = sum.apply(0, 5);
 	}
 }
