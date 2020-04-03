@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.security.AccessController.doPrivileged;
 import static org.junit.Assert.assertEquals;
@@ -91,5 +92,12 @@ public class LambdaObjTagITCase extends BaseMultiTaintClass {
 		String in = MultiTainter.taintedReference("hello", 0);
 		String out = f.apply(in);
 		assertEquals(in, out);
+	}
+
+	@Test
+	public void streamReduce() {
+		List<Integer> l = Arrays.asList(0, 1, 2);
+		Stream<Integer> stream = l.stream();
+		int i = stream.reduce(0, Integer::sum);
 	}
 }
