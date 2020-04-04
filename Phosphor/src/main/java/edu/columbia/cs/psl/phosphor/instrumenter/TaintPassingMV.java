@@ -562,15 +562,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     boolean needToAddUnWrapper = false;
                     boolean needToBoxReturnType = false;
                     //If there is a wrapped return type on the impl but not in the sam
-                    if((uninstSamMethodType.getReturnType().getSort() == Type.VOID && Type.getReturnType(implMethodDesc).getSort() != Type.VOID) || isNEW) {
+                    if ((uninstSamMethodType.getReturnType().getSort() == Type.VOID && Type.getReturnType(implMethodDesc).getSort() != Type.VOID) || isNEW) {
                         needToAddUnWrapper = true;
-                    }
-                    else if(!TaintUtils.isPrimitiveType(uninstSamMethodType.getReturnType()) && TaintUtils.isPrimitiveType(Type.getReturnType(implMethodDesc))){
+                    } else if (!TaintUtils.isPrimitiveType(uninstSamMethodType.getReturnType()) && TaintUtils.isPrimitiveType(Type.getReturnType(implMethodDesc))) {
                         //If the target method returns a primitive that needs to be boxed
                         needToAddUnWrapper = true;
                         needToBoxReturnType = true;
                     }
-                    if(needToAddUnWrapper) {
+                    if (needToAddUnWrapper) {
                         ArrayList<Type> newWrapperArgs = new ArrayList<>();
                         Type[] implMethodArgs = Type.getArgumentTypes(remappedImplDesc);
                         ArrayList<Type> uninstNewWrapperArgs = new ArrayList<>();
@@ -630,7 +629,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                         ga.visitInsn(Opcodes.I2D);
                                         break;
                                 }
-                            }else if(TaintUtils.isPrimitiveType(implMethodArgs[i]) && !TaintUtils.isPrimitiveType(t)){
+                            } else if (TaintUtils.isPrimitiveType(implMethodArgs[i]) && !TaintUtils.isPrimitiveType(t)) {
                                 //unbox
                                 ga.unbox(implMethodArgs[i]);
                             }
@@ -640,7 +639,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         }
                         int opToCall;
                         boolean isInterface = false;
-                        switch(implMethod.getTag()) {
+                        switch (implMethod.getTag()) {
                             case H_INVOKESTATIC:
                                 opToCall = INVOKESTATIC;
                                 break;
