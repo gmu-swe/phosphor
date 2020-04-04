@@ -558,10 +558,17 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     Type samMethodType = (Type) bsmArgs[0];
                     Type instantiatedType = (Type) bsmArgs[2];
                     Type[] instantiatedMethodArgs = instantiatedType.getArgumentTypes();
+                    Type[] uninstImplMethodArgs = Type.getArgumentTypes(implMethod.getDesc());
                     boolean needToAddUnWrapper = false;
+                    boolean needToBoxReturnType = false;
                     //If there is a wrapped return type on the impl but not in the sam
                     if((uninstSamMethodType.getReturnType().getSort() == Type.VOID && Type.getReturnType(implMethodDesc).getSort() != Type.VOID) || isNEW) {
                         needToAddUnWrapper = true;
+                    }
+                    else if(!TaintUtils.isPrimitiveType(uninstSamMethodType.getReturnType()) && TaintUtils.isPrimitiveType(Type.getReturnType(implMethodDesc))){
+                        //If the target method returns a primitive that needs to be boxed
+                        needToAddUnWrapper = true;
+                        needToBoxReturnType = true;
                     }
                     if(needToAddUnWrapper) {
                         ArrayList<Type> newWrapperArgs = new ArrayList<>();
@@ -578,14 +585,18 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                 newWrapperArgs.add(t);
                             }
                         }
-                        if(isNEW) {
+                        if(isNEW || needToBoxReturnType) {
                             newWrapperArgs.add(Type.getType(TaintedReferenceWithObjTag.class));
                         }
-                        for(Type t : instantiatedMethodArgs) {
-                            uninstNewWrapperArgs.add(t);
+                        for (int i = 0; i < instantiatedMethodArgs.length; i++) {
+                            Type t = instantiatedMethodArgs[i];
+                            if (i < uninstImplMethodArgs.length && TaintUtils.isPrimitiveType(uninstImplMethodArgs[i]) && !TaintUtils.isPrimitiveType(t)) {
+                                uninstNewWrapperArgs.add(uninstImplMethodArgs[i]);
+                            } else {
+                                uninstNewWrapperArgs.add(t);
+                            }
                         }
-
-                        Type wrapperReturnType = (isNEW ? Type.getType(TaintedReferenceWithObjTag.class) : Type.VOID_TYPE);
+                        Type wrapperReturnType = (isNEW || needToBoxReturnType ? Type.getType(TaintedReferenceWithObjTag.class) : Type.VOID_TYPE);
                         Type uninstWrapperDesc = Type.getMethodType(wrapperReturnType, uninstNewWrapperArgs.toArray(new Type[0]));
                         Type wrapperDesc = Type.getMethodType(wrapperReturnType, newWrapperArgs.toArray(new Type[0]));
 
@@ -619,8 +630,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                         ga.visitInsn(Opcodes.I2D);
                                         break;
                                 }
+                            }else if(TaintUtils.isPrimitiveType(implMethodArgs[i]) && !TaintUtils.isPrimitiveType(t)){
+                                //unbox
+                                ga.unbox(implMethodArgs[i]);
                             }
-                            i++;
+                            i++;//for this var
+                            i++;//for taint
                             offset += t.getSize();
                         }
                         int opToCall;
@@ -645,6 +660,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         }
 
                         ga.visitMethodInsn(opToCall, implMethod.getOwner(), implMethod.getName(), implMethod.getDesc(), isInterface);
+                        if(needToBoxReturnType){
+                            ga.box(Type.getReturnType(implMethodDesc));
+                        }
                         ga.returnValue();
                         ga.visitMaxs(0, 0);
                         ga.visitEnd();
