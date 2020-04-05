@@ -634,7 +634,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                 ga.unbox(implMethodArgs[i]);
                             }
                             i++;//for this var
-                            i++;//for taint
+                            if(i > 1 || !isVirtual) {
+                                i++;//for taint
+                            }
                             offset += t.getSize();
                         }
                         int opToCall;
