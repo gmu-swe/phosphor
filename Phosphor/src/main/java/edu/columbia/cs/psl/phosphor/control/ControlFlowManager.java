@@ -19,4 +19,6 @@ public interface ControlFlowManager {
      */
     ControlFlowPropagationPolicy createPropagationPolicy(int access, String owner, String name,
                                                          String descriptor);
+
+    boolean isIgnoredFromControlTrack(String className, String methodName);
 }

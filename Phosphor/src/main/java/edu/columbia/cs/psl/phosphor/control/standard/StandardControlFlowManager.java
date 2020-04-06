@@ -39,4 +39,13 @@ public class StandardControlFlowManager implements ControlFlowManager {
             return new NoControlFlowPropagationPolicy(new NoControlFlowAnalyzer());
         }
     }
+
+    @Override
+    public boolean isIgnoredFromControlTrack(String className, String methodName) {
+        return (className.equals("java/nio/charset/Charset")
+                || className.equals("java/lang/StringCoding")
+                || className.equals("java/nio/charset/CharsetEncoder")
+                || className.equals("java/nio/charset/CharsetDecoder"))
+                && !methodName.equals("<clinit>") && !methodName.equals("<init>");
+    }
 }

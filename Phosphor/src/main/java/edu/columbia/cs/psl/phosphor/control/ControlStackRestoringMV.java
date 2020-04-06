@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.control;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
@@ -59,7 +58,7 @@ public class ControlStackRestoringMV extends MethodVisitor {
                                    String methodName, ControlFlowPropagationPolicy controlFlowPolicy) {
         super(Configuration.ASM_VERSION, methodVisitor);
         this.passThroughMV = passThroughMV;
-        this.excludedFromControlTrack = Instrumenter.isIgnoredFromControlTrack(className, methodName);
+        this.excludedFromControlTrack = Configuration.controlFlowManager.isIgnoredFromControlTrack(className, methodName);
         this.handlerScopeStart = new Label();
         this.handlerScopeEnd = new Label();
         this.controlFlowPolicy = controlFlowPolicy;
