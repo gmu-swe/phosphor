@@ -438,7 +438,6 @@ public class TaintUtils {
         return o;
     }
 
-
     public static boolean isPrimitiveArrayType(Type t) {
         return t != null && t.getSort() == Type.ARRAY && t.getDimensions() == 1 && t.getElementType().getSort() != Type.OBJECT;
     }
@@ -542,21 +541,6 @@ public class TaintUtils {
         return sig;
     }
 
-    /* Returns whether the specified opcode is for a return instruction. */
-    public static boolean isReturnOpcode(int opcode) {
-        switch(opcode) {
-            case Opcodes.ARETURN:
-            case Opcodes.IRETURN:
-            case Opcodes.RETURN:
-            case Opcodes.DRETURN:
-            case Opcodes.FRETURN:
-            case Opcodes.LRETURN:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     /* Returns the class instance resulting from removing any phosphor taint wrapping from the specified class. */
     public static Class<?> getUnwrappedClass(Class<?> wrappedClass) {
         if(wrappedClass.equals(LazyBooleanArrayObjTags.class)) {
@@ -610,14 +594,6 @@ public class TaintUtils {
                     || type.equals(Type.getType(TaintedFloatWithObjTag.class)) || type.equals(Type.getType(TaintedIntWithObjTag.class))
                     || type.equals(Type.getType(TaintedLongWithObjTag.class)) || type.equals(Type.getType(TaintedShortWithObjTag.class));
         }
-    }
-
-    public static int max(int a, int b) {
-        return a > b ? a : b;
-    }
-
-    public static int max(int a, int b, int c) {
-        return max(max(a, b), c);
     }
 
     public static void main(String[] args) {

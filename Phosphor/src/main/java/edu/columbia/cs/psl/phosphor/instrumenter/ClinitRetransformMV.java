@@ -2,7 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.SourceSinkTransformer;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -27,7 +27,7 @@ public class ClinitRetransformMV extends MethodVisitor {
 
     @Override
     public void visitInsn(int opcode) {
-        if(TaintUtils.isReturnOpcode(opcode)) {
+        if(OpcodesUtil.isReturnOpcode(opcode)) {
             if(fixLdcClass) {
                 // Since the class is not at least the required version 1.5 for the ldc of a constant class, push the class
                 // onto the stack by making a call to Class.forName

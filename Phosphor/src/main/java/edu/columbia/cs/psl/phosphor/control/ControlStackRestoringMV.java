@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.control;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Arrays;
@@ -9,7 +8,6 @@ import jdk.internal.org.objectweb.asm.Type;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-import static edu.columbia.cs.psl.phosphor.TaintUtils.max;
 import static edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager.*;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
@@ -88,7 +86,7 @@ public class ControlStackRestoringMV extends MethodVisitor {
 
     @Override
     public void visitInsn(int opcode) {
-        if(TaintUtils.isReturnOpcode(opcode)) {
+        if(OpcodesUtil.isReturnOpcode(opcode)) {
             // Note: ATHROWs are handled by added exception handler
             restoreControlStack();
         }
@@ -112,7 +110,9 @@ public class ControlStackRestoringMV extends MethodVisitor {
         int max = indexOfMasterControl;
         LocalVariable[] createdLocalVariables = controlFlowPolicy.createdLocalVariables();
         for(LocalVariable lv : createdLocalVariables) {
-            max = max(max, lv.getIndex());
+            if(lv.getIndex() > max) {
+                max = lv.getIndex();
+            }
         }
         Object[] baseLvs = new Object[max + 1];
         Arrays.fill(baseLvs, TOP);

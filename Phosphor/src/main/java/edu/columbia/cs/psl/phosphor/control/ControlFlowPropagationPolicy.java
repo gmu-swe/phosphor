@@ -120,10 +120,19 @@ public interface ControlFlowPropagationPolicy {
     void generateEmptyTaint();
 
     /**
-     * Call before a return or exceptional return instruction.
+     * Called before a return or exceptional return instruction.
+     * <p>
+     * For  ARETURN, IRETURN, DRETURN, FRETURN, or LRETURN:
+     * stack_pre = stack_post = [value taint]
+     * <p>
+     * For RETURN
+     * stack_pre = stack_post = []
+     * <p>
+     * For ATHROW:
+     * stack_pre = stack_post = [exception taint]
      *
-     * @param opcode the opcode of the type instruction to being visited. This opcode is either ATHROW, ARETURN, IRETURN,
-     *               RETURN, DRETURN, FRETURN, or LRETURN
+     * @param opcode the opcode of the type instruction to being visited. This opcode is either ATHROW, ARETURN,
+     *               IRETURN, RETURN, DRETURN, FRETURN, or LRETURN
      */
     void onMethodExit(int opcode);
 
