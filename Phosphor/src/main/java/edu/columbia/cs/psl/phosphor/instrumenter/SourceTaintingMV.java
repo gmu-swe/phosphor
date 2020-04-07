@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.BasicSourceSinkManager;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.SourceSinkManager;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -63,7 +63,7 @@ public class SourceTaintingMV extends MethodVisitor implements Opcodes {
 
     @Override
     public void visitInsn(int opcode) {
-        if(TaintUtils.isReturnOpcode(opcode)) {
+        if(OpcodesUtil.isReturnOpcode(opcode)) {
             autoTaintArguments();
         }
         if(opcode == ARETURN) {

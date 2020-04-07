@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.control.graph;
 
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.Opcodes;
@@ -248,7 +247,7 @@ public abstract class ControlFlowGraphCreator<V extends BasicBlock> {
                 for(LabelNode label : ((LookupSwitchInsnNode) lastInsn).labels) {
                     addNonDefaultCaseSwitchEdge(currentBasicBlock, labelBlockMap.get(label));
                 }
-            } else if(TaintUtils.isReturnOpcode(lastInsn.getOpcode())) {
+            } else if(OpcodesUtil.isReturnOpcode(lastInsn.getOpcode())) {
                 addStandardEdgeToExitPoint(currentBasicBlock);
             } else if(lastInsn.getOpcode() == Opcodes.ATHROW) {
                 // TODO considered whether the throw exception is caught

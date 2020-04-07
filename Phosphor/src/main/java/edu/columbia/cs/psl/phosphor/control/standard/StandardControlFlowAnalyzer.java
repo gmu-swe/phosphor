@@ -2,8 +2,8 @@ package edu.columbia.cs.psl.phosphor.control.standard;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowAnalyzer;
+import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
 import edu.columbia.cs.psl.phosphor.control.standard.ForceControlStore.ForceControlStoreField;
 import edu.columbia.cs.psl.phosphor.control.standard.ForceControlStore.ForceControlStoreLocal;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.BasicArrayInterpreter;
@@ -513,7 +513,7 @@ public class StandardControlFlowAnalyzer implements ControlFlowAnalyzer {
     /* Returns whether the specified instruction triggers a method exit. */
     public static boolean isExitInstruction(AbstractInsnNode instruction) {
         int opcode = instruction.getOpcode();
-        return TaintUtils.isReturnOpcode(opcode) || opcode == Opcodes.ATHROW;
+        return OpcodesUtil.isReturnOpcode(opcode) || opcode == Opcodes.ATHROW;
     }
 
     public static boolean mightEndBlock(AbstractInsnNode insn) {

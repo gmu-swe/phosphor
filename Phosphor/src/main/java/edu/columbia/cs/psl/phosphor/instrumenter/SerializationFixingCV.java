@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import org.objectweb.asm.*;
@@ -226,7 +227,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
 
         @Override
         public void visitInsn(int opcode) {
-            if(TaintUtils.isReturnOpcode(opcode)) {
+            if(OpcodesUtil.isReturnOpcode(opcode)) {
                 super.visitInsn(DUP_X1);
                 super.visitInsn(SWAP);
                 super.visitFieldInsn(PUTFIELD, returnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
@@ -260,7 +261,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
 
         @Override
         public void visitInsn(int opcode) {
-            if(TaintUtils.isReturnOpcode(opcode)) {
+            if(OpcodesUtil.isReturnOpcode(opcode)) {
                 super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(SerializationFixingCV.class), "unwrapIfNecessary", "(" + Type.getDescriptor(TaintedReferenceWithObjTag.class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
             }
             super.visitInsn(opcode);

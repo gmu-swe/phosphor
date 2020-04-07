@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy;
+import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingLabel;
@@ -1094,137 +1095,64 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     @Override
     public void visitInsn(int opcode) {
-        if(TaintUtils.isReturnOpcode(opcode) || opcode == ATHROW) {
-            controlFlowPolicy.onMethodExit(opcode);
-        }
-        if(isLambda && opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN) {
-            //Do we need to box?
-            Type returnType = Type.getReturnType(this.descriptor);
-            if(returnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct")) {
-                String t = null;
-                if(returnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct/Tainted")) {
-                    t = returnType.getDescriptor().replace("Ledu/columbia/cs/psl/phosphor/struct/Tainted", "");
-                    t = t.replace("WithObjTag", "");
-                } else if(returnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct/Lazy")) {
-                    t = returnType.getDescriptor().replace("Ledu/columbia/cs/psl/phosphor/struct/Lazy", "");
-                    t = t.replace("ObjTags", "");
-                    t = "[" + t;
-                }
-                if(t != null) {
-                    t = t.replace(";", "").replace("Int", "I")
-                            .replace("Byte", "B")
-                            .replace("Short", "S")
-                            .replace("Long", "J")
-                            .replace("Boolean", "Z")
-                            .replace("Float", "F")
-                            .replace("Double", "D");
-                }
-                //Probably need to box...
-                int returnHolder = lastArg - 1;
-                if(getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - 1)).getSize() == 2) {
-                    super.visitVarInsn(ALOAD, returnHolder);
-                    super.visitInsn(DUP_X2);
-                    super.visitInsn(POP);
-                } else {
-                    super.visitVarInsn(ALOAD, returnHolder);
-                    super.visitInsn(SWAP);
-                }
-                if(t.equals("Reference")) {
-                    t = "Ljava/lang/Object;";
-                }
-                super.visitFieldInsn(PUTFIELD, returnType.getInternalName(), "val", t);
-
-                super.visitVarInsn(ALOAD, returnHolder);
-                super.visitInsn(DUP);
-                NEW_EMPTY_TAINT.delegateVisit(mv);
-                super.visitFieldInsn(PUTFIELD, returnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
-
-                super.visitInsn(ARETURN);
-            } else {
-                super.visitInsn(opcode);
-            }
-            return;
+        if(isLambda && OpcodesUtil.isReturnOpcode(opcode)) {
+            visitLambdaReturn(opcode);
         } else if(opcode == TaintUtils.RAW_INSN) {
             isRawInstruction = !isRawInstruction;
-            return;
         } else if(opcode == TaintUtils.IGNORE_EVERYTHING) {
             isIgnoreAllInstrumenting = !isIgnoreAllInstrumenting;
             Configuration.taintTagFactory.signalOp(opcode, null);
             super.visitInsn(opcode);
-            return;
         } else if(opcode == TaintUtils.NO_TAINT_STORE_INSN) {
             isTaintlessArrayStore = true;
-            return;
-        } else if(isIgnoreAllInstrumenting || isRawInstruction) {
+        } else if(isIgnoreAllInstrumenting || isRawInstruction || opcode == NOP || opcode == TaintUtils.FOLLOWED_BY_FRAME) {
             super.visitInsn(opcode);
-            return;
+        } else if(OpcodesUtil.isArrayLoad(opcode)) {
+            visitArrayLoad(opcode);
+        } else if(OpcodesUtil.isArrayStore(opcode)) {
+            visitArrayStore(opcode);
+        } else if(OpcodesUtil.isPushConstantOpcode(opcode)) {
+            super.visitInsn(opcode);
+            controlFlowPolicy.generateEmptyTaint();
+        } else if(OpcodesUtil.isReturnOpcode(opcode)) {
+            visitReturn(opcode);
+        } else if(OpcodesUtil.isArithmeticOrLogicalInsn(opcode) || opcode == ARRAYLENGTH) {
+            Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
+        } else if(opcode >= POP && opcode <= SWAP) {
+            visitPopDupOrSwap(opcode);
+        } else if(opcode == MONITORENTER || opcode == MONITOREXIT) {
+            super.visitInsn(POP);
+            super.visitInsn(opcode);
+        } else if(opcode == ATHROW) {
+            controlFlowPolicy.onMethodExit(opcode);
+            super.visitInsn(POP);
+            super.visitInsn(opcode);
+        } else {
+            throw new IllegalArgumentException("Unknown opcode: " + opcode);
         }
+    }
 
+    /**
+     * @param opcode the opcode of the instruction originally to be visited either POP, POP2, DUP, DUP2, DUP_X1, DUP_X2,
+     *               DUP2_X1, or SWAP
+     */
+    private void visitPopDupOrSwap(int opcode) {
         switch(opcode) {
-            case Opcodes.MONITORENTER:
-            case Opcodes.MONITOREXIT:
-                super.visitInsn(POP);
-            case Opcodes.NOP:
-            case TaintUtils.FOLLOWED_BY_FRAME:
-                super.visitInsn(opcode);
-                break;
-            case Opcodes.ACONST_NULL:
-                super.visitInsn(opcode);
-                controlFlowPolicy.generateEmptyTaint();
-                break;
-            case Opcodes.ICONST_M1:
-            case Opcodes.ICONST_0:
-            case Opcodes.ICONST_1:
-            case Opcodes.ICONST_2:
-            case Opcodes.ICONST_3:
-            case Opcodes.ICONST_4:
-            case Opcodes.ICONST_5:
-            case Opcodes.LCONST_0:
-            case Opcodes.LCONST_1:
-            case Opcodes.FCONST_0:
-            case Opcodes.FCONST_1:
-            case Opcodes.FCONST_2:
-            case Opcodes.DCONST_0:
-            case Opcodes.DCONST_1:
-                super.visitInsn(opcode);
-                controlFlowPolicy.generateEmptyTaint();
-                return;
-            case Opcodes.LALOAD:
-            case Opcodes.DALOAD:
-            case Opcodes.IALOAD:
-            case Opcodes.FALOAD:
-            case Opcodes.BALOAD:
-            case Opcodes.CALOAD:
-            case Opcodes.SALOAD:
-            case Opcodes.AALOAD:
-                visitArrayLoad(opcode);
-                break;
-            case Opcodes.AASTORE:
-            case Opcodes.IASTORE:
-            case Opcodes.LASTORE:
-            case Opcodes.FASTORE:
-            case Opcodes.DASTORE:
-            case Opcodes.BASTORE:
-            case Opcodes.CASTORE:
-            case Opcodes.SASTORE:
-                visitArrayStore(opcode);
-                break;
-            case Opcodes.POP:
+            case POP:
                 super.visitInsn(POP2);
-                return;
-            case Opcodes.POP2:
+                break;
+            case POP2:
                 super.visitInsn(POP);
                 if(getTopOfStackType().getSize() != 2) {
                     super.visitInsn(POP);
                 }
                 super.visitInsn(POP2);
-                return;
-            case Opcodes.DUP:
+                break;
+            case DUP:
                 super.visitInsn(Opcodes.DUP2);
                 break;
-            case Opcodes.DUP2:
+            case DUP2:
                 Object topOfStack = analyzer.stack.get(analyzer.stack.size() - 2);
-
                 //0 1 -> 0 1 2 3
                 if(getStackElementSize(topOfStack) == 1) {
                     DUPN_XU(4, 0);
@@ -1244,10 +1172,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     lvs.freeTmpLV(top);
                 }
                 break;
-            case Opcodes.DUP_X1:
+            case DUP_X1:
                 super.visitInsn(DUP2_X2);
                 break;
-            case Opcodes.DUP_X2:
+            case DUP_X2:
                 //X?X? VT -> VTXX?VT
                 if(getStackElementSize(analyzer.stack.get(analyzer.stack.size() - 4)) == 2) {
                     // With long/double under
@@ -1258,7 +1186,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     DUPN_XU(2, 4);
                 }
                 break;
-            case Opcodes.DUP2_X1:
+            case DUP2_X1:
                 //ATBTCT -> BTCTATBTCT (0 1 2 3 4)
                 topOfStack = analyzer.stack.get(analyzer.stack.size() - 2);
                 if(getStackElementSize(topOfStack) == 1) {
@@ -1269,7 +1197,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     DUPN_XU(2, 2);
                 }
                 break;
-            case Opcodes.DUP2_X2:
+            case DUP2_X2:
                 topOfStack = analyzer.stack.get(analyzer.stack.size() - 2);
                 if(getStackElementSize(topOfStack) == 1) {
                     //Second must be a single word
@@ -1299,116 +1227,79 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitInsn(DUP2_X2);
                 super.visitInsn(POP2);
                 break;
-            case Opcodes.FADD:
-            case Opcodes.FREM:
-            case Opcodes.FSUB:
-            case Opcodes.FMUL:
-            case Opcodes.FDIV:
-            case Opcodes.IADD:
-            case Opcodes.ISUB:
-            case Opcodes.IMUL:
-            case Opcodes.IDIV:
-            case Opcodes.IREM:
-            case Opcodes.ISHL:
-            case Opcodes.ISHR:
-            case Opcodes.IUSHR:
-            case Opcodes.IOR:
-            case Opcodes.IAND:
-            case Opcodes.IXOR:
-            case Opcodes.DADD:
-            case Opcodes.DSUB:
-            case Opcodes.DMUL:
-            case Opcodes.DDIV:
-            case Opcodes.DREM:
-            case Opcodes.LSHL:
-            case Opcodes.LUSHR:
-            case Opcodes.LSHR:
-            case Opcodes.LSUB:
-            case Opcodes.LMUL:
-            case Opcodes.LADD:
-            case Opcodes.LDIV:
-            case Opcodes.LREM:
-            case Opcodes.LAND:
-            case Opcodes.LOR:
-            case Opcodes.LXOR:
-            case Opcodes.LCMP:
-            case Opcodes.DCMPL:
-            case Opcodes.DCMPG:
-            case Opcodes.FCMPL:
-            case Opcodes.FCMPG:
-            case Opcodes.ARRAYLENGTH:
-            case Opcodes.INEG:
-            case Opcodes.FNEG:
-            case Opcodes.LNEG:
-            case Opcodes.DNEG:
-            case Opcodes.I2L:
-            case Opcodes.I2F:
-            case Opcodes.I2D:
-            case Opcodes.L2I:
-            case Opcodes.L2F:
-            case Opcodes.L2D:
-            case Opcodes.F2I:
-            case Opcodes.F2L:
-            case Opcodes.F2D:
-            case Opcodes.D2I:
-            case Opcodes.D2L:
-            case Opcodes.D2F:
-            case Opcodes.I2B:
-            case Opcodes.I2C:
-            case Opcodes.I2S:
-                Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
-                break;
-            case Opcodes.DRETURN:
-            case Opcodes.LRETURN:
-                int retIdx = lvs.getPreAllocatedReturnTypeVar(newReturnType);
-                super.visitVarInsn(ALOAD, retIdx);
-                super.visitInsn(SWAP);
-                super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
-                super.visitVarInsn(ALOAD, retIdx);
-                super.visitInsn(DUP_X2);
-                super.visitInsn(POP);
-                super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());
-                super.visitVarInsn(ALOAD, retIdx);
-                Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
-                super.visitInsn(ARETURN);
-                break;
-            case Opcodes.IRETURN:
-            case Opcodes.FRETURN:
-            case Opcodes.ARETURN:
-                retIdx = lvs.getPreAllocatedReturnTypeVar(newReturnType);
-                super.visitVarInsn(ALOAD, retIdx);
-                super.visitInsn(SWAP);
-                super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
-                super.visitVarInsn(ALOAD, retIdx);
-                super.visitInsn(SWAP);
-                if(opcode == ARETURN) {
-                    super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", "Ljava/lang/Object;");
-                } else {
-                    super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", originalMethodReturnType.getDescriptor());
-                }
-                super.visitVarInsn(ALOAD, retIdx);
-                Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
-                super.visitInsn(ARETURN);
-                break;
-            case Opcodes.RETURN:
-                Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
-                super.visitInsn(opcode);
-                break;
-            case Opcodes.ATHROW:
-                super.visitInsn(POP); //TODO reference tainting from thrown exceptions
-                super.visitInsn(opcode);
-                break;
             default:
-                super.visitInsn(opcode);
                 throw new IllegalArgumentException();
         }
+    }
+
+    /**
+     * stack_pre = [value] or [] if opcode is RETURN
+     * stack_post = []
+     *
+     * @param opcode the opcode of the instruction originally to be visited either RETURN, ARETURN, IRETURN, DRETURN,
+     *               FRETURN, or LRETURN
+     */
+    private void visitLambdaReturn(int opcode) {
+        // Do we need to box?
+        if(newReturnType.getDescriptor().contains("edu/columbia/cs/psl/phosphor/struct")) {
+            //Probably need to box...
+            int returnHolder = lastArg - 1;
+            super.visitVarInsn(ALOAD, returnHolder);
+            if(opcode == LRETURN || opcode == DRETURN) {
+                super.visitInsn(DUP_X2);
+                super.visitInsn(POP);
+            } else {
+                super.visitInsn(SWAP);
+            }
+            String valDesc = opcode == ARETURN ? "Ljava/lang/Object;" : originalMethodReturnType.getDescriptor();
+            super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", valDesc);
+            super.visitVarInsn(ALOAD, returnHolder);
+            super.visitInsn(DUP);
+            NEW_EMPTY_TAINT.delegateVisit(mv);
+            super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
+            super.visitInsn(ARETURN);
+        } else {
+            super.visitInsn(opcode);
+        }
+    }
+
+    /**
+     * stack_pre = [value taint] or [] if opcode is RETURN
+     * stack_post = []
+     *
+     * @param opcode the opcode of the instruction originally to be visited either RETURN, ARETURN, IRETURN, DRETURN,
+     *               FRETURN, or LRETURN
+     */
+    private void visitReturn(int opcode) {
+        controlFlowPolicy.onMethodExit(opcode);
+        if(opcode == RETURN) {
+            Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
+            super.visitInsn(opcode);
+            return;
+        }
+        int retIdx = lvs.getPreAllocatedReturnTypeVar(newReturnType);
+        super.visitVarInsn(ALOAD, retIdx);
+        super.visitInsn(SWAP);
+        super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
+        super.visitVarInsn(ALOAD, retIdx);
+        if(opcode == DRETURN || opcode == LRETURN) {
+            super.visitInsn(DUP_X2);
+            super.visitInsn(POP);
+        } else {
+            super.visitInsn(SWAP);
+        }
+        String valDesc = opcode == ARETURN ? "Ljava/lang/Object;" : originalMethodReturnType.getDescriptor();
+        super.visitFieldInsn(PUTFIELD, newReturnType.getInternalName(), "val", valDesc);
+        super.visitVarInsn(ALOAD, retIdx);
+        Configuration.taintTagFactory.stackOp(opcode, mv, lvs, this);
+        super.visitInsn(ARETURN);
     }
 
     /**
      * stack_pre = [arrayref, reference-taint, index, index-taint, value, value-taint]
      * stack_post = []
      *
-     * @param opcode the opcode of the instruction originally to be visited. This opcode is either IASTORE, LASTORE,
+     * @param opcode the opcode of the instruction originally to be visited either IASTORE, LASTORE,
      *               FASTORE,DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE.
      */
     private void visitArrayStore(int opcode) {
