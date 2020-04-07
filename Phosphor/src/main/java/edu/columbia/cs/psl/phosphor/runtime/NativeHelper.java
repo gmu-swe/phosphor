@@ -12,10 +12,10 @@ import java.util.Collection;
 public final class NativeHelper {
 
     private NativeHelper() {
-        // Prevents this class from being instantiated
+        throw new AssertionError("Utility class should not be instantiated");
     }
 
-    public static TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o1, Taint t1, Object o2, Taint t2, TaintedBooleanWithObjTag ret) {
+    public static TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o1, Taint<?> t1, Object o2, Taint<?> t2, TaintedBooleanWithObjTag ret) {
         if(o1 instanceof TaintedObjectWithObjTag) {
             return ((TaintedObjectWithObjTag) o1).equals$$PHOSPHORTAGGED(t1, o2, t2, ret);
         } else if(o1 instanceof LazyArrayObjTags) {
@@ -25,12 +25,12 @@ public final class NativeHelper {
                 o2 = MultiDTaintedArray.unboxRaw(o2);
             }
             ret.val = o1.equals(o2);
-            ret.taint = null;
+            ret.taint = Taint.emptyTaint();
             return ret;
         }
     }
 
-    public static TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object o, Taint t, TaintedIntWithObjTag ret) {
+    public static TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object o, Taint<?> t, TaintedIntWithObjTag ret) {
         if(o instanceof TaintedObjectWithObjTag) {
             return ((TaintedObjectWithObjTag) o).hashCode$$PHOSPHORTAGGED(t, ret);
         } else if(o instanceof LazyArrayObjTags) {
@@ -42,16 +42,10 @@ public final class NativeHelper {
         }
     }
 
-    public static TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object o, Taint t, ControlFlowStack ctrl, TaintedIntWithObjTag ret) {
-        ret.val = o.hashCode();
-        ret.taint = t;
-        return ret;
-    }
-
-
-    public static TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o1, Taint t1, Object o2, Taint t2, ControlFlowStack ctrl, TaintedBooleanWithObjTag ret) {
-        if(o1 instanceof TaintedObjectWithObjCtrlTag) {
-            return ((TaintedObjectWithObjCtrlTag) o1).equals$$PHOSPHORTAGGED(o2, ctrl, ret);
+    public static <T> TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Object o1, Taint<T> t1, Object o2, Taint<T> t2,
+                                                                      ControlFlowStack ctrl, TaintedBooleanWithObjTag ret) {
+        if(o1 instanceof TaintedObjectWithObjTag) {
+            return ((TaintedObjectWithObjTag) o1).equals$$PHOSPHORTAGGED(t1, o2, t2, ctrl, ret);
         } else if(o1 instanceof LazyArrayObjTags) {
             return ((LazyArrayObjTags) o1).equals$$PHOSPHORTAGGED(t1, o2, t2, ret, ctrl);
         } else {
@@ -59,12 +53,24 @@ public final class NativeHelper {
                 o2 = MultiDTaintedArray.unboxRaw(o2);
             }
             ret.val = o1.equals(o2);
-            ret.taint = t1.union(t2);
+            ret.taint = Taint.emptyTaint();
             return ret;
         }
     }
 
-    public static Class getClassOrWrapped(Object in) {
+    public static TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Object o, Taint<?> t, ControlFlowStack ctrl, TaintedIntWithObjTag ret) {
+        if(o instanceof TaintedObjectWithObjTag) {
+            return ((TaintedObjectWithObjTag) o).hashCode$$PHOSPHORTAGGED(t, ctrl, ret);
+        } else if(o instanceof LazyArrayObjTags) {
+            return ((LazyArrayObjTags) o).hashCode$$PHOSPHORTAGGED(t, ret, ctrl);
+        } else {
+            ret.val = o.hashCode();
+            ret.taint = t;
+            return ret;
+        }
+    }
+
+    public static Class<?> getClassOrWrapped(Object in) {
         if(in instanceof LazyReferenceArrayObjTags) {
             return ((LazyReferenceArrayObjTags) in).getUnderlyingClass();
         }

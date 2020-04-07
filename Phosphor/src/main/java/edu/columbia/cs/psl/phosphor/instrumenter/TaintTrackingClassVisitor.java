@@ -12,8 +12,10 @@ import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.runtime.UninstrumentedTaintSentinel;
-import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyReferenceArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaintedObjectWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
@@ -192,12 +194,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             if(generateEquals && Configuration.WITH_HEAVY_OBJ_EQUALS_HASHCODE) {
                 newIntfcs = new String[interfaces.length + 1];
                 System.arraycopy(interfaces, 0, newIntfcs, 0, interfaces.length);
-                Class<?> iface;
-                if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
-                    iface = TaintedObjectWithObjCtrlTag.class;
-                } else {
-                    iface = TaintedObjectWithObjTag.class;
-                }
+                Class<?> iface = TaintedObjectWithObjTag.class;
                 newIntfcs[interfaces.length] = Type.getInternalName(iface);
                 interfaces = newIntfcs;
                 if(signature != null) {

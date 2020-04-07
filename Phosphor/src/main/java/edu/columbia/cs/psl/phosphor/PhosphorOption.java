@@ -212,7 +212,7 @@ public enum PhosphorOption {
             }
         }
     },
-    WITH_HEAVY_OBJ_EQUALS_HASHCODE(new PhosphorOptionBuilder(null, false, true).alternativeName("objmethods")) {
+    WITH_HEAVY_OBJ_EQUALS_HASHCODE(new PhosphorOptionBuilder(null, true, true).alternativeName("objmethods")) {
         @Override
         public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
             if(isPresent) {
