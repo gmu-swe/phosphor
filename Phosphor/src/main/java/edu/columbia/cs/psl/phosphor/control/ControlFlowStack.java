@@ -39,6 +39,11 @@ public abstract class ControlFlowStack {
     @InvokedViaInstrumentation(record = CONTROL_STACK_POP_FRAME)
     public abstract void popFrame();
 
+    @InvokedViaInstrumentation(record = CONTROL_STACK_UNINSTRUMENTED_WRAPPER)
+    public void enteringUninstrumentedWrapper() {
+
+    }
+
     public boolean isDisabled() {
         return disabled != 0;
     }
