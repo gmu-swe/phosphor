@@ -174,6 +174,9 @@ public class OpcodesUtil {
      * @throws NullPointerException if insn or handler are null
      */
     public static boolean couldImplicitlyThrowException(AbstractInsnNode insn, TryCatchBlockNode handler) {
+        if(insn instanceof LabelNode || insn instanceof LineNumberNode || insn instanceof FrameNode) {
+            return false;
+        }
         String handledExceptionType = handler.type == null ? "java/lang/Throwable" : handler.type;
         int opcode = insn.getOpcode();
         switch(handledExceptionType) {

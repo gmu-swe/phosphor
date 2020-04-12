@@ -276,7 +276,7 @@ public abstract class ControlFlowGraphCreator<V extends BasicBlock> {
     }
 
     /**
-     * @param method                         the method whose instructions and exception handlers are to analyzed
+     * @param method                         the method whose instructions and exception handlers are to be analyzed
      * @param explicitlyThrownExceptionTypes a mapping from ATHROW instructions to the name (as returned by
      *                                       Class.getName(), but with the '.'s replaced with '/'s) of the type of
      *                                       exception that they throw, if an ATHROW instruction does not have an entry
