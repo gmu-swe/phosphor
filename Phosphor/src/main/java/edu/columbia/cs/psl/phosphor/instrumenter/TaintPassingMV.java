@@ -483,6 +483,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         super.visitTypeInsn(INSTANCEOF, type);
         super.visitInsn(SWAP);
         // [z taint]
+        controlFlowPolicy.visitingInstanceOf();
     }
 
     private void checkCast(String type) {
