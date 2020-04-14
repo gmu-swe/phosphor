@@ -181,6 +181,14 @@ public interface ControlFlowPropagationPolicy {
     void visitingPhosphorInstructionInfo(PhosphorInstructionInfo info);
 
     /**
+     * Called for after an INSTANCEOF instruction. Taint tag on the stack will be taken as the taint tag of the resulting
+     * boolean. By default it is the taint tag of the reference that INSTANCEOF was called on.
+     * <p>
+     * stack_pre = stack_post = [z taint]
+     */
+    void visitingInstanceOf();
+
+    /**
      * Loads the specified value onto the stack.
      *
      * @param delegate the method visitor that should be used to load the specified value onto the stack

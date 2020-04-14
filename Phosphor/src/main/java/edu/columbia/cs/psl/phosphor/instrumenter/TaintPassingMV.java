@@ -474,6 +474,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     }
 
     private void instanceOf(String type) {
+        // [ref taint]
         Type t = Type.getObjectType(type);
         if(TaintUtils.isWrappedType(t)) {
             type = TaintUtils.getWrapperType(t).getInternalName();
@@ -481,6 +482,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         super.visitInsn(SWAP);
         super.visitTypeInsn(INSTANCEOF, type);
         super.visitInsn(SWAP);
+        // [z taint]
     }
 
     private void checkCast(String type) {

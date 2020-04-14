@@ -107,4 +107,9 @@ public abstract class AbstractControlFlowPropagationPolicy<T extends ControlFlow
     public void visitingPhosphorInstructionInfo(PhosphorInstructionInfo info) {
 
     }
+
+    @Override
+    public void visitingInstanceOf() {
+
+    }
 }
