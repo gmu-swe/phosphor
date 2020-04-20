@@ -159,9 +159,8 @@ public class Instrumenter {
             }
             curPath = path;
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            int nRead;
             byte[] data = new byte[16384];
-            while((nRead = is.read(data, 0, data.length)) != -1) {
+            for(int nRead; (nRead = is.read(data, 0, data.length)) != -1;) {
                 buffer.write(data, 0, nRead);
             }
             is.close();
@@ -273,8 +272,7 @@ public class Instrumenter {
             try {
                 File f = new File(args[2]);
                 if(f.exists() && f.isFile()) {
-                    Scanner s = new Scanner(f);
-                    while(s.hasNextLine()) {
+                    for(Scanner s = new Scanner(f); s.hasNextLine();) {
                         urls.add(new File(s.nextLine()).getCanonicalFile().toURI().toURL());
                     }
                 } else if(f.isDirectory()) {
@@ -448,14 +446,11 @@ public class Instrumenter {
     }
 
     private static LinkedList<Future> _processZip(final File f, File outputDir, ExecutorService executor, boolean unCompressed) {
-        try {
-            LinkedList<Future<Result>> ret = new LinkedList<>();
-            final ZipFile zip = new ZipFile(f);
-            ZipOutputStream zos;
-            zos = new ZipOutputStream(new FileOutputStream(outputDir.getPath() + File.separator + f.getName()));
+        try(ZipFile zip = new ZipFile(f); ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(outputDir.getPath() + File.separator + f.getName()))) {
             if(unCompressed) {
                 zos.setLevel(ZipOutputStream.STORED);
             }
+            LinkedList<Future<Result>> ret = new LinkedList<>();
             java.util.Enumeration<? extends ZipEntry> entries = zip.entries();
             while(entries.hasMoreElements()) {
                 final ZipEntry e = entries.nextElement();
@@ -480,21 +475,19 @@ public class Instrumenter {
                     String markFileName = Long.toOctalString(System.currentTimeMillis())
                             + Integer.toOctalString(r.nextInt(10000))
                             + e.getName().replace("/", "");
-                    File tmp = new File("/tmp/" + markFileName);
+                    final String tempDir = System.getProperty("java.io.tmpdir");
+                    File tmp = new File(tempDir + markFileName);
                     if(tmp.exists()) {
                         tmp.delete();
                     }
-                    FileOutputStream fos = new FileOutputStream(tmp);
-                    byte[] buf = new byte[1024];
-                    int len;
-                    InputStream is = zip.getInputStream(e);
-                    while((len = is.read(buf)) > 0) {
-                        fos.write(buf, 0, len);
+                    try(InputStream is = zip.getInputStream(e); FileOutputStream fos = new FileOutputStream(tmp)) {
+                        byte[] buf = new byte[1024];
+                        for(int len; (len = is.read(buf)) > 0;) {
+                            fos.write(buf, 0, len);
+                        }
                     }
-                    is.close();
-                    fos.close();
 
-                    File tmp2 = new File("/tmp/tmp2");
+                    File tmp2 = new File(tempDir, "tmp2");
                     if(!tmp2.exists()) {
                         tmp2.mkdir();
                     }
@@ -502,23 +495,21 @@ public class Instrumenter {
                     tmp.delete();
 
                     outEntry.setMethod(ZipEntry.STORED);
-                    Path newFile = Paths.get("/tmp/tmp2/" + markFileName);
+                    Path newPath = Paths.get(tempDir, "tmp2", markFileName);
 
-                    outEntry.setSize(Files.size(newFile));
+                    outEntry.setSize(Files.size(newPath));
                     CRC32 crc = new CRC32();
-                    crc.update(Files.readAllBytes(newFile));
+                    crc.update(Files.readAllBytes(newPath));
                     outEntry.setCrc(crc.getValue());
                     zos.putNextEntry(outEntry);
-                    is = new FileInputStream("/tmp/tmp2/" + markFileName);
-                    byte[] buffer = new byte[1024];
-                    while(true) {
-                        int count = is.read(buffer);
-                        if(count == -1) {
-                            break;
+                    File newFile = newPath.toFile();
+                    try(InputStream is = new FileInputStream(newFile)) {
+                        byte[] buffer = new byte[1024];
+                        for(int count = is.read(buffer); count != -1; count = is.read(buffer)) {
+                            zos.write(buffer, 0, count);
                         }
-                        zos.write(buffer, 0, count);
                     }
-                    is.close();
+                    newFile.delete();
                     zos.closeEntry();
                 } else {
                     ZipEntry outEntry = new ZipEntry(e.getName());
@@ -558,16 +549,12 @@ public class Instrumenter {
                         } else {
                             try {
                                 zos.putNextEntry(outEntry);
-                                InputStream is = zip.getInputStream(e);
-                                byte[] buffer = new byte[1024];
-                                while(true) {
-                                    int count = is.read(buffer);
-                                    if(count == -1) {
-                                        break;
+                                try(InputStream is = zip.getInputStream(e)) {
+                                    byte[] buffer = new byte[1024];
+                                    for(int count = is.read(buffer); count != -1; count = is.read(buffer)) {
+                                        zos.write(buffer, 0, count);
                                     }
-                                    zos.write(buffer, 0, count);
                                 }
-                                is.close();
                                 zos.closeEntry();
                             } catch(ZipException ex) {
                                 if(!ex.getMessage().contains("duplicate entry")) {
@@ -596,16 +583,12 @@ public class Instrumenter {
                     byte[] clazz = r.buf;
                     if(clazz == null) {
                         System.out.println("Failed to instrument " + r.e.getName() + " in " + f.getName());
-                        InputStream is = zip.getInputStream(r.e);
-                        byte[] buffer = new byte[1024];
-                        while(true) {
-                            int count = is.read(buffer);
-                            if(count == -1) {
-                                break;
+                        try(InputStream is = zip.getInputStream(r.e)) {
+                            byte[] buffer = new byte[1024];
+                            for(int count = is.read(buffer); count != -1; count = is.read(buffer)) {
+                                zos.write(buffer, 0, count);
                             }
-                            zos.write(buffer, 0, count);
                         }
-                        is.close();
                     } else {
                         zos.write(clazz);
                     }
@@ -614,8 +597,6 @@ public class Instrumenter {
                     ex.printStackTrace();
                 }
             }
-            zos.close();
-            zip.close();
         } catch(Exception e) {
             System.err.println("Unable to process zip/jar: " + f.getAbsolutePath());
             e.printStackTrace();
@@ -678,9 +659,7 @@ public class Instrumenter {
 
     /* Attempts to create a ClassNode populated with supertype information for this class. */
     private static ClassNode tryToAddClassNode(String className) {
-        try {
-            String resource = className + ".class";
-            InputStream is = ClassLoader.getSystemResourceAsStream(resource);
+        try(InputStream is = ClassLoader.getSystemResourceAsStream(className + ".class")) {
             if(is == null) {
                 return null;
             }
@@ -705,7 +684,6 @@ public class Instrumenter {
                     return super.visitMethod(access, name, descriptor, signature, exceptions);
                 }
             }, ClassReader.SKIP_CODE);
-            is.close();
             return classes.get(className);
         } catch(Exception e) {
             return null;
