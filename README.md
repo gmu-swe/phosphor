@@ -8,7 +8,7 @@ Phosphor has been extensively developed since its original publication, and now 
 
 Running
 -------
-Phosphor works by modifying your application's bytecode to perform data flow tracking. To be complete, Phosphor also modifies the bytecode of JRE-provided classes, too. The first step to using Phosphor is generating an instrumented version of your runtime environment. We have tested Phosphor with Oracle and OpenJDK Java 8 runtimes.
+Phosphor works by modifying your application's bytecode to perform data flow tracking. To be complete, Phosphor also modifies the bytecode of JRE-provided classes, too. The first step to using Phosphor is generating an instrumented version of your runtime environment. We have tested Phosphor with Oracle and OpenJDK Java 8 runtimes. Support for newer versions of Java (e.g. 9 and higher) is currently partially implemented, and is expected to be completed by mid-summer 2020 (certainly before Oracle's end of support for Java 8).
 
 The instrumenter takes two primary arguments: first a path containing the classes to instrument, and then a destination for the instrumented classes. You can also specify to track taint tags through control flow, to use objects as tags (instead of integers), or to automatically perform taint marking in particular methods using the various options as shown by invoking Phosphor with the "-help" option.
 
