@@ -277,11 +277,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
             }
             LinkedList<LabelNode> oldLabels = new LinkedList<>();
             oldLabels.add(((LabelNode) i));
-            if(i != null && i.getPrevious() != null && i.getPrevious().getType() == AbstractInsnNode.LABEL) {
+            while (i != null && i.getPrevious() != null && i.getPrevious().getType() == AbstractInsnNode.LABEL) {
                 oldLabels.add(((LabelNode) i.getPrevious()));
+                i = i.getPrevious();
             }
             LabelNode newLabel = new LabelNode(new Label());
             instructions.insertBefore(insn, newLabel);
+
             i = instructions.getFirst();
             while(i != null) {
                 if(i instanceof FrameNode) {

@@ -15,13 +15,6 @@ import java.io.FileNotFoundException;
 
 public enum PhosphorOption {
 
-    WITHOUT_DATA_TRACK(new PhosphorOptionBuilder("Disable taint tracking through data flow (on by default)",
-            true, false)) {
-        @Override
-        public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
-            Configuration.DATAFLOW_TRACKING = !isPresent;
-        }
-    },
     CONTROL_TRACK(new PhosphorOptionBuilder("Enable taint tracking through control flow", true, false)
             .group(PhosphorOptionGroup.CONTROL_PROPAGATION)) {
         @Override
@@ -69,20 +62,6 @@ public enum PhosphorOption {
             Configuration.ARRAY_INDEX_TRACKING = isPresent;
         }
     },
-    WITHOUT_FIELD_HIDING(new PhosphorOptionBuilder("Disable hiding of taint fields via reflection",
-            true, false)) {
-        @Override
-        public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
-            Configuration.WITHOUT_FIELD_HIDING = isPresent;
-        }
-    },
-    WITHOUT_PROPAGATION(new PhosphorOptionBuilder("Disable all tag propagation - still create method stubs and " +
-            "wrappers as per other options, but don't actually propagate tags", true, false)) {
-        @Override
-        public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
-            Configuration.WITHOUT_PROPAGATION = isPresent;
-        }
-    },
     WITH_ENUMS_BY_VALUE(new PhosphorOptionBuilder("Propagate tags to enums as if each enum were a value (not a reference) " +
             "through the Enum.valueOf method", true, true).alternativeName("enum")) {
         @Override
@@ -95,12 +74,6 @@ public enum PhosphorOption {
         @Override
         public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
             Configuration.WITH_UNBOX_ACMPEQ = isPresent;
-        }
-    },
-    DISABLED_JUMP_OPTIMIZATIONS(new PhosphorOptionBuilder("Do not optimize taint removal at jump calls", true, false)) {
-        @Override
-        public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
-            Configuration.WITH_TAGS_FOR_JUMPS = isPresent;
         }
     },
     READ_AND_SAVE_BCI(new PhosphorOptionBuilder("Read in and track the byte code index of every instruction during instrumentation",

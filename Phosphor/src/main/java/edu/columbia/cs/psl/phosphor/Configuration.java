@@ -49,7 +49,6 @@ public class Configuration {
     public static boolean WITH_ENUM_BY_VAL = false;
     public static boolean WITH_UNBOX_ACMPEQ = false;
     public static boolean PREALLOC_STACK_OPS = false;
-    public static boolean WITH_TAGS_FOR_JUMPS = false;
     public static boolean WITHOUT_PROPAGATION = false;
     public static boolean WITHOUT_FIELD_HIDING = false;
     public static boolean READ_AND_SAVE_BCI = false;
@@ -83,9 +82,6 @@ public class Configuration {
             controlFlowManager = new StandardControlFlowManager();
         }
         OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING && !IMPLICIT_LIGHT_TRACKING;
-        if(IMPLICIT_TRACKING || IMPLICIT_LIGHT_TRACKING) {
-            WITH_TAGS_FOR_JUMPS = true;
-        }
         if(IMPLICIT_TRACKING) {
             ARRAY_INDEX_TRACKING = true;
         }
