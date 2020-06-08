@@ -74,15 +74,15 @@ public interface ControlFlowPropagationPolicy {
     void visitingArrayStore(int opcode);
 
     /**
-     * Called before a IALOAD, LALOAD, FALOAD, DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE instruction
+     * Called before a IALOAD, LALOAD, FALOAD, DALOAD, BALOAD, CALOAD, SALOAD, or AALOAD instruction
      * stack_pre = [value, reference-taint, value-taint]
      * stack_post = [value, reference-taint, value-taint]
      * <p>
      * reference-taint is the taint tag of the array reference whose element was loaded.
      * value-taint is the taint tag for the array element that was loaded onto the stack.
      *
-     * @param opcode the opcode of the type instruction to being visited, either IALOAD, LALOAD, FALOAD, DASTORE,
-     *               BASTORE, CASTORE, SASTORE, or AASTORE
+     * @param opcode the opcode of the type instruction to being visited, either IALOAD, LALOAD, FALOAD, DALOAD,
+     *               BALOAD, CALOAD, SALOAD, or AALOAD
      */
     void visitingArrayLoad(int opcode);
 
