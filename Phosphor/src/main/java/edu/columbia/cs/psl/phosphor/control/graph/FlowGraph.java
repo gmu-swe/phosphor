@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.control.graph;
 import edu.columbia.cs.psl.phosphor.struct.IntSinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -543,7 +544,7 @@ public final class FlowGraph<V> {
         writer.write(String.format("\tnode [shape=box]%n"));
         int i = 0;
         for(V vertex : sortedVertices) {
-            writer.write(String.format("\t%d [label=%s]%n", i, printer.apply(vertex)));
+            writer.write(String.format("\t%d [label=%s]%n", i, escapeDotLabel(printer.apply(vertex))));
             vertexIndexMap.put(vertex, i++);
         }
         for(V vertex : sortedVertices) {
@@ -555,6 +556,36 @@ public final class FlowGraph<V> {
         }
         writer.write(String.format("\tlabel=%s%n", graphName));
         writer.write(String.format("\tfontsize=%d%n}%n", fontSize));
+    }
+
+    private static String escapeDotLabel(String label) {
+        StringBuilder builder = new StringBuilder();
+        for(int i = 0; i < label.length(); i++) {
+            char c = label.charAt(i);
+            if(i == 0 && c != '"') {
+                builder.append('"');
+            }
+            switch(c) {
+                case '"':
+                    if(i == 0 || i == label.length() - 1) {
+                        builder.append('"');
+                        break;
+                    }
+                case '{':
+                case '[':
+                case ';':
+                case '#':
+                case '}':
+                case ']':
+                    builder.append("\\");
+                default:
+                    builder.append(c);
+            }
+            if(i == label.length() - 1 && c != '"') {
+                builder.append('"');
+            }
+        }
+        return builder.toString();
     }
 
     /**
