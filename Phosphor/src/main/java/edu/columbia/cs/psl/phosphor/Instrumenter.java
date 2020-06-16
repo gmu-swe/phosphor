@@ -476,7 +476,7 @@ public class Instrumenter {
                             + Integer.toOctalString(r.nextInt(10000))
                             + e.getName().replace("/", "");
                     final String tempDir = System.getProperty("java.io.tmpdir");
-                    File tmp = new File(tempDir + markFileName);
+                    File tmp = new File(tempDir, markFileName);
                     if(tmp.exists()) {
                         tmp.delete();
                     }
