@@ -23,6 +23,8 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 	protected NeverNullArgAnalyzerAdapter analyzer;
 	protected String className;
 
+	protected TaintTagFactory taintTagFactory; //= Configuration.taintTagFactory;
+
 	public LocalVariableManager getLvs() {
 		return lvs;
 	}
@@ -43,18 +45,11 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 				internalName.equals("java/lang/Double") ||internalName.equals("java/lang/Integer") || 
 				internalName.equals("java/lang/Long") || internalName.equals("java/lang/StackTraceElement")));
 	}
-	private TaintAdapter(MethodVisitor mv)
-	{
-		super(Configuration.ASM_VERSION,mv);
-	}
-	private TaintAdapter(int api, MethodVisitor mv)
-	{
-		super(api, mv);
-	}
-	public TaintAdapter(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
+	public TaintAdapter(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, TaintTagFactory taintTagFactory) {
 		super(Configuration.ASM_VERSION, mv);
 		this.analyzer = analyzer;
 		this.className = className;
+		this.taintTagFactory = taintTagFactory;
 	}
 	public List<FieldNode> fields;
 	public void setFields(List<FieldNode> fields) {
@@ -216,7 +211,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 		//		nonInstrumentingMV.visitJumpInsn(IFNE, bail); //TODO handle numerics, other ignore classes for which we know the taint
 		if (className.equals("java/util/HashMap")) {
 			super.visitInsn(POP);
-			Configuration.taintTagFactory.generateEmptyTaint(mv);
+			taintTagFactory.generateEmptyTaint(mv);
 		} else
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "getTaint", "(Ljava/lang/Object;)I",false);
 		//		nonInstrumentingMV.visitLabel(bail);
@@ -386,7 +381,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 //	}
 
 	protected void generateUnconstrainedTaint(int reason) {
-		Configuration.taintTagFactory.generateEmptyTaint(mv);
+		taintTagFactory.generateEmptyTaint(mv);
 	}
 
 	/**
@@ -410,7 +405,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 			super.visitInsn(ARRAYLENGTH);
 			super.visitMultiANewArrayInsn("[[I", 1);
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create2DTaintArray", "(Ljava/lang/Object;[[I)[[I",false);
-			if(!(Configuration.taintTagFactory instanceof DataAndControlFlowTagFactory))
+			if(!(taintTagFactory instanceof DataAndControlFlowTagFactory))
 			{
 				super.visitInsn(DUP);
 				super.visitInsn(ICONST_2);
@@ -438,7 +433,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
 			super.visitInsn(ARRAYLENGTH);
 			super.visitMultiANewArrayInsn("[[[I", 1);
 			super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(TaintUtils.class), "create3DTaintArray", "(Ljava/lang/Object;[[[I)[[[I",false);
-			if(!(Configuration.taintTagFactory instanceof DataAndControlFlowTagFactory))
+			if(!(taintTagFactory instanceof DataAndControlFlowTagFactory))
 			{
 				super.visitInsn(DUP);
 				super.visitInsn(ICONST_3);

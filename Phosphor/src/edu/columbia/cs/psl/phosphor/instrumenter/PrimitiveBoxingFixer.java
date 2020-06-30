@@ -12,8 +12,8 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.FrameNode;
 
 public class PrimitiveBoxingFixer extends TaintAdapter implements Opcodes {
-	public PrimitiveBoxingFixer(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
-		super(access, className, name, desc, signature, exceptions, mv, analyzer);
+	public PrimitiveBoxingFixer(int access, String className, String name, String desc, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, TaintTagFactory taintTagFactory) {
+		super(access, className, name, desc, signature, exceptions, mv, analyzer, taintTagFactory);
 	}
 
 	int tmpInt = -1;;

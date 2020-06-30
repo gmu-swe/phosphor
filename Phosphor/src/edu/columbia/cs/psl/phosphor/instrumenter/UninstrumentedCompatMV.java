@@ -26,8 +26,8 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 	private Type originalReturnType;
 
 	public UninstrumentedCompatMV(int access, String className, String name, String desc, Type originalReturnType, String signature, String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer,
-			boolean skipFrames) {
-		super(access, className, name, desc, signature, exceptions, mv, analyzer);
+			boolean skipFrames, TaintTagFactory taintTagFactory) {
+		super(access, className, name, desc, signature, exceptions, mv, analyzer, taintTagFactory);
 		this.analyzer = analyzer;
 		this.skipFrames = skipFrames;
 		this.returnType = Type.getReturnType(desc);

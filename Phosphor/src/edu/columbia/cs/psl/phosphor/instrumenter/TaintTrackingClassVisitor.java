@@ -47,13 +47,15 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 	List<FieldNode> fields;
 	private boolean ignoreFrames;
 	private boolean generateExtraLVDebug;
-	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields) {
+	private final TaintTagFactory taintTagFactory;
+	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields, TaintTagFactory taintTagFactory) {
 		super(Configuration.ASM_VERSION,  cv
 //				new CheckClassAdapter(cv,false)
 				);
 		DO_OPT = DO_OPT && !IS_RUNTIME_INST;
 		this.ignoreFrames = skipFrames;
 		this.fields = fields;
+		this.taintTagFactory = taintTagFactory;
 	}
 
 
@@ -85,8 +87,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 	private boolean aggressivelyReduceMethodSize;
 
-	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields, boolean aggressivelyReduceMethodSize) {
-		this(cv,skipFrames, fields);
+	public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields, boolean aggressivelyReduceMethodSize, TaintTagFactory taintTagFactory) {
+		this(cv,skipFrames, fields, taintTagFactory);
 		this.aggressivelyReduceMethodSize = aggressivelyReduceMethodSize;
 	}
 
@@ -304,7 +306,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			MethodVisitor _mv = mv;
 			NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, newDesc, mv);
 			mv = new UninstrumentedReflectionHidingMV(analyzer, className);
-			mv = new UninstrumentedCompatMV(access, className, name, newDesc, null, signature, (String[]) exceptions, mv, analyzer, ignoreFrames);
+			mv = new UninstrumentedCompatMV(access, className, name, newDesc, null, signature, (String[]) exceptions, mv, analyzer, ignoreFrames, taintTagFactory);
 			LocalVariableManager lvs = new LocalVariableManager(access, newDesc, mv, analyzer, _mv, generateExtraLVDebug);
 			((UninstrumentedCompatMV) mv).setLocalVariableSorter(lvs);
 			final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, null, false);
@@ -474,18 +476,18 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 			mv = new StringTaintVerifyingMV(analyzer,(implementsSerializable || className.startsWith("java/nio/") || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")),analyzer); //TODO - how do we handle directbytebuffers?
 
 			ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(mv, className, name, analyzer);
-			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer);
+			PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature, exceptions, reflectionMasker, analyzer, taintTagFactory);
 			LocalVariableManager lvs;
 			TaintPassingMV tmv;
 			MethodVisitor nextMV;
 			InstOrUninstChoosingMV instOrUninstChoosingMV;
 			{
 //				ImplicitTaintRemoverMV implicitCleanup = new ImplicitTaintRemoverMV(access, className, name, desc, signature, exceptions, boxFixer, analyzer);
-				tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV,wrapperMethodsToAdd, isImplicitLightTrackingMethod);
+				tmv = new TaintPassingMV(boxFixer, access, className, name, newDesc, signature, exceptions, desc, analyzer,rootmV,wrapperMethodsToAdd, isImplicitLightTrackingMethod, taintTagFactory);
 				tmv.setFields(fields);
 				TaintAdapter custom = null;
 
-				UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, newDesc, oldReturnType, signature, exceptions, boxFixer, analyzer, ignoreFrames);
+				UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, newDesc, oldReturnType, signature, exceptions, boxFixer, analyzer, ignoreFrames, taintTagFactory);
 				instOrUninstChoosingMV = new InstOrUninstChoosingMV(tmv,umv);
 				lvs = new LocalVariableManager(access, newDesc, instOrUninstChoosingMV, analyzer,mv, generateExtraLVDebug);
 				umv.setLocalVariableSorter(lvs);
@@ -785,7 +787,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 					mv = super.visitMethod(Opcodes.ACC_PUBLIC, "set" + TaintUtils.TAINT_FIELD, "(" + (Configuration.MULTI_TAINTING ? "Ljava/lang/Object;" : "I") + ")V", null, null);
 					mv.visitCode();
-					Configuration.taintTagFactory.generateSetTag(mv,className);
+					taintTagFactory.generateSetTag(mv,className);
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
 						Type taintType = MultiDTaintedArray.getTypeForType(Type.getType(char[].class));
@@ -830,7 +832,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv = new TaintTagFieldCastMV(mv, "set" + TaintUtils.TAINT_FIELD);
 
 					mv.visitCode();
-					Configuration.taintTagFactory.generateSetTag(mv,className);
+					taintTagFactory.generateSetTag(mv,className);
 					if (className.equals("java/lang/String")) {
 						//Also overwrite the taint tag of all of the chars behind this string
 
@@ -1200,7 +1202,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 								}
 							} else if (t.getSort() != Type.OBJECT) {
 								newDesc += Configuration.TAINT_TAG_DESC;
-								Configuration.taintTagFactory.generateEmptyTaint(ga);
+								taintTagFactory.generateEmptyTaint(ga);
 							}
 							if (!loaded)
 								ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
@@ -1534,7 +1536,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 					mv = analyzer;
 					mv = new UninstrumentedReflectionHidingMV(mv, className);
 					UninstrumentedReflectionHidingMV ta = (UninstrumentedReflectionHidingMV) mv;
-					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc, Type.getReturnType(mn.desc), mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames);
+					mv = new UninstrumentedCompatMV(mn.access,className,mn.name,mn.desc, Type.getReturnType(mn.desc), mn.signature,(String[]) mn.exceptions.toArray(new String[0]),mv,analyzer,ignoreFrames, taintTagFactory);
 					LocalVariableManager lvs = new LocalVariableManager(mn.access, mn.desc, mv, analyzer, analyzer, generateExtraLVDebug);
 					final PrimitiveArrayAnalyzer primArrayAnalyzer = new PrimitiveArrayAnalyzer(className, mn.access, mn.name, mn.desc, null, null, null, false);
 					lvs.disable();
@@ -1945,8 +1947,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						ga.visitInsn(Opcodes.SWAP);
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 						an.visitVarInsn(Opcodes.ALOAD, retIdx);
-						Configuration.taintTagFactory.generateEmptyTaint(ga);
-						Configuration.taintTagFactory.propogateTagNative(className, m.access, m.name, m.desc, mv);
+						taintTagFactory.generateEmptyTaint(ga);
+						taintTagFactory.propogateTagNative(className, m.access, m.name, m.desc, mv);
 
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 						an.visitVarInsn(Opcodes.ALOAD, retIdx);
@@ -1958,8 +1960,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						ga.visitInsn(Opcodes.POP);
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "val", origReturn.getDescriptor());
 						an.visitVarInsn(Opcodes.ALOAD, retIdx);
-						Configuration.taintTagFactory.generateEmptyTaint(ga);
-						Configuration.taintTagFactory.propogateTagNative(className, m.access, m.name, m.desc, mv);
+						taintTagFactory.generateEmptyTaint(ga);
+						taintTagFactory.propogateTagNative(className, m.access, m.name, m.desc, mv);
 
 						ga.visitFieldInsn(Opcodes.PUTFIELD, newReturn.getInternalName(), "taint", Configuration.TAINT_TAG_DESC);
 						an.visitVarInsn(Opcodes.ALOAD, retIdx);

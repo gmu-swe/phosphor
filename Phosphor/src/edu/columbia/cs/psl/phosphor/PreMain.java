@@ -117,6 +117,17 @@ public class PreMain {
 			String className = cr.getClassName();
 			innerException = false;
 			curLoader = loader;
+
+
+			TaintTagFactory taintTagFactory;
+			try {
+				taintTagFactory = Configuration.taintTagFactoryClass.newInstance();
+//				Configuration.taintTagFactory = taintTagFactory;
+			} catch (IllegalAccessException | InstantiationException e) {
+				e.printStackTrace();
+				throw new Error(e);
+			}
+
 //			bigLoader = loader;
 //			Instrumenter.loader = bigLoader;
 			if (Instrumenter.isIgnoredClass(className)) {
@@ -140,7 +151,7 @@ public class PreMain {
 				return classfileBuffer;
 			}			
 
-			Configuration.taintTagFactory.instrumentationStarting(className);
+			taintTagFactory.instrumentationStarting(className);
 			try {
 				ClassNode cn = new ClassNode();
 				cr.accept(cn, (Configuration.ALWAYS_CHECK_FOR_FRAMES ? 0 : ClassReader.SKIP_CODE));
@@ -282,9 +293,9 @@ public class PreMain {
 					}
                     _cv = new ClinitRetransformClassVisitor(_cv);
 					if(isiFace)
-						_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields);
+						_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields, taintTagFactory);
 					else
-						_cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+						_cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields, taintTagFactory));
 					if(EclipseCompilerCV.isEclipseCompilerClass(className)) {
 						_cv = new EclipseCompilerCV(_cv);
 					}
@@ -327,9 +338,9 @@ public class PreMain {
 							_cv = new CheckClassAdapter(_cv, false);
 						_cv = new ClinitRetransformClassVisitor(_cv);
 						if(isiFace)
-							_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields, true);
+							_cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields, true, taintTagFactory);
 						else
-							_cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields, true));
+							_cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields, true, taintTagFactory));
 						_cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
 						if (Configuration.WITH_SELECTIVE_INST)
 							cr.accept(new PartialInstrumentationInferencerCV(), ClassReader.EXPAND_FRAMES);
@@ -387,7 +398,7 @@ public class PreMain {
 							Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
 							_cv = extra.newInstance(_cv, skipFrames);
 						}
-						_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields));
+						_cv = new SerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields, taintTagFactory));
 						_cv = new HidePhosphorFromASMCV(_cv, false);
 
 						cr.accept(_cv, ClassReader.EXPAND_FRAMES);
@@ -420,7 +431,7 @@ public class PreMain {
 
 				}
 			} finally {
-				Configuration.taintTagFactory.instrumentationEnding(className);
+				taintTagFactory.instrumentationEnding(className);
 
 			}
 		}
@@ -526,8 +537,8 @@ public class PreMain {
 					Class c;
 					try {
 						c = Class.forName(s.substring(16));
-						Configuration.taintTagFactory = (TaintTagFactory) c.newInstance();
-					} catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+						Configuration.setTaintTagFactory(c);
+					} catch (ClassNotFoundException e) {
 						e.printStackTrace();
 					}
 				} else if(s.startsWith("serialization")) {

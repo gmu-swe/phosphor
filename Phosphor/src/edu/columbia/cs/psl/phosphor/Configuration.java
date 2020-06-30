@@ -130,7 +130,18 @@ public class Configuration {
 	public static Class extensionClassVisitor;
 
 	public static TaintTagFactory taintTagFactory = new DataAndControlFlowTagFactory();
-	
+	public static Class<? extends TaintTagFactory> taintTagFactoryClass = DataAndControlFlowTagFactory.class;
+
+	public static void setTaintTagFactory(Class<? extends TaintTagFactory> c) {
+	    taintTagFactoryClass = c;
+		try {
+			taintTagFactory = c.newInstance();
+		} catch (IllegalAccessException | InstantiationException e) {
+			e.printStackTrace();
+			throw new Error(e);
+		}
+	}
+
 	public static TaintSourceWrapper autoTainter = new TaintSourceWrapper();
 	
 	public static DerivedTaintListener derivedTaintListener = new DerivedTaintListener();
@@ -176,7 +187,7 @@ public class Configuration {
 					if (props.containsKey("extraCV"))
 						extensionClassVisitor = (Class<? extends ClassVisitor>) Class.forName(props.getProperty("extraCV"));
 					if (props.containsKey("taintTagFactory"))
-						taintTagFactory = (TaintTagFactory) Class.forName(props.getProperty("taintTagFactory")).newInstance();
+					    setTaintTagFactory((Class<? extends TaintTagFactory>) Class.forName(props.getProperty("taintTagFactory")));
 					if (props.containsKey("derivedTaintListener"))
 						derivedTaintListener = (DerivedTaintListener) Class.forName(props.getProperty("derivedTaintListener")).newInstance();
 				} catch (IOException ex) {
