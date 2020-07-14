@@ -219,6 +219,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 c = Class.forName(superName.replace("/", "."));
                 for(Method m : c.getMethods()) {
                     superMethodsToOverride.put(m.getName() + Type.getMethodDescriptor(m), m);
+                    if (!m.isBridge()) {
+                        String desc = Type.getMethodDescriptor(m);
+                        String key = m.getName() + "."+desc.substring(0, desc.indexOf(')'));
+                        nonBridgeMethodsReturnsErased.add(key);
+                    }
                 }
             } catch(ClassNotFoundException e) {
                 if(!superName.startsWith("sun/reflect/")) {
