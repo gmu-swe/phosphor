@@ -476,7 +476,17 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     private void instanceOf(String type) {
         // [ref taint]
         Type t = Type.getObjectType(type);
-        if(TaintUtils.isWrappedType(t)) {
+        if (TaintUtils.isWrappedType(t)) {
+            if (t.getSort() == Type.ARRAY && t.getElementType().getSort() == Type.OBJECT) {
+                //Need to get the underlying type
+                super.visitInsn(SWAP);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintUtils.class), "ensureUnboxed", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+                super.visitTypeInsn(INSTANCEOF, type);
+                super.visitInsn(SWAP);
+                // [z taint]
+                controlFlowPolicy.visitingInstanceOf();
+                return;
+            }
             type = TaintUtils.getWrapperType(t).getInternalName();
         }
         super.visitInsn(SWAP);
@@ -550,14 +560,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             //Are we remapping something with a primitive return that gets ignored?
             if(bsm.getName().equals("metafactory") || bsm.getName().equals("altMetafactory")) {
                 Handle implMethod = (Handle) bsmArgs[1];
+                Type erasedMethodType = (Type) bsmArgs[0];
 
                 boolean isNEW = implMethod.getTag() == Opcodes.H_NEWINVOKESPECIAL;
+                boolean addErasedTypes = !implMethod.getName().startsWith("lambda$");
                 boolean isVirtual = (implMethod.getTag() == Opcodes.H_INVOKEVIRTUAL) || implMethod.getTag() == Opcodes.H_INVOKESPECIAL || implMethod.getTag() == Opcodes.H_INVOKEINTERFACE;
-                String remappedImplDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(isVirtual, implMethod.getDesc(), !implMethod.getName().startsWith("lambda$"));
+                String remappedImplDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(isVirtual, implMethod.getDesc(), addErasedTypes);
 
                 if(!Instrumenter.isIgnoredClass(implMethod.getOwner()) && !Instrumenter.isIgnoredMethod(implMethod.getOwner(), implMethod.getName(), implMethod.getDesc()) && !TaintUtils.remapMethodDescAndIncludeReturnHolder(isVirtual || isNEW, implMethod.getDesc()).equals(implMethod.getDesc())) {
                     Type uninstSamMethodType = (Type) bsmArgs[0];
-                    bsmArgs[0] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(false, ((Type) bsmArgs[0]).getDescriptor()));
+                    bsmArgs[0] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(false, ((Type) bsmArgs[0]).getDescriptor(), addErasedTypes));
                     String implMethodDesc = implMethod.getDesc();
                     Type samMethodType = (Type) bsmArgs[0];
                     Type instantiatedType = (Type) bsmArgs[2];
@@ -579,9 +591,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         ArrayList<Type> uninstNewWrapperArgs = new ArrayList<>();
                         if(isVirtual) {
                             newWrapperArgs.add(Type.getObjectType(implMethod.getOwner()));
-                            if(instantiatedMethodArgs.length == 0 || !instantiatedMethodArgs[0].getInternalName().equals(implMethod.getOwner())) {
-                                uninstNewWrapperArgs.add(Type.getObjectType(implMethod.getOwner()));
-                            }
+                            Type[] tmp = new Type[uninstImplMethodArgs.length + 1];
+                            System.arraycopy(uninstImplMethodArgs, 0, tmp, 1, uninstImplMethodArgs.length);
+                            tmp[0] = Type.getObjectType(implMethod.getOwner());
+                            uninstImplMethodArgs = tmp;
                         }
                         for(Type t : implMethodArgs) {
                             if(!t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
@@ -591,13 +604,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         if(isNEW || needToBoxReturnType) {
                             newWrapperArgs.add(Type.getType(TaintedReferenceWithObjTag.class));
                         }
-                        for (int i = 0; i < instantiatedMethodArgs.length; i++) {
-                            Type t = instantiatedMethodArgs[i];
-                            if (i < uninstImplMethodArgs.length && TaintUtils.isPrimitiveType(uninstImplMethodArgs[i]) && !TaintUtils.isPrimitiveType(t)) {
-                                uninstNewWrapperArgs.add(uninstImplMethodArgs[i]);
-                            } else {
-                                uninstNewWrapperArgs.add(t);
-                            }
+                        for (int i = 0; i < uninstImplMethodArgs.length; i++) {
+                            uninstNewWrapperArgs.add(uninstImplMethodArgs[i]);
                         }
                         Type wrapperReturnType = (isNEW || needToBoxReturnType ? Type.getType(TaintedReferenceWithObjTag.class) : Type.VOID_TYPE);
                         Type uninstWrapperDesc = Type.getMethodType(wrapperReturnType, uninstNewWrapperArgs.toArray(new Type[0]));
@@ -606,9 +614,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         Type newContainerReturnType = TaintUtils.getContainerReturnType(wrapperDesc.getReturnType());
                         Type originalReturnType = wrapperDesc.getReturnType();
 
-                        String wrapperName = "phosphorWrapInvokeDynamic" + wrapperMethodsToAdd.size();
+                        String wrapperName = "lambda$phosphorWrapInvokeDynamic" + wrapperMethodsToAdd.size();
 
-                        MethodNode mn = new MethodNode(Opcodes.ACC_STATIC | Opcodes.ACC_FINAL, wrapperName, uninstWrapperDesc.getDescriptor(), null, null);
+                        MethodNode mn = new MethodNode(Opcodes.ACC_STATIC | Opcodes.ACC_PRIVATE, wrapperName, uninstWrapperDesc.getDescriptor(), null, null);
 
                         GeneratorAdapter ga = new GeneratorAdapter(mn, Opcodes.ACC_STATIC, wrapperName, wrapperDesc.getDescriptor());
                         ga.visitCode();
@@ -696,11 +704,32 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         if(samMethodType.getReturnType().getSort() == Type.VOID) {
                             instantiatedReturnType = Type.VOID_TYPE;
                         }
-                        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(false, Type.getMethodType(instantiatedReturnType, instantiatedMethodArgs).getDescriptor()));
+                        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(false, Type.getMethodType(instantiatedReturnType, instantiatedMethodArgs).getDescriptor(), addErasedTypes));
 
                     } else {
+                        //find reference types specified on impl but not the generic type
+                        Type[] erasedArgs = erasedMethodType.getArgumentTypes();
+                        Type[] implArgs = instantiatedType.getArgumentTypes();
+                        LinkedList<Type> erasedTypesToAppend = new LinkedList<>();
+                        for (int i = 0; i < Math.min(erasedArgs.length, implArgs.length); i++) {
+                            if (erasedArgs[i].getDescriptor().equals("Ljava/lang/Object;") &&
+                                    TaintUtils.isWrappedTypeWithErasedType(implArgs[i])) {
+                                erasedTypesToAppend.add(implArgs[i]);
+                            }
+                        }
                         bsmArgs[1] = new Handle(implMethod.getTag(), implMethod.getOwner(), implMethod.getName() + (implMethod.getName().equals("<init>") ? "" : TaintUtils.METHOD_SUFFIX), remappedImplDesc, implMethod.isInterface());
-                        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(false, instantiatedType.getDescriptor()));
+                        bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(false, instantiatedType.getDescriptor(), addErasedTypes));
+                        if(addErasedTypes && !erasedTypesToAppend.isEmpty()){
+                            Type mType = (Type) bsmArgs[0];
+                            Type[] _args = mType.getArgumentTypes();
+                            Type[] newTypes = new Type[_args.length + erasedTypesToAppend.size()];
+                            System.arraycopy(mType.getArgumentTypes(), 0, newTypes, 0, _args.length);
+                            for (int i = _args.length; i < newTypes.length; i++) {
+                                newTypes[i] = erasedTypesToAppend.poll();
+                            }
+                            bsmArgs[0] = Type.getMethodType(mType.getReturnType(), newTypes);
+
+                        }
                     }
                 }
             } else {

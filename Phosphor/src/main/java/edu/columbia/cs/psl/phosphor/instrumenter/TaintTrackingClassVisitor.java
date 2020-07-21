@@ -928,7 +928,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 ga.visitLabel(startLabel);
                 ga.visitLineNumber(0, startLabel);
 
-                switch(returnType.getSort()) {
+                switch(Type.getReturnType(newDesc).getSort()) {
                     case Type.INT:
                     case Type.SHORT:
                     case Type.BOOLEAN:
