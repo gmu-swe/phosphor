@@ -137,7 +137,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * that retrieves the value of a field of a Java heap object. */
     private boolean isUnsafeFieldGetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
-        if(className.equals("sun/misc/Unsafe") || opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
+        if(opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
             return false;
         } else {
             if(args.length < 2 || !args[1].equals(Type.getType(Object.class))) {
@@ -172,7 +172,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * that sets the value of a field of a Java heap object. */
     private boolean isUnsafeFieldSetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
-        if(className.equals("sun/misc/Unsafe") || opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
+        if(opcode != INVOKEVIRTUAL || !"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
             return false;
         } else {
             if(args.length < 2 || !args[1].equals(Type.getType(Object.class))) {
@@ -210,7 +210,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * for a compareAndSwap method. */
     private boolean isUnsafeCAS(String owner, String name, String nameWithoutSuffix) {
-        if(!"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX) || className.equals("sun/misc/Unsafe")) {
+        if(!"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
             return false;
         } else {
             return "compareAndSwapInt".equals(nameWithoutSuffix)
@@ -220,7 +220,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     }
 
     private boolean isUnsafeCopyMemory(String owner, String name, String nameWithoutSuffix) {
-        if(!"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX) || className.equals("sun/misc/Unsafe")) {
+        if(!"sun/misc/Unsafe".equals(owner) || !name.endsWith(TaintUtils.METHOD_SUFFIX)) {
             return false;
         } else {
             return "copyMemory".equals(nameWithoutSuffix);
