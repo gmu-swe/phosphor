@@ -100,6 +100,14 @@ public class UnsafeObjTagITCase extends MaskingBaseTest {
         }
     }
 
+    @Test(timeout = 3000L)
+    public void testCAS2DCharArray(){
+        Object[] ar = new Object[2];
+        char[] charArr = new char[10];
+        ar[0] = charArr;
+        unsafe.getAndSetObject(ar,unsafe.arrayBaseOffset(Object[].class), null);
+    }
+
     /* Checks that setting primitive arrays' non-tainted elements to tainted values results in the primitive arrays' elements
      * being tainted. */
     @Test

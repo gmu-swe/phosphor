@@ -1401,10 +1401,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             for(Type t : argTypes) {
                 ga.visitVarInsn(t.getOpcode(Opcodes.ILOAD), idx);
 
-                if(TaintUtils.isShadowedType(t)) {
-                    lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg" + idx, TaintUtils.getShadowTaintType(t.getDescriptor()), null, start, end, idx));
-                    idx++;
-                }
+
                 if(TaintUtils.isWrappedType(t)) {
                     Type wrapper = TaintUtils.getWrapperType(t);
                     ga.visitMethodInsn(Opcodes.INVOKESTATIC, wrapper.getInternalName(), "unwrap", "(" + wrapper.getDescriptor() + ")" + TaintUtils.getUnwrappedType(wrapper).getDescriptor(), false);
@@ -1455,6 +1452,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     }
                 }
                 idx += t.getSize();
+                if(TaintUtils.isShadowedType(t)) {
+                    lvsToVisit.add(new LocalVariableNode("phosphorNativeWrapArg" + idx, TaintUtils.getShadowTaintType(t.getDescriptor()), null, start, end, idx));
+                    idx++;
+                }
             }
             int opcode;
             if((m.access & Opcodes.ACC_STATIC) == 0) {
