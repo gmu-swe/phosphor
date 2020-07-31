@@ -566,8 +566,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 boolean addErasedTypes = !implMethod.getName().startsWith("lambda$");
                 boolean isVirtual = (implMethod.getTag() == Opcodes.H_INVOKEVIRTUAL) || implMethod.getTag() == Opcodes.H_INVOKESPECIAL || implMethod.getTag() == Opcodes.H_INVOKEINTERFACE;
                 String remappedImplDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(isVirtual, implMethod.getDesc(), addErasedTypes);
-
-                if(!Instrumenter.isIgnoredClass(implMethod.getOwner()) && !Instrumenter.isIgnoredMethod(implMethod.getOwner(), implMethod.getName(), implMethod.getDesc()) && !TaintUtils.remapMethodDescAndIncludeReturnHolder(isVirtual || isNEW, implMethod.getDesc()).equals(implMethod.getDesc())) {
+                boolean isCallToUninst = false;
+                if(Instrumenter.isIgnoredClass(implMethod.getOwner()) || Instrumenter.isIgnoredMethod(implMethod.getOwner(), implMethod.getName(), implMethod.getDesc())) {
+                    isCallToUninst = true;
+                }
+                if(!TaintUtils.remapMethodDescAndIncludeReturnHolder(isVirtual || isNEW, implMethod.getDesc()).equals(implMethod.getDesc())) {
                     Type uninstSamMethodType = (Type) bsmArgs[0];
                     bsmArgs[0] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(false, ((Type) bsmArgs[0]).getDescriptor(), addErasedTypes));
                     String implMethodDesc = implMethod.getDesc();
@@ -584,6 +587,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         //If the target method returns a primitive that needs to be boxed
                         needToAddUnWrapper = true;
                         needToBoxReturnType = true;
+                    } else if(isCallToUninst) {
+                        needToAddUnWrapper = true;
                     }
                     if (needToAddUnWrapper) {
                         ArrayList<Type> newWrapperArgs = new ArrayList<>();
@@ -603,12 +608,24 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         }
                         if(isNEW || needToBoxReturnType) {
                             newWrapperArgs.add(Type.getType(TaintedReferenceWithObjTag.class));
+                        } else if(isCallToUninst && erasedMethodType.getReturnType().getSort() != Type.VOID){
+                            newWrapperArgs.add(samMethodType.getReturnType());
                         }
                         for (int i = 0; i < uninstImplMethodArgs.length; i++) {
                             uninstNewWrapperArgs.add(uninstImplMethodArgs[i]);
                         }
                         Type wrapperReturnType = (isNEW || needToBoxReturnType ? Type.getType(TaintedReferenceWithObjTag.class) : Type.VOID_TYPE);
-                        Type uninstWrapperDesc = Type.getMethodType(wrapperReturnType, uninstNewWrapperArgs.toArray(new Type[0]));
+                        Type uninstReturnType;
+                        if (needToBoxReturnType || isNEW) {
+                            uninstReturnType = Type.getType(TaintedReferenceWithObjTag.class);
+                        } else if (isCallToUninst) {
+                            uninstReturnType = uninstSamMethodType.getReturnType();
+                            wrapperReturnType = samMethodType.getReturnType();
+                        } else {
+                            wrapperReturnType = Type.VOID_TYPE;
+                            uninstReturnType = Type.VOID_TYPE;
+                        }
+                        Type uninstWrapperDesc = Type.getMethodType(uninstReturnType, uninstNewWrapperArgs.toArray(new Type[0]));
                         Type wrapperDesc = Type.getMethodType(wrapperReturnType, newWrapperArgs.toArray(new Type[0]));
 
                         Type newContainerReturnType = TaintUtils.getContainerReturnType(wrapperDesc.getReturnType());
@@ -618,7 +635,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
                         MethodNode mn = new MethodNode(Opcodes.ACC_STATIC | Opcodes.ACC_PRIVATE, wrapperName, uninstWrapperDesc.getDescriptor(), null, null);
 
-                        GeneratorAdapter ga = new GeneratorAdapter(mn, Opcodes.ACC_STATIC, wrapperName, wrapperDesc.getDescriptor());
+                        GeneratorAdapter ga = new GeneratorAdapter(mn, Opcodes.ACC_STATIC, wrapperName, uninstWrapperDesc.getDescriptor());
                         ga.visitCode();
 
                         if(isNEW) {
@@ -696,12 +713,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         }
 
                         Type instantiatedReturnType;
-                        if(isNEW) { //|| unboxPrimitiveReturn || boxPrimitiveReturn) {
+                        if (isNEW) { //|| unboxPrimitiveReturn || boxPrimitiveReturn) {
                             instantiatedReturnType = newContainerReturnType;
+                        } else if (isCallToUninst) {
+                            instantiatedReturnType = uninstSamMethodType.getReturnType();
                         } else {
                             instantiatedReturnType = originalReturnType;
                         }
-                        if(samMethodType.getReturnType().getSort() == Type.VOID) {
+                        if (samMethodType.getReturnType().getSort() == Type.VOID) {
                             instantiatedReturnType = Type.VOID_TYPE;
                         }
                         bsmArgs[2] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(false, Type.getMethodType(instantiatedReturnType, instantiatedMethodArgs).getDescriptor(), addErasedTypes));

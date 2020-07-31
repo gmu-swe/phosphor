@@ -39,6 +39,13 @@ public class LambdaObjTagITCase extends BaseMultiTaintClass {
 		int sum = IntStream.of(1, 2, 3, 4, 5).sum(); // creates a bunch of lambdas
 	}
 
+	//This test is interesting because Character::toLowerCase is a wrapped (not instrumented) method
+	@Test
+	public void testLambdaCallsMethodIgnoredFromInstrumentation(){
+		String name = "a";
+		name.chars().map(Character::toLowerCase).forEach((c)->{});
+	}
+
 	@Test
 	public void testEmptyLambda() {
 		Runnable r = () -> {
