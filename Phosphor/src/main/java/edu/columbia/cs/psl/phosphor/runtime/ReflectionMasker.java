@@ -89,6 +89,56 @@ public class ReflectionMasker {
         return false;
     }
 
+    private static Constructor getTaintConstructor(Constructor m, boolean controlTracking) {
+        final char[] chars = m.getName().toCharArray();
+        ArrayList<Class> newArgs = new ArrayList<>();
+        boolean madeChange = true;
+        madeChange = true;
+        newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
+        LinkedList<Class> wrappedArgs = new LinkedList<>();
+        for(final Class c : m.getParameterTypes()) {
+            if(c.isArray()) {
+                if(!c.getComponentType().isArray()) {
+                    // 1d array
+                    madeChange = true;
+                    newArgs.add(MultiDTaintedArray.getUnderlyingBoxClassForUnderlyingClass(c));
+                } else {
+                    Class elementType = c.getComponentType();
+                    while(elementType.isArray()) {
+                        elementType = elementType.getComponentType();
+                    }
+                    madeChange = true;
+                    try {
+                        newArgs.add(Class.forName(MultiDTaintedArray.getTypeForType(Type.getType(c)).getInternalName()));
+                    } catch(ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                madeChange = true;
+                newArgs.add(c);
+            }
+            if(isWrappedErasedType(c)) {
+                wrappedArgs.add(c);
+            }
+            newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
+        }
+        if(controlTracking) {
+            newArgs.add(ControlFlowStack.class);
+        }
+        newArgs.addAll(wrappedArgs);
+        Class[] args = new Class[newArgs.size()];
+        newArgs.toArray(args);
+        Constructor ret = null;
+        try {
+            ret = m.getDeclaringClass().getDeclaredConstructor(args);
+        } catch (NoSuchMethodException | SecurityException e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
+
+
     private static Method getTaintMethod(Method m, boolean controlTracking) {
         if(isMarked(m) && getCachedMethod(m) != null) {
             return m;
@@ -326,6 +376,19 @@ public class ReflectionMasker {
 
     private static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, TaintedReferenceWithObjTag prealloc, boolean implicitTracking,
                                            ControlFlowStack ctrl, Object[] unused) {
+        String cName = c.getDeclaringClass().getName();
+        if(c!= null && c.getParameterTypes() != null && System.out != null && (c.getParameterTypes().length == 0 || Taint.class != c.getParameterTypes()[0])){
+            //This is not the tainted constructor!
+            if (!declaredInIgnoredClass(c)) // && !c.getDeclaringClass().getName().contains("Lambda"))
+            {
+                Constructor newC = getTaintConstructor(c, ctrl != null);
+                if(newC != null){
+                    newC.setAccessible(true);
+                    c = newC;
+                }
+            }
+
+        }
         MethodInvoke ret = new MethodInvoke();
         ret.c = c;
         ret.c_taint = cTaint;
