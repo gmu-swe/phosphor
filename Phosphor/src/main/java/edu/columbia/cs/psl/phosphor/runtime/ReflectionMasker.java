@@ -379,7 +379,7 @@ public class ReflectionMasker {
         String cName = c.getDeclaringClass().getName();
         if(c!= null && c.getParameterTypes() != null && System.out != null && (c.getParameterTypes().length == 0 || Taint.class != c.getParameterTypes()[0])){
             //This is not the tainted constructor!
-            if (!declaredInIgnoredClass(c)) {
+            if (!declaredInIgnoredClass(c) && !c.getDeclaringClass().isSynthetic()) {
                 Constructor newC = getTaintConstructor(c, ctrl != null);
                 if(newC != null){
                     newC.setAccessible(true);
