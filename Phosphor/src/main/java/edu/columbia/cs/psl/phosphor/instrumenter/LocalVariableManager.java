@@ -56,10 +56,14 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         } else {
             isStatic = true;
         }
+        int nArgsProcessed = 0;
         for(Type arg : args) {
             if(arg.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted")) {
                 preAllocatedReturnTypes.put(returnType, lastArg);
+                //Any params after this one in the descriptor are extras that we put there
+                extraLVsInArg += args.length - nArgsProcessed;
             }
+            nArgsProcessed++;
             lastArg += arg.getSize();
             oldArgTypes.add(arg);
             if(arg.getSize() > 1) {

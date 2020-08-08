@@ -311,7 +311,7 @@ public final class Double extends Number implements Comparable<Double> {
         return null;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(double d, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(double d, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String erased) {
         return null;
     }
     /**

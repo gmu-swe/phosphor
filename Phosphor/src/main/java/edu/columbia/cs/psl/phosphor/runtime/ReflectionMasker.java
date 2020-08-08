@@ -37,14 +37,14 @@ public class ReflectionMasker {
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag getObject$$PHOSPHORTAGGED(Unsafe u, Taint uT, Object obj, Taint<?> tag, long offset, Taint oT, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
-        RuntimeUnsafePropagator.getObject$$PHOSPHORTAGGED(u, uT, obj, tag, offset, oT, ret);
+    public static TaintedReferenceWithObjTag getObject$$PHOSPHORTAGGED(Unsafe u, Taint uT, Object obj, Taint<?> tag, long offset, Taint oT, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret, Object e) {
+        RuntimeUnsafePropagator.getObject$$PHOSPHORTAGGED(u, uT, obj, tag, offset, oT, ret, e);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag getObject$$PHOSPHORTAGGED(Unsafe u, Taint unsafeTaint, Object obj, Taint<?> tag, long offset, Taint offsetTag, TaintedReferenceWithObjTag ret) {
-        RuntimeUnsafePropagator.getObject$$PHOSPHORTAGGED(u, unsafeTaint, obj, tag, offset, offsetTag, ret);
+    public static TaintedReferenceWithObjTag getObject$$PHOSPHORTAGGED(Unsafe u, Taint unsafeTaint, Object obj, Taint<?> tag, long offset, Taint offsetTag, TaintedReferenceWithObjTag ret, Object e) {
+        RuntimeUnsafePropagator.getObject$$PHOSPHORTAGGED(u, unsafeTaint, obj, tag, offset, offsetTag, ret, e);
         return ret;
     }
 
@@ -88,6 +88,11 @@ public class ReflectionMasker {
         }
         return false;
     }
+
+    private static boolean isErasedReturnType(Class c) {
+        return (!c.isArray() && !c.isPrimitive()) || isWrappedErasedType(c);
+    }
+
 
     private static Constructor getTaintConstructor(Constructor m, boolean controlTracking) {
         final char[] chars = m.getName().toCharArray();
@@ -197,6 +202,9 @@ public class ReflectionMasker {
                 wrappedArgs.add(c);
             }
             newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
+        }
+        if (isErasedReturnType(m.getReturnType())) {
+            wrappedArgs.add(m.getReturnType());
         }
         if(controlTracking) {
             newArgs.add(ControlFlowStack.class);
@@ -310,7 +318,7 @@ public class ReflectionMasker {
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = GET_DECLARED_METHOD)
-    public static TaintedReferenceWithObjTag getDeclaredMethod(Class<?> czz, Taint czzTaint, String name, Taint nameTaint, LazyReferenceArrayObjTags params, Taint paramsTaint, TaintedReferenceWithObjTag ret, Class[] unused) throws NoSuchMethodException {
+    public static TaintedReferenceWithObjTag getDeclaredMethod(Class<?> czz, Taint czzTaint, String name, Taint nameTaint, LazyReferenceArrayObjTags params, Taint paramsTaint, TaintedReferenceWithObjTag ret, Class[] unused, Method unusedM) throws NoSuchMethodException {
         ret.taint = Taint.emptyTaint();
         ret.val = checkForSyntheticObjectMethod(czz.getDeclaredMethod(name, (params == null ? null : (Class[]) params.val)), true);
         return ret;
@@ -318,7 +326,7 @@ public class ReflectionMasker {
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = GET_METHOD)
-    public static TaintedReferenceWithObjTag getMethod(Class<?> czz, Taint czzTaint, String name, Taint nameTaint, LazyReferenceArrayObjTags params, Taint paramsTaint, TaintedReferenceWithObjTag ret, Class[] unused) throws NoSuchMethodException {
+    public static TaintedReferenceWithObjTag getMethod(Class<?> czz, Taint czzTaint, String name, Taint nameTaint, LazyReferenceArrayObjTags params, Taint paramsTaint, TaintedReferenceWithObjTag ret, Class[] unused, Method unusedM) throws NoSuchMethodException {
         ret.taint = Taint.emptyTaint();
         ret.val = checkForSyntheticObjectMethod(czz.getMethod(name, (params == null ? null : (Class[]) params.val)), false);
         return ret;
@@ -363,19 +371,19 @@ public class ReflectionMasker {
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_CONSTRUCTOR)
-    public static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, TaintedReferenceWithObjTag prealloc, Object[] unused) {
-        return fixAllArgs(c, cTaint, in, argstaint, prealloc, false, null, unused);
+    public static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, TaintedReferenceWithObjTag prealloc, Object[] unused, Object alsoUnused) {
+        return fixAllArgs(c, cTaint, in, argstaint, prealloc, false, null, unused, alsoUnused);
     }
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_CONSTRUCTOR_CONTROL)
-    public static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused) {
+    public static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused, Object alsoUnused) {
         ctrl = ctrl.copyTop();
-        return fixAllArgs(c, cTaint, in, argstaint, prealloc, true, ctrl, unused);
+        return fixAllArgs(c, cTaint, in, argstaint, prealloc, true, ctrl, unused, alsoUnused);
     }
 
     private static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, TaintedReferenceWithObjTag prealloc, boolean implicitTracking,
-                                           ControlFlowStack ctrl, Object[] unused) {
+                                           ControlFlowStack ctrl, Object[] unused, Object alsoUnused) {
         String cName = c.getDeclaringClass().getName();
         if(c!= null && c.getParameterTypes() != null && System.out != null && (c.getParameterTypes().length == 0 || Taint.class != c.getParameterTypes()[0])){
             //This is not the tainted constructor!
@@ -448,7 +456,7 @@ public class ReflectionMasker {
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_METHOD)
-    public static MethodInvoke fixAllArgs(Method m, Taint mTaint, Object owner, Taint ownerTaint, LazyReferenceArrayObjTags in, Taint inTaint, TaintedReferenceWithObjTag prealloc, Object[] unused) {
+    public static MethodInvoke fixAllArgs(Method m, Taint mTaint, Object owner, Taint ownerTaint, LazyReferenceArrayObjTags in, Taint inTaint, TaintedReferenceWithObjTag prealloc, Object[] unused, Object alsoUnused) {
         MethodInvoke ret = new MethodInvoke();
         ret.m_taint = mTaint;
         ret.o_taint = ownerTaint;
@@ -490,7 +498,7 @@ public class ReflectionMasker {
      */
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_METHOD_CONTROL)
-    public static MethodInvoke fixAllArgs(Method m, Taint mTaint, Object owner, Taint ownerTaint, LazyReferenceArrayObjTags in, Taint inTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused) {
+    public static MethodInvoke fixAllArgs(Method m, Taint mTaint, Object owner, Taint ownerTaint, LazyReferenceArrayObjTags in, Taint inTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused, Object alsoUnused) {
         MethodInvoke ret = new MethodInvoke();
         ret.m_taint = mTaint;
         ret.o_taint = ownerTaint;

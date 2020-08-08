@@ -2028,12 +2028,12 @@ public class ObjectInputStream extends InputStream implements ObjectInput,
                                                  ObjectStreamClass superDesc) throws StreamCorruptedException {
     }
 
-    public final TaintedReferenceWithObjTag readObject$$PHOSPHORTAGGED(Taint thisTaint, TaintedReferenceWithObjTag ret) throws
+    public final TaintedReferenceWithObjTag readObject$$PHOSPHORTAGGED(Taint thisTaint, TaintedReferenceWithObjTag ret, Object erased) throws
             ClassNotFoundException, IOException {
         return null;
     }
 
-    public TaintedReferenceWithObjTag readObject$$PHOSPHORTAGGED(Taint emptyTaint, ControlFlowStack dummy, TaintedReferenceWithObjTag ret) {
+    public TaintedReferenceWithObjTag readObject$$PHOSPHORTAGGED(Taint emptyTaint, ControlFlowStack dummy, TaintedReferenceWithObjTag ret, Object erased) {
         return null;
     }
 

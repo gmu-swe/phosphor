@@ -39,15 +39,15 @@ public class ArrayReflectionMasker {
         return getLength$$PHOSPHORTAGGED(obj, objTaint, ret);
     }
 
-    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazzTaint, int len, Taint lenTaint, ControlFlowStack zz, TaintedReferenceWithObjTag ret) {
-        return newInstance$$PHOSPHORTAGGED(clazz, clazzTaint, len, lenTaint, ret);
+    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazzTaint, int len, Taint lenTaint, ControlFlowStack zz, TaintedReferenceWithObjTag ret, Object e) {
+        return newInstance$$PHOSPHORTAGGED(clazz, clazzTaint, len, lenTaint, ret, e);
     }
 
-    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazzTaint, int len, Taint lenTaint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazzTaint, int len, Taint lenTaint, TaintedReferenceWithObjTag ret, Object e) {
         Class tmp = clazz;
         ret.taint = Taint.emptyTaint();
         if(tmp.isArray()) {
-            return newInstance$$PHOSPHORTAGGED(clazz, clazzTaint, new LazyIntArrayObjTags(new int[]{len}), lenTaint, ret);
+            return newInstance$$PHOSPHORTAGGED(clazz, clazzTaint, new LazyIntArrayObjTags(new int[]{len}), lenTaint, ret, e);
         } else {
             if(tmp == Double.TYPE) {
                 ret.val = new LazyDoubleArrayObjTags(new double[len]);
@@ -86,8 +86,8 @@ public class ArrayReflectionMasker {
         }
     }
 
-    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazztaint, LazyIntArrayObjTags dimsTaint, Taint actualDimsTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
-        return newInstance$$PHOSPHORTAGGED(clazz, clazztaint, dimsTaint, actualDimsTaint, ret);
+    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazztaint, LazyIntArrayObjTags dimsTaint, Taint actualDimsTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret, Object e) {
+        return newInstance$$PHOSPHORTAGGED(clazz, clazztaint, dimsTaint, actualDimsTaint, ret, e);
     }
 
     public static LazyArrayObjTags newInstanceForType(int componentSort, int len) {
@@ -113,7 +113,7 @@ public class ArrayReflectionMasker {
         }
     }
 
-    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazzTaint, LazyIntArrayObjTags dimstaint, Taint dimsActualTaint, TaintedReferenceWithObjTag _ret) {
+    public static TaintedReferenceWithObjTag newInstance$$PHOSPHORTAGGED(Class clazz, Taint clazzTaint, LazyIntArrayObjTags dimstaint, Taint dimsActualTaint, TaintedReferenceWithObjTag _ret, Object e) {
         int[] dims = dimstaint.val;
         _ret.taint = Taint.emptyTaint();
         Type t = Type.getType(clazz);
@@ -228,8 +228,8 @@ public class ArrayReflectionMasker {
         return _ret;
     }
 
-    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
-        return get$$PHOSPHORTAGGED(obj, null, idx, null, ret);
+    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret, Object e) {
+        return get$$PHOSPHORTAGGED(obj, null, idx, null, ret, e);
     }
 
     static void fillInTaint(TaintedReferenceWithObjTag ret, LazyArrayObjTags ar, int idx) {
@@ -240,7 +240,7 @@ public class ArrayReflectionMasker {
         }
     }
 
-    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Object obj, Taint objTaint, int idx, Taint idxTaint, TaintedReferenceWithObjTag ret, Object e) {
         if(obj instanceof LazyBooleanArrayObjTags) {
             ret.val = ((LazyBooleanArrayObjTags) obj).val[idx];
             fillInTaint(ret, (LazyArrayObjTags) obj, idx);

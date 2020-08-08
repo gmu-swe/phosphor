@@ -110,12 +110,21 @@ public class PreMain {
             return _transform(loader, className2, classBeingRedefined, protectionDomain, classfileBuffer);
         }
 
-        static byte[] instrumentWithRetry(ClassReader cr, byte[] classFileBuffer, boolean isiFace, String className, boolean skipFrames, boolean upgradeVersion, List<FieldNode> fields, Set<String> nonBridgeMethodsErasedReturnTypes, Set<String> methodsToReduceSizeOf, boolean traceClass) throws InstantiationException {
+        static byte[] instrumentWithRetry(ClassReader cr, byte[] classFileBuffer, boolean isiFace, String className, boolean skipFrames, boolean upgradeVersion, List<FieldNode> fields, Set<String> methodsToReduceSizeOf, boolean traceClass) throws InstantiationException {
             TraceClassVisitor debugTracer = null;
             try {
                 try {
-                    ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS);
+                    ClassWriter cw = new HackyClassWriter(null, ClassWriter.COMPUTE_MAXS);
                     ClassVisitor _cv = cw;
+                    _cv = new ClassVisitor(Opcodes.ASM7, cw) {
+                        @Override
+                        public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                            if(name.endsWith("$PHOSPHORTAGGED$$PHOSPHORTAGGED")){
+                                throw new IllegalArgumentException();
+                            }
+                            return super.visitMethod(access, name, descriptor, signature, exceptions);
+                        }
+                    };
                     if(traceClass) {
                         System.out.println("Saving " + className + " to debug-preinst/");
                         File f = new File("debug-preinst/" + className.replace("/", ".") + ".class");
@@ -145,9 +154,9 @@ public class PreMain {
                     }
                     _cv = new ClinitRetransformClassVisitor(_cv);
                     if(isiFace) {
-                        _cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields, nonBridgeMethodsErasedReturnTypes, methodsToReduceSizeOf);
+                        _cv = new TaintTrackingClassVisitor(_cv, skipFrames, fields, methodsToReduceSizeOf);
                     } else {
-                        _cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields, nonBridgeMethodsErasedReturnTypes, methodsToReduceSizeOf));
+                        _cv = new OurSerialVersionUIDAdder(new TaintTrackingClassVisitor(_cv, skipFrames, fields, methodsToReduceSizeOf));
                     }
                     if(EclipseCompilerCV.isEclipseCompilerClass(className)) {
                         _cv = new EclipseCompilerCV(_cv);
@@ -173,8 +182,26 @@ public class PreMain {
                     cr.accept(_cv, ClassReader.EXPAND_FRAMES);
                     byte[] instrumentedBytes = cw.toByteArray();
                     if (!traceClass && (DEBUG || TaintUtils.VERIFY_CLASS_GENERATION)) {
+
                         ClassReader cr2 = new ClassReader(instrumentedBytes);
-                        cr2.accept(new CheckClassAdapter(new ClassWriter(0), true), ClassReader.EXPAND_FRAMES);
+                        try {
+                            cr2.accept(new CheckClassAdapter(new ClassWriter(0), true), ClassReader.EXPAND_FRAMES);
+                        } catch (Throwable t) {
+                            t.printStackTrace();
+                            File f = new File("debug-verify/" + className.replace("/", ".") + ".class");
+                            if (!f.getParentFile().isDirectory() && !f.getParentFile().mkdirs()) {
+                                System.err.println("Failed to make debug directory: " + f);
+                            } else {
+                                try {
+                                    FileOutputStream fos = new FileOutputStream(f);
+                                    fos.write(instrumentedBytes);
+                                    fos.close();
+                                } catch (Exception ex2) {
+                                    ex2.printStackTrace();
+                                }
+                                System.out.println("Saved broken class to " + f);
+                            }
+                        }
                     }
 
                     return instrumentedBytes;
@@ -183,14 +210,14 @@ public class PreMain {
                         methodsToReduceSizeOf = new HashSet<>();
                     }
                     methodsToReduceSizeOf.add(ex.getMethodName() + ex.getDescriptor());
-                    return instrumentWithRetry(cr, classFileBuffer, isiFace, className, skipFrames, upgradeVersion, fields, nonBridgeMethodsErasedReturnTypes, methodsToReduceSizeOf, false);
+                    return instrumentWithRetry(cr, classFileBuffer, isiFace, className, skipFrames, upgradeVersion, fields,  methodsToReduceSizeOf, false);
                 }
             } catch (Throwable ex) {
                 INSTRUMENTATION_EXCEPTION_OCCURRED = true;
                 if (!traceClass) {
                     System.err.println("Exception occurred while instrumenting " + className + ":");
                     ex.printStackTrace();
-                    instrumentWithRetry(cr, classFileBuffer, isiFace, className, skipFrames, upgradeVersion, fields, nonBridgeMethodsErasedReturnTypes, methodsToReduceSizeOf, true);
+                    instrumentWithRetry(cr, classFileBuffer, isiFace, className, skipFrames, upgradeVersion, fields,  methodsToReduceSizeOf, true);
                     return classFileBuffer;
                 }
                 ex.printStackTrace();
@@ -336,12 +363,6 @@ public class PreMain {
                 for(FieldNode node : cn.fields) {
                     fields.add(node);
                 }
-                Set<String> nonBridgeMethodsErasedReturnTypes = new HashSet<>();
-                for(MethodNode mn : cn.methods) {
-                    if((mn.access & Opcodes.ACC_BRIDGE) == 0) {
-                        nonBridgeMethodsErasedReturnTypes.add(mn.name + "." + mn.desc.substring(0, mn.desc.indexOf(')')));
-                    }
-                }
                 if(skipFrames) {
                     // This class is old enough to not guarantee frames.
                     // Generate new frames for analysis reasons, then make sure
@@ -358,7 +379,7 @@ public class PreMain {
                 // Find out if this class already has frames
                 TraceClassVisitor cv;
                 try {
-                    byte[] instrumentedBytes = instrumentWithRetry(cr, classfileBuffer, isiFace, className, skipFrames, upgradeVersion, fields, nonBridgeMethodsErasedReturnTypes, null, false);
+                    byte[] instrumentedBytes = instrumentWithRetry(cr, classfileBuffer, isiFace, className, skipFrames, upgradeVersion, fields, null, false);
 
                     if(DEBUG) {
                         File f = new File("debug/" + className + ".class");

@@ -827,12 +827,12 @@ public final class Long extends Number implements Comparable<Long> {
 		return 0;
 	}
 
-	public static TaintedReferenceWithObjTag valueOf$$PHOSPHORTAGGED(long l, Taint t, TaintedReferenceWithObjTag ret) {
+	public static TaintedReferenceWithObjTag valueOf$$PHOSPHORTAGGED(long l, Taint t, TaintedReferenceWithObjTag ret, Long erased) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-    public static TaintedReferenceWithObjTag valueOf$$PHOSPHORTAGGED(long l, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag valueOf$$PHOSPHORTAGGED(long l, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, Long erased) {
         return null;
     }
 }

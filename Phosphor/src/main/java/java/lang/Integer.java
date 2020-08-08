@@ -858,7 +858,11 @@ public final class Integer extends Number implements Comparable<Integer> {
 
     }
 
-   static class valueOfCache {
+    public static int sum(int integer, int integer1) {
+        return 0;
+    }
+
+    static class valueOfCache {
         /**
          * <p>
          * A cache of instances used by {@link Integer#valueOf(int)} and auto-boxing.

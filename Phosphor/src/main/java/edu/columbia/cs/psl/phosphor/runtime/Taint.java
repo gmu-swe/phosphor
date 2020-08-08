@@ -17,7 +17,7 @@ public abstract class Taint<T> implements Serializable {
     public static boolean IGNORE_TAINTING = false;
 
     @SuppressWarnings("unused")
-    public TaintedReferenceWithObjTag getLabels$$PHOSPHORTAGGED(Taint referenceTaint, TaintedReferenceWithObjTag ret) {
+    public TaintedReferenceWithObjTag getLabels$$PHOSPHORTAGGED(Taint referenceTaint, TaintedReferenceWithObjTag ret, Object[] erasedReturn) {
         ret.taint = Taint.emptyTaint();
         ret.val = new LazyReferenceArrayObjTags(getLabels());
         return ret;
@@ -30,7 +30,7 @@ public abstract class Taint<T> implements Serializable {
     public abstract Object[] getLabels();
 
     @SuppressWarnings("unused")
-    public TaintedReferenceWithObjTag getLabels$$PHOSPHORTAGGED(T[] arr, Taint tag, TaintedReferenceWithObjTag ret) {
+    public TaintedReferenceWithObjTag getLabels$$PHOSPHORTAGGED(T[] arr, Taint tag, TaintedReferenceWithObjTag ret, Object[] erasedReturn) {
         ret.val = new LazyReferenceArrayObjTags(getLabels(arr));
         ret.taint = Taint.emptyTaint();
         return ret;
@@ -148,7 +148,7 @@ public abstract class Taint<T> implements Serializable {
         return in;
     }
 
-    public static <T> TaintedReferenceWithObjTag withLabel$$PHOSPHORTAGGED(T label, Taint tag, TaintedReferenceWithObjTag ret) {
+    public static <T> TaintedReferenceWithObjTag withLabel$$PHOSPHORTAGGED(T label, Taint tag, TaintedReferenceWithObjTag ret, Taint erasedReturn) {
         ret.taint = Taint.emptyTaint();
         ret.val = withLabel(label);
         return ret;

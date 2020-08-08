@@ -27,11 +27,11 @@ public class RuntimeReflectionPropagator {
         return unsafe;
     }
 
-    public static TaintedReferenceWithObjTag getType$$PHOSPHORTAGGED(Field f, Taint fieldtaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
-        return getType$$PHOSPHORTAGGED(f, fieldtaint, ret);
+    public static TaintedReferenceWithObjTag getType$$PHOSPHORTAGGED(Field f, Taint fieldtaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret, Class erasedReturn) {
+        return getType$$PHOSPHORTAGGED(f, fieldtaint, ret, erasedReturn);
     }
 
-    public static TaintedReferenceWithObjTag getType$$PHOSPHORTAGGED(Field f, Taint fieldTaint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getType$$PHOSPHORTAGGED(Field f, Taint fieldTaint, TaintedReferenceWithObjTag ret, Class erasedReturn) {
         String name = f.getName();
         ret.taint = fieldTaint;
         if(f.getName().endsWith(TaintUtils.TAINT_FIELD) || f.getName().endsWith(TaintUtils.TAINT_WRAPPER_FIELD) || f.getDeclaringClass().getName().contains("edu.columbia.cs.psl.phosphor")) {
@@ -62,16 +62,16 @@ public class RuntimeReflectionPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) throws IllegalArgumentException, IllegalAccessException {
+    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret, Object erasedReturn) throws IllegalArgumentException, IllegalAccessException {
         if(f.getType().isPrimitive()) {
-            return get$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, ret);
+            return get$$PHOSPHORTAGGED(f, fieldTaint, obj, objTaint, ret, erasedReturn);
         }
         f.setAccessible(true);
-        f.get$$PHOSPHORTAGGED(fieldTaint, obj, objTaint, ctrl, ret);
+        f.get$$PHOSPHORTAGGED(fieldTaint, obj, objTaint, ctrl, ret, erasedReturn);
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, TaintedReferenceWithObjTag _ret) throws IllegalArgumentException, IllegalAccessException {
+    public static TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Field f, Taint fieldTaint, Object obj, Taint objTaint, TaintedReferenceWithObjTag _ret, Object erasedReturn) throws IllegalArgumentException, IllegalAccessException {
         f.setAccessible(true);
         _ret.taint = objTaint;
         if(f.getType().isPrimitive()) {
@@ -111,7 +111,7 @@ public class RuntimeReflectionPropagator {
                 throw new IllegalArgumentException();
             }
         } else {
-            f.get$$PHOSPHORTAGGED(fieldTaint, obj, objTaint, _ret);
+            f.get$$PHOSPHORTAGGED(fieldTaint, obj, objTaint, _ret, erasedReturn);
         }
         return _ret;
     }

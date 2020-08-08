@@ -14,7 +14,7 @@ public final class MultiTainter {
         throw new IllegalStateException();
     }
 
-    public static TaintedReferenceWithObjTag getControlFlow$$PHOSPHORTAGGED(ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getControlFlow$$PHOSPHORTAGGED(ControlFlowStack ctrl, TaintedReferenceWithObjTag ret, ControlFlowStack erased) {
         ret.taint = Taint.emptyTaint();
         ret.val = ctrl;
         return ret;
@@ -120,49 +120,49 @@ public final class MultiTainter {
         throw new IllegalStateException("Calling uninstrumented Phosphor stubs!");
     }
 
-    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(boolean b, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(boolean b, Taint t, TaintedReferenceWithObjTag ret, Taint erasedReturnType) {
         ret.val = t;
         ret.taint = Taint.emptyTaint();
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(byte b, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(byte b, Taint t, TaintedReferenceWithObjTag ret, Taint erasedReturnType) {
         ret.val = t;
         ret.taint = Taint.emptyTaint();
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(char b, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(char b, Taint t, TaintedReferenceWithObjTag ret, Taint erasedReturnType) {
         ret.val = t;
         ret.taint = Taint.emptyTaint();
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(double b, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(double b, Taint t, TaintedReferenceWithObjTag ret, Taint erasedReturnType) {
         ret.val = t;
         ret.taint = Taint.emptyTaint();
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(float b, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(float b, Taint t, TaintedReferenceWithObjTag ret, Taint erasedReturnType) {
         ret.val = t;
         ret.taint = Taint.emptyTaint();
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(int b, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(int b, Taint t, TaintedReferenceWithObjTag ret, Taint erasedReturnType) {
         ret.val = t;
         ret.taint = Taint.emptyTaint();
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(long b, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(long b, Taint t, TaintedReferenceWithObjTag ret, Taint erasedReturnType) {
         ret.val = t;
         ret.taint = Taint.emptyTaint();
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(short b, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(short b, Taint t, TaintedReferenceWithObjTag ret, Taint erasedReturnType) {
         ret.val = t;
         ret.taint = Taint.emptyTaint();
         return ret;
@@ -267,7 +267,7 @@ public final class MultiTainter {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag taintedReference$$PHOSPHORTAGGED(Object in, Taint inTaint, Object lbl, Taint lblTag, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag taintedReference$$PHOSPHORTAGGED(Object in, Taint inTaint, Object lbl, Taint lblTag, TaintedReferenceWithObjTag ret, Object erased) {
         ret.val = in;
         ret.taint = Taint.withLabel(lbl);
         return ret;
@@ -279,7 +279,7 @@ public final class MultiTainter {
 
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(Object obj, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(Object obj, Taint taint, TaintedReferenceWithObjTag ret, Taint erasedRet) {
         ret.taint = Taint.emptyTaint();
         ret.val = taint;
         return ret;
@@ -293,8 +293,8 @@ public final class MultiTainter {
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(Object obj, Taint theTaint, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
-        return getTaint$$PHOSPHORTAGGED(obj, theTaint, ret);
+    public static TaintedReferenceWithObjTag getTaint$$PHOSPHORTAGGED(Object obj, Taint theTaint, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, Taint erasedRet) {
+        return getTaint$$PHOSPHORTAGGED(obj, theTaint, ret, erasedRet);
     }
 
     @Deprecated
@@ -364,14 +364,14 @@ public final class MultiTainter {
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag getMergedTaint$$PHOSPHORTAGGED(Object obj, Taint taint, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag getMergedTaint$$PHOSPHORTAGGED(Object obj, Taint taint, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, Taint erasedReturn) {
         ret.taint = Taint.emptyTaint();
         ret.val = getMergedTaint(obj);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag getMergedTaint$$PHOSPHORTAGGED(Object obj, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag getMergedTaint$$PHOSPHORTAGGED(Object obj, Taint taint, TaintedReferenceWithObjTag ret, Taint erasedReturn) {
         ret.taint = Taint.emptyTaint();
         ret.val = getMergedTaint(obj);
         return ret;

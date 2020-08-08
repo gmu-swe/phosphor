@@ -59,7 +59,13 @@ public abstract class SourceSinkManager {
                 wrappedTypes.add(t.getDescriptor());
             }
         }
-        for(Type t : Type.getArgumentTypes(desc)) {
+        Type[] args = Type.getArgumentTypes(desc);
+        int lastArgToAdd = args.length;
+        if(Type.getReturnType(desc).getDescriptor().equals("Ledu/columbia/cs/psl/phosphor/struct/TaintedReferenceWithObjTag;")){
+            lastArgToAdd--;
+        }
+        for(int i = 0; i < lastArgToAdd; i++) {
+            Type t = args[i];
             if(t.getDescriptor().equals(TaintTrackingClassVisitor.CONTROL_STACK_DESC)) {
                 //
             } else if(t.getDescriptor().equals("Ledu/columbia/cs/psl/phosphor/struct/LazyReferenceArrayObjTags;")) {

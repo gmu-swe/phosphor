@@ -839,11 +839,11 @@ public final class Field extends AccessibleObject implements Member {
     private native void setBField(Object o, Class<?> declaringClass, Class<?> type, int slot,
                                   boolean noAccessCheck, char descriptor, byte b) throws IllegalAccessException;
 
-    public TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Taint fieldTaint, Object obj, Taint objTaint, TaintedReferenceWithObjTag ret) {
+    public TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Taint fieldTaint, Object obj, Taint objTaint, TaintedReferenceWithObjTag ret, Object erasedReturn) {
         return ret;
     }
 
-    public TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
+    public TaintedReferenceWithObjTag get$$PHOSPHORTAGGED(Taint fieldTaint, Object obj, Taint objTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret, Object erasedReturn) {
         return null;
     }
 }

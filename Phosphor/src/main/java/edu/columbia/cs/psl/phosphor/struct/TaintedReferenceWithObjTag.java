@@ -45,4 +45,8 @@ public class TaintedReferenceWithObjTag extends TaintedPrimitiveWithObjTag imple
     public static final TaintedReferenceWithObjTag valueOf(Taint taint, Object val) {
         return new TaintedReferenceWithObjTag(taint, val);
     }
+    public void fromPrimitive(TaintedPrimitiveWithObjTag prim){
+        this.val = prim.getValue();
+        this.taint = prim.taint;
+    }
 }

@@ -76,7 +76,7 @@ public class RuntimeBoxUnboxPropagator {
         getChars$$PHOSPHORTAGGED(i, it, idx, idt, ta, taTaint);
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(byte i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(byte i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Byte.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -88,7 +88,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(char i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(char i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Character.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -100,7 +100,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Integer.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -112,7 +112,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(int i, Taint t, int r, Taint t2, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(int i, Taint t, int r, Taint t2, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Integer.toString(i, r);
             ret.taint = Taint.emptyTaint();
@@ -124,7 +124,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Integer.toUnsignedString(i);
             ret.taint = Taint.emptyTaint();
@@ -136,7 +136,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(Taint t, int i, Taint tr, int r, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(Taint t, int i, Taint tr, int r, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Integer.toUnsignedString(i, r);
             ret.taint = Taint.emptyTaint();
@@ -148,7 +148,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Integer.toOctalString(i);
             ret.taint = Taint.emptyTaint();
@@ -160,7 +160,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Integer.toHexString(i);
             ret.taint = Taint.emptyTaint();
@@ -172,7 +172,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(short i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(short i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Short.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -184,7 +184,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(boolean i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(boolean i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Boolean.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -196,7 +196,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Float.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -208,7 +208,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Float.toHexString(i);
             ret.taint = Taint.emptyTaint();
@@ -220,7 +220,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Double.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -232,7 +232,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Double.toHexString(i);
             ret.taint = Taint.emptyTaint();
@@ -244,7 +244,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Long.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -256,7 +256,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint t2, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint t2, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Long.toString(i, r);
             ret.taint = Taint.emptyTaint();
@@ -268,7 +268,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Long.toBinaryString(i);
             ret.taint = Taint.emptyTaint();
@@ -280,7 +280,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Integer.toBinaryString(i);
             ret.taint = Taint.emptyTaint();
@@ -292,11 +292,11 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
-        return toBinaryString$$PHOSPHORTAGGED(i, t, ret);
+    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
+        return toBinaryString$$PHOSPHORTAGGED(i, t, ret, e);
     }
 
-    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Long.toHexString(i);
             ret.taint = Taint.emptyTaint();
@@ -308,7 +308,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Long.toUnsignedString(i);
             ret.taint = Taint.emptyTaint();
@@ -320,7 +320,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint tr, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint tr, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Long.toUnsignedString(i, r);
             ret.taint = Taint.emptyTaint();
@@ -332,7 +332,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint tr, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint tr, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Long.toUnsignedString(i, r);
             ret.taint = Taint.emptyTaint();
@@ -344,7 +344,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Long.toOctalString(i);
             ret.taint = Taint.emptyTaint();
@@ -356,7 +356,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(byte i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(byte i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Byte.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -369,7 +369,7 @@ public class RuntimeBoxUnboxPropagator {
 
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(char i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(char i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Character.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -381,7 +381,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Integer.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -393,7 +393,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Integer.toUnsignedString(i);
             ret.taint = Taint.emptyTaint();
@@ -405,7 +405,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(int i, Taint t, int r, Taint tr, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(int i, Taint t, int r, Taint tr, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Integer.toUnsignedString(i, r);
             ret.taint = Taint.emptyTaint();
@@ -417,7 +417,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Integer.toOctalString(i);
             ret.taint = Taint.emptyTaint();
@@ -429,7 +429,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(int i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Integer.toHexString(i);
             ret.taint = Taint.emptyTaint();
@@ -441,7 +441,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(short i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(short i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Short.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -453,7 +453,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(boolean i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(boolean i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Boolean.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -465,7 +465,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Float.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -477,7 +477,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(float i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Float.toHexString(i);
             ret.taint = Taint.emptyTaint();
@@ -489,15 +489,15 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
-        Double.toString$$PHOSPHORTAGGED(i, t, ret, ctrl);
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
+        Double.toString$$PHOSPHORTAGGED(i, t, ret, ctrl, e);
         ret.val = new String(((LazyCharArrayObjTags) ret.val), Taint.emptyTaint(), ctrl);
         ((String) ret.val).setPHOSPHOR_TAG(t);
         ret.taint = t;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(double i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Double.toHexString(i);
             ret.taint = Taint.emptyTaint();
@@ -509,7 +509,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Long.toString(i);
             ret.taint = Taint.emptyTaint();
@@ -521,7 +521,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint t2, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(long i, Taint t, int r, Taint t2, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret, String e) {
         if(t == null) {
             ret.val = Long.toString(i, r);
             ret.taint = Taint.emptyTaint();
@@ -533,7 +533,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toBinaryString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Long.toBinaryString(i);
             ret.taint = Taint.emptyTaint();
@@ -545,7 +545,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toHexString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Long.toHexString(i);
             ret.taint = Taint.emptyTaint();
@@ -557,7 +557,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toUnsignedString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Long.toUnsignedString(i);
             ret.taint = Taint.emptyTaint();
@@ -569,7 +569,7 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag toOctalString$$PHOSPHORTAGGED(long i, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, String e) {
         if(t == null) {
             ret.val = Long.toOctalString(i);
             ret.taint = Taint.emptyTaint();
@@ -599,7 +599,7 @@ public class RuntimeBoxUnboxPropagator {
 
     public static TaintedReferenceWithObjTag valueOf(long l, Taint t, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
         if(t == null) {
-            Long.valueOf$$PHOSPHORTAGGED(l, t, ret, ctrl);
+            Long.valueOf$$PHOSPHORTAGGED(l, t, ret, ctrl, null);
             ret.taint = Taint.emptyTaint();
             return ret;
         } else {
@@ -612,7 +612,7 @@ public class RuntimeBoxUnboxPropagator {
 
     public static TaintedReferenceWithObjTag valueOf(long l, Taint t, TaintedReferenceWithObjTag ret) {
         if(t == null) {
-            Long.valueOf$$PHOSPHORTAGGED(l, t, ret);
+            Long.valueOf$$PHOSPHORTAGGED(l, t, ret, null);
             ret.taint = Taint.emptyTaint();
             return ret;
 
@@ -624,107 +624,107 @@ public class RuntimeBoxUnboxPropagator {
         }
     }
 
-    public static TaintedReferenceWithObjTag valueOfZ$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfZ$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret, Boolean e) {
         ret.val = valueOfZ(s);
         ret.taint = getCombinedTaint(s, taint);
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret, Byte e) {
         ret.val = valueOfB(s);
         // ret.taint = taint;
         ret.taint = getCombinedTaint(s, taint);
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret, Short e) {
         ret.val = valueOfS(s);
         // ret.taint = taint;
         ret.taint = getCombinedTaint(s, taint);
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfZ$$PHOSPHORTAGGED(boolean s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfZ$$PHOSPHORTAGGED(boolean s, Taint taint, TaintedReferenceWithObjTag ret, Boolean e) {
         ret.val = Boolean.valueOf(s);
         ret.taint = taint;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(byte s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(byte s, Taint taint, TaintedReferenceWithObjTag ret, Byte e) {
         ret.val = Byte.valueOf(s);
         // ret.taint = taint;
         ret.taint = taint;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(short s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(short s, Taint taint, TaintedReferenceWithObjTag ret, Short e) {
         ret.val = Short.valueOf(s);
         // ret.taint = taint;
         ret.taint = taint;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfD$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfD$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret, Double e) {
         ret.val = Double.valueOf(s);
         ret.taint = getCombinedTaint(s, taint);
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfD$$PHOSPHORTAGGED(double s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfD$$PHOSPHORTAGGED(double s, Taint taint, TaintedReferenceWithObjTag ret, Double e) {
         ret.val = Double.valueOf(s);
         ret.taint = taint;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfI$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfI$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret, Integer e) {
         ret.val = Integer.valueOf(s);
         ret.taint = getCombinedTaint(s, taint);
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfI$$PHOSPHORTAGGED(String s, Taint taint, int radix, Taint radixTaint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfI$$PHOSPHORTAGGED(String s, Taint taint, int radix, Taint radixTaint, TaintedReferenceWithObjTag ret, Integer e) {
         ret.val = Integer.valueOf(s, radix);
         ret.taint = getCombinedTaint(s, taint).union(radixTaint);
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfI$$PHOSPHORTAGGED(int s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfI$$PHOSPHORTAGGED(int s, Taint taint, TaintedReferenceWithObjTag ret, Integer erasedReturn) {
         ret.val = Integer.valueOf(s);
         ret.taint = taint;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfF$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfF$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret, Float erasedReturn) {
         ret.val = Float.valueOf(s);
         ret.taint = getCombinedTaint(s, taint);
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfF$$PHOSPHORTAGGED(float s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfF$$PHOSPHORTAGGED(float s, Taint taint, TaintedReferenceWithObjTag ret, Float erasedReturn) {
         ret.val = Float.valueOf(s);
         ret.taint = taint;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfJ$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfJ$$PHOSPHORTAGGED(String s, Taint taint, TaintedReferenceWithObjTag ret, Long erasedReturn) {
         ret.val = Long.valueOf(s);
         ret.taint = getCombinedTaint(s, taint);
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfJ$$PHOSPHORTAGGED(long s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfJ$$PHOSPHORTAGGED(long s, Taint taint, TaintedReferenceWithObjTag ret, Long erasedReturn) {
         ret.val = Long.valueOf(s);
         ret.taint = taint;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfJ$$PHOSPHORTAGGED(String s, Taint taint, int radix, Taint radixtaint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfJ$$PHOSPHORTAGGED(String s, Taint taint, int radix, Taint radixtaint, TaintedReferenceWithObjTag ret, Long erasedReturn) {
         ret.val = Long.valueOf(s, radix);
         ret.taint = getCombinedTaint(s, taint).union(radixtaint);
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag valueOfC$$PHOSPHORTAGGED(char s, Taint taint, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfC$$PHOSPHORTAGGED(char s, Taint taint, TaintedReferenceWithObjTag ret, Character erasedReturn) {
         ret.val = Character.valueOf(s);
         ret.taint = taint;
         return ret;
@@ -791,28 +791,28 @@ public class RuntimeBoxUnboxPropagator {
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, Byte e) {
         ret.val = Byte.parseByte(s, radix);
         ret.taint = getCombinedTaint(s, tag).union(sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfB$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint t, TaintedReferenceWithObjTag ret, Byte e) {
         ret.val = Byte.parseByte(s, radix);
         ret.taint = getCombinedTaint(s, t).union(sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl) {
+    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint<?> tag, TaintedReferenceWithObjTag ret, ControlFlowStack ctrl, Short e) {
         ret.val = Short.parseShort(s, radix);
         ret.taint = getCombinedTaint(s, tag).union(sTaint);
         return ret;
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint t, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag valueOfS$$PHOSPHORTAGGED(String s, Taint sTaint, int radix, Taint t, TaintedReferenceWithObjTag ret, Short e) {
         ret.taint = getCombinedTaint(s, sTaint);
         ret.val = Short.parseShort(s, radix);
         return ret;
@@ -1052,56 +1052,56 @@ public class RuntimeBoxUnboxPropagator {
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Boolean value, Taint tag, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Boolean value, Taint tag, TaintedReferenceWithObjTag ret, String e) {
         ret.val = value.toString();
         ((String) ret.val).setPHOSPHOR_TAG(tag);
         ret.taint = tag;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Byte value, Taint tag, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Byte value, Taint tag, TaintedReferenceWithObjTag ret, String e) {
         ret.val = value.toString();
         ((String) ret.val).setPHOSPHOR_TAG(tag);
         ret.taint = tag;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Character value, Taint tag, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Character value, Taint tag, TaintedReferenceWithObjTag ret, String e) {
         ret.val = value.toString();
         ((String) ret.val).setPHOSPHOR_TAG(tag);
         ret.taint = tag;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Float value, Taint tag, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Float value, Taint tag, TaintedReferenceWithObjTag ret, String e) {
         ret.val = value.toString();
         ((String) ret.val).setPHOSPHOR_TAG(tag);
         ret.taint = tag;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Integer value, Taint tag, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Integer value, Taint tag, TaintedReferenceWithObjTag ret, String e) {
         ret.val = value.toString();
         ((String) ret.val).setPHOSPHOR_TAG(tag);
         ret.taint = tag;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Long value, Taint tag, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Long value, Taint tag, TaintedReferenceWithObjTag ret, String e) {
         ret.val = value.toString();
         ((String) ret.val).setPHOSPHOR_TAG(tag);
         ret.taint = tag;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Short value, Taint tag, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Short value, Taint tag, TaintedReferenceWithObjTag ret, String e) {
         ret.val = value.toString();
         ((String) ret.val).setPHOSPHOR_TAG(tag);
         ret.taint = tag;
         return ret;
     }
 
-    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Double value, Taint tag, TaintedReferenceWithObjTag ret) {
+    public static TaintedReferenceWithObjTag toString$$PHOSPHORTAGGED(Double value, Taint tag, TaintedReferenceWithObjTag ret, String e) {
         ret.val = value.toString();
         ((String) ret.val).setPHOSPHOR_TAG(tag);
         ret.taint = tag;

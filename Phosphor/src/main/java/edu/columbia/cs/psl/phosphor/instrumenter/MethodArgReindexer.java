@@ -79,6 +79,7 @@ public class MethodArgReindexer extends MethodVisitor {
         boolean hasBeenRemapped = false;
         oldArgMappings = new int[originalLastArgIdx + 1];
         int oldVarCount = (isStatic ? 0 : 1);
+        boolean hasSyntheticReferenceTaint = name.startsWith("phosphorWrapInvokeDynamic") && desc.startsWith("("+Configuration.TAINT_TAG_DESC);
         for(Type oldArgType : oldArgTypes) {
             oldArgMappings[oldVarCount] = oldVarCount + newArgOffset;
             if(oldArgType.getSize() == 2) {
@@ -87,7 +88,7 @@ public class MethodArgReindexer extends MethodVisitor {
             }
             oldVarCount++;
             if(!isLambda) {
-                if(TaintUtils.isShadowedType(oldArgType)) {
+                if(TaintUtils.isShadowedType(oldArgType) && !(hasSyntheticReferenceTaint && oldVarCount == 1)) {
                     newArgOffset++;
                     nNewArgs++;
                     hasBeenRemapped = true;
@@ -99,6 +100,7 @@ public class MethodArgReindexer extends MethodVisitor {
                 }
             }
         }
+
         if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING) && !name.equals("<clinit>")) {
             hasBeenRemapped = true;
             indexOfControlTagsInLocals = oldArgTypes.length + newArgOffset + (isStatic ? 0 : 1);
@@ -109,6 +111,11 @@ public class MethodArgReindexer extends MethodVisitor {
         if(hasPreAllocatedReturnAddress) {
             newReturnType = Type.getReturnType(desc);
             newArgOffset++;
+            nNewArgs++;
+        }
+        if(TaintUtils.isErasedReturnType(Type.getReturnType(originalDesc))) {
+            hasBeenRemapped = true;
+            nWrappers++;
             nNewArgs++;
         }
         newArgOffset += nWrappers;
