@@ -44,12 +44,14 @@ public class ClinitRetransformMV extends MethodVisitor {
                     super.visitTypeInsn(Opcodes.NEW, Type.getInternalName(TaintedReferenceWithObjTag.class));
                     super.visitInsn(Opcodes.DUP);
                     super.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(TaintedReferenceWithObjTag.class), "<init>", "()V", false);
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + CONTROL_STACK_DESC + Type.getDescriptor(TaintedReferenceWithObjTag.class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
+                    super.visitInsn(Opcodes.ACONST_NULL);
+                    super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + CONTROL_STACK_DESC + Type.getDescriptor(TaintedReferenceWithObjTag.class) + "Ljava/lang/Class;)" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
                 } else {
                     super.visitTypeInsn(Opcodes.NEW, Type.getInternalName(TaintedReferenceWithObjTag.class));
                     super.visitInsn(Opcodes.DUP);
                     super.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(TaintedReferenceWithObjTag.class), "<init>", "()V", false);
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + Type.getDescriptor(TaintedReferenceWithObjTag.class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
+                    super.visitInsn(Opcodes.ACONST_NULL);
+                    super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + Type.getDescriptor(TaintedReferenceWithObjTag.class) + "Ljava/lang/Class;)" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
                 }
                 super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(TaintedReferenceWithObjTag.class), "val", "Ljava/lang/Object;");
                 super.visitTypeInsn(Opcodes.CHECKCAST, "java/lang/Class");
