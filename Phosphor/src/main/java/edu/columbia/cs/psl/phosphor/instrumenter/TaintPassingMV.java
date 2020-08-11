@@ -1030,6 +1030,28 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             owner = Type.getInternalName(ReflectionMasker.class);
             name = "getPropertyHideBootClasspath";
         }
+        if(((owner.equals(INTEGER_NAME) || owner.equals(BYTE_NAME) || owner.equals(BOOLEAN_NAME) || owner.equals(CHARACTER_NAME)
+                || owner.equals(SHORT_NAME) || owner.equals(LONG_NAME) || owner.equals(FLOAT_NAME) || owner.equals(DOUBLE_NAME))) && name.equals("<init>")){
+            Type[] args = Type.getArgumentTypes(desc);
+            if (args.length == 1 && args[0].getSort() != Type.OBJECT) {
+                int tmp1 = lvs.getTmpLV();
+                super.visitVarInsn(ASTORE, tmp1);
+                int tmp2 = lvs.getTmpLV();
+                super.visitVarInsn(args[0].getOpcode(ISTORE), tmp2);
+                //newBoxedType instanceTaint newBoxedType instanceTaint
+                super.visitInsn(POP2);
+                super.visitInsn(POP);
+                //newBoxedType
+                super.visitVarInsn(ALOAD, tmp1);
+                //newBoxedType primTaint
+                super.visitInsn(DUP2);
+                //newBoxed primTaint newBoxedPrimTaint
+                super.visitVarInsn(args[0].getOpcode(ILOAD), tmp2);
+                super.visitVarInsn(ALOAD, tmp1);
+                lvs.freeTmpLV(tmp1);
+                lvs.freeTmpLV(tmp2);
+            }
+        }
         if(isBoxUnboxMethodToWrap(owner, name)) {
             if(name.equals("valueOf")) {
                 switch(owner) {
