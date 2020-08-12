@@ -96,6 +96,7 @@ public class DefaultTaintCheckingMethodVisitor extends MethodVisitor implements 
                 !checkedThisFrame.contains(owner + "." + name)
                 && (owner.equals("java/lang/String") || implementsSerializable || owner.equals("java/io/BufferedInputStream")
                 || owner.equals("java/lang/AssertionStatusDirectives")
+                || owner.equals("java/net/NetworkInterface")
                 || owner.startsWith("java/lang/reflect") || owner.equals("com/sun/security/auth/module/UnixSystem")
                 || owner.startsWith("sun/font/Font"))) {
             //For GETFIELD operations on a 1D array wrapper, make sure that the wrapper is initialized and pointing to the array.
