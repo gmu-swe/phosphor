@@ -297,6 +297,38 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
         if (name.contains(TaintUtils.METHOD_SUFFIX) || (desc.contains("phosphor/struct/Tainted") && !name.contains("phosphorWrap"))) {
             if (isLambda) {
+                //Do we need to force the "this" taint on to the descriptor?
+                if((access & Opcodes.ACC_STATIC) == 0 && !desc.contains(Configuration.TAINT_TAG_DESC)){
+                    desc = "("+Configuration.TAINT_TAG_DESC+desc.substring(1);
+                    methodsToAddUnWrappersFor.add(new MethodNode(access, name, desc, signature, exceptions));
+                    return new MethodVisitor(Opcodes.ASM7, super.visitMethod(access, name, desc, signature, exceptions)) {
+                        @Override
+                        public void visitFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack) {
+                            Object[] newLocal = new Object[local.length + 1];
+                            newLocal[0] = local[0];
+                            newLocal[1] = TAINT_TAG_INTERNAL_NAME;
+                            System.arraycopy(local, 1, newLocal, 2, local.length - 1);
+                            numLocal++;
+                            super.visitFrame(type, numLocal, newLocal, numStack, stack);
+                        }
+
+                        @Override
+                        public void visitVarInsn(int opcode, int var) {
+                            if(var > 0) {
+                                var++;
+                            }
+                            super.visitVarInsn(opcode, var);
+                        }
+
+                        @Override
+                        public void visitIincInsn(int var, int increment) {
+                            if(var > 0) {
+                                var++;
+                            }
+                            super.visitIincInsn(var, increment);
+                        }
+                    };
+                }
                 methodsToAddUnWrappersFor.add(new MethodNode(access, name, desc, signature, exceptions));
                 return super.visitMethod(access, name, desc, signature, exceptions);
             }
