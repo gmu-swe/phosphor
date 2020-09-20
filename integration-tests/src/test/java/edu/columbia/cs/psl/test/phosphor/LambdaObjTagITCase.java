@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.test.phosphor;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.security.PrivilegedActionException;
@@ -106,4 +107,22 @@ public class LambdaObjTagITCase extends BaseMultiTaintClass {
 		BinaryOperator<Integer> sum = Integer::sum;
 		Integer result = sum.apply(0, 5);
 	}
+
+	static void tryRunner(Runnable runnable) {
+		runnable.run();
+	}
+
+	static void print() {
+		System.out.println("Success!");
+		staticRunnableMethodRan = true;
+	}
+
+	static boolean staticRunnableMethodRan = false;
+	@Test
+    public void testStaticRunnableMethod(){
+		staticRunnableMethodRan = false;
+		tryRunner(LambdaObjTagITCase::print);
+		Assert.assertTrue(staticRunnableMethodRan);
+	}
+
 }
