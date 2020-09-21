@@ -295,6 +295,9 @@ public class ReflectionMasker {
         newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
         LinkedList<Class<?>> wrapped = new LinkedList<>();
         for(Class<?> c : (Class[]) params.val) {
+            if (c.equals(Taint.class)) {
+                return params;
+            }
             Type t = Type.getType(c);
             if(t.getSort() == Type.ARRAY) {
                 newParams.add(MultiDTaintedArray.getUnderlyingBoxClassForUnderlyingClass(c));
