@@ -257,6 +257,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
     }
 
     public static Taint[] getStringValueTaints(String str) {
-        return getStringValueTag(str).taints;
+        LazyCharArrayObjTags tag = getStringValueTag(str);
+        return tag == null? null : tag.taints;
     }
 }

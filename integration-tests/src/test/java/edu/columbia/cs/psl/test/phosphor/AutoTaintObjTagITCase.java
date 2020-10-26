@@ -192,4 +192,11 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		boolean connected = channel.isConnected();
 		assertNonNullTaint(MultiTainter.getTaint(connected));
 	}
+
+	/* Check if check taint process correct when the data is not tainted*/
+	@Test
+	public void testSinkWithoutSource() throws Exception{
+		String s = "test";
+		sink(s);
+	}
 }
