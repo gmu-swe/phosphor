@@ -16,6 +16,7 @@ import java.nio.channels.SocketChannel;
 public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 
 	public String source() {
+		for(int j = 0; j < 1; j++){} //Will add frames to this method, could expose a bug in auto-tainting (#158)
 		return "Foo";
 	}
 

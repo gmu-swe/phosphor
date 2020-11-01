@@ -52,6 +52,10 @@ public class SourceTaintingMV extends MethodVisitor implements Opcodes {
                 super.visitVarInsn(ASTORE, idx); // replace the argument with the return of autoTaint
             }
             idx += args[i].getSize();
+            if(args[i].getDescriptor().equals("Ledu/columbia/cs/psl/phosphor/struct/TaintedReferenceWithObjTag;")) {
+                //Anything after this is not a real param...
+                return;
+            }
         }
     }
 
