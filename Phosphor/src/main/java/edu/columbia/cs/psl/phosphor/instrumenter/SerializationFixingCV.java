@@ -8,7 +8,7 @@ import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import org.objectweb.asm.*;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_TYPE;
-import static edu.columbia.cs.psl.phosphor.SourceSinkManager.remapMethodDescToRemoveTaintsAndReturnType;
+import static edu.columbia.cs.psl.phosphor.TaintUtils.getOriginalMethodDescWithoutReturn;
 
 public class SerializationFixingCV extends ClassVisitor implements Opcodes {
 
@@ -104,7 +104,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
                 Type[] args = Type.getArgumentTypes(desc);
                 if(args.length > 0 && Type.getType(Configuration.TAINT_TAG_DESC).equals(args[0])) {
                     String untaintedMethod = name.replace(TaintUtils.METHOD_SUFFIX, "");
-                    String untaintedDesc = remapMethodDescToRemoveTaintsAndReturnType(desc) + "V";
+                    String untaintedDesc = getOriginalMethodDescWithoutReturn(desc) + "V";
                     boolean widePrimitive = Type.DOUBLE_TYPE.equals(args[1]) || Type.LONG_TYPE.equals(args[1]);
                     if(args.length == 2) {
                         //TODO this is not at all set up for reference tags... but tests pass anyway?
