@@ -1,10 +1,12 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 
 public class AutoTaintLabel implements Serializable {
-    private static final long serialVersionUID = -5401643312355612496L;
     private String source;
     private StackTraceElement[] trace;
 
@@ -47,5 +49,28 @@ public class AutoTaintLabel implements Serializable {
     @Override
     public String toString() {
         return "AutoTaintLabel [source=" + source + ", trace=" + Arrays.toString(trace) + "]";
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.writeObject(source);
+        stream.writeInt(trace == null ? -1 : trace.length);
+        if(trace != null) {
+            for(StackTraceElement element : trace) {
+                stream.writeObject(element);
+            }
+        }
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        source = (String) stream.readObject();
+        int len = stream.readInt();
+        if(len != -1) {
+            trace = new StackTraceElement[len];
+            for(int i = 0; i < len; i++) {
+                trace[i] = (StackTraceElement) stream.readObject();
+            }
+        } else {
+            trace = null;
+        }
     }
 }
