@@ -204,7 +204,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	@Test
 	public void testWritingAutoTaintLabeltoObjectOutputStream() throws Exception {
 		String source = source();
-    	java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+		java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
 		java.io.ObjectOutputStream stream = new java.io.ObjectOutputStream(output);
 		stream.writeObject(source);
 	}
