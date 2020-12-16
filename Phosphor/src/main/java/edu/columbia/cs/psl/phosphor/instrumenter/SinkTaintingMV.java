@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.BasicSourceSinkManager;
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.SourceSinkManager;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import org.objectweb.asm.Label;
@@ -32,7 +31,7 @@ public class SinkTaintingMV extends AdviceAdapter {
         super(Configuration.ASM_VERSION, mv, access, name, desc);
         this.args = Type.getArgumentTypes(desc);
         this.baseSink = BasicSourceSinkManager.getInstance().getBaseSink(owner, name, desc);
-        this.actualSink = SourceSinkManager.getOriginalMethodSignature(owner, name, desc);
+        this.actualSink = TaintUtils.getOriginalMethodSignatureWithoutReturn(owner, name, desc);
         this.isStatic = (access & ACC_STATIC) != 0;
         this.startLabel = new Label();
         this.endLabel = new Label();

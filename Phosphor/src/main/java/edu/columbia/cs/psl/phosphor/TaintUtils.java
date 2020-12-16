@@ -6,7 +6,6 @@ import edu.columbia.cs.psl.phosphor.org.objectweb.asm.SignatureReWriter;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
@@ -624,12 +623,95 @@ public class TaintUtils {
         }
     }
 
-    public static void main(String[] args) {
-        List<String> lst = new ArrayList<>();
-        System.out.println(remapSignature("(Ljava/util/stream/AbstractPipeline<TP_OUT;TP_OUT;*>;Ljava/util/stream/PipelineHelper<TP_OUT;>;Ljava/util/Spliterator<TP_IN;>;Ljava/util/function/IntFunction<[TP_OUT;>;JJ)V", lst));
-    }
-
     public static boolean containsTaint(String desc) {
         return desc.contains(Configuration.TAINT_TAG_DESC);
+    }
+
+    /**
+     * Constructs and returns the bytecode method signature from the specified pieces;
+     * removes any phosphor-added suffixes and tainted types from the signature.
+     */
+    public static String getOriginalMethodSignatureWithoutReturn(String owner, String name, String desc) {
+        if (name.endsWith(METHOD_SUFFIX) || containsTaint(desc)) {
+            return owner + "." + name.replace(METHOD_SUFFIX, "") + getOriginalMethodDescWithoutReturn(desc);
+        } else {
+            return owner + "." + name + desc;
+        }
+    }
+
+    public static String getOriginalMethodDescWithoutReturn(String desc) {
+        StringBuilder builder = new StringBuilder("(");
+        Type[] args = Type.getArgumentTypes(desc);
+        Type returnType = Type.getReturnType(desc);
+        int lastArg = args.length;
+        if (returnType.equals(Type.getType(TaintedReferenceWithObjTag.class))) {
+            lastArg--;
+        }
+        for (int i = 0; i < lastArg; i++) {
+            Type arg = args[i];
+            String argDesc = arg.getDescriptor();
+            if(argDesc.equals(CONTROL_STACK_DESC) || argDesc.equals(Configuration.TAINT_TAG_DESC) ||
+                arg.equals(Type.getType(LazyReferenceArrayObjTags.class)) || isTaintedPrimitiveType(arg) ||
+                arg.equals(Type.getType(TaintedReferenceWithObjTag.class))) {
+                continue;
+            }
+            if (argDesc.startsWith("Ledu/columbia/cs/psl/phosphor/struct/multid")
+                        || argDesc.startsWith("Ledu/columbia/cs/psl/phosphor/struct")) {
+                arg = getUnwrappedType(arg);
+            }
+           builder.append(arg.getDescriptor());
+        }
+        return builder.append(")").toString(); //  + getOriginalMethodReturnTypeDesc(desc);
+    }
+
+    public static String getOriginalMethodReturnTypeDesc(String desc) {
+        Type returnType = Type.getReturnType(desc);
+        if (returnType.getSort() == Type.OBJECT || returnType.getSort() == Type.ARRAY) {
+            if (returnType.getInternalName().equals(Type.getInternalName(TaintedByteWithObjTag.class))) {
+                return "B";
+            } else if (returnType.getDescriptor().contains(Type.getDescriptor(LazyByteArrayObjTags.class))) {
+                return returnType.getDescriptor().replace(Type.getDescriptor(LazyByteArrayObjTags.class),
+                        "[B");
+            } else if (returnType.getInternalName().equals(Type.getInternalName(TaintedBooleanWithObjTag.class))) {
+                return "Z";
+            } else if (returnType.getDescriptor().contains(Type.getDescriptor(LazyBooleanArrayObjTags.class))) {
+                return returnType.getDescriptor().replace(Type.getDescriptor(LazyBooleanArrayObjTags.class),
+                        "[Z");
+            } else if (returnType.getInternalName().equals(Type.getInternalName(TaintedCharWithObjTag.class))) {
+                return "C";
+            } else if (returnType.getDescriptor().contains(Type.getDescriptor(LazyCharArrayObjTags.class))) {
+                return returnType.getDescriptor().replace(Type.getDescriptor(LazyCharArrayObjTags.class),
+                        "[C");
+            } else if (returnType.getInternalName().equals(Type.getInternalName(TaintedDoubleWithObjTag.class))) {
+                return "D";
+            } else if (returnType.getDescriptor().contains(Type.getDescriptor(LazyDoubleArrayObjTags.class))) {
+                return returnType.getDescriptor().replace(Type.getDescriptor(LazyDoubleArrayObjTags.class),
+                        "[D");
+            } else if (returnType.getInternalName().equals(Type.getInternalName(TaintedIntWithObjTag.class))) {
+                return "I";
+            } else if (returnType.getDescriptor().contains(Type.getDescriptor(LazyIntArrayObjTags.class))) {
+                return returnType.getDescriptor().replace(Type.getDescriptor(LazyIntArrayObjTags.class),
+                        "[I");
+            } else if (returnType.getInternalName().equals(Type.getInternalName(TaintedFloatWithObjTag.class))) {
+                return "F";
+            } else if (returnType.getDescriptor().contains(Type.getDescriptor(LazyFloatArrayObjTags.class))) {
+                return returnType.getDescriptor().replace(Type.getDescriptor(LazyFloatArrayObjTags.class),
+                        "[F");
+            } else if (returnType.getInternalName().equals(Type.getInternalName(TaintedLongWithObjTag.class))) {
+                return "J";
+            } else if (returnType.getDescriptor().contains(Type.getDescriptor(LazyLongArrayObjTags.class))) {
+                return returnType.getDescriptor().replace(Type.getDescriptor(LazyLongArrayObjTags.class),
+                        "[J");
+            } else if (returnType.getInternalName().equals(Type.getInternalName(TaintedShortWithObjTag.class))) {
+                return "S";
+            } else if (returnType.getDescriptor().contains(Type.getDescriptor(LazyShortArrayObjTags.class))) {
+                return returnType.getDescriptor().replace(Type.getDescriptor(LazyShortArrayObjTags.class),
+                        "[S");
+            } else if (returnType.getDescriptor().equals(Type.getDescriptor(TaintedReferenceWithObjTag.class))) {
+                Type[] args = Type.getArgumentTypes(desc);
+                return args[args.length - 1].getDescriptor();
+            }
+        }
+        return returnType.getDescriptor();
     }
 }
