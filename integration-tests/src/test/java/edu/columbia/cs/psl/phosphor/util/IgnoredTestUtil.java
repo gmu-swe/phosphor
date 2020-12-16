@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.util;
 
+import edu.columbia.cs.psl.phosphor.runtime.AutoTaintLabel;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
@@ -51,5 +52,9 @@ public class IgnoredTestUtil {
 
     public static void setStringCharTaints(String str, Taint tag, Object label, Taint tag2) {
         setStringCharTaints(str, label);
+    }
+
+    public static AutoTaintLabel createAutoTaintLabel(String source, StackTraceElement[] trace) {
+        return new AutoTaintLabel(source, trace);
     }
 }

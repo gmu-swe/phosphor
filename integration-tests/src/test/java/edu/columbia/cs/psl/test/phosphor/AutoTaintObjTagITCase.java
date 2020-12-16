@@ -1,8 +1,10 @@
 package edu.columbia.cs.psl.test.phosphor;
 
+import static edu.columbia.cs.psl.test.phosphor.runtime.SerializationObjTagITCase.roundTripSerialize;
 import static org.junit.Assert.*;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
+import edu.columbia.cs.psl.phosphor.util.IgnoredTestUtil;
 import edu.columbia.cs.psl.test.phosphor.util.TaintThroughExample;
 import org.junit.Test;
 
@@ -10,6 +12,7 @@ import edu.columbia.cs.psl.phosphor.runtime.AutoTaintLabel;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSinkError;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.channels.SocketChannel;
 
@@ -23,11 +26,11 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	public int iSource() {
 		return 10;
 	}
-	
+
 	public void sink(int i) {
 		System.out.println("Sout still Sink'ed: " + i);
 	}
-	
+
 	public void sink(String i) {
 		System.out.println("Sink'ed: " + i);
 	}
@@ -112,10 +115,10 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 	public void testAutoTaintTaints() throws Exception {
 		String s = source();
 		int i = iSource();
-		
+
 		int[] ar = new int[10];
 		source(ar);
-		
+
 		assertNonNullTaint(s);
 		assertNonNullTaint(MultiTainter.getTaint(i));
 		assertTrue(MultiTainter.getTaint(i).getLabels()[0] instanceof AutoTaintLabel);
@@ -172,7 +175,7 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		System.out.println("Hi!");
 		sink(iSource());
 	}
-	
+
 	@Test(expected = TaintSinkError.class)
 	public void testStringSink() throws Exception {
 		sink(source());
@@ -196,8 +199,30 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 
 	/* Check if check taint process correct when the data is not tainted*/
 	@Test
-	public void testSinkWithoutSource() throws Exception{
+	public void testSinkWithoutSource() throws Exception {
 		String s = "test";
 		sink(s);
+	}
+
+	@Test
+	public void testRoundTripSerializeAutoTaintLabel() throws IOException, ClassNotFoundException  {
+		String input = source();
+		String output = roundTripSerialize(input);
+		assertEquals(input, output);
+		assertEquals(MultiTainter.getTaint(input), MultiTainter.getTaint(output));
+	}
+
+	@Test
+	public void testRoundTripSerializeAutoTaintLabelNullTrace() throws IOException, ClassNotFoundException  {
+		AutoTaintLabel input = IgnoredTestUtil.createAutoTaintLabel("", null);
+		AutoTaintLabel output = roundTripSerialize(input);
+		assertEquals(input, output);
+	}
+
+	@Test
+	public void testRoundTripSerializeAutoTaintLabelEmptyTrace() throws IOException, ClassNotFoundException {
+		AutoTaintLabel input = IgnoredTestUtil.createAutoTaintLabel("", new StackTraceElement[0]);
+		AutoTaintLabel output = roundTripSerialize(input);
+		assertEquals(input, output);
 	}
 }

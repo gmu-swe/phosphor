@@ -41,7 +41,7 @@ public class SerializationObjTagITCase extends FieldHolderBaseTest {
 
     /* Serializes the specified input and then deserializes it. Returns the object deserialized. */
     @SuppressWarnings("unchecked")
-    private <T> T roundTripSerialize(T input) throws IOException, ClassNotFoundException {
+    public static <T> T roundTripSerialize(T input) throws IOException, ClassNotFoundException {
         ByteArrayOutputStream byteStream =new ByteArrayOutputStream();
         ObjectOutputStream outputStream = new ObjectOutputStream(byteStream);
         outputStream.writeObject(input);
