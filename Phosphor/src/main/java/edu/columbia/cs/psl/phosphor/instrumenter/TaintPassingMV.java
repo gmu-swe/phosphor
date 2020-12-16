@@ -27,6 +27,8 @@ import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_TYPE;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.notifyControlStackOfUninstrumentedWrapper;
 
 public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
@@ -660,6 +662,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
                     String descOfMethodToCall = TaintUtils.remapMethodDescAndIncludeReturnHolder(isNEW || isVirtual, implMethod.getDesc());
                     ga.visitCode();
+                    notifyControlStackOfUninstrumentedWrapper(ga);
+                    defensivelyCopyControlStack(ga);
                     //We load either all args, or all but the return type
                     if (isNEW) {
                         ga.visitTypeInsn(NEW, implMethod.getOwner());
@@ -1005,6 +1009,20 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitInsn(SWAP);
             }
             super.visitFieldInsn(GETFIELD, returnType.getInternalName(), "taint", taintType);
+        }
+    }
+
+    public static void defensivelyCopyControlStack(GeneratorAdapter ga) {
+        if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
+            Type[] instArgTypes = ga.getArgumentTypes();
+            for(int i = 0; i < instArgTypes.length; i++) {
+                if(instArgTypes[i].equals(CONTROL_STACK_TYPE)) {
+                    ga.loadArg(i);
+                    CONTROL_STACK_COPY_TOP.delegateVisit(ga);
+                    ga.storeArg(i);
+                    return;
+                }
+            }
         }
     }
 

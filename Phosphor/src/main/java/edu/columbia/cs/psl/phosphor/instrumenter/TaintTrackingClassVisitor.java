@@ -1361,16 +1361,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         }
         ga.visitCode();
         ga.visitLabel(start.getLabel());
-        if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
-            Type[] instArgTypes = ga.getArgumentTypes();
-            for(int i = 0; i < instArgTypes.length; i++) {
-                if(instArgTypes[i].equals(CONTROL_STACK_TYPE)) {
-                    ga.loadArg(i);
-                    CONTROL_STACK_UNINSTRUMENTED_WRAPPER.delegateVisit(ga);
-                    break;
-                }
-            }
-        }
+        notifyControlStackOfUninstrumentedWrapper(ga);
         if(isLambda) {
             if(m.name.equals("equals")) {
                 int retVar = (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING ? 5 : 4);
@@ -1587,6 +1578,19 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         }
         ga.visitMaxs(0, 0);
         ga.visitEnd();
+    }
+
+    public static void notifyControlStackOfUninstrumentedWrapper(GeneratorAdapter ga) {
+        if((Configuration.IMPLICIT_HEADERS_NO_TRACKING || Configuration.IMPLICIT_TRACKING)) {
+            Type[] instArgTypes = ga.getArgumentTypes();
+            for(int i = 0; i < instArgTypes.length; i++) {
+                if(instArgTypes[i].equals(CONTROL_STACK_TYPE)) {
+                    ga.loadArg(i);
+                    CONTROL_STACK_UNINSTRUMENTED_WRAPPER.delegateVisit(ga);
+                    return;
+                }
+            }
+        }
     }
 
     private static void acceptAnnotationRaw(final AnnotationVisitor av, final String name, final Object value) {

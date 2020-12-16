@@ -1,7 +1,10 @@
 package edu.columbia.cs.psl.test.phosphor;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import org.junit.After;
 import org.junit.Test;
+
+import java.util.function.BiFunction;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -51,6 +54,26 @@ public class PopAllCalledImplicitITCase extends BaseMultiTaintClass {
         int i = 7;
         assertNullOrEmpty(MultiTainter.getTaint(i));
         assertTaintHasOnlyLabel(MultiTainter.getTaint(c.i), "b");
+    }
+
+    @Test
+    public void testConstructorReferenceExceptionThrownBeforeSuperInit() {
+        boolean b = MultiTainter.taintedBoolean(true, "b");
+        Exception e = null;
+        BiFunction<int[], Boolean, Child> f = Child::new;
+        try {
+            Child c = f.apply(null, b);
+        } catch (NullPointerException ex) {
+            e = ex;
+        }
+        assertNotNull(e);
+        int i = 7;
+        assertNullOrEmpty(MultiTainter.getTaint(i));
+    }
+
+    @After
+    public void resetState() {
+        MultiTainter.getControlFlow().reset();
     }
 
     private static class Parent {
