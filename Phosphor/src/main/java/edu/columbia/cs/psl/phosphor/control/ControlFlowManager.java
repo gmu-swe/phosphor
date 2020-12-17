@@ -21,4 +21,12 @@ public interface ControlFlowManager {
                                                          String descriptor);
 
     boolean isIgnoredFromControlTrack(String className, String methodName);
+
+    /**
+     * @param className the slash-separated, fully qualified name of a class (e.g., java/lang/Short)
+     * @return true if the class with the specified name should not be instrumented by Phosphor
+     */
+    default boolean isIgnoredClass(String className) {
+        return false;
+    }
 }
