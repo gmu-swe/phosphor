@@ -22,6 +22,9 @@ import java.util.Random;
 import java.util.concurrent.*;
 import java.util.zip.*;
 
+import static edu.columbia.cs.psl.phosphor.Configuration.controlFlowManagerPackage;
+import static edu.columbia.cs.psl.phosphor.Configuration.taintTagFactoryPackage;
+
 public class Instrumenter {
 
     public static ClassLoader loader;
@@ -90,7 +93,8 @@ public class Instrumenter {
 
     public static boolean isIgnoredClass(String owner) {
         return Configuration.taintTagFactory.isIgnoredClass(owner)
-                || Configuration.controlFlowManagerPackage != null && StringUtils.startsWith(owner, Configuration.controlFlowManagerPackage)
+                || taintTagFactoryPackage != null && StringUtils.startsWith(owner, taintTagFactoryPackage)
+                || controlFlowManagerPackage != null && StringUtils.startsWith(owner, controlFlowManagerPackage)
                 || (Configuration.controlFlowManager != null && Configuration.controlFlowManager.isIgnoredClass(owner))
                 || (Configuration.ADDL_IGNORE != null && StringUtils.startsWith(owner, Configuration.ADDL_IGNORE))
                 || StringUtils.startsWith(owner, "java/lang/Object")

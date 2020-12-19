@@ -259,6 +259,8 @@ public enum PhosphorOption {
                     @SuppressWarnings("unchecked")
                     Class<? extends TaintTagFactory> clazz = (Class<? extends TaintTagFactory>) commandLine.getParsedOptionValue(optionName);
                     if(clazz != null) {
+                        Configuration.taintTagFactoryPackage = clazz.getPackage().getName().replace('.', '/');
+
                         Configuration.taintTagFactory = clazz.newInstance();
                     }
                 } catch(Exception e) {

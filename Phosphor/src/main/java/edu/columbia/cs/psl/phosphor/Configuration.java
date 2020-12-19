@@ -68,6 +68,7 @@ public class Configuration {
     public static Class<? extends TaintAdapter> extensionMethodVisitor;
     public static Class<? extends ClassVisitor> extensionClassVisitor;
     public static TaintTagFactory taintTagFactory = new DataAndControlFlowTagFactory();
+    public static String taintTagFactoryPackage = null;
     public static TaintSourceWrapper autoTainter = new TaintSourceWrapper();
     public static DerivedTaintListener derivedTaintListener = new DerivedTaintListener();
     public static boolean WITH_HEAVY_OBJ_EQUALS_HASHCODE = false;
