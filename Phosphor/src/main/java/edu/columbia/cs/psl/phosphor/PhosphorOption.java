@@ -145,7 +145,9 @@ public enum PhosphorOption {
         }
     },
     CONTROL_FLOW_MANAGER(new PhosphorOptionBuilder("Can be used to specify the name of a class to be used as the ControlFlowManager " +
-            "during instrumentation. This class must implement ControlFlowManager.", true, true)
+            "during instrumentation. This class must implement ControlFlowManager." +
+            "The package containing the ControlFlowManager class will be ignored by Phosphor (i.e., not instrumented with taint tracking logic).",
+            true, true)
             .argType(Class.class)
             .group(PhosphorOptionGroup.CONTROL_PROPAGATION)) {
         @Override
@@ -155,6 +157,7 @@ public enum PhosphorOption {
                     @SuppressWarnings("unchecked")
                     Class<? extends ControlFlowManager> clazz = (Class<? extends ControlFlowManager>) commandLine.getParsedOptionValue(optionName);
                     if(clazz != null) {
+                        Configuration.controlFlowManagerPackage = clazz.getPackage().getName().replace('.', '/');
                         Configuration.controlFlowManager = clazz.newInstance();
                         Configuration.IMPLICIT_TRACKING = true;
                     }

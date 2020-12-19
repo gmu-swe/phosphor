@@ -1728,6 +1728,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     private static boolean isInternalTaintingClass(String owner) {
         return owner.startsWith("edu/columbia/cs/psl/phosphor/runtime/")
                 || Configuration.taintTagFactory.isInternalTaintingClass(owner)
+                || (Configuration.controlFlowManager != null && Configuration.controlFlowManager.isInternalTaintingClass(owner))
                 || owner.startsWith("edu/gmu/swe/phosphor/ignored/runtime/");
     }
 

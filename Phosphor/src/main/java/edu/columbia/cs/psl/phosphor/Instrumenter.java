@@ -90,6 +90,7 @@ public class Instrumenter {
 
     public static boolean isIgnoredClass(String owner) {
         return Configuration.taintTagFactory.isIgnoredClass(owner)
+                || Configuration.controlFlowManagerPackage != null && StringUtils.startsWith(owner, Configuration.controlFlowManagerPackage)
                 || (Configuration.controlFlowManager != null && Configuration.controlFlowManager.isIgnoredClass(owner))
                 || (Configuration.ADDL_IGNORE != null && StringUtils.startsWith(owner, Configuration.ADDL_IGNORE))
                 || StringUtils.startsWith(owner, "java/lang/Object")
