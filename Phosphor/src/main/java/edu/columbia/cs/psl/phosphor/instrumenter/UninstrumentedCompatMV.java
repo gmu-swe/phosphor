@@ -242,7 +242,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                 super.visitInsn(opcode);
                 break;
             case Opcodes.ARRAYLENGTH:
-                Type onStack = getTopOfStackType();
+                Type onStack = getStackTypeAtOffset(0);
                 if(onStack.getSort() == Type.OBJECT) {
                     Type underlying = MultiDTaintedArray.getPrimitiveTypeForWrapper(onStack.getInternalName());
                     if(underlying != null) {
@@ -393,7 +393,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
             //maybe, call into the instrumented version
             Type newReturnType = TaintUtils.getContainerReturnType(origReturnType);
             boolean hasWrappedReturnType = origReturnType.getSort() != Type.ARRAY && !newReturnType.equals(origReturnType);
-            //Find out if there are any variablest hat may need to be boxed.
+            //Find out if there are any variables that may need to be boxed.
             Type[] args = Type.getArgumentTypes(desc);
             int k = 0;
             boolean hasArgsToBox = false;
