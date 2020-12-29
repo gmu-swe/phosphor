@@ -21,10 +21,8 @@ import java.util.Properties;
 public class Configuration {
 
     public static final int ASM_VERSION = Opcodes.ASM7;
-
     public static final String TAINT_TAG_DESC = "Ledu/columbia/cs/psl/phosphor/runtime/Taint;";
     public static final String TAINT_TAG_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/runtime/Taint";
-
     public static final String TAINT_TAG_ARRAY_DESC = "Ledu/columbia/cs/psl/phosphor/struct/LazyArrayObjTags;";
     public static final String TAINT_TAG_ARRAY_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/struct/LazyArrayObjTags";
     public static final Object TAINT_TAG_STACK_TYPE = "edu/columbia/cs/psl/phosphor/runtime/Taint";
@@ -33,7 +31,7 @@ public class Configuration {
     public static final String TAINTED_INT_DESC = "L" + TAINTED_INT_INTERNAL_NAME + ";";
     public static final int TAINT_LOAD_OPCODE = Opcodes.ALOAD;
     public static final int TAINT_STORE_OPCODE = Opcodes.ASTORE;
-    public static final Class TAINT_TAG_OBJ_CLASS = (Taint.class);
+    public static final Class<?> TAINT_TAG_OBJ_CLASS = (Taint.class);
     public static boolean SKIP_LOCAL_VARIABLE_TABLE = false;
     public static String ADDL_IGNORE = null;
     public static boolean REFERENCE_TAINTING = true;
@@ -55,7 +53,7 @@ public class Configuration {
     public static boolean ALWAYS_CHECK_FOR_FRAMES = false;
     public static boolean REENABLE_CACHES = false;
     public static Class<? extends ClassVisitor> PRIOR_CLASS_VISITOR = null;
-    public static ControlFlowManager controlFlowManager;
+    public static ControlFlowManager controlFlowManager = new StandardControlFlowManager();
     public static String controlFlowManagerPackage = null;
     public static boolean QUIET_MODE = false;
 
@@ -69,7 +67,7 @@ public class Configuration {
     public static Class<? extends ClassVisitor> extensionClassVisitor;
     public static TaintTagFactory taintTagFactory = new DataAndControlFlowTagFactory();
     public static String taintTagFactoryPackage = null;
-    public static TaintSourceWrapper autoTainter = new TaintSourceWrapper();
+    public static TaintSourceWrapper<?> autoTainter = new TaintSourceWrapper<>();
     public static DerivedTaintListener derivedTaintListener = new DerivedTaintListener();
     public static boolean WITH_HEAVY_OBJ_EQUALS_HASHCODE = false;
     public static String CACHE_DIR = null;
@@ -80,24 +78,20 @@ public class Configuration {
     }
 
     public static void init() {
-        if(controlFlowManager == null) {
-            controlFlowManager = new StandardControlFlowManager();
-        }
         OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING && !IMPLICIT_LIGHT_TRACKING;
-        if(IMPLICIT_TRACKING) {
+        if (IMPLICIT_TRACKING) {
             ARRAY_INDEX_TRACKING = true;
         }
-
-        if(TaintTrackingClassVisitor.class != null && TaintTrackingClassVisitor.class.getClassLoader() != null) {
+        if (TaintTrackingClassVisitor.class.getClassLoader() != null) {
             URL r = TaintTrackingClassVisitor.class.getClassLoader().getResource("phosphor-mv");
-            if(r != null) {
+            if (r != null) {
                 try {
                     Properties props = new Properties();
                     props.load(r.openStream());
-                    if(props.containsKey("extraMV")) {
+                    if (props.containsKey("extraMV")) {
                         extensionMethodVisitor = (Class<? extends TaintAdapter>) Class.forName(props.getProperty("extraMV"));
                     }
-                    if(props.containsKey("extraCV")) {
+                    if (props.containsKey("extraCV")) {
                         extensionClassVisitor = (Class<? extends ClassVisitor>) Class.forName(props.getProperty("extraCV"));
                     }
                     if(props.containsKey("taintTagFactory")) {

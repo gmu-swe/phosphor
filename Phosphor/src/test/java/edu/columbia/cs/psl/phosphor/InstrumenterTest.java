@@ -28,7 +28,6 @@ public class InstrumenterTest {
 
     @Test
     public void testAggressivelyReduceMethodSizeGetStaticThenArrayLength() {
-        Configuration.init();
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
         cw.visit(52, ACC_PUBLIC + ACC_SUPER, "Test", null, "java/lang/Object",
                 null);
