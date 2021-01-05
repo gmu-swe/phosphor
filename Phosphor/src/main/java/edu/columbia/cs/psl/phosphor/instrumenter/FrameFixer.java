@@ -10,18 +10,23 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.*;
 
-public class FrameFixer {
+public class FrameFixer extends ClassVisitor {
+
+    private FrameFixer(ClassVisitor classVisitor) {
+        super(Configuration.ASM_VERSION, classVisitor);
+    }
+
+    @Override
+    public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+        return new OurJSRInlinerAdapter(super.visitMethod(access, name, descriptor, signature, exceptions),
+                access, name, descriptor, signature, exceptions);
+    }
 
     public static ClassReader fix(ClassReader cr) {
+        // Compute approximate frames
         ClassWriter cw = new HackyClassWriter(cr, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-        cr.accept(new ClassVisitor(Configuration.ASM_VERSION, cw) {
-            @Override
-            public MethodVisitor visitMethod(int access, String name, String desc, String signature,
-                                             String[] exceptions) {
-                return new OurJSRInlinerAdapter(super.visitMethod(access, name, desc, signature, exceptions),
-                        access, name, desc, signature, exceptions);
-            }
-        }, 0);
+        // Remove JSR instructions
+        cr.accept(new FrameFixer(cw), 0);
         return (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(cw.toByteArray()) :
                 new ClassReader(cw.toByteArray()));
     }

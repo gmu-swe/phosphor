@@ -51,8 +51,9 @@ public class TransformationCache {
             if (file.exists()) {
                 try {
                     byte[] cachedDigest = new byte[1024];
+                    int read;
                     try (FileInputStream fis = new FileInputStream(file)) {
-                        if (fis.read(cachedDigest) <= 0) {
+                        if ((read = fis.read(cachedDigest)) <= 0) {
                             return null;
                         }
                     }
@@ -60,7 +61,7 @@ public class TransformationCache {
                     synchronized (md5inst) {
                         checksum = md5inst.digest(classFileBuffer);
                     }
-                    if (checksum.length != cachedDigest.length) {
+                    if (checksum.length != read) {
                         return null;
                     }
                     for (int i = 0; i < checksum.length; i++) {
