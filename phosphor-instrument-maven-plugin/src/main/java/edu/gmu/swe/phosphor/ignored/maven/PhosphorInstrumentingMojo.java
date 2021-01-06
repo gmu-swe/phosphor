@@ -113,8 +113,10 @@ public class PhosphorInstrumentingMojo extends AbstractMojo {
                 }
             }
         } else {
-            getLog().info(String.format("No generation necessary: existing Phosphor-instrumented JVM %s with correct " +
-                    "properties(%s) and checksum found", instJVMDir, canonicalOptions));
+            String message = String.format("No generation necessary: existing Phosphor-instrumented JVM %s with " +
+                            "correct properties(%s)%s found", instJVMDir, canonicalOptions,
+                    reinstrumentBasedOnChecksum ? " and checksum" : "");
+            getLog().info(message);
         }
     }
 

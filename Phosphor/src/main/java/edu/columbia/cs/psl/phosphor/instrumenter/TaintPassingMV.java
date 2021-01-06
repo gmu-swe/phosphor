@@ -1307,16 +1307,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             if(callee.getSort() == Type.ARRAY) {
                 isCalledOnAPrimitiveArrayType = true;
             }
-            if(callee.getDescriptor().equals("Ljava/lang/Object;") && !owner.equals("java/lang/Object")) {
-                //AALOAD can result in a type of "java/lang/Object" on the stack (if there are no stack map frames)
-                //If this happened, we need to force a checkcast.
-                LocalVariableNode[] tmpLVs = storeToLocals(args.length);
-                super.visitTypeInsn(CHECKCAST, owner);
-                for(int i = tmpLVs.length - 1; i >= 0; i--) {
-                    super.visitVarInsn(Type.getType(tmpLVs[i].desc).getOpcode(ILOAD), tmpLVs[i].index);
-                }
-                freeLVs(tmpLVs);
-            }
         }
         taintTagFactory.methodOp(opcode, owner, name, newDesc, isInterface, mv, lvs, this);
 

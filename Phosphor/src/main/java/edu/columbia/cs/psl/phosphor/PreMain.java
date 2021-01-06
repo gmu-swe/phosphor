@@ -164,11 +164,11 @@ public class PreMain {
                 for (FieldNode node : cn.fields) {
                     fields.add(node);
                 }
-                boolean skipFrames = FrameFixer.shouldFixFrames(cn, className, cr);
+                boolean skipFrames = LegacyClassFixer.shouldFixFrames(cn, className, cr);
                 if (skipFrames) {
                     // This class is old enough to not guarantee frames.
                     // Generate new frames for analysis reasons, then make sure to not emit ANY frames.
-                    cr = FrameFixer.fix(cr);
+                    cr = LegacyClassFixer.fix(cr);
                 }
                 try {
                     byte[] instrumentedBytes = instrumentWithRetry(cr, classfileBuffer, isiFace, className, skipFrames,
