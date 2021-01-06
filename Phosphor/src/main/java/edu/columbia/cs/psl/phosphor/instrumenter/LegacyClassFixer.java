@@ -200,10 +200,14 @@ public class LegacyClassFixer {
                 super.visitTypeInsn(CHECKCAST, expected2.getInternalName());
                 super.visitInsn(Opcodes.SWAP);
             } else {
+                // objectref J TOP
                 super.visitInsn(Opcodes.DUP2_X1);
-                super.visitInsn(Opcodes.POP);
+                // J TOP objectref J TOP
+                super.visitInsn(Opcodes.POP2);
+                // J TOP objectref
                 super.visitTypeInsn(CHECKCAST, expected2.getInternalName());
                 super.visitInsn(Opcodes.DUP_X2);
+                // objectref J TOP objectref
                 super.visitInsn(Opcodes.POP);
             }
         }
