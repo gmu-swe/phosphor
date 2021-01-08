@@ -307,7 +307,7 @@ public class TaintUtils {
     public static String remapMethodDescAndIncludeReturnHolder(int addTaintAtPos, String desc, boolean addErasedReturnType, boolean addErasedParamTypes) {
         StringBuilder ret = new StringBuilder();
         ret.append('(');
-        StringBuilder wrapped = new StringBuilder();
+        StringBuilder erasedTypes = new StringBuilder();
         if(addTaintAtPos == 0) {
             ret.append(Configuration.TAINT_TAG_DESC);
         }
@@ -324,15 +324,17 @@ public class TaintUtils {
                 ret.append(t);
             }
             if(isWrappedTypeWithErasedType(t)) {
-                wrapped.append(t.getDescriptor());
+                erasedTypes.append(t.getDescriptor());
             }
             if(isShadowedType(t)) {
                 ret.append(Configuration.TAINT_TAG_DESC);
             }
             pos++;
             if(pos == addTaintAtPos && pos > 0){
-                ret.append(wrapped.toString());
-                wrapped = new StringBuilder();
+                if(addErasedParamTypes) {
+                    ret.append(erasedTypes.toString());
+                    erasedTypes = new StringBuilder();
+                }
                 ret.append(Configuration.TAINT_TAG_DESC);
             }
         }
@@ -345,7 +347,7 @@ public class TaintUtils {
             ret.append(getContainerReturnType(returnType).getDescriptor());
         }
         if(addErasedParamTypes) {
-            ret.append(wrapped);
+            ret.append(erasedTypes);
         }
         if(addErasedReturnType && isErasedReturnType(returnType)){
             ret.append(returnType.getDescriptor());
