@@ -644,7 +644,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     locationOfFakeReferenceTaint = Type.getArgumentTypes(desc).length;
                     wrapperImplDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(locationOfFakeReferenceTaint, wrapperImplDesc, false, false);
                     locationOfFakeReferenceTaint = locationOfFakeReferenceTaint * 2;
-                    locationOfFakeReferenceTaint += numErasedTypes;
 
                     if(additionalErasedTypeHolders.length()> 0){
                         String newInstantiatedDesc = ((Type) bsmArgs[2]).getDescriptor();
