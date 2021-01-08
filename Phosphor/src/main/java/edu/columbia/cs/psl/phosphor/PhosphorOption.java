@@ -9,7 +9,6 @@ import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import org.apache.commons.cli.*;
 import org.objectweb.asm.ClassVisitor;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 
@@ -173,19 +172,8 @@ public enum PhosphorOption {
             .argType(String.class)) {
         @Override
         public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
-            if(isPresent) {
-                Configuration.CACHE_DIR = commandLine.getOptionValue(optionName);
-                File f = new File(Configuration.CACHE_DIR);
-                if(!f.exists()) {
-                    if(!f.mkdir()) {
-                        // The cache directory did not exist and the attempt to create it failed
-                        System.err.printf("Failed to create cache directory: %s. Generated files are not being cached.\n", Configuration.CACHE_DIR);
-                        Configuration.CACHE_DIR = null;
-                    }
-                }
-            } else {
-                Configuration.CACHE_DIR = null;
-            }
+            Configuration.CACHE = isPresent ? TransformationCache.getInstance(commandLine.getOptionValue(optionName)) :
+                    null;
         }
     },
     WITH_HEAVY_OBJ_EQUALS_HASHCODE(new PhosphorOptionBuilder(null, true, true).alternativeName("objmethods")) {
