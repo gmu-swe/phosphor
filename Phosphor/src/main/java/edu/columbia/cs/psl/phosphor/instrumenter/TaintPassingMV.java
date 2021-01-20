@@ -1559,7 +1559,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
      * stack_pre = [arrayref, reference-taint, index, index-taint, value, value-taint]
      * stack_post = []
      *
-     * @param opcode the opcode of the instruction originally to be visited either IASTORE, LASTORE,
+     * @param opcode the opcode of the instruction originally to be visited, either IASTORE, LASTORE,
      *               FASTORE,DASTORE, BASTORE, CASTORE, SASTORE, or AASTORE.
      */
     private void visitArrayStore(int opcode) {
@@ -1586,7 +1586,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
      * stack_pre = [arrayref, reference-taint, index, index-taint]
      * stack_post = [value, value-taint]
      *
-     * @param opcode the opcode of the instruction originally to be visited. This opcode is either LALOAD, DALOAD,
+     * @param opcode the opcode of the instruction originally to be visited, either LALOAD, DALOAD,
      *               IALOAD, FALOAD, BALOAD, CALOAD, SALOAD, or AALOAD.
      */
     private void visitArrayLoad(int opcode) {

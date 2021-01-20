@@ -58,10 +58,6 @@ public class Configuration {
     public static boolean QUIET_MODE = false;
 
     public static Set<String> ignoredMethods = new HashSet<>();
-    /*
-     * Derived configuration values
-     */
-    public static boolean OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING && !IMPLICIT_LIGHT_TRACKING;
 
     public static Class<? extends TaintAdapter> extensionMethodVisitor;
     public static Class<? extends ClassVisitor> extensionClassVisitor;
@@ -78,7 +74,6 @@ public class Configuration {
     }
 
     public static void init() {
-        OPT_CONSTANT_ARITHMETIC = !IMPLICIT_TRACKING && !IMPLICIT_LIGHT_TRACKING;
         if (IMPLICIT_TRACKING) {
             ARRAY_INDEX_TRACKING = true;
         }
