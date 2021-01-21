@@ -4,9 +4,9 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.HackyClassWriter;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurJSRInlinerAdapter;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.AnalyzerAdapter;
+import org.objectweb.asm.commons.LocalVariablesSorter;
 import org.objectweb.asm.tree.*;
 
 import java.util.List;
@@ -119,7 +119,7 @@ public class LegacyClassFixer {
             FrameCorrectingMethodVisitor correctingMv = new FrameCorrectingMethodVisitor(mv);
             AnalyzerAdapter analyzerAdapter = new AnalyzerAdapter(className, access, name, descriptor, correctingMv);
             correctingMv.setAnalyzerAdapter(analyzerAdapter);
-            OurLocalVariablesSorter localVariablesSorter = new OurLocalVariablesSorter(access, descriptor,
+            LocalVariablesSorter localVariablesSorter = new LocalVariablesSorter(access, descriptor,
                     analyzerAdapter);
             correctingMv.setLocalVariablesSorter(localVariablesSorter);
             return localVariablesSorter;
@@ -130,7 +130,7 @@ public class LegacyClassFixer {
 
         private static final Type OBJECT_TYPE = Type.getObjectType("java/lang/Object");
         private AnalyzerAdapter analyzerAdapter;
-        private OurLocalVariablesSorter localVariablesSorter;
+        private LocalVariablesSorter localVariablesSorter;
 
         private FrameCorrectingMethodVisitor(MethodVisitor methodVisitor) {
             super(Configuration.ASM_VERSION, methodVisitor);
@@ -140,7 +140,7 @@ public class LegacyClassFixer {
             this.analyzerAdapter = analyzerAdapter;
         }
 
-        private void setLocalVariablesSorter(OurLocalVariablesSorter localVariablesSorter) {
+        private void setLocalVariablesSorter(LocalVariablesSorter localVariablesSorter) {
             this.localVariablesSorter = localVariablesSorter;
         }
 
@@ -170,7 +170,7 @@ public class LegacyClassFixer {
             for (int i = 0; i < expectedTypes.length; i++) {
                 Type expected = expectedTypes[i];
                 Object slot = stack.get(stack.size() - 1 - slotOffset++);
-                if (slot == Opcodes.TOP) {
+                if (slot == Opcodes.TOP && slotOffset < stack.size()) {
                     slot = stack.get(stack.size() - 1 - slotOffset++);
                 }
                 if (slot instanceof String) {
