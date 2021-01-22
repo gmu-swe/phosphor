@@ -664,7 +664,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     String descOfMethodToCall = TaintUtils.remapMethodDescAndIncludeReturnHolder(isNEW || isVirtual, implMethod.getDesc());
                     ga.visitCode();
                     notifyControlStackOfUninstrumentedWrapper(ga);
-                    defensivelyCopyControlStack(ga);
+                    if(isNEW) {
+                        defensivelyCopyControlStack(ga);
+                    }
                     //We load either all args, or all but the return type
                     if (isNEW) {
                         ga.visitTypeInsn(NEW, implMethod.getOwner());
