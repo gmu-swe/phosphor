@@ -267,4 +267,14 @@ public class GeneralImplicitITCase extends BaseMultiTaintClass {
         int x;
         long j;
     }
+
+    @Test
+    public void testObjectReceiverStringArgumentEquals() {
+        Object o = "Hello";
+        assertTrue(matchesConstant(o));
+    }
+
+    boolean matchesConstant(Object o) {
+        return o.equals("Hello");
+    }
 }

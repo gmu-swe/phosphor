@@ -1175,8 +1175,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             owner = Type.getInternalName(TaintUtils.class);
         }
         if((Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) && opcode == INVOKEVIRTUAL && owner.equals("java/lang/Object") && (name.equals("equals") || name.equals("hashCode"))) {
-            Type callee = getTopOfStackType();
+            Type callee;
             if(name.equals("equals")) {
+                // Object Taint Object Taint
+                callee = getStackTypeAtOffset(3);
+            } else {
+                // Object Taint
                 callee = getStackTypeAtOffset(1);
             }
             if(callee.getSort() == Type.OBJECT) {
