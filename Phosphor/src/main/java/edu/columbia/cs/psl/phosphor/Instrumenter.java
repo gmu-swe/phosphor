@@ -63,11 +63,7 @@ public class Instrumenter {
             if(TaintTrackingClassVisitor.IS_RUNTIME_INST && !internalName.startsWith("java/")) {
                 return false;
             }
-            if(loader == null) {
-                c = Class.forName(internalName.replace("/", "."));
-            } else {
-                c = loader.loadClass(internalName.replace("/", "."));
-            }
+            c = Class.forName(internalName.replace("/", "."), false, loader);
             if(java.util.Collection.class.isAssignableFrom(c)) {
                 return true;
             }
