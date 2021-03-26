@@ -804,6 +804,32 @@ public class ReflectionMasker {
         return _in;
     }
 
+    @SuppressWarnings({"unused"})
+    public static TaintedReferenceWithObjTag getCallingClass$$PHOSPHORTAGGED(TaintedReferenceWithObjTag ret, Class erasedReturn) {
+        Class<?>[] context = new SecurityManager() {
+            @Override
+            public Class<?>[] getClassContext() {
+                return super.getClassContext();
+            }
+        }.getClassContext();
+        ret.taint = Taint.emptyTaint();
+        ret.val = context[3];
+        return ret;
+    }
+
+    @SuppressWarnings({"unused"})
+    public static TaintedReferenceWithObjTag getCallingClass$$PHOSPHORTAGGED(ControlFlowStack ctrl, TaintedReferenceWithObjTag ret, Class erasedReturn) {
+        Class<?>[] context = new SecurityManager() {
+            @Override
+            public Class<?>[] getClassContext() {
+                return super.getClassContext();
+            }
+        }.getClassContext();
+        ret.taint = ctrl.copyTag();
+        ret.val = context[3];
+        return ret;
+    }
+
     @SuppressWarnings({"rawtypes", "unused"})
     @InvokedViaInstrumentation(record = REMOVE_EXTRA_STACK_TRACE_ELEMENTS)
     public static TaintedReferenceWithObjTag removeExtraStackTraceElements(TaintedReferenceWithObjTag _in, Class<?> clazz) {

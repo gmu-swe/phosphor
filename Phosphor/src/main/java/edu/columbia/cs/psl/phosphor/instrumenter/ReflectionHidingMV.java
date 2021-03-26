@@ -268,6 +268,11 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
             }
         } else {
             switch(owner) {
+                case "com/sun/jna/Native":
+                    if(name.equals("getCallingClass$$PHOSPHORTAGGED")){
+                        owner = Type.getInternalName(ReflectionMasker.class);
+                    }
+                    break;
                 case "java/lang/reflect/Method":
                     if(name.startsWith("invoke")) {
                         maskMethodInvoke();
