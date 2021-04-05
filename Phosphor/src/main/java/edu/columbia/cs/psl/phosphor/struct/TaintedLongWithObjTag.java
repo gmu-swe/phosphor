@@ -37,4 +37,9 @@ public final class TaintedLongWithObjTag extends TaintedPrimitiveWithObjTag impl
     public static final TaintedLongWithObjTag valueOf(Taint taint, long val) {
         return new TaintedLongWithObjTag(taint, val);
     }
+
+    public final void assignFrom(TaintedIntWithObjTag taintedIntWithObjTag) {
+        this.val = taintedIntWithObjTag.val;
+        this.taint = taintedIntWithObjTag.taint;
+    }
 }

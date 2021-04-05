@@ -638,6 +638,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         wrapperImplDesc = Type.getMethodDescriptor(instantiatedReturnType, Type.getArgumentTypes(wrapperImplDesc));
                     }
 
+                    /*
+                    If the impl method returns a narrower type (float or int) than the instantiated return type (double or long),
+                    the wrapper will need to perform the widening manually
+                     */
+                    boolean needToWidenPrimitiveReturn = instantiatedReturnType.getSize() > implReturnType.getSize();
+                    if (needToWidenPrimitiveReturn) {
+                        wrapperImplDesc = Type.getMethodDescriptor(instantiatedReturnType, Type.getArgumentTypes(wrapperImplDesc));
+                    }
 
                     int locationOfFakeReferenceTaint = -1;
                     //Add the taint after any parameters that are being statically bound.
@@ -842,7 +850,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                         int nArgsLoaded = 0;
                         for (int i = 0; i < newArgs.length; i++) {
                             boolean isLastArg = newArgs[i].getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tainted");
-                            if ((isNEW || needToBoxPrimitiveReturn) && isLastArg) {
+                            if ((isNEW || needToBoxPrimitiveReturn || needToWidenPrimitiveReturn) && isLastArg) {
                                 /*if NEW, last arg is the return wrapper, doesn't get passed to <init>
                                 similarly, if we need to use a different return wrapper, don't load it
                                 */
@@ -883,7 +891,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                             if (!implMethod.getDesc().equals(descOfMethodToCall)) {
                                 nameToCall += TaintUtils.METHOD_SUFFIX;
                             }
-                            if (needToAddReturnHolder || needToBoxPrimitiveReturn) {
+                            if (needToAddReturnHolder || needToBoxPrimitiveReturn || needToWidenPrimitiveReturn) {
                                 //generate a return holder of the right kind
                                 Type wrappedReturnType = Type.getReturnType(descOfMethodToCall);
                                 ga.visitTypeInsn(NEW, wrappedReturnType.getInternalName());
@@ -896,6 +904,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                                 ga.visitInsn(ACONST_NULL);
                             }
                             ga.visitMethodInsn(opcodeToCall, implMethod.getOwner(), nameToCall, descOfMethodToCall, isInterface);
+                            if(needToWidenPrimitiveReturn){
+                                Type widerReturnType = TaintUtils.getContainerReturnType(instantiatedReturnType);
+                                Type narrowerReturnType = TaintUtils.getContainerReturnType(implReturnType);
+                                ga.visitVarInsn(ALOAD, c); //Load the original return holder
+                                ga.visitInsn(DUP_X1);
+                                ga.visitInsn(SWAP);
+                                ga.visitMethodInsn(INVOKEVIRTUAL, widerReturnType.getInternalName(), "assignFrom", "("+narrowerReturnType.getDescriptor()+")V", false);
+                            }
                         }
                         //Load return value
                         Type newWrapperReturnType = Type.getReturnType(wrapperMethod.desc);

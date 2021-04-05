@@ -37,4 +37,9 @@ public final class TaintedDoubleWithObjTag extends TaintedPrimitiveWithObjTag im
     public static final TaintedDoubleWithObjTag valueOf(Taint taint, double val) {
         return new TaintedDoubleWithObjTag(taint, val);
     }
+
+    public final void assignFrom(TaintedFloatWithObjTag floatWithObjTag) {
+        this.val = floatWithObjTag.val;
+        this.taint = floatWithObjTag.taint;
+    }
 }

@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static java.security.AccessController.doPrivileged;
 import static org.junit.Assert.assertEquals;
@@ -27,6 +26,16 @@ public class LambdaObjTagITCase extends BaseMultiTaintClass {
 		consumer.accept(new double[1], 1.0);
 		BiConsumer<double[], double[]> consumer2 = (ll, rr) -> ll[0] += rr[0];
 		consumer2.accept(new double[1], new double[1]);
+	}
+
+	float getFloat() {
+		return 0f;
+	}
+
+	@Test
+	public void testFloat2DoubleSupplier() throws Exception {
+		DoubleSupplier supplier = ((DoubleSupplier) this::getFloat);
+		double d = supplier.getAsDouble();
 	}
 
 	@Test

@@ -7,6 +7,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.DoubleSupplier;
 import java.util.function.ObjDoubleConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -27,6 +28,16 @@ public class LambdaImplicitITCase extends BasePhosphorTest {
 			ll[0] += rr[0];
 		};
 		consumer2.accept(new double[1], new double[1]);
+	}
+
+	float getFloat() {
+		return 0f;
+	}
+
+	@Test
+	public void testFloat2DoubleSupplier() throws Exception {
+		DoubleSupplier supplier = ((DoubleSupplier) this::getFloat);
+		double d = supplier.getAsDouble();
 	}
 
 	@Test
