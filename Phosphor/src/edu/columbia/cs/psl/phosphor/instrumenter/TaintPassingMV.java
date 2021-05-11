@@ -2146,8 +2146,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 				        }
 			        } else if (o instanceof Type) {
 				        Type t = (Type) o;
-				        bsmArgs[k] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(t.getDescriptor()));
-			        }
+				        if(t.getDescriptor().contains("(")){ //Some INVOKEDYNAMICs might just have an object type here, not a method
+				        	//Those instructions are not well-supported by this version of Phosphor
+							bsmArgs[k] = Type.getMethodType(TaintUtils.remapMethodDescAndIncludeReturnHolder(t.getDescriptor()));
+						}
+					}
 		        }
 	        }
         }
