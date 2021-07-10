@@ -2007,7 +2007,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
 				        String wrapperName = "phosphorWrapInvokeDymnamic" + wrapperMethodsToAdd.size();
 
-				        MethodNode mn = new MethodNode(Opcodes.ACC_STATIC | Opcodes.ACC_FINAL, wrapperName, wrapperDesc.getDescriptor(), null, null);
+				        MethodNode mn = new MethodNode(Opcodes.ACC_STATIC | Opcodes.ACC_PRIVATE, wrapperName, wrapperDesc.getDescriptor(), null, null);
 
 				        GeneratorAdapter ga = new GeneratorAdapter(mn, Opcodes.ACC_STATIC, wrapperName, wrapperDesc.getDescriptor());
 				        ga.visitCode();
