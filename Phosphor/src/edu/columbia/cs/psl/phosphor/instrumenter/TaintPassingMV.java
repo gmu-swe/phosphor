@@ -2443,7 +2443,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 		{
 			hasNewName = false;
 		}
-		boolean isIgnoredForTaints = Configuration.WITH_SELECTIVE_INST && 
+		boolean isCallToStringBuilderAppend = owner.equals("java/lang/StringBuilder") && name.equals("append");
+		if(isCallToStringBuilderAppend){
+			hasNewName = true;
+		}
+		boolean isIgnoredForTaints = Configuration.WITH_SELECTIVE_INST &&
 				Instrumenter.isIgnoredMethodFromOurAnalysis(owner, name, desc);
 		if ((Instrumenter.isIgnoredClass(owner) || isIgnoredForTaints || Instrumenter.isIgnoredMethod(owner, name, desc))  && !isInternalTaintingMethod(owner)){
 			Type[] args = Type.getArgumentTypes(desc);

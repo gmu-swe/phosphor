@@ -432,6 +432,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 		Type[] newArgs = new Type[newArgTypes.size()];
 		newArgs = newArgTypes.toArray(newArgs);
 
+		if(className.equals("java/lang/StringBuilder") && name.equals("append")){
+			isRewrittenDesc = true;
+		}
+
 		boolean requiresNoChange = !isRewrittenDesc && newReturnType.equals(Type.getReturnType(desc));
 		MethodNode wrapper = new MethodNode(access, name, desc, signature, exceptions);
 		if (!requiresNoChange && !name.equals("<clinit>") && !(name.equals("<init>") && !isRewrittenDesc))
@@ -1153,6 +1157,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 						Type returnTypeToHackOnLambda = methodsToAddWrappersForWithReturnType.get(m);
 						boolean needToPrealloc = TaintUtils.isPreAllocReturnType(m.desc) || returnTypeToHackOnLambda!=null;
 						boolean useSuffixName = !TaintUtils.remapMethodDescAndIncludeReturnHolder(m.desc).equals(m.desc) || Type.getReturnType(m.desc).getDescriptor().equals("Ljava/lang/Object;") || methodsToAddLambdaUnWrappersFor.contains(m);
+						if(className.equals("java/lang/StringBuilder") && m.name.equals("append")){
+							useSuffixName = true;
+						}
 						String[] exceptions = new String[m.exceptions.size()];
 						exceptions = (String[]) m.exceptions.toArray(exceptions);
 
