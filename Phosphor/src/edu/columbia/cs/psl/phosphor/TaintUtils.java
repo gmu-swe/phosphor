@@ -1179,4 +1179,17 @@ public class TaintUtils {
 					|| type.equals(Type.getType(TaintedLongWithIntTag.class)) || type.equals(Type.getType(TaintedShortWithIntTag.class));
 		}
 	}
+
+	public static char charAt(String str, int i) {
+		if (PreMain.RUNTIME_INST)
+			return str.value[i];
+		return str.charAt(i);
+	}
+
+	public static int stringLength(String str) {
+		if (PreMain.RUNTIME_INST)
+			return str.value.length;
+		return str.length();
+	}
+
 }
