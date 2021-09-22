@@ -53,6 +53,7 @@ public class Configuration {
     public static boolean ALWAYS_CHECK_FOR_FRAMES = false;
     public static boolean REENABLE_CACHES = false;
     public static Class<? extends ClassVisitor> PRIOR_CLASS_VISITOR = null;
+    public static Class<? extends ClassVisitor> POST_CLASS_VISITOR = null;
     public static ControlFlowManager controlFlowManager = new StandardControlFlowManager();
     public static String controlFlowManagerPackage = null;
     public static boolean QUIET_MODE = false;

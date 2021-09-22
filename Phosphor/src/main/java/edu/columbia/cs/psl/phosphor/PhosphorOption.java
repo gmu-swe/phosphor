@@ -143,6 +143,23 @@ public enum PhosphorOption {
             }
         }
     },
+    POST_CLASS_VISITOR(new PhosphorOptionBuilder("Specify the class name for a ClassVisitor class to be added to Phosphor's visitor " +
+            "chain after taint tracking is added to the class.", true, true).argType(Class.class)) {
+        @Override
+        public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
+            if(isPresent) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Class<? extends ClassVisitor> clazz = (Class<? extends ClassVisitor>) commandLine.getParsedOptionValue(optionName);
+                    Configuration.POST_CLASS_VISITOR = clazz;
+                } catch(ParseException e) {
+                    System.err.println("Failed to create specified postclass visitor: " + optionName);
+                }
+            } else {
+                Configuration.POST_CLASS_VISITOR = null;
+            }
+        }
+    },
     CONTROL_FLOW_MANAGER(new PhosphorOptionBuilder("Can be used to specify the name of a class to be used as the ControlFlowManager " +
             "during instrumentation. This class must implement ControlFlowManager." +
             "The package containing the ControlFlowManager class will be ignored by Phosphor (i.e., not instrumented with taint tracking logic).",

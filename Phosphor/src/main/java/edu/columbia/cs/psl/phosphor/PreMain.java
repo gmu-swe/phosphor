@@ -228,6 +228,15 @@ public class PreMain {
                         debugTracer = new TraceClassVisitor(null, null);
                         _cv = debugTracer;
                     }
+                    if(Configuration.POST_CLASS_VISITOR != null) {
+                        try {
+                            Constructor<? extends ClassVisitor> extra = Configuration.POST_CLASS_VISITOR
+                                    .getConstructor(ClassVisitor.class, Boolean.TYPE, byte[].class);
+                            _cv = extra.newInstance(_cv, skipFrames, classFileBuffer);
+                        } catch(Exception e) {
+                            //
+                        }
+                    }
                     if(Configuration.extensionClassVisitor != null) {
                         Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
                         _cv = extra.newInstance(_cv, skipFrames);
