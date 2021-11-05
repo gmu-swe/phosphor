@@ -256,7 +256,7 @@ public enum PhosphorOption {
             }
         }
     },
-    TAINT_TAG_FACTORY(new PhosphorOptionBuilder(null, false, true).argType(Class.class)) {
+    TAINT_TAG_FACTORY(new PhosphorOptionBuilder(null, true, true).argType(Class.class)) {
         @Override
         public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
             if(isPresent) {
