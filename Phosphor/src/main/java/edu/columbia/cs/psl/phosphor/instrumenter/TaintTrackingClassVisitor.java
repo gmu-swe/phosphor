@@ -274,6 +274,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+        if (Configuration.taintTagFactory.isIgnoredMethod(className, name, desc)) {
+            return super.visitMethod(access, name, desc, signature, exceptions);
+        }
         if(name.equals("hashCode") && desc.equals("()I")) {
             generateHashCode = false;
         }

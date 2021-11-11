@@ -31,6 +31,10 @@ public interface TaintTagFactory {
 
     boolean isIgnoredClass(String className);
 
+    default boolean isIgnoredMethod(String owner, String name, String desc) {
+        return false;
+    }
+
     void generateEmptyTaint(MethodVisitor mv);
 
     void generateEmptyTaintArray(Object[] array, int dimensions);
