@@ -35,7 +35,10 @@ After you do this, make sure to chmod +x the binaries in the new folder, e.g. `c
 The next step is to instrument the code which you would like to track. This time when you run the instrumenter, pass your entire (compiled) code base to Phosphor for instrumentation, and specify an output folder for that.
 
 We can now run the instrumented code using our instrumented JRE, as such:
-`JAVA_HOME=jre-inst/ $JAVA_HOME/bin/java  -Xbootclasspath/a:Phosphor-0.0.5-SNAPSHOT.jar -javaagent:Phosphor-0.0.5-SNAPSHOT.jar -cp path-to-instrumented-code your.main.class`
+```
+export JAVA_HOME=jre-inst/
+$JAVA_HOME/bin/java  -Xbootclasspath/a:Phosphor-0.0.5-SNAPSHOT.jar -javaagent:Phosphor-0.0.5-SNAPSHOT.jar -cp path-to-instrumented-code your.main.class
+````
 
 Note: It is not 100% necessary to instrument your application/library code in advance - the javaagent will detect any uninstrumented class files as they are being loaded into the JVM and instrument them as necessary. If you want to do this, then you may want to add the flag `-javaagent:Phosphor-0.0.5-SNAPSHOT.jar=cacheDir=someCacheFolder` and Phosphor will cache the generated files in `someCacheFolder` so they aren't regenerated every run. If you take a look at the execution of Phosphor's JUnit tests, you'll notice that this is how they are instrumented. It's always necessary to instrument the JRE in advance though for bootstrapping.
 
