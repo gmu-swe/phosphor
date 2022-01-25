@@ -32,7 +32,7 @@ public final class FlowGraph<V> {
     private final V entryPoint;
 
     /**
-     * Vertex designated to be the single exit point for this graph
+     * Vertex designated to be the single exit point for this graph.
      */
     private final V exitPoint;
 
@@ -391,24 +391,24 @@ public final class FlowGraph<V> {
     }
 
     /**
-     * @return an unmodifiable mapping from each reachable vertex in this graph to its immediate post-dominator or null
-     * if the vertex is the exit point
+     * @return an unmodifiable mapping from each reachable vertex in the transverse of this graph to its immediate
+     * post-dominator in this graph or null if the vertex is the exit point
      */
     public Map<V, V> getImmediatePostDominators() {
         return getTransverseGraph().getImmediateDominators();
     }
 
     /**
-     * @return an unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set of the
-     * vertices that post-dominate it
+     * @return an unmodifiable mapping from each reachable vertex in the transverse of this graph to an unmodifiable
+     * set of the vertices that post-dominate it in this graph
      */
     public Map<V, Set<V>> getPostDominatorSets() {
         return getTransverseGraph().getDominatorSets();
     }
 
     /**
-     * @return an unmodifiable mapping from each reachable vertex in this graph to an unmodifiable set of
-     * the vertices in its post-dominance frontier
+     * @return an unmodifiable mapping from each reachable vertex in the transverse of this graph to an unmodifiable
+     * set of the vertices in its post-dominance frontier in this graph
      */
     public Map<V, Set<V>> getPostDominanceFrontiers() {
         return getTransverseGraph().getDominanceFrontiers();
