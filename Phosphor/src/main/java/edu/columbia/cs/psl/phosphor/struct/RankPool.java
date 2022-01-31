@@ -25,13 +25,13 @@ final class RankPool {
     public synchronized void reset() {
         reclaimRanks();
         if (size > 0) {
-            for (int i = 0; i < entries.length; i++) {
-                for (Entry entry = entries[i]; entry != null; entry = entry.next) {
+            for (Entry value : entries) {
+                for (Entry entry = value; entry != null; entry = entry.next) {
                     availableRanks.push(entry.rank);
                 }
-                entries[i] = null;
             }
             size = 0;
+            entries = new Entry[16];
         }
     }
 
