@@ -32,6 +32,7 @@ final class RankPool {
             }
             size = 0;
             entries = new Entry[16];
+            computeThreshold();
         }
     }
 
