@@ -72,6 +72,10 @@ public class PowerSetTree {
         return PowerSetTreeSingleton.INSTANCE;
     }
 
+    public interface Predicate {
+        boolean test(Object value);
+    }
+
     /**
      * Represents the set containing the elements associated with the keys of every node on the path from this node to
      * the root of the tree.
@@ -355,6 +359,37 @@ public class PowerSetTree {
 
         private Object readResolve() {
             return this.parent;
+        }
+
+        /**
+         * Returns a set consisting of the elements of this set for which the given predicate holds.
+         *
+         * @param predicate a pure function used to determine whether an element should be included
+         * @return the new set
+         * @throws NullPointerException if {@code predicate} is null
+         */
+        public SetNode filter(Predicate predicate) {
+            SinglyLinkedList<RankedElement> list = new SinglyLinkedList<>();
+            if (this.isEmpty()) {
+                if (predicate == null) {
+                    throw new NullPointerException();
+                }
+                // Return the canonical empty set
+                return PowerSetTree.getInstance().emptySet();
+            }
+            SetNode cur = this;
+            // Maintain a sorted list of objects popped off from this set
+            while (!cur.isEmpty()) {
+                if (predicate.test(cur.key.getElement())) {
+                    list.push(cur.key);
+                }
+                cur = cur.parent;
+            }
+            // Move down the path in the tree for the list adding child nodes as necessary
+            while (!list.isEmpty()) {
+                cur = cur.addChild(list.pop());
+            }
+            return cur;
         }
     }
 
