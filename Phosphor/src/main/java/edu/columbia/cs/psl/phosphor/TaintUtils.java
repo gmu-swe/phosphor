@@ -115,57 +115,40 @@ public class TaintUtils {
         }
     }
 
-    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint<?> srctaint, int srcPos, Taint<?> srcPosTaint,
+    public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint<?> srcTaint, int srcPos, Taint<?> srcPosTaint,
                                                  Object dest, Taint<?> destTaint, int destPos, Taint<?> destPosTaint,
                                                  int length, Taint<?> lengthTaint) {
-        if(!src.getClass().isArray() && !dest.getClass().isArray()) {
-            System.arraycopy(((LazyArrayObjTags) src).getVal(), srcPos, ((LazyArrayObjTags) dest).getVal(), destPos, length);
-            if(((LazyArrayObjTags) src).taints != null) {
-                if(((LazyArrayObjTags) dest).taints == null) {
-                    ((LazyArrayObjTags) dest).taints = new Taint[((LazyArrayObjTags) dest).getLength()];
+        Object srcArray = src instanceof LazyArrayObjTags ? ((LazyArrayObjTags) src).getVal() : src;
+        Object destArray = dest instanceof LazyArrayObjTags ? ((LazyArrayObjTags) dest).getVal() : dest;
+        System.arraycopy(srcArray, srcPos, destArray, destPos, length);
+        if(src instanceof LazyArrayObjTags && dest instanceof LazyArrayObjTags) {
+            LazyArrayObjTags destArr = (LazyArrayObjTags) dest;
+            LazyArrayObjTags srcArr = (LazyArrayObjTags) src;
+            if(srcArr.taints != null) {
+                if(destArr.taints == null) {
+                    destArr.taints = new Taint[destArr.getLength()];
                 }
-                System.arraycopy(((LazyArrayObjTags) src).taints, srcPos, ((LazyArrayObjTags) dest).taints, destPos, length);
+                System.arraycopy(srcArr.taints, srcPos, destArr.taints, destPos, length);
             }
-        } else if(!dest.getClass().isArray()) {
-            System.arraycopy(src, srcPos, ((LazyArrayObjTags) dest).getVal(), destPos, length);
-        } else {
-            System.arraycopy(src, srcPos, dest, destPos, length);
         }
     }
 
     public static void arraycopy$$PHOSPHORTAGGED(Object src, Taint<?> srcTaint, int srcPos, Taint<?> srcPosTaint,
                                                  Object dest, Taint<?> destTaint, int destPos, Taint<?> destPosTaint,
                                                  int length, Taint<?> lengthTaint, ControlFlowStack ctrl) {
-        if(!src.getClass().isArray() && !dest.getClass().isArray()) {
-            System.arraycopy(((LazyArrayObjTags) src).getVal(), srcPos, ((LazyArrayObjTags) dest).getVal(), destPos, length);
-            if(((LazyArrayObjTags) src).taints != null) {
-                if(((LazyArrayObjTags) dest).taints == null) {
-                    ((LazyArrayObjTags) dest).taints = new Taint[((LazyArrayObjTags) dest).getLength()];
-                }
-                System.arraycopy(((LazyArrayObjTags) src).taints, srcPos, ((LazyArrayObjTags) dest).taints, destPos, length);
-            }
-            if(srcTaint != null && !srcTaint.isEmpty()) {
-                LazyArrayObjTags destTags = (LazyArrayObjTags) dest;
-                if(destTags.taints == null) {
-                    destTags.taints = new Taint[destTags.getLength()];
+        arraycopy$$PHOSPHORTAGGED(src, srcTaint, srcPos, srcPosTaint, dest, destTaint, destPos, destPosTaint, length,
+                lengthTaint);
+        if(dest instanceof LazyArrayObjTags) {
+            LazyArrayObjTags destArr = (LazyArrayObjTags) dest;
+            Taint<?> t = Taint.combineTags(srcTaint, (Taint) ctrl.copyTag());
+            if(t != null && !t.isEmpty()) {
+                if(destArr.taints == null) {
+                    destArr.taints = new Taint[destArr.getLength()];
                 }
                 for(int i = destPos; i < destPos + length; i++) {
-                    destTags.taints[i] = Taint.combineTags(destTags.taints[i], srcTaint);
+                    destArr.taints[i] = Taint.combineTags(destArr.taints[i], t);
                 }
             }
-            if(!ctrl.copyTag().isEmpty()) {
-                LazyArrayObjTags destTags = (LazyArrayObjTags) dest;
-                if(destTags.taints == null) {
-                    destTags.taints = new Taint[destTags.getLength()];
-                }
-                for(int i = destPos; i < destPos + length; i++) {
-                    destTags.taints[i] = Taint.combineTags(destTags.taints[i], ctrl.copyTag());
-                }
-            }
-        } else if(!dest.getClass().isArray()) {
-            System.arraycopy(src, srcPos, ((LazyArrayObjTags) dest).getVal(), destPos, length);
-        } else {
-            System.arraycopy(src, srcPos, dest, destPos, length);
         }
     }
 
