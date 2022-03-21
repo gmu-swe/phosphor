@@ -12,8 +12,6 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public abstract class Taint<T> implements Serializable {
 
-    // Singleton instance of PowerSetTree used to create new SetNodes
-    private static PowerSetTree setTree = PowerSetTree.getInstance();
     public static boolean IGNORE_TAINTING = false;
 
     @SuppressWarnings("unused")
@@ -38,7 +36,7 @@ public abstract class Taint<T> implements Serializable {
 
     @SuppressWarnings("unchecked")
     public static <T> Taint<T> withLabel(T label) {
-        return setTree.makeSingletonSet(label);
+        return PowerSetTree.getInstance().makeSingletonSet(label);
     }
 
     @SuppressWarnings("unused")
@@ -50,7 +48,7 @@ public abstract class Taint<T> implements Serializable {
 
     @SuppressWarnings("unchecked")
     public static <E> Taint<E> emptyTaint() {
-        return (Taint<E>) setTree.emptySet();
+        return (Taint<E>) PowerSetTree.getInstance().emptySet();
     }
 
     /* Returns an array containing this taint's labels or label indices if the BitSet representation is used. The runtime
@@ -202,10 +200,10 @@ public abstract class Taint<T> implements Serializable {
             return null;
         } else {
             // SetNode representation is being used
-            PowerSetTree.SetNode result = setTree.emptySet();
+            PowerSetTree.SetNode result = PowerSetTree.getInstance().emptySet();
             // The last label set union'd into result's label set
-            PowerSetTree.SetNode prevLabelSet = setTree.emptySet();
-            for(Taint taint : taints) {
+            PowerSetTree.SetNode prevLabelSet = result;
+            for(Taint<T> taint : taints) {
                 PowerSetTree.SetNode node = (PowerSetTree.SetNode) taint;
                 if(node != null && node != prevLabelSet) {
                     result = result.union(node);
