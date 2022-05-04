@@ -400,7 +400,12 @@ public class UninstrumentedCompatMV extends TaintAdapter {
             int offset = 0;
             for(int i = args.length - 1; i >= 0; i--) {
                 offset += args[i].getSize();
-                Type onStack = TaintAdapter.getTypeForStackType(analyzer.stack.get(analyzer.stack.size() - offset));
+                Object onStackObj = analyzer.stack.get(analyzer.stack.size() - offset);
+                if(onStackObj == Opcodes.TOP){
+                    offset++;
+                    onStackObj = analyzer.stack.get(analyzer.stack.size() - offset);
+                }
+                Type onStack = TaintAdapter.getTypeForStackType(onStackObj);
                 if(args[i].getDescriptor().equals("Ljava/lang/Object;") && (onStack.getDescriptor().equals("Ljava/lang/Object;") || TaintUtils.isPrimitiveArrayType(onStack))) {
                     hasArgsToBox = true;
                 }
