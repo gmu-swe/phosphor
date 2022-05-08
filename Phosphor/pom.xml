@@ -69,6 +69,7 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                            <shadeSourcesContent>true</shadeSourcesContent>
                             <minimizeJar>true</minimizeJar>
                         </configuration>
                     </execution>
