@@ -303,7 +303,9 @@ public class PreMain {
                     if(methodsToReduceSizeOf == null) {
                         methodsToReduceSizeOf = new HashSet<>();
                     }
-                    methodsToReduceSizeOf.add(ex.getMethodName() + ex.getDescriptor());
+                    if(!methodsToReduceSizeOf.add(ex.getMethodName() + ex.getDescriptor())){
+                        throw ex; //We already tried and failed to make this fit :(
+                    }
                     return instrumentWithRetry(cr, classFileBuffer, isiFace, className, skipFrames, upgradeVersion, fields,  methodsToReduceSizeOf, false);
                 }
             } catch (Throwable ex) {
