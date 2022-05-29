@@ -16,15 +16,16 @@ import java.util.Objects;
 public class BasicArrayInterpreter extends BasicInterpreter {
 
     public static final BasicValue THIS_VALUE = new BasicValue(Type.getType("Ljava/lang/Object;"));
-    private boolean isStaticMethod;
-    private boolean isImplicitLightTracking;
-    private HashMap<AbstractInsnNode, String> referenceArraysToCheckcast;
+    private final boolean isStaticMethod;
+    private final boolean isImplicitLightTracking;
+    private final HashMap<AbstractInsnNode, String> referenceArraysToCheckCast;
 
-    public BasicArrayInterpreter(boolean isStaticMethod, boolean isImplicitLightTracking, HashMap<AbstractInsnNode, String> referenceArraysToCheckcast) {
+    public BasicArrayInterpreter(boolean isStaticMethod, boolean isImplicitLightTracking, HashMap<AbstractInsnNode,
+            String> referenceArraysToCheckCast) {
         super(Configuration.ASM_VERSION);
         this.isStaticMethod = isStaticMethod;
         this.isImplicitLightTracking = isImplicitLightTracking;
-        this.referenceArraysToCheckcast = referenceArraysToCheckcast;
+        this.referenceArraysToCheckCast = referenceArraysToCheckCast;
     }
 
     @Override
@@ -76,7 +77,10 @@ public class BasicArrayInterpreter extends BasicInterpreter {
         if(w instanceof SinkableArrayValue) {
             w = BasicValue.REFERENCE_VALUE;
         }
-        if((v instanceof BasicThisFieldValue && !(w instanceof BasicThisFieldValue)) || (w instanceof BasicThisFieldValue && !(v instanceof BasicThisFieldValue))) {
+        if((v instanceof BasicThisFieldValue) || (w instanceof BasicThisFieldValue)) {
+            if(v.equals(w)) {
+                return v;
+            }
             if(v.getType().equals(w.getType())) {
                 if(v.getType().getSort() == Type.OBJECT || v.getType().getSort() == Type.ARRAY) {
                     return BasicValue.REFERENCE_VALUE;
@@ -85,17 +89,12 @@ public class BasicArrayInterpreter extends BasicInterpreter {
                 }
             }
             return BasicValue.UNINITIALIZED_VALUE;
-        } else if(v instanceof BasicThisFieldValue && w instanceof BasicThisFieldValue) {
-            if(v.equals(w)) {
-                return v;
-            }
-            return BasicValue.UNINITIALIZED_VALUE;
         }
         return super.merge(v, w);
     }
 
     @Override
-    public BasicValue naryOperation(AbstractInsnNode insn, List values) throws AnalyzerException {
+    public BasicValue naryOperation(AbstractInsnNode insn, List<? extends BasicValue> values) throws AnalyzerException {
         String t = null;
         if(insn.getType() == AbstractInsnNode.METHOD_INSN) {
             Type typ = Type.getReturnType(((MethodInsnNode) insn).desc);
@@ -121,7 +120,7 @@ public class BasicArrayInterpreter extends BasicInterpreter {
                     }
                     SinkableArrayValue v = ((SinkableArrayValue) values.get(i));
                     if(!declared.getDescriptor().equals("Ljava/lang/Object;")) {
-                        referenceArraysToCheckcast.put(v.getSrc(), "[" + declared.getDescriptor());
+                        referenceArraysToCheckCast.put(v.getSrc(), "[" + declared.getDescriptor());
                     }
                 }
             }
@@ -185,7 +184,7 @@ public class BasicArrayInterpreter extends BasicInterpreter {
     }
 
     public static class BasicThisFieldValue extends BasicValue {
-        private Field field;
+        private final Field field;
 
         public BasicThisFieldValue(Type t, Field f) {
             super(t);
@@ -198,9 +197,7 @@ public class BasicArrayInterpreter extends BasicInterpreter {
 
         @Override
         public String toString() {
-            return "BasicThisFieldValue{" +
-                    "field=" + field +
-                    '}';
+            return "BasicThisFieldValue{field=" + field + '}';
         }
 
         @Override
@@ -220,7 +217,6 @@ public class BasicArrayInterpreter extends BasicInterpreter {
 
         @Override
         public int hashCode() {
-
             return Objects.hash(super.hashCode(), field);
         }
     }
