@@ -221,9 +221,9 @@ public class MethodArgReindexer extends MethodVisitor {
             Type originalType = originalArgTypes.get(argIndex++);
             if (frameType == Opcodes.TOP) {
                 result.add(Opcodes.TOP);
-                if (originalType.getSize() == 2 && i + 1 < local.length) {
+                if (originalType.getSize() == 2) {
                     // Wide argument was set to two TOPs
-                    if (local[++i] != Opcodes.TOP) {
+                    if (i + 1 < local.length && local[++i] != Opcodes.TOP) {
                         throw new IllegalArgumentException();
                     }
                     result.add(Opcodes.TOP);
