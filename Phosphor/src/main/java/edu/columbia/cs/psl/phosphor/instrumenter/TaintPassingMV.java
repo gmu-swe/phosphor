@@ -1382,7 +1382,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         } else if(opcode == TaintUtils.RAW_INSN) {
             isRawInstruction = !isRawInstruction;
         } else if(opcode == TaintUtils.IGNORE_EVERYTHING) {
-            isIgnoreAllInstrumenting = !isIgnoreAllInstrumenting;
+            if (!isLambda) {
+                isIgnoreAllInstrumenting = !isIgnoreAllInstrumenting;
+            }
             taintTagFactory.signalOp(opcode, null);
             super.visitInsn(opcode);
         } else if(opcode == TaintUtils.NO_TAINT_STORE_INSN) {

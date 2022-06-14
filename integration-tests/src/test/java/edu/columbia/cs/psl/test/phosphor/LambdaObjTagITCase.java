@@ -4,6 +4,8 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.lang.invoke.*;
+import java.lang.reflect.Constructor;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.time.LocalDateTime;
@@ -134,4 +136,32 @@ public class LambdaObjTagITCase extends BaseMultiTaintClass {
 		Assert.assertTrue(staticRunnableMethodRan);
 	}
 
+	@Test
+	public void directConstructorReference() throws Throwable {
+		Constructor<MethodHandles.Lookup> constructor =
+				MethodHandles.Lookup.class.getDeclaredConstructor(Class.class, int.class);
+		constructor.setAccessible(true);
+		MethodHandles.Lookup lookup = constructor.newInstance(
+				String.class,
+				-1 // Lookup.TRUSTED
+		);
+		MethodHandles.Lookup caller = lookup.in(String.class);
+		MethodHandle handle = caller.findConstructor(
+				String.class, MethodType.methodType(void.class, char[].class, boolean.class)
+		);
+		CallSite callSite = LambdaMetafactory.metafactory(
+				caller,
+				"apply",
+				MethodType.methodType(BiFunction.class),
+				handle.type().generic(),
+				handle,
+				handle.type()
+		);
+		@SuppressWarnings("unchecked")
+		BiFunction<char[], Boolean, String> f =
+				(BiFunction<char[], Boolean, String>) callSite.getTarget().invokeExact();
+		char[] values = new char[]{'h', 'e', 'l', 'l', 'o'};
+		String result = f.apply(values, true);
+		Assert.assertEquals("hello", result);
+	}
 }
