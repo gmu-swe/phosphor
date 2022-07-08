@@ -28,6 +28,7 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
         this.fixLdcClass = (version & 0xFFFF) < Opcodes.V1_5;
         this.className = name;
         this.skip = className.contains("$$Lambda$")
+                || className.startsWith("sun/reflect/Generated")
                 || className.equals("java/lang/ClassCircularityError")
                 || className.equals("java/lang/LinkageError")
                 || className.equals("java/lang/Error");

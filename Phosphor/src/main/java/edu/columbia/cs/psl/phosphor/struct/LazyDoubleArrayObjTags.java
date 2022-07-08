@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 import java.io.IOException;
@@ -36,8 +37,8 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_DOUBLE_ARRAY_SET)
-    public void set(Taint referenceTaint, int idx, Taint idxTag, double val, Taint tag) {
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, null));
+    public void set(int idx, double val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
+        set(idx, val, Configuration.derivedTaintListener.arraySet(this, idx, val, idxTaint, valTaint, stackFrame));
     }
 
     @Override
@@ -56,21 +57,22 @@ public final class LazyDoubleArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_DOUBLE_ARRAY_GET)
-    public TaintedDoubleWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedDoubleWithObjTag ret) {
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+    public double get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
+        return Configuration.derivedTaintListener.arrayGet(this, idx, idxTaint, ret);
     }
 
-    public static LazyDoubleArrayObjTags factory(Taint referenceTaint, double[] array) {
+    public static LazyDoubleArrayObjTags factory(double[] array) {
         if(array == null) {
             return null;
         }
-        return new LazyDoubleArrayObjTags(referenceTaint, array);
+        return new LazyDoubleArrayObjTags(array);
     }
 
-    public TaintedDoubleWithObjTag get(int idx, TaintedDoubleWithObjTag ret) {
-        ret.val = val[idx];
-        ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
+    public static LazyDoubleArrayObjTags factory(double[] array, Taint lengthTaint) {
+        if(array == null) {
+            return null;
+        }
+        return new LazyDoubleArrayObjTags(lengthTaint, array);
     }
 
     public int getLength() {

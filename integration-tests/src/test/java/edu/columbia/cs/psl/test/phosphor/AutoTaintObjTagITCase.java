@@ -39,6 +39,25 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		a[0] = 2;
 	}
 
+	public static void main(String[] args) {
+		AutoTaintObjTagITCase t = new AutoTaintObjTagITCase();
+		//t.sink(t.source());
+
+		t.test();
+	}
+
+	private void test(){
+		TaintThroughExample ex = new TaintThroughExample();
+		ex = MultiTainter.taintedReference(ex, Taint.withLabel("Test"));
+
+		int[] ar = new int[10];
+
+		ex.taintBackToArgs(ar);
+
+		System.out.println(MultiTainter.getTaint(ar[0]));
+		System.out.println(MultiTainter.getTaint(ar[1]));
+	}
+
 	public int exceptionCatchingSink(int i) {
 		try {
 			int[] arr = new int[1];

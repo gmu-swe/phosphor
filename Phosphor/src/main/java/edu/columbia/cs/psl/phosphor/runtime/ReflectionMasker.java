@@ -8,10 +8,12 @@ import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.Type;
 import sun.misc.Unsafe;
+import sun.reflect.misc.ConstructorUtil;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.*;
@@ -25,8 +27,6 @@ public class ReflectionMasker {
     private static final int multiDDescriptorLength = multiDDescriptor.length();
     private static final char[] SET_TAG_METHOD_CHARS = "setPHOSPHOR_TAG".toCharArray();
     private static final int SET_TAG_METHOD_LEN = SET_TAG_METHOD_CHARS.length;
-    private static final char[] METHOD_SUFFIX_CHARS = TaintUtils.METHOD_SUFFIX.toCharArray();
-    private static final int METHOD_SUFFIX_LEN = METHOD_SUFFIX_CHARS.length;
 
     static {
         System.setSecurityManager(null);
@@ -37,39 +37,18 @@ public class ReflectionMasker {
     }
 
     @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag getObject$$PHOSPHORTAGGED(Unsafe u, Taint uT, Object obj, Taint<?> tag, long offset, Taint oT, ControlFlowStack ctrl, TaintedReferenceWithObjTag ret, Object e) {
-        RuntimeUnsafePropagator.getObject$$PHOSPHORTAGGED(u, uT, obj, tag, offset, oT, ret, e);
-        return ret;
-    }
-
-    @SuppressWarnings("unused")
-    public static TaintedReferenceWithObjTag getObject$$PHOSPHORTAGGED(Unsafe u, Taint unsafeTaint, Object obj, Taint<?> tag, long offset, Taint offsetTag, TaintedReferenceWithObjTag ret, Object e) {
-        RuntimeUnsafePropagator.getObject$$PHOSPHORTAGGED(u, unsafeTaint, obj, tag, offset, offsetTag, ret, e);
-        return ret;
-    }
-
-    @SuppressWarnings("unused")
-    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Taint unsafetaint, Object obj, Taint<?> tag, long fieldOffset, Taint offsetTag, Object val, Taint valTaint, ControlFlowStack ctrl) {
-        RuntimeUnsafePropagator.putObject$$PHOSPHORTAGGED(u, unsafetaint, obj, tag, fieldOffset, offsetTag, val, valTaint);
-    }
-
-    @SuppressWarnings("unused")
-    public static void putObject$$PHOSPHORTAGGED(Unsafe u, Taint unsafetaint, Object obj, Taint<?> tag, long fieldOffset, Taint offsetTag, Object val, Taint valTaint) {
-        //TODO go straight to runtimeunsafeprop instead?
-        RuntimeUnsafePropagator.putObject$$PHOSPHORTAGGED(u, unsafetaint, obj, tag, fieldOffset, offsetTag, val, valTaint);
-    }
-
-
-    @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = IS_INSTANCE)
-    public static TaintedBooleanWithObjTag isInstance(Class<?> c1, Taint c1Taint, Object o, Taint oTaint, TaintedBooleanWithObjTag ret) {
-        ret.taint = null;
-        if(o instanceof LazyArrayObjTags && !LazyArrayObjTags.class.isAssignableFrom(c1)) {
-            ret.val = c1.isInstance(MultiDTaintedArrayWithObjTag.unboxRaw(o));
-        } else {
-            ret.val = c1.isInstance(o);
+    public static boolean isInstance(Class<?> c1, Object o, PhosphorStackFrame phosphorStackFrame) {
+        phosphorStackFrame.returnTaint = Taint.emptyTaint();
+        Object wrappedVersion = phosphorStackFrame.wrappedArgs[0];
+        if(wrappedVersion != null){
+            return c1.isInstance(wrappedVersion);
         }
-        return ret;
+        if(o instanceof LazyArrayObjTags && !LazyArrayObjTags.class.isAssignableFrom(c1)) {
+            return c1.isInstance(MultiDTaintedArrayWithObjTag.unboxRaw(o));
+        } else {
+            return c1.isInstance(o);
+        }
     }
 
     @SuppressWarnings("unused")
@@ -93,480 +72,74 @@ public class ReflectionMasker {
         return (!c.isArray() && !c.isPrimitive()) || isWrappedErasedType(c);
     }
 
-
-    private static Constructor getTaintConstructor(Constructor m, boolean controlTracking) {
-        final char[] chars = m.getName().toCharArray();
-        ArrayList<Class> newArgs = new ArrayList<>();
-        boolean madeChange = true;
-        madeChange = true;
-        newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
-        LinkedList<Class> wrappedArgs = new LinkedList<>();
-        for(final Class c : m.getParameterTypes()) {
-            if(c.isArray()) {
-                if(!c.getComponentType().isArray()) {
-                    // 1d array
-                    madeChange = true;
-                    newArgs.add(MultiDTaintedArray.getUnderlyingBoxClassForUnderlyingClass(c));
-                } else {
-                    Class elementType = c.getComponentType();
-                    while(elementType.isArray()) {
-                        elementType = elementType.getComponentType();
-                    }
-                    madeChange = true;
-                    try {
-                        newArgs.add(Class.forName(MultiDTaintedArray.getTypeForType(Type.getType(c)).getInternalName()));
-                    } catch(ClassNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } else {
-                madeChange = true;
-                newArgs.add(c);
-            }
-            if(isWrappedErasedType(c)) {
-                wrappedArgs.add(c);
-            }
-            newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
-        }
-        if(controlTracking) {
-            newArgs.add(ControlFlowStack.class);
-        }
-        newArgs.addAll(wrappedArgs);
-        Class[] args = new Class[newArgs.size()];
-        newArgs.toArray(args);
-        Constructor ret = null;
-        try {
-            ret = m.getDeclaringClass().getDeclaredConstructor(args);
-        } catch (NoSuchMethodException | SecurityException e) {
-            e.printStackTrace();
-        }
-        return ret;
-    }
-
-
-    private static Method getTaintMethod(Method m, boolean controlTracking) {
-        if(isMarked(m) && getCachedMethod(m) != null) {
-            return m;
-        } else if(!isMarked(m) && getCachedMethod(m) != null) {
-            return getCachedMethod(m);
-        } else if(m.getDeclaringClass().isAnnotation()) {
-            return m;
-        }
-        final char[] chars = m.getName().toCharArray();
-        if(chars.length > METHOD_SUFFIX_LEN) {
-            boolean isEq = true;
-            int x = 0;
-            for(int i = chars.length - METHOD_SUFFIX_LEN; i < chars.length; i++) {
-                if(chars[i] != METHOD_SUFFIX_CHARS[x]) {
-                    isEq = false;
-                }
-                x++;
-            }
-            if(isEq) {
-                if(!IS_KAFFE) {
-                    setMark(m, true);
-                }
-                return m;
-            }
-        }
-        ArrayList<Class> newArgs = new ArrayList<>();
-        boolean madeChange = false;
-        if(!Modifier.isStatic(m.getModifiers())) {
-            madeChange = true;
-            newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
-        }
-        LinkedList<Class> wrappedArgs = new LinkedList<>();
-        for(final Class c : m.getParameterTypes()) {
-            if(c.isArray()) {
-                if(!c.getComponentType().isArray()) {
-                    // 1d array
-                    madeChange = true;
-                    newArgs.add(MultiDTaintedArray.getUnderlyingBoxClassForUnderlyingClass(c));
-                } else {
-                    Class elementType = c.getComponentType();
-                    while(elementType.isArray()) {
-                        elementType = elementType.getComponentType();
-                    }
-                    madeChange = true;
-                    try {
-                        newArgs.add(Class.forName(MultiDTaintedArray.getTypeForType(Type.getType(c)).getInternalName()));
-                    } catch(ClassNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } else {
-                madeChange = true;
-                newArgs.add(c);
-            }
-            if(isWrappedErasedType(c)) {
-                wrappedArgs.add(c);
-            }
-            newArgs.add(Configuration.TAINT_TAG_OBJ_CLASS);
-        }
-        if (isErasedReturnType(m.getReturnType())) {
-            wrappedArgs.add(m.getReturnType());
-        }
-        if(controlTracking) {
-            newArgs.add(ControlFlowStack.class);
-        }
-        final Class returnType = m.getReturnType();
-        if(returnType != Void.TYPE) {
-            if(returnType == Integer.TYPE) {
-                newArgs.add(TaintedIntWithObjTag.class);
-            } else if(returnType == Short.TYPE) {
-                newArgs.add(TaintedShortWithObjTag.class);
-            } else if(returnType == Float.TYPE) {
-                newArgs.add(TaintedFloatWithObjTag.class);
-            } else if(returnType == Double.TYPE) {
-                newArgs.add(TaintedDoubleWithObjTag.class);
-            } else if(returnType == Long.TYPE) {
-                newArgs.add(TaintedLongWithObjTag.class);
-            } else if(returnType == Character.TYPE) {
-                newArgs.add(TaintedCharWithObjTag.class);
-            } else if(returnType == Byte.TYPE) {
-                newArgs.add(TaintedByteWithObjTag.class);
-            } else if(returnType == Boolean.TYPE) {
-                newArgs.add(TaintedBooleanWithObjTag.class);
-            } else {
-                newArgs.add(TaintedReferenceWithObjTag.class);
-            }
-            madeChange = true;
-        }
-        newArgs.addAll(wrappedArgs);
-        if(madeChange) {
-            Class[] args = new Class[newArgs.size()];
-            newArgs.toArray(args);
-            Method ret = null;
-            try {
-                ret = m.getDeclaringClass().getDeclaredMethod(m.getName() + TaintUtils.METHOD_SUFFIX, args);
-            } catch(NoSuchMethodException | SecurityException e) {
-                e.printStackTrace();
-            }
-            setMark(ret, true);
-            setCachedMethod(m, ret);
-            setCachedMethod(ret, m);
-            return ret;
-        } else {
-            setMark(m, false);
-            setCachedMethod(m, m);
-            return m;
-        }
-    }
-
-    /* Returns the original list of the parameters for a method that would produce a phosphor-added method with the specified
-     * tainted parameters. */
-    private static ArrayList<Class<?>> getOriginalParamTypes(Class<?>[] taintedParamTypes) {
-        ArrayList<Class<?>> originalParamTypes = new ArrayList<>(taintedParamTypes.length);
-        SinglyLinkedList<Class<?>> originalWrappedTypes = new SinglyLinkedList<>();
-        for(int i = 1; i < taintedParamTypes.length; i++) { //start from 1 to skip the taint for THIS
-            Class<?> paramType = taintedParamTypes[i];
-            if(paramType.isArray()) {
-                originalWrappedTypes.enqueue(paramType);
-            } else if(paramType == LazyReferenceArrayObjTags.class) {
-                originalParamTypes.add(paramType);
-            } else if(LazyArrayObjTags.class.isAssignableFrom(paramType)) {
-                // Add the type of the 1D primitive array for which the current parameter is the taint array
-                originalParamTypes.add(TaintUtils.getUnwrappedClass(paramType));
-            } else if(!paramType.equals(ControlFlowStack.class)
-                    && !TaintedPrimitiveWithObjTag.class.isAssignableFrom(paramType) && !paramType.equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
-                // Add the type as is if it is not TaintSentinel, ControlFlowStack or a TaintedPrimitiveWithXTags
-                originalParamTypes.add(paramType);
-            }
-        }
-        for(int i = 0; i < originalParamTypes.size(); i++) {
-            if(originalParamTypes.get(i) == LazyReferenceArrayObjTags.class) {
-                originalParamTypes.set(i, originalWrappedTypes.dequeue());
-            }
-        }
-        return originalParamTypes;
-    }
-
-    /**
-     * Called for Class.getConstructor and Class.getDeclaredConstructor to remap the parameter types.
-     */
-    @SuppressWarnings("unused")
-    @InvokedViaInstrumentation(record = ADD_TYPE_PARAMS)
-    public static LazyReferenceArrayObjTags addTypeParams(Class<?> clazz, LazyReferenceArrayObjTags params, boolean implicitTracking) {
-        if(isIgnoredClass(clazz) || params == null || params.val == null) {
-            return params;
-        }
-        boolean needsChange = true;
-        ArrayList<Class<?>> newParams = new ArrayList<>();
-        newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
-        LinkedList<Class<?>> wrapped = new LinkedList<>();
-        for(Class<?> c : (Class[]) params.val) {
-            if (c.equals(Taint.class)) {
-                return params;
-            }
-            Type t = Type.getType(c);
-            if(t.getSort() == Type.ARRAY) {
-                newParams.add(MultiDTaintedArray.getUnderlyingBoxClassForUnderlyingClass(c));
-                newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
-                if(isWrappedErasedType(c)) {
-                    wrapped.add(c);
-                }
-                continue;
-            }
-            newParams.add(c);
-            newParams.add(Configuration.TAINT_TAG_OBJ_CLASS);
-        }
-        if(implicitTracking) {
-            newParams.add(ControlFlowStack.class);
-        }
-        newParams.addAll(wrapped);
-        Class[] ret = new Class[newParams.size()];
-        newParams.toArray(ret);
-        return new LazyReferenceArrayObjTags(ret);
-    }
-
-    @SuppressWarnings("unused")
-    @InvokedViaInstrumentation(record = GET_DECLARED_METHOD)
-    public static TaintedReferenceWithObjTag getDeclaredMethod(Class<?> czz, Taint czzTaint, String name, Taint nameTaint, LazyReferenceArrayObjTags params, Taint paramsTaint, TaintedReferenceWithObjTag ret, Class[] unused, Method unusedM) throws NoSuchMethodException {
-        ret.taint = Taint.emptyTaint();
-        ret.val = checkForSyntheticObjectMethod(czz.getDeclaredMethod(name, (params == null ? null : (Class[]) params.val)), true);
-        return ret;
-    }
-
-    @SuppressWarnings("unused")
-    @InvokedViaInstrumentation(record = GET_METHOD)
-    public static TaintedReferenceWithObjTag getMethod(Class<?> czz, Taint czzTaint, String name, Taint nameTaint, LazyReferenceArrayObjTags params, Taint paramsTaint, TaintedReferenceWithObjTag ret, Class[] unused, Method unusedM) throws NoSuchMethodException {
-        ret.taint = Taint.emptyTaint();
-        ret.val = checkForSyntheticObjectMethod(czz.getMethod(name, (params == null ? null : (Class[]) params.val)), false);
-        return ret;
-    }
-
-    /* If the specified method is a synthetic hashCode or equals method added by Phosphor and declaredOnly is true,
-     * finds and returns a suitable replacement for the method. If the specified method is a synthetic hashCode or
-     * equals method added by Phosphor and declaredOnly is false, throws a NoSuchMethodException. */
-    private static Method checkForSyntheticObjectMethod(Method m, boolean declaredOnly) throws NoSuchMethodException {
-        if(m.isSynthetic()) {
-            if("equals".equals(m.getName())) {
-                if(declaredOnly) {
-                    throw new NoSuchMethodException();
-                } else {
-                    return ObjectMethods.EQUALS.method;
-                }
-            } else if("hashCode".equals(m.getName())) {
-                if(declaredOnly) {
-                    throw new NoSuchMethodException();
-                } else {
-                    return ObjectMethods.HASH_CODE.method;
-                }
-            }
-        }
-        return m;
-    }
-
-    /* Returns true if the specified member was declared in a class ignored by Phosphor. */
-    private static boolean declaredInIgnoredClass(Member member) {
-        return member != null && member.getDeclaringClass() != null && isIgnoredClass(member.getDeclaringClass());
-    }
-
     /* Returns true if the specified class was ignored by Phosphor. */
     private static boolean isIgnoredClass(Class<?> clazz) {
         return clazz != null && (Instrumenter.isIgnoredClass(clazz.getName().replace('.', '/'))
                 || Object.class.equals(clazz));
     }
 
-    private static boolean isPrimitiveOrPrimitiveArray(Class<?> c) {
-        return c.isArray() ? isPrimitiveOrPrimitiveArray(c.getComponentType()) : c.isPrimitive();
+    @InvokedViaInstrumentation(record = FIX_ALL_ARGS)
+    public static Object[] fixAllArgs(Object[] args, Object receiver, PhosphorStackFrame phosphorStackFrame){
+        boolean isInstanceMethod = false;
+        if(receiver != null){
+            isInstanceMethod = true;
+            Taint thisTaint = phosphorStackFrame.getArgTaint(2);
+            phosphorStackFrame.setArgTaint(thisTaint, 0);
+        }
+        if(args != null) {
+            LazyReferenceArrayObjTags argTaints = (LazyReferenceArrayObjTags) phosphorStackFrame.getArgWrapper(2, args);
+            for (int i = 0; i < args.length; i++) {
+                if (args[i] instanceof LazyArrayObjTags) {
+                    phosphorStackFrame.setArgWrapper(args[i], i);
+                    args[i] = MultiDTaintedArray.unbox1DOrNull(args[i]);
+                }
+                if(argTaints.taints != null) {
+                    phosphorStackFrame.setArgTaint(argTaints.taints[i], i + (isInstanceMethod ? 1 : 0));
+                }
+            }
+        }
+        return args;
     }
 
-    @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_CONSTRUCTOR)
-    public static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, TaintedReferenceWithObjTag prealloc, Object[] unused, Object alsoUnused) {
-        return fixAllArgs(c, cTaint, in, argstaint, prealloc, false, null, unused, alsoUnused);
-    }
-
-    @SuppressWarnings("unused")
-    @InvokedViaInstrumentation(record = FIX_ALL_ARGS_CONSTRUCTOR_CONTROL)
-    public static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused, Object alsoUnused) {
-        ctrl = ctrl.copyTop();
-        return fixAllArgs(c, cTaint, in, argstaint, prealloc, true, ctrl, unused, alsoUnused);
-    }
-
-    private static MethodInvoke fixAllArgs(Constructor c, Taint cTaint, LazyReferenceArrayObjTags in, Taint argstaint, TaintedReferenceWithObjTag prealloc, boolean implicitTracking,
-                                           ControlFlowStack ctrl, Object[] unused, Object alsoUnused) {
-        String cName = c.getDeclaringClass().getName();
-        if(c!= null && c.getParameterTypes() != null && System.out != null && (c.getParameterTypes().length == 0 || Taint.class != c.getParameterTypes()[0])){
-            //This is not the tainted constructor!
-            if (!declaredInIgnoredClass(c) && !c.getDeclaringClass().isSynthetic()) {
-                Constructor newC = getTaintConstructor(c, ctrl != null);
-                if(newC != null){
-                    newC.setAccessible(true);
-                    c = newC;
+    public static Object[] fixAllArgsConstructor(Object[] args, PhosphorStackFrame phosphorStackFrame){
+        if(args != null) {
+            LazyReferenceArrayObjTags argTaints = (LazyReferenceArrayObjTags) phosphorStackFrame.getArgWrapper(1, args);
+            for (int i = 0; i < args.length; i++) {
+                if (args[i] instanceof LazyArrayObjTags) {
+                    phosphorStackFrame.setArgWrapper(args[i], i);
+                    args[i] = MultiDTaintedArray.unbox1DOrNull(args[i]);
+                }
+                if(argTaints.taints != null) {
+                    phosphorStackFrame.setArgTaint(argTaints.taints[i], i + 1); //+1 to account for "this" taint
                 }
             }
+            Taint thisTaint = phosphorStackFrame.getArgTaint(0);
+            phosphorStackFrame.setArgTaint(thisTaint, 0);
+        }
+        return args;
+    }
 
-        }
-        MethodInvoke ret = new MethodInvoke();
-        ret.c = c;
-        ret.c_taint = cTaint;
-        ret.a_taint = argstaint;
-        ret.prealloc = prealloc;
-        ret.a = in;
-        if(declaredInIgnoredClass(c)) {
-            if(in != null) {
-                ret.a.val = getOriginalParams(c.getParameterTypes(), in.val);
-            }
-            return ret;
-        }
-        if(c == null) {
-            return ret;
-        } else if(in == null || in.val == null || c.getParameterTypes().length != in.val.length) {
-            ret.a = new LazyReferenceArrayObjTags(new Object[c.getParameterTypes().length]);
-            fillInParams(ret.a, in, c.getParameterTypes());
-            if(implicitTracking && ret.a.val.length > 0) {
-                ret.a.val[ret.a.val.length - 1] = ctrl;
-            }
-            return ret;
-        } else if(in == null && c.getParameterTypes().length == 1) {
-            ret.a = new LazyReferenceArrayObjTags(new Object[1]);
-            ret.a.val[0] = Taint.emptyTaint();
-            return ret;
-        } else if(in == null && c.getParameterTypes().length == 2) {
-            ret.a = new LazyReferenceArrayObjTags(new Object[2]);
-            ret.a.val[0] = Taint.emptyTaint();
-            ret.a.val[1] = implicitTracking ? ctrl : Configuration.controlFlowManager.getStack(false);
-            return ret;
+    @InvokedViaInstrumentation(record =  UNWRAP_RETURN)
+    public static Object unwrapReturn(Object ret, PhosphorStackFrame phosphorStackFrame){
+        if(ret instanceof byte[]){
+            return phosphorStackFrame.getReturnWrapper((byte[]) ret);
+        } else if(ret instanceof boolean[]){
+            return phosphorStackFrame.getReturnWrapper((boolean[]) ret);
+        } else if(ret instanceof char[]){
+            return phosphorStackFrame.getReturnWrapper((char[]) ret);
+        }else if(ret instanceof short[]){
+            return phosphorStackFrame.getReturnWrapper((short[]) ret);
+        } else if(ret instanceof int[]){
+            return phosphorStackFrame.getReturnWrapper((int[]) ret);
+        }else if(ret instanceof float[]){
+            return phosphorStackFrame.getReturnWrapper((float[]) ret);
+        }else if(ret instanceof double[]){
+            return phosphorStackFrame.getReturnWrapper((double[]) ret);
+        }else if(ret instanceof Object[]){
+            return phosphorStackFrame.getReturnWrapper((Object[]) ret);
         }
         return ret;
-    }
-
-    /**
-     * Returns an array of objects derived from the specified array of tainted parameters that match the specified
-     * arrayof types.
-     */
-    private static Object[] getOriginalParams(Class<?>[] types, Object[] taintedParams) {
-        Object[] originalParams = new Object[types.length];
-        for(int i = 0; i < types.length; i++) {
-            if(types[i].isPrimitive()) {
-                if(taintedParams[i] instanceof TaintedPrimitiveWithObjTag) {
-                    originalParams[i] = ((TaintedPrimitiveWithObjTag) taintedParams[i]).toPrimitiveType();
-                } else {
-                    originalParams[i] = taintedParams[i];
-                }
-            } else if(types[i].isArray()) {
-                Object obj = MultiDTaintedArray.maybeUnbox(taintedParams[i]);
-                originalParams[i] = obj;
-
-            } else {
-                originalParams[i] = taintedParams[i];
-            }
-        }
-        return originalParams;
-    }
-
-    @SuppressWarnings("unused")
-    @InvokedViaInstrumentation(record = FIX_ALL_ARGS_METHOD)
-    public static MethodInvoke fixAllArgs(Method m, Taint mTaint, Object owner, Taint ownerTaint, LazyReferenceArrayObjTags in, Taint inTaint, TaintedReferenceWithObjTag prealloc, Object[] unused, Object alsoUnused) {
-        MethodInvoke ret = new MethodInvoke();
-        ret.m_taint = mTaint;
-        ret.o_taint = ownerTaint;
-        ret.a_taint = inTaint;
-        ret.prealloc = prealloc;
-        if(m == null || declaredInIgnoredClass(m)) {
-            ret.a = in;
-            ret.o = owner;
-            ret.m = m;
-            return ret;
-        }
-        m.setAccessible(true);
-        if((!isMarked(m)) && !"java.lang.Object".equals(m.getDeclaringClass().getName())) {
-            m = getTaintMethod(m, false);
-        }
-        m.setAccessible(true);
-        ret.o = owner;
-        ret.m = m;
-        if(in == null || m.getParameterTypes().length != in.val.length) {
-            ret.a = new LazyReferenceArrayObjTags(new Object[ret.m.getParameterTypes().length]);
-        } else {
-            ret.a = in;
-        }
-        int j = fillInParams(ret.a, in, ret.m.getParameterTypes());
-
-        final Class returnType = m.getReturnType();
-        if(TaintedPrimitiveWithObjTag.class.isAssignableFrom(returnType)) {
-            try {
-                ret.a.val[j] = returnType.newInstance();
-            } catch(InstantiationException | IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        }
-        return ret;
-    }
-
-    /**
-     * The instrumentation may add calls to this method.
-     */
-    @SuppressWarnings("unused")
-    @InvokedViaInstrumentation(record = FIX_ALL_ARGS_METHOD_CONTROL)
-    public static MethodInvoke fixAllArgs(Method m, Taint mTaint, Object owner, Taint ownerTaint, LazyReferenceArrayObjTags in, Taint inTaint, ControlFlowStack ctrl, TaintedReferenceWithObjTag prealloc, Object[] unused, Object alsoUnused) {
-        MethodInvoke ret = new MethodInvoke();
-        ret.m_taint = mTaint;
-        ret.o_taint = ownerTaint;
-        ret.a_taint = inTaint;
-        ret.prealloc = prealloc;
-        if(m == null || declaredInIgnoredClass(m)) {
-            ret.a = in;
-            ret.o = owner;
-            ret.m = m;
-            return ret;
-        }
-        m.setAccessible(true);
-        if((!isMarked(m)) && !"java.lang.Object".equals(m.getDeclaringClass().getName())) {
-            m = getTaintMethod(m, true);
-        }
-        m.setAccessible(true);
-        ret.o = owner;
-        ret.m = m;
-        if(in == null || m.getParameterTypes().length != in.val.length) {
-            ret.a = new LazyReferenceArrayObjTags(new Object[ret.m.getParameterTypes().length]);
-        } else {
-            ret.a = in;
-        }
-        int j = fillInParams(ret.a, in, ret.m.getParameterTypes());
-
-        if(ret.a.val.length > 0) {
-            ret.a.val[j] = ctrl;
-            j++;
-        }
-
-        final Class returnType = m.getReturnType();
-        if(TaintedPrimitiveWithObjTag.class.isAssignableFrom(returnType)) {
-            try {
-                ret.a.val[j] = returnType.newInstance();
-            } catch(InstantiationException | IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        }
-        return ret;
-    }
-
-    /**
-     * Adds arguments to the target argument array from the specified array of provided arguments based on the
-     * specified expected parameter types. Returns the number of arguments added.
-     */
-    private static int fillInParams(LazyReferenceArrayObjTags targetArgs, LazyReferenceArrayObjTags providedArgs, Class<?>[] paramTypes) {
-        int targetParamIndex = 0;
-        if(paramTypes.length > 0 && paramTypes[0] == Configuration.TAINT_TAG_OBJ_CLASS) {
-            targetArgs.val[targetParamIndex] = Taint.emptyTaint();
-            targetParamIndex++;
-        }
-        if(providedArgs != null) {
-            int idx = 0;
-            for(Object providedArg : providedArgs.val) {
-                // Class<?> targetParamClass = paramTypes[targetParamIndex];
-                targetArgs.val[targetParamIndex++] = providedArg;
-                if(providedArgs.taints == null) {
-                    targetArgs.val[targetParamIndex++] = Taint.emptyTaint();
-                } else {
-                    targetArgs.val[targetParamIndex++] = providedArgs.taints[idx];
-                }
-                idx++;
-            }
-        }
-        return targetParamIndex;
     }
 
     /**
@@ -580,40 +153,6 @@ public class ReflectionMasker {
         // } else {
         //     return getOriginalClass(obj.getClass());
         // }
-    }
-
-    @SuppressWarnings("unused")
-    @InvokedViaInstrumentation(record = GET_ORIGINAL_METHOD)
-    public static Method getOriginalMethod(Method m) {
-        if(getCachedMethod(m) != null && isMarked(m)) {
-            return getCachedMethod(m);
-        }
-        return m;
-    }
-
-    @SuppressWarnings("unused")
-    @InvokedViaInstrumentation(record = GET_ORIGINAL_CONSTRUCTOR)
-    public static Constructor<?> getOriginalConstructor(Constructor<?> cons) {
-        if(declaredInIgnoredClass(cons)) {
-            return cons;
-        }
-        boolean hasSentinel = false;
-        for(Class<?> clazz : cons.getParameterTypes()) {
-            if(clazz.equals(Configuration.TAINT_TAG_OBJ_CLASS)) {
-                hasSentinel = true;
-                break;
-            }
-        }
-        if(hasSentinel) {
-            Class<?>[] origParams = getOriginalParamTypes(cons.getParameterTypes()).toArray(new Class<?>[0]);
-            try {
-                return cons.getDeclaringClass().getDeclaredConstructor(origParams);
-            } catch(NoSuchMethodException | SecurityException e) {
-                return cons;
-            }
-        } else {
-            return cons;
-        }
     }
 
     @SuppressWarnings("unused")
@@ -671,8 +210,7 @@ public class ReflectionMasker {
      */
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = REMOVE_TAINTED_FIELDS)
-    public static TaintedReferenceWithObjTag removeTaintedFields(TaintedReferenceWithObjTag _in) {
-        Field[] in = (Field[]) ((LazyReferenceArrayObjTags) _in.val).val;
+    public static Field[] removeTaintedFields(Field[] in) {
         SinglyLinkedList<Field> ret = new SinglyLinkedList<>();
         boolean removeSVUIDField = containsSVUIDSentinelField(in);
         for(Field f : in) {
@@ -683,8 +221,7 @@ public class ReflectionMasker {
                 ret.enqueue(f);
             }
         }
-        ((LazyReferenceArrayObjTags) _in.val).val = ret.toArray(new Field[ret.size()]);
-        return _in;
+        return ret.toArray(new Field[ret.size()]);
     }
 
     /**
@@ -707,8 +244,7 @@ public class ReflectionMasker {
      */
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = REMOVE_TAINTED_METHODS)
-    public static TaintedReferenceWithObjTag removeTaintedMethods(TaintedReferenceWithObjTag _in, boolean declaredOnly) {
-        Method[] in = (Method[]) ((LazyReferenceArrayObjTags) _in.val).val;
+    public static Method[] removeTaintedMethods(Method[] in) {
         SinglyLinkedList<Method> ret = new SinglyLinkedList<>();
         for(Method f : in) {
             final char[] chars = f.getName().toCharArray();
@@ -722,67 +258,33 @@ public class ReflectionMasker {
                     }
                 }
             }
-            if(!match && chars.length > METHOD_SUFFIX_LEN) {
-                int x = 0;
-                boolean matched = true;
-                for(int i = chars.length - METHOD_SUFFIX_LEN; i < chars.length; i++) {
-                    if(chars[i] != METHOD_SUFFIX_CHARS[x]) {
-                        matched = false;
-                        break;
-                    }
-                    x++;
-                }
-                if(!matched) {
-                    ret.enqueue(f);
-                }
-            } else if(!match) {
-                // Check for synthetic hashCode and equals methods added by Phosphor
-                if(f.isSynthetic()) {
-                    if(chars.length == 6 && chars[0] == 'e' && chars[1] == 'q' && chars[2] == 'u' && chars[3] == 'a'
-                            && chars[4] == 'l' && chars[5] == 's') {
-                        if(!declaredOnly) {
-                            ret.enqueue(ObjectMethods.EQUALS.method);
-                        }
-                        continue;
-                    } else if(chars.length == 8 && chars[0] == 'h' && chars[1] == 'a' && chars[2] == 's'
-                            && chars[3] == 'h' && chars[4] == 'C' && chars[5] == 'o' && chars[6] == 'd'
-                            && chars[7] == 'e') {
-                        if(!declaredOnly) {
-                            ret.enqueue(ObjectMethods.HASH_CODE.method);
-                        }
-                        continue;
-                    }
-                }
+            if(!match) {
                 ret.enqueue(f);
             }
         }
-        ((LazyReferenceArrayObjTags) _in.val).val = ret.toArray(new Method[ret.size()]);
-        return _in;
+        return ret.toArray(new Method[ret.size()]);
     }
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = REMOVE_TAINTED_CONSTRUCTORS)
-    public static TaintedReferenceWithObjTag removeTaintedConstructors(TaintedReferenceWithObjTag _in) {
+    public static Constructor[] removeTaintedConstructors(Constructor[] in) {
         SinglyLinkedList<Constructor<?>> ret = new SinglyLinkedList<>();
-        LazyReferenceArrayObjTags ar = (LazyReferenceArrayObjTags) _in.val;
-        for(Constructor<?> f : (((Constructor<?>[]) ar.val))) {
+        for(Constructor<?> f : in) {
             Class<?>[] params = f.getParameterTypes();
             if(params.length == 0 || !(params[0].equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
                 ret.enqueue(f);
             }
         }
-        ar.val = ret.toArray(new Constructor<?>[ret.size()]);
-        return _in;
+        return ret.toArray(new Constructor<?>[ret.size()]);
     }
 
     @SuppressWarnings({"rawtypes", "unused"})
     @InvokedViaInstrumentation(record = REMOVE_TAINTED_INTERFACES)
-    public static TaintedReferenceWithObjTag removeTaintedInterfaces(TaintedReferenceWithObjTag _in) {
-        if(_in.val == null) {
+    public static Class[] removeTaintedInterfaces(Class[] in) {
+        if(in == null) {
             return null;
         }
         boolean found = false;
-        Class[] in = (Class[]) ((LazyReferenceArrayObjTags) _in.val).val;
         for(Class aClass : in) {
             if(aClass.equals(TaintedWithObjTag.class)) {
                 found = true;
@@ -790,7 +292,7 @@ public class ReflectionMasker {
             }
         }
         if(!found) {
-            return _in;
+            return in;
         }
         Class[] ret = new Class[in.length - 1];
         int idx = 0;
@@ -800,19 +302,17 @@ public class ReflectionMasker {
                 idx++;
             }
         }
-        ((LazyReferenceArrayObjTags) _in.val).val = ret;
-        return _in;
+        return ret;
     }
 
     @SuppressWarnings({"rawtypes", "unused"})
     @InvokedViaInstrumentation(record = REMOVE_EXTRA_STACK_TRACE_ELEMENTS)
-    public static TaintedReferenceWithObjTag removeExtraStackTraceElements(TaintedReferenceWithObjTag _in, Class<?> clazz) {
-        int depthToCut = 0;
-        String toFind = clazz.getName();
-        StackTraceElement[] in = (StackTraceElement[]) ((LazyReferenceArrayObjTags) _in.val).val;
+    public static StackTraceElement[] removeExtraStackTraceElements(StackTraceElement[] in, Class<?> clazz) {
         if(in == null) {
             return null;
         }
+        int depthToCut = 0;
+        String toFind = clazz.getName();
 
         for(int i = 0; i < in.length; i++) {
             if(in[i].getClassName().equals(toFind) && !(i + 1 < in.length && in[i + 1].getClassName().equals(toFind))) {
@@ -822,14 +322,27 @@ public class ReflectionMasker {
         }
         StackTraceElement[] ret = new StackTraceElement[in.length - depthToCut];
         System.arraycopy(in, depthToCut, ret, 0, ret.length);
-        ((LazyReferenceArrayObjTags) _in.val).val = ret;
-        return _in;
+        return ret;
     }
 
-    @InvokedViaInstrumentation(record = ENUM_VALUE_OF)
-    public static TaintedReferenceWithObjTag propagateEnumValueOf(TaintedReferenceWithObjTag ret, Taint<?> tag) {
-        ret.taint = tag; //TODO also from string?
-        return ret;
+    @InvokedViaInstrumentation(record = PREPARE_FOR_CALL_REFLECTIVE)
+    public static void prepareForCall(Method m, PhosphorStackFrame phosphorStackFrame){
+        int nArgs = m.getParameterTypes().length;
+        String desc = Type.getMethodDescriptor(m);
+        phosphorStackFrame.intendedNextMethodDebug = m.getName()+desc.substring(0, 1+desc.indexOf(')'));
+        phosphorStackFrame.intendedNextMethodFast = PhosphorStackFrame.hashForDesc(phosphorStackFrame.intendedNextMethodDebug);
+        Thread.currentThread().phosphorStackFrame = phosphorStackFrame;
+    }
+
+    @InvokedViaInstrumentation(record = PREPARE_FOR_CALL_REFLECTIVE_CONSTRUCTOR)
+    public static void prepareForCall(Constructor m, PhosphorStackFrame phosphorStackFrame){
+        if(!PhosphorStackFrame.isInitialized()){
+            return;
+        }
+        String desc = Type.getConstructorDescriptor(m);
+        phosphorStackFrame.intendedNextMethodDebug = "<init>"+desc.substring(0, 1+desc.indexOf(')'));
+        phosphorStackFrame.intendedNextMethodFast = PhosphorStackFrame.hashForDesc(phosphorStackFrame.intendedNextMethodDebug);
+        Thread.currentThread().phosphorStackFrame = phosphorStackFrame;
     }
 
     private static Method getCachedMethod(Method method) {

@@ -40,16 +40,12 @@ public class PreMain {
     private PreMain() {
         // Prevents this class from being instantiated
     }
-
-    public static void premain$$PHOSPHORTAGGED(String args, Instrumentation inst, ControlFlowStack ctrl) {
-        Configuration.IMPLICIT_TRACKING = true;
-        Configuration.init();
-        premain(args, inst);
-    }
+    private static String args;
 
     public static void premain(String args, Instrumentation inst) {
         inst.addTransformer(new ClassSupertypeReadingTransformer());
         RUNTIME_INST = true;
+        PreMain.args = args;
         if(args != null) {
             PhosphorOption.configure(true, parseArgs(args));
         }
@@ -94,7 +90,7 @@ public class PreMain {
         }
 
         @Override
-        public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined,
+        public byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined,
                                 ProtectionDomain protectionDomain, byte[] classfileBuffer) {
             ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer)
                     : new ClassReader(classfileBuffer));
@@ -200,16 +196,7 @@ public class PreMain {
             try {
                 try {
                     ClassWriter cw = new HackyClassWriter(null, ClassWriter.COMPUTE_MAXS);
-                    ClassVisitor _cv = new ClassVisitor(Opcodes.ASM7, cw) {
-                        @Override
-                        public MethodVisitor visitMethod(int access, String name, String descriptor, String signature,
-                                                         String[] exceptions) {
-                            if (name.endsWith("$PHOSPHORTAGGED$$PHOSPHORTAGGED")) {
-                                throw new IllegalArgumentException();
-                            }
-                            return super.visitMethod(access, name, descriptor, signature, exceptions);
-                        }
-                    };
+                    ClassVisitor _cv = cw;
                     if(traceClass) {
                         System.out.println("Saving " + className + " to debug-preinst/");
                         File f = new File("debug-preinst/" + className.replace("/", ".") +
@@ -274,7 +261,6 @@ public class PreMain {
                             //
                         }
                     }
-                    _cv = new HidePhosphorFromASMCV(_cv, upgradeVersion);
                     cr.accept(_cv, ClassReader.EXPAND_FRAMES);
                     byte[] instrumentedBytes = cw.toByteArray();
                     if (!traceClass && (DEBUG || TaintUtils.VERIFY_CLASS_GENERATION)) {
@@ -295,6 +281,20 @@ public class PreMain {
                                     ex2.printStackTrace();
                                 }
                                 System.out.println("Saved broken class to " + f);
+                            }
+                            System.out.println("Saving uninstrumented " + className + " to debug-preinst/");
+                            f = new File("debug-preinst/" + className.replace("/", ".") +
+                                    ".class");
+                            if (!f.getParentFile().isDirectory() && !f.getParentFile().mkdirs()) {
+                                System.err.println("Failed to make debug directory: " + f);
+                            } else {
+                                try {
+                                    FileOutputStream fos = new FileOutputStream(f);
+                                    fos.write(classFileBuffer);
+                                    fos.close();
+                                } catch (Exception ex2) {
+                                    ex2.printStackTrace();
+                                }
                             }
                         }
                     }

@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 import java.io.IOException;
@@ -36,8 +37,8 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_SHORT_ARRAY_SET)
-    public void set(Taint referenceTaint, int idx, Taint idxTag, short val, Taint tag) {
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, null));
+    public void set(int idx, short val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
+        set(idx, val, Configuration.derivedTaintListener.arraySet(this, idx, val, idxTaint, valTaint, stackFrame));
     }
 
     @Override
@@ -56,22 +57,24 @@ public final class LazyShortArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_SHORT_ARRAY_GET)
-    public TaintedShortWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedShortWithObjTag ret) {
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+    public short get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
+        return Configuration.derivedTaintListener.arrayGet(this, idx, idxTaint, ret);
     }
 
-    public static LazyShortArrayObjTags factory(Taint referenceTaint, short[] array) {
+    public static LazyShortArrayObjTags factory(short[] array) {
         if(array == null) {
             return null;
         }
-        return new LazyShortArrayObjTags(referenceTaint, array);
+        return new LazyShortArrayObjTags(array);
     }
 
-    public TaintedShortWithObjTag get(int idx, TaintedShortWithObjTag ret) {
-        ret.val = val[idx];
-        ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
+    public static LazyShortArrayObjTags factory(short[] array, Taint lengthTaint) {
+        if(array == null) {
+            return null;
+        }
+        return new LazyShortArrayObjTags(lengthTaint, array);
     }
+
 
     public int getLength() {
         return val.length;

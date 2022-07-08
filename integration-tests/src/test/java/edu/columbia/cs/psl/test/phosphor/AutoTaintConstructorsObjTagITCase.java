@@ -43,6 +43,11 @@ public class AutoTaintConstructorsObjTagITCase extends BasePhosphorTest {
         }
     }
 
+    public static void main(String[] args) {
+        char[] cs = MultiTainter.taintedCharArray(new char[]{'x', 'y'}, "testPrimitiveSinkConstructor");
+        new ExampleWithSinkConstructors(cs);
+    }
+
     /* Tests that a constructor that takes a char argument and is marked as source properly taints its non-primitive arguments. */
     @Test
     public void testPrimitiveSourceConstructor() {

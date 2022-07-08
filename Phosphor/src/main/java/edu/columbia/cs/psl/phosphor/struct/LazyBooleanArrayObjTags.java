@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 import java.io.IOException;
@@ -36,8 +37,8 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_BOOLEAN_ARRAY_SET)
-    public void set(Taint referenceTaint, int idx, Taint idxTag, boolean val, Taint tag) {
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, null));
+    public void set(int idx, boolean val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
+        set(idx, val, Configuration.derivedTaintListener.arraySet(this, idx, val, idxTaint, valTaint, stackFrame));
     }
 
     @Override
@@ -56,21 +57,22 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_BOOLEAN_ARRAY_GET)
-    public TaintedBooleanWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedBooleanWithObjTag ret) {
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+    public boolean get( int idx, Taint idxTaint, PhosphorStackFrame ret) {
+        return Configuration.derivedTaintListener.arrayGet(this, idx, idxTaint, ret);
     }
 
-    public static LazyBooleanArrayObjTags factory(Taint referenceTaint, boolean[] array) {
+    public static LazyBooleanArrayObjTags factory(boolean[] array) {
         if(array == null) {
             return null;
         }
-        return new LazyBooleanArrayObjTags(referenceTaint, array);
+        return new LazyBooleanArrayObjTags(array);
     }
 
-    public TaintedBooleanWithObjTag get(int idx, TaintedBooleanWithObjTag ret) {
-        ret.val = val[idx];
-        ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
+    public static LazyBooleanArrayObjTags factory(boolean[] array, Taint lengthTaint) {
+        if(array == null) {
+            return null;
+        }
+        return new LazyBooleanArrayObjTags(lengthTaint, array);
     }
 
     public int getLength() {

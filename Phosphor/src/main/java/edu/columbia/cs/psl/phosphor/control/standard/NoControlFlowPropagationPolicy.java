@@ -22,39 +22,14 @@ public class NoControlFlowPropagationPolicy extends AbstractControlFlowPropagati
 
     @Override
     public void visitingJump(int opcode, Label label) {
-        switch(opcode) {
-            case IFNULL:
-            case IFNONNULL:
-            case IFEQ:
-            case IFNE:
-            case IFGE:
-            case IFGT:
-            case IFLE:
-            case IFLT:
-                delegate.visitInsn(POP);
-                break;
-            case IF_ICMPEQ:
-            case IF_ICMPLE:
-            case IF_ICMPNE:
-            case IF_ICMPLT:
-            case IF_ICMPGT:
-            case IF_ICMPGE:
-            case IF_ACMPEQ:
-            case IF_ACMPNE:
-                delegate.visitInsn(POP);
-                delegate.visitInsn(SWAP);
-                delegate.visitInsn(POP);
-                break;
-        }
+
     }
 
     @Override
     public void visitTableSwitch(int min, int max, Label defaultLabel, Label[] labels) {
-        delegate.visitInsn(POP); // Remove the taint tag
     }
 
     @Override
     public void visitLookupSwitch(Label defaultLabel, int[] keys, Label[] labels) {
-        delegate.visitInsn(POP); // Remove the taint tag
     }
 }

@@ -19,35 +19,22 @@ import static org.junit.Assert.assertTrue;
 public class TaintUtilsTest {
 
     /**
-     * Checks that a method descriptor remapped with TaintUtils.remapMethodDescAndIncludeReturnHolder
+     * Checks that a method descriptor remapped with
+     * TaintUtils.remapMethodDescAndIncludeReturnHolder
      * is restoring via TaintUtils.getOriginalMethodDesc.
      */
-    @Theory
-    public void checkRoundTripMapMethodDescriptor(Method method) {
-        boolean isStatic = Modifier.isStatic(method.getModifiers());
-        String originalDesc = Type.getMethodDescriptor(method);
-        String taintedDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(!isStatic, originalDesc);
-        String restoredDesc = TaintUtils.getOriginalMethodDescWithoutReturn(taintedDesc);
-        String originalWithoutReturn = originalDesc.substring(0, originalDesc.lastIndexOf(')') + 1);
-        String restoredWithoutReturn = restoredDesc.substring(0, restoredDesc.lastIndexOf(')') + 1);
-        assertEquals(originalWithoutReturn, restoredWithoutReturn);
-    }
 
     @Theory
     public void checkIsSource(Method method) {
         boolean isStatic = Modifier.isStatic(method.getModifiers());
         String originalDesc = Type.getMethodDescriptor(method);
-        String taintedDesc = TaintUtils.remapMethodDescAndIncludeReturnHolder(!isStatic, originalDesc);
         String owner = Type.getInternalName(method.getDeclaringClass());
-        String originalSignature = owner +  "." + method.getName() + originalDesc;
+        String originalSignature = owner + "." + method.getName() + originalDesc;
         String taintedName = method.getName();
-        if (!originalDesc.equals(taintedDesc)) {
-            taintedName += TaintUtils.METHOD_SUFFIX;
-        }
         List<String> previousSources = BasicSourceSinkManager.replaceAutoTaintMethods(
                 Collections.singleton(originalSignature),
                 BasicSourceSinkManager.AutoTaint.SOURCE);
-        assertTrue(BasicSourceSinkManager.getInstance().isSource(owner, taintedName, taintedDesc));
+        assertTrue(BasicSourceSinkManager.getInstance().isSource(owner, taintedName, originalDesc));
         // Restore the sources
         BasicSourceSinkManager.replaceAutoTaintMethods(previousSources,
                 BasicSourceSinkManager.AutoTaint.SOURCE);

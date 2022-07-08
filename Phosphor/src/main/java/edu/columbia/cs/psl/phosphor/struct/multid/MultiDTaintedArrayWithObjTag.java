@@ -49,12 +49,6 @@ public abstract class MultiDTaintedArrayWithObjTag {
         return getVal().hashCode();
     }
 
-    public final TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(TaintedIntWithObjTag ret) {
-        ret.taint = null;
-        ret.val = hashCode();
-        return ret;
-    }
-
     @Override
     public String toString() {
         switch(sort) {
@@ -622,7 +616,7 @@ public abstract class MultiDTaintedArrayWithObjTag {
                 Object[] _in = (Object[]) in;
                 TaintedBooleanWithObjTag tmpRet = new TaintedBooleanWithObjTag();
                 for(int i = 0; i < _in.length; i++) {
-                    if(done.add$$PHOSPHORTAGGED(_in[i], tmpRet).val) {
+                    if(done.add(_in[i])) {
                         _in[i] = boxIfNecessary(_in[i], done);
                     }
                 }

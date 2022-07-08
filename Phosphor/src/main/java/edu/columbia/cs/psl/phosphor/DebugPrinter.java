@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowAnalyzer;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowManager;
 import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowManager;
+import edu.columbia.cs.psl.phosphor.instrumenter.PhosphorTextifier;
 import edu.columbia.cs.psl.phosphor.instrumenter.PrimitiveArrayAnalyzer;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import org.objectweb.asm.ClassReader;
@@ -47,7 +48,9 @@ public class DebugPrinter {
         }, ClassReader.EXPAND_FRAMES);
         final ClassReader cr = new ClassReader(cw1.toByteArray());
 
-        TraceClassVisitor tcv = new TraceClassVisitor(new ClassVisitor(Configuration.ASM_VERSION, new ClassWriter(0)) {
+        TraceClassVisitor tcv = new TraceClassVisitor(null, new PhosphorTextifier(), pw);
+
+        ClassVisitor toDebug = new ClassVisitor(Configuration.ASM_VERSION, tcv) {
             String className;
 
             @Override
@@ -67,8 +70,8 @@ public class DebugPrinter {
                 mv = an;
                 return mv;
             }
-        }, pw);
-        cr.accept(tcv, ClassReader.EXPAND_FRAMES);
+        };
+        cr.accept(toDebug, ClassReader.EXPAND_FRAMES);
         pw.flush();
     }
 }

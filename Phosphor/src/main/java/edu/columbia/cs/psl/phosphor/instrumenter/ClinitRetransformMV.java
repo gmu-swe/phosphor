@@ -32,30 +32,7 @@ public class ClinitRetransformMV extends MethodVisitor {
                 // Since the class is not at least the required version 1.5 for the ldc of a constant class, push the class
                 // onto the stack by making a call to Class.forName
                 super.visitLdcInsn(className.replace("/", "."));
-                NEW_EMPTY_TAINT.delegateVisit(mv);
-                if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
-                    /*If in implicit mode,  Class.forName is wrapped for the control tags.
-                      If we call the wrapper, we'll get NoClassDefFound, because it will look
-                      at the caller's  class in order to decide which class loader to use - and the caller
-                      will be Java.lang.Class.forName(), which likely won't be in the same classloader
-                      as the target class.
-                    */
-                    Configuration.controlFlowManager.visitCreateStack(mv, true);
-                    super.visitTypeInsn(Opcodes.NEW, Type.getInternalName(TaintedReferenceWithObjTag.class));
-                    super.visitInsn(Opcodes.DUP);
-                    super.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(TaintedReferenceWithObjTag.class), "<init>", "()V", false);
-                    super.visitInsn(Opcodes.ACONST_NULL);
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + CONTROL_STACK_DESC + Type.getDescriptor(TaintedReferenceWithObjTag.class) + "Ljava/lang/Class;)" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
-                } else {
-                    super.visitTypeInsn(Opcodes.NEW, Type.getInternalName(TaintedReferenceWithObjTag.class));
-                    super.visitInsn(Opcodes.DUP);
-                    super.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(TaintedReferenceWithObjTag.class), "<init>", "()V", false);
-                    super.visitInsn(Opcodes.ACONST_NULL);
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName$$PHOSPHORTAGGED", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + Type.getDescriptor(TaintedReferenceWithObjTag.class) + "Ljava/lang/Class;)" + Type.getDescriptor(TaintedReferenceWithObjTag.class), false);
-                }
-                super.visitFieldInsn(Opcodes.GETFIELD, Type.getInternalName(TaintedReferenceWithObjTag.class), "val", "Ljava/lang/Object;");
-                super.visitTypeInsn(Opcodes.CHECKCAST, "java/lang/Class");
-
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", false);
             } else {
                 // Directly push the class onto the stack
                 mv.visitLdcInsn(Type.getObjectType(className));

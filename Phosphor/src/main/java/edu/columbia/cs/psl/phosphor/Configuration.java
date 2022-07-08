@@ -57,6 +57,7 @@ public class Configuration {
     public static ControlFlowManager controlFlowManager = new StandardControlFlowManager();
     public static String controlFlowManagerPackage = null;
     public static boolean QUIET_MODE = false;
+    public static boolean DEBUG_STACK_FRAME_WRAPPERS = false;
 
     public static Set<String> ignoredMethods = new HashSet<>();
 
@@ -66,7 +67,6 @@ public class Configuration {
     public static String taintTagFactoryPackage = null;
     public static TaintSourceWrapper<?> autoTainter = new TaintSourceWrapper<>();
     public static DerivedTaintListener derivedTaintListener = new DerivedTaintListener();
-    public static boolean WITH_HEAVY_OBJ_EQUALS_HASHCODE = false;
     public static TransformationCache CACHE = null;
     public static boolean TAINT_THROUGH_SERIALIZATION = true;
 

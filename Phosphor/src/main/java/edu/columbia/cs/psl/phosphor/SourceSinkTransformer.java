@@ -1,16 +1,16 @@
 package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.SourceSinkTaintingClassVisitor;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.util.CheckClassAdapter;
+import org.objectweb.asm.util.TraceClassVisitor;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.UnmodifiableClassException;
 import java.security.ProtectionDomain;
@@ -24,8 +24,27 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
     // Whether classes are in the process of being retransformed or checked for retransformation
     private static boolean isBusyRetransforming = false;
 
+    public static void main(String[] args) {
+        PhosphorOption.configure(true, args);
+
+        SourceSinkTransformer transformer = new SourceSinkTransformer();
+        try {
+            ClassReader cr = new ClassReader(new FileInputStream("z.class"));
+            ClassWriter cw = new ClassWriter(0);
+            cr.accept(cw, 0);
+            byte[] ret = transformer._transform(null, "z.class", HashMap.class, null, cw.toByteArray());
+            System.out.println(ret);
+
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
-    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+    public byte[] _transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) {
         if(classBeingRedefined == null) {
             // The transform was triggered by a class load not a redefine or retransform then no transformations
             // should be performed
@@ -37,22 +56,32 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
             ClassReader cr = new ClassReader(classfileBuffer);
             ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             ClassVisitor cv = cw;
-            if(PreMain.DEBUG || TaintUtils.VERIFY_CLASS_GENERATION) {
+            if (PreMain.DEBUG || TaintUtils.VERIFY_CLASS_GENERATION) {
                 cv = new CheckClassAdapter(cw, false);
             }
-            cr.accept(new SourceSinkTaintingClassVisitor(cv), ClassReader.EXPAND_FRAMES);
-            if(PreMain.DEBUG) {
+            PrintWriter pw = new PrintWriter(new File("lastClass-sourceSink.txt"));
+            TraceClassVisitor debug = new TraceClassVisitor(cv, pw);
+            cv = debug;
+            try {
+                cr.accept(new SourceSinkTaintingClassVisitor(cv), ClassReader.EXPAND_FRAMES);
+            }finally {
+                debug.p.print(pw);
+                pw.close();
+            }
+            if (PreMain.DEBUG) {
                 try {
                     File f = new File("debug-source-sink/" + className + ".class");
                     f.getParentFile().mkdirs();
                     FileOutputStream fos = new FileOutputStream(f);
                     fos.write(cw.toByteArray());
                     fos.close();
-                } catch(IOException ex) {
+                } catch (IOException ex) {
                     ex.printStackTrace();
                 }
             }
             return cw.toByteArray();
+        } catch(FileNotFoundException ex) {
+            return null;
         } catch(Throwable t) {
             //If we don't try/catch and print the error, then it will be silently swallowed by the JVM
             //and we'll never know the instrumentation failed :(

@@ -28,17 +28,17 @@ public class StringUtils {
      */
     public static boolean regionMatches(String thisStr, int thisStart, String string, int start,
                                         int length) {
-        if(string.value.length - start < length || start < 0) {
+        if (string.value.length - start < length || start < 0) {
             return false;
         }
-        if(thisStart < 0 || thisStr.value.length - thisStart < length) {
+        if (thisStart < 0 || thisStr.value.length - thisStart < length) {
             return false;
         }
-        if(length <= 0) {
+        if (length <= 0) {
             return true;
         }
-        for(int i = 0; i < length; ++i) {
-            if(thisStr.value[thisStart + i] != string.value[start + i]) {
+        for (int i = 0; i < length; ++i) {
+            if (thisStr.value[thisStart + i] != string.value[start + i]) {
                 return false;
             }
         }
@@ -46,11 +46,11 @@ public class StringUtils {
     }
 
     public static boolean _startsWith(String thisStr, String string) {
-        if(thisStr.value.length < string.value.length) {
+        if (thisStr.value.length < string.value.length) {
             return false;
         }
-        for(int i = 0; i < string.value.length; ++i) {
-            if(thisStr.value[i] != string.value[i]) {
+        for (int i = 0; i < string.value.length; ++i) {
+            if (thisStr.value[i] != string.value[i]) {
                 return false;
             }
         }
@@ -58,9 +58,27 @@ public class StringUtils {
     }
 
     public static boolean startsWith(String str, String prefix) {
-        if(PreMain.RUNTIME_INST) {
+        if (PreMain.RUNTIME_INST) {
             return _startsWith(str, prefix);
         }
         return str.startsWith(prefix);
+    }
+
+    public static boolean equals(String s1, String s2) {
+        if (s1 == null && s2 == null) {
+            return true;
+        } else if (s1 == null || s2 == null) {
+            return false;
+        } else {
+            if (s1.value.length != s2.value.length) {
+                return false;
+            }
+            for (int i = 0; i < s1.value.length; ++i) {
+                if (s1.value[i] != s2.value[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }

@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import sun.misc.Unsafe;
 
@@ -30,7 +31,7 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 
     public abstract int getLength();
 
-    public Taint getLengthTaint(Taint referenceTaint) {
+    public Taint getLengthTaint() {
         return lengthTaint;
     }
 
@@ -45,7 +46,7 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
         }
     }
 
-    protected void checkAIOOB(Taint idxTaint, int idx, ControlFlowStack ctrl) {
+    protected void checkAIOOB(Taint idxTaint, int idx, PhosphorStackFrame ctrl) {
         if(idx >= getLength()) {
             ArrayIndexOutOfBoundsException ex = new ArrayIndexOutOfBoundsException("" + idx);
             MultiTainter.taintedObject(ex, Taint.combineTags(idxTaint, ctrl));
@@ -55,6 +56,8 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
 
     @Override
     public boolean equals(Object o) {
+        PhosphorStackFrame stackFrame = PhosphorStackFrame.forMethod(null);
+        stackFrame.returnTaint = stackFrame.getArgTaint(0).union(stackFrame.getArgTaint(1));
         if(this == o) {
             return true;
         }
@@ -65,33 +68,9 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
         return this.getVal() == that.getVal();
     }
 
-    @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Taint thisTaint, Object o, Taint otherTaint, TaintedBooleanWithObjTag ret) {
-        ret.val = this.equals(o);
-        ret.taint = thisTaint.union(otherTaint);
-        return ret;
-    }
-
-    @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag equals$$PHOSPHORTAGGED(Taint thisTaint, Object o, Taint otherTaint, TaintedBooleanWithObjTag ret, ControlFlowStack controlFlowStack) {
-        return equals$$PHOSPHORTAGGED(thisTaint, o, otherTaint, ret);
-    }
-
     @Override
     public int hashCode() {
         return this.getVal().hashCode();
-    }
-
-    @SuppressWarnings("unused")
-    public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Taint thisTaint, TaintedIntWithObjTag ret) {
-        ret.val = this.hashCode();
-        ret.taint = thisTaint;
-        return ret;
-    }
-
-    @SuppressWarnings("unused")
-    public TaintedIntWithObjTag hashCode$$PHOSPHORTAGGED(Taint thisTaint, TaintedIntWithObjTag ret, ControlFlowStack controlFlowStack) {
-        return this.hashCode$$PHOSPHORTAGGED(thisTaint, ret);
     }
 
     /**

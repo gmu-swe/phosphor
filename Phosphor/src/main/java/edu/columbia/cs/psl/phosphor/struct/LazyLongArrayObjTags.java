@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 import java.io.IOException;
@@ -36,8 +37,8 @@ public final class LazyLongArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_LONG_ARRAY_SET)
-    public void set(Taint referenceTaint, int idx, Taint idxTag, long val, Taint tag) {
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, null));
+    public void set(int idx, long val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
+        set(idx, val, Configuration.derivedTaintListener.arraySet(this, idx, val, idxTaint, valTaint, stackFrame));
     }
 
     @Override
@@ -56,21 +57,22 @@ public final class LazyLongArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_LONG_ARRAY_GET)
-    public TaintedLongWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedLongWithObjTag ret) {
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+    public long get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
+        return Configuration.derivedTaintListener.arrayGet(this, idx, idxTaint, ret);
     }
 
-    public static LazyLongArrayObjTags factory(Taint referenceTaint, long[] array) {
+    public static LazyLongArrayObjTags factory(long[] array) {
         if(array == null) {
             return null;
         }
-        return new LazyLongArrayObjTags(referenceTaint, array);
+        return new LazyLongArrayObjTags(array);
     }
 
-    public TaintedLongWithObjTag get(int idx, TaintedLongWithObjTag ret) {
-        ret.val = val[idx];
-        ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
+    public static LazyLongArrayObjTags factory(long[] array, Taint lengthTaint) {
+        if(array == null) {
+            return null;
+        }
+        return new LazyLongArrayObjTags(lengthTaint, array);
     }
 
     public int getLength() {

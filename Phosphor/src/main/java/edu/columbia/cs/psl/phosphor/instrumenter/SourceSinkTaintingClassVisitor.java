@@ -30,8 +30,7 @@ public class SourceSinkTaintingClassVisitor extends ClassVisitor {
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-        if(((access & Opcodes.ACC_NATIVE) == 0) && (name.contains(TaintUtils.METHOD_SUFFIX) || TaintUtils.containsTaint(desc)) || (!containsPrimitiveType(desc) && !Configuration.IMPLICIT_TRACKING && !Configuration.IMPLICIT_HEADERS_NO_TRACKING)) {
-            // Method is not a native method and it is not a method for which $$PHOSPHORTAGGED or TaintSentinel containing version should have been created.
+        if((access & Opcodes.ACC_NATIVE) == 0) {
             if(BasicSourceSinkManager.getInstance().isSink(className, name, desc)) {
                 // Method is a sink
                 final SinkTaintingMV sinkMV = new SinkTaintingMV(mv, access, className, name, desc);

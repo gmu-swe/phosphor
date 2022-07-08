@@ -25,13 +25,10 @@ public abstract class Taint<T> implements Serializable {
     public abstract Taint<T> union(Taint<T> other);
 
     /* Returns an array containing this taint's labels or label indices if the BitSet representation is used. */
-    public abstract Object[] getLabels();
-
-    @SuppressWarnings("unused")
-    public TaintedReferenceWithObjTag getLabels$$PHOSPHORTAGGED(T[] arr, Taint tag, TaintedReferenceWithObjTag ret, Object[] erasedReturn) {
-        ret.val = new LazyReferenceArrayObjTags(getLabels(arr));
-        ret.taint = Taint.emptyTaint();
-        return ret;
+    public Object[] getLabels(T[] arr, PhosphorStackFrame phosphorStackFrame) {
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(getLabels(arr));
+        phosphorStackFrame.setWrappedReturn(ret);
+        return ret.val;
     }
 
     @SuppressWarnings("unchecked")
@@ -40,10 +37,9 @@ public abstract class Taint<T> implements Serializable {
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag isEmpty$$PHOSPHORTAGGED(Taint referenceTaint, TaintedBooleanWithObjTag ret) {
-        ret.val = isEmpty();
-        ret.taint = null;
-        return ret;
+    public boolean isEmpty(PhosphorStackFrame phosphorStackFrame) {
+        phosphorStackFrame.returnTaint = Taint.emptyTaint();
+        return isEmpty();
     }
 
     @SuppressWarnings("unchecked")
@@ -53,6 +49,13 @@ public abstract class Taint<T> implements Serializable {
 
     /* Returns an array containing this taint's labels or label indices if the BitSet representation is used. The runtime
      * type of the returned array is that of the specified array. */
+    public abstract Object[] getLabels();
+
+    public Object[] getLabels(PhosphorStackFrame stackFrame){
+        stackFrame.returnTaint = Taint.emptyTaint();
+        return getLabels();
+    }
+
     @SuppressWarnings("unchecked")
     public T[] getLabels(T[] arr) {
         Object[] labels = getLabels();
@@ -69,29 +72,13 @@ public abstract class Taint<T> implements Serializable {
             return arr;
         }
     }
-
-    @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag isEmpty$$PHOSPHORTAGGED(Taint referenceTaint, ControlFlowStack ctrl, TaintedBooleanWithObjTag ret) {
-        ret.val = isEmpty();
-        ret.taint = null;
-        return ret;
-    }
-
     /* Returns whether this taint object's label set is the empty. */
     public abstract boolean isEmpty();
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag isSuperset$$PHOSPHORTAGGED(Taint myRefTaint, Taint<T> that, Taint thatTaint, TaintedBooleanWithObjTag ret) {
-        ret.taint = null;
-        ret.val = isSuperset(that);
-        return ret;
-    }
-
-    @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag isSuperset$$PHOSPHORTAGGED(Taint myRefTaint, Taint<T> that, Taint thatTaint, TaintedBooleanWithObjTag ret, ControlFlowStack ctrl) {
-        ret.taint = null;
-        ret.val = isSuperset(that);
-        return ret;
+    public boolean isSuperset(Taint<T> that, PhosphorStackFrame phosphorStackFrame) {
+        phosphorStackFrame.returnTaint = Taint.emptyTaint();
+        return isSuperset(that);
     }
 
     /* Returns whether the set of labels for the specified taint object is a subset of the set of labels for this taint
@@ -99,17 +86,9 @@ public abstract class Taint<T> implements Serializable {
     public abstract boolean isSuperset(Taint<T> other);
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag containsOnlyLabels$$PHOSPHORTAGGED(Taint referenceTaint, LazyReferenceArrayObjTags labels, Taint tag, TaintedBooleanWithObjTag ret, Object[] unused) {
-        ret.taint = null;
-        ret.val = containsOnlyLabels(labels.val);
-        return ret;
-    }
-
-    @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag containsOnlyLabels$$PHOSPHORTAGGED(Taint referenceTaint, LazyReferenceArrayObjTags labels, Taint tag, TaintedBooleanWithObjTag ret, ControlFlowStack ctrl, Object[] unused) {
-        ret.taint = null;
-        ret.val = containsOnlyLabels(labels.val);
-        return ret;
+    public boolean containsOnlyLabels(Object[] labels, PhosphorStackFrame phosphorStackFrame) {
+        phosphorStackFrame.returnTaint = Taint.emptyTaint();
+        return containsOnlyLabels(labels);
     }
 
     /* Returns whether the set of labels for this taint object contains only the specified unique labels. */
@@ -126,17 +105,9 @@ public abstract class Taint<T> implements Serializable {
     }
 
     @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag containsLabel$$PHOSPHORTAGGED(Taint referenceTaint, Object label, Taint tag, TaintedBooleanWithObjTag ret) {
-        ret.taint = null;
-        ret.val = containsLabel(label);
-        return ret;
-    }
-
-    @SuppressWarnings("unused")
-    public TaintedBooleanWithObjTag containsLabel$$PHOSPHORTAGGED(Taint referenceTaint, Object label, Taint tag, TaintedBooleanWithObjTag ret, ControlFlowStack ctrl) {
-        ret.taint = null;
-        ret.val = containsLabel(label);
-        return ret;
+    public boolean containsLabel(Object label, PhosphorStackFrame phosphorStackFrame) {
+        phosphorStackFrame.returnTaint = Taint.emptyTaint();
+        return containsLabel(label);
     }
 
     /* Returns whether the set of labels for this taint object contains the specified label. */
@@ -146,10 +117,9 @@ public abstract class Taint<T> implements Serializable {
         return in;
     }
 
-    public static <T> TaintedReferenceWithObjTag withLabel$$PHOSPHORTAGGED(T label, Taint tag, TaintedReferenceWithObjTag ret, Taint erasedReturn) {
-        ret.taint = Taint.emptyTaint();
-        ret.val = withLabel(label);
-        return ret;
+    public static <T> Taint withLabel(T label, PhosphorStackFrame phosphorStackFrame) {
+        phosphorStackFrame.returnTaint = Taint.emptyTaint();
+        return withLabel(label);
     }
 
     @InvokedViaInstrumentation(record = COMBINE_TAGS)
@@ -187,11 +157,11 @@ public abstract class Taint<T> implements Serializable {
     }
 
     @InvokedViaInstrumentation(record = COMBINE_TAGS_CONTROL)
-    public static <T> Taint<T> combineTags(Taint<T> t1, ControlFlowStack tags) {
-        if(tags == null) {
+    public static <T> Taint<T> combineTags(Taint<T> t1, PhosphorStackFrame stackFrame) {
+        if(stackFrame == null || stackFrame.controlFlowTags == null) {
             return t1;
         }
-        return _combineTagsInternal(t1, tags);
+        return _combineTagsInternal(t1, stackFrame.controlFlowTags);
     }
 
     /* Returns a new Taint with a label set that is the union of the label sets of the specified taints. */
@@ -216,7 +186,11 @@ public abstract class Taint<T> implements Serializable {
 
     @SuppressWarnings("rawtypes")
     @InvokedViaInstrumentation(record = COMBINE_TAGS_ON_OBJECT_CONTROL)
-    public static void combineTagsOnObject(Object o, ControlFlowStack tags) {
+    public static void combineTagsOnObject(Object o, PhosphorStackFrame frame) {
+        if(frame == null){
+            return;
+        }
+        ControlFlowStack tags = frame.controlFlowTags;
         if(tags.copyTag().isEmpty() || IGNORE_TAINTING) {
             return;
         }
@@ -224,15 +198,15 @@ public abstract class Taint<T> implements Serializable {
             Configuration.derivedTaintListener.controlApplied(o, tags);
         }
         if(o instanceof String) {
-            combineTagsOnString((String) o, tags);
+            combineTagsOnString((String) o, frame);
         } else if(o instanceof TaintedWithObjTag) {
-            ((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags((Taint) ((TaintedWithObjTag) o).getPHOSPHOR_TAG(), tags));
+            ((TaintedWithObjTag) o).setPHOSPHOR_TAG(Taint.combineTags((Taint) ((TaintedWithObjTag) o).getPHOSPHOR_TAG(), frame));
         }
     }
 
-    private static void combineTagsOnString(String str, ControlFlowStack ctrl) {
+    private static void combineTagsOnString(String str, PhosphorStackFrame stackFrame) {
         Taint existing = str.PHOSPHOR_TAG;
-        str.PHOSPHOR_TAG = combineTags(existing, ctrl);
+        str.PHOSPHOR_TAG = combineTags(existing, stackFrame);
 
         LazyCharArrayObjTags tags = str.valuePHOSPHOR_WRAPPER;
         if (tags == null) {
@@ -249,7 +223,7 @@ public abstract class Taint<T> implements Serializable {
                 tags.taints[i] = tags.taints[i - 1];
             } else {
                 originalPreviousTaint = tags.taints[i];
-                tags.taints[i] = combineTags(tags.taints[i], ctrl);
+                tags.taints[i] = combineTags(tags.taints[i], stackFrame);
             }
         }
     }

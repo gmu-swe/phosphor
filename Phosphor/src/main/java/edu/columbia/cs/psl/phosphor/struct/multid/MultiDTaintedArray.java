@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import org.objectweb.asm.Type;
@@ -37,7 +38,9 @@ public abstract class MultiDTaintedArray {
 
     // ============ START GENERATED ===========
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_B_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_B_2DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyByteArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyByteArrayObjTags(t2, new byte[dim2]);
@@ -45,12 +48,15 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_B_2DIMS(int dim, Taint tag) {
-        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(tag, new LazyByteArrayObjTags[dim]);
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_B_2DIMS(int dim, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyByteArrayObjTags[dim]);
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_B_3DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_B_3DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyReferenceArrayObjTags(t2, new LazyByteArrayObjTags[dim2]);
@@ -58,7 +64,11 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_B_3DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_B_3DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
+
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyByteArrayObjTags[dim2]);
@@ -70,7 +80,11 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_B_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_B_4DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
+
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
@@ -82,7 +96,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_2DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyBooleanArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyBooleanArrayObjTags(t2, new boolean[dim2]);
@@ -90,12 +107,16 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_2DIMS(int dim, Taint tag) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_2DIMS(int dim, PhosphorStackFrame phosphorStackFrame) {
+        Taint tag = phosphorStackFrame.getArgTaint(0);
+
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(tag, new LazyBooleanArrayObjTags[dim]);
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_3DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_3DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyReferenceArrayObjTags(t2, new LazyBooleanArrayObjTags[dim2]);
@@ -103,7 +124,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_3DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_3DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyBooleanArrayObjTags[dim2]);
@@ -115,7 +139,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_Z_4DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
@@ -127,7 +154,9 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_C_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_C_2DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyCharArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyCharArrayObjTags(t2, new char[dim2]);
@@ -135,12 +164,15 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_C_2DIMS(int dim, Taint tag) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_C_2DIMS(int dim, PhosphorStackFrame phosphorStackFrame) {
+        Taint tag = phosphorStackFrame.getArgTaint(0);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(tag, new LazyCharArrayObjTags[dim]);
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_C_3DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_C_3DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyReferenceArrayObjTags(t2, new LazyCharArrayObjTags[dim2]);
@@ -148,7 +180,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_C_3DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_C_3DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyCharArrayObjTags[dim2]);
@@ -160,7 +195,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_C_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_C_4DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
@@ -172,7 +210,9 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_2DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyFloatArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyFloatArrayObjTags(t2, new float[dim2]);
@@ -180,12 +220,15 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_2DIMS(int dim, Taint tag) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_2DIMS(int dim, PhosphorStackFrame phosphorStackFrame) {
+        Taint tag = phosphorStackFrame.getArgTaint(0);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(tag, new LazyFloatArrayObjTags[dim]);
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_3DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_3DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyReferenceArrayObjTags(t2, new LazyFloatArrayObjTags[dim2]);
@@ -193,7 +236,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_3DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_3DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyFloatArrayObjTags[dim2]);
@@ -205,7 +251,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_F_4DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
@@ -217,7 +266,9 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_I_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_I_2DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyIntArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyIntArrayObjTags(t2, new int[dim2]);
@@ -225,12 +276,15 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_I_2DIMS(int dim, Taint tag) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_I_2DIMS(int dim, PhosphorStackFrame phosphorStackFrame) {
+        Taint tag = phosphorStackFrame.getArgTaint(0);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(tag, new LazyIntArrayObjTags[dim]);
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_I_3DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_I_3DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyReferenceArrayObjTags(t2, new LazyIntArrayObjTags[dim2]);
@@ -238,7 +292,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_I_3DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_I_3DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyIntArrayObjTags[dim2]);
@@ -250,7 +307,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_I_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_I_4DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
@@ -262,7 +322,9 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_2DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyDoubleArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyDoubleArrayObjTags(t2, new double[dim2]);
@@ -270,12 +332,15 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_2DIMS(int dim, Taint tag) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_2DIMS(int dim, PhosphorStackFrame phosphorStackFrame) {
+        Taint tag = phosphorStackFrame.getArgTaint(0);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(tag, new LazyDoubleArrayObjTags[dim]);
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_3DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_3DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyReferenceArrayObjTags(t2, new LazyDoubleArrayObjTags[dim2]);
@@ -283,7 +348,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_3DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_3DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyDoubleArrayObjTags[dim2]);
@@ -295,7 +363,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_D_4DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
@@ -307,7 +378,9 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_S_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_S_2DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyShortArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyShortArrayObjTags(t2, new short[dim2]);
@@ -315,12 +388,15 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_S_2DIMS(int dim, Taint tag) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_S_2DIMS(int dim, PhosphorStackFrame phosphorStackFrame) {
+        Taint tag = phosphorStackFrame.getArgTaint(0);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(tag, new LazyShortArrayObjTags[dim]);
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_S_3DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_S_3DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyReferenceArrayObjTags(t2, new LazyShortArrayObjTags[dim2]);
@@ -328,7 +404,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_S_3DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_S_3DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyShortArrayObjTags[dim2]);
@@ -340,7 +419,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_S_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_S_4DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
@@ -352,7 +434,9 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_2DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_2DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyLongArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyLongArrayObjTags(t2, new long[dim2]);
@@ -360,12 +444,15 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_2DIMS(int dim, Taint tag) {
-        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(tag, new LazyLongArrayObjTags[dim]);
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_2DIMS(int dim, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyLongArrayObjTags[dim]);
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_3DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_3DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyReferenceArrayObjTags(t2, new LazyLongArrayObjTags[dim2]);
@@ -373,7 +460,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_3DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_3DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyLongArrayObjTags[dim2]);
@@ -385,7 +475,10 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_J_4DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
@@ -399,7 +492,10 @@ public abstract class MultiDTaintedArray {
 
     // ============ END GENERATED =============
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_4DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_4DIMS(int dim1, int dim2 , int dim3, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
@@ -411,7 +507,9 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_3DIMS(int dim1, Taint t1, int dim2, Taint t2) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_3DIMS(int dim1, int dim2 , PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
@@ -421,7 +519,11 @@ public abstract class MultiDTaintedArray {
     }
 
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_3DIMS(int dim1, Taint t1, int dim2, Taint t2, int dim3, Taint t3, Class<?> component) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_3DIMS(int dim1, int dim2 , int dim3, Class<?> component, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
+        Taint t3 = phosphorStackFrame.getArgTaint(2);
+
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             LazyReferenceArrayObjTags d = new LazyReferenceArrayObjTags(t2, new LazyReferenceArrayObjTags[dim2]);
@@ -434,7 +536,9 @@ public abstract class MultiDTaintedArray {
     }
 
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_2DIMS(int dim1, Taint t1, int dim2, Taint t2, Class<?> component) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_2DIMS(int dim1, int dim2 , Class<?> component, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
+        Taint t2 = phosphorStackFrame.getArgTaint(1);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         for(int i = 0; i < dim1; i++) {
             ret.val[i] = new LazyReferenceArrayObjTags(t2, (Object[]) Array.newArray(component, dim2));
@@ -442,7 +546,8 @@ public abstract class MultiDTaintedArray {
         return ret;
     }
 
-    public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_2DIMS(int dim1, Taint t1, Class<?> component) {
+    public static LazyReferenceArrayObjTags MULTIANEWARRAY_REFERENCE_2DIMS(int dim1, Class<?> component, PhosphorStackFrame phosphorStackFrame) {
+        Taint t1 = phosphorStackFrame.getArgTaint(0);
         LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(t1, new LazyReferenceArrayObjTags[dim1]);
         return ret;
     }
@@ -498,24 +603,8 @@ public abstract class MultiDTaintedArray {
         return MultiDTaintedArrayWithObjTag.getPrimitiveTypeForWrapper(c);
     }
 
-    public static Class getUnderlyingBoxClassForUnderlyingClass(Class c) {
-        return MultiDTaintedArrayWithObjTag.getUnderlyingBoxClassForUnderlyingClass(c);
-    }
-
-    public static Class getClassForComponentType(final int componentSort) {
-        return MultiDTaintedArrayWithObjTag.getClassForComponentType(componentSort);
-    }
-
     public static Object unboxRaw(final Object in) {
         return MultiDTaintedArrayWithObjTag.unboxRaw(in);
-    }
-
-    public static Object unboxVal(final Object _in, final int componentType, final int dims) {
-        return MultiDTaintedArrayWithObjTag.unboxVal(_in, componentType, dims);
-    }
-
-    public static int getSortForBoxClass(Class c) {
-        return MultiDTaintedArrayWithObjTag.getSortForBoxClass(c);
     }
 
     public static int getSort(Class c) {
@@ -526,10 +615,6 @@ public abstract class MultiDTaintedArray {
     @InvokedViaInstrumentation(record = BOX_IF_NECESSARY)
     public static Object boxIfNecessary(final Object in) {
         return MultiDTaintedArrayWithObjTag.boxIfNecessary(in);
-    }
-
-    public static Object initWithEmptyTaints(final Object[] ar, final int componentType, final int dims) {
-        return MultiDTaintedArrayWithObjTag.initWithEmptyTaints(ar, componentType, dims);
     }
 
     @SuppressWarnings("unused")

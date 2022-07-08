@@ -60,26 +60,26 @@
                             <reinstrumentBasedOnChecksum>false</reinstrumentBasedOnChecksum>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>control-flows</id>
-                        <goals>
-                            <goal>instrument</goal>
-                        </goals>
-                        <phase>none</phase>
-                        <configuration>
-                            <targetName>${control.flow.jvm}</targetName>
-                            <options>
-                                <controlTrack/>
-                                <forceUnboxAcmpEq/>
-                                <withEnumsByValue/>
-                                <quiet/>
-                            </options>
-                            <associatedCaches>
-                                <associatedCache>${control.flow.cache}</associatedCache>
-                            </associatedCaches>
-                            <reinstrumentBasedOnChecksum>false</reinstrumentBasedOnChecksum>
-                        </configuration>
-                    </execution>
+<!--                    <execution>-->
+<!--                        <id>control-flows</id>-->
+<!--                        <goals>-->
+<!--                            <goal>instrument</goal>-->
+<!--                        </goals>-->
+<!--                        <phase>none</phase>-->
+<!--                        <configuration>-->
+<!--                            <targetName>${control.flow.jvm}</targetName>-->
+<!--                            <options>-->
+<!--                                <controlTrack/>-->
+<!--                                <forceUnboxAcmpEq/>-->
+<!--                                <withEnumsByValue/>-->
+<!--                                <quiet/>-->
+<!--                            </options>-->
+<!--                            <associatedCaches>-->
+<!--                                <associatedCache>${control.flow.cache}</associatedCache>-->
+<!--                            </associatedCaches>-->
+<!--                            <reinstrumentBasedOnChecksum>false</reinstrumentBasedOnChecksum>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
                 </executions>
             </plugin>
             <plugin>
@@ -190,7 +190,7 @@
                                     </includes>
                                     <reuseForks>false</reuseForks>
                                     <argLine>
-                                        ${argLine.prefix},enum,objmethods,acmpeq,cacheDir=${data.flow.cache}
+                                        ${argLine.prefix},enum,acmpeq,cacheDir=${data.flow.cache}
                                     </argLine>
                                 </configuration>
                                 <goals>
@@ -198,24 +198,24 @@
                                     <goal>verify</goal>
                                 </goals>
                             </execution>
-                            <execution>
-                                <id>integration-test-control-flows</id>
-                                <configuration>
-                                    <skipTests>${skipControlFlowTests}</skipTests>
-                                    <jvm>${project.build.directory}/${control.flow.jvm}/bin/java</jvm>
-                                    <includes>
-                                        <include>**/*ImplicitITCase.java</include>
-                                    </includes>
-                                    <reuseForks>false</reuseForks>
-                                    <argLine>
-                                        ${argLine.prefix},enum,acmpeq,implicitExceptions,cacheDir=${control.flow.cache}
-                                    </argLine>
-                                </configuration>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
+<!--                            <execution>-->
+<!--                                <id>integration-test-control-flows</id>-->
+<!--                                <configuration>-->
+<!--                                    <skipTests>${skipControlFlowTests}</skipTests>-->
+<!--                                    <jvm>${project.build.directory}/${control.flow.jvm}/bin/java</jvm>-->
+<!--                                    <includes>-->
+<!--                                        <include>**/*ImplicitITCase.java</include>-->
+<!--                                    </includes>-->
+<!--                                    <reuseForks>false</reuseForks>-->
+<!--                                    <argLine>-->
+<!--                                        ${argLine.prefix},enum,acmpeq,implicitExceptions,cacheDir=${control.flow.cache}-->
+<!--                                    </argLine>-->
+<!--                                </configuration>-->
+<!--                                <goals>-->
+<!--                                    <goal>integration-test</goal>-->
+<!--                                    <goal>verify</goal>-->
+<!--                                </goals>-->
+<!--                            </execution>-->
                         </executions>
                     </plugin>
                 </plugins>

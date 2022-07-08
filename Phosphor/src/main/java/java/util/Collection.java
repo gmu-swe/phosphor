@@ -22,10 +22,6 @@ public interface Collection<E> extends Iterable<E> {
 
     Stream<E> stream();
 
-    TaintedBooleanWithObjTag add$$PHOSPHORTAGGED(E e, TaintedBooleanWithObjTag ret);
-
-    TaintedBooleanWithObjTag add$$PHOSPHORTAGGED(E e, ControlFlowStack ctrl, TaintedBooleanWithObjTag ret);
-
     boolean remove(Object o);
 
     boolean containsAll(Collection<?> c);

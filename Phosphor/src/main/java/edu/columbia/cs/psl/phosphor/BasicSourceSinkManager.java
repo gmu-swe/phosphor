@@ -140,9 +140,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
                         if(!baseMethods.containsKey(parsed[0])) {
                             baseMethods.put(parsed[0], new HashSet<String>());
                         }
-                        baseMethods.get(parsed[0]).add(parsed[1].substring(0, parsed[1].indexOf(')')) + ")");
+                        baseMethods.get(parsed[0]).add(parsed[1]);
                         if(type.equals(AutoTaint.SOURCE)) {
-                            sourceLabels.put(line.substring(0, line.indexOf(')')) + ")", line);
+                            sourceLabels.put(line, line);
                         }
                     }
                 }

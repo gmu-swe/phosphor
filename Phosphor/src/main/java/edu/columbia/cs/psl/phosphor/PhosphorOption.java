@@ -193,14 +193,6 @@ public enum PhosphorOption {
                     null;
         }
     },
-    WITH_HEAVY_OBJ_EQUALS_HASHCODE(new PhosphorOptionBuilder(null, true, true).alternativeName("objmethods")) {
-        @Override
-        public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
-            if(isPresent) {
-                Configuration.WITH_HEAVY_OBJ_EQUALS_HASHCODE = true;
-            }
-        }
-    },
     TAINT_SOURCES(new PhosphorOptionBuilder(null, false, true).argType(String.class)) {
         @Override
         public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {

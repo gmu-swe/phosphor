@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 import java.io.IOException;
@@ -36,8 +37,8 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_INT_ARRAY_SET)
-    public void set(Taint referenceTaint, int idx, Taint idxTag, int val, Taint tag) {
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, null));
+    public void set(int idx, int val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
+        set(idx, val, Configuration.derivedTaintListener.arraySet(this, idx, val, idxTaint, valTaint, stackFrame));
     }
 
     @Override
@@ -56,21 +57,22 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_INT_ARRAY_GET)
-    public TaintedIntWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedIntWithObjTag ret) {
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+    public int get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
+        return Configuration.derivedTaintListener.arrayGet(this, idx, idxTaint, ret);
     }
 
-    public static LazyIntArrayObjTags factory(Taint referenceTaint, int[] array) {
+    public static LazyIntArrayObjTags factory(int[] array) {
         if(array == null) {
             return null;
         }
-        return new LazyIntArrayObjTags(referenceTaint, array);
+        return new LazyIntArrayObjTags(array);
     }
 
-    public TaintedIntWithObjTag get(int idx, TaintedIntWithObjTag ret) {
-        ret.val = val[idx];
-        ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
+    public static LazyIntArrayObjTags factory(int[] array, Taint lengthTaint) {
+        if(array == null) {
+            return null;
+        }
+        return new LazyIntArrayObjTags(lengthTaint, array);
     }
 
     public int getLength() {

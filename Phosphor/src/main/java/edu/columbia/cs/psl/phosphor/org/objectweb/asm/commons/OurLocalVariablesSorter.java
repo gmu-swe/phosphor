@@ -52,7 +52,7 @@ public class OurLocalVariablesSorter extends MethodVisitor {
     /**
      * Index of the first local variable, after formal parameters.
      */
-    protected final int firstLocal;
+    protected int firstLocal;
     /**
      * Array used to store stack map local variable types after remapping.
      */
@@ -401,5 +401,13 @@ public class OurLocalVariablesSorter extends MethodVisitor {
         } else {
             super.visitLdcInsn(value);
         }
+    }
+
+    public void setNumLocalVariablesAddedAfterArgs(int numLocalVariablesAddedAfterArgs) {
+        if(this.firstLocal != this.nextLocal){
+            throw new IllegalStateException("Must set this before creating new LVs");
+        }
+        this.firstLocal += numLocalVariablesAddedAfterArgs;
+        this.nextLocal = this.firstLocal;
     }
 }

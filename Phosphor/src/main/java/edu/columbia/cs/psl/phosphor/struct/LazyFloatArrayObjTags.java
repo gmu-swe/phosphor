@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor.struct;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
 import java.io.IOException;
@@ -36,8 +37,8 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_FLOAT_ARRAY_SET)
-    public void set(Taint referenceTaint, int idx, Taint idxTag, float val, Taint tag) {
-        set(idx, val, Configuration.derivedTaintListener.arraySet(referenceTaint, this, idxTag, idx, tag, val, null));
+    public void set(int idx, float val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
+        set(idx, val, Configuration.derivedTaintListener.arraySet(this, idx, val, idxTaint, valTaint, stackFrame));
     }
 
     @Override
@@ -56,21 +57,22 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_FLOAT_ARRAY_GET)
-    public TaintedFloatWithObjTag get(Taint referenceTaint, int idx, Taint idxTaint, TaintedFloatWithObjTag ret) {
-        return Configuration.derivedTaintListener.arrayGet(this, idxTaint, idx, ret, null);
+    public float get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
+        return Configuration.derivedTaintListener.arrayGet(this, idx, idxTaint, ret);
     }
 
-    public static LazyFloatArrayObjTags factory(Taint referenceTaint, float[] array) {
+    public static LazyFloatArrayObjTags factory(float[] array) {
         if(array == null) {
             return null;
         }
-        return new LazyFloatArrayObjTags(referenceTaint, array);
+        return new LazyFloatArrayObjTags(array);
     }
 
-    public TaintedFloatWithObjTag get(int idx, TaintedFloatWithObjTag ret) {
-        ret.val = val[idx];
-        ret.taint = (taints == null) ? Taint.emptyTaint() : taints[idx];
-        return ret;
+    public static LazyFloatArrayObjTags factory(float[] array, Taint lengthTaint) {
+        if (array == null) {
+            return null;
+        }
+        return new LazyFloatArrayObjTags(lengthTaint, array);
     }
 
     public int getLength() {

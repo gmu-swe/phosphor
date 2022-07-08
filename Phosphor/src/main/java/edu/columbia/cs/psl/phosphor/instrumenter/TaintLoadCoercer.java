@@ -27,34 +27,22 @@ import java.io.PrintWriter;
 
 public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
 
-    private boolean ignoreExistingFrames;
     private InstOrUninstChoosingMV instOrUninstChoosingMV;
     private boolean aggressivelyReduceMethodSize;
     private boolean isImplicitLightTracking;
 
-    TaintLoadCoercer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, boolean ignoreExistingFrames, final InstOrUninstChoosingMV instOrUninstChoosingMV, boolean aggressivelyReduceMethodSize, final boolean isImplicitLightTracking) {
+
+    TaintLoadCoercer(final String className, int access, final String name, final String desc, String signature, String[] exceptions, final MethodVisitor cmv, final InstOrUninstChoosingMV instOrUninstChoosingMV, boolean aggressivelyReduceMethodSize, final boolean isImplicitLightTracking) {
         super(Configuration.ASM_VERSION);
         this.mv = new UninstTaintLoadCoercerMN(className, access, name, desc, signature, exceptions, cmv);
-        this.ignoreExistingFrames = ignoreExistingFrames;
         this.instOrUninstChoosingMV = instOrUninstChoosingMV;
         this.aggressivelyReduceMethodSize = aggressivelyReduceMethodSize;
         this.isImplicitLightTracking = isImplicitLightTracking;
     }
 
-    @Override
-    public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-        if(owner.equals(Type.getInternalName(Character.class)) && (name.startsWith("codePointAt")
-                || name.startsWith("toChars") || name.startsWith("codePointBefore") || name.startsWith("reverseBytes")
-                || name.startsWith("toLowerCase") || name.startsWith("toTitleCase") || name.startsWith("toUpperCase"))) {
-            super.visitMethodInsn(opcode, Type.getInternalName(CharacterUtils.class), name, descriptor, isInterface);
-        } else {
-            super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
-        }
-    }
-
     public static void main(String[] args) throws Throwable {
-        Configuration.IMPLICIT_TRACKING = true;
-        Configuration.IMPLICIT_EXCEPTION_FLOW = true;
+        //Configuration.IMPLICIT_TRACKING = true;
+        //Configuration.IMPLICIT_EXCEPTION_FLOW = true;
         // Configuration.IMPLICIT_LIGHT_TRACKING = true;
         // Configuration.ARRAY_LENGTH_TRACKING = true;
         // Configuration.ARRAY_INDEX_TRACKING = true;
@@ -107,7 +95,7 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                         super.visitInsn(opcode);
                     }
                 };
-                mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv, true, null, false, false);
+                mv = new TaintLoadCoercer(className, access, name, desc, signature, exceptions, mv,  null, false, false);
                 ControlFlowManager controlManager = new StandardControlFlowManager();
                 ControlFlowAnalyzer flowAnalyzer = controlManager.createPropagationPolicy(access, className, name, desc).getFlowAnalyzer();
                 PrimitiveArrayAnalyzer paa = new PrimitiveArrayAnalyzer(className, access, name, desc, signature, exceptions, mv, false, false, flowAnalyzer);
@@ -236,47 +224,6 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                     this.accept(cmv);
                     return;
                 }
-                //TODO I think this can be deleted
-                // Set<SinkableArrayValue> swapPop = new HashSet<>();
-                // insn = this.instructions.getFirst();
-                // for(Frame frame : frames) {
-                //     if(insn.getType() == AbstractInsnNode.FRAME && frame != null) {
-                //         FrameNode fn = (FrameNode) insn;
-                //         int analyzerFrameIdx = 0;
-                //         for(int j = 0; j < fn.local.size(); j++) {
-                //             Object valInExistingFrame = fn.local.get(j);
-                //             BasicValue calculatedVal = (BasicValue) frame.getLocal(analyzerFrameIdx);
-                //             if(calculatedVal instanceof SinkableArrayValue && ((SinkableArrayValue) calculatedVal).flowsToInstMethodCall &&
-                //                     valInExistingFrame != Opcodes.TOP &&
-                //                     (TaintUtils.isShadowedType(TaintAdapter.getTypeForStackType(valInExistingFrame)) || valInExistingFrame == Opcodes.NULL
-                //                             || valInExistingFrame.equals("java/lang/Object"))) {
-                //                 ignoreExistingFrames = false;
-                //                 if(valInExistingFrame.equals("java/lang/Object")) {
-                //                     fn.local.set(j, new TaggedValue(TaintUtils.getStackTypeForType(calculatedVal.getType())));
-                //                     // Look for any GOTO that might have had an AUTOBOX added to it because we thought that this was.
-                //                     // See SynchronizedBlockObjTagITCase for an example of where this is needed.
-                //                     // This is a terrible fix, a much better one would be to clean up that whole autobox
-                //                     // mess and move it into here, using the analyzer frames instead of the inFrames/outFrames
-                //                     removeAUTOBOXCallsForVar(j);
-                //                 } else {
-                //                     fn.local.set(j, new TaggedValue(valInExistingFrame));
-                //                 }
-                //             }
-                //             analyzerFrameIdx++;
-                //             if(valInExistingFrame == Opcodes.DOUBLE || valInExistingFrame == Opcodes.LONG) {
-                //                 analyzerFrameIdx++;
-                //             }
-                //         }
-                //         for(int j = 0; j < fn.stack.size(); j++) {
-                //             Object l = fn.stack.get(j);
-                //             BasicValue v = (BasicValue) frame.getStack(j);
-                //             if(v instanceof SinkableArrayValue && ((SinkableArrayValue) v).flowsToInstMethodCall && (TaintUtils.isShadowedType(TaintAdapter.getTypeForStackType(l)) || l == Opcodes.NULL || l.equals("java/lang/Object"))) {
-                //                 fn.stack.set(j, new TaggedValue((ignoreExistingFrames ? TaintUtils.getStackTypeForType(v.getType()) : l)));
-                //             }
-                //         }
-                //     }
-                //     insn = insn.getNext();
-                // }
             } catch(Throwable e) {
                 e.printStackTrace();
                 PrintWriter pw;

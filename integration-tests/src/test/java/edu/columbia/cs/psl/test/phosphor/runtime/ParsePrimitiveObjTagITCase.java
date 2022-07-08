@@ -26,10 +26,10 @@ public class ParsePrimitiveObjTagITCase extends BaseMultiTaintClass {
     @Parameterized.Parameters
     public static Collection taintingConfig() {
         return Arrays.asList(new Object[][] {
-                {true, true},
-                {true, false},
-                {false, true},
-                {false, false},
+                {true, true},   //0: taintStrings, taintChars
+                {true, false},  //1: taintStrings
+                {false, true},  //2: taintChars
+                {false, false}, //3: no taint
         });
     }
 

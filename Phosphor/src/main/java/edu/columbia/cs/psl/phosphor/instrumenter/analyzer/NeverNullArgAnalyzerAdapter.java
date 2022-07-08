@@ -87,6 +87,10 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
      */
     public List<Object> stack;
     public List<Object> stackTagStatus;
+    /**
+     * Represents long and double as a SINGLE element
+     */
+    public int numberOfVariablesOnStack;
 
     public List<Object> stackConstantVals;
 
@@ -259,6 +263,7 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             this.stackTagStatus = new ArrayList<>();
             this.stackConstantVals = new ArrayList<>(nStack);
         }
+        this.numberOfVariablesOnStack = stack.length;
         visitFrameTypes(nLocal, local, this.frameLocals);
         visitFrameTypes(nLocal, local, this.locals);
         visitFrameTypes(nStack, stack, this.stack);
@@ -588,6 +593,8 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if(type instanceof TaggedValue) {
             type = ((TaggedValue) type).v;
         }
+        if(type != Opcodes.TOP)
+            this.numberOfVariablesOnStack++;
         stack.add(type);
         stackConstantVals.add(val);
         stackTagStatus.add((tag instanceof Boolean ? type : tag));
@@ -641,14 +648,21 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
     private Object pop() {
         stackConstantVals.remove(stackConstantVals.size() - 1);
         stackTagStatus.remove(stackTagStatus.size() - 1);
-        return stack.remove(stack.size() - 1);
+        Object ret = stack.remove(stack.size() - 1);
+        if(ret != Opcodes.TOP) {
+            numberOfVariablesOnStack--;
+        }
+        return ret;
     }
 
     private void pop(final int n) {
         int size = stack.size();
         int end = size - n;
         for(int i = size - 1; i >= end; --i) {
-            stack.remove(i);
+            Object ret = stack.remove(i);
+            if(ret != Opcodes.TOP) {
+                numberOfVariablesOnStack--;
+            }
             stackConstantVals.remove(i);
             stackTagStatus.remove(i);
         }

@@ -183,4 +183,11 @@ public class ReflectionObjTagITCase extends BaseMultiTaintClass {
 		Object result = constructor.newInstance(null, "testPrimitiveArrayIgnoredConstructor".toCharArray());
 		assertNotNull(result);
 	}
+
+	public static void main(String[] args) throws Throwable {
+		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Boolean.TYPE);
+		boolean z = MultiTainter.taintedBoolean(true, Taint.withLabel("PrimArgLabel"));
+		ConstructorHolder instance = cons.newInstance(z);
+		System.out.println(MultiTainter.getTaint(instance.bool));
+	}
 }

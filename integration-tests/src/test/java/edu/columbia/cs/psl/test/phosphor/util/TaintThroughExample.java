@@ -1,6 +1,8 @@
 package edu.columbia.cs.psl.test.phosphor.util;
 
 
+import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
+
 public class TaintThroughExample {
 
 	public void taintBackToArgs(int[] input) {
@@ -13,6 +15,7 @@ public class TaintThroughExample {
 	}
 
 	public int passIntTaintThrough(int i) {
+		System.out.println(MultiTainter.getTaint(i));
 		return i;
 	}
 
