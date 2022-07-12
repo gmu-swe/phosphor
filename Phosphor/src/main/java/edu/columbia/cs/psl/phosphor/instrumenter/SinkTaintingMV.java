@@ -2,10 +2,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.BasicSourceSinkManager;
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
-import jdk.internal.org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -16,7 +13,7 @@ import org.objectweb.asm.commons.GeneratorAdapter;
 public class SinkTaintingMV extends AdviceAdapter {
 
     // The arguments of the sink method being visited
-    private final Type[] args;
+    private final Type[] argTypes;
     // The untainted signature of the sink method from which the sink method being
     // visited inherited its status as a sink
     private final String baseSink;
@@ -34,12 +31,11 @@ public class SinkTaintingMV extends AdviceAdapter {
     private final String owner;
     private boolean isConstructor;
 
-    private int idxOfPhosphorStackFrame;
     private GeneratorAdapter generatorAdapter;
 
     public SinkTaintingMV(MethodVisitor mv, int access, String owner, String name, String desc) {
         super(Configuration.ASM_VERSION, mv, access, name, desc);
-        this.args = Type.getArgumentTypes(desc);
+        this.argTypes = Type.getArgumentTypes(desc);
         this.baseSink = BasicSourceSinkManager.getInstance().getBaseSink(owner, name, desc);
         this.actualSink = owner + "." + name + desc;
         this.isStatic = (access & ACC_STATIC) != 0;
@@ -47,13 +43,6 @@ public class SinkTaintingMV extends AdviceAdapter {
         this.endLabel = new Label();
         this.owner = owner;
         this.isConstructor = name.equals("<init>");
-        Type[] args = Type.getArgumentTypes(desc);
-        if((access & Opcodes.ACC_STATIC) == 0){
-            idxOfPhosphorStackFrame = 1;
-        }
-        for(Type t : args){
-            idxOfPhosphorStackFrame += t.getSize();
-        }
         this.generatorAdapter = new GeneratorAdapter(this, access, name, desc);
 
     }
@@ -94,7 +83,7 @@ public class SinkTaintingMV extends AdviceAdapter {
         super.visitFieldInsn(GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter",
                 Type.getDescriptor(TaintSourceWrapper.class));
         // Initialize the array of objects to check
-        super.visitIntInsn(SIPUSH, args.length + (isStatic ? 0 : 1));
+        super.visitIntInsn(SIPUSH, argTypes.length + (isStatic ? 0 : 1));
         super.visitTypeInsn(ANEWARRAY, "java/lang/Object");
 
         if(!isStatic){
@@ -105,15 +94,15 @@ public class SinkTaintingMV extends AdviceAdapter {
         }
 
         int idx = isStatic ? 0 : 1; // Start the arguments array after "this" argument for non-static methods
-        for (int i = 0; i < args.length; i++) {
+        for (int i = 0; i < argTypes.length; i++) {
             // Duplicate the object array
             super.visitInsn(DUP);
             generatorAdapter.push(i + (isStatic? 0 : 1));
-            super.visitVarInsn(args[i].getOpcode(ILOAD), idx);
-            generatorAdapter.box(args[i]);
+            super.visitVarInsn(argTypes[i].getOpcode(ILOAD), idx);
+            generatorAdapter.box(argTypes[i]);
             // Push the array index onto the stack
             super.visitInsn(AASTORE);
-            idx += args[i].getSize();
+            idx += argTypes[i].getSize();
         }
         // Load the taint tags
         super.visitIntInsn(SIPUSH, shadowVarsForArgs.length);
@@ -156,7 +145,7 @@ public class SinkTaintingMV extends AdviceAdapter {
     @Override
     public void visitMaxs(int maxStack, int maxLocals) {
         super.mark(endLabel); // Ends try block and starts finally block
-        super.visitFrame(F_NEW, 0, new Object[0], 1, new Object[] { "java/lang/Throwable" });
+        super.visitFrame(F_NEW, 0, new Object[0], 1, new Object[] {"java/lang/Throwable"});
         super.visitVarInsn(ASTORE, 1); // Push the throwable that was thrown onto the stack
         callExitingSink();
         super.visitVarInsn(ALOAD, 1); // Pop the throwable that was thrown off the stack

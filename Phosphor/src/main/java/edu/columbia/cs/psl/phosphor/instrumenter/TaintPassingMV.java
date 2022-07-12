@@ -54,11 +54,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     private boolean isTaintlessArrayStore = false;
     private boolean doNotUnboxTaints;
     private boolean isAtStartOfExceptionHandler;
+    private boolean isRewrittenMethodDescriptorOrName;
 
     public TaintPassingMV(MethodVisitor mv, int access, String owner, String name, String descriptor, String signature,
-            String[] exceptions, NeverNullArgAnalyzerAdapter analyzer,
-            MethodVisitor passThroughMV, LinkedList<MethodNode> wrapperMethodsToAdd,
-            ControlFlowPropagationPolicy controlFlowPolicy) {
+                          String[] exceptions, NeverNullArgAnalyzerAdapter analyzer,
+                          MethodVisitor passThroughMV, LinkedList<MethodNode> wrapperMethodsToAdd,
+                          ControlFlowPropagationPolicy controlFlowPolicy) {
         super(access, owner, name, descriptor, signature, exceptions, mv, analyzer);
         taintTagFactory.instrumentationStarting(access, name, descriptor);
         this.name = name;
@@ -71,6 +72,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         this.isObjOutputStream = (owner.equals("java/io/ObjectOutputStream") && name.startsWith("writeObject0"))
                 || (owner.equals("java/io/ObjectInputStream") && name.startsWith("defaultReadFields"));
         this.controlFlowPolicy = controlFlowPolicy;
+        this.isRewrittenMethodDescriptorOrName = false;
     }
 
     @Override
@@ -81,9 +83,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         //There are some methods that might be called from native code, and get passed regular arrays as type java.lang.Object,
         //but we will assume from here-on out that they are wrapped arrays. Check that here.
         boolean ensureObjsAreWrapped = false;
-        if(this.className.equals("java/lang/invoke/MethodHandleNatives")){
-            if(this.name.equals("linkCallSite")){
-                ensureObjsAreWrapped = true; //TODO should we always do this? just in some places? performance is what?
+        if (this.className.equals("java/lang/invoke/MethodHandleNatives")) {
+            if (this.name.equals("linkCallSite")) {
+                ensureObjsAreWrapped = true; //TODO should we always do this? just in some places? performance is what? If try everywhere, it crashes...
             }
         }
 
@@ -94,7 +96,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
         StringBuilder argTaintPositions = new StringBuilder("PhosphorArgTaintIndices=");
         pushPhosphorStackFrame();
-        if(!isStatic){
+        if (!isStatic) {
             super.visitInsn(DUP);
             push(idxOfLV);
             GET_ARG_TAINT.delegateVisit(mv);
@@ -106,7 +108,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             idxOfLV++;
         }
         super.visitInsn(NOP);
-        for(int i = 0; i < args.length; i++ ){
+        for (int i = 0; i < args.length; i++) {
             super.visitInsn(DUP);
             push(idxOfArgPosition);
             GET_ARG_TAINT.delegateVisit(mv);
@@ -117,14 +119,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             argTaintPositions.append(',');
 
             //also retrieve wrappers for any vals as needed
-            if(TaintUtils.isWrappedType(args[i])){
+            if (TaintUtils.isWrappedType(args[i])) {
                 super.visitInsn(DUP);
                 push(i);
                 super.visitVarInsn(ALOAD, idxOfLV);
                 TaintMethodRecord.getArgWrapperMethod(args[i]).delegateVisit(mv);
                 this.visitTypeInsn(CHECKCAST, args[i].getInternalName());
                 super.visitVarInsn(ASTORE, idxOfLV);
-            } else if(ensureObjsAreWrapped && args[i].getInternalName().equals("java/lang/Object")){
+            } else if (ensureObjsAreWrapped && args[i].getInternalName().equals("java/lang/Object")) {
                 super.visitVarInsn(ALOAD, idxOfLV);
                 BOX_IF_NECESSARY.delegateVisit(mv);
                 super.visitVarInsn(ASTORE, idxOfLV);
@@ -167,26 +169,28 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         super.visitLabel(label);
     }
 
-    private static Object[] replaceArraysWithWrappedTypes(Object[] in){
-       boolean makeChange = false;
-        for(Object eachEntry : in){
-            if(eachEntry instanceof String && ((String) eachEntry).charAt(0) == '['){
+    private static Object[] replaceArraysWithWrappedTypes(Object[] in) {
+        boolean makeChange = false;
+        for (Object eachEntry : in) {
+            if (eachEntry instanceof String && ((String) eachEntry).charAt(0) == '[') {
                 makeChange = true;
                 break;
             }
         }
-        if(!makeChange)
+        if (!makeChange) {
             return in;
+        }
         Object[] ret = new Object[in.length];
         System.arraycopy(in, 0, ret, 0, in.length);
-        for(int i = 0; i < ret.length; i++){
+        for (int i = 0; i < ret.length; i++) {
             Object eachEntry = ret[i];
-            if(eachEntry instanceof String && ((String) eachEntry).charAt(0)=='['){
+            if (eachEntry instanceof String && ((String) eachEntry).charAt(0) == '[') {
                 ret[i] = TaintUtils.getWrapperType(getTypeForStackType(eachEntry)).getInternalName();
             }
         }
         return ret;
     }
+
     @Override
     public void visitFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack) {
         //Replace any wrapped types with their wrappers
@@ -254,7 +258,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             desc = MultiDTaintedArray.getTypeForType(descType).getDescriptor();
         }
         boolean isIgnoredTaint = Instrumenter.isIgnoredClass(owner);
-                //|| Instrumenter.isIgnoredClassWithStubsButNoTracking(owner);
+        //|| Instrumenter.isIgnoredClassWithStubsButNoTracking(owner);
         if (Instrumenter.isUninstrumentedField(owner, name) || isIgnoredTaint) {
             switch (opcode) {
                 case GETFIELD:
@@ -343,7 +347,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     if (descType.getDimensions() == 1) {
                         super.visitInsn(DUP);
                         super.visitMethodInsn(Opcodes.INVOKESTATIC, wrapper.getInternalName(), "unwrap", "("
-                                + wrapper.getDescriptor() + ")" + TaintUtils.getUnwrappedType(wrapper).getDescriptor(),
+                                        + wrapper.getDescriptor() + ")" + TaintUtils.getUnwrappedType(wrapper).getDescriptor(),
                                 false);
                         if (descType.getSort() != Type.OBJECT) {
                             super.visitTypeInsn(CHECKCAST, descType.getInternalName());
@@ -398,8 +402,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                             super.visitInsn(DUP2);
                             // Owner ArrayWrapper Owner ArrayWrapper
                             super.visitMethodInsn(Opcodes.INVOKESTATIC, wrapper.getInternalName(), "unwrap", "("
-                                    + wrapper.getDescriptor() + ")"
-                                    + TaintUtils.getUnwrappedType(wrapper).getDescriptor(),
+                                            + wrapper.getDescriptor() + ")"
+                                            + TaintUtils.getUnwrappedType(wrapper).getDescriptor(),
                                     false);
                             if (descType.getElementType().getSort() == Type.OBJECT) {
                                 super.visitTypeInsn(CHECKCAST, descType.getInternalName());
@@ -529,7 +533,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     // 2D arrays are just 1D arrays, not wrapped 1Darrays
                     Type arType = Type.getType(LazyReferenceArrayObjTags.class);
                     super.visitMethodInsn(INVOKESTATIC, arType.getInternalName(), "factory",
-                            "([Ljava/lang/Object;"+Configuration.TAINT_TAG_DESC+")" + arType.getDescriptor(),
+                            "([Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")" + arType.getDescriptor(),
                             false);
                     // TODO what should we make the reference taint be here? how shoudl we use the
                     // array length?
@@ -584,10 +588,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     @Override
     public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
+
+
         Type[] args = Type.getArgumentTypes(desc);
         int nParams = args.length;
         // load taint tags into stack frame
-        for(int i = 0; i < nParams; i++){
+        for (int i = 0; i < nParams; i++) {
             int varWithTagForThisVar = lvs.getStackShadowVarFromTop(nParams - i - 1);
             pushPhosphorStackFrame();
             super.visitVarInsn(ALOAD, varWithTagForThisVar);
@@ -596,7 +602,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
         unwrapArraysForCallTo(owner, name, desc);
         pushPhosphorStackFrame();
-        if(Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+        if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
             super.visitLdcInsn(name + desc.substring(0, 1 + desc.indexOf(')')));
             PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
         } else {
@@ -605,13 +611,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
         super.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
         Type returnType = Type.getReturnType(desc);
-        if(returnType.getSort() != Type.VOID) {
+        if (returnType.getSort() != Type.VOID) {
             // retrieve taint tags
             pushPhosphorStackFrame();
             GET_RETURN_TAINT.delegateVisit(mv);
             storeStackTopShadowVar();
         }
-        if(TaintUtils.isWrappedType(returnType)){
+        if (TaintUtils.isWrappedType(returnType)) {
             pushPhosphorStackFrame();
             super.visitInsn(SWAP);
             TaintMethodRecord.getReturnWrapperMethod(returnType).delegateVisit(mv);
@@ -649,10 +655,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             super.visitMethodInsn(opcode, owner, name, desc, isInterface);
             return;
         }
-        if (owner.equals("java/lang/Object") && name.equals("clone")){
+        if (owner.equals("java/lang/Object") && name.equals("clone")) {
             //On VERY OLD (e.g. 1.1) class files, we aren't allowed to use java/lang/object as owner for clone on a reference array...
             Type onStack = getTopOfStackType();
-            if(TaintUtils.isWrapperType(onStack)){
+            if (TaintUtils.isWrapperType(onStack)) {
                 owner = onStack.getInternalName();
             }
         }
@@ -666,34 +672,34 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         for the new object to be the taint of the value being wrapped
             TODO can we refactor this to somewhere that makes more sense?
          */
-         if (((owner.equals(INTEGER_NAME) || owner.equals(BYTE_NAME) ||
-                 owner.equals(BOOLEAN_NAME)
-                 || owner.equals(CHARACTER_NAME)
-                 || owner.equals(SHORT_NAME) || owner.equals(LONG_NAME) ||
-                 owner.equals(FLOAT_NAME)
-                 || owner.equals(DOUBLE_NAME))) && name.equals("<init>")) {
-             Type[] args = Type.getArgumentTypes(desc);
-             if (args.length == 1 && args[0].getSort() != Type.OBJECT) {
-                 // [uninitThis (boxed type), val (primitive)]
-                 int primitiveSize = args[0].getSize();
-                 // Check that a duplicate of boxed type being initialized is actually on the
-                 // stack
-                 if (analyzer.stack.size() >= 2 + primitiveSize
-                         && analyzer.stack.get(analyzer.stack.size() - (1 + primitiveSize)) instanceof
-                         Label
-                         && analyzer.stack.get(analyzer.stack.size() - (2 + primitiveSize)) ==
-                         analyzer.stack
-                                 .get(analyzer.stack.size() - (1 + primitiveSize))) {
-                     int lvWithSourceTaint = lvs.getStackShadowVarFromTop(0);
-                     int destOne = lvs.getStackShadowVarFromTop(1);
-                     int destTwo = lvs.getStackShadowVarFromTop(2);
-                     super.visitVarInsn(ALOAD, lvWithSourceTaint);
-                     super.visitInsn(DUP);
-                     super.visitVarInsn(ASTORE, destOne);
-                     super.visitVarInsn(ASTORE, destTwo);
-                 }
-             }
-         }
+        if (((owner.equals(INTEGER_NAME) || owner.equals(BYTE_NAME) ||
+                owner.equals(BOOLEAN_NAME)
+                || owner.equals(CHARACTER_NAME)
+                || owner.equals(SHORT_NAME) || owner.equals(LONG_NAME) ||
+                owner.equals(FLOAT_NAME)
+                || owner.equals(DOUBLE_NAME))) && name.equals("<init>")) {
+            Type[] args = Type.getArgumentTypes(desc);
+            if (args.length == 1 && args[0].getSort() != Type.OBJECT) {
+                // [uninitThis (boxed type), val (primitive)]
+                int primitiveSize = args[0].getSize();
+                // Check that a duplicate of boxed type being initialized is actually on the
+                // stack
+                if (analyzer.stack.size() >= 2 + primitiveSize
+                        && analyzer.stack.get(analyzer.stack.size() - (1 + primitiveSize)) instanceof
+                        Label
+                        && analyzer.stack.get(analyzer.stack.size() - (2 + primitiveSize)) ==
+                        analyzer.stack
+                                .get(analyzer.stack.size() - (1 + primitiveSize))) {
+                    int lvWithSourceTaint = lvs.getStackShadowVarFromTop(0);
+                    int destOne = lvs.getStackShadowVarFromTop(1);
+                    int destTwo = lvs.getStackShadowVarFromTop(2);
+                    super.visitVarInsn(ALOAD, lvWithSourceTaint);
+                    super.visitInsn(DUP);
+                    super.visitVarInsn(ASTORE, destOne);
+                    super.visitVarInsn(ASTORE, destTwo);
+                }
+            }
+        }
         if (isBoxUnboxMethodToWrap(owner, name)) {
             if (name.equals("valueOf")) {
                 switch (owner) {
@@ -779,7 +785,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         int nParams = args.length;
 
         boolean isStaticCall = (opcode == Opcodes.INVOKESTATIC);
-        if(!isStaticCall){
+        if (!isStaticCall) {
             int varWithThisTag = lvs.getStackShadowVarFromTop(nParams);
             pushPhosphorStackFrame();
             super.visitVarInsn(ALOAD, varWithThisTag);
@@ -787,7 +793,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             SET_ARG_TAINT.delegateVisit(mv);
         }
         // load taint tags into stack frame
-        for(int i = 0; i < nParams; i++){
+        for (int i = 0; i < nParams; i++) {
             int varWithTagForThisVar = lvs.getStackShadowVarFromTop(nParams - i - 1);
             pushPhosphorStackFrame();
             super.visitVarInsn(ALOAD, varWithTagForThisVar);
@@ -795,12 +801,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             SET_ARG_TAINT.delegateVisit(mv);
         }
         unwrapArraysForCallTo(owner, name, desc);
-        if(owner.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropagator"))
+        if (owner.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropagator")) {
             desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, mv); //TODO refactor these valueOf things to the reflection hiding MV
+        }
         taintTagFactory.methodOp(opcode, owner, name, desc, isInterface, mv, lvs, this);
 
         pushPhosphorStackFrame();
-        if(Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+        if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
             super.visitLdcInsn(name + desc.substring(0, 1 + desc.indexOf(')')));
             PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
         } else {
@@ -813,13 +820,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         Type returnType = Type.getReturnType(desc);
         pushPhosphorStackFrame();
         GET_RETURN_TAINT.delegateVisit(mv);
-        if(returnType.getSort() != Type.VOID) {
+        if (returnType.getSort() != Type.VOID) {
             // retrieve taint tags
             storeStackTopShadowVar();
-        } else{
+        } else {
             super.visitInsn(POP);
         }
-        if(TaintUtils.isWrappedType(returnType)){
+        if (TaintUtils.isWrappedType(returnType)) {
             pushPhosphorStackFrame();
             super.visitInsn(SWAP);
             TaintMethodRecord.getReturnWrapperMethod(returnType).delegateVisit(mv);
@@ -827,13 +834,14 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
     }
 
-    private void checkStackForTaints(){
+    private void checkStackForTaints() {
         //if(analyzer.stack != null)
         //for(Object o : analyzer.stack){
         //    if(o.equals(Configuration.TAINT_TAG_INTERNAL_NAME))
         //        throw new IllegalStateException();
         //}
     }
+
     @Override
     public void visitInsn(int opcode) {
         checkStackForTaints();
@@ -870,7 +878,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             super.visitInsn(opcode);
         } else {
             throw new IllegalArgumentException("Unknown opcode: " + opcode);
-       }
+        }
         checkStackForTaints();
     }
 
@@ -971,7 +979,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
     }
 
-    private void popPhosphorStackFrameIfNeeded(){
+    private void popPhosphorStackFrameIfNeeded() {
         pushPhosphorStackFrame();
         super.visitVarInsn(ILOAD, this.lvs.getLocalVariableAdder().getIndexOfStackDataNeedsPoppingLV());
         POP_STACK_FRAME.delegateVisit(mv);
@@ -986,7 +994,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
      *               FRETURN, or LRETURN
      */
     private void visitReturn(int opcode) {
-        if(this.className.equals("java/lang/Thread") && name.equals("<clinit>")){
+        if (this.className.equals("java/lang/Thread") && name.equals("<clinit>")) {
             START_STACK_FRAME_TRACKING.delegateVisit(mv);
         }
         controlFlowPolicy.onMethodExit(opcode);
@@ -999,7 +1007,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
         pushReturnTaint();
         Type returnType = Type.getReturnType(this.descriptor);
-        if(TaintUtils.isWrappedType(returnType) && !topOfStackIsNull()){
+        if (TaintUtils.isWrappedType(returnType) && !topOfStackIsNull()) {
             //Need to return the unboxed, and save this for later
             super.visitInsn(DUP);
 
@@ -1011,13 +1019,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             Type t = getTopOfStackType();
             //Unbox now:
             //For 1-d arrays: still pass  the actual array
-            if(returnType.getDimensions() == 1) {
+            if (returnType.getDimensions() == 1) {
                 Type unwrapped = TaintUtils.getUnwrappedType(t);
                 super.visitMethodInsn(INVOKESTATIC, t.getInternalName(), "unwrap", "(" + t.getDescriptor() + ")" + unwrapped.getDescriptor(), false);
                 if (unwrapped.getDescriptor().equals("[Ljava/lang/Object;")) {
                     super.visitTypeInsn(CHECKCAST, returnType.getInternalName());
                 }
-            }else{
+            } else {
                 // Greater than 1d: can't make it line up...
                 super.visitInsn(POP);
                 super.visitInsn(ACONST_NULL);
@@ -1179,8 +1187,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 || owner.equals(SHORT_NAME) || owner.equals(LONG_NAME) || owner.equals(FLOAT_NAME)
                 || owner.equals(DOUBLE_NAME))
                 && (name.equals("toString") || name.equals("toHexString") || name.equals("toOctalString")
-                        || name.equals("toBinaryString")
-                        || name.equals("toUnsignedString") || name.equals("valueOf"))) {
+                || name.equals("toBinaryString")
+                || name.equals("toUnsignedString") || name.equals("valueOf"))) {
             return true;
         }
         switch (owner) {
@@ -1220,5 +1228,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             n += newArgType.getSize();
         }
         return paramTypes;
+    }
+
+    @Override
+    public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+        if (isRewrittenMethodDescriptorOrName && (descriptor.equals("Ljdk/internal/HotSpotIntrinsicCandidate;")
+                || descriptor.equals("Ljdk/internal/vm/annotation/IntrinsicCandidate;"))) {
+            // HotSpotIntrinsicCandidate can only be on a method that there is an intrinsic provided for, and must be on
+            // all methods for which an intrinsic is provided.
+            return null;
+        }
+        return super.visitAnnotation(descriptor, visible);
     }
 }

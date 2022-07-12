@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurLocalVariablesSorter;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -12,8 +13,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LocalVariableNode;
-
-import java.lang.StringBuilder;
 
 public class LocalVariableManager extends OurLocalVariablesSorter implements Opcodes {
 
@@ -36,7 +35,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     private NeverNullArgAnalyzerAdapter analyzer;
     private boolean isInMethodThatIsTooBig;
     private boolean generateExtraDebug;
-    private Type[] args;
+    private Type[] argumentTypes;
     private boolean isStatic;
     private boolean disabled = false;
     private Label oldStartLabel;
@@ -50,7 +49,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         super(Configuration.ASM_VERSION, access, desc, mv);
         this.analyzer = analyzer;
         this.uninstMV = uninstMV;
-        args = Type.getArgumentTypes(desc);
+        argumentTypes = Type.getArgumentTypes(desc);
         if ((access & Opcodes.ACC_STATIC) == 0) {
         } else {
             isStatic = true;
@@ -301,7 +300,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
                 super.visitLocalVariable("argidx" + n, "Ljava/lang/Object;", null, this.newStartLabel, this.end, n);
                 n++;
             }
-            for (Type t : args) {
+            for (Type t : argumentTypes) {
                 super.visitLocalVariable("argidx" + n, t.getDescriptor(), null, this.newStartLabel, this.end, n);
                 n += t.getSize();
             }

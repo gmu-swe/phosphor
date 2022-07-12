@@ -34,6 +34,10 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <source>9</source>
+                    <target>9</target>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>edu.gmu.swe.phosphor</groupId>
@@ -82,30 +86,70 @@
 <!--                    </execution>-->
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
-                <executions>
-                    <execution>
-                        <phase>process-resources</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <exportAntProperties>true</exportAntProperties>
-                            <target>
-                                <property name="phosphor.jar" value="${maven.dependency.edu.gmu.swe.phosphor.Phosphor.jar.path}"/>
-                                <property name="argLine.prefix"
-                                          value="-Dphosphor.verify=true -Xbootclasspath/p:${phosphor.jar} -javaagent:${phosphor.jar}=${auto.taint}"/>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <id>java8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <build>
+                <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>1.8</version>
+                    <executions>
+                        <execution>
+                            <phase>process-resources</phase>
+                            <goals>
+                                <goal>run</goal>
+                            </goals>
+                            <configuration>
+                                <exportAntProperties>true</exportAntProperties>
+                                <target>
+                                    <property name="phosphor.jar" value="${maven.dependency.edu.gmu.swe.phosphor.Phosphor.jar.path}"/>
+                                    <property name="argLine.prefix"
+                                              value="-Dphosphor.verify=true -Xbootclasspath/p:${phosphor.jar} -javaagent:${phosphor.jar}=${auto.taint}"/>
+                                </target>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile><id>java9Plus</id><activation>
+            <jdk>[9,)</jdk>
+        </activation>
+        <build>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>1.8</version>
+                    <executions>
+                        <execution>
+                            <phase>process-resources</phase>
+                            <goals>
+                                <goal>run</goal>
+                            </goals>
+                            <configuration>
+                                <exportAntProperties>true</exportAntProperties>
+                                <target>
+                                    <property name="phosphor.jar" value="${maven.dependency.edu.gmu.swe.phosphor.Phosphor.jar.path}"/>
+                                    <property name="phosphor-javaagent.jar" value="${maven.dependency.edu.gmu.swe.phosphor.phosphor-javaagent.jar.path}"/>
+                                    <property name="argLine.prefix"
+                                              value="--add-exports java.base/jdk.internal.misc=ALL-UNNAMED -Dphosphor.verify=true -javaagent:${phosphor-javaagent.jar}=${auto.taint}"/>
+                                </target>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </build>
+        </profile>
         <profile>
             <id>run-dacapo</id>
             <activation>
@@ -226,6 +270,11 @@
         <dependency>
             <groupId>edu.gmu.swe.phosphor</groupId>
             <artifactId>Phosphor</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.gmu.swe.phosphor</groupId>
+            <artifactId>phosphor-javaagent</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

@@ -16,7 +16,7 @@ public class ClassSupertypeReadingTransformer extends PhosphorBaseTransformer {
     public static HashMap<String, ClassNode> classNodes = new HashMap<>();
 
     @Override
-    public byte[] _transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) {
+    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) {
         ClassReader cr = new ClassReader(classfileBuffer);
         cr.accept(new ClassVisitor(Configuration.ASM_VERSION) {
             @Override

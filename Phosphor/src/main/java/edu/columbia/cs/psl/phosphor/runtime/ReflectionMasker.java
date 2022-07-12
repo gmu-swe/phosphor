@@ -3,20 +3,17 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
 import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.Type;
-import sun.misc.Unsafe;
-import sun.reflect.misc.ConstructorUtil;
 
+import java.lang.invoke.MethodType;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.*;
+import java.lang.reflect.Method;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
@@ -28,13 +25,15 @@ public class ReflectionMasker {
     private static final char[] SET_TAG_METHOD_CHARS = "setPHOSPHOR_TAG".toCharArray();
     private static final int SET_TAG_METHOD_LEN = SET_TAG_METHOD_CHARS.length;
 
-    static {
-        System.setSecurityManager(null);
-    }
+    //TODO what was this doing?
+    //static {
+    //    System.setSecurityManager(null);
+    //}
 
     private ReflectionMasker() {
         // Prevents this class from being instantiated
     }
+
 
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = IS_INSTANCE)
@@ -121,22 +120,22 @@ public class ReflectionMasker {
     }
 
     @InvokedViaInstrumentation(record =  UNWRAP_RETURN)
-    public static Object unwrapReturn(Object ret, PhosphorStackFrame phosphorStackFrame){
-        if(ret instanceof byte[]){
+    public static Object unwrapReturn(Object ret, PhosphorStackFrame phosphorStackFrame) {
+        if (ret instanceof byte[]) {
             return phosphorStackFrame.getReturnWrapper((byte[]) ret);
-        } else if(ret instanceof boolean[]){
+        } else if (ret instanceof boolean[]) {
             return phosphorStackFrame.getReturnWrapper((boolean[]) ret);
-        } else if(ret instanceof char[]){
+        } else if (ret instanceof char[]) {
             return phosphorStackFrame.getReturnWrapper((char[]) ret);
-        }else if(ret instanceof short[]){
+        } else if (ret instanceof short[]) {
             return phosphorStackFrame.getReturnWrapper((short[]) ret);
-        } else if(ret instanceof int[]){
+        } else if (ret instanceof int[]) {
             return phosphorStackFrame.getReturnWrapper((int[]) ret);
-        }else if(ret instanceof float[]){
+        } else if (ret instanceof float[]) {
             return phosphorStackFrame.getReturnWrapper((float[]) ret);
-        }else if(ret instanceof double[]){
+        } else if (ret instanceof double[]) {
             return phosphorStackFrame.getReturnWrapper((double[]) ret);
-        }else if(ret instanceof Object[]){
+        } else if (ret instanceof Object[]) {
             return phosphorStackFrame.getReturnWrapper((Object[]) ret);
         }
         return ret;
@@ -331,7 +330,7 @@ public class ReflectionMasker {
         String desc = Type.getMethodDescriptor(m);
         phosphorStackFrame.intendedNextMethodDebug = m.getName()+desc.substring(0, 1+desc.indexOf(')'));
         phosphorStackFrame.intendedNextMethodFast = PhosphorStackFrame.hashForDesc(phosphorStackFrame.intendedNextMethodDebug);
-        Thread.currentThread().phosphorStackFrame = phosphorStackFrame;
+        InstrumentedJREFieldHelper.setphosphorStackFrame(Thread.currentThread(), phosphorStackFrame);
     }
 
     @InvokedViaInstrumentation(record = PREPARE_FOR_CALL_REFLECTIVE_CONSTRUCTOR)
@@ -342,31 +341,64 @@ public class ReflectionMasker {
         String desc = Type.getConstructorDescriptor(m);
         phosphorStackFrame.intendedNextMethodDebug = "<init>"+desc.substring(0, 1+desc.indexOf(')'));
         phosphorStackFrame.intendedNextMethodFast = PhosphorStackFrame.hashForDesc(phosphorStackFrame.intendedNextMethodDebug);
-        Thread.currentThread().phosphorStackFrame = phosphorStackFrame;
+        InstrumentedJREFieldHelper.setphosphorStackFrame(Thread.currentThread(), phosphorStackFrame);
     }
 
+    public static TaintedReferenceWithObjTag lastParameterType$$PHOSPHOR_TAGGED(MethodType type, Taint typeTag, TaintedReferenceWithObjTag ret, Class erasedRet){
+        ret.taint = Taint.emptyTaint();
+        ret.val = lastParameterType(type);
+        return ret;
+    }
+
+    public static Class<?> lastParameterType(MethodType type){
+        //Calculate how much junk we add to the end of the method descriptor after the last argument, return the actual last type.
+        int numExtraParamsAfterOriginalLastParam = 0;
+        if (type.returnType() == TaintedReferenceWithObjTag.class) {
+            numExtraParamsAfterOriginalLastParam++; //for the erased return type
+        }
+        boolean isRewrittenType = false;
+
+        // Find erased types
+        for (int i = 0; i < type.parameterCount(); i++) {
+            if (TaintUtils.isWrappedTypeWithErasedType(Type.getType(type.parameterType(i)))) {
+                numExtraParamsAfterOriginalLastParam++;
+            }
+            if (type.parameterType(i) == Taint.class) {
+                isRewrittenType = true;
+            }
+        }
+        Class toRet =  type.parameterType(type.parameterCount()- 1 - numExtraParamsAfterOriginalLastParam);
+        if (isRewrittenType) {
+            return toRet;
+            //return type.parameterType(type.parameterCount() - 1 - numExtraParamsAfterOriginalLastParam);
+        } else {
+            return type.parameterType(type.parameterCount() - 1);
+        }
+    }
+
+
     private static Method getCachedMethod(Method method) {
-        return method.PHOSPHOR_TAGmethod;
+        return InstrumentedJREFieldHelper.getPHOSPHOR_TAGmethod(method);
     }
 
     private static void setCachedMethod(Method method, Method valueToCache) {
-        method.PHOSPHOR_TAGmethod = valueToCache;
+        InstrumentedJREFieldHelper.setPHOSPHOR_TAGmethod(method, valueToCache);
     }
 
     private static Class<?> getCachedClass(Class<?> clazz) {
-        return clazz.PHOSPHOR_TAGclass;
+        return InstrumentedJREFieldHelper.getPHOSPHOR_TAGclass(clazz);
     }
 
     private static void setCachedClass(Class<?> clazz, Class<?> valueToCache) {
-        clazz.PHOSPHOR_TAGclass = valueToCache;
+        InstrumentedJREFieldHelper.setPHOSPHOR_TAGclass(clazz, valueToCache);
     }
 
     private static void setMark(Method method, boolean value) {
-        method.PHOSPHOR_TAGmarked = value;
+        InstrumentedJREFieldHelper.setPHOSPHOR_TAGmarked(method, value);
     }
 
     private static boolean isMarked(Method method) {
-        return method.PHOSPHOR_TAGmarked;
+        return InstrumentedJREFieldHelper.getPHOSPHOR_TAGmarked(method);
     }
 
     /* Used to create singleton references to Methods of the Object class. */

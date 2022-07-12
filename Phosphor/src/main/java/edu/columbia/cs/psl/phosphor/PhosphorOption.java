@@ -4,13 +4,12 @@ import edu.columbia.cs.psl.phosphor.control.ControlFlowManager;
 import edu.columbia.cs.psl.phosphor.control.standard.StandardControlFlowManager;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTagFactory;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.EnumMap;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import org.apache.commons.cli.*;
 import org.objectweb.asm.ClassVisitor;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.EnumMap;
 
 public enum PhosphorOption {
 
@@ -281,7 +280,15 @@ public enum PhosphorOption {
                 Configuration.ignoredMethods.add(commandLine.getOptionValue(optionName));
             }
         }
-    };
+    },
+    JAVA_8(new PhosphorOptionBuilder(null, true, true).alternativeName("java8")) {
+        @Override
+        public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
+            if (isPresent) {
+                Configuration.IS_JAVA_8 = true;
+            }
+        }
+    },;
 
     final String optionName;
     private final Option.Builder builder;

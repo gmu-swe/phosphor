@@ -590,11 +590,12 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
         if(type.equals("java/lang/Object;")) {
             throw new IllegalArgumentException("Got " + type);
         }
-        if(type instanceof TaggedValue) {
+        if (type instanceof TaggedValue) {
             type = ((TaggedValue) type).v;
         }
-        if(type != Opcodes.TOP)
+        if (type != Opcodes.TOP) {
             this.numberOfVariablesOnStack++;
+        }
         stack.add(type);
         stackConstantVals.add(val);
         stackTagStatus.add((tag instanceof Boolean ? type : tag));

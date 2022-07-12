@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
@@ -282,10 +281,10 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
         public void visitInsn(int opcode) {
             if (OpcodesUtil.isReturnOpcode(opcode)) {
                 //Top of stack is now: val, taint
-                if(returnType.getSize() == 2){
+                if (returnType.getSize() == 2) {
                     super.visitInsn(DUP2_X1);
                     super.visitInsn(POP2);
-                }else {
+                } else {
                     super.visitInsn(SWAP);
                 }
                 super.visitVarInsn(ALOAD, 1);

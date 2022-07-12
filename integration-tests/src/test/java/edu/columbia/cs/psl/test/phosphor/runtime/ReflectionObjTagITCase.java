@@ -5,7 +5,6 @@ import static org.junit.Assert.*;
 import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;

@@ -1,12 +1,11 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-
-import edu.columbia.cs.psl.phosphor.Configuration;
 
 /**
  * A MethodVisitor that patches frames to add local variables that store taint

@@ -29,8 +29,13 @@ public class ClinitRetransformClassVisitor extends ClassVisitor {
         this.className = name;
         this.skip = className.contains("$$Lambda$")
                 || className.startsWith("sun/reflect/Generated")
+                || className.startsWith("jdk/internal/reflect/Generated")
                 || className.equals("java/lang/ClassCircularityError")
                 || className.equals("java/lang/LinkageError")
+                || className.startsWith("java/util/concurrent/locks")
+                || className.startsWith("java/lang/WeakPair")
+                || className.startsWith("java/lang/CharSequence")
+                || className.startsWith("java/lang/Throwable")
                 || className.equals("java/lang/Error");
     }
 

@@ -9,7 +9,6 @@ import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.struct.LazyReferenceArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -157,8 +156,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                         super.visitFieldInsn(opcode, owner, name + TaintUtils.TAINT_WRAPPER_FIELD,
                                 taintFieldType.getDescriptor());
                     }
-                }
-                else{
+                } else {
                     super.visitFieldInsn(opcode, owner, name, desc);
                 }
                 break;
@@ -267,8 +265,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                 super.visitInsn(opcode);
                 break;
             case Opcodes.ARETURN:
-                Type returnType = Type.getReturnType(this.methodDesc);
-                if(TaintUtils.isWrappedType(returnType) && !topOfStackIsNull()){
+                if (TaintUtils.isWrappedType(returnType) && !topOfStackIsNull()) {
                     //Need to return the unboxed, and save this for later
                     super.visitInsn(DUP);
 
@@ -280,13 +277,13 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                     t = getTopOfStackType();
                     //Unbox now:
                     //For 1-d arrays: still pass  the actual array
-                    if(returnType.getDimensions() == 1) {
+                    if (returnType.getDimensions() == 1) {
                         Type unwrapped = TaintUtils.getUnwrappedType(t);
                         super.visitMethodInsn(INVOKESTATIC, t.getInternalName(), "unwrap", "(" + t.getDescriptor() + ")" + unwrapped.getDescriptor(), false);
                         if (unwrapped.getDescriptor().equals("[Ljava/lang/Object;")) {
                             super.visitTypeInsn(CHECKCAST, returnType.getInternalName());
                         }
-                    }else{
+                    } else {
                         // Greater than 1d: can't make it line up...
                         super.visitInsn(POP);
                         super.visitInsn(ACONST_NULL);

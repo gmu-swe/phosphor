@@ -45,10 +45,9 @@ public class SourceTaintingMV extends MethodVisitor implements Opcodes {
         super.visitLdcInsn(actualSource);
         super.visitIntInsn(BIPUSH, argIndex);
         AUTO_TAINT.delegateVisit(this);
-        if(TaintUtils.isWrappedType(expectedType)) {
+        if (TaintUtils.isWrappedType(expectedType)) {
             super.visitTypeInsn(CHECKCAST, TaintUtils.getWrapperType(expectedType).getInternalName());
-        }
-        else {
+        } else {
             super.visitTypeInsn(CHECKCAST, expectedType.getInternalName());
         }
     }

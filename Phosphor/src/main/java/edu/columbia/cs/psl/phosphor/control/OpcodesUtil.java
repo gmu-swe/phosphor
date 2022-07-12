@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor.control;
 
 import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
@@ -351,7 +352,7 @@ public class OpcodesUtil {
 
     /**
      * If a MethodNode representing the method with the specified owner, name, descriptor can be found using ClassNodes
-     * created by {@link Instrumenter}, returns it. Otherwise, returns null.
+     * created by {@link TaintUtils}, returns it. Otherwise, returns null.
      *
      * @param owner      the declaring class of the method whose MethodNode should be searched for
      * @param name       the name of the method whose MethodNode should be searched for
@@ -377,7 +378,7 @@ public class OpcodesUtil {
 
     /**
      * Creates a set that contains the specified class name and the names of classes that are super classes of the class
-     * with the specified name using ClassNodes created by {@link Instrumenter}.
+     * with the specified name using ClassNodes created by {@link TaintUtils}.
      * If a ClassNode is not available for the class with specified name or any of its super classes, returns null.
      *
      * @param className the name of the class whose super classes are to be gathered

@@ -57,7 +57,7 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
     }
 
     @InvokedViaInstrumentation(record = TAINTED_BOOLEAN_ARRAY_GET)
-    public boolean get( int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    public boolean get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idx, idxTaint, ret);
     }
 

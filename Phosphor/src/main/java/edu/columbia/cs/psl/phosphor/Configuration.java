@@ -32,12 +32,13 @@ public class Configuration {
     public static final int TAINT_LOAD_OPCODE = Opcodes.ALOAD;
     public static final int TAINT_STORE_OPCODE = Opcodes.ASTORE;
     public static final Class<?> TAINT_TAG_OBJ_CLASS = (Taint.class);
+    public static final boolean DEBUG_STACK_FRAME_WRAPPERS = true;
     public static boolean SKIP_LOCAL_VARIABLE_TABLE = false;
     public static String ADDL_IGNORE = null;
     public static boolean REFERENCE_TAINTING = true;
     public static boolean DATAFLOW_TRACKING = true; //default
     public static boolean ARRAY_INDEX_TRACKING = false;
-    public static boolean IMPLICIT_TRACKING = true;
+    public static boolean IMPLICIT_TRACKING = false; //TODO need to set this at runtime somewhere
     public static boolean IMPLICIT_LIGHT_TRACKING;
     public static boolean IMPLICIT_HEADERS_NO_TRACKING = false;
     public static boolean IMPLICIT_EXCEPTION_FLOW = false;
@@ -57,7 +58,7 @@ public class Configuration {
     public static ControlFlowManager controlFlowManager = new StandardControlFlowManager();
     public static String controlFlowManagerPackage = null;
     public static boolean QUIET_MODE = false;
-    public static boolean DEBUG_STACK_FRAME_WRAPPERS = false;
+    public static boolean IS_JAVA_8 = false;
 
     public static Set<String> ignoredMethods = new HashSet<>();
 
@@ -67,6 +68,7 @@ public class Configuration {
     public static String taintTagFactoryPackage = null;
     public static TaintSourceWrapper<?> autoTainter = new TaintSourceWrapper<>();
     public static DerivedTaintListener derivedTaintListener = new DerivedTaintListener();
+    public static boolean WITH_HEAVY_OBJ_EQUALS_HASHCODE = false;
     public static TransformationCache CACHE = null;
     public static boolean TAINT_THROUGH_SERIALIZATION = true;
 

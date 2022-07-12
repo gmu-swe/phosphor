@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.SourceSinkTaintingClassVisitor;
-import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
+import edu.columbia.cs.psl.phosphor.runtime.NonModifiableClassException;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import org.objectweb.asm.ClassReader;
@@ -11,8 +11,6 @@ import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 import java.io.*;
-import java.lang.instrument.IllegalClassFormatException;
-import java.lang.instrument.UnmodifiableClassException;
 import java.security.ProtectionDomain;
 
 /* Transforms classes modifying the code for sink, source, and taintThrough methods. */
@@ -32,7 +30,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
             ClassReader cr = new ClassReader(new FileInputStream("z.class"));
             ClassWriter cw = new ClassWriter(0);
             cr.accept(cw, 0);
-            byte[] ret = transformer._transform(null, "z.class", HashMap.class, null, cw.toByteArray());
+            byte[] ret = transformer.transform(null, "z.class", HashMap.class, null, cw.toByteArray());
             System.out.println(ret);
 
 
@@ -44,7 +42,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
     }
 
     @Override
-    public byte[] _transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) {
+    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) {
         if(classBeingRedefined == null) {
             // The transform was triggered by a class load not a redefine or retransform then no transformations
             // should be performed
@@ -64,7 +62,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
             cv = debug;
             try {
                 cr.accept(new SourceSinkTaintingClassVisitor(cv), ClassReader.EXPAND_FRAMES);
-            }finally {
+            } finally {
                 debug.p.print(pw);
                 pw.close();
             }
@@ -102,7 +100,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
                     }
                     // Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
                     // been called to initialize the configuration
-                    if(isBusyTransforming == 0 && !isBusyRetransforming && INITED && PreMain.getInstrumentation() != null) {
+                    if(isBusyTransforming == 0 && !isBusyRetransforming && INITED && PreMain.getInstrumentationHelper() != null) {
                         isBusyRetransforming = true;
                         retransformQueue.addFast(clazz);
                         // Retransform clazz and any classes that were initialized before retransformation could occur.
@@ -113,7 +111,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
                                 // poppedClazz represents a class or interface that is or is a subtype of a class or interface with
                                 // at least one method labeled as being a sink or source or taintThrough method
                                 if(!poppedClazz.equals(PrintStream.class)) {
-                                    PreMain.getInstrumentation().retransformClasses(poppedClazz);
+                                    PreMain.getInstrumentationHelper().retransformClasses(poppedClazz);
                                 }
                             }
                         }
@@ -121,7 +119,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
                     } else {
                         retransformQueue.addFast(clazz);
                     }
-                } catch(UnmodifiableClassException e) {
+                } catch(NonModifiableClassException e) {
                     //
                 } catch(Throwable e) {
                     // for anything else, we probably want to make sure that it gets printed

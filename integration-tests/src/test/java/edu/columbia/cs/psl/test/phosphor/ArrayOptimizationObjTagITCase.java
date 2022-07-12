@@ -2,8 +2,6 @@ package edu.columbia.cs.psl.test.phosphor;
 
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class ArrayOptimizationObjTagITCase extends BaseMultiTaintClass{

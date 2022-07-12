@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor;
 
-import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.instrumenter.*;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUIDAdder;
@@ -20,7 +19,6 @@ import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 import java.io.*;
-import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
 import java.security.ProtectionDomain;
 
@@ -35,17 +33,16 @@ public class PreMain {
      * As I write this I realize what a multi-threaded classloader mess this can create... let's see how bad it is.
      */
     public static ClassLoader curLoader;
-    private static Instrumentation instrumentation;
+    private static InstrumentationHelper instrumentationHelper;
 
     private PreMain() {
         // Prevents this class from being instantiated
     }
-    private static String args;
 
-    public static void premain(String args, Instrumentation inst) {
-        inst.addTransformer(new ClassSupertypeReadingTransformer());
+    public static void premain(String args, InstrumentationHelper instrumentationHelper) {
+        PreMain.instrumentationHelper = instrumentationHelper;
+        instrumentationHelper.addTransformer(new ClassSupertypeReadingTransformer());
         RUNTIME_INST = true;
-        PreMain.args = args;
         if(args != null) {
             PhosphorOption.configure(true, parseArgs(args));
         }
@@ -57,9 +54,8 @@ public class PreMain {
         }
         // Ensure that BasicSourceSinkManager & anything needed to call isSourceOrSinkOrTaintThrough gets initialized
         BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(Object.class);
-        inst.addTransformer(new PCLoggingTransformer());
-        inst.addTransformer(new SourceSinkTransformer(), true);
-        instrumentation = inst;
+        instrumentationHelper.addTransformer(new PCLoggingTransformer());
+        instrumentationHelper.addTransformer(new SourceSinkTransformer(), true);
     }
 
     private static String[] parseArgs(String argString) {
@@ -79,10 +75,14 @@ public class PreMain {
         return argList.toArray(new String[0]);
     }
 
-    public static Instrumentation getInstrumentation() {
-        return instrumentation;
+    public static InstrumentationHelper getInstrumentationHelper() {
+        return instrumentationHelper;
     }
 
+    @InvokedViaInstrumentation(record = TaintMethodRecord.INSTRUMENT_CLASS_BYTES)
+    public static byte[] instrumentClassBytes(byte[] in){
+        return new PCLoggingTransformer().transform(null, null, null,null, in);
+    }
     public static final class PCLoggingTransformer extends PhosphorBaseTransformer {
 
         public PCLoggingTransformer() {
@@ -90,7 +90,7 @@ public class PreMain {
         }
 
         @Override
-        public byte[] _transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined,
+        public byte[] transform(ClassLoader loader, final String className2, Class<?> classBeingRedefined,
                                 ProtectionDomain protectionDomain, byte[] classfileBuffer) {
             ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer)
                     : new ClassReader(classfileBuffer));

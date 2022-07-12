@@ -5,8 +5,6 @@ import edu.columbia.cs.psl.phosphor.PhosphorOption;
 import edu.columbia.cs.psl.phosphor.org.apache.commons.cli.Option;
 import edu.columbia.cs.psl.phosphor.org.apache.commons.cli.Options;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
 import org.codehaus.plexus.util.FileUtils;
 
 import java.io.File;
@@ -15,6 +13,8 @@ import java.lang.instrument.Instrumentation;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.security.MessageDigest;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -82,7 +82,7 @@ public class PhosphorInstrumentUtil {
      * org.apache.commons.cli.Option that represents that configuration option
      */
     public static Map<String, Option> createPhosphorOptionMap(boolean isRuntimeInst) {
-        Map<String, Option> phosphorOptionMap = new HashMap<>();
+        Map<String, Option> phosphorOptionMap = new HashMap<String, Option>();
         Options options = PhosphorOption.createOptions(isRuntimeInst);
         for(Option option : options.getOptions()) {
             phosphorOptionMap.put(option.getOpt(), option);

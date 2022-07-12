@@ -5,7 +5,6 @@ import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
 
 import java.lang.reflect.Field;
-import java.util.LinkedList;
 
 public class FieldReflectionObjTagITCase extends MaskingBaseTest {
 

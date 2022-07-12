@@ -9,12 +9,12 @@ package edu.columbia.cs.psl.phosphor.struct.harmony.util;
  * Modification: package changed to one that is ignored (i.e., not instrumented) by Phosphor
  */
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.concurrent.locks.*;
-import java.io.Serializable;
-import java.io.IOException;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A hash table supporting full concurrency of retrievals and

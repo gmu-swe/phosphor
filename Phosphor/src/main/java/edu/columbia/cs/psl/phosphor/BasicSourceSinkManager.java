@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.runtime.NonModifiableClassException;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.ConcurrentHashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
@@ -8,7 +9,6 @@ import org.objectweb.asm.tree.ClassNode;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.lang.instrument.UnmodifiableClassException;
 import java.util.Scanner;
 
 public class BasicSourceSinkManager extends SourceSinkManager {
@@ -226,10 +226,10 @@ public class BasicSourceSinkManager extends SourceSinkManager {
                 try {
                     if(classMap.containsKey(className)) {
                         for(Class<?> clazz : classMap.get(className)) {
-                            PreMain.getInstrumentation().retransformClasses(clazz);
+                            PreMain.getInstrumentationHelper().retransformClasses(clazz);
                         }
                     }
-                } catch(UnmodifiableClassException e) {
+                } catch(NonModifiableClassException e) {
                     //
                 } catch(Throwable t) {
                     // Make sure that any other type of exception is printed

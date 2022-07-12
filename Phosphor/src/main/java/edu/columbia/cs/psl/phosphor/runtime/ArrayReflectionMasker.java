@@ -1,6 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
+import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREMethodHelper;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Type;
@@ -37,7 +37,7 @@ public class ArrayReflectionMasker {
         Class tmp = clazz;
         phosphorStackFrame.returnTaint = Taint.emptyTaint();
         if (tmp.isArray()) {
-            return newInstance(clazz, new int[] { len }, phosphorStackFrame);
+            return newInstance(clazz, new int[] {len}, phosphorStackFrame);
         } else {
             if (tmp == Double.TYPE) {
                 return new LazyDoubleArrayObjTags(new double[len]);
@@ -63,7 +63,7 @@ public class ArrayReflectionMasker {
             if (tmp == Character.TYPE) {
                 return new LazyCharArrayObjTags(new char[len]);
             }
-            return new LazyReferenceArrayObjTags((Object[]) Array.newArray(tmp, len));
+            return new LazyReferenceArrayObjTags((Object[]) InstrumentedJREMethodHelper.java_lang_reflect_Array_newArray(tmp, len));
         }
     }
 
@@ -124,9 +124,9 @@ public class ArrayReflectionMasker {
             } else {
                 throw new UnsupportedOperationException();
             }
-        } else if (dims.length == 1) {
-            if (t.getSort() == Type.OBJECT) {
-                return new LazyReferenceArrayObjTags((Object[]) Array.newArray(clazz, dims[0]));
+        } else if(dims.length == 1) {
+            if(t.getSort() == Type.OBJECT) {
+                return new LazyReferenceArrayObjTags((Object[]) InstrumentedJREMethodHelper.java_lang_reflect_Array_newArray(clazz, dims[0]));
             } else {
                 return newInstanceForType(t.getSort(), dims[0]);
             }

@@ -33,7 +33,7 @@ public class ReflectionImplicitITCase extends ReflectionObjTagITCase{
 	@Test
 	public void testReflectionDoesntCrash() {
 		try {
-			for (Class<?> c : PreMain.getInstrumentation().getAllLoadedClasses()) {
+			for (Class<?> c : PreMain.getInstrumentationHelper().getAllLoadedClasses()) {
 				Set<Field> allFields = new HashSet<Field>();
 				try {
 					Field[] declaredFields = c.getDeclaredFields();

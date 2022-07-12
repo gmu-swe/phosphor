@@ -1,10 +1,8 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import sun.misc.Unsafe;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -57,6 +55,10 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
     @Override
     public boolean equals(Object o) {
         PhosphorStackFrame stackFrame = PhosphorStackFrame.forMethod(null);
+        Object wrappedOther = stackFrame.wrappedArgs[1];
+        if(wrappedOther != null){
+            o = wrappedOther;
+        }
         stackFrame.returnTaint = stackFrame.getArgTaint(0).union(stackFrame.getArgTaint(1));
         if(this == o) {
             return true;
@@ -81,15 +83,6 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
             return Taint.emptyTaint();
         }
         return taints[idx];
-    }
-
-    public int unsafeIndexFor(Unsafe unsafe, long offset) {
-        Class<?> clazz = getVal().getClass();
-        long baseOffset = unsafe.arrayBaseOffset(clazz);
-        long scale = unsafe.arrayIndexScale(clazz);
-        // Calculate the index based off the offset
-        int index = (int) ((offset - baseOffset) / scale);
-        return index;
     }
 
     public void setTaint(int idx, Taint valTaint) {

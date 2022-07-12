@@ -1,6 +1,7 @@
 package edu.gmu.swe.phosphor.ignored.maven;
 
 import edu.columbia.cs.psl.phosphor.Instrumenter;
+import fun.jvm.phosphor.instrumenter.jlink.JLinkInvoker;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -229,10 +230,14 @@ public class PhosphorInstrumentingMojo extends AbstractMojo {
             // Delete existing directory or file if necessary
             Files.walkFileTree(instJVMDir.toPath(), new DeletingFileVisitor());
         }
-        if(!instJVMDir.mkdirs()) {
-            throw new IOException("Failed to create target directory for Phosphor-instrumented JVM: " + instJVMDir);
+        if(Instrumenter.isJava8JVMDir(jvmDir)){
+            if(!instJVMDir.mkdirs()) {
+                throw new IOException("Failed to create target directory for Phosphor-instrumented JVM: " + instJVMDir);
+            }
+            Instrumenter.main(createPhosphorMainArguments(jvmDir, instJVMDir, properties));
+        } else{
+            JLinkInvoker.invokeJLink(jvmDir, instJVMDir, properties);
         }
-        Instrumenter.main(createPhosphorMainArguments(jvmDir, instJVMDir, properties));
         // Add phosphor-properties file to directory
         File propsFile = new File(instJVMDir, PROPERTIES_FILE_NAME);
         properties.store(new FileWriter(propsFile), null);

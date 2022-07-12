@@ -9,7 +9,6 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.InstMethodSinkInterpre
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.PFrame;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.SinkableArrayValue;
-import edu.columbia.cs.psl.phosphor.runtime.CharacterUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.*;

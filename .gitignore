@@ -1,4 +1,5 @@
 /bin
+experiments/
 /target
 .project
 .classpath

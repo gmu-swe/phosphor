@@ -11,20 +11,20 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAd
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
-import edu.columbia.cs.psl.phosphor.struct.TaintedObjectWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.*;
-import org.objectweb.asm.commons.GeneratorAdapter;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AnnotationNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.MethodNode;
 
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import static edu.columbia.cs.psl.phosphor.Configuration.controlFlowManager;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 import static org.objectweb.asm.Opcodes.ALOAD;
 
 /**
@@ -239,6 +239,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
 
             //TODO: We used to do this, for reasons related to wrappers. do we still need to?
+            // TODO
+            if (className.equals("java/lang/invoke/StringConcatFactory")) {
+                access = access & ~Opcodes.ACC_VARARGS;
+            }
+
             access = access & ~Opcodes.ACC_FINAL;
 
             MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
@@ -313,8 +318,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 controlStackRestoringMV.setArrayAnalyzer(primitiveArrayFixer);
                 controlStackRestoringMV.setLocalVariableManager(lvs);
             }
-            lvs.setPrimitiveArrayAnalyzer(primitiveArrayFixer); // this guy will tell the LVS what return types to
-                                                                // prealloc
+            lvs.setPrimitiveArrayAnalyzer(primitiveArrayFixer);
             reflectionMasker.setLvs(lvs);
             final MethodVisitor prev = preAnalyzer;
             MethodNode rawMethod = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature,
@@ -434,7 +438,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
         if ((isEnum || className.equals("java/lang/Enum")) && Configuration.WITH_ENUM_BY_VAL) {
             MethodVisitor mv = super.visitMethod(Opcodes.ACC_PUBLIC, "clone", "()Ljava/lang/Object;", null,
-                    new String[] { "java/lang/CloneNotSupportedException" });
+                    new String[] {"java/lang/CloneNotSupportedException"});
             mv.visitCode();
             mv.visitVarInsn(ALOAD, 0);
             mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "clone", "()Ljava/lang/Object;", false);
@@ -522,27 +526,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     mv.visitFieldInsn(Opcodes.GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter",
                             Type.getDescriptor(TaintSourceWrapper.class));
                     mv.visitVarInsn(ALOAD, 0);
-                    mv.visitInsn(Opcodes.DUP);
-                    mv.visitFieldInsn(Opcodes.GETFIELD, className, "value", "[C");
-                    // A
-                    mv.visitTypeInsn(Opcodes.NEW, taintType.getInternalName());
-                    // A T
-                    mv.visitInsn(Opcodes.DUP_X1);
-                    // T A T
-                    mv.visitInsn(Opcodes.SWAP);
-                    mv.visitMethodInsn(Opcodes.INVOKESPECIAL, taintType.getInternalName(), "<init>", "([C)V", false);
-                    // T
-                    mv.visitInsn(Opcodes.DUP_X1);
-                    mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_WRAPPER_FIELD,
-                            taintType.getDescriptor());
-
                     mv.visitVarInsn(ALOAD, 1);
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(TaintSourceWrapper.class),
-                            "combineTaintsOnArray", "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")V", false);
-                } else if ((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME)
-                        || className.equals(TaintPassingMV.FLOAT_NAME)
-                        || className.equals(TaintPassingMV.DOUBLE_NAME))) {
-                    // For primitive types, also set the "value" field
+                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(TaintSourceWrapper.class), "setStringTaintTag", "(Ljava/lang/String;" + Configuration.TAINT_TAG_DESC + ")V", false);
+                } else if((className.equals(TaintPassingMV.INTEGER_NAME) || className.equals(TaintPassingMV.LONG_NAME)
+                        || className.equals(TaintPassingMV.FLOAT_NAME) || className.equals(TaintPassingMV.DOUBLE_NAME))) {
+                    //For primitive types, also set the "value" field
                     mv.visitVarInsn(ALOAD, 0);
                     mv.visitVarInsn(ALOAD, 1);
                     mv.visitFieldInsn(Opcodes.PUTFIELD, className, "value" + TaintUtils.TAINT_FIELD,

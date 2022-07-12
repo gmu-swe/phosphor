@@ -1,7 +1,5 @@
 package edu.columbia.cs.psl.phosphor;
 
-import com.sun.beans.decoder.DocumentHandler;
-import com.sun.xml.internal.bind.v2.runtime.reflect.Lister;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -12,7 +10,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(Theories.class)
@@ -43,8 +40,8 @@ public class TaintUtilsTest {
     @DataPoints
     public static Method[] methods() {
         List<Method> methods = new LinkedList<>();
-        List<Class<?>> targetClasses = Arrays.asList(String.class, HashMap.class, LinkedList.class, Lister.class,
-                DocumentHandler.class, GregorianCalendar.class, TaintUtilsTestMethods.class);
+        List<Class<?>> targetClasses = Arrays.asList(String.class, HashMap.class, LinkedList.class,
+                GregorianCalendar.class, TaintUtilsTestMethods.class);
         for (Class<?> targetClass : targetClasses) {
             methods.addAll(Arrays.asList(targetClass.getMethods()));
         }

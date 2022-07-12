@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
 import edu.columbia.cs.psl.phosphor.struct.*;
 
 import java.io.Serializable;
@@ -205,14 +206,26 @@ public abstract class Taint<T> implements Serializable {
     }
 
     private static void combineTagsOnString(String str, PhosphorStackFrame stackFrame) {
-        Taint existing = str.PHOSPHOR_TAG;
-        str.PHOSPHOR_TAG = combineTags(existing, stackFrame);
+        Taint existing = InstrumentedJREFieldHelper.getPHOSPHOR_TAG(str);
+        InstrumentedJREFieldHelper.setPHOSPHOR_TAG(str, combineTags(existing, stackFrame));
 
-        LazyCharArrayObjTags tags = str.valuePHOSPHOR_WRAPPER;
-        if (tags == null) {
-            str.valuePHOSPHOR_WRAPPER = new LazyCharArrayObjTags(str.value);
-            tags = str.valuePHOSPHOR_WRAPPER;
+        LazyArrayObjTags tags;
+        if(Configuration.IS_JAVA_8){
+            tags = InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER(str);
+            if (tags == null) {
+                LazyCharArrayObjTags newWrapper = new LazyCharArrayObjTags(InstrumentedJREFieldHelper.JAVA_8getvalue(str));
+                InstrumentedJREFieldHelper.JAVA_8setvaluePHOSPHOR_WRAPPER(str, newWrapper);
+                tags = newWrapper;
+            }
+        } else{
+            tags = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str);
+            if (tags == null) {
+                LazyByteArrayObjTags newWrapper = new LazyByteArrayObjTags(InstrumentedJREFieldHelper.getvalue(str));
+                InstrumentedJREFieldHelper.setvaluePHOSPHOR_WRAPPER(str, newWrapper);
+                tags = newWrapper;
+            }
         }
+
         if (tags.taints == null) {
             tags.taints = new Taint[str.length()];
         }

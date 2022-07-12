@@ -1,6 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.PreMain;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
@@ -55,9 +55,10 @@ public enum TaintMethodRecord implements MethodRecord {
     UNWRAP_RETURN(INVOKESTATIC, ReflectionMasker.class, "unwrapReturn", Object.class, false, Object.class, PhosphorStackFrame.class),
     FIX_ALL_ARGS(INVOKESTATIC, ReflectionMasker.class, "fixAllArgs", Object[].class, false, Object[].class, Object.class, PhosphorStackFrame.class),
     FIX_ALL_ARGS_CONSTRUCTOR(INVOKESTATIC, ReflectionMasker.class, "fixAllArgsConstructor", Object[].class, false, Object[].class, PhosphorStackFrame.class),
-
-
     IS_INSTANCE(INVOKESTATIC, ReflectionMasker.class, "isInstance", Boolean.TYPE, false, Class.class, Object.class, PhosphorStackFrame.class),
+
+    INSTRUMENT_CLASS_BYTES(INVOKESTATIC, PreMain.class, "instrumentClassBytes", byte[].class, false, byte[].class),
+
 
     //Phosphor Stack Frame
     START_STACK_FRAME_TRACKING(INVOKESTATIC, PhosphorStackFrame.class, "initialize", Void.TYPE, false),
@@ -67,13 +68,14 @@ public enum TaintMethodRecord implements MethodRecord {
     PREPARE_FOR_CALL_REFLECTIVE_CONSTRUCTOR(INVOKESTATIC, ReflectionMasker.class, "prepareForCall", Void.TYPE, false, Constructor.class, PhosphorStackFrame.class),
     STACK_FRAME_FOR_METHOD_DEBUG(INVOKESTATIC, PhosphorStackFrame.class, "forMethod", PhosphorStackFrame.class, false, String.class),
     STACK_FRAME_FOR_METHOD_FAST(INVOKESTATIC, PhosphorStackFrame.class, "forMethod", PhosphorStackFrame.class, false, int.class),
-    GET_AND_CLEAR_CLEANUP_FLAG(INVOKEVIRTUAL, PhosphorStackFrame.class, "getAndClearCleanupFlag", boolean.class, false ),
+    GET_AND_CLEAR_CLEANUP_FLAG(INVOKEVIRTUAL, PhosphorStackFrame.class, "getAndClearCleanupFlag", boolean.class, false),
     POP_STACK_FRAME(INVOKEVIRTUAL, PhosphorStackFrame.class, "popStackFrameIfNeeded", Void.TYPE, false, boolean.class),
     SET_ARG_TAINT(INVOKEVIRTUAL, PhosphorStackFrame.class, "setArgTaint", Void.TYPE, false, Taint.class, int.class),
     GET_ARG_TAINT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgTaint", Taint.class, false, int.class),
     GET_RETURN_TAINT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnTaint", Taint.class, false),
     SET_RETURN_TAINT(INVOKEVIRTUAL, PhosphorStackFrame.class, "setReturnTaint", Void.TYPE, false, Taint.class),
     SET_ARG_WRAPPER(INVOKEVIRTUAL, PhosphorStackFrame.class, "setArgWrapper", Void.TYPE, false, Object.class, int.class),
+    GET_ARG_WRAPPER_GENERIC(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", Object.class, false, int.class, Object.class),
     GET_ARG_WRAPPER_OBJECT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyReferenceArrayObjTags.class, false, int.class, Object[].class),
     GET_ARG_WRAPPER_BOOLEAN(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyBooleanArrayObjTags.class, false, int.class, boolean[].class),
     GET_ARG_WRAPPER_BYTE(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyByteArrayObjTags.class, false, int.class, byte[].class),
@@ -109,6 +111,7 @@ public enum TaintMethodRecord implements MethodRecord {
     TAINTED_LONG_ARRAY_SET(INVOKEVIRTUAL, LazyLongArrayObjTags.class, "set", Void.TYPE, false, int.class, long.class, Taint.class, Taint.class, PhosphorStackFrame.class),
     TAINTED_REFERENCE_ARRAY_SET(INVOKEVIRTUAL, LazyReferenceArrayObjTags.class, "set", Void.TYPE, false, int.class, Object.class, Taint.class, Taint.class, PhosphorStackFrame.class),
     TAINTED_SHORT_ARRAY_SET(INVOKEVIRTUAL, LazyShortArrayObjTags.class, "set", Void.TYPE, false, int.class, short.class, Taint.class, Taint.class, PhosphorStackFrame.class),
+
     // Tainted array get methods
     TAINTED_BOOLEAN_ARRAY_GET(INVOKEVIRTUAL, LazyBooleanArrayObjTags.class, "get", boolean.class, false, int.class, Taint.class, PhosphorStackFrame.class),
     TAINTED_BYTE_ARRAY_GET(INVOKEVIRTUAL, LazyByteArrayObjTags.class, "get", byte.class, false, int.class, Taint.class, PhosphorStackFrame.class),
@@ -196,10 +199,11 @@ public enum TaintMethodRecord implements MethodRecord {
         return returnType;
     }
 
-    public static TaintMethodRecord getArgWrapperMethod(Type arrayType){
-        if(arrayType.getDimensions() > 1)
+    public static TaintMethodRecord getArgWrapperMethod(Type arrayType) {
+        if (arrayType.getDimensions() > 1) {
             return GET_ARG_WRAPPER_OBJECT;
-        switch(arrayType.getElementType().getSort()){
+        }
+        switch (arrayType.getElementType().getSort()) {
             case Type.OBJECT:
                 return GET_ARG_WRAPPER_OBJECT;
             case Type.BOOLEAN:
@@ -224,8 +228,9 @@ public enum TaintMethodRecord implements MethodRecord {
     }
 
     public static TaintMethodRecord getReturnWrapperMethod(Type arrayType) {
-        if(arrayType.getDimensions() > 1)
+        if (arrayType.getDimensions() > 1) {
             return GET_RETURN_WRAPPER_OBJECT;
+        }
         switch (arrayType.getElementType().getSort()) {
             case Type.OBJECT:
                 return GET_RETURN_WRAPPER_OBJECT;

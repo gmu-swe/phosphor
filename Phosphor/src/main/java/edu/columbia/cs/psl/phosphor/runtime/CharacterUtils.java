@@ -1,6 +1,9 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
+import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREMethodHelper;
+import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class CharacterUtils {
 
@@ -78,10 +81,10 @@ public class CharacterUtils {
     public static int codePointAt(CharSequence seq, int i, PhosphorStackFrame phosphorStackFrame) {
         try {
             Taint retTaint = Taint.emptyTaint();
-            if(seq instanceof String && ((String) seq).valuePHOSPHOR_WRAPPER != null && ((String) seq).valuePHOSPHOR_WRAPPER.taints != null) {
-                retTaint = ((String) seq).valuePHOSPHOR_WRAPPER.taints[i];
-            }
             int ret = Character.codePointAt(seq, i);
+            if(seq instanceof String && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq) != null && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints  != null) {
+                retTaint = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints[i];
+            }
             phosphorStackFrame.setReturnTaint(retTaint);
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
@@ -132,8 +135,8 @@ public class CharacterUtils {
         try {
             int ret = Character.codePointBefore(seq, i);
             Taint retTaint = Taint.emptyTaint();
-            if(seq instanceof String && ((String) seq).valuePHOSPHOR_WRAPPER != null && ((String) seq).valuePHOSPHOR_WRAPPER.taints != null) {
-                retTaint = ((String) seq).valuePHOSPHOR_WRAPPER.taints[i];
+            if(seq instanceof String && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq) != null && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints  != null) {
+                retTaint = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints[i];
             }
             phosphorStackFrame.setReturnTaint(retTaint);
             return ret;
@@ -190,21 +193,21 @@ public class CharacterUtils {
         if(tagsWrapper != null) {
             retTaint = tagsWrapper.taints[i];
         }
-        int ret = Character.codePointBeforeImpl(tags, i, i2);
+        int ret = InstrumentedJREMethodHelper.java_lang_Character_codePointBeforeImpl(tags, i, i2);
         phosphorStackFrame.setReturnTaint(retTaint);
         return ret;
     }
 
     public static int toUpperCaseEx(int cp, PhosphorStackFrame phosphorStackFrame) {
         Taint t = phosphorStackFrame.getArgTaint(0);
-        int ret = Character.toUpperCaseEx(cp);
+        int ret = InstrumentedJREMethodHelper.java_lang_Character_toUpperCaseEx(cp);
         phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static char[] toUpperCaseCharArray(int c, PhosphorStackFrame phosphorStackFrame) {
         Taint idxTaint = phosphorStackFrame.getArgTaint(0);
-        char[] v = Character.toUpperCaseCharArray(c);
+        char[] v = InstrumentedJREMethodHelper.java_lang_Character_toUpperCaseCharArray(c);
         LazyCharArrayObjTags ret = new LazyCharArrayObjTags(v);
         if(idxTaint != null) {
             ret.taints = new Taint[v.length];
@@ -218,7 +221,7 @@ public class CharacterUtils {
 
     public static int codePointAtImpl(char[] t, int index, int limit, PhosphorStackFrame phosphorStackFrame) {
         LazyCharArrayObjTags wrapped = phosphorStackFrame.getArgWrapper(0, t);
-        int ret = Character.codePointAtImpl(t, index, limit);
+        int ret = InstrumentedJREMethodHelper.java_lang_Character_codePointAtImpl(t, index, limit);
         Taint retTaint = Taint.emptyTaint();
         if(wrapped.taints != null && wrapped.taints[index] != null) {
             retTaint = wrapped.taints[index];

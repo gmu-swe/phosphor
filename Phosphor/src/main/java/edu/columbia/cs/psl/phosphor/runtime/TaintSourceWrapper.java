@@ -1,6 +1,8 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
+import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
@@ -250,23 +252,59 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
 
     }
 
-    public static void setStringValueTag(String str, LazyCharArrayObjTags tags) {
-        if(str != null) {
-            str.valuePHOSPHOR_WRAPPER = tags;
+    public static void setStringTaintTag(String str, Taint tag) {
+        // TODO: Previously, I think we were combining  tags on strings, now this is overwriting. Is this the right thing to do now?
+        if (str != null) {
+            if (Configuration.IS_JAVA_8) {
+                LazyCharArrayObjTags chars = InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER(str);
+                chars.setTaints(tag);
+            } else {
+                LazyByteArrayObjTags chars = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str);
+                chars.setTaints(tag);
+            }
         }
     }
 
-    public static LazyCharArrayObjTags getStringValueTag(String str) {
-        if(str == null) {
+    public static void setStringValueTag(String str, LazyArrayObjTags tags) {
+        if (str != null) {
+            if (Configuration.IS_JAVA_8) {
+                InstrumentedJREFieldHelper.JAVA_8setvaluePHOSPHOR_WRAPPER(str, (LazyCharArrayObjTags) tags);
+            } else {
+                InstrumentedJREFieldHelper.setvaluePHOSPHOR_WRAPPER(str, (LazyByteArrayObjTags) tags);
+            }
+        }
+    }
+
+    public static LazyArrayObjTags getStringValueTag(CharSequence str) {
+        if (str == null) {
             return null;
         } else {
-            return str.valuePHOSPHOR_WRAPPER;
-
+            if(str instanceof String){
+                if (Configuration.IS_JAVA_8) {
+                    return InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER((String) str);
+                } else {
+                    return InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) str);
+                }
+            } else{
+                LazyCharArrayObjTags ret = new LazyCharArrayObjTags(str.length());
+                PhosphorStackFrame frame = PhosphorStackFrame.forMethod(null);
+                for(int i = 0; i < str.length(); i++){
+                    if(Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+                        frame.prepareForCall("charAt(I)");
+                    } else{
+                        frame.prepareForCall(PhosphorStackFrame.hashForDesc("charAt(I)"));
+                    }
+                    char c = str.charAt(i);
+                    Taint tag = frame.getReturnTaint();
+                    ret.set(i, c, tag);
+                }
+                return ret;
+            }
         }
     }
 
     public static Taint[] getStringValueTaints(String str) {
-        LazyCharArrayObjTags tag = getStringValueTag(str);
+        LazyArrayObjTags tag = getStringValueTag(str);
         return tag == null? null : tag.taints;
     }
 }

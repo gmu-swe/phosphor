@@ -4,9 +4,6 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.io.StringWriter;
-
 public class CharacterCodePointObjTagITCase extends BasePhosphorTest {
 	@Test
 	public void testCodePointAt(){

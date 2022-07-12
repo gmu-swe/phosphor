@@ -2,9 +2,8 @@ package edu.columbia.cs.psl.phosphor.struct.multid;
 
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
 import org.objectweb.asm.Type;
-
-import java.util.HashSet;
 
 import static org.objectweb.asm.Opcodes.*;
 

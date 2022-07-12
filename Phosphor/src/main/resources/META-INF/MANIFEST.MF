@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
 Created-By: 1.6.0_06 (Sun Microsystems Inc.)
 Main-Class: edu.columbia.cs.psl.phosphor.Instrumenter
-Premain-Class: edu.columbia.cs.psl.phosphor.PreMain
+Premain-Class: edu.columbia.cs.psl.phosphor.Java9PreMain
 Can-Retransform-Classes: true

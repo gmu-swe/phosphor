@@ -4,11 +4,13 @@ import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.apache.commons.cli.CommandLine;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.*;
+import org.objectweb.asm.commons.ModuleHashesAttribute;
+import org.objectweb.asm.commons.ModuleResolutionAttribute;
+import org.objectweb.asm.commons.ModuleTargetAttribute;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.ModuleExportNode;
 
 import java.io.*;
 import java.lang.instrument.ClassFileTransformer;
@@ -26,6 +28,13 @@ import static edu.columbia.cs.psl.phosphor.Configuration.controlFlowManagerPacka
 import static edu.columbia.cs.psl.phosphor.Configuration.taintTagFactoryPackage;
 
 public class Instrumenter {
+    // jmod magic number and version number, taken from java.base/jdk/internal/jmod/JmodFile.java
+    private static final int JMOD_MAJOR_VERSION = 0x01;
+    private static final int JMOD_MINOR_VERSION = 0x00;
+    public static final byte[] JMOD_MAGIC_NUMBER = {
+            0x4A, 0x4D, /* JM */
+            JMOD_MAJOR_VERSION, JMOD_MINOR_VERSION, /* version 1.0 */
+    };
 
     public static ClassLoader loader;
     public static Map<String, ClassNode> classes = Collections.synchronizedMap(new HashMap<>());
@@ -103,7 +112,6 @@ public class Instrumenter {
                  */
                 || StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor")
                 || StringUtils.startsWith(owner, "edu/gmu/swe/phosphor/ignored")
-
                 /*
                 Reflection is handled by:
                     DelagatingMethod/ConstructorAccessorImpl calls either NativeMethod/ConstructorAccessorImpl OR
@@ -114,29 +122,10 @@ public class Instrumenter {
                 //|| StringUtils.startsWith(owner, "sun/reflect/NativeConstructorAccessorImpl")
                 //|| StringUtils.startsWith(owner, "sun/reflect/NativeMethodAccessorImpl")
 
-                //|| StringUtils.startsWith(owner, "org/jikesrvm")
-                //|| StringUtils.startsWith(owner, "com/ibm/tuningfork")
-                //|| StringUtils.startsWith(owner, "org/mmtk")
-                //|| StringUtils.startsWith(owner, "org/vmmagic")
-                //|| StringUtils.startsWith(owner, "java/lang/Comparable")
-                //// || StringUtils.startsWith(owner, "java/awt/image/BufferedImage")
-                //// || owner.equals("java/awt/Image")
-                //|| StringUtils.startsWith(owner, "sun/awt/image/codec/")
-                //|| StringUtils.startsWith(owner, "com/sun/image/codec/")
-                //|| StringUtils.startsWith(owner, "sun/reflect/Reflection") //was on last
-                //|| owner.equals("java/lang/reflect/Proxy") //was on last
-                //|| StringUtils.startsWith(owner, "sun/reflection/annotation/AnnotationParser") //was on last
-                //|| StringUtils.startsWith(owner, "sun/reflect/MethodAccessor") //was on last
-                //|| StringUtils.startsWith(owner, "org/apache/jasper/runtime/JspSourceDependent")
-                //|| StringUtils.startsWith(owner, "sun/reflect/ConstructorAccessor") //was on last
-                //|| StringUtils.startsWith(owner, "sun/reflect/SerializationConstructorAccessor")
-                //|| StringUtils.startsWith(owner, "sun/reflect/GeneratedMethodAccessor")
-                //|| StringUtils.startsWith(owner, "sun/reflect/GeneratedConstructorAccessor")
-                //|| StringUtils.startsWith(owner, "sun/reflect/GeneratedSerializationConstructor")
-                //|| StringUtils.startsWith(owner, "sun/awt/image/codec/")
-                //|| StringUtils.startsWith(owner, "java/lang/invoke/LambdaMetafactory")
                 || StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor/struct/TaintedWith")
-                || StringUtils.startsWith(owner, "java/util/regex/HashDecompositions"); //Huge constant array/hashmap
+                //|| StringUtils.startsWith(owner, "java/util/regex/HashDecompositions") //Huge constant array/hashmap
+                //|| StringUtils.startsWith(owner, "jdk/internal/module/SystemModules")
+                || StringUtils.startsWith(owner, "jdk/internal/misc/UnsafeConstants"); //Java 9+ class full of hardcoded offsets
     }
 
     public static byte[] instrumentClass(String path, InputStream is, boolean renameInterfaces) {
@@ -301,7 +290,8 @@ public class Instrumenter {
 
         if(f.isDirectory()) {
             toWait.addAll(processDirectory(f, rootOutputDir, true, executor));
-        } else if(inputFolder.endsWith(".jar") || inputFolder.endsWith(".zip") || inputFolder.endsWith(".war")) {
+        } else if(inputFolder.endsWith(".jar") || inputFolder.endsWith(".zip") || inputFolder.endsWith(".war")
+                || inputFolder.endsWith(".jmod")) {
             toWait.addAll(processZip(f, rootOutputDir, executor));
         } else if(inputFolder.endsWith(".class")) {
             toWait.addAll(processClass(f, rootOutputDir, executor));
@@ -374,7 +364,8 @@ public class Instrumenter {
                 ret.addAll(processDirectory(fi, thisOutputDir, false, executor));
             } else if(fi.getName().endsWith(".class")) {
                 ret.addAll(processClass(fi, thisOutputDir, executor));
-            } else if(fi.getName().endsWith(".jar") || fi.getName().endsWith(".zip") || fi.getName().endsWith(".war")) {
+            } else if(fi.getName().endsWith(".jar") || fi.getName().endsWith(".zip") || fi.getName().endsWith(".war")
+                    || fi.getName().endsWith(".jmod")) {
                 ret.addAll(processZip(fi, thisOutputDir, executor));
             } else {
                 File dest = new File(thisOutputDir.getPath() + File.separator + fi.getName());
@@ -608,15 +599,21 @@ public class Instrumenter {
     }
 
     public static boolean isIgnoredMethod(String owner, String name, String desc) {
+        return false; //TODO see below from old jdk14 version
         //if(name.equals("wait") && desc.equals("(J)V")) {
         //    return true;
         //}
         //if(name.equals("wait") && desc.equals("(JI)V")) {
         //    return true;
         //}
-        //return owner.equals("java/lang/invoke/MethodHandle")
-        //        && ((name.equals("invoke") || name.equals("invokeBasic") || name.startsWith("linkTo")));
-        return false;
+        //if (owner.equals("jdk/internal/reflect/Reflection") && name.equals("getCallerClass")) {
+        //    return true;
+        //}
+        //if (owner.equals("java/lang/invoke/MethodHandle")
+        //        && ((name.equals("invoke") || name.equals("invokeBasic") || name.startsWith("linkTo")))) {
+        //    return true;
+        //}
+        //return owner.equals("java/lang/invoke/VarHandle"); //TODO wrap these all
     }
 
     public static boolean isUninstrumentedField(String owner, String name) {
@@ -672,4 +669,60 @@ public class Instrumenter {
         ZipEntry e;
         byte[] buf;
     }
+
+    public static byte[] transformJavaBaseModuleInfo(InputStream is, java.util.Collection<String> packages) throws IOException {
+        ClassNode classNode = new ClassNode();
+        ClassReader cr = new ClassReader(is);
+        java.util.List<Attribute> attrs = new java.util.ArrayList<>();
+        attrs.add(new ModuleTargetAttribute());
+        attrs.add(new ModuleResolutionAttribute());
+        attrs.add(new ModuleHashesAttribute());
+
+        cr.accept(classNode, attrs.toArray(new Attribute[0]), 0);
+        //Add export
+        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor", 0, null));
+        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/control", 0, null));
+        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/control/standard", 0, null));
+        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/runtime", 0, null));
+        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/struct", 0, null));
+        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/struct/multid", 0, null));
+
+        //Add pac
+        classNode.module.packages.addAll(packages);
+        ClassWriter cw = new ClassWriter(0);
+        classNode.accept(cw);
+        return cw.toByteArray();
+    }
+
+    public static byte[] transformJDKUnsupportedModuleInfo(InputStream is, java.util.Collection<String> packages) throws IOException {
+        ClassNode classNode = new ClassNode();
+        ClassReader cr = new ClassReader(is);
+        java.util.List<Attribute> attrs = new java.util.ArrayList<>();
+        attrs.add(new ModuleTargetAttribute());
+        attrs.add(new ModuleResolutionAttribute());
+        attrs.add(new ModuleHashesAttribute());
+
+        cr.accept(classNode, attrs.toArray(new Attribute[0]), 0);
+        //Add export
+        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/runtime/jdk/unsupported", 0, null));
+
+        //Add pac
+        classNode.module.packages.addAll(packages);
+        ClassWriter cw = new ClassWriter(0);
+        classNode.accept(cw);
+        return cw.toByteArray();
+    }
+
+
+    public static boolean isJava8JVMDir(File java_home) {
+        return new File(java_home, "bin" + File.separator + "java").exists()
+                && !new File(java_home, "jmods").exists()
+                && !new File(java_home, "lib" + File.separator + "modules").exists();
+    }
+
+    public static boolean isUnsafeClass(String className){
+        return (Configuration.IS_JAVA_8 && "sun/misc/Unsafe".equals(className))
+                || (!Configuration.IS_JAVA_8 && "jdk/internal/misc/Unsafe".equals(className));
+    }
+
 }

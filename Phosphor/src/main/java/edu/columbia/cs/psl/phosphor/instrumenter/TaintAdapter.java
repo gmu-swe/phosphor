@@ -684,8 +684,9 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
         return this.lvs.getLocalVariableAdder().getIndexOfPhosphorStackData();
     }
 
-    private static boolean shouldEnsureArgsAreUnwrapped(String owner, String name, String desc){
+    protected static boolean shouldEnsureArgsAreUnwrapped(String owner, String name, String desc){
         return owner.equals("java/lang/Class") && desc.contains("Ljava/lang/Object;");
+        //return desc.contains("Ljava/lang/Object;");
     }
 
     /**
@@ -704,38 +705,38 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
                break;
            }
         }
-        if(!hasArgsToUnwrap && !forceUnwrapObjects)
+        if (!hasArgsToUnwrap && !forceUnwrapObjects) {
             return;
+        }
         int[] tmp = new int[args.length];
         Type[] ts = new Type[args.length];
-        for(int i = 0; i < args.length; i++) {
+        for (int i = 0; i < args.length; i++) {
             int idxOfThisArg = args.length - i - 1; //recording args from last first
             Type expected = args[idxOfThisArg];
             Type t = getTopOfStackType();
             ts[i] = t;
             tmp[i] = lvs.getTmpLV(t);
-            if(forceUnwrapObjects && expected.getDescriptor().equals("Ljava/lang/Object;") && !topOfStackIsNull()){
+            if (forceUnwrapObjects && expected.getDescriptor().equals("Ljava/lang/Object;") && !topOfStackIsNull()) {
                 super.visitInsn(DUP);
                 pushPhosphorStackFrame();
                 super.visitInsn(SWAP);
                 push(idxOfThisArg);
                 SET_ARG_WRAPPER.delegateVisit(mv);
                 ENSURE_UNBOXED.delegateVisit(mv);
-            }
-            else if(TaintUtils.isWrappedType(expected) && !topOfStackIsNull() && t.getSort() != Type.ARRAY) {
+            } else if (TaintUtils.isWrappedType(expected) && !topOfStackIsNull() && t.getSort() != Type.ARRAY) {
                 super.visitInsn(DUP);
                 pushPhosphorStackFrame();
                 super.visitInsn(SWAP);
                 push(idxOfThisArg);
                 SET_ARG_WRAPPER.delegateVisit(mv);
                 //For 1-d arrays: still pass  the actual array
-                if(expected.getDimensions() == 1) {
+                if (expected.getDimensions() == 1) {
                     Type unwrapped = TaintUtils.getUnwrappedType(t);
                     super.visitMethodInsn(INVOKESTATIC, t.getInternalName(), "unwrap", "(" + t.getDescriptor() + ")" + unwrapped.getDescriptor(), false);
                     if (unwrapped.getDescriptor().equals("[Ljava/lang/Object;")) {
                         super.visitTypeInsn(CHECKCAST, expected.getInternalName());
                     }
-                }else{
+                } else {
                     // Greater than 1d: can't make it line up...
                     super.visitInsn(POP);
                     super.visitInsn(ACONST_NULL);
@@ -743,7 +744,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             }
             super.visitVarInsn(t.getOpcode(ISTORE), tmp[i]);
         }
-        for(int i = args.length - 1; i >= 0; i--) {
+        for (int i = args.length - 1; i >= 0; i--) {
             super.visitVarInsn(ts[i].getOpcode(ILOAD), tmp[i]);
             lvs.freeTmpLV(tmp[i]);
         }
