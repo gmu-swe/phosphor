@@ -219,6 +219,16 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     }
 
     @Override
+    public void visitCode() {
+        super.visitCode();
+        if(this.className.equals("java/lang/invoke/MethodHandles$Lookup") && this.methodName.startsWith("defineHiddenClass")){
+            super.visitVarInsn(ALOAD, 1);
+            INSTRUMENT_CLASS_BYTES.delegateVisit(mv);
+            super.visitVarInsn(ASTORE, 1);
+        }
+    }
+
+    @Override
     public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean isInterface) {
         Type[] args = Type.getArgumentTypes(desc);
         String nameWithoutSuffix = name;

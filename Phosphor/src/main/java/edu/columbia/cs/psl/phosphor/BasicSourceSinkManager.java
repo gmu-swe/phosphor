@@ -32,7 +32,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
     private static ConcurrentHashMap<String, Set<Class<?>>> classMap = new ConcurrentHashMap<>();
 
     /* Reads source, sink and taintThrough methods from their files into their respective maps. */
-    static {
+    public static void loadTaintMethods() {
         readTaintMethods(Instrumenter.sourcesFile, AutoTaint.SOURCE);
         readTaintMethods(Instrumenter.sinksFile, AutoTaint.SINK);
         readTaintMethods(Instrumenter.taintThroughFile, AutoTaint.TAINT_THROUGH);

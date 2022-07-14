@@ -747,13 +747,31 @@ public class Instrumenter {
             }
 
             private String patchDesc(String in) {
+                if(in == null)
+                    return null;
                 return in.replace(UNSAFE_PROXY_DESC, TARGET_UNSAFE_DESC);
             }
 
             @Override
             public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                MethodVisitor mv = super.visitMethod(access, name, patchDesc(descriptor), signature, exceptions);
+                MethodVisitor mv = super.visitMethod(access, name, patchDesc(descriptor), patchDesc(signature), exceptions);
                 return new MethodVisitor(Opcodes.ASM9, mv) {
+
+                    @Override
+                    public void visitFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack) {
+                        for(int i = 0 ; i < numLocal; i++){
+                            if(local[i] instanceof String){
+                                local[i] = patchInternalName((String) local[i]);
+                            }
+                        }
+                        for(int i = 0 ; i < numStack; i++){
+                            if(stack[i] instanceof String){
+                                stack[i] = patchInternalName((String) stack[i]);
+                            }
+                        }
+                        super.visitFrame(type, numLocal, local, numStack, stack);
+                    }
+
                     @Override
                     public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
                         super.visitFieldInsn(opcode, patchInternalName(owner), name, patchDesc(descriptor));

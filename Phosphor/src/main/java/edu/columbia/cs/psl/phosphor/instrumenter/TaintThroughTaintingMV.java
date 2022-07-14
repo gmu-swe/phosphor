@@ -41,8 +41,8 @@ public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
                 for(int i = 0; i< parts.length; i++){
                     shadowVarsForArgs[i] = Integer.parseInt(parts[i]);
                 }
+                taintArguments();
             }
-            taintArguments();
         }
         super.visitLdcInsn(value);
     }
@@ -66,17 +66,18 @@ public class TaintThroughTaintingMV extends MethodVisitor implements Opcodes {
     @Override
     public void visitInsn(int opcode) {
         if(OpcodesUtil.isReturnOpcode(opcode)) {
-            taintArguments();
-            if (opcode != RETURN && this.shadowVarsForArgs != null) {
-
-                super.visitInsn(ACONST_NULL);
-                TaintMethodRecord.STACK_FRAME_FOR_METHOD_DEBUG.delegateVisit(mv); //Frame
-                super.visitInsn(DUP); //Frame Frame
-                TaintMethodRecord.GET_RETURN_TAINT.delegateVisit(mv); //Frame RetTaint
-                loadReferenceTaintForThisToStack(); //Frame RetTaint thisTaint
-                super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
-                //Frame Taint
-                TaintMethodRecord.SET_RETURN_TAINT.delegateVisit(mv);
+            if (this.shadowVarsForArgs != null) {
+                taintArguments();
+                if(opcode != RETURN) {
+                    super.visitInsn(ACONST_NULL);
+                    TaintMethodRecord.STACK_FRAME_FOR_METHOD_DEBUG.delegateVisit(mv); //Frame
+                    super.visitInsn(DUP); //Frame Frame
+                    TaintMethodRecord.GET_RETURN_TAINT.delegateVisit(mv); //Frame RetTaint
+                    loadReferenceTaintForThisToStack(); //Frame RetTaint thisTaint
+                    super.visitMethodInsn(INVOKESTATIC, Configuration.TAINT_TAG_INTERNAL_NAME, "combineTags", "(" + Configuration.TAINT_TAG_DESC + Configuration.TAINT_TAG_DESC + ")" + Configuration.TAINT_TAG_DESC, false);
+                    //Frame Taint
+                    TaintMethodRecord.SET_RETURN_TAINT.delegateVisit(mv);
+                }
             }
         }
         super.visitInsn(opcode);

@@ -54,6 +54,7 @@ public class PreMain {
             Instrumenter.loader = bigLoader;
         }
         // Ensure that BasicSourceSinkManager & anything needed to call isSourceOrSinkOrTaintThrough gets initialized
+        BasicSourceSinkManager.loadTaintMethods();
         BasicSourceSinkManager.getInstance().isSourceOrSinkOrTaintThrough(Object.class);
         instrumentationHelper.addTransformer(new PCLoggingTransformer());
         instrumentationHelper.addTransformer(new SourceSinkTransformer(), true);
