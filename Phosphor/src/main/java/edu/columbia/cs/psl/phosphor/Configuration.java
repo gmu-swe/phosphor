@@ -58,7 +58,7 @@ public class Configuration {
     public static ControlFlowManager controlFlowManager = new StandardControlFlowManager();
     public static String controlFlowManagerPackage = null;
     public static boolean QUIET_MODE = false;
-    public static boolean IS_JAVA_8 = false;
+    public static boolean IS_JAVA_8 = true;
 
     public static Set<String> ignoredMethods = new HashSet<>();
 

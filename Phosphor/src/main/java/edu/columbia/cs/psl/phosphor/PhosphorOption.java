@@ -286,6 +286,8 @@ public enum PhosphorOption {
         public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
             if (isPresent) {
                 Configuration.IS_JAVA_8 = true;
+            } else {
+                Configuration.IS_JAVA_8 = false;
             }
         }
     },;

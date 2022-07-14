@@ -29,16 +29,17 @@ public class PreMain {
     public static boolean INSTRUMENTATION_EXCEPTION_OCCURRED = false;
     public static ClassLoader bigLoader = PreMain.class.getClassLoader();
 
-    /**
-     * As I write this I realize what a multi-threaded classloader mess this can create... let's see how bad it is.
-     */
-    public static ClassLoader curLoader;
     private static InstrumentationHelper instrumentationHelper;
 
     private PreMain() {
         // Prevents this class from being instantiated
     }
 
+    /**
+     * Used for Java 9+
+     * @param args
+     * @param instrumentationHelper
+     */
     public static void premain(String args, InstrumentationHelper instrumentationHelper) {
         PreMain.instrumentationHelper = instrumentationHelper;
         instrumentationHelper.addTransformer(new ClassSupertypeReadingTransformer());
@@ -95,7 +96,6 @@ public class PreMain {
             ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer)
                     : new ClassReader(classfileBuffer));
             String className = cr.getClassName();
-            curLoader = loader;
             if (Instrumenter.isIgnoredClass(className)) {
                 switch (className) {
                     case "java/lang/Boolean":

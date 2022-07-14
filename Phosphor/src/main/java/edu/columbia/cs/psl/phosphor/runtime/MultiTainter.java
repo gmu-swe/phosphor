@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
@@ -195,7 +196,11 @@ public final class MultiTainter {
         if(str == null) {
             return null;
         }
-        return InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str).taints;
+        if(Configuration.IS_JAVA_8){
+            return InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER(str).taints;
+        } else {
+            return InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str).taints;
+        }
     }
 
     @Deprecated

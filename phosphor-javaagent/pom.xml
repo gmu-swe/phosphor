@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>phosphor-javaagent</artifactId>
     <packaging>jar</packaging>
-    <description>A runtime instrumenter to go wtih Phosphor-instrumented JVMs</description>
+    <description>A runtime instrumenter to go with Phosphor-instrumented JVMs. This version is only used for Java 9+ VMs</description>
     <parent>
         <groupId>edu.gmu.swe.phosphor</groupId>
         <artifactId>phosphor-parent</artifactId>

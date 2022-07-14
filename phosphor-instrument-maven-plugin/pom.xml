@@ -12,6 +12,15 @@
     <build>
         <plugins>
             <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <fork>true</fork>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.1.1</version>
@@ -40,55 +49,6 @@
                     </execution>
                 </executions>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-shade-plugin</artifactId>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <phase>package</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>shade</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <relocations>-->
-<!--                                <relocation>-->
-<!--                                    <pattern>org.apache.commons.cli</pattern>-->
-<!--                                    <shadedPattern>edu.columbia.cs.psl.phosphor.org.apache.commons.cli</shadedPattern>-->
-<!--                                </relocation>-->
-<!--                                <relocation>-->
-<!--                                    <pattern>org.objectweb.asm</pattern>-->
-<!--                                    <shadedPattern>edu.columbia.cs.psl.phosphor.org.objectweb.asm</shadedPattern>-->
-<!--                                </relocation>-->
-<!--                            </relocations>-->
-<!--                            <filters>-->
-<!--                                <filter>-->
-<!--                                    <artifact>org.ow2.asm:asm</artifact>-->
-<!--                                    <artifact>org.ow2.asm:asm-commons</artifact>-->
-<!--                                    <artifact>org.ow2.asm:asm-util</artifact>-->
-<!--                                    <artifact>org.ow2.asm:asm-tree</artifact>-->
-<!--                                    <artifact>org.ow2.asm:asm-analysis</artifact>-->
-<!--                                    <excludes>-->
-<!--                                        &lt;!&ndash; These classes will be overridden-->
-<!--                                            by the ones inside the JAR &ndash;&gt;-->
-<!--                                        <exclude>edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/FrameNode.class-->
-<!--                                        </exclude>-->
-<!--                                    </excludes>-->
-<!--                                </filter>-->
-<!--                                <filter>-->
-<!--                                    <artifact>*:*</artifact>-->
-<!--                                    <excludes>-->
-<!--                                        <exclude>module-info.class</exclude>-->
-<!--                                        <exclude>META-INF/*.SF</exclude>-->
-<!--                                        <exclude>META-INF/*.DSA</exclude>-->
-<!--                                        <exclude>META-INF/*.RSA</exclude>-->
-<!--                                    </excludes>-->
-<!--                                </filter>-->
-<!--                            </filters>-->
-<!--                            <minimizeJar>true</minimizeJar>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
         </plugins>
     </build>
     <profiles>

@@ -116,19 +116,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>9</source>
-                    <target>9</target>
-                    <compilerArgs>
-                        <arg>
-                            --add-exports</arg><arg>java.base/jdk.internal.misc=ALL-UNNAMED
-                        </arg>
-                    </compilerArgs>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
     <profiles>

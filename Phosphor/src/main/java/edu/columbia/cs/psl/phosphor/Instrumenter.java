@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
+import edu.columbia.cs.psl.phosphor.runtime.jdk.unsupported.UnsafeProxy;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.apache.commons.cli.CommandLine;
 import org.objectweb.asm.*;
@@ -711,6 +712,113 @@ public class Instrumenter {
         ClassWriter cw = new ClassWriter(0);
         classNode.accept(cw);
         return cw.toByteArray();
+    }
+
+    public static boolean isPhosphorClassPatchedAtInstTime(String name){
+        return name.equals("edu/columbia/cs/psl/phosphor/Configuration.class") || name.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeJDKInternalUnsafePropagator.class");
+    }
+
+    /**
+     * We do rewriting of various phosphor classes to ensure easy compilation for java < 9
+     */
+    public static byte[] patchPhosphorClass(String name, InputStream is) throws IOException {
+        if(name.equals("edu/columbia/cs/psl/phosphor/Configuration.class")){
+            return transformPhosphorConfigurationToUseJava9(is);
+        }
+        if(name.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeJDKInternalUnsafePropagator.class")){
+            return transformRuntimeJDKUnsafePropagator(is);
+        }
+        throw new UnsupportedEncodingException("We do not plan to instrument " + name);
+    }
+
+    public static byte[] transformRuntimeJDKUnsafePropagator(InputStream is) throws IOException {
+        final String UNSAFE_PROXY_INTERNAL_NAME = Type.getInternalName(UnsafeProxy.class);
+        final String UNSAFE_PROXY_DESC = Type.getDescriptor(UnsafeProxy.class);
+        final String TARGET_UNSAFE_INTERNAL_NAME = "jdk/internal/misc/Unsafe";
+        final String TARGET_UNSAFE_DESC = "Ljdk/internal/misc/Unsafe;";
+        ClassReader cr = new ClassReader(is);
+        ClassWriter cw = new ClassWriter(cr, 0);
+        ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
+            private String patchInternalName(String in) {
+                if (in.equals(UNSAFE_PROXY_INTERNAL_NAME)) {
+                    return TARGET_UNSAFE_INTERNAL_NAME;
+                }
+                return in;
+            }
+
+            private String patchDesc(String in) {
+                return in.replace(UNSAFE_PROXY_DESC, TARGET_UNSAFE_DESC);
+            }
+
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                MethodVisitor mv = super.visitMethod(access, name, patchDesc(descriptor), signature, exceptions);
+                return new MethodVisitor(Opcodes.ASM9, mv) {
+                    @Override
+                    public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+                        super.visitFieldInsn(opcode, patchInternalName(owner), name, patchDesc(descriptor));
+                    }
+
+                    @Override
+                    public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+                        super.visitMethodInsn(opcode, patchInternalName(owner), name, patchDesc(descriptor), isInterface);
+                    }
+
+                    @Override
+                    public void visitTypeInsn(int opcode, String type) {
+                        super.visitTypeInsn(opcode, patchInternalName(type));
+                    }
+
+                    @Override
+                    public void visitLocalVariable(String name, String descriptor, String signature, Label start, Label end, int index) {
+                        super.visitLocalVariable(name, patchDesc(descriptor), signature, start, end, index);
+                    }
+                };
+            }
+        };
+        cr.accept(cv, 0);
+        return cw.toByteArray();
+
+    }
+    /**
+     * To boot the JVM... we need to have this flag set correctly.
+     *
+     * Default to setting it to be Java 8.
+     *
+     * In Java 9+, we pack Phosphor into the java.base module, and rewrite the configuration file
+     * to set the flag to false.
+     *
+     * @param is
+     * @return
+     * @throws IOException
+     */
+    public static byte[] transformPhosphorConfigurationToUseJava9(InputStream is) throws IOException {
+        ClassReader cr = new ClassReader(is);
+        ClassWriter cw = new ClassWriter(cr, 0);
+        ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
+                if(name.equals("<clinit>")){
+                    return new MethodVisitor(Opcodes.ASM9, mv) {
+                        @Override
+                        public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+                            if(opcode == Opcodes.PUTSTATIC && name.equals("IS_JAVA_8")){
+                                super.visitInsn(Opcodes.POP);
+                                super.visitInsn(Opcodes.ICONST_0);
+                            }
+                            super.visitFieldInsn(opcode, owner, name, descriptor);
+                        }
+                    };
+                } else {
+                    return mv;
+                }
+
+            }
+        };
+        cr.accept(cv, 0);
+        return cw.toByteArray();
+
     }
 
 

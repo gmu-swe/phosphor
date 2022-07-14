@@ -34,10 +34,10 @@ public class RuntimeBoxUnboxPropagator {
         return 19;
     }
 
-    public static int getChars(long l, int idx, char[] ar, PhosphorStackFrame phosphorStackFrame) {
+    public static void getChars(long l, int idx, char[] ar, PhosphorStackFrame phosphorStackFrame) {
         LazyCharArrayObjTags ta = phosphorStackFrame.getArgWrapper(2, ar);
         Taint lt = phosphorStackFrame.getArgTaint(0);
-        int ret = InstrumentedJREMethodHelper.java_lang_Long_getChars(l, idx, ta.val);
+        InstrumentedJREMethodHelper.java_lang_Long_getChars(l, idx, ta.val);
         if(lt != null) {
             int nChars;
             if(l < 0) {
@@ -52,13 +52,12 @@ public class RuntimeBoxUnboxPropagator {
                 ta.taints[k] = lt;
             }
         }
-        return ret;
     }
 
-    public static int getChars(int i, int idx, char[] ar, PhosphorStackFrame phosphorStackFrame) {
+    public static void getChars(int i, int idx, char[] ar, PhosphorStackFrame phosphorStackFrame) {
         LazyCharArrayObjTags ta = phosphorStackFrame.getArgWrapper(2, ar);
         Taint it = phosphorStackFrame.getArgTaint(0);
-        int ret = InstrumentedJREMethodHelper.java_lang_Integer_getChars(i, idx, ta.val);
+        InstrumentedJREMethodHelper.java_lang_Integer_getChars(i, idx, ta.val);
         if(it != null) {
             int nChars;
             if(i < 0) {
@@ -73,7 +72,6 @@ public class RuntimeBoxUnboxPropagator {
                 ta.taints[k] = it;
             }
         }
-        return ret;
     }
 
     public static int getChars(int i, int idx, byte[] ar, PhosphorStackFrame phosphorStackFrame) {
@@ -719,14 +717,14 @@ public class RuntimeBoxUnboxPropagator {
 
     @SuppressWarnings("unused")
     public static int parseInt(CharSequence s, int beginIndex, int endIndex, int radix, PhosphorStackFrame phosphorStackFrame) {
-        int ret = Integer.parseInt(s, beginIndex, endIndex, radix);
+        int ret = InstrumentedJREMethodHelper.java_lang_Integer_parseInt(s, beginIndex, endIndex, radix);
         phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static long parseLong(CharSequence s, int beginIndex, int endIndex, int radix, PhosphorStackFrame phosphorStackFrame) {
-        long ret = Long.parseLong(s, beginIndex, endIndex, radix);
+        long ret = InstrumentedJREMethodHelper.java_lang_Long_parseLong(s, beginIndex, endIndex, radix);
         phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
         return ret;
     }

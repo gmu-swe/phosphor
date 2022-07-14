@@ -20,6 +20,13 @@ public class InstrumentedJREMethodHelper {
         throw _crash();
     }
 
+    public static int java_lang_Integer_parseInt(CharSequence sequence, int v1, int v2, int v3){
+        throw _crash();
+    }
+    public static long java_lang_Long_parseLong(CharSequence sequence, int v1, int v2, int v3){
+        throw _crash();
+    }
+
     public static int java_lang_Character_codePointBeforeImpl(char[] val, int i, int i2) {
         throw _crash();
     }
@@ -56,11 +63,11 @@ public class InstrumentedJREMethodHelper {
         throw _crash();
     }
 
-    public static int java_lang_Long_getChars(long l, int idx, char[] val) {
+    public static void java_lang_Long_getChars(long l, int idx, char[] val) {
         throw _crash();
     }
 
-    public static int java_lang_Integer_getChars(int l, int idx, char[] val) {
+    public static void java_lang_Integer_getChars(int l, int idx, char[] val) {
         throw _crash();
     }
 

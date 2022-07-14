@@ -4,9 +4,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,6 +22,7 @@ package edu.columbia.cs.psl.phosphor.struct.harmony.util;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.Buffer;
 import java.nio.CharBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -104,7 +105,7 @@ public final class Scanner implements Iterator<String> {
     // The input source of scanner.
     private Readable input;
 
-    private CharBuffer buffer;
+    private Buffer buffer;
 
     private Pattern delimiter = DEFAULT_DELIMITER;
 
@@ -154,7 +155,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Creates a {@code Scanner} with the specified {@code File} as input. The default charset
      * is applied when reading the file.
-     * 
+     *
      * @param src
      *            the file to be scanned.
      * @throws FileNotFoundException
@@ -167,7 +168,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Creates a {@code Scanner} with the specified {@code File} as input. The specified charset
      * is applied when reading the file.
-     * 
+     *
      * @param src
      *            the file to be scanned.
      * @param charsetName
@@ -200,7 +201,7 @@ public final class Scanner implements Iterator<String> {
 
     /**
      * Creates a {@code Scanner} on the specified string.
-     * 
+     *
      * @param src
      *            the string to be scanned.
      */
@@ -212,7 +213,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Creates a {@code Scanner} on the specified {@code InputStream}. The default charset is
      * applied when decoding the input.
-     * 
+     *
      * @param src
      *            the {@code InputStream} to be scanned.
      */
@@ -223,7 +224,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Creates a {@code Scanner} on the specified {@code InputStream}. The specified charset is
      * applied when decoding the input.
-     * 
+     *
      * @param src
      *            the {@code InputStream} to be scanned.
      * @param charsetName
@@ -245,7 +246,7 @@ public final class Scanner implements Iterator<String> {
 
     /**
      * Creates a {@code Scanner} with the specified {@code Readable} as input.
-     * 
+     *
      * @param src
      *            the {@code Readable} to be scanned.
      */
@@ -260,7 +261,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Creates a {@code Scanner} with the specified {@code ReadableByteChannel} as
      * input. The default charset is applied when decoding the input.
-     * 
+     *
      * @param src
      *            the {@code ReadableByteChannel} to be scanned.
      */
@@ -271,7 +272,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Creates a {@code Scanner} with the specified {@code ReadableByteChannel} as
      * input. The specified charset is applied when decoding the input.
-     * 
+     *
      * @param src
      *            the {@code ReadableByteChannel} to be scanned.
      * @param charsetName
@@ -295,7 +296,7 @@ public final class Scanner implements Iterator<String> {
      * {@code Closeable}. If the {@code Scanner} has been closed, this method will have
      * no effect. Any scanning operation called after calling this method will throw
      * an {@code IllegalStateException}.
-     * 
+     *
      * @see Closeable
      */
     public void close() {
@@ -314,7 +315,7 @@ public final class Scanner implements Iterator<String> {
 
     /**
      * Returns the delimiter {@code Pattern} in use by this {@code Scanner}.
-     * 
+     *
      * @return the delimiter {@code Pattern} in use by this {@code Scanner}.
      */
     public Pattern delimiter() {
@@ -328,7 +329,7 @@ public final class Scanner implements Iterator<String> {
      * Otherwise, {@code null} will be returned and the {@code Scanner} will not advance.
      * When waiting for input, the {@code Scanner} may be blocked. All the
      * input may be cached if no line terminator exists in the buffer.
-     * 
+     *
      * @param pattern
      *            the pattern to find in the input.
      * @return the matched string or {@code null} if the pattern is not found
@@ -418,7 +419,7 @@ public final class Scanner implements Iterator<String> {
      * Compiles the pattern string and tries to find a substing matching it in the input data. The
      * delimiter will be ignored. This is the same as invoking
      * {@code findInLine(Pattern.compile(pattern))}.
-     * 
+     *
      * @param pattern
      *            a string used to construct a pattern which is in turn used to
      *            match a substring of the input data.
@@ -526,7 +527,7 @@ public final class Scanner implements Iterator<String> {
      * Tries to find the pattern in the input between the current position and the specified
      * {@code horizon}. Delimiters are ignored. This call is the same as invoking
      * {@code findWithinHorizon(Pattern.compile(pattern))}.
-     * 
+     *
      * @param pattern
      *            the pattern used to scan.
      * @param horizon
@@ -546,7 +547,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether this {@code Scanner} has one or more tokens remaining to parse.
      * This method will block if the data is still being read.
-     * 
+     *
      * @return {@code true} if this {@code Scanner} has one or more tokens remaining,
      *         otherwise {@code false}.
      * @throws IllegalStateException
@@ -560,7 +561,7 @@ public final class Scanner implements Iterator<String> {
      * Returns whether this {@code Scanner} has one or more tokens remaining to parse
      * and the next token matches the given pattern. This method will block if the data is
      * still being read.
-     * 
+     *
      * @param pattern
      *            the pattern to check for.
      * @return {@code true} if this {@code Scanner} has more tokens and the next token
@@ -596,7 +597,7 @@ public final class Scanner implements Iterator<String> {
      * and the next token matches a pattern compiled from the given string. This method will
      * block if the data is still being read. This call is equivalent to
      * {@code hasNext(Pattern.compile(pattern))}.
-     * 
+     *
      * @param pattern
      *            the string specifying the pattern to scan for
      * @return {@code true} if the specified pattern matches this {@code Scanner}'s
@@ -611,7 +612,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid
      * {@code BigDecimal}.
-     * 
+     *
      * @return {@code true} if the next token can be translated into a valid
      *         {@code BigDecimal}, otherwise {@code false.}
      * @throws IllegalStateException
@@ -636,7 +637,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid
      * {@code BigInteger} in the default radix.
-     * 
+     *
      * @return {@code true} if the next token can be translated into a valid
      *         {@code BigInteger}, otherwise {@code false}.
      * @throws IllegalStateException
@@ -649,7 +650,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid
      * {@code BigInteger} in the specified radix.
-     * 
+     *
      * @param radix
      *            the radix used to translate the token into a
      *            {@code BigInteger}.
@@ -677,7 +678,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid
      * {@code boolean} value.
-     * 
+     *
      * @return {@code true} if the next token can be translated into a valid
      *         {@code boolean} value, otherwise {@code false}.
      * @throws IllegalStateException
@@ -690,7 +691,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid
      * {@code byte} value in the default radix.
-     * 
+     *
      * @return {@code true} if the next token can be translated into a valid
      *         {@code byte} value, otherwise {@code false}.
      * @throws IllegalStateException
@@ -703,7 +704,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid
      * {@code byte} value in the specified radix.
-     * 
+     *
      * @param radix
      *            the radix used to translate the token into a {@code byte}
      *            value
@@ -731,7 +732,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token translated into a valid {@code double}
      * value.
-     * 
+     *
      * @return {@code true} if the next token can be translated into a valid
      *         {@code double} value, otherwise {@code false}.
      * @throws IllegalStateException
@@ -756,7 +757,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid
      * {@code float} value.
-     * 
+     *
      * @return {@code true} if the next token can be translated into a valid
      *         {@code float} value, otherwise {@code false}.
      * @throws IllegalStateException
@@ -781,7 +782,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid {@code int}
      * value in the default radix.
-     * 
+     *
      * @return {@code true} if the next token can be translated into a valid
      *         {@code int} value, otherwise {@code false}.
      * @throws IllegalStateException
@@ -794,7 +795,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid {@code int}
      * value in the specified radix.
-     * 
+     *
      * @param radix
      *            the radix used to translate the token into an {@code int}
      *            value.
@@ -823,7 +824,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether there is a line terminator in the input.
      * This method may block.
-     * 
+     *
      * @return {@code true} if there is a line terminator in the input,
      *         otherwise, {@code false}.
      * @throws IllegalStateException
@@ -860,7 +861,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid
      * {@code long} value in the default radix.
-     * 
+     *
      * @return {@code true} if the next token can be translated into a valid
      *         {@code long} value, otherwise {@code false}.
      * @throws IllegalStateException
@@ -873,7 +874,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid
      * {@code long} value in the specified radix.
-     * 
+     *
      * @param radix
      *            the radix used to translate the token into a {@code long}
      *            value.
@@ -901,7 +902,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid
      * {@code short} value in the default radix.
-     * 
+     *
      * @return {@code true} if the next token can be translated into a valid
      *         {@code short} value, otherwise {@code false}.
      * @throws IllegalStateException
@@ -914,7 +915,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns whether the next token can be translated into a valid
      * {@code short} value in the specified radix.
-     * 
+     *
      * @param radix
      *            the radix used to translate the token into a {@code short}
      *            value.
@@ -942,7 +943,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns the last {@code IOException} that was raised while reading from the underlying
      * input.
-     * 
+     *
      * @return the last thrown {@code IOException}, or {@code null} if none was thrown.
      */
     public IOException ioException() {
@@ -951,7 +952,7 @@ public final class Scanner implements Iterator<String> {
 
     /**
      * Return the {@code Locale} of this {@code Scanner}.
-     * 
+     *
      * @return the {@code Locale} of this {@code Scanner}.
      */
     public Locale locale() {
@@ -963,7 +964,7 @@ public final class Scanner implements Iterator<String> {
      * <p>
      * The next* and find* methods return the match result in the case of a
      * successful match.
-     * 
+     *
      * @return the match result of the last successful match operation
      * @throws IllegalStateException
      *             if the match result is not available, of if the last match
@@ -980,7 +981,7 @@ public final class Scanner implements Iterator<String> {
      * Returns the next token. The token will be both prefixed and postfixed by
      * the delimiter that is currently being used (or a string that matches the
      * delimiter pattern). This method will block if input is being read.
-     * 
+     *
      * @return the next complete token.
      * @throws IllegalStateException
      *             if this {@code Scanner} has been closed.
@@ -996,7 +997,7 @@ public final class Scanner implements Iterator<String> {
      * will be both prefixed and postfixed by the delimiter that is currently
      * being used (or a string that matches the delimiter pattern). This method will block
      * if input is being read.
-     * 
+     *
      * @param pattern
      *            the specified pattern to scan.
      * @return the next token.
@@ -1033,7 +1034,7 @@ public final class Scanner implements Iterator<String> {
      * being used (or a string that matches the delimiter pattern). This method will block
      * if input is being read. Calling this methods is equivalent to
      * {@code next(Pattern.compile(pattern))}.
-     * 
+     *
      * @param pattern
      *            the string specifying the pattern to scan for.
      * @return the next token.
@@ -1057,7 +1058,7 @@ public final class Scanner implements Iterator<String> {
      * negative sign (-) is added if the {@code Locale}-specific negative prefix or
      * suffix was present. Finally the resulting string is passed to
      * {@code BigDecimal(String) }.
-     * 
+     *
      * @return the next token as a {@code BigDecimal}.
      * @throws IllegalStateException
      *             if this {@code Scanner} has been closed.
@@ -1092,7 +1093,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns the next token as a {@code BigInteger}. This method will block if input is
      * being read. Equivalent to {@code nextBigInteger(DEFAULT_RADIX)}.
-     * 
+     *
      * @return the next token as {@code BigInteger}.
      * @throws IllegalStateException
      *             if this {@code Scanner} has been closed.
@@ -1116,7 +1117,7 @@ public final class Scanner implements Iterator<String> {
      * {@code Locale}-specific negative prefix or suffix was present. Finally the
      * resulting String is passed to {@link BigInteger#BigInteger(String, int)}}
      * with the specified radix.
-     * 
+     *
      * @param radix
      *            the radix used to translate the token into a
      *            {@code BigInteger}.
@@ -1154,7 +1155,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns the next token as a {@code boolean}. This method will block if input is
      * being read.
-     * 
+     *
      * @return the next token as a {@code boolean}.
      * @throws IllegalStateException
      *             if this {@code Scanner} has been closed.
@@ -1171,7 +1172,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns the next token as a {@code byte}. This method will block if input is being
      * read. Equivalent to {@code nextByte(DEFAULT_RADIX)}.
-     * 
+     *
      * @return the next token as a {@code byte}.
      * @throws IllegalStateException
      *             if this {@code Scanner} has been closed.
@@ -1195,7 +1196,7 @@ public final class Scanner implements Iterator<String> {
      * {@code Locale}-specific negative prefix or suffix was present. Finally the
      * resulting String is passed to {@link Byte#parseByte(String, int)}} with
      * the specified radix.
-     * 
+     *
      * @param radix
      *            the radix used to translate the token into {@code byte} value.
      * @return the next token as a {@code byte}.
@@ -1241,7 +1242,7 @@ public final class Scanner implements Iterator<String> {
      * {@link Double#parseDouble(String)}}. If the token matches the localized
      * NaN or infinity strings, it is also passed to
      * {@link Double#parseDouble(String)}}.
-     * 
+     *
      * @return the next token as a {@code double}.
      * @throws IllegalStateException
      *             if this {@code Scanner} has been closed.
@@ -1285,7 +1286,7 @@ public final class Scanner implements Iterator<String> {
      * {@link Float#parseFloat(String)}}.If the token matches the localized NaN
      * or infinity strings, it is also passed to
      * {@link Float#parseFloat(String)}}.
-     * 
+     *
      * @return the next token as a {@code float}.
      * @throws IllegalStateException
      *             if this {@code Scanner} has been closed.
@@ -1321,7 +1322,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns the next token as an {@code int}. This method will block if input is being
      * read. Equivalent to {@code nextInt(DEFAULT_RADIX)}.
-     * 
+     *
      * @return the next token as an {@code int}
      * @throws IllegalStateException
      *             if this {@code Scanner} has been closed.
@@ -1345,7 +1346,7 @@ public final class Scanner implements Iterator<String> {
      * {@code Locale}-specific negative prefix or suffix was present. Finally the
      * resulting String is passed to {@link Integer#parseInt(String, int)} with
      * the specified radix.
-     * 
+     *
      * @param radix
      *            the radix used to translate the token into an {@code int}
      *            value.
@@ -1387,7 +1388,7 @@ public final class Scanner implements Iterator<String> {
      * searching, if no line terminator is found, then a large amount of input
      * will be cached. If no line at all can be found, a {@code NoSuchElementException}
      * will be thrown.
-     * 
+     *
      * @return the skipped line.
      * @throws IllegalStateException
      *             if the {@code Scanner} is closed.
@@ -1433,7 +1434,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns the next token as a {@code long}. This method will block if input is being
      * read. Equivalent to {@code nextLong(DEFAULT_RADIX)}.
-     * 
+     *
      * @return the next token as a {@code long}.
      * @throws IllegalStateException
      *             if this {@code Scanner} has been closed.
@@ -1457,7 +1458,7 @@ public final class Scanner implements Iterator<String> {
      * {@code Locale}-specific negative prefix or suffix was present. Finally the
      * resulting String is passed to {@link Long#parseLong(String, int)}} with
      * the specified radix.
-     * 
+     *
      * @param radix
      *            the radix used to translate the token into a {@code long}
      *            value.
@@ -1496,7 +1497,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns the next token as a {@code short}. This method will block if input is being
      * read. Equivalent to {@code nextShort(DEFAULT_RADIX)}.
-     * 
+     *
      * @return the next token as a {@code short}.
      * @throws IllegalStateException
      *             if this {@code Scanner} has been closed.
@@ -1520,7 +1521,7 @@ public final class Scanner implements Iterator<String> {
      * {@code Locale}-specific negative prefix or suffix was present. Finally the
      * resulting String is passed to {@link Short#parseShort(String, int)}}
      * with the specified radix.
-     * 
+     *
      * @param radix
      *            the radix used to translate the token into {@code short}
      *            value.
@@ -1558,7 +1559,7 @@ public final class Scanner implements Iterator<String> {
 
     /**
      * Return the radix of this {@code Scanner}.
-     * 
+     *
      * @return the radix of this {@code Scanner}
      */
     public int radix() {
@@ -1572,7 +1573,7 @@ public final class Scanner implements Iterator<String> {
      * will also be skipped. Otherwise, a {@code NoSuchElementException} will be thrown.
      * Patterns that can match a lot of input may cause the {@code Scanner} to read
      * in a large amount of input.
-     * 
+     *
      * @param pattern
      *            used to skip over input.
      * @return the {@code Scanner} itself.
@@ -1614,7 +1615,7 @@ public final class Scanner implements Iterator<String> {
      * the constructed pattern to match input starting from the current position. The
      * delimiter will be ignored. This call is the same as invoke
      * {@code skip(Pattern.compile(pattern))}.
-     * 
+     *
      * @param pattern
      *            the string used to construct a pattern which in turn is used to
      *            match input.
@@ -1629,7 +1630,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Returns a string representation of this {@code Scanner}. The information
      * returned may be helpful for debugging. The format of the string is unspecified.
-     * 
+     *
      * @return a string representation of this {@code Scanner}.
      */
     @Override
@@ -1646,7 +1647,7 @@ public final class Scanner implements Iterator<String> {
 
     /**
      * Sets the delimiting pattern of this {@code Scanner}.
-     * 
+     *
      * @param pattern
      *            the delimiting pattern to use.
      * @return this {@code Scanner}.
@@ -1659,7 +1660,7 @@ public final class Scanner implements Iterator<String> {
     /**
      * Sets the delimiting pattern of this {@code Scanner} with a pattern compiled from
      * the supplied string value.
-     * 
+     *
      * @param pattern
      *            a string from which a {@code Pattern} can be compiled.
      * @return this {@code Scanner}.
@@ -1700,7 +1701,7 @@ public final class Scanner implements Iterator<String> {
 
     /**
      * Remove is not a supported operation on {@code Scanner}.
-     * 
+     *
      * @throws UnsupportedOperationException
      *             if this method is invoked.
      */
@@ -1714,7 +1715,7 @@ public final class Scanner implements Iterator<String> {
     private void initialization() {
         buffer = CharBuffer.allocate(DEFAULT_TRUNK_SIZE);
         buffer.limit(0);
-        matcher = delimiter.matcher(buffer);
+        matcher = delimiter.matcher((CharBuffer) buffer);
     }
 
     /*
@@ -1742,9 +1743,9 @@ public final class Scanner implements Iterator<String> {
      */
     private void resetMatcher() {
         if (null == matcher) {
-            matcher = delimiter.matcher(buffer);
+            matcher = delimiter.matcher((CharBuffer) buffer);
         } else {
-            matcher.reset(buffer);
+            matcher.reset((CharBuffer) buffer);
         }
         matcher.region(findStartIndex, bufferLength);
     }
@@ -1772,11 +1773,11 @@ public final class Scanner implements Iterator<String> {
         }
         decimalFormat = (DecimalFormat) NumberFormat.getInstance(locale);
 
-        String allAvailableDigits = "0123456789abcdefghijklmnopqrstuvwxyz"; //$NON-NLS-1$ 
+        String allAvailableDigits = "0123456789abcdefghijklmnopqrstuvwxyz"; //$NON-NLS-1$
         String ASCIIDigit = allAvailableDigits.substring(0, radix);
         String nonZeroASCIIDigit = allAvailableDigits.substring(1, radix);
 
-        StringBuilder digit = new StringBuilder("((?i)[").append(ASCIIDigit) //$NON-NLS-1$ 
+        StringBuilder digit = new StringBuilder("((?i)[").append(ASCIIDigit) //$NON-NLS-1$
                 .append("]|\\p{javaDigit})"); //$NON-NLS-1$
         StringBuilder nonZeroDigit = new StringBuilder("((?i)[").append( //$NON-NLS-1$
                 nonZeroASCIIDigit).append("]|([\\p{javaDigit}&&[^0]]))"); //$NON-NLS-1$
@@ -1904,7 +1905,7 @@ public final class Scanner implements Iterator<String> {
             );
             decimalNumeralString = removeLocaleInfo(decimalNumeralString,
                     DataType.FLOAT);
-            return decimalNumeralString + "e" + exponentString; //$NON-NLS-1$ 
+            return decimalNumeralString + "e" + exponentString; //$NON-NLS-1$
         }
         return removeLocaleInfo(floatString, DataType.FLOAT);
     }
@@ -1939,10 +1940,10 @@ public final class Scanner implements Iterator<String> {
         if (DataType.FLOAT == type) {
             if (tokenBuilder.toString().equals(
                     decimalFormat.getDecimalFormatSymbols().getNaN())) {
-                result.append("NaN");//$NON-NLS-1$ 
+                result.append("NaN");//$NON-NLS-1$
             } else if (tokenBuilder.toString().equals(
                     decimalFormat.getDecimalFormatSymbols().getInfinity())) {
-                result.append("Infinity");//$NON-NLS-1$ 
+                result.append("Infinity");//$NON-NLS-1$
             } else {
                 for (int i = 0; i < tokenBuilder.length(); i++) {
                     if (-1 != Character.digit(tokenBuilder.charAt(i), 10)) {
@@ -2151,7 +2152,7 @@ public final class Scanner implements Iterator<String> {
         try {
             buffer.limit(buffer.capacity());
             buffer.position(oldBufferLength);
-            while ((readCount = input.read(buffer)) == 0) {
+            while ((readCount = input.read((CharBuffer) buffer)) == 0) {
                 // nothing to do here
             }
         } catch (IOException e) {
@@ -2184,7 +2185,7 @@ public final class Scanner implements Iterator<String> {
         int nPreStartIndex = 0;
         int nBufferLength = 0;
         int nLimit = 0;
-        int nPostion = 0;       
+        int nPostion = 0;
         int nCachehasNextIndex = 0;
 
         //store old buffer set
@@ -2192,10 +2193,10 @@ public final class Scanner implements Iterator<String> {
         int oldPostion = buffer.position();
         int oldLimit = buffer.limit();
         int oldCapacity = buffer.capacity();
-        
+
         //new start index for new buffer
         int startIndex = 0;
-        
+
         if (preStartIndex == -1) {
             startIndex = findStartIndex;
             nPreStartIndex = -1;
@@ -2205,7 +2206,7 @@ public final class Scanner implements Iterator<String> {
             nPreStartIndex = 0;
             nFindStartIndex = findStartIndex - startIndex;
         }
-        
+
         int nCapacity = oldCapacity;
         char[] newBuffer = null;
         // set nCapacity
@@ -2213,7 +2214,7 @@ public final class Scanner implements Iterator<String> {
             nCapacity = nCapacity << 1;
             newBuffer = new char[nCapacity];
         } else {
-            newBuffer = buffer.array();
+            newBuffer = ((CharBuffer) buffer).array();
         }
 
         //new buffer set

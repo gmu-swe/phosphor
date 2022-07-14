@@ -1,9 +1,6 @@
 package fun.jvm.phosphor.instrumenter.jlink;
 
-import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.PhosphorOption;
-import edu.columbia.cs.psl.phosphor.PreMain;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.*;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import jdk.tools.jlink.plugin.Plugin;
 import jdk.tools.jlink.plugin.ResourcePool;
@@ -58,6 +55,7 @@ public class PhosphorJLinkPlugin implements Plugin {
 
     @Override
     public void configure(Map<String, String> config) {
+        Configuration.IS_JAVA_8 = false;
         TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
         TaintUtils.VERIFY_CLASS_GENERATION = true;
         PhosphorOption.configure(false, createPhosphorMainArguments(config));
@@ -89,7 +87,12 @@ public class PhosphorJLinkPlugin implements Plugin {
                                         continue;
                                     } else if (pe.getName().endsWith(".class")) {
                                         InputStream is = phosphorZip.getInputStream(pe);
-                                        out.add(ResourcePoolEntry.create("/java.base/" + pe.getName(), is.readAllBytes()));
+                                        if(Instrumenter.isPhosphorClassPatchedAtInstTime(pe.getName())){
+                                            byte[] newContent = Instrumenter.patchPhosphorClass(pe.getName(), is);
+                                            out.add(ResourcePoolEntry.create("/java.base/" + pe.getName(), newContent));
+                                        } else {
+                                            out.add(ResourcePoolEntry.create("/java.base/" + pe.getName(), is.readAllBytes()));
+                                        }
                                         is.close();
 
                                         //package name

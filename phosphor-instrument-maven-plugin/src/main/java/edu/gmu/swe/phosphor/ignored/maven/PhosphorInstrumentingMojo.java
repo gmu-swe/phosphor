@@ -100,6 +100,9 @@ public class PhosphorInstrumentingMojo extends AbstractMojo {
         } catch(IOException e) {
             throw new MojoFailureException("Failed to generate checksum for Phosphor JAR");
         }
+        if(Instrumenter.isJava8JVMDir(jvmDir)){
+            canonicalOptions.setProperty("java8", "true");
+        }
         if(!isExistingInstrumentedJVM(instJVMDir, canonicalOptions, checksum)) {
             getLog().info(String.format("Generating Phosphor-instrumented JVM %s with options: %s", instJVMDir, canonicalOptions));
             try {

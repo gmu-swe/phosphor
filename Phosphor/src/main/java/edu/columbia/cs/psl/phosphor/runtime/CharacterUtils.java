@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREMethodHelper;
 import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
@@ -82,8 +83,14 @@ public class CharacterUtils {
         try {
             Taint retTaint = Taint.emptyTaint();
             int ret = Character.codePointAt(seq, i);
-            if(seq instanceof String && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq) != null && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints  != null) {
-                retTaint = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints[i];
+            if(Configuration.IS_JAVA_8){
+                if (seq instanceof String && InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER((String) seq) != null && InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER((String) seq).taints != null) {
+                    retTaint = InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER((String) seq).taints[i];
+                }
+            } else {
+                if (seq instanceof String && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq) != null && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints != null) {
+                    retTaint = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints[i];
+                }
             }
             phosphorStackFrame.setReturnTaint(retTaint);
             return ret;
@@ -135,8 +142,14 @@ public class CharacterUtils {
         try {
             int ret = Character.codePointBefore(seq, i);
             Taint retTaint = Taint.emptyTaint();
-            if(seq instanceof String && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq) != null && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints  != null) {
-                retTaint = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints[i];
+            if(Configuration.IS_JAVA_8){
+                if(seq instanceof String && InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER((String) seq) != null && InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER((String) seq).taints  != null) {
+                    retTaint = InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER((String) seq).taints[i];
+                }
+            } else {
+                if(seq instanceof String && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq) != null && InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints  != null) {
+                    retTaint = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) seq).taints[i];
+                }
             }
             phosphorStackFrame.setReturnTaint(retTaint);
             return ret;
