@@ -747,8 +747,9 @@ public class Instrumenter {
             }
 
             private String patchDesc(String in) {
-                if(in == null)
+                if (in == null) {
                     return null;
+                }
                 return in.replace(UNSAFE_PROXY_DESC, TARGET_UNSAFE_DESC);
             }
 
@@ -759,13 +760,13 @@ public class Instrumenter {
 
                     @Override
                     public void visitFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack) {
-                        for(int i = 0 ; i < numLocal; i++){
-                            if(local[i] instanceof String){
+                        for (int i = 0; i < numLocal; i++) {
+                            if (local[i] instanceof String) {
                                 local[i] = patchInternalName((String) local[i]);
                             }
                         }
-                        for(int i = 0 ; i < numStack; i++){
-                            if(stack[i] instanceof String){
+                        for (int i = 0; i < numStack; i++) {
+                            if (stack[i] instanceof String) {
                                 stack[i] = patchInternalName((String) stack[i]);
                             }
                         }
