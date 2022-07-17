@@ -157,6 +157,9 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     }
 
     private boolean isUnsafeIntrinsic(String owner, String name, String desc) {
+        if(Configuration.IS_JAVA_8){
+            return false; //These intrinsics are only for 9+
+        }
         if (!Instrumenter.isUnsafeClass(owner)) {
             return false;
         }
