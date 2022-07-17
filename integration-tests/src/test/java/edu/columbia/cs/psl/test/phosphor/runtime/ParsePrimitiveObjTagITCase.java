@@ -41,7 +41,7 @@ public class ParsePrimitiveObjTagITCase extends BaseMultiTaintClass {
     /* Returns a String made from the specified String with the String itself tainted if taintString is true and its
      * characters if taintChars is true. */
     private String taintString(String str) {
-        str = str;
+        str = new String(str.toCharArray());
         if(taintString && taintChars) {
             MultiTainter.taintedObject(str, Taint.withLabel(STRING_LABEL));
             str = MultiTainter.taintedReference(str, STRING_LABEL);
@@ -53,9 +53,8 @@ public class ParsePrimitiveObjTagITCase extends BaseMultiTaintClass {
             IgnoredTestUtil.setStringCharTaints(str, null);
             return str;
         } else if(taintChars) {
-            char[] c = str.toCharArray();
-            MultiTainter.setPrimitiveArrayTaints(c, Taint.withLabel(CHARS_LABEL));
-            return new String(c);
+            IgnoredTestUtil.setStringCharTaints(str, CHARS_LABEL);
+            return str;
         } else {
             return str;
         }

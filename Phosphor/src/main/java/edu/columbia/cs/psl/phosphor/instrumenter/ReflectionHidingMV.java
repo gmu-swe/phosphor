@@ -42,7 +42,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
     private int[] storeToLocals(int n) {
         int[] ret = new int[n];
-        for(int i = 0; i < n; i++) {
+        for (int i = 0; i < n; i++) {
             ret[i] = lvs.getTmpLV();
             super.visitVarInsn(ASTORE, ret[i]);
         }
@@ -50,7 +50,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     }
 
     private void loadAndFree(int[] r) {
-        for(int i = r.length - 1; i >= 0; i--) {
+        for (int i = r.length - 1; i >= 0; i--) {
             super.visitVarInsn(ALOAD, r[i]);
             lvs.freeTmpLV(r[i]);
         }
@@ -65,13 +65,13 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * that retrieves the value of a field of a Java heap object. */
     private boolean isUnsafeFieldGetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
-        if(opcode != INVOKEVIRTUAL || !Instrumenter.isUnsafeClass(owner)) {
+        if (opcode != INVOKEVIRTUAL || !Instrumenter.isUnsafeClass(owner)) {
             return false;
         } else {
-            if(args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
+            if (args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
                 return false;
             }
-            if(Configuration.IS_JAVA_8) {
+            if (Configuration.IS_JAVA_8) {
                 switch (nameWithoutSuffix) {
                     case "getBoolean":
                     case "getByte":
@@ -95,46 +95,21 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                     default:
                         return false;
                 }
-            } else{
-                switch (nameWithoutSuffix) {
-                    case "getInt":
-                    case "getReference":
-                    case "getBoolean":
-                    case "getByte":
-                    case "getShort":
-                    case "getChar":
-                    case "getLong":
-                    case "getFloat":
-                    case "getDouble":
-                    case "getUncompressedObject":
-                    case "getReferenceVolatile":
-                    case "getIntVolatile":
-                    case "getBooleanVolatile":
-                    case "getByteVolatile":
-                    case "getShortVolatile":
-                    case "getCharVolatile":
-                    case "getLongVolatile":
-                    case "getFloatVolatile":
-                    case "getDoubleVolatile":
-                    case "getReferenceAcquire":
-                        return true;
-                    default:
-                        return false;
-                }
             }
+            return false;
         }
     }
 
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * that sets the value of a field of a Java heap object. */
     private boolean isUnsafeFieldSetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
-        if(opcode != INVOKEVIRTUAL || !Instrumenter.isUnsafeClass(owner)) {
+        if (opcode != INVOKEVIRTUAL || !Instrumenter.isUnsafeClass(owner)) {
             return false;
         } else {
-            if(args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
+            if (args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
                 return false;
             }
-            if(Configuration.IS_JAVA_8) {
+            if (Configuration.IS_JAVA_8) {
                 switch (nameWithoutSuffix) {
                     case "putBoolean":
                     case "putByte":
@@ -161,57 +136,298 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                     default:
                         return false;
                 }
-            } else{
-                switch (nameWithoutSuffix) {
-                    case "putInt":
-                    case "putReference":
-                    case "putBoolean":
-                    case "putByte":
-                    case "putShort":
-                    case "putChar":
-                    case "putLong":
-                    case "putFloat":
-                    case "putDouble":
-                    case "putReferenceVolatile":
-                    case "putIntVolatile":
-                    case "putBooleanVolatile":
-                    case "putByteVolatile":
-                    case "putShortVolatile":
-                    case "putCharVolatile":
-                    case "putLongVolatile":
-                    case "putFloatVolatile":
-                    case "putDoubleVolatile":
-                        return true;
-                    default:
-                        return false;
-                }
             }
+            return false;
         }
     }
 
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * for a compareAndSwap method. */
     private boolean isUnsafeCAS(String owner, String name, String nameWithoutSuffix) {
-        if(!Instrumenter.isUnsafeClass(owner)) {
+        if (!Instrumenter.isUnsafeClass(owner)) {
             return false;
         } else {
-            if(Configuration.IS_JAVA_8){
+            if (Configuration.IS_JAVA_8) {
                 return "compareAndSwapInt".equals(nameWithoutSuffix)
                         || "compareAndSwapLong".equals(nameWithoutSuffix)
                         || "compareAndSwapObject".equals(nameWithoutSuffix);
-            } else{
-                return "compareAndSetReference".equals(nameWithoutSuffix)
-                        || "compareAndExchangeReference".equals(nameWithoutSuffix)
-                        || "compareAndSetInt".equals(nameWithoutSuffix)
-                        || "compareAndExchangeInt".equals(nameWithoutSuffix)
-                        || "compareAndSetLong".equals(nameWithoutSuffix)
-                        || "compareAndExchangeLong".equals(nameWithoutSuffix);
             }
+            return false;
         }
     }
 
+    private boolean isUnsafeIntrinsic(String owner, String name, String desc) {
+        if (!Instrumenter.isUnsafeClass(owner)) {
+            return false;
+        }
+        switch (desc) {
+            case "(Ljava/lang/Object;JLjava/lang/Object;)V":
+                switch (name) {
+                    case "putReference":
+                    case "putReferenceVolatile":
+                    case "putReferenceOpaque":
+                    case "putReferenceRelease":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JZ)V":
+                switch (name) {
+                    case "putBoolean":
+                    case "putBooleanVolatile":
+                    case "putBooleanOpaque":
+                    case "putBooleanRelease":
+                        return true;
+                }
+            case "(Ljava/lang/Object;J)B":
+                switch (name) {
+                    case "getByte":
+                    case "getByteVolatile":
+                    case "getByteOpaque":
+                    case "getByteAcquire":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z":
+                switch (name) {
+                    case "compareAndSetReference":
+                    case "weakCompareAndSetReferencePlain":
+                    case "weakCompareAndSetReferenceAcquire":
+                    case "weakCompareAndSetReferenceRelease":
+                    case "weakCompareAndSetReference":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JJJ)J":
+                switch (name) {
+                    case "compareAndExchangeLong":
+                    case "compareAndExchangeLongAcquire":
+                    case "compareAndExchangeLongRelease":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JB)B":
+                switch (name) {
+                    case "getAndAddByte":
+                    case "getAndSetByte":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JJJ)Z":
+                switch (name) {
+                    case "compareAndSetLong":
+                    case "weakCompareAndSetLongPlain":
+                    case "weakCompareAndSetLongAcquire":
+                    case "weakCompareAndSetLongRelease":
+                    case "weakCompareAndSetLong":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JBB)Z":
+                switch (name) {
+                    case "compareAndSetByte":
+                    case "weakCompareAndSetBytePlain":
+                    case "weakCompareAndSetByteAcquire":
+                    case "weakCompareAndSetByteRelease":
+                    case "weakCompareAndSetByte":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JI)I":
+                switch (name) {
+                    case "getAndAddInt":
+                    case "getAndSetInt":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JSS)S":
+                switch (name) {
+                    case "compareAndExchangeShort":
+                    case "compareAndExchangeShortAcquire":
+                    case "compareAndExchangeShortRelease":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JSS)Z":
+                switch (name) {
+                    case "compareAndSetShort":
+                    case "weakCompareAndSetShortPlain":
+                    case "weakCompareAndSetShortAcquire":
+                    case "weakCompareAndSetShortRelease":
+                    case "weakCompareAndSetShort":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JJ)J":
+                switch (name) {
+                    case "getAndAddLong":
+                    case "getAndSetLong":
+                        return true;
+                }
+            case "(Ljava/lang/Object;J)Ljava/lang/Object;":
+                switch (name) {
+                    case "getReference":
+                    case "getReferenceVolatile":
+                    case "getReferenceOpaque":
+                    case "getReferenceAcquire":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JD)V":
+                switch (name) {
+                    case "putDouble":
+                    case "putDoubleVolatile":
+                    case "putDoubleOpaque":
+                    case "putDoubleRelease":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JII)I":
+                switch (name) {
+                    case "compareAndExchangeInt":
+                    case "compareAndExchangeIntAcquire":
+                    case "compareAndExchangeIntRelease":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JLjava/lang/Object;)Ljava/lang/Object;":
+                switch (name) {
+                    case "getAndSetReference":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JC)V":
+                switch (name) {
+                    case "putChar":
+                    case "putCharVolatile":
+                    case "putCharOpaque":
+                    case "putCharRelease":
+                    case "putCharUnaligned":
+                        return true;
+                }
+            case "(Ljava/lang/Object;J)Z":
+                switch (name) {
+                    case "getBoolean":
+                    case "getBooleanVolatile":
+                    case "getBooleanOpaque":
+                    case "getBooleanAcquire":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JB)V":
+                switch (name) {
+                    case "putByte":
+                    case "putByteVolatile":
+                    case "putByteOpaque":
+                    case "putByteRelease":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;":
+                switch (name) {
+                    case "compareAndExchangeReference":
+                    case "compareAndExchangeReferenceAcquire":
+                    case "compareAndExchangeReferenceRelease":
+                        return true;
+                }
+            case "(Ljava/lang/Object;J)S":
+                switch (name) {
+                    case "getShort":
+                    case "getShortVolatile":
+                    case "getShortOpaque":
+                    case "getShortAcquire":
+                    case "getShortUnaligned":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JF)V":
+                switch (name) {
+                    case "putFloat":
+                    case "putFloatVolatile":
+                    case "putFloatOpaque":
+                    case "putFloatRelease":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JJ)V":
+                switch (name) {
+                    case "putLong":
+                    case "putLongVolatile":
+                    case "putLongOpaque":
+                    case "putLongRelease":
+                    case "putLongUnaligned":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JI)V":
+                switch (name) {
+                    case "putInt":
+                    case "putIntVolatile":
+                    case "putIntOpaque":
+                    case "putIntRelease":
+                    case "putIntUnaligned":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JBB)B":
+                switch (name) {
+                    case "compareAndExchangeByte":
+                    case "compareAndExchangeByteAcquire":
+                    case "compareAndExchangeByteRelease":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JS)S":
+                switch (name) {
+                    case "getAndAddShort":
+                    case "getAndSetShort":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JS)V":
+                switch (name) {
+                    case "putShort":
+                    case "putShortVolatile":
+                    case "putShortOpaque":
+                    case "putShortRelease":
+                    case "putShortUnaligned":
+                        return true;
+                }
+            case "(Ljava/lang/Object;JII)Z":
+                switch (name) {
+                    case "compareAndSetInt":
+                    case "weakCompareAndSetIntPlain":
+                    case "weakCompareAndSetIntAcquire":
+                    case "weakCompareAndSetIntRelease":
+                    case "weakCompareAndSetInt":
+                        return true;
+                }
+            case "(Ljava/lang/Object;J)J":
+                switch (name) {
+                    case "getLong":
+                    case "getLongVolatile":
+                    case "getLongOpaque":
+                    case "getLongAcquire":
+                    case "getLongUnaligned":
+                        return true;
+                }
+            case "(Ljava/lang/Object;J)I":
+                switch (name) {
+                    case "getInt":
+                    case "getIntVolatile":
+                    case "getIntOpaque":
+                    case "getIntAcquire":
+                    case "getIntUnaligned":
+                        return true;
+                }
+            case "(Ljava/lang/Object;J)D":
+                switch (name) {
+                    case "getDouble":
+                    case "getDoubleVolatile":
+                    case "getDoubleOpaque":
+                    case "getDoubleAcquire":
+                        return true;
+                }
+            case "(Ljava/lang/Object;J)C":
+                switch (name) {
+                    case "getChar":
+                    case "getCharVolatile":
+                    case "getCharOpaque":
+                    case "getCharAcquire":
+                    case "getCharUnaligned":
+                        return true;
+                }
+            case "(Ljava/lang/Object;J)F":
+                switch (name) {
+                    case "getFloat":
+                    case "getFloatVolatile":
+                    case "getFloatOpaque":
+                    case "getFloatAcquire":
+                        return true;
+                }
+        }
+        return false;
+    }
+
     private boolean isUnsafeCopyMemory(String owner, String name, String nameWithoutSuffix) {
-        if(!Instrumenter.isUnsafeClass(owner)) {
+        if (!Instrumenter.isUnsafeClass(owner)) {
             return false;
         } else {
             return "copyMemory".equals(nameWithoutSuffix);
@@ -221,7 +437,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     @Override
     public void visitCode() {
         super.visitCode();
-        if(this.className.equals("java/lang/invoke/MethodHandles$Lookup") && this.methodName.startsWith("defineHiddenClass")){
+        if (this.className.equals("java/lang/invoke/MethodHandles$Lookup") && this.methodName.startsWith("defineHiddenClass")) {
             super.visitVarInsn(ALOAD, 1);
             INSTRUMENT_CLASS_BYTES.delegateVisit(mv);
             super.visitVarInsn(ASTORE, 1);
@@ -233,20 +449,20 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         Type[] args = Type.getArgumentTypes(desc);
         String nameWithoutSuffix = name;
         Type returnType = Type.getReturnType(desc);
-        if((disable || className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream")) && owner.equals("java/lang/Class") && !owner.equals(className) && name.startsWith("isInstance")) {
+        if ((disable || className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream")) && owner.equals("java/lang/Class") && !owner.equals(className) && name.startsWith("isInstance")) {
             // Even if we are ignoring other hiding here, we definitely need to do this.
             super.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
             visit(IS_INSTANCE);
-        } else if(disable) {
-            if(this.methodName.startsWith("setObjFieldValues") && owner.equals("sun/misc/Unsafe") && (name.startsWith("putObject") || name.startsWith("compareAndSwapObject"))) {
+        } else if (disable) {
+            if (this.methodName.startsWith("setObjFieldValues") && owner.equals("sun/misc/Unsafe") && (name.startsWith("putObject") || name.startsWith("compareAndSwapObject"))) {
                 owner = getRuntimeUnsafePropogatorClassName();
                 desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, mv);
                 super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), isInterface);
-            } else if(this.methodName.startsWith("getObjFieldValues") && owner.equals("sun/misc/Unsafe") && name.startsWith("getObject")) {
+            } else if (this.methodName.startsWith("getObjFieldValues") && owner.equals("sun/misc/Unsafe") && name.startsWith("getObject")) {
                 owner = getRuntimeUnsafePropogatorClassName();
                 desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, mv);
                 super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), isInterface);
-            } else if((this.methodName.startsWith("getPrimFieldValues") || this.methodName.startsWith("setPrimFieldValues")) && owner.equals("sun/misc/Unsafe") && (name.startsWith("put") || name.startsWith("get"))) {
+            } else if ((this.methodName.startsWith("getPrimFieldValues") || this.methodName.startsWith("setPrimFieldValues")) && owner.equals("sun/misc/Unsafe") && (name.startsWith("put") || name.startsWith("get"))) {
                 //name = name + "$$NOUNBOX";
                 //TODO
                 super.visitMethodInsn(opcode, owner, name, desc, isInterface);
@@ -254,12 +470,12 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 super.visitMethodInsn(opcode, owner, name, desc, isInterface);
             }
         } else {
-            if(patchAnonymousClasses && name.equals("defineAnonymousClass") && Instrumenter.isUnsafeClass(owner) && desc.equals("(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;")){
+            if (patchAnonymousClasses && name.equals("defineAnonymousClass") && Instrumenter.isUnsafeClass(owner) && desc.equals("(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;")) {
                 super.visitInsn(SWAP);
                 INSTRUMENT_CLASS_BYTES.delegateVisit(mv);
                 super.visitInsn(SWAP);
             }
-            if(owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
+            if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
                 owner = Type.getInternalName(ArrayReflectionMasker.class);
                 desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, this);
             }
@@ -268,17 +484,17 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, this);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
                 return;
-            } else if (isUnsafeFieldGetter(opcode, owner, name, args, nameWithoutSuffix)) {
-                if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+            } else if (isUnsafeIntrinsic(owner, name, desc) || isUnsafeFieldGetter(opcode, owner, name, args, nameWithoutSuffix)) {
+                if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                     desc = desc.replace(CONTROL_STACK_DESC, "");
                     //in control tracking mode, pop the control stack off of the stack to reuse the existing method
                     //but first, pop the null that's there for the erased return type.
-                    if(isUnsafeReferenceFieldGetter(nameWithoutSuffix)) {
+                    if (isUnsafeReferenceFieldGetter(nameWithoutSuffix)) {
                         super.visitInsn(POP);
                     }
                     super.visitInsn(SWAP);
                     super.visitInsn(POP);
-                    if(isUnsafeReferenceFieldGetter(nameWithoutSuffix)) {
+                    if (isUnsafeReferenceFieldGetter(nameWithoutSuffix)) {
                         super.visitInsn(ACONST_NULL);
                     }
                 }
@@ -286,8 +502,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, this);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
                 return;
-            } else if(isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
-                if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+            } else if (isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
+                if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                     desc = desc.replace(CONTROL_STACK_DESC, "");
                     super.visitInsn(POP);
                 }
@@ -295,8 +511,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, this);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
                 return;
-            } else if(isUnsafeCAS(owner, name, nameWithoutSuffix) || isUnsafeCopyMemory(owner, name, nameWithoutSuffix)) {
-                if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
+            } else if (isUnsafeCAS(owner, name, nameWithoutSuffix) || isUnsafeCopyMemory(owner, name, nameWithoutSuffix)) {
+                if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                     desc = desc.replace(CONTROL_STACK_DESC, "");
                     super.visitInsn(SWAP);
                     super.visitInsn(POP);
@@ -307,14 +523,14 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, this);
                 super.visitMethodInsn(opcode, owner, name, desc, isInterface);
                 return;
-            } else if(owner.equals(Type.getInternalName(Character.class)) && (name.equals("codePointAt")
+            } else if (owner.equals(Type.getInternalName(Character.class)) && (name.equals("codePointAt")
                     || name.equals("toChars") || name.equals("codePointBefore") || name.equals("reverseBytes")
                     || name.equals("toLowerCase") || name.equals("toTitleCase") || name.equals("toUpperCase"))) {
                 desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, mv);
                 owner = Type.getInternalName(CharacterUtils.class);
-            } else if(owner.equals("java/lang/reflect/Method") && name.equals("invoke")){
-            } else if(owner.equals("java/lang/reflect/Constructor") && name.equals("newInstance")){
-            } else if((owner.equals("sun/reflect/NativeMethodAccessorImpl") || owner.equals("jdk/internal/reflect/NativeMethodAccessorImpl")) && name.equals("invoke0")){
+            } else if (owner.equals("java/lang/reflect/Method") && name.equals("invoke")) {
+            } else if (owner.equals("java/lang/reflect/Constructor") && name.equals("newInstance")) {
+            } else if ((owner.equals("sun/reflect/NativeMethodAccessorImpl") || owner.equals("jdk/internal/reflect/NativeMethodAccessorImpl")) && name.equals("invoke0")) {
                 //Stack: Method Receiver Args
                 mv.visitInsn(SWAP);
                 mv.visitInsn(DUP_X1);
@@ -327,7 +543,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 mv.visitInsn(DUP_X2);
                 super.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
                 PREPARE_FOR_CALL_REFLECTIVE.delegateVisit(this);
-            } else if((owner.equals("sun/reflect/NativeConstructorAccessorImpl") || owner.equals("jdk/internal/reflect/NativeConstructorAccessorImpl")) && name.equals("newInstance0")){
+            } else if ((owner.equals("sun/reflect/NativeConstructorAccessorImpl") || owner.equals("jdk/internal/reflect/NativeConstructorAccessorImpl")) && name.equals("newInstance0")) {
                 mv.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
                 FIX_ALL_ARGS_CONSTRUCTOR.delegateVisit(mv);
 
@@ -338,26 +554,26 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 mv.visitInsn(SWAP);
             }
             super.visitMethodInsn(opcode, owner, name, desc, isInterface);
-            if(owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Fields") && !className.equals("java/lang/Class")) {
-                if(!Configuration.WITHOUT_FIELD_HIDING) {
+            if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Fields") && !className.equals("java/lang/Class")) {
+                if (!Configuration.WITHOUT_FIELD_HIDING) {
                     visit(REMOVE_TAINTED_FIELDS);
                 }
-            } else if(owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Methods") && !className.equals(owner) && desc.equals("()"+ Type.getDescriptor(Method[].class))) {
+            } else if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Methods") && !className.equals(owner) && desc.equals("()" + Type.getDescriptor(Method[].class))) {
                 visit(REMOVE_TAINTED_METHODS);
-            } else if(owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Constructors") && !className.equals(owner) &&
+            } else if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Constructors") && !className.equals(owner) &&
                     desc.equals("(" + Configuration.TAINT_TAG_DESC + controlTrackDescOrNone() + Type.getDescriptor(TaintedReferenceWithObjTag.class) + Type.getDescriptor(Constructor[].class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class))) {
                 visit(REMOVE_TAINTED_CONSTRUCTORS);
-            } else if(owner.equals("java/lang/Class") && name.equals("getInterfaces")) {
+            } else if (owner.equals("java/lang/Class") && name.equals("getInterfaces")) {
                 visit(REMOVE_TAINTED_INTERFACES);
-            } else if(owner.equals("java/lang/Throwable") && (name.equals("getOurStackTrace") || name.equals("getStackTrace")) && desc.equals("(" + Configuration.TAINT_TAG_DESC + controlTrackDescOrNone() + Type.getDescriptor(TaintedReferenceWithObjTag.class)  + Type.getDescriptor(StackTraceElement[].class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class))) {
-                if(className.equals("java/lang/Throwable")) {
+            } else if (owner.equals("java/lang/Throwable") && (name.equals("getOurStackTrace") || name.equals("getStackTrace")) && desc.equals("(" + Configuration.TAINT_TAG_DESC + controlTrackDescOrNone() + Type.getDescriptor(TaintedReferenceWithObjTag.class) + Type.getDescriptor(StackTraceElement[].class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class))) {
+                if (className.equals("java/lang/Throwable")) {
                     super.visitVarInsn(ALOAD, 0);
                     super.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
                 } else {
                     super.visitLdcInsn(Type.getObjectType(className));
                 }
                 visit(REMOVE_EXTRA_STACK_TRACE_ELEMENTS);
-            } else if(owner.equals("java/lang/reflect/Method") && name.equals("invoke")){
+            } else if (owner.equals("java/lang/reflect/Method") && name.equals("invoke")) {
                 mv.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
                 UNWRAP_RETURN.delegateVisit(mv);
             }
@@ -378,10 +594,10 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     }
 
     private static boolean shouldDisable(String className, String methodName) {
-        if(className.equals("org/codehaus/groovy/vmplugin/v5/Java5") && methodName.equals("makeInterfaceTypes")) {
+        if (className.equals("org/codehaus/groovy/vmplugin/v5/Java5") && methodName.equals("makeInterfaceTypes")) {
             return true;
         } else {
-            if(className.equals("jdk/internal/reflect/ReflectionFactory") || className.equals("java/lang/reflect/ReflectAccess")){
+            if (className.equals("jdk/internal/reflect/ReflectionFactory") || className.equals("java/lang/reflect/ReflectAccess")) {
                 //Java >= 9
                 //TODO keep?
                 return true;
@@ -391,15 +607,15 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         }
     }
 
-    private static String getRuntimeUnsafePropogatorClassName(){
-        if(Configuration.IS_JAVA_8){
+    private static String getRuntimeUnsafePropogatorClassName() {
+        if (Configuration.IS_JAVA_8) {
             return Type.getInternalName(RuntimeSunMiscUnsafePropagator.class);
         }
         return Type.getInternalName(RuntimeJDKInternalUnsafePropagator.class);
     }
 
-    private static boolean isUnsafeReferenceFieldGetter(String methodName){
-        if(Configuration.IS_JAVA_8){
+    private static boolean isUnsafeReferenceFieldGetter(String methodName) {
+        if (Configuration.IS_JAVA_8) {
             return "getObject".equals(methodName) || "getObjectVolatile".equals(methodName);
         }
         return "getReference".equals(methodName) || "getReferenceVolatile".equals(methodName);

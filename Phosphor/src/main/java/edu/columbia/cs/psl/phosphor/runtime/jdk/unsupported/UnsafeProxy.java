@@ -1302,4 +1302,40 @@ public class UnsafeProxy {
         throw new IllegalStateException("This method should never be called at runtime");
     }
 
+    public static long makeLong(byte i0, byte i1, byte i2, byte i3, byte i4, byte i5, byte i6, byte i7) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+    public static long makeLong(short i0, short i1, short i2, short i3) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+    public static long makeLong(int i0, int i1) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+    public static int makeInt(short i0, short i1) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+    public static int makeInt(byte i0, byte i1, byte i2, byte i3) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+    public static short makeShort(byte i0, byte i1) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+    public void putLongParts(Object o, long offset, byte i0, byte i1, byte i2, byte i3, byte i4, byte i5, byte i6, byte i7) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+    public void putLongParts(Object o, long offset, short i0, short i1, short i2, short i3) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+    public void putLongParts(Object o, long offset, int i0, int i1) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+    public void putIntParts(Object o, long offset, short i0, short i1) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+    public void putIntParts(Object o, long offset, byte i0, byte i1, byte i2, byte i3) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+    public void putShortParts(Object o, long offset, byte i0, byte i1) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
 }

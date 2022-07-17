@@ -257,9 +257,17 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         if (str != null) {
             if (Configuration.IS_JAVA_8) {
                 LazyCharArrayObjTags chars = InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER(str);
+                if(chars == null){
+                    chars = new LazyCharArrayObjTags(InstrumentedJREFieldHelper.JAVA_8getvalue(str));
+                    InstrumentedJREFieldHelper.JAVA_8setvaluePHOSPHOR_WRAPPER(str, chars);
+                }
                 chars.setTaints(tag);
             } else {
                 LazyByteArrayObjTags chars = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str);
+                if(chars == null){
+                    chars = new LazyByteArrayObjTags(InstrumentedJREFieldHelper.getvalue(str));
+                    InstrumentedJREFieldHelper.setvaluePHOSPHOR_WRAPPER(str, chars);
+                }
                 chars.setTaints(tag);
             }
         }

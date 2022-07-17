@@ -3,10 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyReferenceArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.TaintedPrimitiveWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public final class MultiTainter {
@@ -200,6 +197,25 @@ public final class MultiTainter {
             return InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER(str).taints;
         } else {
             return InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str).taints;
+        }
+    }
+
+    public static void setStringCharTaints(String str, Taint[] tags) {
+        if(str == null) {
+            return;
+        }
+        if(Configuration.IS_JAVA_8){
+            LazyCharArrayObjTags onStr = InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER(str);
+            if(onStr == null){
+                InstrumentedJREFieldHelper.JAVA_8setvaluePHOSPHOR_WRAPPER(str, LazyCharArrayObjTags.factory(InstrumentedJREFieldHelper.JAVA_8getvalue(str)));
+            }
+            onStr.taints = tags;
+        } else {
+            LazyByteArrayObjTags onStr = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str);
+            if(onStr == null){
+                InstrumentedJREFieldHelper.setvaluePHOSPHOR_WRAPPER(str, LazyByteArrayObjTags.factory(InstrumentedJREFieldHelper.getvalue(str)));
+            }
+            onStr.taints = tags;
         }
     }
 

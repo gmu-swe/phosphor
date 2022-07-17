@@ -1232,12 +1232,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
 
     @Override
     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-        if (isRewrittenMethodDescriptorOrName && (descriptor.equals("Ljdk/internal/HotSpotIntrinsicCandidate;")
-                || descriptor.equals("Ljdk/internal/vm/annotation/IntrinsicCandidate;"))) {
-            // HotSpotIntrinsicCandidate can only be on a method that there is an intrinsic provided for, and must be on
-            // all methods for which an intrinsic is provided.
-            return null;
-        }
+        //if(className.contains("Unsafe")) {
+        //    if (descriptor.equals("Ljdk/internal/HotSpotIntrinsicCandidate;") ||
+        //            descriptor.equals("Ljdk/internal/vm/annotation/ForceInline;") || descriptor.equals("Ljdk/internal/vm/annotation/IntrinsicCandidate;")) {
+        //        return null; //TODO add special handling for all of the compiler intrinsic functions.
+        //    }
+        //}
         return super.visitAnnotation(descriptor, visible);
     }
 }

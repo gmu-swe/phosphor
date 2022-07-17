@@ -1,0 +1,181 @@
+//Do not change the comments around the templates
+//Note: the xxxxReference methods have subtle variations from the template to handle cases where you are setting
+//or getting a value that is wrapped.
+//Template for: get$methodTypeOpaque(Ljava/lang/Object;J)LPlaceHolder;
+//Will generate: [getByteOpaque, getIntOpaque, getLongOpaque, getFloatOpaque, getReferenceOpaque, getCharOpaque, getShortOpaque, getDoubleOpaque, getBooleanOpaque]
+    public static $sourceType get$methodTypeOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame){
+        return get$methodTypeVolatile(unsafe, o, offset, phosphorStackFrame);
+    }
+//Template for: compareAndExchange$methodTypeAcquire(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)LPlaceHolder;
+//Will generate: [compareAndExchangeIntAcquire, compareAndExchangeByteAcquire, compareAndExchangeLongAcquire, compareAndExchangeReferenceAcquire, compareAndExchangeShortAcquire]
+    public static $sourceType compareAndExchange$methodTypeAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, $sourceType expected, $sourceType x, PhosphorStackFrame phosphorStackFrame){
+        return compareAndExchange$methodType(unsafe, o, offset, expected, x, phosphorStackFrame);
+    }
+//Template for: get$methodTypeAcquire(Ljava/lang/Object;J)LPlaceHolder;
+//Will generate: [getByteAcquire, getIntAcquire, getLongAcquire, getFloatAcquire, getReferenceAcquire, getCharAcquire, getShortAcquire, getDoubleAcquire, getBooleanAcquire]
+    public static $sourceType get$methodTypeAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame){
+        return get$methodTypeVolatile(unsafe, o, offset, phosphorStackFrame);
+    }
+//Template for: getAndAdd$methodType(Ljava/lang/Object;JLPlaceHolder;)LPlaceHolder;
+//Will generate: [getAndAddInt, getAndAddByte, getAndAddLong, getAndAddShort]
+    public static $sourceType getAndAdd$methodType(UnsafeProxy unsafe, java.lang.Object o, long offset, $sourceType delta, PhosphorStackFrame phosphorStackFrame){
+        $sourceType v;
+        do {
+            v = get$methodTypeVolatile(unsafe, o, offset, phosphorStackFrame);
+        } while (!weakCompareAndSet$methodType(unsafe, o, offset, v, v + delta, phosphorStackFrame));
+        return v;
+    }
+//Template for: get$methodTypeVolatile(Ljava/lang/Object;J)LPlaceHolder;
+//Will generate: [getByteVolatile, getIntVolatile, getLongVolatile, getFloatVolatile, getReferenceVolatilsdfsadfe, getCharVolatile, getShortVolatile, getDoubleVolatile, getBooleanVolatile]
+    public static $sourceType get$methodTypeVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame){
+        if (obj instanceof LazyArrayObjTags) {
+            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
+            return unsafe.get$methodTypeVolatile(((LazyArrayObjTags) obj).getVal(), offset);
+        } else {
+            getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.VOLATILE);
+            return unsafe.get$methodTypeVolatile(obj, offset);
+        }
+    }
+//Template for: compareAndExchange$methodTypeRelease(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)LPlaceHolder;
+//Will generate: [compareAndExchangeIntRelease, compareAndExchangeByteRelease, compareAndExchangeLongRelease, compareAndExchangeReferenceRelease, compareAndExchangeShortRelease]
+    public static $sourceType compareAndExchange$methodTypeRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, $sourceType expected, $sourceType x, PhosphorStackFrame phosphorStackFrame){
+        return compareAndExchange$methodType(unsafe, o, offset, expected, x, phosphorStackFrame);
+    }
+//Template for: put$methodTypeUnaligned(Ljava/lang/Object;JLPlaceHolder;)V
+//Will generate: [putIntUnaligned, putLongUnaligned, putCharUnaligned, putShortUnaligned]
+    public static void put$methodTypeUnaligned(UnsafeProxy unsafe, java.lang.Object o, long offset, $sourceType x, PhosphorStackFrame phosphorStackFrame){
+        //TODO manually write
+    }
+//Template for: weakCompareAndSet$methodTypeAcquire(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)Z
+//Will generate: [weakCompareAndSetIntAcquire, weakCompareAndSetByteAcquire, weakCompareAndSetLongAcquire, weakCompareAndSetReferenceAcquire, weakCompareAndSetShortAcquire]
+    public static boolean weakCompareAndSet$methodTypeAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, $sourceType expected, $sourceType x, PhosphorStackFrame phosphorStackFrame){
+        return compareAndSet$methodType(unsafe, o, offset, expected, x, phosphorStackFrame);
+    }
+//Template for: put$methodTypeOpaque(Ljava/lang/Object;JLPlaceHolder;)V
+//Will generate: [putByteOpaque, putIntOpaque, putLongOpaque, putFloatOpaque, putReferenceOpaque, putCharOpaque, putShortOpaque, putDoubleOpaque, putBooleanOpaque]
+    public static void put$methodTypeOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, $sourceType x, PhosphorStackFrame phosphorStackFrame){
+        put$methodTypeVolatile(unsafe, o, offset, x, phosphorStackFrame);
+    }
+//Template for: compareAndSet$methodType(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)Z
+//Will generate: [compareAndSetInt, compareAndSetByte, compareAndSetLong, compareAndSetReference, compareAndSetShort]
+    public static boolean compareAndSet$methodType(UnsafeProxy unsafe, java.lang.Object obj, long offset, $sourceType expected, $sourceType value, PhosphorStackFrame phosphorStackFrame){
+        Taint valueTaint = phosphorStackFrame.getArgTaint(4);
+        Taint retTaint = Taint.emptyTaint();
+        boolean ret = false;
+        if (obj instanceof Lazy$methodTypeArrayObjTags) {
+            ret = unsafe.compareAndSet$methodType(((LazyArrayObjTags) obj).getVal(), offset, expected, value);
+            if (ret) {
+                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+            }
+        } else {
+            ret = unsafe.compareAndSet$methodType(obj, offset, expected, value);
+            OffsetPair pair = null;
+            if (obj != null) {
+                pair = getOffsetPair(unsafe, obj, offset);
+            }
+            if (pair != null && ret) {
+                if (pair.tagFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
+                    unsafe.putReferenceVolatile(obj, pair.tagFieldOffset, valueTaint);
+                }
+            }
+        }
+        return ret;
+    }
+//Template for: put$methodType(Ljava/lang/Object;JLPlaceHolder;)V
+//Will generate: [putByte, putInt, putLong, putFloat, putReference, putChar, putShort, putDouble, putBoolean]
+    public static void put$methodType(UnsafeProxy unsafe, java.lang.Object obj, long offset, $sourceType val, PhosphorStackFrame phosphorStackFrame){
+        Taint valTaint = phosphorStackFrame.getArgTaint(3);
+        if (obj instanceof LazyArrayObjTags) {
+            unsafe.put$methodType(((LazyArrayObjTags) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
+                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+            }
+        } else {
+            unsafe.put$methodType(obj, offset, val);
+            putTag(unsafe, obj, offset, valTaint, SpecialAccessPolicy.NONE);
+        }
+    }
+//Template for: put$methodTypeVolatile(Ljava/lang/Object;JLPlaceHolder;)V
+//Will generate: [putByteVolatile, putIntVolatile, putLongVolatile, putFloatVolatile, putReferenceVolatile, putCharVolatile, putShortVolatile, putDoubleVolatile, putBooleanVolatile]
+    public static void put$methodTypeVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, $sourceType val, PhosphorStackFrame phosphorStackFrame){
+          Taint valTaint = phosphorStackFrame.getArgTaint(3);
+          if (obj instanceof LazyArrayObjTags) {
+              unsafe.put$methodTypeVolatile(((LazyArrayObjTags) obj).getVal(), offset, val);
+              if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
+                  ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+              }
+          } else {
+              unsafe.put$methodTypeVolatile(obj, offset, val);
+              putTag(unsafe, obj, offset, valTaint, SpecialAccessPolicy.NONE);
+          }
+    }
+//Template for: compareAndExchange$methodType(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)LPlaceHolder;
+//Will generate: [compareAndExchangeInt, compareAndExchangeByte, compareAndExchangeLong, compareAndExchangeReference, compareAndExchangeShort]
+    public static $sourceType compareAndExchange$methodType(UnsafeProxy unsafe, java.lang.Object obj, long offset, $sourceType expected, $sourceType x, PhosphorStackFrame phosphorStackFrame){
+        Taint valueTaint = phosphorStackFrame.getArgTaint(4);
+        Taint retTaint = Taint.emptyTaint();
+        $sourceType ret;
+        if (obj instanceof Lazy$methodTypeArrayObjTags) {
+            ret = unsafe.compareAndExchange$methodType(((LazyArrayObjTags) obj).getVal(), offset, expected, x);
+            if (ret == expected) {
+                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+            }
+        } else {
+            ret = unsafe.compareAndExchange$methodType(obj, offset, expected, x);
+            OffsetPair pair = null;
+            if (obj != null) {
+                pair = getOffsetPair(unsafe, obj, offset);
+            }
+            if (pair != null && ret == expected) {
+                if (pair.tagFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
+                    unsafe.putReferenceVolatile(obj, pair.tagFieldOffset, valueTaint);
+                }
+            }
+        }
+        return ret;
+    }
+//Template for: getAndSet$methodType(Ljava/lang/Object;JLPlaceHolder;)LPlaceHolder;
+//Will generate: [getAndSetInt, getAndSetByte, getAndSetLong, getAndSetReference, getAndSetShort]
+    public static $sourceType getAndSet$methodType(UnsafeProxy unsafe, java.lang.Object o, long offset, $sourceType newValue, PhosphorStackFrame phosphorStackFrame){
+        $sourceType v;
+        do {
+            v = get$methodTypeVolatile(unsafe, o, offset, phosphorStackFrame);
+        } while (!weakCompareAndSet$methodType(unsafe, o, offset, v, newValue, phosphorStackFrame));
+        return v;
+    }
+//Template for: get$methodTypeUnaligned(Ljava/lang/Object;J)LPlaceHolder;
+//Will generate: [getIntUnaligned, getLongUnaligned, getCharUnaligned, getShortUnaligned]
+    public static $sourceType get$methodTypeUnaligned(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame){
+        //TODO manually generate
+    }
+//Template for: get$methodType(Ljava/lang/Object;J)LPlaceHolder;
+//Will generate: [getByte, getInt, getLong, getFloat, getReference, getChar, getShort, getDouble, getBoolean]
+    public static $sourceType get$methodType(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame){
+            if (obj instanceof LazyArrayObjTags) {
+                phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
+                return unsafe.get$methodType(((LazyArrayObjTags) obj).getVal(), offset);
+            } else {
+                getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.NONE);
+                return unsafe.get$methodType(obj, offset);
+            }
+    }
+//Template for: weakCompareAndSet$methodTypePlain(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)Z
+//Will generate: [weakCompareAndSetIntPlain, weakCompareAndSetBytePlain, weakCompareAndSetLongPlain, weakCompareAndSetReferencePlain, weakCompareAndSetShortPlain]
+    public static boolean weakCompareAndSet$methodTypePlain(UnsafeProxy unsafe, java.lang.Object o, long offset, $sourceType expected, $sourceType x, PhosphorStackFrame phosphorStackFrame){
+            return compareAndSet$methodType(unsafe, o, offset, expected, x, phosphorStackFrame);
+    }
+//Template for: weakCompareAndSet$methodTypeRelease(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)Z
+//Will generate: [weakCompareAndSetIntRelease, weakCompareAndSetByteRelease, weakCompareAndSetLongRelease, weakCompareAndSetReferenceRelease, weakCompareAndSetShortRelease]
+    public static boolean weakCompareAndSet$methodTypeRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, $sourceType expected, $sourceType x, PhosphorStackFrame phosphorStackFrame){
+        return compareAndSet$methodType(unsafe, o, offset, expected, x, phosphorStackFrame);
+    }
+//Template for: weakCompareAndSet$methodType(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)Z
+//Will generate: [weakCompareAndSetInt, weakCompareAndSetByte, weakCompareAndSetLong, weakCompareAndSetReference, weakCompareAndSetShort]
+    public static boolean weakCompareAndSet$methodType(UnsafeProxy unsafe, java.lang.Object o, long offset, $sourceType expected, $sourceType x, PhosphorStackFrame phosphorStackFrame){
+        return compareAndSet$methodType(unsafe, o, offset, expected, x, phosphorStackFrame);
+    }
+//Template for: put$methodTypeRelease(Ljava/lang/Object;JLPlaceHolder;)V
+//Will generate: [putByteRelease, putIntRelease, putLongRelease, putFloatRelease, putReferenceRelease, putCharRelease, putShortRelease, putDoubleRelease, putBooleanRelease]
+    public static void put$methodTypeRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, $sourceType x, PhosphorStackFrame phosphorStackFrame){
+        put$methodTypeVolatile(unsafe, o, offset, x, phosphorStackFrame);
+    }

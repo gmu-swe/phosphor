@@ -221,6 +221,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         if (className.equals("java/lang/reflect/Array") && name.equals("newArray")) {
             access = (access & ~Opcodes.ACC_PRIVATE) | Opcodes.ACC_PUBLIC;
         }
+        if (Instrumenter.isUnsafeClass(className)){
+            access = (access & ~Opcodes.ACC_PRIVATE) | Opcodes.ACC_PUBLIC;
+        }
 
         if (Configuration.WITH_ENUM_BY_VAL && className.equals("java/lang/Enum") && name.equals("clone")) {
             return null;
@@ -255,7 +258,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, mv);
             mv = new DefaultTaintCheckingMethodVisitor(analyzer, access, className, name, desc,
                     (implementsSerializable || className.startsWith("java/nio/")
-                            || className.startsWith("java/io/BUfferedInputStream") || className.startsWith("sun/nio")),
+                            || className.equals("java/lang/String")
+                            || className.startsWith("java/io/BufferedInputStream") || className.startsWith("sun/nio")),
                     analyzer, fields); // TODO - how do we handle directbytebuffers?
 
             ControlFlowPropagationPolicy controlFlowPolicy = controlFlowManager.createPropagationPolicy(access,

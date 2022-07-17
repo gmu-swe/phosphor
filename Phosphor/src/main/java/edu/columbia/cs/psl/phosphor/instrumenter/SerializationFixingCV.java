@@ -326,9 +326,8 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
         int expectedPositionOfPhosphorStackFrame = 1;
         ObjectReadMV(MethodVisitor mv, String descriptor) {
             super(Configuration.ASM_VERSION, mv);
-            if(descriptor.equals("(Z)Ljava/lang/Object;")){
-                expectedPositionOfPhosphorStackFrame++;
-            }
+            int nArgs = Type.getArgumentTypes(descriptor).length;
+            expectedPositionOfPhosphorStackFrame += nArgs;
         }
 
         @Override
