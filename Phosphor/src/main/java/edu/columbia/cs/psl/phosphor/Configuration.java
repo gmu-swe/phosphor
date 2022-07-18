@@ -32,7 +32,7 @@ public class Configuration {
     public static final int TAINT_LOAD_OPCODE = Opcodes.ALOAD;
     public static final int TAINT_STORE_OPCODE = Opcodes.ASTORE;
     public static final Class<?> TAINT_TAG_OBJ_CLASS = (Taint.class);
-    public static final boolean DEBUG_STACK_FRAME_WRAPPERS = true;
+    public static final boolean DEBUG_STACK_FRAME_WRAPPERS = false;
     public static boolean SKIP_LOCAL_VARIABLE_TABLE = false;
     public static String ADDL_IGNORE = null;
     public static boolean REFERENCE_TAINTING = true;

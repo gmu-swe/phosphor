@@ -426,14 +426,16 @@ public class RuntimeBoxUnboxPropagator {
     }
 
     public static int digit(char c,  int radix,  PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         int ret = Character.digit(c, radix);
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static int digit(int codePoint,  int radix,  PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         int ret = Character.digit(codePoint, radix);
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
@@ -453,35 +455,41 @@ public class RuntimeBoxUnboxPropagator {
     }
 
     public static Boolean valueOfZ(String s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Boolean ret = valueOfZ(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     public static Byte valueOfB(String s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Byte ret = valueOfB(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     public static Short valueOfS(String s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Short ret = valueOfS(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     public static Boolean valueOfZ(boolean s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Boolean ret = Boolean.valueOf(s);
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static Byte valueOfB(byte s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Byte ret = Byte.valueOf(s);
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
     public static Byte valueOfB(String s, int radix, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Byte ret = Byte.valueOf(s, radix);
         phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(1)).union(phosphorStackFrame.getArgTaint(0)));
         return ret;
@@ -489,64 +497,73 @@ public class RuntimeBoxUnboxPropagator {
 
 
     public static Short valueOfS(short s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Short ret = Short.valueOf(s);
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static Double valueOfD(String s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Double ret = Double.valueOf(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     public static Double valueOfD(double s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Double ret = Double.valueOf(s);
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static Integer valueOfI(String s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Integer ret = Integer.valueOf(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     public static Integer valueOfI(String s,  int radix, PhosphorStackFrame phosphorStackFrame) {
-        Integer ret = Integer.valueOf(s, radix);
         Taint taint = phosphorStackFrame.getArgTaint(0);
         Taint radixTaint = phosphorStackFrame.getArgTaint(1);
+        Integer ret = Integer.valueOf(s, radix);
         phosphorStackFrame.setReturnTaint(getCombinedTaint(s, taint).union(radixTaint));
         return ret;
     }
 
     public static Integer valueOfI(int s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Integer ret = Integer.valueOf(s);
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static Float valueOfF(String s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Float ret = Float.valueOf(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     public static Float valueOfF(float s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Float ret = Float.valueOf(s);
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static Long valueOfJ(String s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Long ret = Long.valueOf(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     public static Long valueOfJ(long s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Long ret = Long.valueOf(s);
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
@@ -559,56 +576,65 @@ public class RuntimeBoxUnboxPropagator {
     }
 
     public static Character valueOfC(char s, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Character ret = Character.valueOf(s);
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static boolean booleanValue(Boolean v, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         boolean ret = v.booleanValue();
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static byte byteValue(Byte v, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         byte ret = v.byteValue();
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static char charValue(Character v, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         char ret = v.charValue();
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static double doubleValue(Double v, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         double ret = v.doubleValue();
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static int intValue(Integer v, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         int ret = v.intValue();
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static short shortValue(Short v, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         short ret = v.shortValue();
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static float floatValue(Float v, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         float ret = v.floatValue();
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
     public static long longValue(Long v, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         long ret = v.longValue();
-        phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+        phosphorStackFrame.setReturnTaint(t);
         return ret;
     }
 
@@ -626,200 +652,220 @@ public class RuntimeBoxUnboxPropagator {
 
     @SuppressWarnings("unused")
     public static Short valueOfS(String s, int radix, PhosphorStackFrame phosphorStackFrame) {
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
         Short ret = Short.parseShort(s, radix);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static boolean parseBoolean(String s, PhosphorStackFrame phosphorStackFrame) {
-        Boolean ret = Boolean.parseBoolean(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        boolean ret = Boolean.parseBoolean(s);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static byte parseByte(String s, PhosphorStackFrame phosphorStackFrame) {
-        Byte ret = Byte.parseByte(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        byte ret = Byte.parseByte(s);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static double parseDouble(String s, PhosphorStackFrame phosphorStackFrame) {
-        Double ret = Double.parseDouble(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        double ret = Double.parseDouble(s);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static float parseFloat(String s, PhosphorStackFrame phosphorStackFrame) {
-        Float ret = Float.parseFloat(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        float ret = Float.parseFloat(s);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static int parseInt(String s, PhosphorStackFrame phosphorStackFrame) {
-        Integer ret = Integer.parseInt(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        int ret = Integer.parseInt(s);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static long parseLong(String s, PhosphorStackFrame phosphorStackFrame) {
-        Long ret = Long.parseLong(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        long ret = Long.parseLong(s);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static short parseShort(String s, PhosphorStackFrame phosphorStackFrame) {
-        Short ret = Short.parseShort(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        short ret = Short.parseShort(s);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static int parseUnsignedInt(String s, PhosphorStackFrame phosphorStackFrame) {
-        Integer ret = Integer.parseInt(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        int ret = Integer.parseInt(s);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static long parseUnsignedLong(String s, PhosphorStackFrame phosphorStackFrame) {
-        Long ret = Long.parseLong(s);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        long ret = Long.parseLong(s);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static byte parseByte(String s, int radix,  PhosphorStackFrame phosphorStackFrame) {
-        Byte ret = Byte.parseByte(s, radix);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        byte ret = Byte.parseByte(s, radix);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static int parseInt(String s, int radix,  PhosphorStackFrame phosphorStackFrame) {
-        Integer ret = Integer.parseInt(s, radix);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        int ret = Integer.parseInt(s, radix);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static long parseLong(String s, int radix,  PhosphorStackFrame phosphorStackFrame) {
-        Long ret = Long.parseLong(s, radix);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        long ret = Long.parseLong(s, radix);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static int parseInt(CharSequence s, int beginIndex, int endIndex, int radix, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         int ret = InstrumentedJREMethodHelper.java_lang_Integer_parseInt(s, beginIndex, endIndex, radix);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static long parseLong(CharSequence s, int beginIndex, int endIndex, int radix, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
         long ret = InstrumentedJREMethodHelper.java_lang_Long_parseLong(s, beginIndex, endIndex, radix);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static short parseShort(String s, int radix,  PhosphorStackFrame phosphorStackFrame) {
-        Short ret = Short.parseShort(s, radix);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        short ret = Short.parseShort(s, radix);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static int parseUnsignedInt(String s,  int radix,  PhosphorStackFrame phosphorStackFrame) {
-        Integer ret = Integer.parseInt(s, radix);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        int ret = Integer.parseInt(s, radix);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static long parseUnsignedLong(String s,  int radix,  PhosphorStackFrame phosphorStackFrame) {
-        Long ret = Long.parseLong(s, radix);
-        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, phosphorStackFrame.getArgTaint(0)));
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        long ret = Long.parseLong(s, radix);
+        phosphorStackFrame.setReturnTaint(getCombinedTaint(s, t));
         return ret;
     }
 
     @SuppressWarnings("unused")
     public static <T> char forDigit(int digit, int radix, PhosphorStackFrame phosphorStackFrame) {
+        Taint t = phosphorStackFrame.getArgTaint(0);
+        Taint radixTaint = phosphorStackFrame.getArgTaint(1);
         char ret = Character.forDigit(digit, radix);
         if(Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_LIGHT_TRACKING) {
             phosphorStackFrame.setReturnTaint(Taint.combineTags(phosphorStackFrame.getArgTaint(0), phosphorStackFrame.getArgTaint(1)));
         } else {
-            phosphorStackFrame.setReturnTaint(phosphorStackFrame.getArgTaint(0));
+            phosphorStackFrame.setReturnTaint(t);
         }
         return ret;
     }
 
     public static String toString(Boolean value, PhosphorStackFrame phosphorStackFrame) {
-        String ret = value.toString();
         Taint tag = phosphorStackFrame.getArgTaint(0);
+        String ret = value.toString();
         ((TaintedWithObjTag) (Object) ret).setPHOSPHOR_TAG(tag);
         phosphorStackFrame.setReturnTaint(tag);
         return ret;
     }
 
     public static String toString(Byte value, PhosphorStackFrame phosphorStackFrame) {
-        String ret = value.toString();
         Taint tag = phosphorStackFrame.getArgTaint(0);
+        String ret = value.toString();
         ((TaintedWithObjTag) (Object) ret).setPHOSPHOR_TAG(tag);
         phosphorStackFrame.setReturnTaint(tag);
         return ret;
     }
 
     public static String toString(Character value, PhosphorStackFrame phosphorStackFrame) {
-        String ret = value.toString();
         Taint tag = phosphorStackFrame.getArgTaint(0);
+        String ret = value.toString();
         ((TaintedWithObjTag) (Object) ret).setPHOSPHOR_TAG(tag);
         phosphorStackFrame.setReturnTaint(tag);
         return ret;
     }
 
     public static String toString(Float value, PhosphorStackFrame phosphorStackFrame) {
-        String ret = value.toString();
         Taint tag = phosphorStackFrame.getArgTaint(0);
+        String ret = value.toString();
         ((TaintedWithObjTag) (Object) ret).setPHOSPHOR_TAG(tag);
         phosphorStackFrame.setReturnTaint(tag);
         return ret;
     }
 
     public static String toString(Integer value, PhosphorStackFrame phosphorStackFrame) {
-        String ret = value.toString();
         Taint tag = phosphorStackFrame.getArgTaint(0);
+        String ret = value.toString();
         ((TaintedWithObjTag) (Object) ret).setPHOSPHOR_TAG(tag);
         phosphorStackFrame.setReturnTaint(tag);
         return ret;
     }
 
     public static String toString(Long value, PhosphorStackFrame phosphorStackFrame) {
-        String ret = value.toString();
         Taint tag = phosphorStackFrame.getArgTaint(0);
+        String ret = value.toString();
         ((TaintedWithObjTag) (Object) ret).setPHOSPHOR_TAG(tag);
         phosphorStackFrame.setReturnTaint(tag);
         return ret;
     }
 
     public static String toString(Short value, PhosphorStackFrame phosphorStackFrame) {
-        String ret = value.toString();
         Taint tag = phosphorStackFrame.getArgTaint(0);
+        String ret = value.toString();
         ((TaintedWithObjTag) (Object) ret).setPHOSPHOR_TAG(tag);
         phosphorStackFrame.setReturnTaint(tag);
         return ret;
     }
 
     public static String toString(Double value, PhosphorStackFrame phosphorStackFrame) {
-        String ret = value.toString();
         Taint tag = phosphorStackFrame.getArgTaint(0);
+        String ret = value.toString();
         ((TaintedWithObjTag) (Object) ret).setPHOSPHOR_TAG(tag);
         phosphorStackFrame.setReturnTaint(tag);
         return ret;

@@ -700,50 +700,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 }
             }
         }
-        if (isBoxUnboxMethodToWrap(owner, name)) {
-            if (name.equals("valueOf")) {
-                switch (owner) {
-                    case BYTE_NAME:
-                        name = "valueOfB";
-                        break;
-                    case BOOLEAN_NAME:
-                        name = "valueOfZ";
-                        break;
-                    case CHARACTER_NAME:
-                        name = "valueOfC";
-                        break;
-                    case SHORT_NAME:
-                        name = "valueOfS";
-                        break;
-                    case INTEGER_NAME:
-                        name = "valueOfI";
-                        break;
-                    case FLOAT_NAME:
-                        name = "valueOfF";
-                        break;
-                    case LONG_NAME:
-                        name = "valueOfJ";
-                        break;
-                    case DOUBLE_NAME:
-                        name = "valueOfD";
-                        break;
-                    default:
-                        throw new UnsupportedOperationException(owner);
-                }
-            }
-            if (opcode != INVOKESTATIC) {
-                opcode = INVOKESTATIC;
-                desc = "(L" + owner + ";" + desc.substring(1);
-            }
-            owner = "edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropagator";
-        }
-        if (Instrumenter.isClassWithHashMapTag(owner) && name.equals("valueOf")) {
-            Type[] args = Type.getArgumentTypes(desc);
-            if (args[0].getSort() != Type.OBJECT) {
-                super.visitMethodInsn(Opcodes.INVOKESTATIC, owner, name, desc, false);
-            }
-            return;
-        }
+        //if (Instrumenter.isClassWithHashMapTag(owner) && name.equals("valueOf")) {
+        //    Type[] args = Type.getArgumentTypes(desc);
+        //    if (args[0].getSort() != Type.OBJECT) {
+        //        super.visitMethodInsn(Opcodes.INVOKESTATIC, owner, name, desc, false);
+        //    }
+        //    return;
+        //}
 
         Type ownerType = Type.getObjectType(owner);
         //TODO what is this doing now?
@@ -801,10 +764,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             SET_ARG_TAINT.delegateVisit(mv);
         }
         unwrapArraysForCallTo(owner, name, desc);
-        if (owner.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropagator")) {
-            desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, mv); //TODO refactor these valueOf things to the reflection hiding MV
-        }
-        taintTagFactory.methodOp(opcode, owner, name, desc, isInterface, mv, lvs, this);
 
         pushPhosphorStackFrame();
         if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
@@ -815,6 +774,48 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             PREPARE_FOR_CALL_FAST.delegateVisit(mv);
         }
 
+        if (isBoxUnboxMethodToWrap(owner, name)) {
+            if (name.equals("valueOf")) {
+                switch (owner) {
+                    case BYTE_NAME:
+                        name = "valueOfB";
+                        break;
+                    case BOOLEAN_NAME:
+                        name = "valueOfZ";
+                        break;
+                    case CHARACTER_NAME:
+                        name = "valueOfC";
+                        break;
+                    case SHORT_NAME:
+                        name = "valueOfS";
+                        break;
+                    case INTEGER_NAME:
+                        name = "valueOfI";
+                        break;
+                    case FLOAT_NAME:
+                        name = "valueOfF";
+                        break;
+                    case LONG_NAME:
+                        name = "valueOfJ";
+                        break;
+                    case DOUBLE_NAME:
+                        name = "valueOfD";
+                        break;
+                    default:
+                        throw new UnsupportedOperationException(owner);
+                }
+            }
+            if (opcode != INVOKESTATIC) {
+                opcode = INVOKESTATIC;
+                desc = "(L" + owner + ";" + desc.substring(1);
+            }
+            owner = "edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropagator";
+        }
+        if (owner.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeBoxUnboxPropagator")) {
+            desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, mv); //TODO refactor these valueOf things to the reflection hiding MV
+        }
+
+        taintTagFactory.methodOp(opcode, owner, name, desc, isInterface, mv, lvs, this);
         super.visitMethodInsn(opcode, owner, name, desc, isInterface);
 
         Type returnType = Type.getReturnType(desc);

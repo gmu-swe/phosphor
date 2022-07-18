@@ -17,7 +17,6 @@ import java.lang.reflect.Method;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
 
-//TODO need to find all other unsafe methods that are intrinsic candidates and make sure that we wrap them, too.
 public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
 
     private final String className;

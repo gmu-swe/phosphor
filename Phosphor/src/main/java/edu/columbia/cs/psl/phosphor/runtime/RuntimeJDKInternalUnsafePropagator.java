@@ -7,7 +7,6 @@ import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -855,7 +854,7 @@ public class RuntimeJDKInternalUnsafePropagator {
                 if (pair.tagFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
                     unsafe.putReferenceVolatile(obj, pair.tagFieldOffset, valueTaint);
                 }
-                if(pair.wrappedFieldOffset != Unsafe.INVALID_FIELD_OFFSET) {
+                if(pair.wrappedFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
                     unsafe.putObjectVolatile(obj, pair.wrappedFieldOffset, value);
                 }
             }

@@ -9,16 +9,17 @@ import edu.columbia.cs.psl.phosphor.struct.*;
 public class PhosphorStackFrame {
     public static final String INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/runtime/PhosphorStackFrame";
     public static final String DESCRIPTOR = "L" + INTERNAL_NAME + ";";
-    public Taint[] argsPassed = new Taint[100];
-    public Object[] wrappedArgs = new Object[100];
+    public Taint[] argsPassed = new Taint[10];
+    public Object[] wrappedArgs = new Object[10];
     public Object wrappedReturn;
     public Taint returnTaint = Taint.emptyTaint();
-    static PhosphorStackFrame frame = new PhosphorStackFrame();
     public ControlFlowStack controlFlowTags;
     public String intendedNextMethodDebug;
     public int intendedNextMethodFast;
     public PhosphorStackFrame prevFrame;
     public boolean needsCleanup;
+
+    private PhosphorStackFrame spare;
 
     public PhosphorStackFrame() {
 
@@ -37,15 +38,22 @@ public class PhosphorStackFrame {
         InstrumentedJREFieldHelper.setphosphorStackFrame(Thread.currentThread(), forThread);
     }
 
-    private static PhosphorStackFrame getForThread() {
-        return InstrumentedJREFieldHelper.getphosphorStackFrame(Thread.currentThread());
+    private void ensureArgsLength(int desired){
+        if(desired < wrappedArgs.length){
+            return;
+        }
+        growArgs(desired + 10);
     }
 
+    private void growArgs(int desired){
+        Object[] tmpWrapped = this.wrappedArgs;
+        this.wrappedArgs = new Object[desired];
+        System.arraycopy(tmpWrapped, 0, this.wrappedArgs, 0, tmpWrapped.length);
+        Object[] tmpTags = this.argsPassed;
+        this.argsPassed = new Taint[desired];
+        System.arraycopy(tmpTags, 0, this.argsPassed, 0, tmpTags.length);
+    }
 
-    /**
-     *
-     * @param shouldPop
-     */
     @InvokedViaInstrumentation(record = TaintMethodRecord.POP_STACK_FRAME)
     public void popStackFrameIfNeeded(boolean shouldPop) {
         if (shouldPop) {
@@ -80,13 +88,19 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.SET_ARG_WRAPPER)
     public void setArgWrapper(Object val, int idx) {
+        ensureArgsLength(idx);
         wrappedArgs[idx] = val;
+    }
+
+    private Object getAndClearWrappedArgInternal(int idx){
+        Object ret = wrappedArgs[idx];
+        wrappedArgs[idx] = null;
+        return ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_OBJECT)
     public LazyReferenceArrayObjTags getArgWrapper(int idx, Object[] actual) {
-        Object ret = wrappedArgs[idx];
-        wrappedArgs[idx] = null;
+        Object ret = getAndClearWrappedArgInternal(idx);
         if (ret == null || !(ret instanceof LazyReferenceArrayObjTags)) {
             if (actual != null) {
                 return new LazyReferenceArrayObjTags(actual);
@@ -102,8 +116,7 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_GENERIC)
     public Object getArgWrapper(int idx, Object actual) {
-        Object ret = wrappedArgs[idx];
-        wrappedArgs[idx] = null;
+        Object ret = getAndClearWrappedArgInternal(idx);
         if (ret == null) {
             if (actual != null) {
                 return actual;
@@ -115,8 +128,7 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_BOOLEAN)
     public LazyBooleanArrayObjTags getArgWrapper(int idx, boolean[] actual) {
-        Object ret = wrappedArgs[idx];
-        wrappedArgs[idx] = null;
+        Object ret = getAndClearWrappedArgInternal(idx);
         if (!(ret instanceof LazyBooleanArrayObjTags)) {
             if (actual != null) {
                 return new LazyBooleanArrayObjTags(actual);
@@ -132,8 +144,7 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_BYTE)
     public LazyByteArrayObjTags getArgWrapper(int idx, byte[] actual) {
-        Object ret = wrappedArgs[idx];
-        wrappedArgs[idx] = null;
+        Object ret = getAndClearWrappedArgInternal(idx);
         if (!(ret instanceof LazyByteArrayObjTags)) {
             if (actual != null) {
                 return new LazyByteArrayObjTags(actual);
@@ -149,8 +160,7 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_CHAR)
     public LazyCharArrayObjTags getArgWrapper(int idx, char[] actual) {
-        Object ret = wrappedArgs[idx];
-        wrappedArgs[idx] = null;
+        Object ret = getAndClearWrappedArgInternal(idx);
         if (!(ret instanceof LazyCharArrayObjTags)) {
             if (actual != null) {
                 return new LazyCharArrayObjTags(actual);
@@ -166,8 +176,7 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_FLOAT)
     public LazyFloatArrayObjTags getArgWrapper(int idx, float[] actual) {
-        Object ret = wrappedArgs[idx];
-        wrappedArgs[idx] = null;
+        Object ret = getAndClearWrappedArgInternal(idx);
         if (!(ret instanceof LazyFloatArrayObjTags)) {
             if (actual != null) {
                 return new LazyFloatArrayObjTags(actual);
@@ -183,8 +192,7 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_INT)
     public LazyIntArrayObjTags getArgWrapper(int idx, int[] actual) {
-        Object ret = wrappedArgs[idx];
-        wrappedArgs[idx] = null;
+        Object ret = getAndClearWrappedArgInternal(idx);
         if (!(ret instanceof LazyIntArrayObjTags)) {
             if (actual != null) {
                 return new LazyIntArrayObjTags(actual);
@@ -200,8 +208,7 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_SHORT)
     public LazyShortArrayObjTags getArgWrapper(int idx, short[] actual) {
-        Object ret = wrappedArgs[idx];
-        wrappedArgs[idx] = null;
+        Object ret = getAndClearWrappedArgInternal(idx);
         if (!(ret instanceof LazyShortArrayObjTags)) {
             if (actual != null) {
                 return new LazyShortArrayObjTags(actual);
@@ -217,8 +224,7 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_LONG)
     public LazyLongArrayObjTags getArgWrapper(int idx, long[] actual) {
-        Object ret = wrappedArgs[idx];
-        wrappedArgs[idx] = null;
+        Object ret = getAndClearWrappedArgInternal(idx);
         if (!(ret instanceof LazyLongArrayObjTags)) {
             if (actual != null) {
                 return new LazyLongArrayObjTags(actual);
@@ -234,8 +240,7 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_DOUBLE)
     public LazyDoubleArrayObjTags getArgWrapper(int idx, double[] actual) {
-        Object ret = wrappedArgs[idx];
-        wrappedArgs[idx] = null;
+        Object ret = getAndClearWrappedArgInternal(idx);
         if (!(ret instanceof LazyDoubleArrayObjTags)) {
             if (actual != null) {
                 return new LazyDoubleArrayObjTags(actual);
@@ -252,6 +257,7 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.SET_ARG_TAINT)
     public void setArgTaint(Taint tag, int idx) {
+        ensureArgsLength(idx);
         argsPassed[idx] = tag;
     }
 
@@ -305,9 +311,18 @@ public class PhosphorStackFrame {
         //Look through any pending calls to see if they are us.
         PhosphorStackFrame ret = onThread;
         if (desc != null && ret.intendedNextMethodDebug != null && !StringUtils.equals(desc, ret.intendedNextMethodDebug)) {
-            ret = new PhosphorStackFrame();
-            ret.needsCleanup = true;
-            ret.prevFrame = onThread;
+            PhosphorStackFrame spare = onThread.spare;
+            if(spare != null && !spare.needsCleanup){
+                spare.needsCleanup = true;
+                spare.prevFrame = onThread;
+                ret = spare;
+            } else {
+                ret = new PhosphorStackFrame(onThread);
+                ret.needsCleanup = true;
+                if (spare == null) {
+                    onThread.spare = ret;
+                }
+            }
         }
         return ret;
     }
@@ -328,7 +343,18 @@ public class PhosphorStackFrame {
         }
         PhosphorStackFrame ret = onThread;
         if (ret.intendedNextMethodFast != hash) {
-            ret = new PhosphorStackFrame(onThread);
+            PhosphorStackFrame spare = onThread.spare;
+            if (spare != null && !spare.needsCleanup) {
+                spare.needsCleanup = true;
+                spare.prevFrame = onThread;
+                ret = spare;
+            } else {
+                ret = new PhosphorStackFrame(onThread);
+                ret.needsCleanup = true;
+                if (spare == null) {
+                    onThread.spare = ret;
+                }
+            }
         }
         return ret;
     }
