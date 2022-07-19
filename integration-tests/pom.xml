@@ -94,6 +94,7 @@
             </activation>
             <properties>
                 <isJava8>true</isJava8>
+                <phosphor.javaagent>${phosphor.jar}</phosphor.javaagent>
             </properties>
             <build>
                 <plugins>
@@ -128,7 +129,7 @@
             </activation>
             <properties>
                 <isJava8>false</isJava8>
-                <phosphor.jar>${phosphor-javaagent.jar}</phosphor.jar>
+                <phosphor.javaagent>${phosphor-javaagent.jar}</phosphor.javaagent>
             </properties>
             <build>
                 <plugins>
@@ -194,6 +195,7 @@
                                     <arguments>
                                         <argument>${project.build.directory}</argument>
                                         <argument>${phosphor.jar}</argument>
+                                        <argument>${phosphor.javaagent}</argument>
                                         <argument>${project.build.directory}/${data.flow.jvm}/bin/java</argument>
                                         <argument>${isJava8}</argument>
                                     </arguments>

@@ -1,8 +1,10 @@
 #!/bin/bash
+set -x
 BUILD_DIR=$1
 PHOSPHOR_JAR=$2
-INST_JVM=$3
-IS_JAVA_8=$4
+PHOSPHOR_JAVA_AGENT=$3
+INST_JVM=$4
+IS_JAVA_8=$5
 DACAPO_DIR=$BUILD_DIR/dacapo
 INST_DACAPO_DIR=$BUILD_DIR/dacapo-inst
 BENCHMARKS=(avrora fop h2 jython luindex pmd sunflow xalan) #tradebeans tradesoap are disabled in this script because of the PITA with distributing the openjdk jce.jar file with everything, then switching it in...
@@ -34,9 +36,9 @@ for bm in "${BENCHMARKS[@]}"; do
 #  echo "$JAVA_HOME/bin/java -cp $DACAPO_DIR Harness $bm"
 
   if [ "$IS_JAVA_8" == "true" ]; then
-    $INST_JVM -Xmx1g -Xbootclasspath/p:"$PHOSPHOR_JAR" -javaagent:"$PHOSPHOR_JAR" -cp "$INST_DACAPO_DIR" -Declipse.java.home="$JAVA_HOME" -Djava.awt.headless=true Harness "$bm"
+    $INST_JVM -Xmx1g -Xbootclasspath/p:"$PHOSPHOR_JAR" -javaagent:"$PHOSPHOR_JAVA_AGENT" -cp "$INST_DACAPO_DIR" -Declipse.java.home="$JAVA_HOME" -Djava.awt.headless=true Harness "$bm"
   else
-    $INST_JVM -Xmx4g -javaagent:"$PHOSPHOR_JAR" -cp "$INST_DACAPO_DIR" -Declipse.java.home="$JAVA_HOME" -Djava.awt.headless=true Harness "$bm"
+    $INST_JVM -Xmx4g -javaagent:"$PHOSPHOR_JAVA_AGENT" -cp "$INST_DACAPO_DIR" -Declipse.java.home="$JAVA_HOME" -Djava.awt.headless=true Harness "$bm"
   fi
   if [ $? -ne 0 ]; then
     HAD_ERROR=$(expr $HAD_ERROR + 1)
