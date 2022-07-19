@@ -290,7 +290,16 @@ public enum PhosphorOption {
                 Configuration.IS_JAVA_8 = false;
             }
         }
-    },;
+    },
+    JVM_MODULES(new PhosphorOptionBuilder("For Java 9+ JVM generation: list of Java modules to include in instrumented JVM",
+            true, false).argType(String.class).alternativeName("jvmModules")) {
+        @Override
+        public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
+            /*
+            Only used by instrumenter, which reads properties map
+             */
+        }
+    };
 
     final String optionName;
     private final Option.Builder builder;

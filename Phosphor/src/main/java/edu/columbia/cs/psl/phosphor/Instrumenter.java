@@ -617,6 +617,46 @@ public class Instrumenter {
         //return owner.equals("java/lang/invoke/VarHandle"); //TODO wrap these all
     }
 
+    public static boolean isPolymorphicSignatureMethod(String owner, String name) {
+        if (owner.equals("java/lang/invoke/VarHandle")) {
+            switch (name) {
+                case "get":
+                case "set":
+                case "getVolatile":
+                case "setVolatile":
+                case "getOpaque":
+                case "setOpaque":
+                case "getAcquire":
+                case "setRelease":
+                case "compareAndSet":
+                case "compareAndExchange":
+                case "compareAndExchangeAcquire":
+                case "compareAndExchangeRelease":
+                case "weakCompareAndSetPlain":
+                case "weakCompareAndSet":
+                case "weakCompareAndSetAcquire":
+                case "weakCompareAndSetRelease":
+                case "getAndSet":
+                case "getAndSetAcquire":
+                case "getAndSetRelease":
+                case "getAndAdd":
+                case "getAndAddAcquire":
+                case "getAndAddRelease":
+                case "getAndBitwiseOr":
+                case "getAndBitwiseOrAcquire":
+                case "getAndBitwiseOrRelease":
+                case "getAndBitwiseAnd":
+                case "getAndBitwiseAndAcquire":
+                case "getAndBitwiseAndRelease":
+                case "getAndBitwiseXor":
+                case "getAndBitwiseXorAcquire":
+                case "getAndBitwiseXorRelease":
+                    return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean isUninstrumentedField(String owner, String name) {
         return owner.equals("sun/java2d/cmm/lcms/LCMSImageLayout") && name.equals("dataArray");
     }
@@ -687,25 +727,6 @@ public class Instrumenter {
         classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/runtime", 0, null));
         classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/struct", 0, null));
         classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/struct/multid", 0, null));
-
-        //Add pac
-        classNode.module.packages.addAll(packages);
-        ClassWriter cw = new ClassWriter(0);
-        classNode.accept(cw);
-        return cw.toByteArray();
-    }
-
-    public static byte[] transformJDKUnsupportedModuleInfo(InputStream is, java.util.Collection<String> packages) throws IOException {
-        ClassNode classNode = new ClassNode();
-        ClassReader cr = new ClassReader(is);
-        java.util.List<Attribute> attrs = new java.util.ArrayList<>();
-        attrs.add(new ModuleTargetAttribute());
-        attrs.add(new ModuleResolutionAttribute());
-        attrs.add(new ModuleHashesAttribute());
-
-        cr.accept(classNode, attrs.toArray(new Attribute[0]), 0);
-        //Add export
-        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/runtime/jdk/unsupported", 0, null));
 
         //Add pac
         classNode.module.packages.addAll(packages);

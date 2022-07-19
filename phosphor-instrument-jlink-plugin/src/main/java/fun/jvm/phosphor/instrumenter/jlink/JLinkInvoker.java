@@ -8,21 +8,28 @@ import java.util.Set;
 
 public class JLinkInvoker {
 
+    public static final String MODULES_PROPERTY = "jvmModules";
+
     public static void invokeJLink(File jvmDir, File instJVMDir, Properties properties) {
 
         String jlinkBin = jvmDir + File.separator + "bin" + File.separator + "jlink";
         String classpath = System.getProperty("java.class.path");
         File jlinkFile = getPhosphorJLinkJarFile();
+        String modulesToAdd = properties.getProperty(MODULES_PROPERTY,
+                "java.base,jdk.jdwp.agent,java.instrument,jdk.unsupported");
 
         ProcessBuilder pb = new ProcessBuilder(jlinkBin, "-J-javaagent:" + jlinkFile,
                 "-J--module-path=" + jlinkFile,
                 "-J--add-modules=fun.jvm.phosphor.instrumenter.jlink",
                 "--output=" + instJVMDir,
                 "--phosphor-transformer=transform" + createPhosphorJLinkPluginArgument(properties),
-                "--add-modules=java.base,jdk.jdwp.agent,java.instrument,jdk.unsupported"
+                "--add-modules=" + modulesToAdd
         );
         try {
-            System.out.println(pb.command());
+            for(String s : pb.command()){
+                System.out.print(s + " ");
+            }
+            System.out.println();
             Process p = pb.inheritIO().start();
             p.waitFor();
         } catch (IOException | InterruptedException e) {
@@ -54,6 +61,9 @@ public class JLinkInvoker {
             StringBuilder builder = new StringBuilder();
             Set<String> propNames = properties.stringPropertyNames();
             for (String propName : propNames) {
+                if(propName.equals(MODULES_PROPERTY)) {
+                    continue;
+                }
                 builder.append(':');
                 builder.append(propName);
                 builder.append('=').append(properties.getProperty(propName));

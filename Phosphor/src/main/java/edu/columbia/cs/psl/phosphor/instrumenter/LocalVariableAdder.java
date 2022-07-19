@@ -41,7 +41,7 @@ public class LocalVariableAdder extends MethodVisitor {
     private String descriptor;
 
     public LocalVariableAdder(MethodVisitor mv, boolean isStatic, String desc) {
-        super(Opcodes.ASM7, mv);
+        super(Configuration.ASM_VERSION, mv);
         indexOfFirstNonArgLV = isStatic ? 0 : 1;
         Type[] args = Type.getArgumentTypes(desc);
         for (Type t : args) {

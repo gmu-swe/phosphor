@@ -88,6 +88,10 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 ensureObjsAreWrapped = true; //TODO should we always do this? just in some places? performance is what? If try everywhere, it crashes...
             }
         }
+        boolean pullWrapperFromPrev = false;
+        if(this.className.startsWith("java/lang/invoke/VarHandleGuards") && this.methodName.startsWith("guard_")){
+            pullWrapperFromPrev = true;
+        }
 
         //Retrieve the taint tags for all arguments
         Type[] args = Type.getArgumentTypes(descriptor);
@@ -129,6 +133,13 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             } else if (ensureObjsAreWrapped && args[i].getInternalName().equals("java/lang/Object")) {
                 super.visitVarInsn(ALOAD, idxOfLV);
                 BOX_IF_NECESSARY.delegateVisit(mv);
+                super.visitVarInsn(ASTORE, idxOfLV);
+            } else if (pullWrapperFromPrev && args[i].getInternalName().equals("java/lang/Object")) {
+                super.visitInsn(DUP);
+                super.visitFieldInsn(GETFIELD, PhosphorStackFrame.INTERNAL_NAME, "prevFrame", PhosphorStackFrame.DESCRIPTOR);
+                push(i - 1);
+                super.visitVarInsn(ALOAD, idxOfLV);
+                GET_ARG_WRAPPER_GENERIC.delegateVisit(mv);
                 super.visitVarInsn(ASTORE, idxOfLV);
             }
 
@@ -667,6 +678,17 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             owner = Type.getInternalName(ReflectionMasker.class);
             name = "getPropertyHideBootClasspath";
         }
+
+        /*
+        Some methods should never get a stack frame prepared - in particular, a call to
+        a native or intrinsic method that will then immediately jump to the method that
+        some prior caller was trying to reach. In particular, this clearly is needed for
+        MethodHandles.linkTo*, which are used by, e.g. VarHandles.
+         */
+        boolean usePrevFrameInsteadOfPreparingNew = false;
+        if(className.startsWith("java/lang/invoke") && owner.equals("java/lang/invoke/MethodHandle") && name.startsWith("linkTo")){
+            usePrevFrameInsteadOfPreparingNew = true;
+        }
         /*
         When creating a new primitive wrapper (java.lang.Integer etc), assign the reference taint
         for the new object to be the taint of the value being wrapped
@@ -700,13 +722,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 }
             }
         }
-        //if (Instrumenter.isClassWithHashMapTag(owner) && name.equals("valueOf")) {
-        //    Type[] args = Type.getArgumentTypes(desc);
-        //    if (args[0].getSort() != Type.OBJECT) {
-        //        super.visitMethodInsn(Opcodes.INVOKESTATIC, owner, name, desc, false);
-        //    }
-        //    return;
-        //}
 
         Type ownerType = Type.getObjectType(owner);
         //TODO what is this doing now?
@@ -766,12 +781,17 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         unwrapArraysForCallTo(owner, name, desc);
 
         pushPhosphorStackFrame();
-        if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
-            super.visitLdcInsn(name + desc.substring(0, 1 + desc.indexOf(')')));
-            PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
+        if (usePrevFrameInsteadOfPreparingNew) {
+            PREPARE_FOR_CALL_PREV.delegateVisit(mv);
         } else {
-            push(PhosphorStackFrame.hashForDesc(name + desc.substring(0, 1 + desc.indexOf(')'))));
-            PREPARE_FOR_CALL_FAST.delegateVisit(mv);
+            String methodKey = getMethodKeyForStackFrame(name, desc, Instrumenter.isPolymorphicSignatureMethod(owner, name));
+            if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+                mv.visitLdcInsn(methodKey);
+                PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
+            } else {
+                push(PhosphorStackFrame.hashForDesc(methodKey));
+                PREPARE_FOR_CALL_FAST.delegateVisit(mv);
+            }
         }
 
         if (isBoxUnboxMethodToWrap(owner, name)) {
@@ -1231,14 +1251,4 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         return paramTypes;
     }
 
-    @Override
-    public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-        //if(className.contains("Unsafe")) {
-        //    if (descriptor.equals("Ljdk/internal/HotSpotIntrinsicCandidate;") ||
-        //            descriptor.equals("Ljdk/internal/vm/annotation/ForceInline;") || descriptor.equals("Ljdk/internal/vm/annotation/IntrinsicCandidate;")) {
-        //        return null; //TODO add special handling for all of the compiler intrinsic functions.
-        //    }
-        //}
-        return super.visitAnnotation(descriptor, visible);
-    }
 }

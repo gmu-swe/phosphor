@@ -7,11 +7,9 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
+import org.objectweb.asm.*;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.LabelNode;
@@ -685,7 +683,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     protected static boolean shouldEnsureArgsAreUnwrapped(String owner, String name, String desc){
-        return owner.equals("java/lang/Class") && desc.contains("Ljava/lang/Object;");
+        return owner.equals("java/lang/Class") && desc.contains("Ljava/lang/Object;") && !name.equals("cast");
         //return desc.contains("Ljava/lang/Object;");
     }
 
@@ -750,12 +748,51 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
         }
     }
 
+    @Override
+    public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+        //if(className.contains("Unsafe")) {
+        //    if (descriptor.equals("Ljdk/internal/HotSpotIntrinsicCandidate;") ||
+        //            descriptor.equals("Ljdk/internal/vm/annotation/ForceInline;") || descriptor.equals("Ljdk/internal/vm/annotation/IntrinsicCandidate;")) {
+        //        return null;
+        //    }
+        //}
+        return super.visitAnnotation(descriptor, visible);
+    }
+
+    protected static String getMethodKeyForStackFrame(String name, String desc, boolean polymorphicSignatureMethod) {
+        if (polymorphicSignatureMethod) {
+            StringBuilder sig = new StringBuilder();
+            sig.append(name);
+            sig.append('(');
+            Type[] args = Type.getArgumentTypes(desc);
+            for (Type t : args) {
+                if (t.getSort() == Type.ARRAY) {
+                    sig.append("Ljava/lang/Object;");
+                } else {
+                    sig.append(t.getDescriptor());
+                }
+            }
+            sig.append(')');
+            return sig.toString();
+        }
+        return name + desc.substring(0, 1 + desc.indexOf(')'));
+    }
+
     protected void prepareMetadataLocalVariables(){
-        if(Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
-            super.visitLdcInsn(methodName + methodDesc.substring(0, 1 + methodDesc.indexOf(')')));
+
+        //There are methods that the JDK will internally resolve to, and prefix the arguments
+        //with a handle to the underlying object. That handle won't be passed explicitly by the caller.
+        String descForStackFrame = methodDesc;
+        if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
+            if (this.methodDesc.contains("java/lang/invoke/VarHandle")) {
+                descForStackFrame = methodDesc.replace("Ljava/lang/invoke/VarHandle;", "");
+            }
+        }
+        if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+            super.visitLdcInsn(getMethodKeyForStackFrame(methodName, descForStackFrame, false));
             STACK_FRAME_FOR_METHOD_DEBUG.delegateVisit(mv);
         } else {
-            push(PhosphorStackFrame.hashForDesc(methodName + methodDesc.substring(0, 1 + methodDesc.indexOf(')'))));
+            push(PhosphorStackFrame.hashForDesc(getMethodKeyForStackFrame(methodName, descForStackFrame, false)));
             STACK_FRAME_FOR_METHOD_FAST.delegateVisit(mv);
         }
 

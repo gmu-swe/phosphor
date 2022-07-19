@@ -57,6 +57,7 @@ public class PhosphorStackFrame {
     @InvokedViaInstrumentation(record = TaintMethodRecord.POP_STACK_FRAME)
     public void popStackFrameIfNeeded(boolean shouldPop) {
         if (shouldPop) {
+            this.needsCleanup = true; //Allow this to be used as a "spare"
             setForThread(this.prevFrame);
         }
     }
@@ -83,6 +84,13 @@ public class PhosphorStackFrame {
         this.intendedNextMethodFast = hashToCall;
         if (initialized) {
             setForThread(this);
+        }
+    }
+
+    @InvokedViaInstrumentation(record = TaintMethodRecord.PREPARE_FOR_CALL_PREV)
+    public void prepareForCallPrev() {
+        if(initialized){
+            setForThread(this.prevFrame);
         }
     }
 
@@ -116,12 +124,12 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_GENERIC)
     public Object getArgWrapper(int idx, Object actual) {
+        if (actual == null || !actual.getClass().isArray()) {
+            return actual;
+        }
         Object ret = getAndClearWrappedArgInternal(idx);
         if (ret == null) {
-            if (actual != null) {
-                return actual;
-            }
-            return null;
+            return actual;
         }
         return ret;
     }
@@ -312,13 +320,11 @@ public class PhosphorStackFrame {
         PhosphorStackFrame ret = onThread;
         if (desc != null && ret.intendedNextMethodDebug != null && !StringUtils.equals(desc, ret.intendedNextMethodDebug)) {
             PhosphorStackFrame spare = onThread.spare;
-            if(spare != null && !spare.needsCleanup){
-                spare.needsCleanup = true;
+            if(spare != null && spare.needsCleanup){
                 spare.prevFrame = onThread;
                 ret = spare;
             } else {
                 ret = new PhosphorStackFrame(onThread);
-                ret.needsCleanup = true;
                 if (spare == null) {
                     onThread.spare = ret;
                 }
@@ -344,13 +350,11 @@ public class PhosphorStackFrame {
         PhosphorStackFrame ret = onThread;
         if (ret.intendedNextMethodFast != hash) {
             PhosphorStackFrame spare = onThread.spare;
-            if (spare != null && !spare.needsCleanup) {
-                spare.needsCleanup = true;
+            if (spare != null && spare.needsCleanup) {
                 spare.prevFrame = onThread;
                 ret = spare;
             } else {
                 ret = new PhosphorStackFrame(onThread);
-                ret.needsCleanup = true;
                 if (spare == null) {
                     onThread.spare = ret;
                 }

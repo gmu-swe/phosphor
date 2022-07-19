@@ -20,7 +20,7 @@ import java.util.Properties;
 
 public class Configuration {
 
-    public static final int ASM_VERSION = Opcodes.ASM7;
+    public static final int ASM_VERSION = Opcodes.ASM9;
     public static final String TAINT_TAG_DESC = "Ledu/columbia/cs/psl/phosphor/runtime/Taint;";
     public static final String TAINT_TAG_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/runtime/Taint";
     public static final String TAINT_TAG_ARRAY_DESC = "Ledu/columbia/cs/psl/phosphor/struct/LazyArrayObjTags;";
