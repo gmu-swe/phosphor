@@ -6,12 +6,10 @@ import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
 import edu.columbia.cs.psl.phosphor.runtime.CharacterUtils;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeJDKInternalUnsafePropagator;
 import edu.columbia.cs.psl.phosphor.runtime.jdk.unsupported.RuntimeSunMiscUnsafePropagator;
-import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
@@ -562,12 +560,9 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 }
             } else if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Methods") && !className.equals(owner) && desc.equals("()" + Type.getDescriptor(Method[].class))) {
                 visit(REMOVE_TAINTED_METHODS);
-            } else if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Constructors") && !className.equals(owner) &&
-                    desc.equals("(" + Configuration.TAINT_TAG_DESC + controlTrackDescOrNone() + Type.getDescriptor(TaintedReferenceWithObjTag.class) + Type.getDescriptor(Constructor[].class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class))) {
-                visit(REMOVE_TAINTED_CONSTRUCTORS);
             } else if (owner.equals("java/lang/Class") && name.equals("getInterfaces")) {
                 visit(REMOVE_TAINTED_INTERFACES);
-            } else if (owner.equals("java/lang/Throwable") && (name.equals("getOurStackTrace") || name.equals("getStackTrace")) && desc.equals("(" + Configuration.TAINT_TAG_DESC + controlTrackDescOrNone() + Type.getDescriptor(TaintedReferenceWithObjTag.class) + Type.getDescriptor(StackTraceElement[].class) + ")" + Type.getDescriptor(TaintedReferenceWithObjTag.class))) {
+            } else if (owner.equals("java/lang/Throwable") && (name.equals("getOurStackTrace") || name.equals("getStackTrace")) && desc.equals("()" + Type.getDescriptor(StackTraceElement[].class))) {
                 if (className.equals("java/lang/Throwable")) {
                     super.visitVarInsn(ALOAD, 0);
                     super.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);

@@ -5,12 +5,14 @@ import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
-import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.LazyReferenceArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.Type;
 
-import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -344,61 +346,12 @@ public class ReflectionMasker {
         InstrumentedJREFieldHelper.setphosphorStackFrame(Thread.currentThread(), phosphorStackFrame);
     }
 
-    public static TaintedReferenceWithObjTag lastParameterType$$PHOSPHOR_TAGGED(MethodType type, Taint typeTag, TaintedReferenceWithObjTag ret, Class erasedRet){
-        ret.taint = Taint.emptyTaint();
-        ret.val = lastParameterType(type);
-        return ret;
-    }
-
-    public static Class<?> lastParameterType(MethodType type){
-        //Calculate how much junk we add to the end of the method descriptor after the last argument, return the actual last type.
-        int numExtraParamsAfterOriginalLastParam = 0;
-        if (type.returnType() == TaintedReferenceWithObjTag.class) {
-            numExtraParamsAfterOriginalLastParam++; //for the erased return type
-        }
-        boolean isRewrittenType = false;
-
-        // Find erased types
-        for (int i = 0; i < type.parameterCount(); i++) {
-            if (TaintUtils.isWrappedTypeWithErasedType(Type.getType(type.parameterType(i)))) {
-                numExtraParamsAfterOriginalLastParam++;
-            }
-            if (type.parameterType(i) == Taint.class) {
-                isRewrittenType = true;
-            }
-        }
-        Class toRet =  type.parameterType(type.parameterCount()- 1 - numExtraParamsAfterOriginalLastParam);
-        if (isRewrittenType) {
-            return toRet;
-            //return type.parameterType(type.parameterCount() - 1 - numExtraParamsAfterOriginalLastParam);
-        } else {
-            return type.parameterType(type.parameterCount() - 1);
-        }
-    }
-
-
-    private static Method getCachedMethod(Method method) {
-        return InstrumentedJREFieldHelper.getPHOSPHOR_TAGmethod(method);
-    }
-
-    private static void setCachedMethod(Method method, Method valueToCache) {
-        InstrumentedJREFieldHelper.setPHOSPHOR_TAGmethod(method, valueToCache);
-    }
-
     private static Class<?> getCachedClass(Class<?> clazz) {
         return InstrumentedJREFieldHelper.getPHOSPHOR_TAGclass(clazz);
     }
 
     private static void setCachedClass(Class<?> clazz, Class<?> valueToCache) {
         InstrumentedJREFieldHelper.setPHOSPHOR_TAGclass(clazz, valueToCache);
-    }
-
-    private static void setMark(Method method, boolean value) {
-        InstrumentedJREFieldHelper.setPHOSPHOR_TAGmarked(method, value);
-    }
-
-    private static boolean isMarked(Method method) {
-        return InstrumentedJREFieldHelper.getPHOSPHOR_TAGmarked(method);
     }
 
     /* Used to create singleton references to Methods of the Object class. */

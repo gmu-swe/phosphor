@@ -14,7 +14,6 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAd
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.PhosphorOpcodeIgnoringAnalyzer;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.analysis.Analyzer;
-import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
@@ -28,7 +27,6 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     private final ControlFlowAnalyzer flowAnalyzer;
     public MethodNode mn;
     boolean isEmptyMethod = true;
-    Set<Type> wrapperTypesToPreAlloc = new HashSet<>();
     private int numberOfTryCatch;
     private NeverNullArgAnalyzerAdapter analyzer;
     private Map<Label, List<Label>> newLabels = new HashMap<>();
@@ -52,143 +50,20 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     public PrimitiveArrayAnalyzer(Type singleWrapperTypeToAdd) {
         super(Configuration.ASM_VERSION);
         this.mv = new PrimitiveArrayAnalyzerMN(0, null, null, null, null, null, null);
-        if(singleWrapperTypeToAdd.getSort() == Type.OBJECT && singleWrapperTypeToAdd.getInternalName().startsWith("edu/columbia/cs/psl/phosphor/struct/Tainted")) {
-            this.wrapperTypesToPreAlloc.add(singleWrapperTypeToAdd);
-        }
         flowAnalyzer = new NoControlFlowAnalyzer();
     }
 
-    @Override
-    public void visitLdcInsn(Object value) {
-        super.visitLdcInsn(value);
-        if(value instanceof Type && fixLDCClass) {
-            wrapperTypesToPreAlloc.add(Type.getType(TaintedReferenceWithObjTag.class));
-        }
-    }
-
-    @Override
-    public void visitMultiANewArrayInsn(String descriptor, int numDimensions) {
-        super.visitMultiANewArrayInsn(descriptor, numDimensions);
-        if(fixLDCClass) {
-            wrapperTypesToPreAlloc.add(Type.getType(TaintedReferenceWithObjTag.class));
-        }
-    }
 
     @Override
     public void visitInsn(int opcode) {
-        switch(opcode) {
-            case Opcodes.FADD:
-            case Opcodes.FREM:
-            case Opcodes.FSUB:
-            case Opcodes.FMUL:
-            case Opcodes.FDIV:
-            case Opcodes.I2F:
-            case Opcodes.L2F:
-            case Opcodes.D2F:
-                if(Configuration.PREALLOC_STACK_OPS) {
-                    wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("F"));
-                }
-                break;
-            case Opcodes.DADD:
-            case Opcodes.DSUB:
-            case Opcodes.DMUL:
-            case Opcodes.DDIV:
-            case Opcodes.DREM:
-            case Opcodes.DALOAD:
-                wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("D"));
-                break;
-            case Opcodes.LSHL:
-            case Opcodes.LUSHR:
-            case Opcodes.LSHR:
-            case Opcodes.LSUB:
-            case Opcodes.LMUL:
-            case Opcodes.LADD:
-            case Opcodes.LDIV:
-            case Opcodes.LREM:
-            case Opcodes.LAND:
-            case Opcodes.LOR:
-            case Opcodes.LXOR:
-            case Opcodes.LALOAD:
-                wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("J"));
-                break;
-            case Opcodes.LCMP:
-            case Opcodes.DCMPL:
-            case Opcodes.DCMPG:
-            case Opcodes.FCMPG:
-            case Opcodes.FCMPL:
-            case Opcodes.IADD:
-            case Opcodes.ISUB:
-            case Opcodes.IMUL:
-            case Opcodes.IDIV:
-            case Opcodes.IREM:
-            case Opcodes.ISHL:
-            case Opcodes.ISHR:
-            case Opcodes.IUSHR:
-            case Opcodes.IOR:
-            case Opcodes.IAND:
-            case Opcodes.IXOR:
-            case Opcodes.IALOAD:
-                wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("I"));
-                break;
-            case Opcodes.BALOAD:
-                wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("B"));
-                wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("Z"));
-                break;
-            case Opcodes.CALOAD:
-                wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("C"));
-                break;
-            case Opcodes.FALOAD:
-                wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("F"));
-                break;
-            case Opcodes.SALOAD:
-                wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("S"));
-                break;
+        switch (opcode) {
             case Opcodes.AALOAD:
                 String arrayType = "[Ljava/lang/Object;";
                 Object onStack = analyzer.stack.get(analyzer.stack.size() - 2);
-                if(onStack instanceof String) {
+                if (onStack instanceof String) {
                     arrayType = (String) onStack;
                 }
                 super.visitLdcInsn(new ReferenceArrayTarget(arrayType));
-                wrapperTypesToPreAlloc.add(Type.getType(TaintedReferenceWithObjTag.class));
-                break;
-            case Opcodes.I2C:
-                if(Configuration.PREALLOC_STACK_OPS) {
-                    wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("C"));
-                }
-                break;
-            case Opcodes.I2B:
-                if(Configuration.PREALLOC_STACK_OPS) {
-                    wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("B"));
-                }
-                break;
-            case Opcodes.I2D:
-            case Opcodes.F2D:
-            case Opcodes.L2D:
-                if(Configuration.PREALLOC_STACK_OPS) {
-                    wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("D"));
-                }
-                break;
-            case Opcodes.I2L:
-            case Opcodes.F2L:
-            case Opcodes.D2L:
-                if(Configuration.PREALLOC_STACK_OPS) {
-                    wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("J"));
-                }
-                break;
-            case Opcodes.I2S:
-                if(Configuration.PREALLOC_STACK_OPS) {
-                    wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("S"));
-                }
-                break;
-            case Opcodes.F2I:
-            case Opcodes.L2I:
-            case Opcodes.D2I:
-                if(Configuration.PREALLOC_STACK_OPS) {
-                    wrapperTypesToPreAlloc.add(TaintUtils.getContainerReturnType("I"));
-                }
-                break;
-            case Opcodes.ATHROW:
                 break;
         }
         super.visitInsn(opcode);
@@ -197,23 +72,13 @@ public class PrimitiveArrayAnalyzer extends MethodVisitor {
     @Override
     public void visitInvokeDynamicInsn(String name, String desc, Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
         super.visitInvokeDynamicInsn(name, desc, bootstrapMethodHandle, bootstrapMethodArguments);
-        Type returnType = Type.getReturnType(desc);
-        Type newReturnType = TaintUtils.getContainerReturnType(returnType);
         isEmptyMethod = false;
-        if(newReturnType != returnType) {
-            wrapperTypesToPreAlloc.add(newReturnType);
-        }
     }
 
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean isInterface) {
         super.visitMethodInsn(opcode, owner, name, desc, isInterface);
-        Type returnType = Type.getReturnType(desc);
-        Type newReturnType = TaintUtils.getContainerReturnType(returnType);
         isEmptyMethod = false;
-        if(newReturnType != returnType) {
-            wrapperTypesToPreAlloc.add(newReturnType);
-        }
     }
 
     public void setAnalyzer(NeverNullArgAnalyzerAdapter preAnalyzer) {

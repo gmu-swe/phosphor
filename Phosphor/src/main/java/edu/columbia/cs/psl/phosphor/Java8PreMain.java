@@ -12,7 +12,7 @@ import java.security.ProtectionDomain;
 import static edu.columbia.cs.psl.phosphor.PhosphorBaseTransformer.INITED;
 
 /**
- * We use a premain in a separate jar for Java9+, in the phosphor-javaagent package
+ * We use a premain in a separate jar for Java9+, in the phosphor-jigsaw-javaagent package
  */
 public class Java8PreMain {
     static class PhosphorTransformerBridge implements ClassFileTransformer {

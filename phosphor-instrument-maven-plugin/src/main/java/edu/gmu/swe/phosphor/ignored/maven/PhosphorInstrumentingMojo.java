@@ -1,7 +1,7 @@
 package edu.gmu.swe.phosphor.ignored.maven;
 
 import edu.columbia.cs.psl.phosphor.Instrumenter;
-import fun.jvm.phosphor.instrumenter.jlink.JLinkInvoker;
+import edu.columbia.cs.psl.jigsaw.phosphor.instrumenter.JLinkInvoker;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;

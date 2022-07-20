@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.LazyReferenceArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.TaintedBooleanWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 import org.objectweb.asm.Type;
 
@@ -28,7 +27,6 @@ public final class NativeHelper {
     public static Collection ensureIsBoxedObjTags(Collection in) {
         if(in != null) {
             Collection tmp = null;
-            TaintedBooleanWithObjTag retTmp = new TaintedBooleanWithObjTag();
             for(Object o : in) {
                 if(o == null) {
                     break;
@@ -58,7 +56,6 @@ public final class NativeHelper {
     public static Collection ensureIsUnBoxedObjTags(Collection in) {
         if(in != null) {
             Collection tmp = null;
-            TaintedBooleanWithObjTag retTmp = new TaintedBooleanWithObjTag();
             for(Object o : in) {
                 if(o != null && MultiDTaintedArrayWithObjTag.isPrimitiveBoxClass(o.getClass()) != null) {
                     if(tmp == null) {

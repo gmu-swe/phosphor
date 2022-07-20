@@ -88,7 +88,6 @@ public class DefaultTaintCheckingMethodVisitor extends MethodVisitor implements 
             arrayTarget = null;
         }
         if(originalType.getSort() != Type.ARRAY || originalType.getDimensions() > 1 || (originalType.getDescriptor().equals("[Ljava/lang/Object;") && !owner.startsWith("java/lang/reflect") && !owner.equals("java/lang/AssertionStatusDirectives"))) {
-            //TODO do reference arrays need this hacking?
             super.visitFieldInsn(opcode, owner, name, desc);
             return;
         }

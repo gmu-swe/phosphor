@@ -4,9 +4,11 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.TaintedReferenceWithObjTag;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.AnalyzerAdapter;
+
+import java.io.IOException;
+import java.io.Serializable;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_TYPE;
 
@@ -83,20 +85,39 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
     @SuppressWarnings("unused")
     public static Object wrapIfNecessary(Object obj, Taint tag) {
         if (tag != null && !tag.isEmpty()) {
-            return new TaintedReferenceWithObjTag(tag, obj);
+            return new TaggedReference(tag, obj);
         }
         return obj;
     }
 
     @SuppressWarnings("unused")
     public static Object unwrapIfNecessary(Object ret, PhosphorStackFrame phosphorStackFrame) {
-        if (ret instanceof TaintedReferenceWithObjTag) {
-            phosphorStackFrame.setReturnTaint(((TaintedReferenceWithObjTag) ret).taint);
-            return ((TaintedReferenceWithObjTag) ret).val;
+        if (ret instanceof TaggedReference) {
+            phosphorStackFrame.setReturnTaint(((TaggedReference) ret).tag);
+            return ((TaggedReference) ret).val;
         }
         return ret;
     }
 
+    private static class TaggedReference implements Serializable {
+        Object val;
+        Taint tag;
+
+        TaggedReference(Taint tag, Object val){
+            this.tag = tag;
+            this.val = val;
+        }
+        private void writeObject(java.io.ObjectOutputStream stream) throws IOException {
+            stream.writeObject(val);
+            stream.writeObject(tag);
+        }
+
+        private void readObject(java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
+            val = stream.readObject();
+            tag = (Taint) stream.readObject();
+        }
+
+    }
     private static class StreamClassMV extends MethodVisitor {
 
         StreamClassMV(MethodVisitor mv) {

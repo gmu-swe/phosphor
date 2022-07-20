@@ -613,7 +613,6 @@ public abstract class MultiDTaintedArrayWithObjTag {
                 throw new UnsupportedOperationException();
             } else if(in.getClass().getComponentType().getName().equals("java.lang.Object")) {
                 Object[] _in = (Object[]) in;
-                TaintedBooleanWithObjTag tmpRet = new TaintedBooleanWithObjTag();
                 for(int i = 0; i < _in.length; i++) {
                     if(done.add(_in[i])) {
                         _in[i] = boxIfNecessary(_in[i], done);

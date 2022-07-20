@@ -104,7 +104,7 @@
         </dependency>
         <dependency>
             <groupId>edu.gmu.swe.phosphor</groupId>
-            <artifactId>phosphor-instrument-jlink-plugin</artifactId>
+            <artifactId>phosphor-instrument-jigsaw</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

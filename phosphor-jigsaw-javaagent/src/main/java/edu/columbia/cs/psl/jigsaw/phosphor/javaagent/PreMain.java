@@ -1,4 +1,4 @@
-package fun.jvm.phosphor.javaagent;
+package edu.columbia.cs.psl.jigsaw.phosphor.javaagent;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.InstrumentationHelper;

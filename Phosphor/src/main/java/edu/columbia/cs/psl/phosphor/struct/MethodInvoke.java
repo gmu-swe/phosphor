@@ -14,5 +14,4 @@ public class MethodInvoke {
     public Taint o_taint;
     public LazyReferenceArrayObjTags a;
     public Taint a_taint;
-    public TaintedReferenceWithObjTag prealloc;
 }

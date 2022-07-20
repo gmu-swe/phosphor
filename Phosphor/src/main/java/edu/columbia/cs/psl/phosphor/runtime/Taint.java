@@ -15,13 +15,6 @@ public abstract class Taint<T> implements Serializable {
 
     public static boolean IGNORE_TAINTING = false;
 
-    @SuppressWarnings("unused")
-    public TaintedReferenceWithObjTag getLabels$$PHOSPHORTAGGED(Taint referenceTaint, TaintedReferenceWithObjTag ret, Object[] erasedReturn) {
-        ret.taint = Taint.emptyTaint();
-        ret.val = new LazyReferenceArrayObjTags(getLabels());
-        return ret;
-    }
-
     /* Constructs a new taint object whose label set is the union of the label sets of this and the specified taint object. */
     public abstract Taint<T> union(Taint<T> other);
 

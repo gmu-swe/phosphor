@@ -1,17 +1,14 @@
 package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
-import edu.columbia.cs.psl.phosphor.org.objectweb.asm.SignatureReWriter;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
+import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.signature.SignatureReader;
-import org.objectweb.asm.signature.SignatureVisitor;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
@@ -137,36 +134,6 @@ public class TaintUtils {
             return Configuration.TAINT_TAG_DESC;
         }
         return null;
-    }
-
-    public static Type getContainerReturnType(String originalReturnType) {
-        return getContainerReturnType(Type.getType(originalReturnType));
-    }
-
-    public static Type getContainerReturnType(Type originalReturnType) {
-        switch (originalReturnType.getSort()) {
-            case Type.BYTE:
-                return Type.getType(TaintedByteWithObjTag.class);
-            case Type.BOOLEAN:
-                return Type.getType(TaintedBooleanWithObjTag.class);
-            case Type.CHAR:
-                return Type.getType(TaintedCharWithObjTag.class);
-            case Type.DOUBLE:
-                return Type.getType(TaintedDoubleWithObjTag.class);
-            case Type.FLOAT:
-                return Type.getType(TaintedFloatWithObjTag.class);
-            case Type.INT:
-                return Type.getType(TaintedIntWithObjTag.class);
-            case Type.LONG:
-                return Type.getType(TaintedLongWithObjTag.class);
-            case Type.SHORT:
-                return Type.getType(TaintedShortWithObjTag.class);
-            case Type.OBJECT:
-            case Type.ARRAY:
-                return Type.getType(TaintedReferenceWithObjTag.class);
-            default:
-                return originalReturnType;
-        }
     }
 
     public static boolean isShadowedType(Type t) {
@@ -315,162 +282,4 @@ public class TaintUtils {
         return isPrimitiveArrayType(t) || isPrimitiveType(t);
     }
 
-    public static String remapSignature(String sig, final List<String> extraArgs) {
-        if (sig == null) {
-            return null;
-        }
-        SignatureReWriter sw = new SignatureReWriter() {
-            int isInArray = 0;
-            boolean isInReturnType;
-            boolean isInParam;
-
-            @Override
-            public SignatureVisitor visitArrayType() {
-                isInArray++;
-                return super.visitArrayType();
-            }
-
-            @Override
-            public void visitBaseType(char descriptor) {
-                if (descriptor == 'V') {
-                    super.visitBaseType(descriptor);
-                    return;
-                }
-                if (isInParam) {
-                    if (isInArray == 0) {
-                        super.visitClassType(Configuration.TAINT_TAG_INTERNAL_NAME);
-                        super.visitEnd();
-                        super.visitParameterType();
-                        super.visitBaseType(descriptor);
-                    } else if (isInArray == 1) {
-                        super.pop();
-                        super.visitClassType(
-                                MultiDTaintedArray.getTypeForType(Type.getType("[" + descriptor)).getInternalName());
-                        super.visitEnd();
-                        super.visitArrayType();
-                        super.visitParameterType();
-                        super.visitBaseType(descriptor);
-                    } else {
-                        super.pop();
-                        super.visitClassType(
-                                MultiDTaintedArray.getTypeForType(Type.getType("[" + descriptor)).getInternalName());
-                        super.visitEnd();
-                    }
-                } else {
-                    if (isInArray > 0) {
-                        super.pop();// reduce dimensions by 1
-                        super.visitClassType(TaintUtils.getContainerReturnType("[" + descriptor).getInternalName());
-                        super.visitEnd();
-                    } else {
-                        super.visitClassType(TaintUtils.getContainerReturnType("" + descriptor).getInternalName());
-                        super.visitEnd();
-                    }
-                }
-                isInParam = false;
-                isInArray = 0;
-            }
-
-            @Override
-            public SignatureVisitor visitReturnType() {
-                // Add in extra stuff as needed.
-                for (String s : extraArgs) {
-                    super.visitParameterType();
-                    super.visitClassType(s);
-                    super.visitEnd();
-                }
-                isInReturnType = true;
-                return super.visitReturnType();
-            }
-
-            @Override
-            public void visitTypeVariable(String name) {
-                isInParam = false;
-                isInArray = 0;
-                super.visitTypeVariable(name);
-            }
-
-            @Override
-            public void visitClassType(String name) {
-                isInArray = 0;
-                isInParam = false;
-                super.visitClassType(name);
-            }
-
-            @Override
-            public SignatureVisitor visitParameterType() {
-                isInParam = true;
-                return super.visitParameterType();
-            }
-        };
-        SignatureReader sr = new SignatureReader(sig);
-        sr.accept(sw);
-        sig = sw.toString();
-        return sig;
-    }
-
-    /*
-     * Returns the class instance resulting from removing any phosphor taint
-     * wrapping from the specified class.
-     */
-    public static Class<?> getUnwrappedClass(Class<?> wrappedClass) {
-        if (wrappedClass.equals(LazyBooleanArrayObjTags.class)) {
-            return boolean[].class;
-        } else if (wrappedClass.equals(LazyByteArrayObjTags.class)) {
-            return byte[].class;
-        } else if (wrappedClass.equals(LazyCharArrayObjTags.class)) {
-            return char[].class;
-        } else if (wrappedClass.equals(LazyDoubleArrayObjTags.class)) {
-            return double[].class;
-        } else if (wrappedClass.equals(LazyFloatArrayObjTags.class)) {
-            return float[].class;
-        } else if (wrappedClass.equals(LazyIntArrayObjTags.class)) {
-            return int[].class;
-        } else if (wrappedClass.equals(LazyLongArrayObjTags.class)) {
-            return long[].class;
-        } else if (wrappedClass.equals(LazyReferenceArrayObjTags.class)) {
-            return Object[].class;
-        } else if (wrappedClass.equals(LazyShortArrayObjTags.class)) {
-            return short[].class;
-        } else if (wrappedClass.equals(TaintedBooleanWithObjTag.class)) {
-            return boolean.class;
-        } else if (wrappedClass.equals(TaintedByteWithObjTag.class)) {
-            return byte.class;
-        } else if (wrappedClass.equals(TaintedCharWithObjTag.class)) {
-            return char.class;
-        } else if (wrappedClass.equals(TaintedDoubleWithObjTag.class)) {
-            return double.class;
-        } else if (wrappedClass.equals(TaintedFloatWithObjTag.class)) {
-            return float.class;
-        } else if (wrappedClass.equals(TaintedIntWithObjTag.class)) {
-            return int.class;
-        } else if (wrappedClass.equals(TaintedLongWithObjTag.class)) {
-            return long.class;
-        } else if (wrappedClass.equals(TaintedReferenceWithObjTag.class)) {
-            return Object.class;
-        } else if (wrappedClass.equals(TaintedShortWithObjTag.class)) {
-            return short.class;
-        } else {
-            return wrappedClass;
-        }
-    }
-
-    /* Returns whether the specified type is a primitive wrapper type. */
-    public static boolean isTaintedPrimitiveType(Type type) {
-        if (type == null) {
-            return false;
-        } else {
-            return type.equals(Type.getType(TaintedByteWithObjTag.class))
-                    || type.equals(Type.getType(TaintedBooleanWithObjTag.class))
-                    || type.equals(Type.getType(TaintedCharWithObjTag.class))
-                    || type.equals(Type.getType(TaintedDoubleWithObjTag.class))
-                    || type.equals(Type.getType(TaintedFloatWithObjTag.class))
-                    || type.equals(Type.getType(TaintedIntWithObjTag.class))
-                    || type.equals(Type.getType(TaintedLongWithObjTag.class))
-                    || type.equals(Type.getType(TaintedShortWithObjTag.class));
-        }
-    }
-
-    public static boolean containsTaint(String desc) {
-        return desc.contains(Configuration.TAINT_TAG_DESC);
-    }
 }

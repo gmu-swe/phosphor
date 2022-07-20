@@ -25,8 +25,8 @@
     </scm>
     <modules>
         <module>Phosphor</module>
-        <module>phosphor-javaagent</module>
-        <module>phosphor-instrument-jlink-plugin</module>
+        <module>phosphor-jigsaw-javaagent</module>
+        <module>phosphor-instrument-jigsaw</module>
         <module>phosphor-instrument-maven-plugin</module>
         <module>integration-tests</module>
         <module>phosphor-microbench</module>

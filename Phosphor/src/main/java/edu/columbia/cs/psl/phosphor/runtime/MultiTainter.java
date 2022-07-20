@@ -226,8 +226,6 @@ public final class MultiTainter {
         }
         if(obj instanceof TaintedWithObjTag) {
             ((TaintedWithObjTag) obj).setPHOSPHOR_TAG(tag);
-        } else if(obj instanceof TaintedPrimitiveWithObjTag) {
-            ((TaintedPrimitiveWithObjTag) obj).taint = tag;
         } else if(obj instanceof LazyArrayObjTags) {
             // TODO
         } else if(obj != null && ArrayHelper.engaged == 1) {

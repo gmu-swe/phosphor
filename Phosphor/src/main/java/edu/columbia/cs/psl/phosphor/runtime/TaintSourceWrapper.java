@@ -82,14 +82,6 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
             } else {
                 tainted.setPHOSPHOR_TAG(tag);
             }
-        } else if (obj instanceof TaintedPrimitiveWithObjTag) {
-            TaintedPrimitiveWithObjTag tainted = (TaintedPrimitiveWithObjTag) obj;
-            if (tainted.taint != null) {
-                //tainted.taint.addDependency(tag);
-            } else {
-                tainted.taint = tag;
-            }
-            autoTaint((TaintedPrimitiveWithObjTag) obj, tag);
         } else if(obj.getClass().isArray()) {
             for(int i = 0; i < Array.getLength(obj); i++) {
                 addTaint(Array.get(obj, i), tag);
@@ -118,8 +110,6 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
             return autoTaint((LazyArrayObjTags) obj, tag);
         } else if(obj instanceof TaintedWithObjTag) {
             return autoTaint((TaintedWithObjTag) obj, tag);
-        } else if(obj instanceof TaintedPrimitiveWithObjTag) {
-            return autoTaint((TaintedPrimitiveWithObjTag) obj, tag);
         } else if(obj.getClass().isArray()) {
             for(int i = 0; i < Array.getLength(obj); i++) {
                 Array.set(obj, i, autoTaint(Array.get(obj, i), tag));
@@ -160,16 +150,6 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
             for(Object o : ((LazyReferenceArrayObjTags) ret).val) {
                 autoTaint(o, tag);
             }
-        }
-        return ret;
-    }
-
-    @SuppressWarnings("unchecked")
-    public TaintedPrimitiveWithObjTag autoTaint(TaintedPrimitiveWithObjTag ret, Taint<? extends AutoTaintLabel> tag) {
-        if(ret.taint != null) {
-            ret.taint = ret.taint.union(tag);
-        } else {
-            ret.taint = tag;
         }
         return ret;
     }
@@ -226,14 +206,6 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         } else if(obj instanceof Object[]) {
             for(Object o : ((Object[]) obj)) {
                 checkTaint(o, baseSink, actualSink);
-            }
-        } else if(obj instanceof TaintedPrimitiveWithObjTag) {
-            Taint t = ((TaintedPrimitiveWithObjTag) obj).taint;
-            if(t != null && !t.isEmpty()) {
-                taintViolation(((TaintedPrimitiveWithObjTag) obj).taint, ((TaintedPrimitiveWithObjTag) obj).getValue(), baseSink, actualSink);
-            }
-            if(obj instanceof TaintedReferenceWithObjTag) {
-                checkTaint(((TaintedReferenceWithObjTag) obj).val, baseSink, actualSink);
             }
         }
     }

@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>phosphor-javaagent</artifactId>
+    <artifactId>phosphor-jigsaw-javaagent</artifactId>
     <packaging>jar</packaging>
     <description>A runtime instrumenter to go with Phosphor-instrumented JVMs. This version is only used for Java 9+ VMs</description>
     <parent>
@@ -19,7 +19,7 @@
                     <target>9</target>
                     <compilerArgs>
                         <arg>
-                            --add-reads=fun.jvm.phosphor.javaagent=ALL-UNNAMED
+                            --add-reads=edu.columbia.cs.psl.jigsaw.phosphor.javaagent=ALL-UNNAMED
                         </arg>
                     </compilerArgs>
                     <fork>true</fork>
@@ -31,7 +31,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Premain-Class>fun.jvm.phosphor.javaagent.PreMain</Premain-Class>
+                            <Premain-Class>edu.columbia.cs.psl.jigsaw.phosphor.javaagent.PreMain</Premain-Class>
                             <Can-Retransform-Classes>true</Can-Retransform-Classes>
                         </manifestEntries>
                     </archive>
