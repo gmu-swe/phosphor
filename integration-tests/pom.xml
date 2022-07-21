@@ -147,7 +147,7 @@
                                 <exportAntProperties>true</exportAntProperties>
                                 <target>
                                     <property name="phosphor.jar" value="${maven.dependency.edu.gmu.swe.phosphor.Phosphor.jar.path}"/>
-                                    <property name="phosphor-javaagent.jar" value="${maven.dependency.edu.gmu.swe.phosphor.phosphor-javaagent.jar.path}"/>
+                                    <property name="phosphor-javaagent.jar" value="${maven.dependency.edu.gmu.swe.phosphor.phosphor-jigsaw-javaagent.jar.path}"/>
                                     <property name="argLine.prefix"
                                               value="-Dphosphor.verify=true -javaagent:${phosphor-javaagent.jar}=${auto.taint}"/>
                                 </target>
@@ -284,7 +284,7 @@
         </dependency>
         <dependency>
             <groupId>edu.gmu.swe.phosphor</groupId>
-            <artifactId>phosphor-javaagent</artifactId>
+            <artifactId>phosphor-jigsaw-javaagent</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
