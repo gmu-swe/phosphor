@@ -19,7 +19,7 @@ public class TaintTagFieldCastMV extends MethodVisitor implements Opcodes {
     @Override
     public void visitFieldInsn(int opcode, String owner, String name, String desc) {
 
-        boolean taintDesc = desc.equals(Configuration.TAINT_TAG_DESC) || desc.startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy");
+        boolean taintDesc = desc.equals(Configuration.TAINT_TAG_DESC) || desc.startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tagged");
         if((opcode == Opcodes.GETFIELD || opcode == Opcodes.GETSTATIC) && !TaintAdapter.canRawTaintAccess(owner) && name.endsWith(TaintUtils.TAINT_FIELD) && taintDesc) {
             super.visitFieldInsn(opcode, owner, name, "I");
             super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(HardcodedBypassStore.class), "get", "(I)Ljava/lang/Object;", false);

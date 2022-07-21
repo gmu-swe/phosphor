@@ -13,7 +13,6 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.FieldNode;
@@ -525,8 +524,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 Configuration.taintTagFactory.generateSetTag(mv, className);
                 if (className.equals("java/lang/String")) {
                     // Also overwrite the taint tag of all of the chars behind this string
-
-                    Type taintType = MultiDTaintedArray.getTypeForType(Type.getType(char[].class));
                     mv.visitFieldInsn(Opcodes.GETSTATIC, Type.getInternalName(Configuration.class), "autoTainter",
                             Type.getDescriptor(TaintSourceWrapper.class));
                     mv.visitVarInsn(ALOAD, 0);

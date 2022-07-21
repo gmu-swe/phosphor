@@ -13,11 +13,11 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
-import edu.columbia.cs.psl.phosphor.struct.LazyReferenceArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaggedReferenceArray;
 import edu.columbia.cs.psl.phosphor.struct.PowerSetTree;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.tree.MethodNode;
@@ -266,7 +266,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             return;
         }
         if (descType.getSort() == Type.ARRAY && descType.getDimensions() > 1) {
-            desc = MultiDTaintedArray.getTypeForType(descType).getDescriptor();
+            desc = MultiDArrayUtils.getTypeForType(descType).getDescriptor();
         }
         boolean isIgnoredTaint = Instrumenter.isIgnoredClass(owner);
         //|| Instrumenter.isIgnoredClassWithStubsButNoTracking(owner);
@@ -454,8 +454,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 int lvWithLengthTaint = lvs.getStackShadowVarFromTop(0);
                 super.visitIntInsn(opcode, operand);
                 super.visitVarInsn(ALOAD, lvWithLengthTaint);
-                String arType = MultiDTaintedArray.getTaintArrayInternalName(operand);
-                String arrayDescriptor = MultiDTaintedArray.getArrayDescriptor(operand);
+                String arType = MultiDArrayUtils.getTaintArrayInternalName(operand);
+                String arrayDescriptor = MultiDArrayUtils.getArrayDescriptor(operand);
                 super.visitMethodInsn(INVOKESTATIC, arType, "factory",
                         "(" + arrayDescriptor + Configuration.TAINT_TAG_DESC + ")L" + arType + ";", false);
                 controlFlowPolicy.generateEmptyTaint();
@@ -500,8 +500,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         methodToCall.append("DIMS");
         descToCall.append(PhosphorStackFrame.DESCRIPTOR);
         descToCall.append(")");
-        descToCall.append(Type.getDescriptor(LazyReferenceArrayObjTags.class));
-        super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
+        descToCall.append(Type.getDescriptor(TaggedReferenceArray.class));
+        super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class),
                 methodToCall.toString(), descToCall.toString(), false);
 
         controlFlowPolicy.generateEmptyTaint(); // TODO array reference taint?
@@ -542,7 +542,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                     super.visitTypeInsn(opcode, type);
                     super.visitVarInsn(ALOAD, lvWithTaint);
                     // 2D arrays are just 1D arrays, not wrapped 1Darrays
-                    Type arType = Type.getType(LazyReferenceArrayObjTags.class);
+                    Type arType = Type.getType(TaggedReferenceArray.class);
                     super.visitMethodInsn(INVOKESTATIC, arType.getInternalName(), "factory",
                             "([Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")" + arType.getDescriptor(),
                             false);
@@ -743,7 +743,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             return;
         }
         if (opcode == INVOKEVIRTUAL && TaintUtils.isWrappedType(ownerType)) {
-            owner = MultiDTaintedArray.getTypeForType(ownerType).getInternalName();
+            owner = MultiDArrayUtils.getTypeForType(ownerType).getInternalName();
         }
         if (opcode == INVOKEVIRTUAL && name.equals("getClass") && desc.equals("()Ljava/lang/Class;")) {
             if (isObjOutputStream) {
@@ -1076,7 +1076,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             setMethod = TaintMethodRecord.getTaintedArrayRecord(opcode, "");
         } else {
             String arrayReferenceType = (String) analyzer.stack.get(arrayRefPosition);
-            if (arrayReferenceType.startsWith("[") || !arrayReferenceType.contains("Lazy")) {
+            if (arrayReferenceType.startsWith("[") || !arrayReferenceType.contains("Tagged")) {
                 throw new IllegalStateException("Calling XASTORE on " + arrayReferenceType);
             }
             setMethod = TaintMethodRecord.getTaintedArrayRecord(opcode, arrayReferenceType);
@@ -1105,7 +1105,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             getMethod = TaintMethodRecord.getTaintedArrayRecord(opcode, "");
         } else {
             String arrayReferenceType = (String) analyzer.stack.get(arrayRefPosition);
-            if (arrayReferenceType.startsWith("[") || !arrayReferenceType.contains("Lazy")) {
+            if (arrayReferenceType.startsWith("[") || !arrayReferenceType.contains("Tagged")) {
                 throw new IllegalStateException("Calling XALOAD on " + arrayReferenceType);
             }
             getMethod = TaintMethodRecord.getTaintedArrayRecord(opcode, arrayReferenceType);
@@ -1119,7 +1119,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             if (originalArrayType.getDimensions() == 2) {
                 castTo = TaintUtils.getWrapperType(Type.getType(castTo)).getInternalName();
             } else if (originalArrayType.getDimensions() > 2) {
-                castTo = Type.getInternalName(LazyReferenceArrayObjTags.class);
+                castTo = Type.getInternalName(TaggedReferenceArray.class);
             }
             super.visitTypeInsn(CHECKCAST, castTo);
         }

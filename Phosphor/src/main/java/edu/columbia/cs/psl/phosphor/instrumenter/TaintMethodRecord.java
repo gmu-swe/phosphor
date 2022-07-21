@@ -3,12 +3,8 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.PreMain;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
-import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
-import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
+import edu.columbia.cs.psl.phosphor.runtime.*;
 import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
@@ -42,8 +38,8 @@ public enum TaintMethodRecord implements MethodRecord {
     CONTROL_STACK_PUSH_FRAME(INVOKEVIRTUAL, ControlFlowStack.class, "pushFrame", Void.TYPE, false),
     CONTROL_STACK_COPY_TOP(INVOKEVIRTUAL, ControlFlowStack.class, "copyTop", ControlFlowStack.class, false),
     CONTROL_STACK_UNINSTRUMENTED_WRAPPER(INVOKEVIRTUAL, ControlFlowStack.class, "enteringUninstrumentedWrapper", Void.TYPE, false),
-    // Methods from MultiDTaintedArray
-    BOX_IF_NECESSARY(INVOKESTATIC, MultiDTaintedArray.class, "boxIfNecessary", Object.class, false, Object.class),
+    // Methods from MultiDArrayUtils
+    BOX_IF_NECESSARY(INVOKESTATIC, MultiDArrayUtils.class, "boxIfNecessary", Object.class, false, Object.class),
     // Methods from ReflectionMasker
     REMOVE_EXTRA_STACK_TRACE_ELEMENTS(INVOKESTATIC, ReflectionMasker.class, "removeExtraStackTraceElements", StackTraceElement[].class, false, StackTraceElement[].class, Class.class),
     REMOVE_TAINTED_INTERFACES(INVOKESTATIC, ReflectionMasker.class, "removeTaintedInterfaces", Class[].class, false, Class[].class),
@@ -77,52 +73,52 @@ public enum TaintMethodRecord implements MethodRecord {
     SET_RETURN_TAINT(INVOKEVIRTUAL, PhosphorStackFrame.class, "setReturnTaint", Void.TYPE, false, Taint.class),
     SET_ARG_WRAPPER(INVOKEVIRTUAL, PhosphorStackFrame.class, "setArgWrapper", Void.TYPE, false, Object.class, int.class),
     GET_ARG_WRAPPER_GENERIC(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", Object.class, false, int.class, Object.class),
-    GET_ARG_WRAPPER_OBJECT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyReferenceArrayObjTags.class, false, int.class, Object[].class),
-    GET_ARG_WRAPPER_BOOLEAN(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyBooleanArrayObjTags.class, false, int.class, boolean[].class),
-    GET_ARG_WRAPPER_BYTE(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyByteArrayObjTags.class, false, int.class, byte[].class),
-    GET_ARG_WRAPPER_CHAR(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyCharArrayObjTags.class, false, int.class, char[].class),
-    GET_ARG_WRAPPER_FLOAT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyFloatArrayObjTags.class, false, int.class, float[].class),
-    GET_ARG_WRAPPER_INT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyIntArrayObjTags.class, false, int.class, int[].class),
-    GET_ARG_WRAPPER_LONG(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyLongArrayObjTags.class, false, int.class, long[].class),
-    GET_ARG_WRAPPER_SHORT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyShortArrayObjTags.class, false, int.class, short[].class),
-    GET_ARG_WRAPPER_DOUBLE(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", LazyDoubleArrayObjTags.class, false, int.class, double[].class),
+    GET_ARG_WRAPPER_OBJECT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", TaggedReferenceArray.class, false, int.class, Object[].class),
+    GET_ARG_WRAPPER_BOOLEAN(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", TaggedBooleanArray.class, false, int.class, boolean[].class),
+    GET_ARG_WRAPPER_BYTE(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", TaggedByteArray.class, false, int.class, byte[].class),
+    GET_ARG_WRAPPER_CHAR(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", TaggedCharArray.class, false, int.class, char[].class),
+    GET_ARG_WRAPPER_FLOAT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", TaggedFloatArray.class, false, int.class, float[].class),
+    GET_ARG_WRAPPER_INT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", TaggedIntArray.class, false, int.class, int[].class),
+    GET_ARG_WRAPPER_LONG(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", TaggedLongArray.class, false, int.class, long[].class),
+    GET_ARG_WRAPPER_SHORT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", TaggedShortArray.class, false, int.class, short[].class),
+    GET_ARG_WRAPPER_DOUBLE(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", TaggedDoubleArray.class, false, int.class, double[].class),
 
 
     SET_WRAPPED_RETURN(INVOKEVIRTUAL, PhosphorStackFrame.class, "setWrappedReturn", Void.TYPE, false, Object.class),
-    GET_RETURN_WRAPPER_OBJECT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", LazyReferenceArrayObjTags.class, false, Object[].class),
-    GET_RETURN_WRAPPER_BOOLEAN(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", LazyBooleanArrayObjTags.class, false, boolean[].class),
-    GET_RETURN_WRAPPER_BYTE(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", LazyByteArrayObjTags.class, false, byte[].class),
-    GET_RETURN_WRAPPER_CHAR(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", LazyCharArrayObjTags.class, false, char[].class),
-    GET_RETURN_WRAPPER_FLOAT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", LazyFloatArrayObjTags.class, false, float[].class),
-    GET_RETURN_WRAPPER_INT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", LazyIntArrayObjTags.class, false, int[].class),
-    GET_RETURN_WRAPPER_LONG(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", LazyLongArrayObjTags.class, false, long[].class),
-    GET_RETURN_WRAPPER_SHORT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", LazyShortArrayObjTags.class, false, short[].class),
-    GET_RETURN_WRAPPER_DOUBLE(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", LazyDoubleArrayObjTags.class, false, double[].class),
+    GET_RETURN_WRAPPER_OBJECT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedReferenceArray.class, false, Object[].class),
+    GET_RETURN_WRAPPER_BOOLEAN(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedBooleanArray.class, false, boolean[].class),
+    GET_RETURN_WRAPPER_BYTE(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedByteArray.class, false, byte[].class),
+    GET_RETURN_WRAPPER_CHAR(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedCharArray.class, false, char[].class),
+    GET_RETURN_WRAPPER_FLOAT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedFloatArray.class, false, float[].class),
+    GET_RETURN_WRAPPER_INT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedIntArray.class, false, int[].class),
+    GET_RETURN_WRAPPER_LONG(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedLongArray.class, false, long[].class),
+    GET_RETURN_WRAPPER_SHORT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedShortArray.class, false, short[].class),
+    GET_RETURN_WRAPPER_DOUBLE(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedDoubleArray.class, false, double[].class),
 
 
 
 
     // Tainted array set methods
-    TAINTED_BOOLEAN_ARRAY_SET(INVOKEVIRTUAL, LazyBooleanArrayObjTags.class, "set", Void.TYPE, false, int.class, boolean.class, Taint.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_BYTE_ARRAY_SET(INVOKEVIRTUAL, LazyByteArrayObjTags.class, "set", Void.TYPE, false, int.class, byte.class, Taint.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_CHAR_ARRAY_SET(INVOKEVIRTUAL, LazyCharArrayObjTags.class, "set", Void.TYPE, false, int.class, char.class, Taint.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_DOUBLE_ARRAY_SET(INVOKEVIRTUAL, LazyDoubleArrayObjTags.class, "set", Void.TYPE, false, int.class, double.class, Taint.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_FLOAT_ARRAY_SET(INVOKEVIRTUAL, LazyFloatArrayObjTags.class, "set", Void.TYPE, false, int.class, float.class, Taint.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_INT_ARRAY_SET(INVOKEVIRTUAL, LazyIntArrayObjTags.class, "set", Void.TYPE, false, int.class, int.class, Taint.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_LONG_ARRAY_SET(INVOKEVIRTUAL, LazyLongArrayObjTags.class, "set", Void.TYPE, false, int.class, long.class, Taint.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_REFERENCE_ARRAY_SET(INVOKEVIRTUAL, LazyReferenceArrayObjTags.class, "set", Void.TYPE, false, int.class, Object.class, Taint.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_SHORT_ARRAY_SET(INVOKEVIRTUAL, LazyShortArrayObjTags.class, "set", Void.TYPE, false, int.class, short.class, Taint.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_BOOLEAN_ARRAY_SET(INVOKEVIRTUAL, TaggedBooleanArray.class, "set", Void.TYPE, false, int.class, boolean.class, Taint.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_BYTE_ARRAY_SET(INVOKEVIRTUAL, TaggedByteArray.class, "set", Void.TYPE, false, int.class, byte.class, Taint.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_CHAR_ARRAY_SET(INVOKEVIRTUAL, TaggedCharArray.class, "set", Void.TYPE, false, int.class, char.class, Taint.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_DOUBLE_ARRAY_SET(INVOKEVIRTUAL, TaggedDoubleArray.class, "set", Void.TYPE, false, int.class, double.class, Taint.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_FLOAT_ARRAY_SET(INVOKEVIRTUAL, TaggedFloatArray.class, "set", Void.TYPE, false, int.class, float.class, Taint.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_INT_ARRAY_SET(INVOKEVIRTUAL, TaggedIntArray.class, "set", Void.TYPE, false, int.class, int.class, Taint.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_LONG_ARRAY_SET(INVOKEVIRTUAL, TaggedLongArray.class, "set", Void.TYPE, false, int.class, long.class, Taint.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_REFERENCE_ARRAY_SET(INVOKEVIRTUAL, TaggedReferenceArray.class, "set", Void.TYPE, false, int.class, Object.class, Taint.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_SHORT_ARRAY_SET(INVOKEVIRTUAL, TaggedShortArray.class, "set", Void.TYPE, false, int.class, short.class, Taint.class, Taint.class, PhosphorStackFrame.class),
 
     // Tainted array get methods
-    TAINTED_BOOLEAN_ARRAY_GET(INVOKEVIRTUAL, LazyBooleanArrayObjTags.class, "get", boolean.class, false, int.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_BYTE_ARRAY_GET(INVOKEVIRTUAL, LazyByteArrayObjTags.class, "get", byte.class, false, int.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_CHAR_ARRAY_GET(INVOKEVIRTUAL, LazyCharArrayObjTags.class, "get", char.class, false, int.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_DOUBLE_ARRAY_GET(INVOKEVIRTUAL, LazyDoubleArrayObjTags.class, "get", double.class, false, int.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_FLOAT_ARRAY_GET(INVOKEVIRTUAL, LazyFloatArrayObjTags.class, "get", float.class, false, int.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_INT_ARRAY_GET(INVOKEVIRTUAL, LazyIntArrayObjTags.class, "get", int.class, false, int.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_LONG_ARRAY_GET(INVOKEVIRTUAL, LazyLongArrayObjTags.class, "get", long.class, false, int.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_REFERENCE_ARRAY_GET(INVOKEVIRTUAL, LazyReferenceArrayObjTags.class, "get", Object.class, false, int.class, Taint.class, PhosphorStackFrame.class),
-    TAINTED_SHORT_ARRAY_GET(INVOKEVIRTUAL, LazyShortArrayObjTags.class, "get", short.class, false, int.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_BOOLEAN_ARRAY_GET(INVOKEVIRTUAL, TaggedBooleanArray.class, "get", boolean.class, false, int.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_BYTE_ARRAY_GET(INVOKEVIRTUAL, TaggedByteArray.class, "get", byte.class, false, int.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_CHAR_ARRAY_GET(INVOKEVIRTUAL, TaggedCharArray.class, "get", char.class, false, int.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_DOUBLE_ARRAY_GET(INVOKEVIRTUAL, TaggedDoubleArray.class, "get", double.class, false, int.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_FLOAT_ARRAY_GET(INVOKEVIRTUAL, TaggedFloatArray.class, "get", float.class, false, int.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_INT_ARRAY_GET(INVOKEVIRTUAL, TaggedIntArray.class, "get", int.class, false, int.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_LONG_ARRAY_GET(INVOKEVIRTUAL, TaggedLongArray.class, "get", long.class, false, int.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_REFERENCE_ARRAY_GET(INVOKEVIRTUAL, TaggedReferenceArray.class, "get", Object.class, false, int.class, Taint.class, PhosphorStackFrame.class),
+    TAINTED_SHORT_ARRAY_GET(INVOKEVIRTUAL, TaggedShortArray.class, "get", short.class, false, int.class, Taint.class, PhosphorStackFrame.class),
     // Methods from TaintSourceWrapper
     AUTO_TAINT(INVOKEVIRTUAL, TaintSourceWrapper.class, "autoTaint", Object.class, false, Object.class, String.class, String.class, int.class);
 

@@ -19,7 +19,7 @@ public class DerivedTaintListener {
 
     }
 
-    public short arrayGet(LazyShortArrayObjTags b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    public short arrayGet(TaggedShortArray b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
         if(b.taints == null) {
             ret.setReturnTaint(idxTaint);
         } else {
@@ -28,7 +28,7 @@ public class DerivedTaintListener {
         return b.val[idx];
     }
 
-    public int arrayGet(LazyIntArrayObjTags b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    public int arrayGet(TaggedIntArray b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
         if(b.taints == null) {
             ret.setReturnTaint(idxTaint);
         } else {
@@ -37,7 +37,7 @@ public class DerivedTaintListener {
         return b.val[idx];
     }
 
-    public byte arrayGet(LazyByteArrayObjTags b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    public byte arrayGet(TaggedByteArray b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
         if(b.taints == null) {
             ret.setReturnTaint(idxTaint);
         } else {
@@ -46,7 +46,7 @@ public class DerivedTaintListener {
         return b.val[idx];
     }
 
-    public boolean arrayGet(LazyBooleanArrayObjTags b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    public boolean arrayGet(TaggedBooleanArray b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
         if(b.taints == null) {
             ret.setReturnTaint(idxTaint);
         } else {
@@ -55,7 +55,7 @@ public class DerivedTaintListener {
         return b.val[idx];
     }
 
-    public long arrayGet(LazyLongArrayObjTags b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    public long arrayGet(TaggedLongArray b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
         if(b.taints == null) {
             ret.setReturnTaint(idxTaint);
         } else {
@@ -64,7 +64,7 @@ public class DerivedTaintListener {
         return b.val[idx];
     }
 
-    public float arrayGet(LazyFloatArrayObjTags b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    public float arrayGet(TaggedFloatArray b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
         if(b.taints == null) {
             ret.setReturnTaint(idxTaint);
         } else {
@@ -73,7 +73,7 @@ public class DerivedTaintListener {
         return b.val[idx];
     }
 
-    public double arrayGet(LazyDoubleArrayObjTags b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    public double arrayGet(TaggedDoubleArray b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
         if(b.taints == null) {
             ret.setReturnTaint(idxTaint);
         } else {
@@ -82,7 +82,7 @@ public class DerivedTaintListener {
         return b.val[idx];
     }
 
-    public char arrayGet(LazyCharArrayObjTags b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    public char arrayGet(TaggedCharArray b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
         if(b.taints == null) {
             ret.setReturnTaint(idxTaint);
         } else {
@@ -92,7 +92,7 @@ public class DerivedTaintListener {
     }
 
 
-    public Object arrayGet(LazyReferenceArrayObjTags b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    public Object arrayGet(TaggedReferenceArray b, int idx, Taint idxTaint, PhosphorStackFrame ret) {
         if(b.taints == null) {
             ret.setReturnTaint(idxTaint);
         } else {
@@ -101,39 +101,39 @@ public class DerivedTaintListener {
         return b.val[idx];
     }
 
-    public Taint arraySet(LazyShortArrayObjTags a, int idx, short v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
+    public Taint arraySet(TaggedShortArray a, int idx, short v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
         return Taint.combineTags(idxTaint, Taint.combineTags(valTaint, ctrl));
     }
 
-    public Taint arraySet(LazyIntArrayObjTags a, int idx, int v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
+    public Taint arraySet(TaggedIntArray a, int idx, int v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
         return Taint.combineTags(idxTaint, Taint.combineTags(valTaint, ctrl));
     }
 
-    public Taint arraySet(LazyByteArrayObjTags a, int idx, byte v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
+    public Taint arraySet(TaggedByteArray a, int idx, byte v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
         return Taint.combineTags(idxTaint, Taint.combineTags(valTaint, ctrl));
     }
 
-    public Taint arraySet(LazyBooleanArrayObjTags a, int idx, boolean v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
+    public Taint arraySet(TaggedBooleanArray a, int idx, boolean v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
         return Taint.combineTags(idxTaint, Taint.combineTags(valTaint, ctrl));
     }
 
-    public Taint arraySet(LazyCharArrayObjTags a, int idx, char v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
+    public Taint arraySet(TaggedCharArray a, int idx, char v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
         return Taint.combineTags(idxTaint, Taint.combineTags(valTaint, ctrl));
     }
 
-    public Taint arraySet(LazyFloatArrayObjTags a, int idx, float v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
+    public Taint arraySet(TaggedFloatArray a, int idx, float v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
         return Taint.combineTags(idxTaint, Taint.combineTags(valTaint, ctrl));
     }
 
-    public Taint arraySet(LazyDoubleArrayObjTags a, int idx, double v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
+    public Taint arraySet(TaggedDoubleArray a, int idx, double v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
         return Taint.combineTags(idxTaint, Taint.combineTags(valTaint, ctrl));
     }
 
-    public Taint arraySet(LazyLongArrayObjTags a, int idx, long v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
+    public Taint arraySet(TaggedLongArray a, int idx, long v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
         return Taint.combineTags(idxTaint, Taint.combineTags(valTaint, ctrl));
     }
 
-    public Taint arraySet(LazyReferenceArrayObjTags a, int idx, Object v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
+    public Taint arraySet(TaggedReferenceArray a, int idx, Object v, Taint idxTaint, Taint valTaint, PhosphorStackFrame ctrl) {
         return Taint.combineTags(idxTaint, Taint.combineTags(valTaint, ctrl));
     }
 

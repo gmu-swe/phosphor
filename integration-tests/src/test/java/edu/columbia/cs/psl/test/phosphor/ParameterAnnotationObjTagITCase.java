@@ -1,7 +1,5 @@
 package edu.columbia.cs.psl.test.phosphor;
 
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.LazyIntArrayObjTags;
 import org.junit.Assert;
 import org.junit.Test;
 

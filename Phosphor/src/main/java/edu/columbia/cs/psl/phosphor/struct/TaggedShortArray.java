@@ -9,44 +9,44 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_INT_ARRAY_GET;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_INT_ARRAY_SET;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_SHORT_ARRAY_GET;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_SHORT_ARRAY_SET;
 
-public final class LazyIntArrayObjTags extends LazyArrayObjTags {
+public final class TaggedShortArray extends TaggedArray {
 
-    private static final long serialVersionUID = 5106261987550616988L;
+    private static final long serialVersionUID = -4189650314277328488L;
 
-    public int[] val;
+    public short[] val;
 
-    public LazyIntArrayObjTags(int len) {
-        val = new int[len];
+    public TaggedShortArray(int len) {
+        val = new short[len];
     }
 
-    public LazyIntArrayObjTags(int[] array, Taint[] taints) {
+    public TaggedShortArray(short[] array, Taint[] taints) {
         this.taints = taints;
         this.val = array;
     }
 
-    public LazyIntArrayObjTags(int[] array) {
+    public TaggedShortArray(short[] array) {
         this.val = array;
     }
 
-    public LazyIntArrayObjTags(Taint lenTaint, int[] array) {
+    public TaggedShortArray(Taint lenTaint, short[] array) {
         this.val = array;
         this.lengthTaint = lenTaint;
     }
 
-    @InvokedViaInstrumentation(record = TAINTED_INT_ARRAY_SET)
-    public void set(int idx, int val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
+    @InvokedViaInstrumentation(record = TAINTED_SHORT_ARRAY_SET)
+    public void set(int idx, short val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
         set(idx, val, Configuration.derivedTaintListener.arraySet(this, idx, val, idxTaint, valTaint, stackFrame));
     }
 
     @Override
     public Object clone() {
-        return new LazyIntArrayObjTags(val.clone(), (taints != null) ? taints.clone() : null);
+        return new TaggedShortArray(val.clone(), (taints != null) ? taints.clone() : null);
     }
 
-    public void set(int idx, int val, Taint tag) {
+    public void set(int idx, short val, Taint tag) {
         this.val[idx] = val;
         if(taints == null && tag != null && !tag.isEmpty()) {
             taints = new Taint[this.val.length];
@@ -56,24 +56,25 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
         }
     }
 
-    @InvokedViaInstrumentation(record = TAINTED_INT_ARRAY_GET)
-    public int get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    @InvokedViaInstrumentation(record = TAINTED_SHORT_ARRAY_GET)
+    public short get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idx, idxTaint, ret);
     }
 
-    public static LazyIntArrayObjTags factory(int[] array) {
+    public static TaggedShortArray factory(short[] array) {
         if(array == null) {
             return null;
         }
-        return new LazyIntArrayObjTags(array);
+        return new TaggedShortArray(array);
     }
 
-    public static LazyIntArrayObjTags factory(int[] array, Taint lengthTaint) {
+    public static TaggedShortArray factory(short[] array, Taint lengthTaint) {
         if(array == null) {
             return null;
         }
-        return new LazyIntArrayObjTags(lengthTaint, array);
+        return new TaggedShortArray(lengthTaint, array);
     }
+
 
     public int getLength() {
         return val.length;
@@ -84,13 +85,13 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
         return val;
     }
 
-    public void ensureVal(int[] v) {
+    public void ensureVal(short[] v) {
         if (v != val) {
             val = v;
         }
     }
 
-    public static int[] unwrap(LazyIntArrayObjTags obj) {
+    public static short[] unwrap(TaggedShortArray obj) {
         if (obj != null) {
             return obj.val;
         }
@@ -102,8 +103,8 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
             stream.writeInt(-1);
         } else {
             stream.writeInt(val.length);
-            for (int el : val) {
-                stream.writeInt(el);
+            for (short el : val) {
+                stream.writeShort(el);
             }
         }
     }
@@ -113,12 +114,10 @@ public final class LazyIntArrayObjTags extends LazyArrayObjTags {
         if (len == -1) {
             val = null;
         } else {
-            val = new int[len];
+            val = new short[len];
             for (int i = 0; i < len; i++) {
-                val[i] = stream.readInt();
+                val[i] = stream.readShort();
             }
         }
     }
 }
-
-

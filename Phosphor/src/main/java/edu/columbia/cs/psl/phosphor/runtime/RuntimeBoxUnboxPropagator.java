@@ -2,8 +2,8 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREMethodHelper;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaggedByteArray;
+import edu.columbia.cs.psl.phosphor.struct.TaggedCharArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class RuntimeBoxUnboxPropagator {
@@ -35,7 +35,7 @@ public class RuntimeBoxUnboxPropagator {
     }
 
     public static void getChars(long l, int idx, char[] ar, PhosphorStackFrame phosphorStackFrame) {
-        LazyCharArrayObjTags ta = phosphorStackFrame.getArgWrapper(2, ar);
+        TaggedCharArray ta = phosphorStackFrame.getArgWrapper(2, ar);
         Taint lt = phosphorStackFrame.getArgTaint(0);
         InstrumentedJREMethodHelper.java_lang_Long_getChars(l, idx, ta.val);
         if(lt != null) {
@@ -55,7 +55,7 @@ public class RuntimeBoxUnboxPropagator {
     }
 
     public static void getChars(int i, int idx, char[] ar, PhosphorStackFrame phosphorStackFrame) {
-        LazyCharArrayObjTags ta = phosphorStackFrame.getArgWrapper(2, ar);
+        TaggedCharArray ta = phosphorStackFrame.getArgWrapper(2, ar);
         Taint it = phosphorStackFrame.getArgTaint(0);
         InstrumentedJREMethodHelper.java_lang_Integer_getChars(i, idx, ta.val);
         if(it != null) {
@@ -75,7 +75,7 @@ public class RuntimeBoxUnboxPropagator {
     }
 
     public static int getChars(int i, int idx, byte[] ar, PhosphorStackFrame phosphorStackFrame) {
-        LazyByteArrayObjTags ta = phosphorStackFrame.getArgWrapper(2, ar);
+        TaggedByteArray ta = phosphorStackFrame.getArgWrapper(2, ar);
         Taint it = phosphorStackFrame.getArgTaint(0);
         int ret = InstrumentedJREMethodHelper.java_lang_Integer_getChars(i, idx, ta.val);
         if(it != null) {
@@ -96,7 +96,7 @@ public class RuntimeBoxUnboxPropagator {
     }
 
     public static int getChars(long i, int idx, byte[] ar, PhosphorStackFrame phosphorStackFrame) {
-        LazyByteArrayObjTags ta = phosphorStackFrame.getArgWrapper(2, ar);
+        TaggedByteArray ta = phosphorStackFrame.getArgWrapper(2, ar);
         Taint it = phosphorStackFrame.getArgTaint(0);
         int ret = InstrumentedJREMethodHelper.java_lang_Long_getChars(i, idx, ta.val);
         if (it != null) {

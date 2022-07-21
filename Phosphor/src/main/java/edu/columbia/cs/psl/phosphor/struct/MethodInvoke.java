@@ -12,6 +12,6 @@ public class MethodInvoke {
     public Taint m_taint;
     public Object o;
     public Taint o_taint;
-    public LazyReferenceArrayObjTags a;
+    public TaggedReferenceArray a;
     public Taint a_taint;
 }

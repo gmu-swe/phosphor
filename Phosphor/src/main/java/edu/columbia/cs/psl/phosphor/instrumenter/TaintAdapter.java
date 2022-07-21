@@ -8,7 +8,7 @@ import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
@@ -61,7 +61,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     void ensureUnBoxedAt(int n, Type t) {
         switch (n) {
             case 0:
-                super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxRaw",
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class), "unboxRaw",
                         "(Ljava/lang/Object;)Ljava/lang/Object;", false);
                 super.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
                 break;
@@ -70,14 +70,14 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
                 if (top == Opcodes.LONG || top == Opcodes.DOUBLE || top == Opcodes.TOP) {
                     super.visitInsn(DUP2_X1);
                     super.visitInsn(POP2);
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
+                    super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class),
                             "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
                     super.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
                     super.visitInsn(DUP_X2);
                     super.visitInsn(POP);
                 } else {
                     super.visitInsn(SWAP);
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
+                    super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class),
                             "unboxRaw", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
                     super.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
                     super.visitInsn(SWAP);
@@ -86,7 +86,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             default:
                 LocalVariableNode[] d = storeToLocals(n);
 
-                super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "unboxRaw",
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class), "unboxRaw",
                         "(Ljava/lang/Object;)Ljava/lang/Object;", false);
                 super.visitTypeInsn(Opcodes.CHECKCAST, t.getInternalName());
                 for (int i = n - 1; i >= 0; i--) {
@@ -254,7 +254,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
             super.visitJumpInsn(IFNULL, isNull);
             super.visitInsn(TaintUtils.IGNORE_EVERYTHING);
-            Type wrapType = MultiDTaintedArray.getTypeForType(arrayType);
+            Type wrapType = MultiDArrayUtils.getTypeForType(arrayType);
 
             super.visitInsn(DUP);
             super.visitTypeInsn(NEW, wrapType.getInternalName());
@@ -386,13 +386,6 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
         return ret;
     }
 
-    public void unwrapTaintedInt() {
-        super.visitInsn(DUP);
-        getTaintFieldOfBoxedType(Configuration.TAINTED_INT_INTERNAL_NAME);
-        super.visitInsn(SWAP);
-        super.visitFieldInsn(GETFIELD, Configuration.TAINTED_INT_INTERNAL_NAME, "val", "I");
-    }
-
     public void push(final int value) {
         if (value >= -1 && value <= 5) {
             super.visitInsn(Opcodes.ICONST_0 + value);
@@ -474,7 +467,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             mv.visitInsn(DUP);
             mv.visitInsn(DUP);
             mv.visitInsn(ARRAYLENGTH);
-            Type toUse = MultiDTaintedArray.getTypeForType(arrayType);
+            Type toUse = MultiDArrayUtils.getTypeForType(arrayType);
             if (toUse.getSort() == Type.ARRAY) {
                 toUse = toUse.getElementType();
             }
@@ -486,7 +479,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             mv.visitInsn(DUP);
             mv.visitInsn(DUP);
             mv.visitInsn(ARRAYLENGTH);
-            Type toUse = MultiDTaintedArray.getTypeForType(arrayType);
+            Type toUse = MultiDArrayUtils.getTypeForType(arrayType);
             if (toUse.getSort() == Type.ARRAY) {
                 toUse = toUse.getElementType();
             }

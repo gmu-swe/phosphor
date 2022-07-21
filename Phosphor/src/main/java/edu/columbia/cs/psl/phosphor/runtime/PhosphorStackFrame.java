@@ -107,19 +107,19 @@ public class PhosphorStackFrame {
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_OBJECT)
-    public LazyReferenceArrayObjTags getArgWrapper(int idx, Object[] actual) {
+    public TaggedReferenceArray getArgWrapper(int idx, Object[] actual) {
         Object ret = getAndClearWrappedArgInternal(idx);
-        if (ret == null || !(ret instanceof LazyReferenceArrayObjTags)) {
+        if (ret == null || !(ret instanceof TaggedReferenceArray)) {
             if (actual != null) {
-                return new LazyReferenceArrayObjTags(actual);
+                return new TaggedReferenceArray(actual);
             }
             return null;
         }
-        LazyReferenceArrayObjTags refWrapper = (LazyReferenceArrayObjTags) ret;
+        TaggedReferenceArray refWrapper = (TaggedReferenceArray) ret;
         if (refWrapper.val != actual && actual != null) {
-            return new LazyReferenceArrayObjTags(actual);
+            return new TaggedReferenceArray(actual);
         }
-        return (LazyReferenceArrayObjTags) ret;
+        return (TaggedReferenceArray) ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_GENERIC)
@@ -135,131 +135,131 @@ public class PhosphorStackFrame {
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_BOOLEAN)
-    public LazyBooleanArrayObjTags getArgWrapper(int idx, boolean[] actual) {
+    public TaggedBooleanArray getArgWrapper(int idx, boolean[] actual) {
         Object ret = getAndClearWrappedArgInternal(idx);
-        if (!(ret instanceof LazyBooleanArrayObjTags)) {
+        if (!(ret instanceof TaggedBooleanArray)) {
             if (actual != null) {
-                return new LazyBooleanArrayObjTags(actual);
+                return new TaggedBooleanArray(actual);
             }
             return null;
         }
-        LazyBooleanArrayObjTags refWrapper = (LazyBooleanArrayObjTags) ret;
+        TaggedBooleanArray refWrapper = (TaggedBooleanArray) ret;
         if (refWrapper.val != actual && actual != null) {
-            return new LazyBooleanArrayObjTags(actual);
+            return new TaggedBooleanArray(actual);
         }
-        return (LazyBooleanArrayObjTags) ret;
+        return (TaggedBooleanArray) ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_BYTE)
-    public LazyByteArrayObjTags getArgWrapper(int idx, byte[] actual) {
+    public TaggedByteArray getArgWrapper(int idx, byte[] actual) {
         Object ret = getAndClearWrappedArgInternal(idx);
-        if (!(ret instanceof LazyByteArrayObjTags)) {
+        if (!(ret instanceof TaggedByteArray)) {
             if (actual != null) {
-                return new LazyByteArrayObjTags(actual);
+                return new TaggedByteArray(actual);
             }
             return null;
         }
-        LazyByteArrayObjTags refWrapper = (LazyByteArrayObjTags) ret;
+        TaggedByteArray refWrapper = (TaggedByteArray) ret;
         if (refWrapper.val != actual && actual != null) {
-            return new LazyByteArrayObjTags(actual);
+            return new TaggedByteArray(actual);
         }
-        return (LazyByteArrayObjTags) ret;
+        return (TaggedByteArray) ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_CHAR)
-    public LazyCharArrayObjTags getArgWrapper(int idx, char[] actual) {
+    public TaggedCharArray getArgWrapper(int idx, char[] actual) {
         Object ret = getAndClearWrappedArgInternal(idx);
-        if (!(ret instanceof LazyCharArrayObjTags)) {
+        if (!(ret instanceof TaggedCharArray)) {
             if (actual != null) {
-                return new LazyCharArrayObjTags(actual);
+                return new TaggedCharArray(actual);
             }
             return null;
         }
-        LazyCharArrayObjTags refWrapper = (LazyCharArrayObjTags) ret;
+        TaggedCharArray refWrapper = (TaggedCharArray) ret;
         if (refWrapper.val != actual && actual != null) {
-            return new LazyCharArrayObjTags(actual);
+            return new TaggedCharArray(actual);
         }
-        return (LazyCharArrayObjTags) ret;
+        return (TaggedCharArray) ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_FLOAT)
-    public LazyFloatArrayObjTags getArgWrapper(int idx, float[] actual) {
+    public TaggedFloatArray getArgWrapper(int idx, float[] actual) {
         Object ret = getAndClearWrappedArgInternal(idx);
-        if (!(ret instanceof LazyFloatArrayObjTags)) {
+        if (!(ret instanceof TaggedFloatArray)) {
             if (actual != null) {
-                return new LazyFloatArrayObjTags(actual);
+                return new TaggedFloatArray(actual);
             }
             return null;
         }
-        LazyFloatArrayObjTags refWrapper = (LazyFloatArrayObjTags) ret;
+        TaggedFloatArray refWrapper = (TaggedFloatArray) ret;
         if (refWrapper.val != actual && actual != null) {
-            return new LazyFloatArrayObjTags(actual);
+            return new TaggedFloatArray(actual);
         }
-        return (LazyFloatArrayObjTags) ret;
+        return (TaggedFloatArray) ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_INT)
-    public LazyIntArrayObjTags getArgWrapper(int idx, int[] actual) {
+    public TaggedIntArray getArgWrapper(int idx, int[] actual) {
         Object ret = getAndClearWrappedArgInternal(idx);
-        if (!(ret instanceof LazyIntArrayObjTags)) {
+        if (!(ret instanceof TaggedIntArray)) {
             if (actual != null) {
-                return new LazyIntArrayObjTags(actual);
+                return new TaggedIntArray(actual);
             }
             return null;
         }
-        LazyIntArrayObjTags refWrapper = (LazyIntArrayObjTags) ret;
+        TaggedIntArray refWrapper = (TaggedIntArray) ret;
         if (refWrapper.val != actual && actual != null) {
-            return new LazyIntArrayObjTags(actual);
+            return new TaggedIntArray(actual);
         }
-        return (LazyIntArrayObjTags) ret;
+        return (TaggedIntArray) ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_SHORT)
-    public LazyShortArrayObjTags getArgWrapper(int idx, short[] actual) {
+    public TaggedShortArray getArgWrapper(int idx, short[] actual) {
         Object ret = getAndClearWrappedArgInternal(idx);
-        if (!(ret instanceof LazyShortArrayObjTags)) {
+        if (!(ret instanceof TaggedShortArray)) {
             if (actual != null) {
-                return new LazyShortArrayObjTags(actual);
+                return new TaggedShortArray(actual);
             }
             return null;
         }
-        LazyShortArrayObjTags refWrapper = (LazyShortArrayObjTags) ret;
+        TaggedShortArray refWrapper = (TaggedShortArray) ret;
         if (refWrapper.val != actual && actual != null) {
-            return new LazyShortArrayObjTags(actual);
+            return new TaggedShortArray(actual);
         }
-        return (LazyShortArrayObjTags) ret;
+        return (TaggedShortArray) ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_LONG)
-    public LazyLongArrayObjTags getArgWrapper(int idx, long[] actual) {
+    public TaggedLongArray getArgWrapper(int idx, long[] actual) {
         Object ret = getAndClearWrappedArgInternal(idx);
-        if (!(ret instanceof LazyLongArrayObjTags)) {
+        if (!(ret instanceof TaggedLongArray)) {
             if (actual != null) {
-                return new LazyLongArrayObjTags(actual);
+                return new TaggedLongArray(actual);
             }
             return null;
         }
-        LazyLongArrayObjTags refWrapper = (LazyLongArrayObjTags) ret;
+        TaggedLongArray refWrapper = (TaggedLongArray) ret;
         if (refWrapper.val != actual && actual != null) {
-            return new LazyLongArrayObjTags(actual);
+            return new TaggedLongArray(actual);
         }
-        return (LazyLongArrayObjTags) ret;
+        return (TaggedLongArray) ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_DOUBLE)
-    public LazyDoubleArrayObjTags getArgWrapper(int idx, double[] actual) {
+    public TaggedDoubleArray getArgWrapper(int idx, double[] actual) {
         Object ret = getAndClearWrappedArgInternal(idx);
-        if (!(ret instanceof LazyDoubleArrayObjTags)) {
+        if (!(ret instanceof TaggedDoubleArray)) {
             if (actual != null) {
-                return new LazyDoubleArrayObjTags(actual);
+                return new TaggedDoubleArray(actual);
             }
             return null;
         }
-        LazyDoubleArrayObjTags refWrapper = (LazyDoubleArrayObjTags) ret;
+        TaggedDoubleArray refWrapper = (TaggedDoubleArray) ret;
         if (refWrapper.val != actual && actual != null) {
-            return new LazyDoubleArrayObjTags(actual);
+            return new TaggedDoubleArray(actual);
         }
-        return (LazyDoubleArrayObjTags) ret;
+        return (TaggedDoubleArray) ret;
     }
 
 
@@ -370,149 +370,149 @@ public class PhosphorStackFrame {
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_RETURN_WRAPPER_OBJECT)
-    public LazyReferenceArrayObjTags getReturnWrapper(Object[] unwrapped) {
-        if (!(wrappedReturn instanceof LazyReferenceArrayObjTags)) {
+    public TaggedReferenceArray getReturnWrapper(Object[] unwrapped) {
+        if (!(wrappedReturn instanceof TaggedReferenceArray)) {
             if (unwrapped != null) {
                 if (unwrapped.getClass().getComponentType().isArray()) {
                     //Multi-d array
-                    return LazyReferenceArrayObjTags.forMultiDArray(unwrapped);
+                    return TaggedReferenceArray.forMultiDArray(unwrapped);
                 }
-                return new LazyReferenceArrayObjTags(unwrapped);
+                return new TaggedReferenceArray(unwrapped);
             }
             return null;
         }
-        LazyReferenceArrayObjTags ret = (LazyReferenceArrayObjTags) wrappedReturn;
+        TaggedReferenceArray ret = (TaggedReferenceArray) wrappedReturn;
         this.wrappedReturn = null;
         if (ret == null || (unwrapped != null && ret.val != unwrapped)) {
-            return new LazyReferenceArrayObjTags(unwrapped);
+            return new TaggedReferenceArray(unwrapped);
         }
         return ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_RETURN_WRAPPER_CHAR)
-    public LazyCharArrayObjTags getReturnWrapper(char[] unwrapped) {
-        if (!(wrappedReturn instanceof LazyCharArrayObjTags)) {
+    public TaggedCharArray getReturnWrapper(char[] unwrapped) {
+        if (!(wrappedReturn instanceof TaggedCharArray)) {
             if (unwrapped != null) {
-                return new LazyCharArrayObjTags(unwrapped);
+                return new TaggedCharArray(unwrapped);
             }
             return null;
         }
-        LazyCharArrayObjTags ret = (LazyCharArrayObjTags) wrappedReturn;
+        TaggedCharArray ret = (TaggedCharArray) wrappedReturn;
         this.wrappedReturn = null;
         if (ret == null || (unwrapped != null && ret.val != unwrapped)) {
-            return new LazyCharArrayObjTags(unwrapped);
+            return new TaggedCharArray(unwrapped);
         }
         return ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_RETURN_WRAPPER_SHORT)
-    public LazyShortArrayObjTags getReturnWrapper(short[] unwrapped) {
-        if (!(wrappedReturn instanceof LazyShortArrayObjTags)) {
+    public TaggedShortArray getReturnWrapper(short[] unwrapped) {
+        if (!(wrappedReturn instanceof TaggedShortArray)) {
             if (unwrapped != null) {
-                return new LazyShortArrayObjTags(unwrapped);
+                return new TaggedShortArray(unwrapped);
             }
             return null;
         }
-        LazyShortArrayObjTags ret = (LazyShortArrayObjTags) wrappedReturn;
+        TaggedShortArray ret = (TaggedShortArray) wrappedReturn;
         this.wrappedReturn = null;
         if (ret == null || (unwrapped != null && ret.val != unwrapped)) {
-            return new LazyShortArrayObjTags(unwrapped);
+            return new TaggedShortArray(unwrapped);
         }
         return ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_RETURN_WRAPPER_BYTE)
-    public LazyByteArrayObjTags getReturnWrapper(byte[] unwrapped) {
-        if (!(wrappedReturn instanceof LazyByteArrayObjTags)) {
+    public TaggedByteArray getReturnWrapper(byte[] unwrapped) {
+        if (!(wrappedReturn instanceof TaggedByteArray)) {
             if (unwrapped != null) {
-                return new LazyByteArrayObjTags(unwrapped);
+                return new TaggedByteArray(unwrapped);
             }
             return null;
         }
-        LazyByteArrayObjTags ret = (LazyByteArrayObjTags) wrappedReturn;
+        TaggedByteArray ret = (TaggedByteArray) wrappedReturn;
         this.wrappedReturn = null;
         if (ret == null || (unwrapped != null && ret.val != unwrapped)) {
-            return new LazyByteArrayObjTags(unwrapped);
+            return new TaggedByteArray(unwrapped);
         }
         return ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_RETURN_WRAPPER_BOOLEAN)
-    public LazyBooleanArrayObjTags getReturnWrapper(boolean[] unwrapped) {
-        if (!(wrappedReturn instanceof LazyBooleanArrayObjTags)) {
+    public TaggedBooleanArray getReturnWrapper(boolean[] unwrapped) {
+        if (!(wrappedReturn instanceof TaggedBooleanArray)) {
             if (unwrapped != null) {
-                return new LazyBooleanArrayObjTags(unwrapped);
+                return new TaggedBooleanArray(unwrapped);
             }
             return null;
         }
-        LazyBooleanArrayObjTags ret = (LazyBooleanArrayObjTags) wrappedReturn;
+        TaggedBooleanArray ret = (TaggedBooleanArray) wrappedReturn;
         this.wrappedReturn = null;
         if (ret == null || (unwrapped != null && ret.val != unwrapped)) {
-            return new LazyBooleanArrayObjTags(unwrapped);
+            return new TaggedBooleanArray(unwrapped);
         }
         return ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_RETURN_WRAPPER_LONG)
-    public LazyLongArrayObjTags getReturnWrapper(long[] unwrapped) {
-        if (!(wrappedReturn instanceof LazyLongArrayObjTags)) {
+    public TaggedLongArray getReturnWrapper(long[] unwrapped) {
+        if (!(wrappedReturn instanceof TaggedLongArray)) {
             if (unwrapped != null) {
-                return new LazyLongArrayObjTags(unwrapped);
+                return new TaggedLongArray(unwrapped);
             }
             return null;
         }
-        LazyLongArrayObjTags ret = (LazyLongArrayObjTags) wrappedReturn;
+        TaggedLongArray ret = (TaggedLongArray) wrappedReturn;
         this.wrappedReturn = null;
         if (ret == null || (unwrapped != null && ret.val != unwrapped)) {
-            return new LazyLongArrayObjTags(unwrapped);
+            return new TaggedLongArray(unwrapped);
         }
         return ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_RETURN_WRAPPER_INT)
-    public LazyIntArrayObjTags getReturnWrapper(int[] unwrapped) {
-        if (!(wrappedReturn instanceof LazyIntArrayObjTags)) {
+    public TaggedIntArray getReturnWrapper(int[] unwrapped) {
+        if (!(wrappedReturn instanceof TaggedIntArray)) {
             if (unwrapped != null) {
-                return new LazyIntArrayObjTags(unwrapped);
+                return new TaggedIntArray(unwrapped);
             }
             return null;
         }
-        LazyIntArrayObjTags ret = (LazyIntArrayObjTags) wrappedReturn;
+        TaggedIntArray ret = (TaggedIntArray) wrappedReturn;
         this.wrappedReturn = null;
         if (ret == null || (unwrapped != null && ret.val != unwrapped)) {
-            return new LazyIntArrayObjTags(unwrapped);
+            return new TaggedIntArray(unwrapped);
         }
         return ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_RETURN_WRAPPER_FLOAT)
-    public LazyFloatArrayObjTags getReturnWrapper(float[] unwrapped) {
-        if (!(wrappedReturn instanceof LazyFloatArrayObjTags)) {
+    public TaggedFloatArray getReturnWrapper(float[] unwrapped) {
+        if (!(wrappedReturn instanceof TaggedFloatArray)) {
             if (unwrapped != null) {
-                return new LazyFloatArrayObjTags(unwrapped);
+                return new TaggedFloatArray(unwrapped);
             }
             return null;
         }
-        LazyFloatArrayObjTags ret = (LazyFloatArrayObjTags) wrappedReturn;
+        TaggedFloatArray ret = (TaggedFloatArray) wrappedReturn;
         this.wrappedReturn = null;
         if (ret == null || (unwrapped != null && ret.val != unwrapped)) {
-            return new LazyFloatArrayObjTags(unwrapped);
+            return new TaggedFloatArray(unwrapped);
         }
         return ret;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_RETURN_WRAPPER_DOUBLE)
-    public LazyDoubleArrayObjTags getReturnWrapper(double[] unwrapped) {
-        if (!(wrappedReturn instanceof LazyDoubleArrayObjTags)) {
+    public TaggedDoubleArray getReturnWrapper(double[] unwrapped) {
+        if (!(wrappedReturn instanceof TaggedDoubleArray)) {
             if (unwrapped != null) {
-                return new LazyDoubleArrayObjTags(unwrapped);
+                return new TaggedDoubleArray(unwrapped);
             }
             return null;
         }
-        LazyDoubleArrayObjTags ret = (LazyDoubleArrayObjTags) wrappedReturn;
+        TaggedDoubleArray ret = (TaggedDoubleArray) wrappedReturn;
         this.wrappedReturn = null;
         if (ret == null || (unwrapped != null && ret.val != unwrapped)) {
-            return new LazyDoubleArrayObjTags(unwrapped);
+            return new TaggedDoubleArray(unwrapped);
         }
         return ret;
     }

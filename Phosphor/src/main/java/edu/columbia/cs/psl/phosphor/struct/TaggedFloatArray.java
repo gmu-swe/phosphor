@@ -12,26 +12,26 @@ import java.io.ObjectOutputStream;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_FLOAT_ARRAY_GET;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_FLOAT_ARRAY_SET;
 
-public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
+public final class TaggedFloatArray extends TaggedArray {
 
     private static final long serialVersionUID = 6150577887427835055L;
 
     public float[] val;
 
-    public LazyFloatArrayObjTags(int len) {
+    public TaggedFloatArray(int len) {
         val = new float[len];
     }
 
-    public LazyFloatArrayObjTags(float[] array, Taint[] taints) {
+    public TaggedFloatArray(float[] array, Taint[] taints) {
         this.taints = taints;
         this.val = array;
     }
 
-    public LazyFloatArrayObjTags(float[] array) {
+    public TaggedFloatArray(float[] array) {
         this.val = array;
     }
 
-    public LazyFloatArrayObjTags(Taint lenTaint, float[] array) {
+    public TaggedFloatArray(Taint lenTaint, float[] array) {
         this.val = array;
         this.lengthTaint = lenTaint;
     }
@@ -43,7 +43,7 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
 
     @Override
     public Object clone() {
-        return new LazyFloatArrayObjTags(val.clone(), (taints != null) ? taints.clone() : null);
+        return new TaggedFloatArray(val.clone(), (taints != null) ? taints.clone() : null);
     }
 
     public void set(int idx, float val, Taint tag) {
@@ -61,18 +61,18 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
         return Configuration.derivedTaintListener.arrayGet(this, idx, idxTaint, ret);
     }
 
-    public static LazyFloatArrayObjTags factory(float[] array) {
+    public static TaggedFloatArray factory(float[] array) {
         if(array == null) {
             return null;
         }
-        return new LazyFloatArrayObjTags(array);
+        return new TaggedFloatArray(array);
     }
 
-    public static LazyFloatArrayObjTags factory(float[] array, Taint lengthTaint) {
+    public static TaggedFloatArray factory(float[] array, Taint lengthTaint) {
         if (array == null) {
             return null;
         }
-        return new LazyFloatArrayObjTags(lengthTaint, array);
+        return new TaggedFloatArray(lengthTaint, array);
     }
 
     public int getLength() {
@@ -90,7 +90,7 @@ public final class LazyFloatArrayObjTags extends LazyArrayObjTags {
         }
     }
 
-    public static float[] unwrap(LazyFloatArrayObjTags obj) {
+    public static float[] unwrap(TaggedFloatArray obj) {
         if (obj != null) {
             return obj.val;
         }

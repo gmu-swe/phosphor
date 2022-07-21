@@ -1,9 +1,5 @@
 package edu.columbia.cs.psl.phosphor.runtime.proxied;
 
-import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
-import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
-
 public class InstrumentedJREMethodHelper {
     private static RuntimeException _crash() {
         return new IllegalStateException("InstrumentedJREHelper not initialized");
@@ -52,15 +48,4 @@ public class InstrumentedJREMethodHelper {
         throw _crash();
     }
 
-    public static String java_lang_String_init(Taint refTaint, LazyCharArrayObjTags chars, Taint tag, ControlFlowStack ctrl) {
-        throw _crash();
-    }
-
-    public static Long java_lang_Long_init(Taint refTaint, long l, Taint t, ControlFlowStack ctrl) {
-        throw _crash();
-    }
-
-    public static Long java_lang_Long_init(Taint refTaint, long l, Taint t) {
-        throw _crash();
-    }
 }

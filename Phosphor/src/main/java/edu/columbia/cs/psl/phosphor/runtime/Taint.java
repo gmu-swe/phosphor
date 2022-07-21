@@ -20,7 +20,7 @@ public abstract class Taint<T> implements Serializable {
 
     /* Returns an array containing this taint's labels or label indices if the BitSet representation is used. */
     public Object[] getLabels(T[] arr, PhosphorStackFrame phosphorStackFrame) {
-        LazyReferenceArrayObjTags ret = new LazyReferenceArrayObjTags(getLabels(arr));
+        TaggedReferenceArray ret = new TaggedReferenceArray(getLabels(arr));
         phosphorStackFrame.setWrappedReturn(ret);
         return ret.val;
     }
@@ -202,18 +202,18 @@ public abstract class Taint<T> implements Serializable {
         Taint existing = InstrumentedJREFieldHelper.getPHOSPHOR_TAG(str);
         InstrumentedJREFieldHelper.setPHOSPHOR_TAG(str, combineTags(existing, stackFrame));
 
-        LazyArrayObjTags tags;
+        TaggedArray tags;
         if(Configuration.IS_JAVA_8){
             tags = InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER(str);
             if (tags == null) {
-                LazyCharArrayObjTags newWrapper = new LazyCharArrayObjTags(InstrumentedJREFieldHelper.JAVA_8getvalue(str));
+                TaggedCharArray newWrapper = new TaggedCharArray(InstrumentedJREFieldHelper.JAVA_8getvalue(str));
                 InstrumentedJREFieldHelper.JAVA_8setvaluePHOSPHOR_WRAPPER(str, newWrapper);
                 tags = newWrapper;
             }
         } else{
             tags = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str);
             if (tags == null) {
-                LazyByteArrayObjTags newWrapper = new LazyByteArrayObjTags(InstrumentedJREFieldHelper.getvalue(str));
+                TaggedByteArray newWrapper = new TaggedByteArray(InstrumentedJREFieldHelper.getvalue(str));
                 InstrumentedJREFieldHelper.setvaluePHOSPHOR_WRAPPER(str, newWrapper);
                 tags = newWrapper;
             }

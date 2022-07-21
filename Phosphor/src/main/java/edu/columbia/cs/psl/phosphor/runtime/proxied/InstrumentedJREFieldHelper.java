@@ -3,9 +3,9 @@ package edu.columbia.cs.psl.phosphor.runtime.proxied;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.RuntimeJDKInternalUnsafePropagator;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.LazyByteArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
+import edu.columbia.cs.psl.phosphor.struct.TaggedByteArray;
+import edu.columbia.cs.psl.phosphor.struct.TaggedCharArray;
 
 import java.lang.reflect.Method;
 
@@ -23,11 +23,11 @@ public class InstrumentedJREFieldHelper {
         throw _crash();
     }
 
-    public static LazyCharArrayObjTags JAVA_8getvaluePHOSPHOR_WRAPPER(String str) {
+    public static TaggedCharArray JAVA_8getvaluePHOSPHOR_WRAPPER(String str) {
         throw _crash();
     }
 
-    public static void JAVA_8setvaluePHOSPHOR_WRAPPER(String str, LazyCharArrayObjTags v) {
+    public static void JAVA_8setvaluePHOSPHOR_WRAPPER(String str, TaggedCharArray v) {
         throw _crash();
     }
 
@@ -35,11 +35,11 @@ public class InstrumentedJREFieldHelper {
         throw _crash();
     }
 
-    public static LazyByteArrayObjTags getvaluePHOSPHOR_WRAPPER(String str) {
+    public static TaggedByteArray getvaluePHOSPHOR_WRAPPER(String str) {
         throw _crash();
     }
 
-    public static void setvaluePHOSPHOR_WRAPPER(String str, LazyByteArrayObjTags v) {
+    public static void setvaluePHOSPHOR_WRAPPER(String str, TaggedByteArray v) {
         throw _crash();
     }
 

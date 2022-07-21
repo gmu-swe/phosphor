@@ -4,7 +4,6 @@ import edu.columbia.cs.psl.phosphor.runtime.AutoTaintLabel;
 import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
 import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;

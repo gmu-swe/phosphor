@@ -4,7 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -71,7 +71,7 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
         if (descType.getSort() == Type.ARRAY && descType.getDimensions() > 1
                 && descType.getElementType().getSort() != Type.OBJECT) {
             // remap!
-            desc = MultiDTaintedArray.getTypeForType(descType).getDescriptor();
+            desc = MultiDArrayUtils.getTypeForType(descType).getDescriptor();
         }
         super.visitLocalVariable(name, desc, signature, start, end, index);
     }
@@ -80,10 +80,6 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
     public void visitTypeInsn(int opcode, String type) {
         if (opcode > 200) {
             return;
-        }
-        // TODO delete this check
-        if (opcode == Opcodes.CHECKCAST && type.startsWith("[Ledu/columbia/cs/psl/phosphor/struct/LazyReference")) {
-            throw new IllegalStateException();
         }
         super.visitTypeInsn(opcode, type);
     }

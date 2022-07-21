@@ -726,7 +726,6 @@ public class Instrumenter {
         classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/control/standard", 0, null));
         classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/runtime", 0, null));
         classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/struct", 0, null));
-        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/struct/multid", 0, null));
 
         //Add pac
         classNode.module.packages.addAll(packages);

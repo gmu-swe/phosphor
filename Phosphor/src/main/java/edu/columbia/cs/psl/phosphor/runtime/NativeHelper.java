@@ -1,8 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyReferenceArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.TaggedArray;
+import edu.columbia.cs.psl.phosphor.struct.TaggedReferenceArray;
 import org.objectweb.asm.Type;
 
 import java.util.Collection;
@@ -14,11 +13,11 @@ public final class NativeHelper {
     }
 
     public static Class<?> getClassOrWrapped(Object in) {
-        if(in instanceof LazyReferenceArrayObjTags) {
-            return ((LazyReferenceArrayObjTags) in).getUnderlyingClass();
+        if(in instanceof TaggedReferenceArray) {
+            return ((TaggedReferenceArray) in).getUnderlyingClass();
         }
-        if(in instanceof LazyArrayObjTags) {
-            return ((LazyArrayObjTags) in).getVal().getClass();
+        if(in instanceof TaggedArray) {
+            return ((TaggedArray) in).getVal().getClass();
         }
         return in.getClass();
     }
@@ -40,7 +39,7 @@ public final class NativeHelper {
                             ex.printStackTrace();
                         }
                     }
-                    tmp.add(MultiDTaintedArrayWithObjTag.boxIfNecessary(o));
+                    tmp.add(MultiDArrayUtils.boxIfNecessary(o));
                 } else {
                     break;
                 }
@@ -57,7 +56,7 @@ public final class NativeHelper {
         if(in != null) {
             Collection tmp = null;
             for(Object o : in) {
-                if(o != null && MultiDTaintedArrayWithObjTag.isPrimitiveBoxClass(o.getClass()) != null) {
+                if(o != null && MultiDArrayUtils.isPrimitiveBoxClass(o.getClass()) != null) {
                     if(tmp == null) {
                         try {
                             tmp = in.getClass().getConstructor().newInstance(null);
@@ -65,7 +64,7 @@ public final class NativeHelper {
                             ex.printStackTrace();
                         }
                     }
-                    tmp.add(MultiDTaintedArrayWithObjTag.unboxRaw(o));
+                    tmp.add(MultiDArrayUtils.unboxRaw(o));
                 } else {
                     break;
                 }

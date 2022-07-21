@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaggedCharArray;
 import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
 import org.junit.Test;
 
@@ -178,7 +178,7 @@ public class ReflectionObjTagITCase extends BaseMultiTaintClass {
 	 * like LazyCharArrayObjTags are not remapped. */
 	@Test
 	public void testPrimitiveArrayIgnoredConstructor() throws Exception {
-		Constructor<LazyCharArrayObjTags> constructor = LazyCharArrayObjTags.class.getDeclaredConstructor(Taint.class, char[].class);
+		Constructor<TaggedCharArray> constructor = TaggedCharArray.class.getDeclaredConstructor(Taint.class, char[].class);
 		Object result = constructor.newInstance(null, "testPrimitiveArrayIgnoredConstructor".toCharArray());
 		assertNotNull(result);
 	}

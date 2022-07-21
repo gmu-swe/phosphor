@@ -23,12 +23,8 @@ public class Configuration {
     public static final int ASM_VERSION = Opcodes.ASM9;
     public static final String TAINT_TAG_DESC = "Ledu/columbia/cs/psl/phosphor/runtime/Taint;";
     public static final String TAINT_TAG_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/runtime/Taint";
-    public static final String TAINT_TAG_ARRAY_DESC = "Ledu/columbia/cs/psl/phosphor/struct/LazyArrayObjTags;";
-    public static final String TAINT_TAG_ARRAY_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/struct/LazyArrayObjTags";
+    public static final String TAINT_TAG_ARRAY_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/struct/TaggedArray";
     public static final Object TAINT_TAG_STACK_TYPE = "edu/columbia/cs/psl/phosphor/runtime/Taint";
-    public static final String MULTI_TAINT_HANDLER_CLASS = "edu/columbia/cs/psl/phosphor/runtime/Taint";
-    public static final String TAINTED_INT_INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/struct/TaintedIntWithObjTag";
-    public static final String TAINTED_INT_DESC = "L" + TAINTED_INT_INTERNAL_NAME + ";";
     public static final int TAINT_LOAD_OPCODE = Opcodes.ALOAD;
     public static final int TAINT_STORE_OPCODE = Opcodes.ASTORE;
     public static final Class<?> TAINT_TAG_OBJ_CLASS = (Taint.class);

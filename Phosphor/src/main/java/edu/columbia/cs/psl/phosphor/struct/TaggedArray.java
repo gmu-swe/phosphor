@@ -1,6 +1,5 @@
 package edu.columbia.cs.psl.phosphor.struct;
 
-import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 
@@ -9,7 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-public abstract class LazyArrayObjTags implements Cloneable, Serializable {
+public abstract class TaggedArray implements Cloneable, Serializable {
 
     private static final long serialVersionUID = -2635717960621951243L;
 
@@ -18,11 +17,11 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
     // Used to mark this object as visited when searching
     public int $$PHOSPHOR_MARK = Integer.MIN_VALUE;
 
-    public LazyArrayObjTags(Taint[] taints) {
+    public TaggedArray(Taint[] taints) {
         this.taints = taints;
     }
 
-    public LazyArrayObjTags() {
+    public TaggedArray() {
     }
 
     public abstract Object getVal();
@@ -47,7 +46,7 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
     protected void checkAIOOB(Taint idxTaint, int idx, PhosphorStackFrame ctrl) {
         if(idx >= getLength()) {
             ArrayIndexOutOfBoundsException ex = new ArrayIndexOutOfBoundsException("" + idx);
-            MultiTainter.taintedObject(ex, Taint.combineTags(idxTaint, ctrl));
+            //TODO when we start tainting phosphorStackFrame exception references, do that here...
             throw ex;
         }
     }
@@ -63,10 +62,10 @@ public abstract class LazyArrayObjTags implements Cloneable, Serializable {
         if(this == o) {
             return true;
         }
-        if(!(o instanceof LazyArrayObjTags)) {
+        if(!(o instanceof TaggedArray)) {
             return false;
         }
-        LazyArrayObjTags that = (LazyArrayObjTags) o;
+        TaggedArray that = (TaggedArray) o;
         return this.getVal() == that.getVal();
     }
 

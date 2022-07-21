@@ -9,44 +9,44 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_BYTE_ARRAY_GET;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_BYTE_ARRAY_SET;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_CHAR_ARRAY_GET;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_CHAR_ARRAY_SET;
 
-public final class LazyByteArrayObjTags extends LazyArrayObjTags {
+public final class TaggedCharArray extends TaggedArray {
 
-    private static final long serialVersionUID = -4166037313218353751L;
+    private static final long serialVersionUID = -2087734134268751452L;
 
-    public byte[] val;
+    public char[] val;
 
-    public LazyByteArrayObjTags(int len) {
-        val = new byte[len];
+    public TaggedCharArray(int len) {
+        val = new char[len];
     }
 
-    public LazyByteArrayObjTags(byte[] array, Taint[] taints) {
+    public TaggedCharArray(char[] array, Taint[] taints) {
         this.taints = taints;
         this.val = array;
     }
 
-    public LazyByteArrayObjTags(byte[] array) {
+    public TaggedCharArray(char[] array) {
         this.val = array;
     }
 
-    public LazyByteArrayObjTags(Taint lenTaint, byte[] array) {
+    public TaggedCharArray(Taint lenTaint, char[] array) {
         this.val = array;
         this.lengthTaint = lenTaint;
     }
 
-    @InvokedViaInstrumentation(record = TAINTED_BYTE_ARRAY_SET)
-    public void set(int idx, byte val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
+    @InvokedViaInstrumentation(record = TAINTED_CHAR_ARRAY_SET)
+    public void set(int idx, char val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
         set(idx, val, Configuration.derivedTaintListener.arraySet(this, idx, val, idxTaint, valTaint, stackFrame));
     }
 
     @Override
     public Object clone() {
-        return new LazyByteArrayObjTags(val.clone(), (taints != null) ? taints.clone() : null);
+        return new TaggedCharArray(val.clone(), (taints != null) ? taints.clone() : null);
     }
 
-    public void set(int idx, byte val, Taint tag) {
+    public void set(int idx, char val, Taint tag) {
         this.val[idx] = val;
         if(taints == null && tag != null && !tag.isEmpty()) {
             taints = new Taint[this.val.length];
@@ -56,23 +56,23 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
         }
     }
 
-    @InvokedViaInstrumentation(record = TAINTED_BYTE_ARRAY_GET)
-    public byte get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    @InvokedViaInstrumentation(record = TAINTED_CHAR_ARRAY_GET)
+    public char get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idx, idxTaint, ret);
     }
 
-    public static LazyByteArrayObjTags factory(byte[] array) {
+    public static TaggedCharArray factory(char[] array) {
         if(array == null) {
             return null;
         }
-        return new LazyByteArrayObjTags(array);
+        return new TaggedCharArray(array);
     }
 
-    public static LazyByteArrayObjTags factory(byte[] array, Taint lengthTaint) {
+    public static TaggedCharArray factory(char[] array, Taint lengthTaint) {
         if(array == null) {
             return null;
         }
-        return new LazyByteArrayObjTags(lengthTaint, array);
+        return new TaggedCharArray(lengthTaint, array);
     }
 
     public int getLength() {
@@ -84,13 +84,13 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
         return val;
     }
 
-    public void ensureVal(byte[] v) {
+    public void ensureVal(char[] v) {
         if (v != val) {
             val = v;
         }
     }
 
-    public static byte[] unwrap(LazyByteArrayObjTags obj) {
+    public static char[] unwrap(TaggedCharArray obj) {
         if (obj != null) {
             return obj.val;
         }
@@ -102,8 +102,8 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
             stream.writeInt(-1);
         } else {
             stream.writeInt(val.length);
-            for (byte el : val) {
-                stream.writeByte(el);
+            for (char el : val) {
+                stream.writeChar(el);
             }
         }
     }
@@ -113,9 +113,9 @@ public final class LazyByteArrayObjTags extends LazyArrayObjTags {
         if (len == -1) {
             val = null;
         } else {
-            val = new byte[len];
+            val = new char[len];
             for (int i = 0; i < len; i++) {
-                val[i] = stream.readByte();
+                val[i] = stream.readChar();
             }
         }
     }

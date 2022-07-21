@@ -9,8 +9,8 @@ import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.InstMethodSinkInterpre
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.PFrame;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.SinkableArrayValue;
+import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.*;
@@ -179,19 +179,19 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                                 if(origType.getSort() == Type.ARRAY && (origType.getElementType().getSort() != Type.OBJECT
                                         || origType.getElementType().getInternalName().equals("java/lang/Object"))) {
                                     if(origType.getElementType().getSort() != Type.OBJECT) {
-                                        Type wrappedType = MultiDTaintedArray.getTypeForType(origType);
+                                        Type wrappedType = MultiDArrayUtils.getTypeForType(origType);
                                         if(origType.getDimensions() == 1) {
                                             this.instructions.insertBefore(insn, new InsnNode(DUP));
-                                            this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
+                                            this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
                                             this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, wrappedType.getInternalName()));
                                             this.instructions.insertBefore(insn, new FieldInsnNode(PUTSTATIC, ((FieldInsnNode) insn).owner, ((FieldInsnNode) insn).name + TaintUtils.TAINT_WRAPPER_FIELD, wrappedType.getDescriptor()));
                                         } else {
                                             ((FieldInsnNode) insn).desc = wrappedType.getDescriptor();
-                                            this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
+                                            this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
                                             this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, wrappedType.getInternalName()));
                                         }
                                     } else {
-                                        this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
+                                        this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
                                         this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, origType.getInternalName()));
                                     }
                                 }
@@ -199,11 +199,11 @@ public class TaintLoadCoercer extends MethodVisitor implements Opcodes {
                                 Type origType = Type.getReturnType(this.desc);
                                 if(origType.getSort() == Type.ARRAY && (origType.getElementType().getSort() != Type.OBJECT || origType.getElementType().getInternalName().equals("java/lang/Object"))) {
                                     if(origType.getElementType().getSort() != Type.OBJECT) {
-                                        Type wrappedType = MultiDTaintedArray.getTypeForType(origType);
-                                        this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
+                                        Type wrappedType = MultiDArrayUtils.getTypeForType(origType);
+                                        this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
                                         this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, wrappedType.getInternalName()));
                                     } else {
-                                        this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
+                                        this.instructions.insertBefore(insn, new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class), "boxIfNecessary", "(Ljava/lang/Object;)Ljava/lang/Object;", false));
                                         this.instructions.insertBefore(insn, new TypeInsnNode(CHECKCAST, origType.getInternalName()));
                                     }
                                 }

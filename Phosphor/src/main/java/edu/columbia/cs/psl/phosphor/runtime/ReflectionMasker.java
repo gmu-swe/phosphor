@@ -5,12 +5,9 @@ import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.LazyReferenceArrayObjTags;
-import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
-import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
+import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.TaggedReferenceArray;
+import edu.columbia.cs.psl.phosphor.struct.TaggedArray;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Constructor;
@@ -22,7 +19,7 @@ import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 public class ReflectionMasker {
 
     private static final boolean IS_KAFFE = false;
-    private static final String multiDDescriptor = "edu.columbia.cs.psl.phosphor.struct.Lazy";
+    private static final String multiDDescriptor = "edu.columbia.cs.psl.phosphor.struct.Tagged";
     private static final int multiDDescriptorLength = multiDDescriptor.length();
     private static final char[] SET_TAG_METHOD_CHARS = "setPHOSPHOR_TAG".toCharArray();
     private static final int SET_TAG_METHOD_LEN = SET_TAG_METHOD_CHARS.length;
@@ -45,8 +42,8 @@ public class ReflectionMasker {
         if(wrappedVersion != null){
             return c1.isInstance(wrappedVersion);
         }
-        if(o instanceof LazyArrayObjTags && !LazyArrayObjTags.class.isAssignableFrom(c1)) {
-            return c1.isInstance(MultiDTaintedArrayWithObjTag.unboxRaw(o));
+        if(o instanceof TaggedArray && !TaggedArray.class.isAssignableFrom(c1)) {
+            return c1.isInstance(MultiDArrayUtils.unboxRaw(o));
         } else {
             return c1.isInstance(o);
         }
@@ -88,11 +85,11 @@ public class ReflectionMasker {
             phosphorStackFrame.setArgTaint(thisTaint, 0);
         }
         if(args != null) {
-            LazyReferenceArrayObjTags argTaints = (LazyReferenceArrayObjTags) phosphorStackFrame.getArgWrapper(2, args);
+            TaggedReferenceArray argTaints = (TaggedReferenceArray) phosphorStackFrame.getArgWrapper(2, args);
             for (int i = 0; i < args.length; i++) {
-                if (args[i] instanceof LazyArrayObjTags) {
+                if (args[i] instanceof TaggedArray) {
                     phosphorStackFrame.setArgWrapper(args[i], i);
-                    args[i] = MultiDTaintedArray.unbox1DOrNull(args[i]);
+                    args[i] = MultiDArrayUtils.unbox1DOrNull(args[i]);
                 }
                 if(argTaints.taints != null) {
                     phosphorStackFrame.setArgTaint(argTaints.taints[i], i + (isInstanceMethod ? 1 : 0));
@@ -105,11 +102,11 @@ public class ReflectionMasker {
     @InvokedViaInstrumentation(record = FIX_ALL_ARGS_CONSTRUCTOR)
     public static Object[] fixAllArgsConstructor(Object[] args, PhosphorStackFrame phosphorStackFrame){
         if(args != null) {
-            LazyReferenceArrayObjTags argTaints = (LazyReferenceArrayObjTags) phosphorStackFrame.getArgWrapper(1, args);
+            TaggedReferenceArray argTaints = (TaggedReferenceArray) phosphorStackFrame.getArgWrapper(1, args);
             for (int i = 0; i < args.length; i++) {
-                if (args[i] instanceof LazyArrayObjTags) {
+                if (args[i] instanceof TaggedArray) {
                     phosphorStackFrame.setArgWrapper(args[i], i);
-                    args[i] = MultiDTaintedArray.unbox1DOrNull(args[i]);
+                    args[i] = MultiDArrayUtils.unbox1DOrNull(args[i]);
                 }
                 if(argTaints.taints != null) {
                     phosphorStackFrame.setArgTaint(argTaints.taints[i], i + 1); //+1 to account for "this" taint
@@ -149,7 +146,7 @@ public class ReflectionMasker {
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = GET_ORIGINAL_CLASS_OBJECT_OUTPUT_STREAM)
     public static Class<?> getOriginalClassObjectOutputStream(Object obj) {
-        // if (obj instanceof LazyArrayObjTags && ((LazyArrayObjTags) obj).taints != null) {
+        // if (obj instanceof TaggedArray && ((TaggedArray) obj).taints != null) {
         return obj.getClass();
         // } else {
         //     return getOriginalClass(obj.getClass());
@@ -171,7 +168,7 @@ public class ReflectionMasker {
             if(cmp.length() >= multiDDescriptorLength
                     && cmp.subSequence(0, multiDDescriptorLength).equals(multiDDescriptor)) {
                 Type t = Type.getType(clazz);
-                String innerType = MultiDTaintedArray.getPrimitiveTypeForWrapper(clazz);
+                String innerType = MultiDArrayUtils.getPrimitiveTypeForWrapper(clazz);
                 String newName = "[";
                 for(int i = 0; i < t.getDimensions(); i++) {
                     newName += "[";
@@ -191,7 +188,7 @@ public class ReflectionMasker {
             String cmp = clazz.getName();
             if(cmp.length() >= multiDDescriptorLength
                     && cmp.subSequence(0, multiDDescriptorLength).equals(multiDDescriptor)) {
-                String innerType = MultiDTaintedArray.getPrimitiveTypeForWrapper(clazz);
+                String innerType = MultiDArrayUtils.getPrimitiveTypeForWrapper(clazz);
                 try {
                     Class ret = Class.forName("[" + innerType);
                     setCachedClass(clazz, ret);

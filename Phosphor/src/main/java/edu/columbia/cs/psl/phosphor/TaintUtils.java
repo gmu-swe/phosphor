@@ -4,9 +4,9 @@ import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.runtime.ArrayHelper;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
-import edu.columbia.cs.psl.phosphor.struct.LazyArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaggedArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
+import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
@@ -51,8 +51,8 @@ public class TaintUtils {
             return ArrayHelper.getTag(obj);
         } else if (obj instanceof Taint[]) {
             return Taint.combineTaintArray((Taint[]) obj);
-        } else if (obj instanceof LazyArrayObjTags) {
-            return ((LazyArrayObjTags) obj).lengthTaint;
+        } else if (obj instanceof TaggedArray) {
+            return ((TaggedArray) obj).lengthTaint;
         }
         return null;
     }
@@ -96,29 +96,15 @@ public class TaintUtils {
         return ar;
     }
 
-    public static void generateMultiDTaintArray(Object in, Object taintRef) {
-        // Precondition is that taintArrayRef is an array with the same number of
-        // dimensions as obj, with each allocated.
-        for (int i = 0; i < Array.getLength(in); i++) {
-            Object entry = Array.get(in, i);
-            Class<?> clazz = entry.getClass();
-            if (clazz.isArray()) {
-                // Multi-D array
-                int innerDims = Array.getLength(entry);
-                Array.set(taintRef, i, Array.newInstance(Integer.TYPE, innerDims));
-            }
-        }
-    }
-
     public static void arraycopy(Object src, int srcPos,
             Object dest, int destPos,
             int length) {
-        Object srcArray = src instanceof LazyArrayObjTags ? ((LazyArrayObjTags) src).getVal() : src;
-        Object destArray = dest instanceof LazyArrayObjTags ? ((LazyArrayObjTags) dest).getVal() : dest;
+        Object srcArray = src instanceof TaggedArray ? ((TaggedArray) src).getVal() : src;
+        Object destArray = dest instanceof TaggedArray ? ((TaggedArray) dest).getVal() : dest;
         System.arraycopy(srcArray, srcPos, destArray, destPos, length);
-        if (src instanceof LazyArrayObjTags && dest instanceof LazyArrayObjTags) {
-            LazyArrayObjTags destArr = (LazyArrayObjTags) dest;
-            LazyArrayObjTags srcArr = (LazyArrayObjTags) src;
+        if (src instanceof TaggedArray && dest instanceof TaggedArray) {
+            TaggedArray destArr = (TaggedArray) dest;
+            TaggedArray srcArr = (TaggedArray) src;
             if (srcArr.taints != null) {
                 if (destArr.taints == null) {
                     destArr.taints = new Taint[destArr.getLength()];
@@ -155,7 +141,7 @@ public class TaintUtils {
     }
 
     public static boolean isWrapperType(Type t) {
-        return t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy");
+        return t.getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tagged");
     }
 
     public static boolean isWrappedTypeWithSeparateField(Type t) {
@@ -163,7 +149,7 @@ public class TaintUtils {
     }
 
     public static Type getWrapperType(Type t) {
-        return MultiDTaintedArray.getTypeForType(t);
+        return MultiDArrayUtils.getTypeForType(t);
     }
 
     public static Type getUnwrappedType(Type wrappedType) {
@@ -171,23 +157,23 @@ public class TaintUtils {
             return wrappedType;
         }
         switch (wrappedType.getDescriptor()) {
-            case "Ledu/columbia/cs/psl/phosphor/struct/LazyBooleanArrayObjTags;":
+            case "Ledu/columbia/cs/psl/phosphor/struct/TaggedBooleanArray;":
                 return Type.getType("[Z");
-            case "Ledu/columbia/cs/psl/phosphor/struct/LazyByteArrayObjTags;":
+            case "Ledu/columbia/cs/psl/phosphor/struct/TaggedByteArray;":
                 return Type.getType("[B");
-            case "Ledu/columbia/cs/psl/phosphor/struct/LazyCharArrayObjTags;":
+            case "Ledu/columbia/cs/psl/phosphor/struct/TaggedCharArray;":
                 return Type.getType("[C");
-            case "Ledu/columbia/cs/psl/phosphor/struct/LazyDoubleArrayObjTags;":
+            case "Ledu/columbia/cs/psl/phosphor/struct/TaggedDoubleArray;":
                 return Type.getType("[D");
-            case "Ledu/columbia/cs/psl/phosphor/struct/LazyFloatArrayObjTags;":
+            case "Ledu/columbia/cs/psl/phosphor/struct/TaggedFloatArray;":
                 return Type.getType("[F");
-            case "Ledu/columbia/cs/psl/phosphor/struct/LazyIntArrayObjTags;":
+            case "Ledu/columbia/cs/psl/phosphor/struct/TaggedIntArray;":
                 return Type.getType("[I");
-            case "Ledu/columbia/cs/psl/phosphor/struct/LazyLongArrayObjTags;":
+            case "Ledu/columbia/cs/psl/phosphor/struct/TaggedLongArray;":
                 return Type.getType("[J");
-            case "Ledu/columbia/cs/psl/phosphor/struct/LazyShortArrayObjTags;":
+            case "Ledu/columbia/cs/psl/phosphor/struct/TaggedShortArray;":
                 return Type.getType("[S");
-            case "Ledu/columbia/cs/psl/phosphor/struct/LazyReferenceArrayObjTags;":
+            case "Ledu/columbia/cs/psl/phosphor/struct/TaggedReferenceArray;":
                 return Type.getType("[Ljava/lang/Object;");
             default:
                 return wrappedType;
@@ -218,10 +204,6 @@ public class TaintUtils {
             default:
                 throw new IllegalArgumentException("Got: " + t);
         }
-    }
-
-    public static Object[] newTaintArray(int len) {
-        return (Object[]) Array.newInstance(Configuration.TAINT_TAG_OBJ_CLASS, len);
     }
 
     private static <T> T shallowClone(T obj) {
@@ -261,8 +243,8 @@ public class TaintUtils {
     @SuppressWarnings("unused")
     @InvokedViaInstrumentation(record = ENSURE_UNBOXED)
     public static Object ensureUnboxed(Object o) {
-        if (o instanceof LazyArrayObjTags) {
-            return ((LazyArrayObjTags) o).getVal();
+        if (o instanceof TaggedArray) {
+            return ((TaggedArray) o).getVal();
         } else if (Configuration.WITH_ENUM_BY_VAL && o instanceof Enum<?>) {
             return Enum.valueOf(((Enum) o).getDeclaringClass(), ((Enum) o).name());
         }

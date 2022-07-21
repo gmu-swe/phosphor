@@ -9,44 +9,44 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_BOOLEAN_ARRAY_GET;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_BOOLEAN_ARRAY_SET;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_INT_ARRAY_GET;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_INT_ARRAY_SET;
 
-public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
+public final class TaggedIntArray extends TaggedArray {
 
-    private static final long serialVersionUID = -608551807469942060L;
+    private static final long serialVersionUID = 5106261987550616988L;
 
-    public boolean[] val;
+    public int[] val;
 
-    public LazyBooleanArrayObjTags(int len) {
-        val = new boolean[len];
+    public TaggedIntArray(int len) {
+        val = new int[len];
     }
 
-    public LazyBooleanArrayObjTags(boolean[] array, Taint[] taints) {
+    public TaggedIntArray(int[] array, Taint[] taints) {
         this.taints = taints;
         this.val = array;
     }
 
-    public LazyBooleanArrayObjTags(boolean[] array) {
+    public TaggedIntArray(int[] array) {
         this.val = array;
     }
 
-    public LazyBooleanArrayObjTags(Taint lenTaint, boolean[] array) {
+    public TaggedIntArray(Taint lenTaint, int[] array) {
         this.val = array;
         this.lengthTaint = lenTaint;
     }
 
-    @InvokedViaInstrumentation(record = TAINTED_BOOLEAN_ARRAY_SET)
-    public void set(int idx, boolean val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
+    @InvokedViaInstrumentation(record = TAINTED_INT_ARRAY_SET)
+    public void set(int idx, int val, Taint idxTaint, Taint valTaint, PhosphorStackFrame stackFrame) {
         set(idx, val, Configuration.derivedTaintListener.arraySet(this, idx, val, idxTaint, valTaint, stackFrame));
     }
 
     @Override
     public Object clone() {
-        return new LazyBooleanArrayObjTags(val.clone(), (taints != null) ? taints.clone() : null);
+        return new TaggedIntArray(val.clone(), (taints != null) ? taints.clone() : null);
     }
 
-    public void set(int idx, boolean val, Taint tag) {
+    public void set(int idx, int val, Taint tag) {
         this.val[idx] = val;
         if(taints == null && tag != null && !tag.isEmpty()) {
             taints = new Taint[this.val.length];
@@ -56,23 +56,23 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
         }
     }
 
-    @InvokedViaInstrumentation(record = TAINTED_BOOLEAN_ARRAY_GET)
-    public boolean get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
+    @InvokedViaInstrumentation(record = TAINTED_INT_ARRAY_GET)
+    public int get(int idx, Taint idxTaint, PhosphorStackFrame ret) {
         return Configuration.derivedTaintListener.arrayGet(this, idx, idxTaint, ret);
     }
 
-    public static LazyBooleanArrayObjTags factory(boolean[] array) {
+    public static TaggedIntArray factory(int[] array) {
         if(array == null) {
             return null;
         }
-        return new LazyBooleanArrayObjTags(array);
+        return new TaggedIntArray(array);
     }
 
-    public static LazyBooleanArrayObjTags factory(boolean[] array, Taint lengthTaint) {
+    public static TaggedIntArray factory(int[] array, Taint lengthTaint) {
         if(array == null) {
             return null;
         }
-        return new LazyBooleanArrayObjTags(lengthTaint, array);
+        return new TaggedIntArray(lengthTaint, array);
     }
 
     public int getLength() {
@@ -84,13 +84,13 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
         return val;
     }
 
-    public void ensureVal(boolean[] v) {
+    public void ensureVal(int[] v) {
         if (v != val) {
             val = v;
         }
     }
 
-    public static boolean[] unwrap(LazyBooleanArrayObjTags obj) {
+    public static int[] unwrap(TaggedIntArray obj) {
         if (obj != null) {
             return obj.val;
         }
@@ -102,8 +102,8 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
             stream.writeInt(-1);
         } else {
             stream.writeInt(val.length);
-            for (boolean el : val) {
-                stream.writeBoolean(el);
+            for (int el : val) {
+                stream.writeInt(el);
             }
         }
     }
@@ -113,9 +113,9 @@ public final class LazyBooleanArrayObjTags extends LazyArrayObjTags {
         if (len == -1) {
             val = null;
         } else {
-            val = new boolean[len];
+            val = new int[len];
             for (int i = 0; i < len; i++) {
-                val[i] = stream.readBoolean();
+                val[i] = stream.readInt();
             }
         }
     }

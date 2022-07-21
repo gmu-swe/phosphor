@@ -6,7 +6,6 @@ import edu.columbia.cs.psl.phosphor.runtime.jdk.unsupported.UnsafeProxy;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -56,7 +55,7 @@ public class RuntimeJDKInternalUnsafePropagator {
                             taintFieldName.append(TaintUtils.TAINT_WRAPPER_FIELD);
                             Field taintField = clazz.getField(taintFieldName.toString());
                             Class<?> taintClazz = taintField.getType();
-                            if (taintClazz != null && LazyArrayObjTags.class.isAssignableFrom(taintClazz)) {
+                            if (taintClazz != null && TaggedArray.class.isAssignableFrom(taintClazz)) {
                                 wrapperOffset = (isStatic ? unsafe.staticFieldOffset(taintField) : unsafe.objectFieldOffset(taintField));
                             }
                         } catch (Exception e) {
@@ -167,9 +166,9 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     /* If the specified TaintedPrimitiveWithObjTag and LazyArrayObjTags's component types match sets a tag
-     * in the specified LazyArrayObjTags at a calculated index.
+     * in the specified TaggedArray at a calculated index.
      * type's match. */
-    private static void swapArrayElementTag(UnsafeProxy unsafe, LazyArrayObjTags tags, long offset, Taint valueTaint) {
+    private static void swapArrayElementTag(UnsafeProxy unsafe, TaggedArray tags, long offset, Taint valueTaint) {
         if (tags.getVal() != null && tags.getVal().getClass().isArray()) {
             Class<?> clazz = tags.getVal().getClass();
             long baseOffset = unsafe.arrayBaseOffset(clazz);
@@ -195,11 +194,11 @@ public class RuntimeJDKInternalUnsafePropagator {
         //if(destWrapper != null){
         //    dest = destWrapper;
         //}
-        if (src instanceof LazyArrayObjTags) {
-            src = ((LazyArrayObjTags) src).getVal();
+        if (src instanceof TaggedArray) {
+            src = ((TaggedArray) src).getVal();
         }
-        if (dest instanceof LazyArrayObjTags) {
-            dest = ((LazyArrayObjTags) dest).getVal();
+        if (dest instanceof TaggedArray) {
+            dest = ((TaggedArray) dest).getVal();
         }
         unsafe.copyMemory(src, srcAddress, dest, destAddress, length);
     }
@@ -212,10 +211,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static Object allocateUninitializedArray(UnsafeProxy unsafe, Class c, int len, PhosphorStackFrame phosphorStackFrame) {
         Object ret = unsafe.allocateUninitializedArray(c, len);
-        if (ret instanceof LazyArrayObjTags) {
+        if (ret instanceof TaggedArray) {
             return ret;
         }
-        return MultiDTaintedArray.boxIfNecessary(ret);
+        return MultiDArrayUtils.boxIfNecessary(ret);
     }
 
 
@@ -257,7 +256,7 @@ public class RuntimeJDKInternalUnsafePropagator {
         }
     }
 
-    private static int unsafeIndexFor(UnsafeProxy unsafe, LazyArrayObjTags array, long offset) {
+    private static int unsafeIndexFor(UnsafeProxy unsafe, TaggedArray array, long offset) {
         Class<?> clazz = array.getVal().getClass();
         long baseOffset = unsafe.arrayBaseOffset(clazz);
         long scale = unsafe.arrayIndexScale(clazz);
@@ -543,9 +542,9 @@ public class RuntimeJDKInternalUnsafePropagator {
     //Generated from Phosphor template for get$methodTypeVolatile(Ljava/lang/Object;J)LPlaceHolder;
     @SuppressWarnings("unused")
     public static byte getByteVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getByteVolatile(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getByteVolatile(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.VOLATILE);
             return unsafe.getByteVolatile(obj, offset);
@@ -554,9 +553,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static int getIntVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getIntVolatile(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getIntVolatile(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.VOLATILE);
             return unsafe.getIntVolatile(obj, offset);
@@ -565,9 +564,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static long getLongVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getLongVolatile(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getLongVolatile(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.VOLATILE);
             return unsafe.getLongVolatile(obj, offset);
@@ -576,9 +575,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static float getFloatVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getFloatVolatile(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getFloatVolatile(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.VOLATILE);
             return unsafe.getFloatVolatile(obj, offset);
@@ -587,9 +586,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static Object getReferenceVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getReferenceVolatile(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getReferenceVolatile(((TaggedArray) obj).getVal(), offset);
         } else {
             OffsetPair pair = getOffsetPair(unsafe, obj, offset);
             if (pair != null && pair.wrappedFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
@@ -602,9 +601,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static char getCharVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getCharVolatile(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getCharVolatile(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.VOLATILE);
             return unsafe.getCharVolatile(obj, offset);
@@ -613,9 +612,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static short getShortVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getShortVolatile(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getShortVolatile(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.VOLATILE);
             return unsafe.getShortVolatile(obj, offset);
@@ -624,9 +623,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static double getDoubleVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getDoubleVolatile(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getDoubleVolatile(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.VOLATILE);
             return unsafe.getDoubleVolatile(obj, offset);
@@ -635,9 +634,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static boolean getBooleanVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getBooleanVolatile(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getBooleanVolatile(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.VOLATILE);
             return unsafe.getBooleanVolatile(obj, offset);
@@ -748,10 +747,10 @@ public class RuntimeJDKInternalUnsafePropagator {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         boolean ret = false;
-        if (obj instanceof LazyIntArrayObjTags) {
-            ret = unsafe.compareAndSetInt(((LazyArrayObjTags) obj).getVal(), offset, expected, value);
+        if (obj instanceof TaggedIntArray) {
+            ret = unsafe.compareAndSetInt(((TaggedArray) obj).getVal(), offset, expected, value);
             if (ret) {
-                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+                swapArrayElementTag(unsafe, (TaggedArray) obj, offset, valueTaint);
             }
         } else {
             ret = unsafe.compareAndSetInt(obj, offset, expected, value);
@@ -774,10 +773,10 @@ public class RuntimeJDKInternalUnsafePropagator {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         boolean ret = false;
-        if (obj instanceof LazyByteArrayObjTags) {
-            ret = unsafe.compareAndSetByte(((LazyArrayObjTags) obj).getVal(), offset, expected, value);
+        if (obj instanceof TaggedByteArray) {
+            ret = unsafe.compareAndSetByte(((TaggedArray) obj).getVal(), offset, expected, value);
             if (ret) {
-                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+                swapArrayElementTag(unsafe, (TaggedArray) obj, offset, valueTaint);
             }
         } else {
             ret = unsafe.compareAndSetByte(obj, offset, expected, value);
@@ -799,10 +798,10 @@ public class RuntimeJDKInternalUnsafePropagator {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         boolean ret = false;
-        if (obj instanceof LazyLongArrayObjTags) {
-            ret = unsafe.compareAndSetLong(((LazyArrayObjTags) obj).getVal(), offset, expected, value);
+        if (obj instanceof TaggedLongArray) {
+            ret = unsafe.compareAndSetLong(((TaggedArray) obj).getVal(), offset, expected, value);
             if (ret) {
-                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+                swapArrayElementTag(unsafe, (TaggedArray) obj, offset, valueTaint);
             }
         } else {
             ret = unsafe.compareAndSetLong(obj, offset, expected, value);
@@ -824,22 +823,22 @@ public class RuntimeJDKInternalUnsafePropagator {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         boolean ret = false;
-        if (obj instanceof LazyReferenceArrayObjTags) {
-            ret = unsafe.compareAndSetReference(((LazyReferenceArrayObjTags) obj).val, offset, expected, value);
+        if (obj instanceof TaggedReferenceArray) {
+            ret = unsafe.compareAndSetReference(((TaggedReferenceArray) obj).val, offset, expected, value);
             if (ret) {
-                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+                swapArrayElementTag(unsafe, (TaggedArray) obj, offset, valueTaint);
             }
         } else {
             OffsetPair pair = null;
             boolean didCAS = false;
-            if (value instanceof LazyArrayObjTags || expected instanceof LazyArrayObjTags) {
+            if (value instanceof TaggedArray || expected instanceof TaggedArray) {
                 //Need to be careful - maybe we are hitting a 1D primitive array field
                 if (obj != null) {
                     pair = getOffsetPair(unsafe, obj, offset);
                 }
                 if (pair != null && pair.wrappedFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
                     //We are doing a CAS on a 1d primitive array field
-                    ret = unsafe.compareAndSetReference(obj, offset, MultiDTaintedArray.unbox1DOrNull(expected), MultiDTaintedArray.unbox1DOrNull(value));
+                    ret = unsafe.compareAndSetReference(obj, offset, MultiDArrayUtils.unbox1DOrNull(expected), MultiDArrayUtils.unbox1DOrNull(value));
                     didCAS = true;
                 }
             }
@@ -867,10 +866,10 @@ public class RuntimeJDKInternalUnsafePropagator {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         boolean ret = false;
-        if (obj instanceof LazyShortArrayObjTags) {
-            ret = unsafe.compareAndSetShort(((LazyArrayObjTags) obj).getVal(), offset, expected, value);
+        if (obj instanceof TaggedShortArray) {
+            ret = unsafe.compareAndSetShort(((TaggedArray) obj).getVal(), offset, expected, value);
             if (ret) {
-                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+                swapArrayElementTag(unsafe, (TaggedArray) obj, offset, valueTaint);
             }
         } else {
             ret = unsafe.compareAndSetShort(obj, offset, expected, value);
@@ -891,10 +890,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putByte(UnsafeProxy unsafe, java.lang.Object obj, long offset, byte val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putByte(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putByte(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putByte(obj, offset, val);
@@ -905,10 +904,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putInt(UnsafeProxy unsafe, java.lang.Object obj, long offset, int val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putInt(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putInt(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putInt(obj, offset, val);
@@ -919,10 +918,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putLong(UnsafeProxy unsafe, java.lang.Object obj, long offset, long val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putLong(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putLong(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putLong(obj, offset, val);
@@ -933,10 +932,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putFloat(UnsafeProxy unsafe, java.lang.Object obj, long offset, float val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putFloat(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putFloat(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putFloat(obj, offset, val);
@@ -947,10 +946,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putReference(UnsafeProxy unsafe, java.lang.Object obj, long offset, Object val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putReference(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putReference(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             OffsetPair pair = null;
@@ -963,12 +962,12 @@ public class RuntimeJDKInternalUnsafePropagator {
                 }
                 if (pair.wrappedFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
                     unsafe.putReference(obj, pair.wrappedFieldOffset, val);
-                    unsafe.putReference(obj, offset, MultiDTaintedArray.unbox1DOrNull(val));
+                    unsafe.putReference(obj, offset, MultiDArrayUtils.unbox1DOrNull(val));
                 } else {
                     unsafe.putReference(obj, offset, val);
                 }
             } else {
-                unsafe.putReference(obj, offset, MultiDTaintedArray.unbox1DOrNull(val));
+                unsafe.putReference(obj, offset, MultiDArrayUtils.unbox1DOrNull(val));
             }
         }
     }
@@ -976,10 +975,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putChar(UnsafeProxy unsafe, java.lang.Object obj, long offset, char val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putChar(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putChar(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putChar(obj, offset, val);
@@ -990,10 +989,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putShort(UnsafeProxy unsafe, java.lang.Object obj, long offset, short val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putShort(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putShort(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putShort(obj, offset, val);
@@ -1004,10 +1003,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putDouble(UnsafeProxy unsafe, java.lang.Object obj, long offset, double val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putDouble(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putDouble(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putDouble(obj, offset, val);
@@ -1018,10 +1017,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putBoolean(UnsafeProxy unsafe, java.lang.Object obj, long offset, boolean val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putBoolean(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putBoolean(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putBoolean(obj, offset, val);
@@ -1033,10 +1032,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putByteVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, byte val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putByteVolatile(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putByteVolatile(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putByteVolatile(obj, offset, val);
@@ -1047,10 +1046,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putIntVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, int val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putIntVolatile(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putIntVolatile(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putIntVolatile(obj, offset, val);
@@ -1061,10 +1060,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putLongVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, long val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putLongVolatile(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putLongVolatile(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putLongVolatile(obj, offset, val);
@@ -1075,10 +1074,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putFloatVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, float val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putFloatVolatile(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putFloatVolatile(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putFloatVolatile(obj, offset, val);
@@ -1089,10 +1088,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putReferenceVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, Object val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putReferenceVolatile(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putReferenceVolatile(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             OffsetPair pair = null;
@@ -1105,12 +1104,12 @@ public class RuntimeJDKInternalUnsafePropagator {
                 }
                 if (pair.wrappedFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
                     unsafe.putReferenceVolatile(obj, pair.wrappedFieldOffset, val);
-                    unsafe.putReferenceVolatile(obj, offset, MultiDTaintedArray.unbox1DOrNull(val));
+                    unsafe.putReferenceVolatile(obj, offset, MultiDArrayUtils.unbox1DOrNull(val));
                 } else {
                     unsafe.putReferenceVolatile(obj, offset, val);
                 }
             } else {
-                unsafe.putReferenceVolatile(obj, offset, MultiDTaintedArray.unbox1DOrNull(val));
+                unsafe.putReferenceVolatile(obj, offset, MultiDArrayUtils.unbox1DOrNull(val));
             }
         }
     }
@@ -1118,10 +1117,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putCharVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, char val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putCharVolatile(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putCharVolatile(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putCharVolatile(obj, offset, val);
@@ -1132,10 +1131,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putShortVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, short val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putShortVolatile(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putShortVolatile(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putShortVolatile(obj, offset, val);
@@ -1146,10 +1145,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putDoubleVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, double val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putDoubleVolatile(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putDoubleVolatile(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putDoubleVolatile(obj, offset, val);
@@ -1160,10 +1159,10 @@ public class RuntimeJDKInternalUnsafePropagator {
     @SuppressWarnings("unused")
     public static void putBooleanVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, boolean val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
-        if (obj instanceof LazyArrayObjTags) {
-            unsafe.putBooleanVolatile(((LazyArrayObjTags) obj).getVal(), offset, val);
-            if ((valTaint != null && !valTaint.isEmpty()) || ((LazyArrayObjTags) obj).taints != null) {
-                ((LazyArrayObjTags) obj).setTaint(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset), valTaint);
+        if (obj instanceof TaggedArray) {
+            unsafe.putBooleanVolatile(((TaggedArray) obj).getVal(), offset, val);
+            if ((valTaint != null && !valTaint.isEmpty()) || ((TaggedArray) obj).taints != null) {
+                ((TaggedArray) obj).setTaint(unsafeIndexFor(unsafe, (TaggedArray) obj, offset), valTaint);
             }
         } else {
             unsafe.putBooleanVolatile(obj, offset, val);
@@ -1177,10 +1176,10 @@ public class RuntimeJDKInternalUnsafePropagator {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         int ret;
-        if (obj instanceof LazyIntArrayObjTags) {
-            ret = unsafe.compareAndExchangeInt(((LazyArrayObjTags) obj).getVal(), offset, expected, x);
+        if (obj instanceof TaggedIntArray) {
+            ret = unsafe.compareAndExchangeInt(((TaggedArray) obj).getVal(), offset, expected, x);
             if (ret == expected) {
-                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+                swapArrayElementTag(unsafe, (TaggedArray) obj, offset, valueTaint);
             }
         } else {
             ret = unsafe.compareAndExchangeInt(obj, offset, expected, x);
@@ -1202,10 +1201,10 @@ public class RuntimeJDKInternalUnsafePropagator {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         byte ret;
-        if (obj instanceof LazyByteArrayObjTags) {
-            ret = unsafe.compareAndExchangeByte(((LazyArrayObjTags) obj).getVal(), offset, expected, x);
+        if (obj instanceof TaggedByteArray) {
+            ret = unsafe.compareAndExchangeByte(((TaggedArray) obj).getVal(), offset, expected, x);
             if (ret == expected) {
-                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+                swapArrayElementTag(unsafe, (TaggedArray) obj, offset, valueTaint);
             }
         } else {
             ret = unsafe.compareAndExchangeByte(obj, offset, expected, x);
@@ -1227,10 +1226,10 @@ public class RuntimeJDKInternalUnsafePropagator {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         long ret;
-        if (obj instanceof LazyLongArrayObjTags) {
-            ret = unsafe.compareAndExchangeLong(((LazyArrayObjTags) obj).getVal(), offset, expected, x);
+        if (obj instanceof TaggedLongArray) {
+            ret = unsafe.compareAndExchangeLong(((TaggedArray) obj).getVal(), offset, expected, x);
             if (ret == expected) {
-                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+                swapArrayElementTag(unsafe, (TaggedArray) obj, offset, valueTaint);
             }
         } else {
             ret = unsafe.compareAndExchangeLong(obj, offset, expected, x);
@@ -1252,22 +1251,22 @@ public class RuntimeJDKInternalUnsafePropagator {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         Object ret = null;
-        if (obj instanceof LazyReferenceArrayObjTags) {
-            ret = unsafe.compareAndExchangeReference(((LazyArrayObjTags) obj).getVal(), offset, expected, x);
+        if (obj instanceof TaggedReferenceArray) {
+            ret = unsafe.compareAndExchangeReference(((TaggedArray) obj).getVal(), offset, expected, x);
             if (ret == expected) {
-                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+                swapArrayElementTag(unsafe, (TaggedArray) obj, offset, valueTaint);
             }
         } else {
             boolean didCAS = false;
             OffsetPair pair = null;
-            if (x instanceof LazyArrayObjTags || expected instanceof LazyArrayObjTags) {
+            if (x instanceof TaggedArray || expected instanceof TaggedArray) {
                 //Need to be careful - maybe we are hitting a 1D primitive array field
                 if (obj != null) {
                     pair = getOffsetPair(unsafe, obj, offset);
                 }
                 if (pair != null && pair.wrappedFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
                     //We are doing a CAS on a 1d primitive array field
-                    ret = unsafe.compareAndExchangeReference(obj, offset, MultiDTaintedArray.unbox1DOrNull(expected), MultiDTaintedArray.unbox1DOrNull(x));
+                    ret = unsafe.compareAndExchangeReference(obj, offset, MultiDArrayUtils.unbox1DOrNull(expected), MultiDArrayUtils.unbox1DOrNull(x));
                     didCAS = true;
                 }
             }
@@ -1292,10 +1291,10 @@ public class RuntimeJDKInternalUnsafePropagator {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         short ret;
-        if (obj instanceof LazyShortArrayObjTags) {
-            ret = unsafe.compareAndExchangeShort(((LazyArrayObjTags) obj).getVal(), offset, expected, x);
+        if (obj instanceof TaggedShortArray) {
+            ret = unsafe.compareAndExchangeShort(((TaggedArray) obj).getVal(), offset, expected, x);
             if (ret == expected) {
-                swapArrayElementTag(unsafe, (LazyArrayObjTags) obj, offset, valueTaint);
+                swapArrayElementTag(unsafe, (TaggedArray) obj, offset, valueTaint);
             }
         } else {
             ret = unsafe.compareAndExchangeShort(obj, offset, expected, x);
@@ -1361,9 +1360,9 @@ public class RuntimeJDKInternalUnsafePropagator {
     //Generated from Phosphor template for get$methodType(Ljava/lang/Object;J)LPlaceHolder;
     @SuppressWarnings("unused")
     public static byte getByte(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getByte(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getByte(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.NONE);
             return unsafe.getByte(obj, offset);
@@ -1372,9 +1371,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static int getInt(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getInt(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getInt(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.NONE);
             return unsafe.getInt(obj, offset);
@@ -1383,9 +1382,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static long getLong(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getLong(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getLong(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.NONE);
             return unsafe.getLong(obj, offset);
@@ -1394,9 +1393,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static float getFloat(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getFloat(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getFloat(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.NONE);
             return unsafe.getFloat(obj, offset);
@@ -1405,9 +1404,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static Object getReference(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getReference(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getReference(((TaggedArray) obj).getVal(), offset);
         } else {
             OffsetPair pair = getOffsetPair(unsafe, obj, offset);
             if (pair != null && pair.wrappedFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
@@ -1420,9 +1419,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static char getChar(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getChar(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getChar(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.NONE);
             return unsafe.getChar(obj, offset);
@@ -1431,9 +1430,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static short getShort(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getShort(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getShort(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.NONE);
             return unsafe.getShort(obj, offset);
@@ -1442,9 +1441,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static double getDouble(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getDouble(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getDouble(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.NONE);
             return unsafe.getDouble(obj, offset);
@@ -1453,9 +1452,9 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static boolean getBoolean(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyArrayObjTags) {
-            phosphorStackFrame.returnTaint = ((LazyArrayObjTags) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (LazyArrayObjTags) obj, offset));
-            return unsafe.getBoolean(((LazyArrayObjTags) obj).getVal(), offset);
+        if (obj instanceof TaggedArray) {
+            phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
+            return unsafe.getBoolean(((TaggedArray) obj).getVal(), offset);
         } else {
             getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.NONE);
             return unsafe.getBoolean(obj, offset);

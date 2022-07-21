@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREMethodHelper;
 import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Array;
@@ -16,8 +15,8 @@ public class ArrayReflectionMasker {
     public static int getLength(Object obj) {
         if (obj.getClass().isArray()) {
             return Array.getLength(obj);
-        } else if (obj instanceof LazyArrayObjTags) {
-            return Array.getLength(((LazyArrayObjTags) obj).getVal());
+        } else if (obj instanceof TaggedArray) {
+            return Array.getLength(((TaggedArray) obj).getVal());
         }
         throw new ArrayStoreException("Uknown array type: " + obj.getClass());
     }
@@ -26,8 +25,8 @@ public class ArrayReflectionMasker {
         stackFrame.returnTaint = Taint.emptyTaint();
         if (obj.getClass().isArray()) {
             return Array.getLength(obj);
-        } else if (obj instanceof LazyArrayObjTags) {
-            return Array.getLength(((LazyArrayObjTags) obj).getVal());
+        } else if (obj instanceof TaggedArray) {
+            return Array.getLength(((TaggedArray) obj).getVal());
         }
         throw new IllegalArgumentException("Not an array type: " + obj.getClass());
     }
@@ -40,51 +39,51 @@ public class ArrayReflectionMasker {
             return newInstance(clazz, new int[] {len}, phosphorStackFrame);
         } else {
             if (tmp == Double.TYPE) {
-                return new LazyDoubleArrayObjTags(new double[len]);
+                return new TaggedDoubleArray(new double[len]);
             }
             if (tmp == Float.TYPE) {
-                return new LazyFloatArrayObjTags(new float[len]);
+                return new TaggedFloatArray(new float[len]);
             }
             if (tmp == Integer.TYPE) {
-                return new LazyIntArrayObjTags(new int[len]);
+                return new TaggedIntArray(new int[len]);
             }
             if (tmp == Long.TYPE) {
-                return new LazyLongArrayObjTags(new long[len]);
+                return new TaggedLongArray(new long[len]);
             }
             if (tmp == Short.TYPE) {
-                return new LazyShortArrayObjTags(new short[len]);
+                return new TaggedShortArray(new short[len]);
             }
             if (tmp == Boolean.TYPE) {
-                return new LazyBooleanArrayObjTags(new boolean[len]);
+                return new TaggedBooleanArray(new boolean[len]);
             }
             if (tmp == Byte.TYPE) {
-                return new LazyByteArrayObjTags(new byte[len]);
+                return new TaggedByteArray(new byte[len]);
             }
             if (tmp == Character.TYPE) {
-                return new LazyCharArrayObjTags(new char[len]);
+                return new TaggedCharArray(new char[len]);
             }
-            return new LazyReferenceArrayObjTags((Object[]) InstrumentedJREMethodHelper.java_lang_reflect_Array_newArray(tmp, len));
+            return new TaggedReferenceArray((Object[]) InstrumentedJREMethodHelper.java_lang_reflect_Array_newArray(tmp, len));
         }
     }
 
-    public static LazyArrayObjTags newInstanceForType(int componentSort, int len) {
+    public static TaggedArray newInstanceForType(int componentSort, int len) {
         switch (componentSort) {
             case Type.BOOLEAN:
-                return new LazyBooleanArrayObjTags(new boolean[len]);
+                return new TaggedBooleanArray(new boolean[len]);
             case Type.BYTE:
-                return new LazyByteArrayObjTags(new byte[len]);
+                return new TaggedByteArray(new byte[len]);
             case Type.CHAR:
-                return new LazyCharArrayObjTags(new char[len]);
+                return new TaggedCharArray(new char[len]);
             case Type.DOUBLE:
-                return new LazyDoubleArrayObjTags(new double[len]);
+                return new TaggedDoubleArray(new double[len]);
             case Type.FLOAT:
-                return new LazyFloatArrayObjTags(new float[len]);
+                return new TaggedFloatArray(new float[len]);
             case Type.INT:
-                return new LazyIntArrayObjTags(new int[len]);
+                return new TaggedIntArray(new int[len]);
             case Type.LONG:
-                return new LazyLongArrayObjTags(new long[len]);
+                return new TaggedLongArray(new long[len]);
             case Type.SHORT:
-                return new LazyShortArrayObjTags(new short[len]);
+                return new TaggedShortArray(new short[len]);
             default:
                 throw new UnsupportedOperationException();
         }
@@ -94,30 +93,30 @@ public class ArrayReflectionMasker {
             int[] dims, PhosphorStackFrame stackFrame) {
         stackFrame.returnTaint = Taint.emptyTaint();
         Type t = Type.getType(clazz);
-        LazyIntArrayObjTags dimstaint = (LazyIntArrayObjTags) stackFrame.getArgWrapper(0, dims);
+        TaggedIntArray dimstaint = (TaggedIntArray) stackFrame.getArgWrapper(0, dims);
         if (t.getSort() == Type.ARRAY) {
             int innerDims = t.getDimensions();
             if (innerDims == 1) {
                 // 2D array, init only the top level
                 switch (t.getElementType().getSort()) {
                     case Type.BOOLEAN:
-                        return MultiDTaintedArray.MULTIANEWARRAY_Z_2DIMS(dims[0], stackFrame);
+                        return MultiDArrayUtils.MULTIANEWARRAY_Z_2DIMS(dims[0], stackFrame);
                     case Type.BYTE:
-                        return MultiDTaintedArray.MULTIANEWARRAY_B_2DIMS(dims[0], stackFrame);
+                        return MultiDArrayUtils.MULTIANEWARRAY_B_2DIMS(dims[0], stackFrame);
                     case Type.CHAR:
-                        return MultiDTaintedArray.MULTIANEWARRAY_C_2DIMS(dims[0], stackFrame);
+                        return MultiDArrayUtils.MULTIANEWARRAY_C_2DIMS(dims[0], stackFrame);
                     case Type.DOUBLE:
-                        return MultiDTaintedArray.MULTIANEWARRAY_D_2DIMS(dims[0], stackFrame);
+                        return MultiDArrayUtils.MULTIANEWARRAY_D_2DIMS(dims[0], stackFrame);
                     case Type.FLOAT:
-                        return MultiDTaintedArray.MULTIANEWARRAY_F_2DIMS(dims[0], stackFrame);
+                        return MultiDArrayUtils.MULTIANEWARRAY_F_2DIMS(dims[0], stackFrame);
                     case Type.INT:
-                        return MultiDTaintedArray.MULTIANEWARRAY_I_2DIMS(dims[0], stackFrame);
+                        return MultiDArrayUtils.MULTIANEWARRAY_I_2DIMS(dims[0], stackFrame);
                     case Type.LONG:
-                        return MultiDTaintedArray.MULTIANEWARRAY_J_2DIMS(dims[0], stackFrame);
+                        return MultiDArrayUtils.MULTIANEWARRAY_J_2DIMS(dims[0], stackFrame);
                     case Type.SHORT:
-                        return MultiDTaintedArray.MULTIANEWARRAY_S_2DIMS(dims[0], stackFrame);
+                        return MultiDArrayUtils.MULTIANEWARRAY_S_2DIMS(dims[0], stackFrame);
                     case Type.OBJECT:
-                        return MultiDTaintedArray.MULTIANEWARRAY_REFERENCE_2DIMS(dims[0], clazz.getComponentType(), stackFrame);
+                        return MultiDArrayUtils.MULTIANEWARRAY_REFERENCE_2DIMS(dims[0], clazz.getComponentType(), stackFrame);
                     default:
                         throw new UnsupportedOperationException();
                 }
@@ -126,7 +125,7 @@ public class ArrayReflectionMasker {
             }
         } else if(dims.length == 1) {
             if(t.getSort() == Type.OBJECT) {
-                return new LazyReferenceArrayObjTags((Object[]) InstrumentedJREMethodHelper.java_lang_reflect_Array_newArray(clazz, dims[0]));
+                return new TaggedReferenceArray((Object[]) InstrumentedJREMethodHelper.java_lang_reflect_Array_newArray(clazz, dims[0]));
             } else {
                 return newInstanceForType(t.getSort(), dims[0]);
             }
@@ -134,52 +133,52 @@ public class ArrayReflectionMasker {
             // 2D array, init all levels
             switch (t.getSort()) {
                 case Type.BOOLEAN:
-                    return MultiDTaintedArray.MULTIANEWARRAY_Z_2DIMS(dims[0], dims[1], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_Z_2DIMS(dims[0], dims[1], stackFrame);
                 case Type.BYTE:
-                    return MultiDTaintedArray.MULTIANEWARRAY_B_2DIMS(dims[0], dims[1], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_B_2DIMS(dims[0], dims[1], stackFrame);
                 case Type.CHAR:
-                    return MultiDTaintedArray.MULTIANEWARRAY_C_2DIMS(dims[0], dims[1], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_C_2DIMS(dims[0], dims[1], stackFrame);
                 case Type.DOUBLE:
-                    return MultiDTaintedArray.MULTIANEWARRAY_D_2DIMS(dims[0], dims[1], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_D_2DIMS(dims[0], dims[1], stackFrame);
                 case Type.FLOAT:
-                    return MultiDTaintedArray.MULTIANEWARRAY_F_2DIMS(dims[0], dims[1], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_F_2DIMS(dims[0], dims[1], stackFrame);
                 case Type.INT:
-                    return MultiDTaintedArray.MULTIANEWARRAY_I_2DIMS(dims[0], dims[1], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_I_2DIMS(dims[0], dims[1], stackFrame);
                 case Type.LONG:
-                    return MultiDTaintedArray.MULTIANEWARRAY_J_2DIMS(dims[0], dims[1], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_J_2DIMS(dims[0], dims[1], stackFrame);
                 case Type.SHORT:
-                    return MultiDTaintedArray.MULTIANEWARRAY_S_2DIMS(dims[0], dims[1], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_S_2DIMS(dims[0], dims[1], stackFrame);
                 case Type.OBJECT:
-                    return MultiDTaintedArray.MULTIANEWARRAY_REFERENCE_2DIMS(dims[0],
+                    return MultiDArrayUtils.MULTIANEWARRAY_REFERENCE_2DIMS(dims[0],
                             dims[1], clazz, stackFrame);
             }
         } else if (dims.length == 3) {
             switch (t.getSort()) {
                 case Type.BOOLEAN:
-                    return MultiDTaintedArray.MULTIANEWARRAY_Z_3DIMS(dims[0], dims[1], dims[2], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_Z_3DIMS(dims[0], dims[1], dims[2], stackFrame);
                 case Type.BYTE:
-                    return MultiDTaintedArray.MULTIANEWARRAY_B_3DIMS(dims[0], dims[1], dims[2], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_B_3DIMS(dims[0], dims[1], dims[2], stackFrame);
                 case Type.CHAR:
-                    return MultiDTaintedArray.MULTIANEWARRAY_C_3DIMS(dims[0], dims[1], dims[2], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_C_3DIMS(dims[0], dims[1], dims[2], stackFrame);
                 case Type.DOUBLE:
-                    return MultiDTaintedArray.MULTIANEWARRAY_D_3DIMS(dims[0], dims[1], dims[2], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_D_3DIMS(dims[0], dims[1], dims[2], stackFrame);
                 case Type.FLOAT:
-                    return MultiDTaintedArray.MULTIANEWARRAY_F_3DIMS(dims[0], dims[1], dims[2], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_F_3DIMS(dims[0], dims[1], dims[2], stackFrame);
                 case Type.INT:
-                    return MultiDTaintedArray.MULTIANEWARRAY_I_3DIMS(dims[0], dims[1], dims[2], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_I_3DIMS(dims[0], dims[1], dims[2], stackFrame);
                 case Type.LONG:
-                    return MultiDTaintedArray.MULTIANEWARRAY_J_3DIMS(dims[0], dims[1], dims[2], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_J_3DIMS(dims[0], dims[1], dims[2], stackFrame);
                 case Type.SHORT:
-                    return MultiDTaintedArray.MULTIANEWARRAY_S_3DIMS(dims[0], dims[1], dims[2], stackFrame);
+                    return MultiDArrayUtils.MULTIANEWARRAY_S_3DIMS(dims[0], dims[1], dims[2], stackFrame);
                 case Type.OBJECT:
-                    return MultiDTaintedArray.MULTIANEWARRAY_REFERENCE_3DIMS(dims[0],
+                    return MultiDArrayUtils.MULTIANEWARRAY_REFERENCE_3DIMS(dims[0],
                             dims[1], dims[2], clazz, stackFrame);
             }
         }
         throw new UnsupportedOperationException();
     }
 
-    static void fillInTaint(PhosphorStackFrame ret, LazyArrayObjTags ar, int idx) {
+    static void fillInTaint(PhosphorStackFrame ret, TaggedArray ar, int idx) {
         if (ar.taints != null) {
             ret.returnTaint = ar.taints[idx];
         } else {
@@ -188,90 +187,90 @@ public class ArrayReflectionMasker {
     }
 
     public static Object get(Object obj, int idx, PhosphorStackFrame stackFrame) {
-        if (obj instanceof LazyBooleanArrayObjTags) {
-            fillInTaint(stackFrame, (LazyArrayObjTags) obj, idx);
-            return ((LazyBooleanArrayObjTags) obj).val[idx];
-        } else if (obj instanceof LazyByteArrayObjTags) {
-            fillInTaint(stackFrame, (LazyArrayObjTags) obj, idx);
-            return ((LazyBooleanArrayObjTags) obj).val[idx];
-        } else if (obj instanceof LazyCharArrayObjTags) {
-            fillInTaint(stackFrame, (LazyArrayObjTags) obj, idx);
-            return ((LazyCharArrayObjTags) obj).val[idx];
-        } else if (obj instanceof LazyDoubleArrayObjTags) {
-            fillInTaint(stackFrame, (LazyArrayObjTags) obj, idx);
-            return ((LazyDoubleArrayObjTags) obj).val[idx];
-        } else if (obj instanceof LazyFloatArrayObjTags) {
-            fillInTaint(stackFrame, (LazyArrayObjTags) obj, idx);
-            return ((LazyFloatArrayObjTags) obj).val[idx];
-        } else if (obj instanceof LazyIntArrayObjTags) {
-            fillInTaint(stackFrame, (LazyArrayObjTags) obj, idx);
-            return ((LazyIntArrayObjTags) obj).val[idx];
-        } else if (obj instanceof LazyLongArrayObjTags) {
-            fillInTaint(stackFrame, (LazyArrayObjTags) obj, idx);
-            return ((LazyLongArrayObjTags) obj).val[idx];
-        } else if (obj instanceof LazyShortArrayObjTags) {
-            fillInTaint(stackFrame, (LazyArrayObjTags) obj, idx);
-            return ((LazyShortArrayObjTags) obj).val[idx];
-        } else if (obj instanceof LazyReferenceArrayObjTags) {
-            fillInTaint(stackFrame, (LazyArrayObjTags) obj, idx);
-            return ((LazyReferenceArrayObjTags) obj).val[idx];
+        if (obj instanceof TaggedBooleanArray) {
+            fillInTaint(stackFrame, (TaggedArray) obj, idx);
+            return ((TaggedBooleanArray) obj).val[idx];
+        } else if (obj instanceof TaggedByteArray) {
+            fillInTaint(stackFrame, (TaggedArray) obj, idx);
+            return ((TaggedBooleanArray) obj).val[idx];
+        } else if (obj instanceof TaggedCharArray) {
+            fillInTaint(stackFrame, (TaggedArray) obj, idx);
+            return ((TaggedCharArray) obj).val[idx];
+        } else if (obj instanceof TaggedDoubleArray) {
+            fillInTaint(stackFrame, (TaggedArray) obj, idx);
+            return ((TaggedDoubleArray) obj).val[idx];
+        } else if (obj instanceof TaggedFloatArray) {
+            fillInTaint(stackFrame, (TaggedArray) obj, idx);
+            return ((TaggedFloatArray) obj).val[idx];
+        } else if (obj instanceof TaggedIntArray) {
+            fillInTaint(stackFrame, (TaggedArray) obj, idx);
+            return ((TaggedIntArray) obj).val[idx];
+        } else if (obj instanceof TaggedLongArray) {
+            fillInTaint(stackFrame, (TaggedArray) obj, idx);
+            return ((TaggedLongArray) obj).val[idx];
+        } else if (obj instanceof TaggedShortArray) {
+            fillInTaint(stackFrame, (TaggedArray) obj, idx);
+            return ((TaggedShortArray) obj).val[idx];
+        } else if (obj instanceof TaggedReferenceArray) {
+            fillInTaint(stackFrame, (TaggedArray) obj, idx);
+            return ((TaggedReferenceArray) obj).val[idx];
         }
         stackFrame.returnTaint = Taint.emptyTaint();
         return Array.get(obj, idx);
     }
 
     public static byte getByte(Object obj, int idx, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyByteArrayObjTags) {
-            return ((LazyByteArrayObjTags) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
+        if (obj instanceof TaggedByteArray) {
+            return ((TaggedByteArray) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static boolean getBoolean(Object obj, int idx, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyBooleanArrayObjTags) {
-            return ((LazyBooleanArrayObjTags) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
+        if (obj instanceof TaggedBooleanArray) {
+            return ((TaggedBooleanArray) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static char getChar(Object obj, int idx, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyCharArrayObjTags) {
-            return ((LazyCharArrayObjTags) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
+        if (obj instanceof TaggedCharArray) {
+            return ((TaggedCharArray) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static double getDouble(Object obj, int idx, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyDoubleArrayObjTags) {
-            return ((LazyDoubleArrayObjTags) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
+        if (obj instanceof TaggedDoubleArray) {
+            return ((TaggedDoubleArray) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static int getInt(Object obj, int idx, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyIntArrayObjTags) {
-            return ((LazyIntArrayObjTags) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
+        if (obj instanceof TaggedIntArray) {
+            return ((TaggedIntArray) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static long getLong(Object obj, int idx, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyLongArrayObjTags) {
-            return ((LazyLongArrayObjTags) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
+        if (obj instanceof TaggedLongArray) {
+            return ((TaggedLongArray) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static short getShort(Object obj, int idx, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyShortArrayObjTags) {
-            return ((LazyShortArrayObjTags) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
+        if (obj instanceof TaggedShortArray) {
+            return ((TaggedShortArray) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
 
     public static float getFloat(Object obj, int idx, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyFloatArrayObjTags) {
-            return ((LazyFloatArrayObjTags) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
+        if (obj instanceof TaggedFloatArray) {
+            return ((TaggedFloatArray) obj).get(idx, phosphorStackFrame.getArgTaint(1), phosphorStackFrame);
         }
         throw new ArrayStoreException("Called getX, but don't have tainted X array!");
     }
@@ -280,24 +279,24 @@ public class ArrayReflectionMasker {
         if (obj != null && !obj.getClass().isArray()) {
             // in this case obj will be boxed, and we need to pull the taint out of val when
             // we unbox it
-            if (obj instanceof LazyBooleanArrayObjTags) {
+            if (obj instanceof TaggedBooleanArray) {
                 setBoolean(obj, idx, (Boolean) val, phosphorStackFrame);
-            } else if (obj instanceof LazyByteArrayObjTags) {
+            } else if (obj instanceof TaggedByteArray) {
                 setByte(obj, idx, (Byte) val, phosphorStackFrame);
-            } else if (obj instanceof LazyCharArrayObjTags) {
+            } else if (obj instanceof TaggedCharArray) {
                 setChar(obj, idx, (Character) val, phosphorStackFrame);
-            } else if (obj instanceof LazyDoubleArrayObjTags) {
+            } else if (obj instanceof TaggedDoubleArray) {
                 setDouble(obj, idx, (Double) val, phosphorStackFrame);
-            } else if (obj instanceof LazyFloatArrayObjTags) {
+            } else if (obj instanceof TaggedFloatArray) {
                 setFloat(obj, idx, (Float) val, phosphorStackFrame);
-            } else if (obj instanceof LazyIntArrayObjTags) {
+            } else if (obj instanceof TaggedIntArray) {
                 setInt(obj, idx, (Integer) val, phosphorStackFrame);
-            } else if (obj instanceof LazyLongArrayObjTags) {
+            } else if (obj instanceof TaggedLongArray) {
                 setLong(obj, idx, (Long) val, phosphorStackFrame);
-            } else if (obj instanceof LazyShortArrayObjTags) {
+            } else if (obj instanceof TaggedShortArray) {
                 setShort(obj, idx, (Short) val, phosphorStackFrame);
-            } else if (obj instanceof LazyReferenceArrayObjTags) {
-                ((LazyReferenceArrayObjTags) obj).set(idx, val, phosphorStackFrame.getArgTaint(1), phosphorStackFrame.getArgTaint(2), phosphorStackFrame);
+            } else if (obj instanceof TaggedReferenceArray) {
+                ((TaggedReferenceArray) obj).set(idx, val, phosphorStackFrame.getArgTaint(1), phosphorStackFrame.getArgTaint(2), phosphorStackFrame);
             } else {
                 throw new ArrayStoreException("Got passed an obj of type " + obj + " to store to");
             }
@@ -307,8 +306,8 @@ public class ArrayReflectionMasker {
     }
 
     public static void setBoolean(Object obj, int idx, boolean val, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyBooleanArrayObjTags) {
-            LazyBooleanArrayObjTags a = (LazyBooleanArrayObjTags) obj;
+        if (obj instanceof TaggedBooleanArray) {
+            TaggedBooleanArray a = (TaggedBooleanArray) obj;
             a.set(idx, val, phosphorStackFrame.getArgTaint(1), phosphorStackFrame.getArgTaint(2), phosphorStackFrame);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
@@ -316,8 +315,8 @@ public class ArrayReflectionMasker {
     }
 
     public static void setByte(Object obj, int idx, byte val, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyByteArrayObjTags) {
-            LazyByteArrayObjTags a = (LazyByteArrayObjTags) obj;
+        if (obj instanceof TaggedByteArray) {
+            TaggedByteArray a = (TaggedByteArray) obj;
             a.set(idx, val, phosphorStackFrame.getArgTaint(1), phosphorStackFrame.getArgTaint(2), phosphorStackFrame);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!, got " + obj.getClass());
@@ -325,8 +324,8 @@ public class ArrayReflectionMasker {
     }
 
     public static void setChar(Object obj, int idx, char val, PhosphorStackFrame phosphorStackFrame){
-        if (obj instanceof LazyCharArrayObjTags) {
-            LazyCharArrayObjTags a = (LazyCharArrayObjTags) obj;
+        if (obj instanceof TaggedCharArray) {
+            TaggedCharArray a = (TaggedCharArray) obj;
             a.set(idx, val, phosphorStackFrame.getArgTaint(1), phosphorStackFrame.getArgTaint(2), phosphorStackFrame);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
@@ -334,8 +333,8 @@ public class ArrayReflectionMasker {
     }
 
     public static void setDouble(Object obj, int idx, double val, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyDoubleArrayObjTags) {
-            LazyDoubleArrayObjTags a = (LazyDoubleArrayObjTags) obj;
+        if (obj instanceof TaggedDoubleArray) {
+            TaggedDoubleArray a = (TaggedDoubleArray) obj;
             a.set(idx, val, phosphorStackFrame.getArgTaint(1), phosphorStackFrame.getArgTaint(2), phosphorStackFrame);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
@@ -343,8 +342,8 @@ public class ArrayReflectionMasker {
     }
 
     public static void setFloat(Object obj, int idx, float val, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyFloatArrayObjTags) {
-            LazyFloatArrayObjTags a = (LazyFloatArrayObjTags) obj;
+        if (obj instanceof TaggedFloatArray) {
+            TaggedFloatArray a = (TaggedFloatArray) obj;
             a.set(idx, val, phosphorStackFrame.getArgTaint(1), phosphorStackFrame.getArgTaint(2), phosphorStackFrame);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
@@ -352,8 +351,8 @@ public class ArrayReflectionMasker {
     }
 
     public static void setInt(Object obj, int idx, int val, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyIntArrayObjTags) {
-            LazyIntArrayObjTags a = (LazyIntArrayObjTags) obj;
+        if (obj instanceof TaggedIntArray) {
+            TaggedIntArray a = (TaggedIntArray) obj;
             a.set(idx, val, phosphorStackFrame.getArgTaint(1), phosphorStackFrame.getArgTaint(2), phosphorStackFrame);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
@@ -361,8 +360,8 @@ public class ArrayReflectionMasker {
     }
 
     public static void setLong(Object obj, int idx, long val, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyLongArrayObjTags) {
-            LazyLongArrayObjTags a = (LazyLongArrayObjTags) obj;
+        if (obj instanceof TaggedLongArray) {
+            TaggedLongArray a = (TaggedLongArray) obj;
             a.set(idx, val, phosphorStackFrame.getArgTaint(1), phosphorStackFrame.getArgTaint(2), phosphorStackFrame);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");
@@ -370,8 +369,8 @@ public class ArrayReflectionMasker {
     }
 
     public static void setShort(Object obj, int idx, short val, PhosphorStackFrame phosphorStackFrame) {
-        if (obj instanceof LazyShortArrayObjTags) {
-            LazyShortArrayObjTags a = (LazyShortArrayObjTags) obj;
+        if (obj instanceof TaggedShortArray) {
+            TaggedShortArray a = (TaggedShortArray) obj;
             a.set(idx, val, phosphorStackFrame.getArgTaint(1), phosphorStackFrame.getArgTaint(2), phosphorStackFrame);
         } else {
             throw new ArrayStoreException("Called setX, but don't have tainted X array!");

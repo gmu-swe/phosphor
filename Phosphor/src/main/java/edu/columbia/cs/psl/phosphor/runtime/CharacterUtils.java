@@ -3,7 +3,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREMethodHelper;
-import edu.columbia.cs.psl.phosphor.struct.LazyCharArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaggedCharArray;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 
 public class CharacterUtils {
@@ -64,7 +64,7 @@ public class CharacterUtils {
     public static int codePointAt(char[] tags, int i, PhosphorStackFrame phosphorStackFrame) {
         Taint t = phosphorStackFrame.getArgTaint(0);
         try {
-            LazyCharArrayObjTags tagsWrapper = phosphorStackFrame.getArgWrapper(0, tags);
+            TaggedCharArray tagsWrapper = phosphorStackFrame.getArgWrapper(0, tags);
             Taint retTaint = Taint.emptyTaint();
             if(tagsWrapper.taints != null) {
                 retTaint = tagsWrapper.taints[i];
@@ -105,7 +105,7 @@ public class CharacterUtils {
     public static int codePointAt(char[] tags, int i, int i2, PhosphorStackFrame phosphorStackFrame) {
         try {
             Taint retTaint = Taint.emptyTaint();
-            LazyCharArrayObjTags wrapper = phosphorStackFrame.getArgWrapper(0, tags);
+            TaggedCharArray wrapper = phosphorStackFrame.getArgWrapper(0, tags);
             if(wrapper.taints != null) {
                 retTaint = wrapper.taints[i];
             }
@@ -123,7 +123,7 @@ public class CharacterUtils {
     public static int codePointBefore(char[] tags, int i, PhosphorStackFrame phosphorStackFrame) {
         try {
             Taint retTaint = Taint.emptyTaint();
-            LazyCharArrayObjTags wrapper = phosphorStackFrame.getArgWrapper(0, tags);
+            TaggedCharArray wrapper = phosphorStackFrame.getArgWrapper(0, tags);
             if(wrapper.taints != null) {
                 retTaint = wrapper.taints[i];
             }
@@ -165,7 +165,7 @@ public class CharacterUtils {
         Taint t = phosphorStackFrame.getArgTaint(1);
         try {
             Taint retTaint = Taint.emptyTaint();
-            LazyCharArrayObjTags wrapper = phosphorStackFrame.getArgWrapper(0, tags);
+            TaggedCharArray wrapper = phosphorStackFrame.getArgWrapper(0, tags);
             if(wrapper.taints != null) {
                 retTaint = wrapper.taints[i];
             }
@@ -182,7 +182,7 @@ public class CharacterUtils {
     public static char[] toChars(int idx, PhosphorStackFrame phosphorStackFrame) {
         Taint idxTaint = phosphorStackFrame.getArgTaint(0);
         char[] v = Character.toChars(idx);
-        LazyCharArrayObjTags ret = new LazyCharArrayObjTags(v);
+        TaggedCharArray ret = new TaggedCharArray(v);
         if(idxTaint != null) {
             ret.taints = new Taint[v.length];
             for(int i = 0; i < v.length; i++) {
@@ -202,7 +202,7 @@ public class CharacterUtils {
 
     public static int codePointBeforeImpl(char[] tags, int i, int i2, PhosphorStackFrame phosphorStackFrame) {
         Taint retTaint = Taint.emptyTaint();
-        LazyCharArrayObjTags tagsWrapper = phosphorStackFrame.getArgWrapper(0, tags);
+        TaggedCharArray tagsWrapper = phosphorStackFrame.getArgWrapper(0, tags);
         if(tagsWrapper != null) {
             retTaint = tagsWrapper.taints[i];
         }
@@ -221,7 +221,7 @@ public class CharacterUtils {
     public static char[] toUpperCaseCharArray(int c, PhosphorStackFrame phosphorStackFrame) {
         Taint idxTaint = phosphorStackFrame.getArgTaint(0);
         char[] v = InstrumentedJREMethodHelper.java_lang_Character_toUpperCaseCharArray(c);
-        LazyCharArrayObjTags ret = new LazyCharArrayObjTags(v);
+        TaggedCharArray ret = new TaggedCharArray(v);
         if(idxTaint != null) {
             ret.taints = new Taint[v.length];
             for(int i = 0; i < v.length; i++) {
@@ -233,7 +233,7 @@ public class CharacterUtils {
     }
 
     public static int codePointAtImpl(char[] t, int index, int limit, PhosphorStackFrame phosphorStackFrame) {
-        LazyCharArrayObjTags wrapped = phosphorStackFrame.getArgWrapper(0, t);
+        TaggedCharArray wrapped = phosphorStackFrame.getArgWrapper(0, t);
         int ret = InstrumentedJREMethodHelper.java_lang_Character_codePointAtImpl(t, index, limit);
         Taint retTaint = Taint.emptyTaint();
         if(wrapped.taints != null && wrapped.taints[index] != null) {

@@ -4,7 +4,6 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
 import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArrayWithObjTag;
 
 public final class MultiTainter {
 
@@ -58,7 +57,7 @@ public final class MultiTainter {
 
     public static boolean[] taintedBooleanArray(boolean[] in, Object lbl) {
         PhosphorStackFrame phosphorStackFrame = PhosphorStackFrame.forMethod(null);
-        LazyArrayObjTags wrapper = phosphorStackFrame.getArgWrapper(0, in);
+        TaggedArray wrapper = phosphorStackFrame.getArgWrapper(0, in);
         taintedArray(wrapper, lbl);
         phosphorStackFrame.setWrappedReturn(wrapper);
         return in;
@@ -66,7 +65,7 @@ public final class MultiTainter {
 
     public static byte[] taintedByteArray(byte[] in, Object lbl) {
         PhosphorStackFrame phosphorStackFrame = PhosphorStackFrame.forMethod(null);
-        LazyArrayObjTags wrapper = phosphorStackFrame.getArgWrapper(0, in);
+        TaggedArray wrapper = phosphorStackFrame.getArgWrapper(0, in);
         taintedArray(wrapper, lbl);
         phosphorStackFrame.setWrappedReturn(wrapper);
         return in;
@@ -74,7 +73,7 @@ public final class MultiTainter {
 
     public static char[] taintedCharArray(char[] in, Object lbl) {
         PhosphorStackFrame phosphorStackFrame = PhosphorStackFrame.forMethod(null);
-        LazyArrayObjTags wrapper = phosphorStackFrame.getArgWrapper(0, in);
+        TaggedArray wrapper = phosphorStackFrame.getArgWrapper(0, in);
         taintedArray(wrapper, lbl);
         phosphorStackFrame.setWrappedReturn(wrapper);
         return in;
@@ -82,7 +81,7 @@ public final class MultiTainter {
 
     public static double[] taintedDoubleArray(double[] in, Object lbl) {
         PhosphorStackFrame phosphorStackFrame = PhosphorStackFrame.forMethod(null);
-        LazyArrayObjTags wrapper = phosphorStackFrame.getArgWrapper(0, in);
+        TaggedArray wrapper = phosphorStackFrame.getArgWrapper(0, in);
         taintedArray(wrapper, lbl);
         phosphorStackFrame.setWrappedReturn(wrapper);
         return in;
@@ -90,7 +89,7 @@ public final class MultiTainter {
 
     public static float[] taintedFloatArray(float[] in, Object lbl) {
         PhosphorStackFrame phosphorStackFrame = PhosphorStackFrame.forMethod(null);
-        LazyArrayObjTags wrapper = phosphorStackFrame.getArgWrapper(0, in);
+        TaggedArray wrapper = phosphorStackFrame.getArgWrapper(0, in);
         taintedArray(wrapper, lbl);
         phosphorStackFrame.setWrappedReturn(wrapper);
         return in;
@@ -98,7 +97,7 @@ public final class MultiTainter {
 
     public static long[] taintedLongArray(long[] in, Object lbl) {
         PhosphorStackFrame phosphorStackFrame = PhosphorStackFrame.forMethod(null);
-        LazyArrayObjTags wrapper = phosphorStackFrame.getArgWrapper(0, in);
+        TaggedArray wrapper = phosphorStackFrame.getArgWrapper(0, in);
         taintedArray(wrapper, lbl);
         phosphorStackFrame.setWrappedReturn(wrapper);
         return in;
@@ -106,7 +105,7 @@ public final class MultiTainter {
 
     public static int[] taintedIntArray(int[] in, Object lbl) {
         PhosphorStackFrame phosphorStackFrame = PhosphorStackFrame.forMethod(null);
-        LazyArrayObjTags wrapper = phosphorStackFrame.getArgWrapper(0, in);
+        TaggedArray wrapper = phosphorStackFrame.getArgWrapper(0, in);
         taintedArray(wrapper, lbl);
         phosphorStackFrame.setWrappedReturn(wrapper);
         return in;
@@ -114,7 +113,7 @@ public final class MultiTainter {
 
     public static short[] taintedShortArray(short[] in, Object lbl) {
         PhosphorStackFrame phosphorStackFrame = PhosphorStackFrame.forMethod(null);
-        LazyArrayObjTags wrapper = phosphorStackFrame.getArgWrapper(0, in);
+        TaggedArray wrapper = phosphorStackFrame.getArgWrapper(0, in);
         taintedArray(wrapper, lbl);
         phosphorStackFrame.setWrappedReturn(wrapper);
         return in;
@@ -174,7 +173,7 @@ public final class MultiTainter {
         return phosphorStackFrame.getArgTaint(0);
     }
 
-    private static void taintedArray(LazyArrayObjTags in, Object lbl) {
+    private static void taintedArray(TaggedArray in, Object lbl) {
         if(in.taints == null) {
             in.taints = new Taint[in.getLength()];
         }
@@ -205,15 +204,15 @@ public final class MultiTainter {
             return;
         }
         if(Configuration.IS_JAVA_8){
-            LazyCharArrayObjTags onStr = InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER(str);
+            TaggedCharArray onStr = InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER(str);
             if(onStr == null){
-                InstrumentedJREFieldHelper.JAVA_8setvaluePHOSPHOR_WRAPPER(str, LazyCharArrayObjTags.factory(InstrumentedJREFieldHelper.JAVA_8getvalue(str)));
+                InstrumentedJREFieldHelper.JAVA_8setvaluePHOSPHOR_WRAPPER(str, TaggedCharArray.factory(InstrumentedJREFieldHelper.JAVA_8getvalue(str)));
             }
             onStr.taints = tags;
         } else {
-            LazyByteArrayObjTags onStr = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str);
+            TaggedByteArray onStr = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str);
             if(onStr == null){
-                InstrumentedJREFieldHelper.setvaluePHOSPHOR_WRAPPER(str, LazyByteArrayObjTags.factory(InstrumentedJREFieldHelper.getvalue(str)));
+                InstrumentedJREFieldHelper.setvaluePHOSPHOR_WRAPPER(str, TaggedByteArray.factory(InstrumentedJREFieldHelper.getvalue(str)));
             }
             onStr.taints = tags;
         }
@@ -221,12 +220,9 @@ public final class MultiTainter {
 
     @Deprecated
     public static void taintedObject(Object obj, Taint tag) {
-        if(obj instanceof MultiDTaintedArrayWithObjTag) {
-            obj = ((MultiDTaintedArrayWithObjTag) obj).getVal();
-        }
         if(obj instanceof TaintedWithObjTag) {
             ((TaintedWithObjTag) obj).setPHOSPHOR_TAG(tag);
-        } else if(obj instanceof LazyArrayObjTags) {
+        } else if(obj instanceof TaggedArray) {
             // TODO
         } else if(obj != null && ArrayHelper.engaged == 1) {
             ArrayHelper.setTag(obj, tag);
@@ -236,8 +232,8 @@ public final class MultiTainter {
     /* If the specified object is a one-dimensional primitive array sets the taint of each element in the array to be
      * the specified tag. */
     public static void setPrimitiveArrayTaints(Object obj, Taint tag) {
-        if(obj instanceof LazyArrayObjTags) {
-            ((LazyArrayObjTags) obj).setTaints(tag);
+        if(obj instanceof TaggedArray) {
+            ((TaggedArray) obj).setTaints(tag);
         }
     }
 
@@ -245,16 +241,16 @@ public final class MultiTainter {
      * all of its elements, otherwise returns the object's taint. */
     public static Taint getMergedTaint(Object obj) {
         //TODO reference taints?
-        if(obj instanceof LazyReferenceArrayObjTags) {
-            Object[] ar = ((LazyReferenceArrayObjTags) obj).val;
+        if(obj instanceof TaggedReferenceArray) {
+            Object[] ar = ((TaggedReferenceArray) obj).val;
             Taint[] taints = new Taint[ar.length];
             int i = 0;
             for(Object el : ar) {
                 taints[i] = getMergedTaint(el);
             }
             return Taint.combineTaintArray(taints);
-        } else if(obj instanceof LazyArrayObjTags) {
-            return Taint.combineTaintArray(((LazyArrayObjTags) obj).taints);
+        } else if(obj instanceof TaggedArray) {
+            return Taint.combineTaintArray(((TaggedArray) obj).taints);
         } else if(obj instanceof Object[]) {
             throw new IllegalStateException("Object[] should not exist!");
         } else {

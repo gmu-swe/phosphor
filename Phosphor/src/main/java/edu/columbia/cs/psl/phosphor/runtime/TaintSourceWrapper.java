@@ -38,8 +38,8 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
     /* For multi-tainting/object tags. */
     @SuppressWarnings({"unchecked", "unused"})
     public void combineTaintsOnArray(Object inputArray, Taint tag) {
-        if(inputArray instanceof LazyArrayObjTags) {
-            LazyArrayObjTags array = ((LazyArrayObjTags) inputArray);
+        if(inputArray instanceof TaggedArray) {
+            TaggedArray array = ((TaggedArray) inputArray);
             if(array.taints == null) {
                 array.taints = new Taint[array.getLength()];
             }
@@ -72,7 +72,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         if(tag == null || obj == null) {
             return;
         }
-        if(obj instanceof LazyArrayObjTags) {
+        if(obj instanceof TaggedArray) {
             combineTaintsOnArray(obj, tag);
         } else if(obj instanceof TaintedWithObjTag) {
             TaintedWithObjTag tainted = (TaintedWithObjTag) obj;
@@ -106,8 +106,8 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
     public Object autoTaint(Object obj, Taint<? extends AutoTaintLabel> tag) {
         if(obj == null) {
             return null;
-        } else if(obj instanceof LazyArrayObjTags) {
-            return autoTaint((LazyArrayObjTags) obj, tag);
+        } else if(obj instanceof TaggedArray) {
+            return autoTaint((TaggedArray) obj, tag);
         } else if(obj instanceof TaintedWithObjTag) {
             return autoTaint((TaintedWithObjTag) obj, tag);
         } else if(obj.getClass().isArray()) {
@@ -133,7 +133,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
     }
 
     @SuppressWarnings("unchecked")
-    public LazyArrayObjTags autoTaint(LazyArrayObjTags ret, Taint<? extends AutoTaintLabel> tag) {
+    public TaggedArray autoTaint(TaggedArray ret, Taint<? extends AutoTaintLabel> tag) {
         Taint[] taintArray = ret.taints;
         if(taintArray != null) {
             for(int i = 0; i < taintArray.length; i++) {
@@ -146,8 +146,8 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         } else {
             ret.setTaints(tag);
         }
-        if(ret instanceof LazyReferenceArrayObjTags) {
-            for(Object o : ((LazyReferenceArrayObjTags) ret).val) {
+        if(ret instanceof TaggedReferenceArray) {
+            for(Object o : ((TaggedReferenceArray) ret).val) {
                 autoTaint(o, tag);
             }
         }
@@ -189,8 +189,8 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
             if(((TaintedWithObjTag) obj).getPHOSPHOR_TAG() != null) {
                 taintViolation((Taint<T>) ((TaintedWithObjTag) obj).getPHOSPHOR_TAG(), obj, baseSink, actualSink);
             }
-        } else if(obj instanceof LazyArrayObjTags) {
-            LazyArrayObjTags tags = ((LazyArrayObjTags) obj);
+        } else if(obj instanceof TaggedArray) {
+            TaggedArray tags = ((TaggedArray) obj);
             if(tags.taints != null) {
                 for(Object i : tags.taints) {
                     if(i != null) {
@@ -198,8 +198,8 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
                     }
                 }
             }
-            if(obj instanceof LazyReferenceArrayObjTags) {
-                for(Object each : ((LazyReferenceArrayObjTags) obj).val) {
+            if(obj instanceof TaggedReferenceArray) {
+                for(Object each : ((TaggedReferenceArray) obj).val) {
                     checkTaint(each, baseSink, actualSink);
                 }
             }
@@ -228,16 +228,16 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         // TODO: Previously, I think we were combining  tags on strings, now this is overwriting. Is this the right thing to do now?
         if (str != null) {
             if (Configuration.IS_JAVA_8) {
-                LazyCharArrayObjTags chars = InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER(str);
+                TaggedCharArray chars = InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER(str);
                 if(chars == null){
-                    chars = new LazyCharArrayObjTags(InstrumentedJREFieldHelper.JAVA_8getvalue(str));
+                    chars = new TaggedCharArray(InstrumentedJREFieldHelper.JAVA_8getvalue(str));
                     InstrumentedJREFieldHelper.JAVA_8setvaluePHOSPHOR_WRAPPER(str, chars);
                 }
                 chars.setTaints(tag);
             } else {
-                LazyByteArrayObjTags chars = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str);
+                TaggedByteArray chars = InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER(str);
                 if(chars == null){
-                    chars = new LazyByteArrayObjTags(InstrumentedJREFieldHelper.getvalue(str));
+                    chars = new TaggedByteArray(InstrumentedJREFieldHelper.getvalue(str));
                     InstrumentedJREFieldHelper.setvaluePHOSPHOR_WRAPPER(str, chars);
                 }
                 chars.setTaints(tag);
@@ -245,17 +245,17 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
         }
     }
 
-    public static void setStringValueTag(String str, LazyArrayObjTags tags) {
+    public static void setStringValueTag(String str, TaggedArray tags) {
         if (str != null) {
             if (Configuration.IS_JAVA_8) {
-                InstrumentedJREFieldHelper.JAVA_8setvaluePHOSPHOR_WRAPPER(str, (LazyCharArrayObjTags) tags);
+                InstrumentedJREFieldHelper.JAVA_8setvaluePHOSPHOR_WRAPPER(str, (TaggedCharArray) tags);
             } else {
-                InstrumentedJREFieldHelper.setvaluePHOSPHOR_WRAPPER(str, (LazyByteArrayObjTags) tags);
+                InstrumentedJREFieldHelper.setvaluePHOSPHOR_WRAPPER(str, (TaggedByteArray) tags);
             }
         }
     }
 
-    public static LazyArrayObjTags getStringValueTag(CharSequence str) {
+    public static TaggedArray getStringValueTag(CharSequence str) {
         if (str == null) {
             return null;
         } else {
@@ -266,7 +266,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
                     return InstrumentedJREFieldHelper.getvaluePHOSPHOR_WRAPPER((String) str);
                 }
             } else{
-                LazyCharArrayObjTags ret = new LazyCharArrayObjTags(str.length());
+                TaggedCharArray ret = new TaggedCharArray(str.length());
                 PhosphorStackFrame frame = PhosphorStackFrame.forMethod(null);
                 for(int i = 0; i < str.length(); i++){
                     if(Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
@@ -284,7 +284,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
     }
 
     public static Taint[] getStringValueTaints(String str) {
-        LazyArrayObjTags tag = getStringValueTag(str);
+        TaggedArray tag = getStringValueTag(str);
         return tag == null? null : tag.taints;
     }
 }

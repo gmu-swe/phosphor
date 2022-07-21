@@ -5,10 +5,10 @@ import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
+import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
-import edu.columbia.cs.psl.phosphor.struct.LazyReferenceArrayObjTags;
+import edu.columbia.cs.psl.phosphor.struct.TaggedReferenceArray;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
-import edu.columbia.cs.psl.phosphor.struct.multid.MultiDTaintedArray;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -51,8 +51,8 @@ public class UninstrumentedCompatMV extends TaintAdapter {
         methodToCall.append("DIMS");
         descToCall.append(PhosphorStackFrame.DESCRIPTOR);
         descToCall.append(")");
-        descToCall.append(Type.getDescriptor(LazyReferenceArrayObjTags.class));
-        super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
+        descToCall.append(Type.getDescriptor(TaggedReferenceArray.class));
+        super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class),
                 methodToCall.toString(), descToCall.toString(), false);
     }
 
@@ -62,12 +62,12 @@ public class UninstrumentedCompatMV extends TaintAdapter {
             if (!analyzer.stack.isEmpty() && "java/lang/Object".equals(analyzer.stack.get(analyzer.stack.size() - 1))
                     && type.startsWith("[")
                     && type.length() == 2) {
-                super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class),
                         "maybeUnbox", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
             }
             Type t = Type.getObjectType(type);
             if (t.getSort() == Type.ARRAY && t.getDimensions() > 1 && t.getElementType().getSort() != Type.OBJECT) {
-                type = MultiDTaintedArray.getTypeForType(t).getInternalName();
+                type = MultiDArrayUtils.getTypeForType(t).getInternalName();
             }
         } else if (opcode == Opcodes.ANEWARRAY) {
             Type t = Type.getObjectType(type);
@@ -76,7 +76,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
             }
             super.visitTypeInsn(opcode, type);
             // 2D arrays are just 1D arrays, not wrapped 1Darrays
-            Type arType = Type.getType(LazyReferenceArrayObjTags.class);
+            Type arType = Type.getType(TaggedReferenceArray.class);
             super.visitMethodInsn(INVOKESTATIC, arType.getInternalName(), "factory",
                     "([Ljava/lang/Object;)" + arType.getDescriptor(),
                     false);
@@ -84,11 +84,11 @@ public class UninstrumentedCompatMV extends TaintAdapter {
         } else if (opcode == Opcodes.INSTANCEOF) {
             Type t = Type.getObjectType(type);
             if (t.getSort() == Type.ARRAY && t.getDimensions() > 1 && t.getElementType().getSort() != Type.OBJECT) {
-                type = MultiDTaintedArray.getTypeForType(t).getDescriptor();
+                type = MultiDArrayUtils.getTypeForType(t).getDescriptor();
             } else if (t.getSort() == Type.ARRAY && t.getDimensions() == 1
                     && t.getElementType().getSort() != Type.OBJECT
                     && getTopOfStackObject().equals("java/lang/Object")) {
-                type = MultiDTaintedArray.getTypeForType(t).getInternalName();
+                type = MultiDArrayUtils.getTypeForType(t).getInternalName();
             }
         }
         super.visitTypeInsn(opcode, type);
@@ -199,7 +199,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                                 || elType.getDescriptor().equals("Ljava/lang/Object;"))) {
                     BOX_IF_NECESSARY.delegateVisit(mv);
                 } else if (arType instanceof String
-                        && ((String) arType).contains("[Ledu/columbia/cs/psl/phosphor/struct/Lazy")) {
+                        && ((String) arType).contains("[Ledu/columbia/cs/psl/phosphor/struct/Tagged")) {
                     BOX_IF_NECESSARY.delegateVisit(mv);
                 }
                 super.visitInsn(opcode);
@@ -213,12 +213,12 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                     super.visitTypeInsn(CHECKCAST, originalArrayType.getElementType().getInternalName());
                     referenceArrayTarget = null;
                 } else if (t.getDimensions() == 1
-                        && t.getElementType().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Lazy")) {
+                        && t.getElementType().getDescriptor().startsWith("Ledu/columbia/cs/psl/phosphor/struct/Tagged")) {
                     super.visitInsn(opcode);
                     try {
-                        super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class),
                                 "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
-                        super.visitTypeInsn(Opcodes.CHECKCAST, "[" + MultiDTaintedArray.getPrimitiveTypeForWrapper(
+                        super.visitTypeInsn(Opcodes.CHECKCAST, "[" + MultiDArrayUtils.getPrimitiveTypeForWrapper(
                                 Class.forName(t.getElementType().getInternalName().replace("/", "."))));
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -231,7 +231,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
             case Opcodes.MONITOREXIT:
                 if (getTopOfStackObject().equals("java/lang/Object")) {
                     // never allow monitor to occur on a multid type
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
+                    super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class),
                             "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
                 }
                 super.visitInsn(opcode);
@@ -239,9 +239,9 @@ public class UninstrumentedCompatMV extends TaintAdapter {
             case Opcodes.ARRAYLENGTH:
                 Type onStack = getStackTypeAtOffset(0);
                 if (onStack.getSort() == Type.OBJECT) {
-                    Type underlying = MultiDTaintedArray.getPrimitiveTypeForWrapper(onStack.getInternalName());
+                    Type underlying = MultiDArrayUtils.getPrimitiveTypeForWrapper(onStack.getInternalName());
                     if (underlying != null) {
-                        super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDTaintedArray.class),
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(MultiDArrayUtils.class),
                                 "unbox1D", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
                         super.visitTypeInsn(Opcodes.CHECKCAST, "[" + underlying.getDescriptor());
                     }
@@ -328,7 +328,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
         Type ownerType = Type.getObjectType(owner);
         if (opcode == INVOKEVIRTUAL && ownerType.getSort() == Type.ARRAY
                 && ownerType.getElementType().getSort() != Type.OBJECT && ownerType.getDimensions() > 1) {
-            owner = MultiDTaintedArray.getTypeForType(ownerType).getInternalName();
+            owner = MultiDArrayUtils.getTypeForType(ownerType).getInternalName();
         }
         if ((owner.equals("java/lang/System") || owner.equals("java/lang/VMSystem")
                 || owner.equals("java/lang/VMMemoryManager")) && name.equals("arraycopy")
