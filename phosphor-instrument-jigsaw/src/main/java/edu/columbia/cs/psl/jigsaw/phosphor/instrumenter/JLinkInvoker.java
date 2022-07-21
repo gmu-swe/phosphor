@@ -13,7 +13,6 @@ public class JLinkInvoker {
     public static void invokeJLink(File jvmDir, File instJVMDir, Properties properties) {
 
         String jlinkBin = jvmDir + File.separator + "bin" + File.separator + "jlink";
-        String classpath = System.getProperty("java.class.path");
         File jlinkFile = getPhosphorJLinkJarFile();
         String modulesToAdd = properties.getProperty(MODULES_PROPERTY,
                 "java.base,jdk.jdwp.agent,java.instrument,jdk.unsupported");

@@ -1,0 +1,23 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.1"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.1 http://maven.apache.org/xsd/assembly-2.1.1.xsd">
+    <id>bin</id>
+    <formats>
+        <format>dir</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <moduleSets>
+        <moduleSet>
+            <useAllReactorProjects>true</useAllReactorProjects>
+            <includes>
+                <include>edu.gmu.swe.phosphor:Phosphor</include>
+                <include>edu.gmu.swe.phosphor:phosphor-instrument-jigsaw</include>
+                <include>edu.gmu.swe.phosphor:phosphor-jigsaw-javaagent</include>
+            </includes>
+            <binaries>
+                <includeDependencies>false</includeDependencies>
+                <unpack>false</unpack>
+            </binaries>
+        </moduleSet>
+    </moduleSets>
+</assembly>

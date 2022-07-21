@@ -35,6 +35,7 @@
                     <archive>
                         <manifestEntries>
                             <Premain-Class>edu.columbia.cs.psl.jigsaw.phosphor.instrumenter.JLinkRegistrationAgent</Premain-Class>
+                            <Main-Class>edu.columbia.cs.psl.jigsaw.phosphor.instrumenter.StandaloneJVMInstrumenter</Main-Class>
                         </manifestEntries>
                     </archive>
                 </configuration>

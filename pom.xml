@@ -30,6 +30,7 @@
         <module>phosphor-instrument-maven-plugin</module>
         <module>integration-tests</module>
         <module>phosphor-microbench</module>
+        <module>phosphor-distribution</module>
     </modules>
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
