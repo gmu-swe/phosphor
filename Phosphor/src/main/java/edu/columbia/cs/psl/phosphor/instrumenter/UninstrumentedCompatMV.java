@@ -141,11 +141,6 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                         super.visitFieldInsn(opcode, owner, name, desc);
                     } else {
                         //It's not wrapped
-                        if (opcode == Opcodes.PUTFIELD) {
-                            super.visitInsn(DUP2);
-                        } else {
-                            super.visitInsn(DUP);
-                        }
                         super.visitFieldInsn(opcode, owner, name, desc);
                         String factoryType = desc;
                         if (t.getElementType().getSort() == Type.OBJECT) {

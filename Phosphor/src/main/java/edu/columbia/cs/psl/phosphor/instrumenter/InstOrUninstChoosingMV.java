@@ -13,6 +13,7 @@ public class InstOrUninstChoosingMV extends MethodVisitor {
     }
 
     public void disableTainting() {
+        umv.lvs.disable();
         this.mv = umv;
     }
 }
