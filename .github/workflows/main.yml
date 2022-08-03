@@ -4,9 +4,9 @@ on:
   push:
   pull_request:
     types:
-	  - opened
-	    edited
-		reopened
+       - opened
+         edited
+         reopened
 jobs:
   build-and-test:
     runs-on: self-hosted
