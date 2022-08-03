@@ -57,6 +57,16 @@ public class ReflectionObjTagITCase extends BaseMultiTaintClass {
 			this.bools = bools;
 		}
 
+		public int last;
+
+		public ConstructorHolder(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9,
+								 int a10, int a11, int a12, int a13, int a14, int a15, int a16, int a17, int a18,
+								 int a19, int a20, int a21, int a22, int a23, int a24, int a25, int a26, int a27,
+								 int a28, int a29, int a30, int a31, int a32, int a33, int a34, int a35, int a36,
+								 int a37, int a38, int a39) {
+			last = a39;
+		}
+
 		@SuppressWarnings("unused")
 		public ConstructorHolder(boolean[][] boolsArr, boolean[] bools, boolean bool) {
 			this.bool = bool;
@@ -181,6 +191,33 @@ public class ReflectionObjTagITCase extends BaseMultiTaintClass {
 		Constructor<TaggedCharArray> constructor = TaggedCharArray.class.getDeclaredConstructor(Taint.class, char[].class);
 		Object result = constructor.newInstance(null, "testPrimitiveArrayIgnoredConstructor".toCharArray());
 		assertNotNull(result);
+	}
+
+	@Test
+	public void testReflectionConstructorWithoutTaint() throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+		Constructor<ConstructorHolder> constructor = ConstructorHolder.class.getConstructor(int.class,
+				int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+				int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+				int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+				int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+				int.class, int.class, int.class);
+		ConstructorHolder obj2 = constructor.newInstance(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+				15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39);
+		assertNotNull(obj2);
+	}
+
+	@Test
+	public void testReflectionConstructorTaintPropagation() throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+		Constructor<ConstructorHolder> constructor = ConstructorHolder.class.getConstructor(int.class,
+				int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+				int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+				int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+				int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+				int.class, int.class, int.class);
+		int i39 = MultiTainter.taintedInt(39, "tainted");
+		ConstructorHolder obj2 = constructor.newInstance(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+				15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, i39);
+		assertTaintHasOnlyLabel(MultiTainter.getTaint(obj2.last), "tainted");
 	}
 
 	public static void main(String[] args) throws Throwable {

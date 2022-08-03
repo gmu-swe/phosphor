@@ -91,9 +91,7 @@ public class ReflectionMasker {
                     phosphorStackFrame.setArgWrapper(args[i], i);
                     args[i] = MultiDArrayUtils.unbox1DOrNull(args[i]);
                 }
-                if(argTaints.taints != null) {
-                    phosphorStackFrame.setArgTaint(argTaints.taints[i], i + (isInstanceMethod ? 1 : 0));
-                }
+                phosphorStackFrame.setArgTaint(argTaints.getTaintOrEmpty(i), i + (isInstanceMethod ? 1 : 0));
             }
         }
         return args;
@@ -108,9 +106,7 @@ public class ReflectionMasker {
                     phosphorStackFrame.setArgWrapper(args[i], i);
                     args[i] = MultiDArrayUtils.unbox1DOrNull(args[i]);
                 }
-                if(argTaints.taints != null) {
-                    phosphorStackFrame.setArgTaint(argTaints.taints[i], i + 1); //+1 to account for "this" taint
-                }
+                phosphorStackFrame.setArgTaint(argTaints.getTaintOrEmpty(i), i + 1); //+1 to account for "this" taint
             }
             Taint thisTaint = phosphorStackFrame.getArgTaint(0);
             phosphorStackFrame.setArgTaint(thisTaint, 0);
