@@ -122,12 +122,13 @@ public class CharacterUtils {
 
     public static int codePointBefore(char[] tags, int i, PhosphorStackFrame phosphorStackFrame) {
         try {
+            int ret = Character.codePointBefore(tags, i);
+            i--;
             Taint retTaint = Taint.emptyTaint();
             TaggedCharArray wrapper = phosphorStackFrame.getArgWrapper(0, tags);
             if(wrapper.taints != null) {
                 retTaint = wrapper.taints[i];
             }
-            int ret = Character.codePointBefore(tags, i);
             phosphorStackFrame.setReturnTaint(retTaint);
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
@@ -141,6 +142,7 @@ public class CharacterUtils {
         Taint t = phosphorStackFrame.getArgTaint(1);
         try {
             int ret = Character.codePointBefore(seq, i);
+            i--;
             Taint retTaint = Taint.emptyTaint();
             if(Configuration.IS_JAVA_8){
                 if(seq instanceof String && InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER((String) seq) != null && InstrumentedJREFieldHelper.JAVA_8getvaluePHOSPHOR_WRAPPER((String) seq).taints  != null) {
@@ -164,12 +166,13 @@ public class CharacterUtils {
     public static int codePointBefore(char[] tags, int i, int i2, PhosphorStackFrame phosphorStackFrame) {
         Taint t = phosphorStackFrame.getArgTaint(1);
         try {
+            int ret = Character.codePointBefore(tags, i, i2);
+            i--;
             Taint retTaint = Taint.emptyTaint();
             TaggedCharArray wrapper = phosphorStackFrame.getArgWrapper(0, tags);
             if(wrapper.taints != null) {
                 retTaint = wrapper.taints[i];
             }
-            int ret = Character.codePointBefore(tags, i, i2);
             phosphorStackFrame.setReturnTaint(retTaint);
             return ret;
         } catch(StringIndexOutOfBoundsException ex) {
