@@ -427,11 +427,15 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     }
 
     private boolean isUnsafeCopyMemory(String owner, String name, String nameWithoutSuffix) {
-        if (!Instrumenter.isUnsafeClass(owner)) {
-            return false;
-        } else {
-            return "copyMemory".equals(nameWithoutSuffix);
+        if (Instrumenter.isUnsafeClass(owner)) {
+            switch (nameWithoutSuffix) {
+                case "copyMemory":
+                case "copySwapMemory":
+                    return true;
+            }
+
         }
+        return false;
     }
 
     @Override
