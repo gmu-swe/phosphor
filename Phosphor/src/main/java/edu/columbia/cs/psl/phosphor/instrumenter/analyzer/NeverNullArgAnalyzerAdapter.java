@@ -501,6 +501,8 @@ public class NeverNullArgAnalyzerAdapter extends MethodVisitor {
             }
         } else if(cst instanceof Handle) {
             push("java/lang/invoke/MethodHandle", cst, false);
+        } else if (cst instanceof ConstantDynamic) {
+            push(((ConstantDynamic) cst).getDescriptor(), cst, false);
         } else {
             throw new IllegalArgumentException();
         }
