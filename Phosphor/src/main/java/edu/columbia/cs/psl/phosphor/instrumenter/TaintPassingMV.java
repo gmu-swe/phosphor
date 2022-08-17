@@ -9,20 +9,15 @@ import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingLabel;
-import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
-import edu.columbia.cs.psl.phosphor.runtime.NativeHelper;
-import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
-import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
-import edu.columbia.cs.psl.phosphor.struct.TaggedReferenceArray;
+import edu.columbia.cs.psl.phosphor.runtime.*;
 import edu.columbia.cs.psl.phosphor.struct.PowerSetTree;
+import edu.columbia.cs.psl.phosphor.struct.TaggedReferenceArray;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
-import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.tree.MethodNode;
 
-import static edu.columbia.cs.psl.phosphor.Configuration.controlFlowManager;
 import static edu.columbia.cs.psl.phosphor.Configuration.taintTagFactory;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_TYPE;
@@ -56,12 +51,17 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     private boolean isAtStartOfExceptionHandler;
     private boolean isRewrittenMethodDescriptorOrName;
 
+    private boolean initializePhosphorStackFrame;
+
+    private int idxOfShouldPopPhosphorStackFrameLV;
+
     public TaintPassingMV(MethodVisitor mv, int access, String owner, String name, String descriptor, String signature,
                           String[] exceptions, NeverNullArgAnalyzerAdapter analyzer,
                           MethodVisitor passThroughMV, LinkedList<MethodNode> wrapperMethodsToAdd,
                           ControlFlowPropagationPolicy controlFlowPolicy) {
         super(access, owner, name, descriptor, signature, exceptions, mv, analyzer);
         taintTagFactory.instrumentationStarting(access, name, descriptor);
+        this.initializePhosphorStackFrame = TaintTrackingClassVisitor.isMethodToRetainDescriptor(className, methodName);
         this.name = name;
         this.owner = owner;
         this.wrapperMethodsToAdd = wrapperMethodsToAdd;
@@ -78,6 +78,40 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     @Override
     public void visitCode() {
         super.visitCode();
+        if(this.initializePhosphorStackFrame){
+            //There are methods that the JDK will internally resolve to, and prefix the arguments
+            //with a handle to the underlying object. That handle won't be passed explicitly by the caller.
+            String descForStackFrame = this.descriptor;
+            if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
+                if (this.descriptor.contains("java/lang/invoke/VarHandle")) {
+                    descForStackFrame = this.descriptor.replace("Ljava/lang/invoke/VarHandle;", "");
+                }
+            }
+
+            if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+                super.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(this.name, descForStackFrame, false));
+                STACK_FRAME_FOR_METHOD_DEBUG.delegateVisit(mv);
+            } else {
+                super.push(PhosphorStackFrame.hashForDesc(TaintAdapter.getMethodKeyForStackFrame(this.name, descForStackFrame, false)));
+                STACK_FRAME_FOR_METHOD_FAST.delegateVisit(mv);
+            }
+            super.visitInsn(DUP);
+            GET_AND_CLEAR_CLEANUP_FLAG.delegateVisit(mv);
+            super.visitInsn(POP);
+            super.visitVarInsn(ASTORE, getIndexOfPhosphorStackData());
+        } else if(Configuration.DEBUG_STACK_FRAME_WRAPPERS){
+            String descForStackFrame = this.descriptor;
+            if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
+                if (this.descriptor.contains("java/lang/invoke/VarHandle")) {
+                    descForStackFrame = this.descriptor.replace("Ljava/lang/invoke/VarHandle;", "");
+                }
+            }
+            descForStackFrame = descForStackFrame.replace(PhosphorStackFrame.DESCRIPTOR, "");
+            super.visitVarInsn(ALOAD, getIndexOfPhosphorStackData());
+            super.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(this.name, descForStackFrame, false));
+            CHECK_STACK_FRAME_TARGET.delegateVisit(mv);
+
+        }
 
         prepareMetadataLocalVariables();
         //There are some methods that might be called from native code, and get passed regular arrays as type java.lang.Object,
@@ -112,7 +146,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             idxOfLV++;
         }
         super.visitInsn(NOP);
-        for (int i = 0; i < args.length; i++) {
+        for (int i = 0; i < args.length - 1; i++) { //-1 because the last arg is the PhosphorStackFrame!
             super.visitInsn(DUP);
             push(idxOfArgPosition);
             GET_ARG_TAINT.delegateVisit(mv);
@@ -680,16 +714,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
 
         /*
-        Some methods should never get a stack frame prepared - in particular, a call to
-        a native or intrinsic method that will then immediately jump to the method that
-        some prior caller was trying to reach. In particular, this clearly is needed for
-        MethodHandles.linkTo*, which are used by, e.g. VarHandles.
-         */
-        boolean usePrevFrameInsteadOfPreparingNew = false;
-        if(className.startsWith("java/lang/invoke") && owner.equals("java/lang/invoke/MethodHandle") && name.startsWith("linkTo")){
-            usePrevFrameInsteadOfPreparingNew = true;
-        }
-        /*
         When creating a new primitive wrapper (java.lang.Integer etc), assign the reference taint
         for the new object to be the taint of the value being wrapped
             TODO can we refactor this to somewhere that makes more sense?
@@ -781,19 +805,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         unwrapArraysForCallTo(owner, name, desc);
 
         pushPhosphorStackFrame();
-        if (usePrevFrameInsteadOfPreparingNew) {
-            PREPARE_FOR_CALL_PREV.delegateVisit(mv);
-        } else {
-            String methodKey = getMethodKeyForStackFrame(name, desc, Instrumenter.isPolymorphicSignatureMethod(owner, name));
-            if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
-                mv.visitLdcInsn(methodKey);
-                PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
-            } else {
-                push(PhosphorStackFrame.hashForDesc(methodKey));
-                PREPARE_FOR_CALL_FAST.delegateVisit(mv);
-            }
-        }
-
+        desc = prepareForCallTo(owner, name, desc);
         if (isBoxUnboxMethodToWrap(owner, name)) {
             if (name.equals("valueOf")) {
                 switch (owner) {
@@ -855,6 +867,62 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
     }
 
+    private static boolean isIgnoredMethod(String owner, String name, String desc){
+        if(Instrumenter.isIgnoredClass(owner) && !owner.equals("edu/columbia/cs/psl/phosphor/runtime/MultiTainter")) {
+            return true;
+        }
+        if(StringUtils.startsWith(owner,"jdk/internal/module/SystemModules")){
+            return true;
+        }
+        if(owner.equals("java/lang/invoke/MethodHandle")){
+            return true;
+        }
+        if(owner.equals("java/lang/invoke/VarHandle")){
+            return true;
+        }
+        if(owner.equals("jdk/internal/reflect/Reflection")){
+            return name.equals("getCallerClass");
+        }
+        return false;
+    }
+
+    private String prepareForCallTo(String owner, String name, String desc) {
+        if (isIgnoredMethod(owner, name, desc)) {
+            /*
+            Some methods should never get a stack frame prepared - in particular, a call to
+            a native or intrinsic method that will then immediately jump to the method that
+            some prior caller was trying to reach. In particular, this clearly is needed for
+            MethodHandles.linkTo*, which are used by, e.g. VarHandles.
+             */
+            boolean usePrevFrameInsteadOfPreparingNew = false;
+            if (className.startsWith("java/lang/invoke") && owner.equals("java/lang/invoke/MethodHandle") && name.startsWith("linkTo")) {
+                usePrevFrameInsteadOfPreparingNew = true;
+            }
+            if (usePrevFrameInsteadOfPreparingNew) {
+                PREPARE_FOR_CALL_PREV.delegateVisit(mv);
+            } else {
+                String methodKey = getMethodKeyForStackFrame(name, desc, Instrumenter.isPolymorphicSignatureMethod(owner, name));
+                if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+                    mv.visitLdcInsn(methodKey);
+                    PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
+                } else {
+                    push(PhosphorStackFrame.hashForDesc(methodKey));
+                    PREPARE_FOR_CALL_FAST.delegateVisit(mv);
+                }
+            }
+            return desc;
+        } else {
+            if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+                super.visitInsn(DUP);
+                String methodKey = getMethodKeyForStackFrame(name, desc, Instrumenter.isPolymorphicSignatureMethod(owner, name));
+                mv.visitLdcInsn(methodKey);
+                PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
+            }
+            return TaintUtils.addPhosphorStackFrameToDesc(desc);
+        }
+
+    }
+
     private void checkStackForTaints() {
         //if(analyzer.stack != null)
         //for(Object o : analyzer.stack){
@@ -894,7 +962,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         } else if (opcode == MONITORENTER || opcode == MONITOREXIT) {
             super.visitInsn(opcode);
         } else if (opcode == ATHROW) {
-            popPhosphorStackFrameIfNeeded();
             controlFlowPolicy.onMethodExit(opcode);
             super.visitInsn(opcode);
         } else {
@@ -1000,12 +1067,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
     }
 
-    private void popPhosphorStackFrameIfNeeded() {
-        pushPhosphorStackFrame();
-        super.visitVarInsn(ILOAD, this.lvs.getLocalVariableAdder().getIndexOfStackDataNeedsPoppingLV());
-        POP_STACK_FRAME.delegateVisit(mv);
-    }
-
     /**
      * stack_pre = [value taint] or [] if opcode is RETURN
      * stack_post = []
@@ -1015,11 +1076,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
      *               FRETURN, or LRETURN
      */
     private void visitReturn(int opcode) {
+        if(initializePhosphorStackFrame){
+            super.visitVarInsn(ALOAD, getIndexOfPhosphorStackData());
+            super.visitInsn(ICONST_1);
+            POP_STACK_FRAME.delegateVisit(mv);
+        }
         if (this.className.equals("java/lang/Thread") && name.equals("<clinit>")) {
             START_STACK_FRAME_TRACKING.delegateVisit(mv);
         }
         controlFlowPolicy.onMethodExit(opcode);
-        popPhosphorStackFrameIfNeeded();
         if (opcode == RETURN) {
             taintTagFactory.stackOp(opcode, mv, lvs, this);
             super.visitInsn(opcode);
@@ -1178,28 +1243,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         super.visitLineNumber(line, start);
         this.line = line;
         taintTagFactory.lineNumberVisited(line);
-    }
-
-    /**
-     * Returns whether a class with the specified name is used by Phosphor for
-     * "internal" tainting. Calls to methods in
-     * internal tainting classes from instrumented classes are remapped to the
-     * appropriate "$$PHOSPHORTAGGED" version
-     * even if the internal tainting class is not instrumented by Phosphor. This
-     * requires internal tainting classes to
-     * provide instrumented versions of any method that may be invoked by a classes
-     * that is instrumented by Phosphor.
-     *
-     * @param owner the name of class being checking
-     * @return true if a class with the specified name is used by Phosphor for
-     *         internal tainting
-     * @see MultiTainter
-     */
-    private static boolean isInternalTaintingClass(String owner) {
-        return owner.startsWith("edu/columbia/cs/psl/phosphor/runtime/")
-                || taintTagFactory.isInternalTaintingClass(owner)
-                || (controlFlowManager != null && controlFlowManager.isInternalTaintingClass(owner))
-                || owner.startsWith("edu/gmu/swe/phosphor/ignored/runtime/");
     }
 
     private static boolean isBoxUnboxMethodToWrap(String owner, String name) {

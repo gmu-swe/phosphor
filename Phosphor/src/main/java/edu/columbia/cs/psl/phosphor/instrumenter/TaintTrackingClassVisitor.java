@@ -14,16 +14,16 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.*;
-import org.objectweb.asm.tree.AnnotationNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.commons.GeneratorAdapter;
+import org.objectweb.asm.tree.*;
 
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
 import static edu.columbia.cs.psl.phosphor.Configuration.controlFlowManager;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 import static org.objectweb.asm.Opcodes.ALOAD;
 
 /**
@@ -58,16 +58,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
     private boolean addTaintField = false;
     private boolean ignoreFrames;
     private boolean generateExtraLVDebug;
-    private Map<MethodNode, Type> methodsToAddWrappersForWithReturnType = new HashMap<>();
-    private List<MethodNode> methodsToAddWrappersFor = new LinkedList<>();
-    private List<MethodNode> methodsToAddNameOnlyWrappersFor = new LinkedList<>();
-    private List<MethodNode> methodsToAddUnWrappersFor = new LinkedList<>();
-    private Set<MethodNode> methodsToAddLambdaUnWrappersFor = new HashSet<>();
+    private HashMap<String, MethodNode> methodsToAddWrappersFor = new HashMap();
     private String className;
     private boolean isNormalClass;
     private boolean isInterface;
     private boolean addTaintMethod;
     private boolean isAnnotation;
+    private boolean isLambda;
     private boolean isAbstractClass;
     private boolean implementsComparable;
     private boolean implementsSerializable;
@@ -78,9 +75,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
     private String classDebug;
     private Set<String> aggressivelyReduceMethodSize;
     private String superName;
-    private boolean isLambda;
     private HashMap<String, Method> superMethodsToOverride = new HashMap<>();
-    private HashMap<String, Method> methodsWithErasedTypesToAddWrappersFor = new HashMap<>();
     private LinkedList<MethodNode> wrapperMethodsToAdd = new LinkedList<>();
     private List<FieldNode> extraFieldsToVisit = new LinkedList<>();
     private List<FieldNode> myFields = new LinkedList<>();
@@ -127,6 +122,8 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         if ((access & Opcodes.ACC_ANNOTATION) != 0) {
             isAnnotation = true;
         }
+
+        isLambda = name.contains("$$Lambda$");
 
         // Debugging - no more package-protected
         if ((access & Opcodes.ACC_PRIVATE) == 0) {
@@ -191,13 +188,24 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         this.className = name;
         this.superName = superName;
 
-        //this.isUninstMethods = Instrumenter.isIgnoredClassWithStubsButNoTracking(className);
+        if (Instrumenter.isIgnoredClass(superName)) {
+            //Might need to override stuff.
+            Class c;
+            try {
+                c = Class.forName(superName.replace("/", "."));
+                for (Method m : c.getMethods()) {
+                    superMethodsToOverride.put(m.getName() + Type.getMethodDescriptor(m), m);
+                }
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
-    public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+    public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] _exceptions) {
         if (Configuration.taintTagFactory.isIgnoredMethod(className, name, desc)) {
-            return super.visitMethod(access, name, desc, signature, exceptions);
+            return super.visitMethod(access, name, desc, signature, _exceptions);
         }
         if (name.equals("hashCode") && desc.equals("()I")) {
             generateHashCode = false;
@@ -233,7 +241,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         }
         String originalName = name;
         if (FIELDS_ONLY) { // || isAnnotation
-            return super.visitMethod(access, name, desc, signature, exceptions);
+            return super.visitMethod(access, name, desc, signature, _exceptions);
         }
 
         if (!isUninstMethods && (access & Opcodes.ACC_NATIVE) == 0) {
@@ -248,21 +256,28 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
             access = access & ~Opcodes.ACC_FINAL;
 
-            MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+            String instrumentedDesc;
+            boolean isMethodToRetainDescriptor = isMethodToRetainDescriptor(className, name);
+            if(isAbstractMethodToWrap(className, name) || isMethodToRetainDescriptor){
+                instrumentedDesc = desc;
+            } else {
+                instrumentedDesc = TaintUtils.addPhosphorStackFrameToDesc(desc);
+            }
+            MethodVisitor mv = super.visitMethod(access, name, instrumentedDesc, signature, _exceptions);
             MethodVisitor rootmV = new TaintTagFieldCastMV(mv, name);
             mv = rootmV;
             SpecialOpcodeRemovingMV specialOpcodeRemovingMV = new SpecialOpcodeRemovingMV(mv, ignoreFrames, access,
-                    className, desc, fixLdcClass);
+                    className, instrumentedDesc, fixLdcClass);
             mv = specialOpcodeRemovingMV;
-            NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc, mv);
-            mv = new DefaultTaintCheckingMethodVisitor(analyzer, access, className, name, desc,
+            NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, instrumentedDesc, mv);
+            mv = new DefaultTaintCheckingMethodVisitor(analyzer, access, className, name, instrumentedDesc,
                     (implementsSerializable || className.startsWith("java/nio/")
                             || className.equals("java/lang/String")
                             || className.startsWith("java/io/BufferedInputStream") || className.startsWith("sun/nio")),
                     analyzer, fields); // TODO - how do we handle directbytebuffers?
 
             ControlFlowPropagationPolicy controlFlowPolicy = controlFlowManager.createPropagationPolicy(access,
-                    className, name, desc);
+                    className, name, instrumentedDesc);
 
             ControlStackInitializingMV controlStackInitializingMV = null;
             ControlStackRestoringMV controlStackRestoringMV = null;
@@ -276,35 +291,35 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 next = controlStackRestoringMV;
             }
             ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(next, className, name, isEnum);
-            PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, desc, signature,
-                    exceptions, reflectionMasker, analyzer);
+            PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, instrumentedDesc, signature,
+                    _exceptions, reflectionMasker, analyzer);
 
-            TaintPassingMV tmv = new TaintPassingMV(boxFixer, access, className, name, desc, signature, exceptions,
+            TaintPassingMV tmv = new TaintPassingMV(boxFixer, access, className, name, instrumentedDesc, signature, _exceptions,
                     analyzer, rootmV, wrapperMethodsToAdd, controlFlowPolicy);
             tmv.setFields(fields);
 
-            UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, desc, signature,
-                    exceptions, mv, analyzer);
+            UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, instrumentedDesc, signature,
+                    _exceptions, mv, analyzer);
             InstOrUninstChoosingMV instOrUninstChoosingMV = new InstOrUninstChoosingMV(tmv, umv);
 
-            LocalVariableManager lvs = new LocalVariableManager(access, desc, instOrUninstChoosingMV, analyzer, mv,
+            LocalVariableManager lvs = new LocalVariableManager(access, name, TaintUtils.addPhosphorStackFrameToDesc(desc), instOrUninstChoosingMV, analyzer, mv,
                     generateExtraLVDebug);
             umv.setLocalVariableSorter(lvs);
             boolean isDisabled = Configuration.ignoredMethods.contains(className + "." + originalName + desc);
 
             boolean reduceThisMethodSize = aggressivelyReduceMethodSize != null
-                    && aggressivelyReduceMethodSize.contains(name + desc);
+                    && aggressivelyReduceMethodSize.contains(name + instrumentedDesc);
 
             final LocalVariableAdder localVariableAdder = new LocalVariableAdder(lvs, (access & Opcodes.ACC_STATIC) != 0, desc);
 
             lvs.setLocalVariableAdder(localVariableAdder);
             specialOpcodeRemovingMV.setLVS(lvs);
-            TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, exceptions,
+            TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, _exceptions,
                     localVariableAdder, instOrUninstChoosingMV, reduceThisMethodSize | isDisabled,
                     isImplicitLightTrackingMethod);
 
             PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc,
-                    signature, exceptions, tlc, isImplicitLightTrackingMethod, fixLdcClass,
+                    signature, _exceptions, tlc, isImplicitLightTrackingMethod, fixLdcClass,
                     controlFlowPolicy.getFlowAnalyzer());
             NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc,
                     primitiveArrayFixer);
@@ -325,7 +340,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             reflectionMasker.setLvs(lvs);
             final MethodVisitor prev = preAnalyzer;
             MethodNode rawMethod = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature,
-                    exceptions) {
+                    _exceptions) {
                 @Override
                 protected LabelNode getLabelNode(Label l) {
                     if (!Configuration.READ_AND_SAVE_BCI) {
@@ -348,6 +363,9 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 public void visitEnd() {
                     super.visitEnd();
                     this.accept(prev);
+                    if(!name.equals("<clinit>") && !desc.contains(PhosphorStackFrame.DESCRIPTOR)) {
+                        methodsToAddWrappersFor.put(name+desc, this);
+                    }
                 }
 
                 @Override
@@ -366,7 +384,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     TaintAdapter custom = Configuration.extensionMethodVisitor.getConstructor(Integer.TYPE,
                             String.class, String.class, String.class, String.class, String[].class, MethodVisitor.class,
                             NeverNullArgAnalyzerAdapter.class, String.class, String.class).newInstance(access,
-                                    className, name, desc, signature, exceptions, rawMethod, null, classSource,
+                                    className, name, desc, signature, _exceptions, rawMethod, null, classSource,
                                     classDebug);
                     custom.setFields(fields);
                     custom.setSuperName(superName);
@@ -380,13 +398,16 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         } else {
             // this is a native method. we want here to make a $taint method that will call
             // the original one.
-            final MethodVisitor prev = super.visitMethod(access, name, desc, signature, exceptions);
+            final MethodVisitor prev = super.visitMethod(access, name, desc, signature, _exceptions);
             MethodNode rawMethod = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature,
-                    exceptions) {
+                    _exceptions) {
                 @Override
                 public void visitEnd() {
                     super.visitEnd();
                     this.accept(prev);
+                    if(!name.equals("<clinit>") && !desc.contains(PhosphorStackFrame.DESCRIPTOR)) {
+                        methodsToAddWrappersFor.put(name + desc, this);
+                    }
                 }
             };
             return rawMethod;
@@ -496,6 +517,28 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         if (FIELDS_ONLY) {
             return;
         }
+        for (MethodNode mn : this.methodsToAddWrappersFor.values()) {
+            this.generateMethodWrapper(mn);
+        }
+        for (Method m : superMethodsToOverride.values()) {
+            int acc = Opcodes.ACC_PUBLIC;
+            if (Modifier.isProtected(m.getModifiers()) && isInterface) {
+                continue;
+            } else if (Modifier.isPrivate(m.getModifiers())) {
+                continue;
+            }
+            if (Modifier.isStatic(m.getModifiers())) {
+                acc = acc | Opcodes.ACC_STATIC;
+            }
+            if (isInterface) {
+                acc = acc | Opcodes.ACC_ABSTRACT;
+            } else {
+                acc = acc & ~Opcodes.ACC_ABSTRACT;
+            }
+            MethodNode mn = new MethodNode(Configuration.ASM_VERSION, acc | Opcodes.ACC_NATIVE, m.getName(), Type.getMethodDescriptor(m), null, null);
+
+            generateMethodWrapper(mn);
+        }
 
         if (addTaintMethod) {
             if (isInterface) {
@@ -545,6 +588,186 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
         super.visitEnd();
     }
+
+    private boolean isAbstractMethodToWrap(String className, String methodName){
+        return (className.equals("jdk/internal/reflect/ConstructorAccessorImpl") && methodName.equals("newInstance")) ||
+                (className.equals("jdk/internal/reflect/MethodAccessorImpl") && methodName.equals("invoke"));
+    }
+
+    public static boolean isMethodToRetainDescriptor(String className, String methodName){
+        if(methodName.equals("<clinit>")){
+            return true;
+        }
+        //SEE ALSO ReflectionMasker when changing this
+        return className.startsWith("jdk/internal/reflect/Generated") && (methodName.equals("<init>")); //these classes are anonymously defined and we can not directly reference the constructor using an invokespecial?
+    }
+    private void generateMethodWrapper(MethodNode mn) {
+        String descOfWrapper;
+        String descToCall;
+        boolean fetchStackFrame;
+        boolean isAbstractMethodToWrap = isAbstractMethodToWrap(className, mn.name);
+        boolean isInvertWrapper = isMethodToRetainDescriptor(className, mn.name);
+        boolean isNative = (mn.access & Opcodes.ACC_NATIVE) != 0;
+        if (!isNative && !isAbstractMethodToWrap && !isInvertWrapper) {
+            //Not native. This wrapper won't receive the stack frame, but will retrieve and pass it
+            descOfWrapper = mn.desc;
+            fetchStackFrame = true;
+            descToCall = TaintUtils.addPhosphorStackFrameToDesc(mn.desc);
+        } else if (mn.desc.contains(PhosphorStackFrame.DESCRIPTOR)) {
+            // Might be instrumenting a lambda or something else generated by the JVM
+            descOfWrapper = mn.desc.replace(PhosphorStackFrame.DESCRIPTOR, "");
+            fetchStackFrame = true;
+            descToCall = mn.desc;
+        } else {
+            fetchStackFrame = false;
+            descOfWrapper = TaintUtils.addPhosphorStackFrameToDesc(mn.desc);
+            descToCall = mn.desc;
+        }
+
+        int acc = mn.access & ~Opcodes.ACC_NATIVE;
+        if(isAbstractMethodToWrap(className, mn.name)){
+            acc = acc & ~Opcodes.ACC_ABSTRACT; //When we do instrumentation at runtime, we need to use reflection, and the generated constructor might not get instrumented due to class loading circularities.
+        }
+
+        MethodVisitor mv = super.visitMethod(acc, mn.name, descOfWrapper, mn.signature, mn.exceptions.toArray(new String[mn.exceptions.size()]));
+        if (!fetchStackFrame) {
+            mv = new SpecialOpcodeRemovingMV(mv, false, acc, className, descOfWrapper, fixLdcClass);
+        }
+        GeneratorAdapter ga = new GeneratorAdapter(mv, acc, mn.name, descOfWrapper);
+
+        if(!isNative) {
+            visitAnnotations(mv, mn);
+        }
+        if ((acc & Opcodes.ACC_ABSTRACT) == 0) {
+            //Not an abstract method...
+            boolean isStatic = (mn.access & Opcodes.ACC_STATIC) != 0;
+            boolean isConstructor = mn.name.equals("<init>");
+
+            mv.visitCode();
+            if(!isStatic){
+                ga.loadThis();
+            }
+            int stackFrameLocal;
+            int shouldPopLocal;
+            if(fetchStackFrame) {
+                ga.loadArgs();
+                //There are methods that the JDK will internally resolve to, and prefix the arguments
+                //with a handle to the underlying object. That handle won't be passed explicitly by the caller.
+                String descForStackFrame = mn.desc;
+                if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
+                    if (mn.desc.contains("java/lang/invoke/VarHandle")) {
+                        descForStackFrame = mn.desc.replace("Ljava/lang/invoke/VarHandle;", "");
+                    }
+                }
+
+                if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+                    ga.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(mn.name, descForStackFrame, false));
+                    STACK_FRAME_FOR_METHOD_DEBUG.delegateVisit(ga);
+                } else {
+                    ga.push(PhosphorStackFrame.hashForDesc(TaintAdapter.getMethodKeyForStackFrame(mn.name, descForStackFrame, false)));
+                    STACK_FRAME_FOR_METHOD_FAST.delegateVisit(ga);
+                }
+                ga.dup();
+                stackFrameLocal = ga.newLocal(Type.getType(PhosphorStackFrame.class));
+                shouldPopLocal = ga.newLocal(Type.BOOLEAN_TYPE);
+                ga.dup();
+                GET_AND_CLEAR_CLEANUP_FLAG.delegateVisit(ga);
+                ga.storeLocal(shouldPopLocal);
+                ga.storeLocal(stackFrameLocal);
+                if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+                    ga.dup();
+                    ga.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(mn.name, descForStackFrame, false));
+                    PREPARE_FOR_CALL_DEBUG.delegateVisit(ga);
+                }
+            } else {
+                ga.loadArgs(0, ga.getArgumentTypes().length - 1);
+                if(isInvertWrapper){
+                    ga.loadArg(ga.getArgumentTypes().length - 1);
+                    if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+                        ga.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(mn.name, descToCall, false));
+                        PREPARE_FOR_CALL_DEBUG.delegateVisit(ga);
+                    } else {
+                        ga.push(PhosphorStackFrame.hashForDesc(TaintAdapter.getMethodKeyForStackFrame(mn.name, descToCall, false)));
+                        PREPARE_FOR_CALL_FAST.delegateVisit(ga);
+                    }
+                }
+                stackFrameLocal = -1;
+                shouldPopLocal = -1;
+            }
+
+            ga.visitMethodInsn(isStatic ? Opcodes.INVOKESTATIC : isAbstractMethodToWrap ? Opcodes.INVOKEVIRTUAL : Opcodes.INVOKESPECIAL, className, mn.name, descToCall, isInterface);
+
+            if (fetchStackFrame) {
+                ga.loadLocal(stackFrameLocal);
+                ga.loadLocal(shouldPopLocal);
+                POP_STACK_FRAME.delegateVisit(ga);
+            }
+            ga.returnValue();
+            mv.visitMaxs(0, 0);
+
+        }
+        mv.visitEnd();
+
+    }
+
+    private static void visitAnnotations(MethodVisitor mv, MethodNode fullMethod) {
+        if(fullMethod.annotationDefault != null) {
+            AnnotationVisitor av = mv.visitAnnotationDefault();
+            acceptAnnotationRaw(av, null, fullMethod.annotationDefault);
+            av.visitEnd();
+        }
+        if(fullMethod.visibleAnnotations != null) {
+            for(Object o : fullMethod.visibleAnnotations) {
+                AnnotationNode an = (AnnotationNode) o;
+                an.accept(mv.visitAnnotation(an.desc, true));
+            }
+        }
+        if(fullMethod.invisibleAnnotations != null) {
+            for(Object o : fullMethod.invisibleAnnotations) {
+                AnnotationNode an = (AnnotationNode) o;
+                an.accept(mv.visitAnnotation(an.desc, false));
+            }
+        }
+        if(fullMethod.visibleTypeAnnotations != null) {
+            for(Object o : fullMethod.visibleTypeAnnotations) {
+                TypeAnnotationNode an = (TypeAnnotationNode) o;
+                an.accept(mv.visitTypeAnnotation(an.typeRef, an.typePath, an.desc, true));
+            }
+        }
+        if(fullMethod.invisibleTypeAnnotations != null) {
+            for(Object o : fullMethod.invisibleTypeAnnotations) {
+                TypeAnnotationNode an = (TypeAnnotationNode) o;
+                an.accept(mv.visitTypeAnnotation(an.typeRef, an.typePath, an.desc, false));
+            }
+        }
+        if(fullMethod.parameters != null) {
+            for(Object o : fullMethod.parameters) {
+                ParameterNode pn = (ParameterNode) o;
+                pn.accept(mv);
+            }
+        }
+        if(fullMethod.visibleParameterAnnotations != null) {
+            for(int i = 0; i < fullMethod.visibleParameterAnnotations.length; i++) {
+                if(fullMethod.visibleParameterAnnotations[i] != null) {
+                    for(Object o : fullMethod.visibleParameterAnnotations[i]) {
+                        AnnotationNode an = (AnnotationNode) o;
+                        an.accept(mv.visitParameterAnnotation(i, an.desc, true));
+                    }
+                }
+            }
+        }
+        if(fullMethod.invisibleParameterAnnotations != null) {
+            for(int i = 0; i < fullMethod.invisibleParameterAnnotations.length; i++) {
+                if(fullMethod.invisibleParameterAnnotations[i] != null) {
+                    for(Object o : fullMethod.invisibleParameterAnnotations[i]) {
+                        AnnotationNode an = (AnnotationNode) o;
+                        an.accept(mv.visitParameterAnnotation(i, an.desc, false));
+                    }
+                }
+            }
+        }
+    }
+
 
     private static void acceptAnnotationRaw(final AnnotationVisitor av, final String name, final Object value) {
         if (av != null) {

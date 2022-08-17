@@ -97,7 +97,7 @@ public class Instrumenter {
                 For these classes: HotSpot expects fields to be at hardcoded offsets of these classes. If we instrument
                 them, it will break those assumptions and segfault.
 
-                Different clasess have different assumptions, and there are special cases for these elsewhere in Phosphor.
+                Different classes have different assumptions, and there are special cases for these elsewhere in Phosphor.
                  */
                 || StringUtils.startsWith(owner, "java/lang/Object")
                 || StringUtils.startsWith(owner, "java/lang/Boolean")
@@ -120,12 +120,7 @@ public class Instrumenter {
                     Generated code won't be instrumented. Hence, it's convenient to also not wrap the native version,
                     so that passed params/returns line up exactly when we hit the reflected call
                  */
-                //|| StringUtils.startsWith(owner, "sun/reflect/NativeConstructorAccessorImpl")
-                //|| StringUtils.startsWith(owner, "sun/reflect/NativeMethodAccessorImpl")
-
                 || StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor/struct/TaintedWith")
-                //|| StringUtils.startsWith(owner, "java/util/regex/HashDecompositions") //Huge constant array/hashmap
-                //|| StringUtils.startsWith(owner, "jdk/internal/module/SystemModules")
                 || StringUtils.startsWith(owner, "jdk/internal/misc/UnsafeConstants"); //Java 9+ class full of hardcoded offsets
     }
 

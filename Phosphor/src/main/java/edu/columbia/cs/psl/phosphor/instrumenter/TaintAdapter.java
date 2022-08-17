@@ -4,11 +4,10 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
-import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
+import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
-import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.FrameNode;
@@ -28,7 +27,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     protected String methodName;
     protected String methodDesc;
 
-    public TaintAdapter(int access, String className, String name, String desc, String signature, String[] exceptions,
+    public TaintAdapter(int access, String className, String name, String desc, String signature, String[] bbbexceptions,
             MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
         super(Configuration.ASM_VERSION, mv);
         this.analyzer = analyzer;
@@ -740,18 +739,6 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             lvs.freeTmpLV(tmp[i]);
         }
     }
-
-    @Override
-    public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-        //if(className.contains("Unsafe")) {
-        //    if (descriptor.equals("Ljdk/internal/HotSpotIntrinsicCandidate;") ||
-        //            descriptor.equals("Ljdk/internal/vm/annotation/ForceInline;") || descriptor.equals("Ljdk/internal/vm/annotation/IntrinsicCandidate;")) {
-        //        return null;
-        //    }
-        //}
-        return super.visitAnnotation(descriptor, visible);
-    }
-
     protected static String getMethodKeyForStackFrame(String name, String desc, boolean polymorphicSignatureMethod) {
         if (polymorphicSignatureMethod) {
             StringBuilder sig = new StringBuilder();
@@ -772,28 +759,6 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     protected void prepareMetadataLocalVariables(){
-
-        //There are methods that the JDK will internally resolve to, and prefix the arguments
-        //with a handle to the underlying object. That handle won't be passed explicitly by the caller.
-        String descForStackFrame = methodDesc;
-        if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
-            if (this.methodDesc.contains("java/lang/invoke/VarHandle")) {
-                descForStackFrame = methodDesc.replace("Ljava/lang/invoke/VarHandle;", "");
-            }
-        }
-        if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
-            super.visitLdcInsn(getMethodKeyForStackFrame(methodName, descForStackFrame, false));
-            STACK_FRAME_FOR_METHOD_DEBUG.delegateVisit(mv);
-        } else {
-            push(PhosphorStackFrame.hashForDesc(getMethodKeyForStackFrame(methodName, descForStackFrame, false)));
-            STACK_FRAME_FOR_METHOD_FAST.delegateVisit(mv);
-        }
-
-        super.visitInsn(DUP);
-        GET_AND_CLEAR_CLEANUP_FLAG.delegateVisit(mv);
-        super.visitVarInsn(ISTORE, this.lvs.getLocalVariableAdder().getIndexOfStackDataNeedsPoppingLV());
-        super.visitVarInsn(ASTORE, getIndexOfPhosphorStackData());
-
         for (int i = this.lvs.getLocalVariableAdder().getIndexOfFirstStackTaintTag(); i < this.lvs.getLocalVariableAdder().getIndexOfLastStackTaintTag(); i++) {
             TaintMethodRecord.NEW_EMPTY_TAINT.delegateVisit(mv);
             super.visitVarInsn(Opcodes.ASTORE, i);
