@@ -80,6 +80,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
     private List<FieldNode> extraFieldsToVisit = new LinkedList<>();
     private List<FieldNode> myFields = new LinkedList<>();
     private Set<String> myMethods = new HashSet<>();
+    private boolean isAnonymousClassDefinition; //Anonymous classes can NOT contain references to themselves - can not add wrappers that invoke methods of this or supertype
 
     public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields) {
         super(Configuration.ASM_VERSION, cv);
@@ -89,9 +90,10 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
     }
 
     public TaintTrackingClassVisitor(ClassVisitor cv, boolean skipFrames, List<FieldNode> fields,
-            Set<String> aggressivelyReduceMethodSize) {
+            Set<String> aggressivelyReduceMethodSize, boolean isAnonymousClassDefinition) {
         this(cv, skipFrames, fields);
         this.aggressivelyReduceMethodSize = aggressivelyReduceMethodSize;
+        this.isAnonymousClassDefinition = isAnonymousClassDefinition;
     }
 
     @Override
@@ -202,6 +204,104 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         }
     }
 
+
+    private HashMap<String, Integer> maxStackPerMethod = new HashMap<>();
+    private MethodVisitor createInstrumentingMVChain(int access, String name, String desc, String signature, String[] _exceptions, boolean fetchStackFrame){
+        boolean isImplicitLightTrackingMethod = isImplicitLightMethod(className, name, desc);
+        String originalName = name;
+
+        //TODO: We used to do this, for reasons related to wrappers. do we still need to?
+        // TODO
+        if (className.equals("java/lang/invoke/StringConcatFactory")) {
+            access = access & ~Opcodes.ACC_VARARGS;
+        }
+
+        access = access & ~Opcodes.ACC_FINAL;
+
+        String instrumentedDesc;
+        if(isAbstractMethodToWrap(className, name) || fetchStackFrame){
+            instrumentedDesc = desc;
+        } else {
+            instrumentedDesc = TaintUtils.addPhosphorStackFrameToDesc(desc);
+        }
+        MethodVisitor mv = super.visitMethod(access, name, instrumentedDesc, signature, _exceptions);
+        MethodVisitor rootmV = new TaintTagFieldCastMV(mv, name);
+        mv = rootmV;
+        SpecialOpcodeRemovingMV specialOpcodeRemovingMV = new SpecialOpcodeRemovingMV(mv, ignoreFrames, access,
+                className, instrumentedDesc, fixLdcClass);
+        mv = specialOpcodeRemovingMV;
+        NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, instrumentedDesc, mv);
+        mv = new DefaultTaintCheckingMethodVisitor(analyzer, access, className, name, instrumentedDesc,
+                (implementsSerializable || className.startsWith("java/nio/")
+                        || className.equals("java/lang/String")
+                        || className.startsWith("java/io/BufferedInputStream") || className.startsWith("sun/nio")),
+                analyzer, fields); // TODO - how do we handle directbytebuffers?
+
+        ControlFlowPropagationPolicy controlFlowPolicy = controlFlowManager.createPropagationPolicy(access,
+                className, name, instrumentedDesc);
+
+        ControlStackInitializingMV controlStackInitializingMV = null;
+        ControlStackRestoringMV controlStackRestoringMV = null;
+        MethodVisitor next = mv;
+        if (ControlStackInitializingMV.isApplicable(isImplicitLightTrackingMethod)) {
+            controlStackInitializingMV = new ControlStackInitializingMV(next, controlFlowPolicy);
+            next = controlStackInitializingMV;
+        }
+        if (ControlStackRestoringMV.isApplicable(name)) {
+            controlStackRestoringMV = new ControlStackRestoringMV(next, rootmV, className, name, controlFlowPolicy);
+            next = controlStackRestoringMV;
+        }
+        ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(next, className, name, isEnum);
+        PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, instrumentedDesc, signature,
+                _exceptions, reflectionMasker, analyzer);
+
+        TaintPassingMV tmv = new TaintPassingMV(boxFixer, access, className, name, instrumentedDesc, signature, _exceptions,
+                analyzer, rootmV, wrapperMethodsToAdd, controlFlowPolicy, fetchStackFrame);
+        tmv.setFields(fields);
+
+        UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, instrumentedDesc, signature,
+                _exceptions, mv, analyzer, fetchStackFrame);
+        InstOrUninstChoosingMV instOrUninstChoosingMV = new InstOrUninstChoosingMV(tmv, umv);
+
+        LocalVariableManager lvs = new LocalVariableManager(access, name, desc, TaintUtils.addPhosphorStackFrameToDesc(desc), instOrUninstChoosingMV, analyzer, mv,
+                generateExtraLVDebug, maxStackPerMethod);
+        umv.setLocalVariableSorter(lvs);
+        boolean isDisabled = Configuration.ignoredMethods.contains(className + "." + originalName + desc);
+
+        boolean reduceThisMethodSize = aggressivelyReduceMethodSize != null
+                && aggressivelyReduceMethodSize.contains(name + instrumentedDesc);
+
+        final LocalVariableAdder localVariableAdder = new LocalVariableAdder(lvs, (access & Opcodes.ACC_STATIC) != 0, desc);
+
+        lvs.setLocalVariableAdder(localVariableAdder);
+        specialOpcodeRemovingMV.setLVS(lvs);
+        TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, _exceptions,
+                localVariableAdder, instOrUninstChoosingMV, reduceThisMethodSize | isDisabled,
+                isImplicitLightTrackingMethod);
+
+        PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc,
+                signature, _exceptions, tlc, isImplicitLightTrackingMethod, fixLdcClass,
+                controlFlowPolicy.getFlowAnalyzer());
+        NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc,
+                primitiveArrayFixer);
+
+        controlFlowPolicy.initialize(boxFixer, lvs, analyzer);
+
+        primitiveArrayFixer.setAnalyzer(preAnalyzer);
+        boxFixer.setLocalVariableSorter(lvs);
+        tmv.setLocalVariableSorter(lvs);
+        if (controlStackInitializingMV != null) {
+            controlStackInitializingMV.setLocalVariableManager(lvs);
+        }
+        if (controlStackRestoringMV != null) {
+            controlStackRestoringMV.setArrayAnalyzer(primitiveArrayFixer);
+            controlStackRestoringMV.setLocalVariableManager(lvs);
+        }
+        lvs.setPrimitiveArrayAnalyzer(primitiveArrayFixer);
+        reflectionMasker.setLvs(lvs);
+        final MethodVisitor prev = preAnalyzer;
+        return prev;
+    }
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] _exceptions) {
         if (Configuration.taintTagFactory.isIgnoredMethod(className, name, desc)) {
@@ -219,7 +319,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         }
         this.myMethods.add(name + desc);
 
-        boolean isImplicitLightTrackingMethod = isImplicitLightMethod(className, name, desc);
         // Hack needed for java 7 + integer->tostring fixes
         if ((className.equals("java/lang/Integer") || className.equals("java/lang/Long"))
                 && name.equals("toUnsignedString")) {
@@ -239,106 +338,13 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 && name.equals("getChars")) {
             access = access | Opcodes.ACC_PUBLIC;
         }
-        String originalName = name;
         if (FIELDS_ONLY) { // || isAnnotation
             return super.visitMethod(access, name, desc, signature, _exceptions);
         }
 
         if (!isUninstMethods && (access & Opcodes.ACC_NATIVE) == 0) {
             // not a native method
-
-
-            //TODO: We used to do this, for reasons related to wrappers. do we still need to?
-            // TODO
-            if (className.equals("java/lang/invoke/StringConcatFactory")) {
-                access = access & ~Opcodes.ACC_VARARGS;
-            }
-
-            access = access & ~Opcodes.ACC_FINAL;
-
-            String instrumentedDesc;
-            boolean isMethodToRetainDescriptor = isMethodToRetainDescriptor(className, name);
-            if(isAbstractMethodToWrap(className, name) || isMethodToRetainDescriptor){
-                instrumentedDesc = desc;
-            } else {
-                instrumentedDesc = TaintUtils.addPhosphorStackFrameToDesc(desc);
-            }
-            MethodVisitor mv = super.visitMethod(access, name, instrumentedDesc, signature, _exceptions);
-            MethodVisitor rootmV = new TaintTagFieldCastMV(mv, name);
-            mv = rootmV;
-            SpecialOpcodeRemovingMV specialOpcodeRemovingMV = new SpecialOpcodeRemovingMV(mv, ignoreFrames, access,
-                    className, instrumentedDesc, fixLdcClass);
-            mv = specialOpcodeRemovingMV;
-            NeverNullArgAnalyzerAdapter analyzer = new NeverNullArgAnalyzerAdapter(className, access, name, instrumentedDesc, mv);
-            mv = new DefaultTaintCheckingMethodVisitor(analyzer, access, className, name, instrumentedDesc,
-                    (implementsSerializable || className.startsWith("java/nio/")
-                            || className.equals("java/lang/String")
-                            || className.startsWith("java/io/BufferedInputStream") || className.startsWith("sun/nio")),
-                    analyzer, fields); // TODO - how do we handle directbytebuffers?
-
-            ControlFlowPropagationPolicy controlFlowPolicy = controlFlowManager.createPropagationPolicy(access,
-                    className, name, instrumentedDesc);
-
-            ControlStackInitializingMV controlStackInitializingMV = null;
-            ControlStackRestoringMV controlStackRestoringMV = null;
-            MethodVisitor next = mv;
-            if (ControlStackInitializingMV.isApplicable(isImplicitLightTrackingMethod)) {
-                controlStackInitializingMV = new ControlStackInitializingMV(next, controlFlowPolicy);
-                next = controlStackInitializingMV;
-            }
-            if (ControlStackRestoringMV.isApplicable(name)) {
-                controlStackRestoringMV = new ControlStackRestoringMV(next, rootmV, className, name, controlFlowPolicy);
-                next = controlStackRestoringMV;
-            }
-            ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(next, className, name, isEnum);
-            PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, instrumentedDesc, signature,
-                    _exceptions, reflectionMasker, analyzer);
-
-            TaintPassingMV tmv = new TaintPassingMV(boxFixer, access, className, name, instrumentedDesc, signature, _exceptions,
-                    analyzer, rootmV, wrapperMethodsToAdd, controlFlowPolicy);
-            tmv.setFields(fields);
-
-            UninstrumentedCompatMV umv = new UninstrumentedCompatMV(access, className, name, instrumentedDesc, signature,
-                    _exceptions, mv, analyzer);
-            InstOrUninstChoosingMV instOrUninstChoosingMV = new InstOrUninstChoosingMV(tmv, umv);
-
-            LocalVariableManager lvs = new LocalVariableManager(access, name, TaintUtils.addPhosphorStackFrameToDesc(desc), instOrUninstChoosingMV, analyzer, mv,
-                    generateExtraLVDebug);
-            umv.setLocalVariableSorter(lvs);
-            boolean isDisabled = Configuration.ignoredMethods.contains(className + "." + originalName + desc);
-
-            boolean reduceThisMethodSize = aggressivelyReduceMethodSize != null
-                    && aggressivelyReduceMethodSize.contains(name + instrumentedDesc);
-
-            final LocalVariableAdder localVariableAdder = new LocalVariableAdder(lvs, (access & Opcodes.ACC_STATIC) != 0, desc);
-
-            lvs.setLocalVariableAdder(localVariableAdder);
-            specialOpcodeRemovingMV.setLVS(lvs);
-            TaintLoadCoercer tlc = new TaintLoadCoercer(className, access, name, desc, signature, _exceptions,
-                    localVariableAdder, instOrUninstChoosingMV, reduceThisMethodSize | isDisabled,
-                    isImplicitLightTrackingMethod);
-
-            PrimitiveArrayAnalyzer primitiveArrayFixer = new PrimitiveArrayAnalyzer(className, access, name, desc,
-                    signature, _exceptions, tlc, isImplicitLightTrackingMethod, fixLdcClass,
-                    controlFlowPolicy.getFlowAnalyzer());
-            NeverNullArgAnalyzerAdapter preAnalyzer = new NeverNullArgAnalyzerAdapter(className, access, name, desc,
-                    primitiveArrayFixer);
-
-            controlFlowPolicy.initialize(boxFixer, lvs, analyzer);
-
-            primitiveArrayFixer.setAnalyzer(preAnalyzer);
-            boxFixer.setLocalVariableSorter(lvs);
-            tmv.setLocalVariableSorter(lvs);
-            if (controlStackInitializingMV != null) {
-                controlStackInitializingMV.setLocalVariableManager(lvs);
-            }
-            if (controlStackRestoringMV != null) {
-                controlStackRestoringMV.setArrayAnalyzer(primitiveArrayFixer);
-                controlStackRestoringMV.setLocalVariableManager(lvs);
-            }
-            lvs.setPrimitiveArrayAnalyzer(primitiveArrayFixer);
-            reflectionMasker.setLvs(lvs);
-            final MethodVisitor prev = preAnalyzer;
+            MethodVisitor prev = createInstrumentingMVChain(access, name, desc, signature, _exceptions, isMethodToRetainDescriptor(className, name));
             MethodNode rawMethod = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature,
                     _exceptions) {
                 @Override
@@ -355,8 +361,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 @Override
                 public void visitMaxs(int maxStack, int maxLocals) {
                     super.visitMaxs(maxStack, maxLocals);
-                    localVariableAdder.setMaxStack(maxStack);
-                    lvs.setNumLocalVariablesAddedAfterArgs(localVariableAdder.getNumLocalVariablesAddedAfterArgs());
+                    maxStackPerMethod.put(name+desc, maxStack);
                 }
 
                 @Override
@@ -520,24 +525,26 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         for (MethodNode mn : this.methodsToAddWrappersFor.values()) {
             this.generateMethodWrapper(mn);
         }
-        for (Method m : superMethodsToOverride.values()) {
-            int acc = Opcodes.ACC_PUBLIC;
-            if (Modifier.isProtected(m.getModifiers()) && isInterface) {
-                continue;
-            } else if (Modifier.isPrivate(m.getModifiers())) {
-                continue;
-            }
-            if (Modifier.isStatic(m.getModifiers())) {
-                acc = acc | Opcodes.ACC_STATIC;
-            }
-            if (isInterface) {
-                acc = acc | Opcodes.ACC_ABSTRACT;
-            } else {
-                acc = acc & ~Opcodes.ACC_ABSTRACT;
-            }
-            MethodNode mn = new MethodNode(Configuration.ASM_VERSION, acc | Opcodes.ACC_NATIVE, m.getName(), Type.getMethodDescriptor(m), null, null);
+        if(!isAnonymousClassDefinition) {
+            for (Method m : superMethodsToOverride.values()) {
+                int acc = Opcodes.ACC_PUBLIC;
+                if (Modifier.isProtected(m.getModifiers()) && isInterface) {
+                    continue;
+                } else if (Modifier.isPrivate(m.getModifiers())) {
+                    continue;
+                }
+                if (Modifier.isStatic(m.getModifiers())) {
+                    acc = acc | Opcodes.ACC_STATIC;
+                }
+                if (isInterface) {
+                    acc = acc | Opcodes.ACC_ABSTRACT;
+                } else {
+                    acc = acc & ~Opcodes.ACC_ABSTRACT;
+                }
+                MethodNode mn = new MethodNode(Configuration.ASM_VERSION, acc | Opcodes.ACC_NATIVE, m.getName(), Type.getMethodDescriptor(m), null, null);
 
-            generateMethodWrapper(mn);
+                generateMethodWrapper(mn);
+            }
         }
 
         if (addTaintMethod) {
@@ -599,7 +606,14 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             return true;
         }
         //SEE ALSO ReflectionMasker when changing this
-        return className.startsWith("jdk/internal/reflect/Generated") && (methodName.equals("<init>")); //these classes are anonymously defined and we can not directly reference the constructor using an invokespecial?
+        //TODO can i skip this now that we are always making the uninst version be the full method?
+        if(className.startsWith("jdk/internal/reflect/Generated") && (methodName.equals("<init>"))) { //these classes are anonymously defined and we can not directly reference the constructor using an invokespecial?
+            return true;
+        }
+        if(className.startsWith("sun/reflect/Generated") && (methodName.equals("<init>"))) { //these classes are anonymously defined and we can not directly reference the constructor using an invokespecial?
+            return true;
+        }
+        return false;
     }
     private void generateMethodWrapper(MethodNode mn) {
         String descOfWrapper;
@@ -613,6 +627,11 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             descOfWrapper = mn.desc;
             fetchStackFrame = true;
             descToCall = TaintUtils.addPhosphorStackFrameToDesc(mn.desc);
+            if (isAnonymousClassDefinition) {
+                MethodVisitor instrumentingMVChain = createInstrumentingMVChain(mn.access, mn.name, mn.desc, mn.signature, mn.exceptions.toArray(new String[0]), true);
+                mn.accept(instrumentingMVChain);
+                return;
+            }
         } else if (mn.desc.contains(PhosphorStackFrame.DESCRIPTOR)) {
             // Might be instrumenting a lambda or something else generated by the JVM
             descOfWrapper = mn.desc.replace(PhosphorStackFrame.DESCRIPTOR, "");

@@ -33,7 +33,7 @@ public class PreMain {
                     Configuration.init();
                     INITED = true;
                 }
-                return transformer.signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+                return transformer.signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer, false);
             } catch (Throwable t) {
                 t.printStackTrace();
                 throw t;

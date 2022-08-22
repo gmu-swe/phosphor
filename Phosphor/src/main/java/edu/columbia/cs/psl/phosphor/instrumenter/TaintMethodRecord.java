@@ -54,6 +54,8 @@ public enum TaintMethodRecord implements MethodRecord {
     IS_INSTANCE(INVOKESTATIC, ReflectionMasker.class, "isInstance", Boolean.TYPE, false, Class.class, Object.class, PhosphorStackFrame.class),
 
     INSTRUMENT_CLASS_BYTES(INVOKESTATIC, PreMain.class, "instrumentClassBytes", byte[].class, false, byte[].class),
+    INSTRUMENT_CLASS_BYTES_ANONYMOUS(INVOKESTATIC, PreMain.class, "instrumentClassBytesAnonymous", byte[].class, false, byte[].class),
+
 
 
     //Phosphor Stack Frame

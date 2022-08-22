@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.ArrayList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.List;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
@@ -26,14 +27,16 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     protected String superName;
     protected String methodName;
     protected String methodDesc;
+    protected boolean initializePhosphorStackFrame;
 
     public TaintAdapter(int access, String className, String name, String desc, String signature, String[] bbbexceptions,
-            MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
+            MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, boolean initializePhosphorStackFrame) {
         super(Configuration.ASM_VERSION, mv);
         this.analyzer = analyzer;
         this.className = className;
         this.methodName = name;
         this.methodDesc = desc;
+        this.initializePhosphorStackFrame = initializePhosphorStackFrame;
     }
 
     public TaintAdapter(int access, String className, String name, String desc, String signature, String[] exceptions,
@@ -759,6 +762,40 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     protected void prepareMetadataLocalVariables(){
+        if (this.initializePhosphorStackFrame) {
+            //There are methods that the JDK will internally resolve to, and prefix the arguments
+            //with a handle to the underlying object. That handle won't be passed explicitly by the caller.
+            String descForStackFrame = this.methodDesc;
+            if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
+                if (this.methodDesc.contains("java/lang/invoke/VarHandle")) {
+                    descForStackFrame = this.methodDesc.replace("Ljava/lang/invoke/VarHandle;", "");
+                }
+            }
+
+            if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+                super.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(this.methodName, descForStackFrame, false));
+                STACK_FRAME_FOR_METHOD_DEBUG.delegateVisit(mv);
+            } else {
+                push(PhosphorStackFrame.hashForDesc(TaintAdapter.getMethodKeyForStackFrame(this.methodName, descForStackFrame, false)));
+                STACK_FRAME_FOR_METHOD_FAST.delegateVisit(mv);
+            }
+            super.visitInsn(DUP);
+            GET_AND_CLEAR_CLEANUP_FLAG.delegateVisit(mv);
+            super.visitInsn(POP);
+            super.visitVarInsn(ASTORE, getIndexOfPhosphorStackData());
+        } else if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+            String descForStackFrame = this.methodDesc;
+            if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
+                if (this.methodDesc.contains("java/lang/invoke/VarHandle")) {
+                    descForStackFrame = this.methodDesc.replace("Ljava/lang/invoke/VarHandle;", "");
+                }
+            }
+            descForStackFrame = descForStackFrame.replace(PhosphorStackFrame.DESCRIPTOR, "");
+            super.visitVarInsn(ALOAD, getIndexOfPhosphorStackData());
+            super.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(this.methodName, descForStackFrame, false));
+            CHECK_STACK_FRAME_TARGET.delegateVisit(mv);
+
+        }
         for (int i = this.lvs.getLocalVariableAdder().getIndexOfFirstStackTaintTag(); i < this.lvs.getLocalVariableAdder().getIndexOfLastStackTaintTag(); i++) {
             TaintMethodRecord.NEW_EMPTY_TAINT.delegateVisit(mv);
             super.visitVarInsn(Opcodes.ASTORE, i);

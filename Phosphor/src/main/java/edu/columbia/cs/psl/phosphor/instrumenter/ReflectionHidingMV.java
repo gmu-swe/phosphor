@@ -28,7 +28,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         this.className = className;
         this.methodName = name;
         this.disable = shouldDisable(className, name);
-        this.patchAnonymousClasses = className.equals("java/lang/invoke/InnerClassLambdaMetafactory");
+        this.patchAnonymousClasses = className.equals("java/lang/invoke/InnerClassLambdaMetafactory") || className.equals("sun/reflect/ClassDefiner");
         this.isEnumValueOf = isEnum && name.equals("valueOf");
     }
 
@@ -471,9 +471,17 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
             }
         } else {
             if (patchAnonymousClasses && name.equals("defineAnonymousClass") && Instrumenter.isUnsafeClass(owner) && descWithoutStackFrame.equals("(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;")) {
+                super.visitInsn(POP);
                 super.visitInsn(SWAP);
-                INSTRUMENT_CLASS_BYTES.delegateVisit(mv);
+                INSTRUMENT_CLASS_BYTES_ANONYMOUS.delegateVisit(mv);
                 super.visitInsn(SWAP);
+                desc = descWithoutStackFrame; // Go directly to the native call
+            } else if (patchAnonymousClasses && name.equals("defineClass")
+                    && Configuration.IS_JAVA_8 && "sun/misc/Unsafe".equals(owner)
+                    && descWithoutStackFrame.equals("(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;")) {
+                desc = "(L" + owner + ";" + desc.substring(1);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
+                return;
             }
             if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
                 owner = Type.getInternalName(ArrayReflectionMasker.class);

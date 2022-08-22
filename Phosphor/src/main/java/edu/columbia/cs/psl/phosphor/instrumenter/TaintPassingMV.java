@@ -51,17 +51,15 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     private boolean isAtStartOfExceptionHandler;
     private boolean isRewrittenMethodDescriptorOrName;
 
-    private boolean initializePhosphorStackFrame;
 
     private int idxOfShouldPopPhosphorStackFrameLV;
 
     public TaintPassingMV(MethodVisitor mv, int access, String owner, String name, String descriptor, String signature,
                           String[] exceptions, NeverNullArgAnalyzerAdapter analyzer,
                           MethodVisitor passThroughMV, LinkedList<MethodNode> wrapperMethodsToAdd,
-                          ControlFlowPropagationPolicy controlFlowPolicy) {
-        super(access, owner, name, descriptor, signature, exceptions, mv, analyzer);
+                          ControlFlowPropagationPolicy controlFlowPolicy, boolean initializePhosphorStackFrame) {
+        super(access, owner, name, descriptor, signature, exceptions, mv, analyzer, initializePhosphorStackFrame);
         taintTagFactory.instrumentationStarting(access, name, descriptor);
-        this.initializePhosphorStackFrame = TaintTrackingClassVisitor.isMethodToRetainDescriptor(className, methodName);
         this.name = name;
         this.owner = owner;
         this.wrapperMethodsToAdd = wrapperMethodsToAdd;
@@ -78,40 +76,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     @Override
     public void visitCode() {
         super.visitCode();
-        if(this.initializePhosphorStackFrame){
-            //There are methods that the JDK will internally resolve to, and prefix the arguments
-            //with a handle to the underlying object. That handle won't be passed explicitly by the caller.
-            String descForStackFrame = this.descriptor;
-            if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
-                if (this.descriptor.contains("java/lang/invoke/VarHandle")) {
-                    descForStackFrame = this.descriptor.replace("Ljava/lang/invoke/VarHandle;", "");
-                }
-            }
-
-            if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
-                super.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(this.name, descForStackFrame, false));
-                STACK_FRAME_FOR_METHOD_DEBUG.delegateVisit(mv);
-            } else {
-                super.push(PhosphorStackFrame.hashForDesc(TaintAdapter.getMethodKeyForStackFrame(this.name, descForStackFrame, false)));
-                STACK_FRAME_FOR_METHOD_FAST.delegateVisit(mv);
-            }
-            super.visitInsn(DUP);
-            GET_AND_CLEAR_CLEANUP_FLAG.delegateVisit(mv);
-            super.visitInsn(POP);
-            super.visitVarInsn(ASTORE, getIndexOfPhosphorStackData());
-        } else if(Configuration.DEBUG_STACK_FRAME_WRAPPERS){
-            String descForStackFrame = this.descriptor;
-            if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
-                if (this.descriptor.contains("java/lang/invoke/VarHandle")) {
-                    descForStackFrame = this.descriptor.replace("Ljava/lang/invoke/VarHandle;", "");
-                }
-            }
-            descForStackFrame = descForStackFrame.replace(PhosphorStackFrame.DESCRIPTOR, "");
-            super.visitVarInsn(ALOAD, getIndexOfPhosphorStackData());
-            super.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(this.name, descForStackFrame, false));
-            CHECK_STACK_FRAME_TARGET.delegateVisit(mv);
-
-        }
 
         prepareMetadataLocalVariables();
         //There are some methods that might be called from native code, and get passed regular arrays as type java.lang.Object,
@@ -123,7 +87,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             }
         }
         boolean pullWrapperFromPrev = false;
-        if(this.className.startsWith("java/lang/invoke/VarHandleGuards") && this.methodName.startsWith("guard_")){
+        if (this.className.startsWith("java/lang/invoke/VarHandleGuards") && this.methodName.startsWith("guard_")) {
             pullWrapperFromPrev = true;
         }
 
@@ -146,7 +110,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             idxOfLV++;
         }
         super.visitInsn(NOP);
-        for (int i = 0; i < args.length - 1; i++) { //-1 because the last arg is the PhosphorStackFrame!
+        int nArgsToExamine = args.length - 1;//-1 because the last arg is the PhosphorStackFrame!
+        if (this.initializePhosphorStackFrame) {
+            nArgsToExamine++; //Consider the last arg, which is NOT the PhosphorStackFrame
+        }
+        for (int i = 0; i < nArgsToExamine; i++) {
             super.visitInsn(DUP);
             push(idxOfArgPosition);
             GET_ARG_TAINT.delegateVisit(mv);
@@ -867,20 +835,23 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         }
     }
 
-    private static boolean isIgnoredMethod(String owner, String name, String desc){
-        if(Instrumenter.isIgnoredClass(owner) && !owner.equals("edu/columbia/cs/psl/phosphor/runtime/MultiTainter")) {
+    private static boolean isIgnoredMethod(String owner, String name, String desc) {
+        if (Instrumenter.isIgnoredClass(owner) && !owner.equals("edu/columbia/cs/psl/phosphor/runtime/MultiTainter")) {
             return true;
         }
-        if(StringUtils.startsWith(owner,"jdk/internal/module/SystemModules")){
+        if (StringUtils.startsWith(owner, "jdk/internal/module/SystemModules")) {
             return true;
         }
-        if(owner.equals("java/lang/invoke/MethodHandle")){
+        if (owner.equals("java/lang/invoke/MethodHandle")) {
             return true;
         }
-        if(owner.equals("java/lang/invoke/VarHandle")){
+        if (owner.equals("java/lang/invoke/VarHandle")) {
             return true;
         }
-        if(owner.equals("jdk/internal/reflect/Reflection")){
+        if (owner.equals("jdk/internal/reflect/Reflection")) {
+            return name.equals("getCallerClass");
+        }
+        if (owner.equals("sun/reflect/Reflection")) {
             return name.equals("getCallerClass");
         }
         return false;
@@ -1076,7 +1047,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
      *               FRETURN, or LRETURN
      */
     private void visitReturn(int opcode) {
-        if(initializePhosphorStackFrame){
+        if (initializePhosphorStackFrame) {
             super.visitVarInsn(ALOAD, getIndexOfPhosphorStackData());
             super.visitInsn(ICONST_1);
             POP_STACK_FRAME.delegateVisit(mv);

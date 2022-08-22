@@ -79,7 +79,7 @@ public class ReflectionMasker {
         if (Instrumenter.isIgnoredClass(cName)) {
             return true;
         }
-        if (StringUtils.startsWith(cName, "jdk/internal/reflect/Generated")) {
+        if (StringUtils.startsWith(cName, "jdk/internal/reflect/Generated") || StringUtils.startsWith(cName, "sun/reflect/Generated")) {
             return true;
         }
         return false;

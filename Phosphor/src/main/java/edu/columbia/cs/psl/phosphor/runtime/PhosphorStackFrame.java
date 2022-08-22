@@ -9,8 +9,8 @@ import edu.columbia.cs.psl.phosphor.struct.*;
 public class PhosphorStackFrame {
     public static final String INTERNAL_NAME = "edu/columbia/cs/psl/phosphor/runtime/PhosphorStackFrame";
     public static final String DESCRIPTOR = "L" + INTERNAL_NAME + ";";
-    public Taint[] argsPassed = new Taint[10];
-    public Object[] wrappedArgs = new Object[10];
+    public Taint[] argsPassed = new Taint[20];
+    public Object[] wrappedArgs = new Object[20];
     public Object wrappedReturn;
     public Taint returnTaint = Taint.emptyTaint();
     public ControlFlowStack controlFlowTags;

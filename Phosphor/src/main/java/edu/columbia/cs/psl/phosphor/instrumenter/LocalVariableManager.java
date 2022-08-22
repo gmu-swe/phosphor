@@ -43,13 +43,18 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     private Label permanentLocalVariableStartLabel;
     private LocalVariableAdder localVariableAdder;
     private String name;
+    private String originalDesc;
 
-    public LocalVariableManager(int access, String name, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer,
-            MethodVisitor uninstMV, boolean generateExtraDebug) {
+    private HashMap<String, Integer> maxStackPerMethodMap;
+
+    public LocalVariableManager(int access, String name, String originalDesc, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer,
+            MethodVisitor uninstMV, boolean generateExtraDebug, HashMap<String, Integer> maxStackPerMethodMap) {
         super(Configuration.ASM_VERSION, access, desc, mv);
         this.analyzer = analyzer;
         this.uninstMV = uninstMV;
         this.name = name;
+        this.originalDesc = originalDesc;
+        this.maxStackPerMethodMap = maxStackPerMethodMap;
         argumentTypes = Type.getArgumentTypes(desc);
         if ((access & Opcodes.ACC_STATIC) == 0) {
         } else {
@@ -360,6 +365,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     }
 
     public void visitCode() {
+        localVariableAdder.setMaxStack(maxStackPerMethodMap.get(name+originalDesc));
+        this.setNumLocalVariablesAddedAfterArgs(localVariableAdder.getNumLocalVariablesAddedAfterArgs());
         super.visitCode();
         super.visitLabel(newStartLabel);
     }

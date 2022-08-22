@@ -2,12 +2,12 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 
 import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.Instrumenter;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.util.CheckClassAdapter;
 
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -18,6 +18,12 @@ public class InstrumentedJREProxyGenerator {
     public static void main(String[] args) throws IOException {
         String outputDir = args[0];
         String version = System.getProperty("java.version");
+
+        String pathToUnsafePropagator = outputDir + "/edu/columbia/cs/psl/phosphor/runtime/jdk/unsupported/RuntimeSunMiscUnsafePropagator.class";
+        InputStream sunMiscUnsafeIn = new FileInputStream(pathToUnsafePropagator);
+        byte[] instrumentedUnsafe = Instrumenter.transformRuntimeUnsafePropagator(sunMiscUnsafeIn, "sun/misc/Unsafe");
+        Files.write(Paths.get(pathToUnsafePropagator), instrumentedUnsafe);
+
         for (String clazz : CLASSES) {
             String classLocation = outputDir + '/' + clazz.replace('.', '/') + ".class";
             ClassReader cr = new ClassReader(new FileInputStream(classLocation));
