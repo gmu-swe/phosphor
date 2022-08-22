@@ -564,13 +564,13 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
             } else if (owner.equals("java/lang/Class") && name.equals("getInterfaces")) {
                 visit(REMOVE_TAINTED_INTERFACES);
             } else if (owner.equals("java/lang/Throwable") && (name.equals("getOurStackTrace") || name.equals("getStackTrace")) && descWithoutStackFrame.equals("()" + Type.getDescriptor(StackTraceElement[].class))) {
-                if (className.equals("java/lang/Throwable")) {
-                    super.visitVarInsn(ALOAD, 0);
-                    super.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
-                } else {
-                    super.visitLdcInsn(Type.getObjectType(className));
-                }
-                visit(REMOVE_EXTRA_STACK_TRACE_ELEMENTS);
+                //if (className.equals("java/lang/Throwable")) {
+                //    super.visitVarInsn(ALOAD, 0);
+                //    super.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
+                //} else {
+                //    super.visitLdcInsn(Type.getObjectType(className));
+                //}
+                //visit(REMOVE_EXTRA_STACK_TRACE_ELEMENTS);
             } else if (owner.equals("java/lang/reflect/Method") && name.equals("invoke")) {
                 mv.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
                 UNWRAP_RETURN.delegateVisit(mv);

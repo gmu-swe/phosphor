@@ -106,8 +106,10 @@ public class Instrumenter {
                 || StringUtils.startsWith(owner, "java/lang/Short")
                 || StringUtils.startsWith(owner, "java/lang/Number")
                 || StringUtils.startsWith(owner, "java/lang/ref/Reference")
+                || StringUtils.startsWith(owner, "java/lang/ref/FinalReference")
                 || StringUtils.startsWith(owner, "java/lang/ref/SoftReference")
-                || StringUtils.startsWith(owner, "java/lang/invoke/LambdaForm") //Lambdas are hosted by this class, and when generated, will have hard-coded offsets to constant pool
+                || StringUtils.equals(owner, "java/lang/invoke/LambdaForm") //Lambdas are hosted by this class, and when generated, will have hard-coded offsets to constant pool
+                || StringUtils.startsWith(owner, "java/lang/invoke/LambdaForm$") //Lambdas are hosted by this class, and when generated, will have hard-coded offsets to constant pool
                 /*
                 Phosphor internal methods
                  */
