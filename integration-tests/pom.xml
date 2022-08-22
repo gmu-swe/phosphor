@@ -12,11 +12,13 @@
     <properties>
         <dacapo.skip>true</dacapo.skip>
         <skipDataFlowTests>false</skipDataFlowTests>
+        <skipInstrumentationTest>false</skipInstrumentationTest>
         <skipControlFlowTests>false</skipControlFlowTests>
         <auto.taint>
             taintSources=${basedir}/src/test/resources/taint-sources,taintSinks=${basedir}/src/test/resources/taint-sinks,taintThrough=${basedir}/src/test/resources/taint-through
         </auto.taint>
         <data.flow.cache>${project.build.directory}/cached-data-flows</data.flow.cache>
+        <instrumentation.cache>${project.build.directory}/cached-instrumentations</instrumentation.cache>
         <control.flow.cache>${project.build.directory}/cached-control-flows</control.flow.cache>
         <data.flow.jvm>jvm-inst-data</data.flow.jvm>
         <control.flow.jvm>jvm-inst-control</control.flow.jvm>
@@ -245,6 +247,24 @@
                                     <reuseForks>false</reuseForks>
                                     <argLine>
                                         ${argLine.prefix},enum,acmpeq,cacheDir=${data.flow.cache}
+                                    </argLine>
+                                </configuration>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>integration-test-instrumentation</id>
+                                <configuration>
+                                    <skipTests>${skipInstrumentationTest}</skipTests>
+                                    <jvm>${project.build.directory}/${data.flow.jvm}/bin/java</jvm>
+                                    <includes>
+                                        <include>**/*InstCase.java</include>
+                                    </includes>
+                                    <reuseForks>false</reuseForks>
+                                    <argLine>
+                                        ${argLine.prefix},enum,acmpeq,cacheDir=${instrumentation.cache}
                                     </argLine>
                                 </configuration>
                                 <goals>
