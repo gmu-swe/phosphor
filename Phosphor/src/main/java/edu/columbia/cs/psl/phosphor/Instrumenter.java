@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor;
 
+import edu.columbia.cs.psl.phosphor.instrumenter.ConfigurationEmbeddingMV;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
 import edu.columbia.cs.psl.phosphor.runtime.jdk.unsupported.UnsafeProxy;
@@ -739,8 +740,8 @@ public class Instrumenter {
      * We do rewriting of various phosphor classes to ensure easy compilation for java < 9
      */
     public static byte[] patchPhosphorClass(String name, InputStream is) throws IOException {
-        if(name.equals("edu/columbia/cs/psl/phosphor/Configuration.class")) {
-            return transformPhosphorConfigurationToUseJava9(is);
+        if(name.equals("edu/columbia/cs/psl/phosphor/Configuration.class")){
+            return embedPhopshorConfiguration(is);
         }
         if (name.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeJDKInternalUnsafePropagator.class")) {
             return transformRuntimeUnsafePropagator(is, "jdk/internal/misc/Unsafe");
@@ -828,30 +829,22 @@ public class Instrumenter {
      * @return
      * @throws IOException
      */
-    public static byte[] transformPhosphorConfigurationToUseJava9(InputStream is) throws IOException {
+    public static byte[] embedPhopshorConfiguration(InputStream is) throws IOException {
         ClassReader cr = new ClassReader(is);
         ClassWriter cw = new ClassWriter(cr, 0);
+
         ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
             @Override
             public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
-                if(name.equals("<clinit>")){
-                    return new MethodVisitor(Opcodes.ASM9, mv) {
-                        @Override
-                        public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
-                            if(opcode == Opcodes.PUTSTATIC && name.equals("IS_JAVA_8")){
-                                super.visitInsn(Opcodes.POP);
-                                super.visitInsn(Opcodes.ICONST_0);
-                            }
-                            super.visitFieldInsn(opcode, owner, name, descriptor);
-                        }
-                    };
+                if (name.equals("<clinit>")) {
+                    return new ConfigurationEmbeddingMV(mv);
                 } else {
                     return mv;
                 }
-
             }
         };
+
         cr.accept(cv, 0);
         return cw.toByteArray();
 
