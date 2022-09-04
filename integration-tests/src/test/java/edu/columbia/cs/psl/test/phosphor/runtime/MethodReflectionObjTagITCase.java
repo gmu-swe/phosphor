@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.test.phosphor.runtime;
 
+import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import edu.columbia.cs.psl.test.phosphor.BaseMultiTaintClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -10,6 +11,7 @@ import org.junit.experimental.theories.Theory;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.RunWith;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -56,6 +58,35 @@ public class MethodReflectionObjTagITCase extends BaseMultiTaintClass {
             int i = (Integer)result;
             assertEquals(MethodHolder.RET_VALUE, i);
         }
+    }
+
+    @Test
+    public void testReflectionMethodWithoutTaint() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        MethodHolder obj2 = new MethodHolder(false);
+        Method m = MethodHolder.class.getMethod("getLast", int.class,
+                int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                int.class, int.class, int.class);
+        int ret = (int) m.invoke(obj2, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+                15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39);
+        assertEquals(39, ret);
+    }
+
+    @Test
+    public void testReflectionMethodTaintPropagation() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        MethodHolder obj2 = new MethodHolder(true);
+        Method m = MethodHolder.class.getMethod("getLast", int.class,
+                int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                int.class, int.class, int.class);
+        int i39 = MultiTainter.taintedInt(39, "tainted");
+        int ret = (int) m.invoke(obj2, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+                15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, i39);
+        assertTaintHasOnlyLabel(MultiTainter.getTaint(ret), "tainted");
     }
 
     public static class StandardTests {
@@ -108,6 +139,12 @@ public class MethodReflectionObjTagITCase extends BaseMultiTaintClass {
             HashSet<Method> expected = new HashSet<>();
             expected.add(MethodHolder.class.getDeclaredMethod("example", Boolean.TYPE));
             expected.add(MethodHolder.class.getDeclaredMethod("example", boolean[].class));
+            expected.add(MethodHolder.class.getDeclaredMethod("getLast", int.class, int.class,
+                    int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                    int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                    int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                    int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                    int.class, int.class, int.class, int.class, int.class, int.class));
             expected.addAll(Arrays.asList(Object.class.getMethods()));
             Method[] methods = MethodHolder.class.getMethods();
             HashSet<Method> actual = new HashSet<>(Arrays.asList(methods));
@@ -117,14 +154,20 @@ public class MethodReflectionObjTagITCase extends BaseMultiTaintClass {
         /* Checks that synthetic equals and hashcode methods added by Phosphor are hidden from Class.getDeclaredMethods. */
         @Test
         public void testHashCodeAndEqualsHiddenFromGetDeclaredMethods() {
-            String[] methodNames = new String[]{"example", "example"};
-            Class<?>[] returnTypes = new Class<?>[]{Integer.TYPE, Integer.TYPE};
+            String[] methodNames = new String[]{"example", "example", "getLast"};
+            Class<?>[] returnTypes = new Class<?>[]{Integer.TYPE, Integer.TYPE, Integer.TYPE};
             Class<?>[][] paramTypes = new Class<?>[][]{
                     new Class<?>[]{Boolean.TYPE},
                     new Class<?>[]{boolean[].class},
+                    new Class<?>[] {int.class,
+                            int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                            int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                            int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                            int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
+                            int.class, int.class, int.class}
             };
             Method[] methods = MethodHolder.class.getDeclaredMethods();
-            assertEquals(2, methods.length);
+            assertEquals(methodNames.length, methods.length);
             for(Method method : methods) {
                 boolean methodMatchesExpected = false;
                 for(int i = 0; i < methodNames.length; i++) {
@@ -145,5 +188,7 @@ public class MethodReflectionObjTagITCase extends BaseMultiTaintClass {
             Method mDeclared = MethodHolder.class.getDeclaredMethod("example", Boolean.TYPE);
             assertEquals(mDeclared, m);
         }
+
     }
+
 }
