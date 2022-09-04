@@ -208,6 +208,21 @@ public class RuntimeJDKInternalUnsafePropagator {
         unsafe.copyMemory(srcAddress, destAddress, length);
     }
 
+    public static void copySwapMemory(UnsafeProxy unsafe, Object srcBase, long srcOffset, Object destBase,
+                                      long destOffset, long bytes, long elemSize, PhosphorStackFrame stackFrame) {
+        if (srcBase instanceof TaggedArray) {
+            srcBase = ((TaggedArray) srcBase).getVal();
+        }
+        if (destBase instanceof TaggedArray) {
+            destBase = ((TaggedArray) destBase).getVal();
+        }
+        unsafe.copySwapMemory(srcBase, srcOffset, destBase, destOffset, bytes, elemSize);
+    }
+
+    public static void copySwapMemory(UnsafeProxy unsafe, long srcAddress, long destAddress, long bytes, long elemSize, PhosphorStackFrame stackFrame) {
+        unsafe.copySwapMemory(srcAddress, destAddress, bytes, elemSize);
+    }
+
     @SuppressWarnings("unused")
     public static Object allocateUninitializedArray(UnsafeProxy unsafe, Class c, int len, PhosphorStackFrame phosphorStackFrame) {
         Object ret = unsafe.allocateUninitializedArray(c, len);

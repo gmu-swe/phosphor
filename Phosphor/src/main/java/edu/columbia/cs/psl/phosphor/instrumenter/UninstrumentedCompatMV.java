@@ -21,8 +21,8 @@ public class UninstrumentedCompatMV extends TaintAdapter {
     private Type returnType;
 
     public UninstrumentedCompatMV(int access, String className, String name, String desc, String signature,
-            String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer) {
-        super(access, className, name, desc, signature, exceptions, mv, analyzer);
+            String[] exceptions, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer, boolean initializePhosphorStackFrame) {
+        super(access, className, name, desc, signature, exceptions, mv, analyzer, initializePhosphorStackFrame);
         this.analyzer = analyzer;
         this.returnType = Type.getReturnType(desc);
     }
@@ -141,11 +141,6 @@ public class UninstrumentedCompatMV extends TaintAdapter {
                         super.visitFieldInsn(opcode, owner, name, desc);
                     } else {
                         //It's not wrapped
-                        if (opcode == Opcodes.PUTFIELD) {
-                            super.visitInsn(DUP2);
-                        } else {
-                            super.visitInsn(DUP);
-                        }
                         super.visitFieldInsn(opcode, owner, name, desc);
                         String factoryType = desc;
                         if (t.getElementType().getSort() == Type.OBJECT) {

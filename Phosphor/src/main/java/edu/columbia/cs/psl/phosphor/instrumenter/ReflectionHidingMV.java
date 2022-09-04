@@ -2,14 +2,13 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
-import edu.columbia.cs.psl.phosphor.runtime.CharacterUtils;
-import edu.columbia.cs.psl.phosphor.runtime.RuntimeJDKInternalUnsafePropagator;
+import edu.columbia.cs.psl.phosphor.runtime.*;
 import edu.columbia.cs.psl.phosphor.runtime.jdk.unsupported.RuntimeSunMiscUnsafePropagator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
@@ -29,7 +28,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         this.className = className;
         this.methodName = name;
         this.disable = shouldDisable(className, name);
-        this.patchAnonymousClasses = className.equals("java/lang/invoke/InnerClassLambdaMetafactory");
+        this.patchAnonymousClasses = className.equals("java/lang/invoke/InnerClassLambdaMetafactory") || className.equals("sun/reflect/ClassDefiner");
         this.isEnumValueOf = isEnum && name.equals("valueOf");
     }
 
@@ -427,11 +426,15 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     }
 
     private boolean isUnsafeCopyMemory(String owner, String name, String nameWithoutSuffix) {
-        if (!Instrumenter.isUnsafeClass(owner)) {
-            return false;
-        } else {
-            return "copyMemory".equals(nameWithoutSuffix);
+        if (Instrumenter.isUnsafeClass(owner)) {
+            switch (nameWithoutSuffix) {
+                case "copyMemory":
+                case "copySwapMemory":
+                    return true;
+            }
+
         }
+        return false;
     }
 
     @Override
@@ -448,19 +451,16 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean isInterface) {
         Type[] args = Type.getArgumentTypes(desc);
         String nameWithoutSuffix = name;
-        Type returnType = Type.getReturnType(desc);
+        String descWithoutStackFrame = desc.replace(PhosphorStackFrame.DESCRIPTOR, "");
         if ((disable || className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream")) && owner.equals("java/lang/Class") && !owner.equals(className) && name.startsWith("isInstance")) {
             // Even if we are ignoring other hiding here, we definitely need to do this.
-            super.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
             visit(IS_INSTANCE);
         } else if (disable) {
             if (this.methodName.startsWith("setObjFieldValues") && owner.equals("sun/misc/Unsafe") && (name.startsWith("putObject") || name.startsWith("compareAndSwapObject"))) {
                 owner = getRuntimeUnsafePropogatorClassName();
-                desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, mv);
                 super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), isInterface);
             } else if (this.methodName.startsWith("getObjFieldValues") && owner.equals("sun/misc/Unsafe") && name.startsWith("getObject")) {
                 owner = getRuntimeUnsafePropogatorClassName();
-                desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, mv);
                 super.visitMethodInsn(INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), isInterface);
             } else if ((this.methodName.startsWith("getPrimFieldValues") || this.methodName.startsWith("setPrimFieldValues")) && owner.equals("sun/misc/Unsafe") && (name.startsWith("put") || name.startsWith("get"))) {
                 //name = name + "$$NOUNBOX";
@@ -470,21 +470,27 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 super.visitMethodInsn(opcode, owner, name, desc, isInterface);
             }
         } else {
-            if (patchAnonymousClasses && name.equals("defineAnonymousClass") && Instrumenter.isUnsafeClass(owner) && desc.equals("(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;")) {
+            if (patchAnonymousClasses && name.equals("defineAnonymousClass") && Instrumenter.isUnsafeClass(owner) && descWithoutStackFrame.equals("(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;")) {
+                super.visitInsn(POP);
                 super.visitInsn(SWAP);
-                INSTRUMENT_CLASS_BYTES.delegateVisit(mv);
+                INSTRUMENT_CLASS_BYTES_ANONYMOUS.delegateVisit(mv);
                 super.visitInsn(SWAP);
+                desc = descWithoutStackFrame; // Go directly to the native call
+            } else if (patchAnonymousClasses && name.equals("defineClass")
+                    && Configuration.IS_JAVA_8 && "sun/misc/Unsafe".equals(owner)
+                    && descWithoutStackFrame.equals("(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;")) {
+                desc = "(L" + owner + ";" + desc.substring(1);
+                super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
+                return;
             }
             if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
                 owner = Type.getInternalName(ArrayReflectionMasker.class);
-                desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, this);
             }
             if (name.equals("allocateUninitializedArray") && Instrumenter.isUnsafeClass(owner)) {
                 desc = "(L" + owner + ";" + desc.substring(1);
-                desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, this);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
                 return;
-            } else if (isUnsafeIntrinsic(owner, name, desc) || isUnsafeFieldGetter(opcode, owner, name, args, nameWithoutSuffix)) {
+            } else if (isUnsafeIntrinsic(owner, name, descWithoutStackFrame) || isUnsafeFieldGetter(opcode, owner, name, args, nameWithoutSuffix)) {
                 if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
                     desc = desc.replace(CONTROL_STACK_DESC, "");
                     //in control tracking mode, pop the control stack off of the stack to reuse the existing method
@@ -499,7 +505,6 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                     }
                 }
                 desc = "(L" + owner + ";" + desc.substring(1);
-                desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, this);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
                 return;
             } else if (isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
@@ -508,7 +513,6 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                     super.visitInsn(POP);
                 }
                 desc = "(L" + owner + ";" + desc.substring(1);
-                desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, this);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
                 return;
             } else if (isUnsafeCAS(owner, name, nameWithoutSuffix) || isUnsafeCopyMemory(owner, name, nameWithoutSuffix)) {
@@ -520,56 +524,53 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 desc = "(L" + owner + ";" + desc.substring(1);
                 owner = getRuntimeUnsafePropogatorClassName();
                 opcode = INVOKESTATIC;
-                desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, this);
                 super.visitMethodInsn(opcode, owner, name, desc, isInterface);
                 return;
             } else if (owner.equals(Type.getInternalName(Character.class)) && (name.equals("codePointAt")
                     || name.equals("toChars") || name.equals("codePointBefore") || name.equals("reverseBytes")
                     || name.equals("toLowerCase") || name.equals("toTitleCase") || name.equals("toUpperCase"))) {
-                desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, mv);
                 owner = Type.getInternalName(CharacterUtils.class);
-            } else if (owner.equals("java/lang/reflect/Method") && name.equals("invoke")) {
-            } else if (owner.equals("java/lang/reflect/Constructor") && name.equals("newInstance")) {
+                desc = lvs.patchDescToAcceptPhosphorStackFrameAndPushIt(desc, mv);
             } else if ((owner.equals("sun/reflect/NativeMethodAccessorImpl") || owner.equals("jdk/internal/reflect/NativeMethodAccessorImpl")) && name.equals("invoke0")) {
-                //Stack: Method Receiver Args
-                mv.visitInsn(SWAP);
-                mv.visitInsn(DUP_X1);
-                //Stack: Method Receiver Args Receiver
-                mv.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
-                FIX_ALL_ARGS.delegateVisit(mv);
-
-                mv.visitInsn(DUP2_X1);
-                mv.visitInsn(POP2);
-                mv.visitInsn(DUP_X2);
-                super.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
+                //Stack: Method Receiver Args StackData
                 PREPARE_FOR_CALL_REFLECTIVE.delegateVisit(this);
-            } else if ((owner.equals("sun/reflect/NativeConstructorAccessorImpl") || owner.equals("jdk/internal/reflect/NativeConstructorAccessorImpl")) && name.equals("newInstance0")) {
-                mv.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
-                FIX_ALL_ARGS_CONSTRUCTOR.delegateVisit(mv);
-
+                String methodTupleInternalName = Type.getInternalName(ReflectionMasker.MethodInvocationTuple.class);
+                mv.visitInsn(DUP);
+                mv.visitFieldInsn(GETFIELD, methodTupleInternalName, "method", Type.getType(Method.class).getDescriptor());
                 mv.visitInsn(SWAP);
                 mv.visitInsn(DUP);
-                super.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
-                PREPARE_FOR_CALL_REFLECTIVE_CONSTRUCTOR.delegateVisit(this);
+                mv.visitFieldInsn(GETFIELD, methodTupleInternalName, "receiver", "Ljava/lang/Object;");
                 mv.visitInsn(SWAP);
+                mv.visitFieldInsn(GETFIELD, methodTupleInternalName, "args", "[Ljava/lang/Object;");
+                mv.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
+            } else if ((owner.equals("sun/reflect/NativeConstructorAccessorImpl") || owner.equals("jdk/internal/reflect/NativeConstructorAccessorImpl")) && name.equals("newInstance0")) {
+                PREPARE_FOR_CALL_REFLECTIVE_CONSTRUCTOR.delegateVisit(this);
+                String constructorInvocationPairInternalName = Type.getInternalName(ReflectionMasker.ConstructorInvocationPair.class);
+                mv.visitInsn(DUP);
+                mv.visitFieldInsn(GETFIELD, constructorInvocationPairInternalName, "constructor", Type.getDescriptor(Constructor.class));
+                mv.visitInsn(SWAP);
+                mv.visitFieldInsn(GETFIELD, constructorInvocationPairInternalName, "args", "[Ljava/lang/Object;");
+                mv.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
             }
             super.visitMethodInsn(opcode, owner, name, desc, isInterface);
             if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Fields") && !className.equals("java/lang/Class")) {
                 if (!Configuration.WITHOUT_FIELD_HIDING) {
                     visit(REMOVE_TAINTED_FIELDS);
                 }
-            } else if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Methods") && !className.equals(owner) && desc.equals("()" + Type.getDescriptor(Method[].class))) {
+            } else if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Methods") && !className.equals(owner) && descWithoutStackFrame.equals("()" + Type.getDescriptor(Method[].class))) {
                 visit(REMOVE_TAINTED_METHODS);
+            } else if (owner.equals("java/lang/Class") && nameWithoutSuffix.endsWith("Constructors") && !className.equals(owner) && descWithoutStackFrame.equals("()" + Type.getDescriptor(Constructor[].class))) {
+                visit(REMOVE_TAINTED_CONSTRUCTORS);
             } else if (owner.equals("java/lang/Class") && name.equals("getInterfaces")) {
                 visit(REMOVE_TAINTED_INTERFACES);
-            } else if (owner.equals("java/lang/Throwable") && (name.equals("getOurStackTrace") || name.equals("getStackTrace")) && desc.equals("()" + Type.getDescriptor(StackTraceElement[].class))) {
-                if (className.equals("java/lang/Throwable")) {
-                    super.visitVarInsn(ALOAD, 0);
-                    super.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
-                } else {
-                    super.visitLdcInsn(Type.getObjectType(className));
-                }
-                visit(REMOVE_EXTRA_STACK_TRACE_ELEMENTS);
+            } else if (owner.equals("java/lang/Throwable") && (name.equals("getOurStackTrace") || name.equals("getStackTrace")) && descWithoutStackFrame.equals("()" + Type.getDescriptor(StackTraceElement[].class))) {
+                //if (className.equals("java/lang/Throwable")) {
+                //    super.visitVarInsn(ALOAD, 0);
+                //    super.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
+                //} else {
+                //    super.visitLdcInsn(Type.getObjectType(className));
+                //}
+                //visit(REMOVE_EXTRA_STACK_TRACE_ELEMENTS);
             } else if (owner.equals("java/lang/reflect/Method") && name.equals("invoke")) {
                 mv.visitVarInsn(ALOAD, lvs.getLocalVariableAdder().getIndexOfPhosphorStackData());
                 UNWRAP_RETURN.delegateVisit(mv);

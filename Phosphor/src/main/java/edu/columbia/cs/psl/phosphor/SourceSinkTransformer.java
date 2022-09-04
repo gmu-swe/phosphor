@@ -30,7 +30,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
             ClassReader cr = new ClassReader(new FileInputStream("z.class"));
             ClassWriter cw = new ClassWriter(0);
             cr.accept(cw, 0);
-            byte[] ret = transformer.transform(null, "z.class", HashMap.class, null, cw.toByteArray());
+            byte[] ret = transformer.transform(null, "z.class", HashMap.class, null, cw.toByteArray(), false);
             System.out.println(ret);
 
 
@@ -42,7 +42,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
     }
 
     @Override
-    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) {
+    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer, boolean isAnonymousClassDefinition) {
         if(classBeingRedefined == null) {
             // The transform was triggered by a class load not a redefine or retransform then no transformations
             // should be performed

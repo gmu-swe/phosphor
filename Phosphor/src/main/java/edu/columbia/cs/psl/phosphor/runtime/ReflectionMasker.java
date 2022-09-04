@@ -1,13 +1,13 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
-import edu.columbia.cs.psl.phosphor.struct.*;
-import edu.columbia.cs.psl.phosphor.struct.TaggedReferenceArray;
+import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.TaggedArray;
+import edu.columbia.cs.psl.phosphor.struct.TaggedReferenceArray;
+import edu.columbia.cs.psl.phosphor.struct.TaintedWithObjTag;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Constructor;
@@ -72,50 +72,160 @@ public class ReflectionMasker {
 
     /* Returns true if the specified class was ignored by Phosphor. */
     private static boolean isIgnoredClass(Class<?> clazz) {
-        return clazz != null && (Instrumenter.isIgnoredClass(clazz.getName().replace('.', '/'))
-                || Object.class.equals(clazz));
+        if (clazz == null) {
+            return true;
+        }
+        String cName = clazz.getName().replace('.', '/');
+        if (Instrumenter.isIgnoredClass(cName)) {
+            return true;
+        }
+        if (StringUtils.startsWith(cName, "jdk/internal/reflect/Generated") || StringUtils.startsWith(cName, "sun/reflect/Generated")) {
+            return true;
+        }
+        return false;
     }
 
-    @InvokedViaInstrumentation(record = FIX_ALL_ARGS)
-    public static Object[] fixAllArgs(Object[] args, Object receiver, PhosphorStackFrame phosphorStackFrame){
+    public static class ConstructorInvocationPair {
+        public Constructor constructor;
+        public Object[] args;
+
+        public ConstructorInvocationPair(Constructor constructor, Object[] args) {
+            this.constructor = constructor;
+            this.args = args;
+        }
+    }
+
+    public static class MethodInvocationTuple {
+        public Object receiver;
+        public Method method;
+        public Object[] args;
+
+        public MethodInvocationTuple(Method method, Object receiver, Object[] args) {
+            this.method = method;
+            this.receiver = receiver;
+            this.args = args;
+        }
+    }
+    private static Constructor getTaintConstructor(Constructor m) {
+        Class[] origArgs = m.getParameterTypes();
+        if(origArgs.length >= 1 && origArgs[origArgs.length - 1] == PhosphorStackFrame.class){
+            return m;
+        }
+        Class[] args = new Class[origArgs.length + 1];
+        System.arraycopy(origArgs, 0, args, 0, origArgs.length);
+        args[origArgs.length] = PhosphorStackFrame.class;
+        Constructor ret = null;
+        try {
+            ret = m.getDeclaringClass().getDeclaredConstructor(args);
+        } catch (NoSuchMethodException | SecurityException e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
+
+    @InvokedViaInstrumentation(record = PREPARE_FOR_CALL_REFLECTIVE_CONSTRUCTOR)
+    public static ConstructorInvocationPair prepareForCall(Constructor constructor, Object[] args, PhosphorStackFrame phosphorStackFrame) {
+        if (!PhosphorStackFrame.isInitialized() ||
+                isIgnoredClass(constructor.getDeclaringClass())){
+            if(args != null) {
+                for (int i = 0; i < args.length; i++) {
+                    if (args[i] instanceof TaggedArray) {
+                        args[i] = ((TaggedArray) args[i]).getVal();
+                    }
+                }
+            }
+            return new ConstructorInvocationPair(constructor, args);
+        }
+        Constructor taintConstructor = getTaintConstructor(constructor);
+        if (taintConstructor == constructor) {
+            return new ConstructorInvocationPair(constructor, args);
+        }
+        if(args != null) {
+            TaggedReferenceArray argTaints = phosphorStackFrame.getArgWrapper(1, args);
+            for (int i = 0; i < args.length; i++) {
+                if (args[i] instanceof TaggedArray) {
+                    phosphorStackFrame.setArgWrapper(args[i], i);
+                    args[i] = MultiDArrayUtils.unbox1DOrNull(args[i]);
+                }
+                if(argTaints.taints != null) {
+                   phosphorStackFrame.setArgTaint(argTaints.taints[i], i + 1); //+1 to account for "this" taint
+                }
+            }
+            Taint thisTaint = phosphorStackFrame.getArgTaint(0);
+            phosphorStackFrame.setArgTaint(thisTaint, 0);
+            Object[] newArgs = new Object[args.length + 1];
+            System.arraycopy(args, 0, newArgs, 0, args.length);
+            newArgs[args.length] = phosphorStackFrame;
+            args = newArgs;
+        } else {
+            args = new Object[1];
+            args[0] = phosphorStackFrame;
+        }
+        return new ConstructorInvocationPair(taintConstructor, args);
+    }
+
+    private static Method getTaintMethod(Method m) {
+        Class[] origArgs = m.getParameterTypes();
+        if(origArgs.length >= 1 && origArgs[origArgs.length - 1] == PhosphorStackFrame.class){
+            return m;
+        }
+        Class[] args = new Class[origArgs.length + 1];
+        System.arraycopy(origArgs, 0, args, 0, origArgs.length);
+        args[origArgs.length] = PhosphorStackFrame.class;
+        Method ret = null;
+        try {
+            ret = m.getDeclaringClass().getDeclaredMethod(m.getName(), args);
+        } catch (NoSuchMethodException | SecurityException e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
+
+    @InvokedViaInstrumentation(record = PREPARE_FOR_CALL_REFLECTIVE)
+    public static MethodInvocationTuple prepareForCall(Method m, Object receiver, Object[] args, PhosphorStackFrame phosphorStackFrame) {
+        if (!PhosphorStackFrame.isInitialized() ||
+                isIgnoredClass(m.getDeclaringClass())) {
+            if (args != null) {
+                for (int i = 0; i < args.length; i++) {
+                    if (args[i] instanceof TaggedArray) {
+                        args[i] = ((TaggedArray) args[i]).getVal();
+                    }
+                }
+            }
+            return new MethodInvocationTuple(m, receiver, args);
+        }
+        Method taintMethod = getTaintMethod(m);
+        if (taintMethod == m) {
+            return new MethodInvocationTuple(m, receiver, args);
+        }
         boolean isInstanceMethod = false;
-        if(receiver != null){
+        if (receiver != null) {
             isInstanceMethod = true;
             Taint thisTaint = phosphorStackFrame.getArgTaint(2);
             phosphorStackFrame.setArgTaint(thisTaint, 0);
         }
-        if(args != null) {
+        if (args != null) {
             TaggedReferenceArray argTaints = (TaggedReferenceArray) phosphorStackFrame.getArgWrapper(2, args);
             for (int i = 0; i < args.length; i++) {
                 if (args[i] instanceof TaggedArray) {
                     phosphorStackFrame.setArgWrapper(args[i], i);
                     args[i] = MultiDArrayUtils.unbox1DOrNull(args[i]);
                 }
-                if(argTaints.taints != null) {
+                if (argTaints.taints != null) {
                     phosphorStackFrame.setArgTaint(argTaints.taints[i], i + (isInstanceMethod ? 1 : 0));
-                }
-            }
-        }
-        return args;
-    }
-
-    @InvokedViaInstrumentation(record = FIX_ALL_ARGS_CONSTRUCTOR)
-    public static Object[] fixAllArgsConstructor(Object[] args, PhosphorStackFrame phosphorStackFrame){
-        if(args != null) {
-            TaggedReferenceArray argTaints = (TaggedReferenceArray) phosphorStackFrame.getArgWrapper(1, args);
-            for (int i = 0; i < args.length; i++) {
-                if (args[i] instanceof TaggedArray) {
-                    phosphorStackFrame.setArgWrapper(args[i], i);
-                    args[i] = MultiDArrayUtils.unbox1DOrNull(args[i]);
-                }
-                if(argTaints.taints != null) {
-                    phosphorStackFrame.setArgTaint(argTaints.taints[i], i + 1); //+1 to account for "this" taint
                 }
             }
             Taint thisTaint = phosphorStackFrame.getArgTaint(0);
             phosphorStackFrame.setArgTaint(thisTaint, 0);
+            Object[] newArgs = new Object[args.length + 1];
+            System.arraycopy(args, 0, newArgs, 0, args.length);
+            newArgs[args.length] = phosphorStackFrame;
+            args = newArgs;
+        } else {
+            args = new Object[1];
+            args[0] = phosphorStackFrame;
         }
-        return args;
+        return new MethodInvocationTuple(taintMethod, receiver, args);
     }
 
     @InvokedViaInstrumentation(record =  UNWRAP_RETURN)
@@ -257,6 +367,12 @@ public class ReflectionMasker {
                 }
             }
             if(!match) {
+                Class<?>[] params = f.getParameterTypes();
+                if(params.length > 0 && params[params.length - 1] == PhosphorStackFrame.class){
+                    match = true;
+                }
+            }
+            if(!match) {
                 ret.enqueue(f);
             }
         }
@@ -269,7 +385,7 @@ public class ReflectionMasker {
         SinglyLinkedList<Constructor<?>> ret = new SinglyLinkedList<>();
         for(Constructor<?> f : in) {
             Class<?>[] params = f.getParameterTypes();
-            if(params.length == 0 || !(params[0].equals(Configuration.TAINT_TAG_OBJ_CLASS))) {
+            if(params.length == 0 || !(params[params.length - 1].equals(PhosphorStackFrame.class))) {
                 ret.enqueue(f);
             }
         }
@@ -323,25 +439,6 @@ public class ReflectionMasker {
         return ret;
     }
 
-    @InvokedViaInstrumentation(record = PREPARE_FOR_CALL_REFLECTIVE)
-    public static void prepareForCall(Method m, PhosphorStackFrame phosphorStackFrame){
-        int nArgs = m.getParameterTypes().length;
-        String desc = Type.getMethodDescriptor(m);
-        phosphorStackFrame.intendedNextMethodDebug = m.getName()+desc.substring(0, 1+desc.indexOf(')'));
-        phosphorStackFrame.intendedNextMethodFast = PhosphorStackFrame.hashForDesc(phosphorStackFrame.intendedNextMethodDebug);
-        InstrumentedJREFieldHelper.setphosphorStackFrame(Thread.currentThread(), phosphorStackFrame);
-    }
-
-    @InvokedViaInstrumentation(record = PREPARE_FOR_CALL_REFLECTIVE_CONSTRUCTOR)
-    public static void prepareForCall(Constructor m, PhosphorStackFrame phosphorStackFrame){
-        if(!PhosphorStackFrame.isInitialized()){
-            return;
-        }
-        String desc = Type.getConstructorDescriptor(m);
-        phosphorStackFrame.intendedNextMethodDebug = "<init>"+desc.substring(0, 1+desc.indexOf(')'));
-        phosphorStackFrame.intendedNextMethodFast = PhosphorStackFrame.hashForDesc(phosphorStackFrame.intendedNextMethodDebug);
-        InstrumentedJREFieldHelper.setphosphorStackFrame(Thread.currentThread(), phosphorStackFrame);
-    }
 
     private static Class<?> getCachedClass(Class<?> clazz) {
         return InstrumentedJREFieldHelper.getPHOSPHOR_TAGclass(clazz);

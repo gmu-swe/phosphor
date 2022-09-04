@@ -112,11 +112,14 @@ public class StringUtils {
         } else if (s1 == null || s2 == null) {
             return false;
         } else {
-           if(Configuration.IS_JAVA_8){
-               return _equalsJava8(s1, s2);
-           } else{
-               return _equals(s1, s2);
-           }
+            if (PreMain.RUNTIME_INST) {
+                if (Configuration.IS_JAVA_8) {
+                    return _equalsJava8(s1, s2);
+                } else {
+                    return _equals(s1, s2);
+                }
+            }
+            return s1.equals(s2);
         }
     }
     private static boolean _equals(String s1, String s2){

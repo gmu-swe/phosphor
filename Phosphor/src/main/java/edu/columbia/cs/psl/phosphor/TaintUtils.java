@@ -264,4 +264,20 @@ public class TaintUtils {
         return isPrimitiveArrayType(t) || isPrimitiveType(t);
     }
 
+    public static String addPhosphorStackFrameToDesc(String desc) {
+        StringBuilder ret = new StringBuilder();
+        int offsetOfCloseParens = desc.indexOf(')');
+        ret.append(desc.substring(0, offsetOfCloseParens));
+        ret.append(PhosphorStackFrame.DESCRIPTOR);
+        ret.append(desc.substring(offsetOfCloseParens));
+        return ret.toString();
+    }
+
+    public static boolean containsPhosphorStackFrame(String desc) {
+        return desc.contains(PhosphorStackFrame.DESCRIPTOR);
+    }
+
+    public static String getOriginalDescrptor(String taintedDesc) {
+        return taintedDesc.replace(PhosphorStackFrame.DESCRIPTOR, "");
+    }
 }

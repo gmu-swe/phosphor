@@ -1338,4 +1338,27 @@ public class UnsafeProxy {
     public void putShortParts(Object o, long offset, byte i0, byte i1) {
         throw new IllegalStateException("This method should never be called at runtime");
     }
+
+    public boolean compareAndSwapObject(Object obj, long offset, Object expected, Object value) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+
+    public void putOrderedObject(Object obj, long offset, Object val) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+
+    public boolean compareAndSwapInt(Object val, long offset, int expected, int value) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+
+    public boolean compareAndSwapLong(Object val, long offset, long expected, long value) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+
+    public void putOrderedInt(Object obj, long offset, int val) {
+        throw new IllegalStateException("This method should never be called at runtime");
+    }
+
+    public void putOrderedLong(Object obj, long offset, long val) {
+    }
 }
