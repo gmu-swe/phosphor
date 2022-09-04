@@ -1,8 +1,10 @@
 package edu.columbia.cs.psl.jigsaw.phosphor.instrumenter;
 
+import edu.columbia.cs.psl.phosphor.Configuration;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
@@ -17,9 +19,21 @@ public class JLinkInvoker {
         String modulesToAdd = properties.getProperty(MODULES_PROPERTY,
                 "java.base,jdk.jdwp.agent,java.instrument,jdk.unsupported");
 
+        Set<String> classPaths = new HashSet<>();
+        if (Configuration.PRIOR_CLASS_VISITOR != null) {
+            classPaths.add(Configuration.PRIOR_CLASS_VISITOR.getProtectionDomain().getCodeSource().getLocation().getPath());
+        }
+        if (Configuration.POST_CLASS_VISITOR != null) {
+            classPaths.add(Configuration.POST_CLASS_VISITOR.getProtectionDomain().getCodeSource().getLocation().getPath());
+        }
+        if (Configuration.taintTagFactoryPackage != null) {
+            classPaths.add(Configuration.taintTagFactory.getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
+        }
+
         ProcessBuilder pb = new ProcessBuilder(jlinkBin, "-J-javaagent:" + jlinkFile,
                 "-J--module-path=" + jlinkFile,
                 "-J--add-modules=edu.columbia.cs.psl.jigsaw.phosphor.instrumenter",
+                "-J--class-path=" + String.join(":", classPaths),
                 "--output=" + instJVMDir,
                 "--phosphor-transformer=transform" + createPhosphorJLinkPluginArgument(properties),
                 "--add-modules=" + modulesToAdd

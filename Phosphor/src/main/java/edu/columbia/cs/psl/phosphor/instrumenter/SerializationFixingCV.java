@@ -36,7 +36,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-        if(!desc.contains(PhosphorStackFrame.DESCRIPTOR)){
+        if (Configuration.taintTagFactory.isIgnoredMethod(className, name, desc) || !desc.contains(PhosphorStackFrame.DESCRIPTOR)){
             return mv;
         }
         if (STREAM_CLASS_NAME.equals(className)) {
@@ -81,8 +81,8 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
      * specified name.
      */
     public static boolean isApplicable(String className) {
-        return INPUT_STREAM_NAME.equals(className) || OUTPUT_STREAM_NAME.equals(className)
-                || STREAM_CLASS_NAME.equals(className);
+        return (INPUT_STREAM_NAME.equals(className) || OUTPUT_STREAM_NAME.equals(className)
+                || STREAM_CLASS_NAME.equals(className)) && !Configuration.taintTagFactory.isIgnoredClass(className);
     }
 
     @SuppressWarnings("unused")
