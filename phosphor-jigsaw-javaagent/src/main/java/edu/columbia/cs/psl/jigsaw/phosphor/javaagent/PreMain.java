@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.InstrumentationHelper;
 import edu.columbia.cs.psl.phosphor.PhosphorBaseTransformer;
 import edu.columbia.cs.psl.phosphor.runtime.NonModifiableClassException;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
@@ -21,6 +22,10 @@ public class PreMain {
             this.transformer = transformer;
         }
 
+        public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer, PhosphorStackFrame stackFrame) throws IllegalClassFormatException {
+            return transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+        }
+
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
             try {
@@ -28,12 +33,16 @@ public class PreMain {
                     Configuration.init();
                     INITED = true;
                 }
-                return transformer.signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+                return transformer.signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer, false);
             } catch (Throwable t) {
                 t.printStackTrace();
                 throw t;
             }
         }
+    }
+
+    public static void premain(String args, final Instrumentation instr, final PhosphorStackFrame stackFrame) {
+        premain(args, instr);
     }
 
     public static void premain(String args, final Instrumentation instr) {

@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor;
 
 
 import edu.columbia.cs.psl.phosphor.runtime.NonModifiableClassException;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
@@ -24,12 +25,16 @@ public class Java8PreMain {
 
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+            return transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+        }
+
+        public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer, PhosphorStackFrame phosphorStackFrame) throws IllegalClassFormatException {
             try {
                 if (!INITED) {
                     Configuration.init();
                     INITED = true;
                 }
-                return transformer.signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+                return transformer.signalAndTransform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer, false);
             } catch (Throwable t) {
                 t.printStackTrace();
                 throw t;
@@ -37,8 +42,12 @@ public class Java8PreMain {
         }
     }
 
+    public static void premain(String args, Instrumentation instr, PhosphorStackFrame phosphorStackFrame) {
+        premain(args, instr);
+    }
+
     public static void premain(String args, Instrumentation instr) {
-        if(args == null){
+        if (args == null) {
             args = "java8";
         } else {
             args += ",java8";

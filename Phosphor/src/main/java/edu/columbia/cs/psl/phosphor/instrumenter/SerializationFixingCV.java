@@ -36,6 +36,9 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+        if(!desc.contains(PhosphorStackFrame.DESCRIPTOR)){
+            return mv;
+        }
         if (STREAM_CLASS_NAME.equals(className)) {
             return new StreamClassMV(mv);
         } else {
@@ -334,7 +337,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
 
         private void addWrapper() {
             super.visitVarInsn(ALOAD, 1);
-            super.visitVarInsn(ALOAD, 8);
+            super.visitVarInsn(ALOAD, 7);
 
             super.visitMethodInsn(INVOKESTATIC, Type.getInternalName(SerializationFixingCV.class), "wrapIfNecessary",
                     "(Ljava/lang/Object;" + Configuration.TAINT_TAG_DESC + ")Ljava/lang/Object;", false);
@@ -348,7 +351,7 @@ public class SerializationFixingCV extends ClassVisitor implements Opcodes {
         ObjectReadMV(MethodVisitor mv, String descriptor) {
             super(Configuration.ASM_VERSION, mv);
             int nArgs = Type.getArgumentTypes(descriptor).length;
-            expectedPositionOfPhosphorStackFrame += nArgs;
+            expectedPositionOfPhosphorStackFrame += nArgs - 1;
         }
 
         @Override

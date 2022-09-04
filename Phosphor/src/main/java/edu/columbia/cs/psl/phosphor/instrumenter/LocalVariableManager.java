@@ -41,14 +41,20 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     private Label oldStartLabel;
     int line = 0;
     private Label permanentLocalVariableStartLabel;
-    private int indexOfFirstStackTaintTag = -1;
     private LocalVariableAdder localVariableAdder;
+    private String name;
+    private String originalDesc;
 
-    public LocalVariableManager(int access, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer,
-            MethodVisitor uninstMV, boolean generateExtraDebug) {
+    private HashMap<String, Integer> maxStackPerMethodMap;
+
+    public LocalVariableManager(int access, String name, String originalDesc, String desc, MethodVisitor mv, NeverNullArgAnalyzerAdapter analyzer,
+            MethodVisitor uninstMV, boolean generateExtraDebug, HashMap<String, Integer> maxStackPerMethodMap) {
         super(Configuration.ASM_VERSION, access, desc, mv);
         this.analyzer = analyzer;
         this.uninstMV = uninstMV;
+        this.name = name;
+        this.originalDesc = originalDesc;
+        this.maxStackPerMethodMap = maxStackPerMethodMap;
         argumentTypes = Type.getArgumentTypes(desc);
         if ((access & Opcodes.ACC_STATIC) == 0) {
         } else {
@@ -60,12 +66,14 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         for (Type t : args) {
             lastArg += t.getSize();
         }
-        this.indexOfFirstStackTaintTag = lastArg + 2; //TODO this should get pulled from LocalVariableAdder so that it remains consistent if we add additional vars later
         end = new Label();
         this.generateExtraDebug = generateExtraDebug;
     }
 
     public String patchDescToAcceptPhosphorStackFrameAndPushIt(String desc, MethodVisitor mv){
+        if(desc.contains(PhosphorStackFrame.DESCRIPTOR)){
+            return desc;
+        }
         int var = getLocalVariableAdder().getIndexOfPhosphorStackData();
         StringBuilder sb = new StringBuilder();
         int closeArgPos = desc.indexOf(')');
@@ -77,7 +85,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     }
 
     public int getStackShadowVar(int offsetFromBottomOfStackAsZero) {
-        return this.indexOfFirstStackTaintTag + offsetFromBottomOfStackAsZero;
+        return this.localVariableAdder.getIndexOfFirstStackTaintTag() + offsetFromBottomOfStackAsZero;
     }
 
     public int getStackShadowVarFromTop(int offsetFromTopOfStackAsZero) {
@@ -125,7 +133,7 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
                 curLocalIdxToLVNode.get(v.idx).end = new LabelNode(lbl);
                 v.inUse = false;
                 v.owner = null;
-                if (idx < analyzer.locals.size()) {
+                if (analyzer.locals != null && idx < analyzer.locals.size()) {
                     analyzer.locals.set(idx, Opcodes.TOP);
                 }
                 return;
@@ -357,6 +365,8 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
     }
 
     public void visitCode() {
+        localVariableAdder.setMaxStack(maxStackPerMethodMap.get(name+originalDesc));
+        this.setNumLocalVariablesAddedAfterArgs(localVariableAdder.getNumLocalVariablesAddedAfterArgs());
         super.visitCode();
         super.visitLabel(newStartLabel);
     }
@@ -499,5 +509,13 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
         public String toString() {
             return "TmpLV [idx=" + idx + ", type=" + type + ", inUse=" + inUse + "]";
         }
+    }
+
+    public void setNumLocalVariablesAddedAfterArgs(int numLocalVariablesAddedAfterArgs) {
+        if(this.firstLocal != this.nextLocal){
+            throw new IllegalStateException("Must set this before creating new LVs");
+        }
+        this.firstLocal += numLocalVariablesAddedAfterArgs;
+        this.nextLocal = this.firstLocal;
     }
 }

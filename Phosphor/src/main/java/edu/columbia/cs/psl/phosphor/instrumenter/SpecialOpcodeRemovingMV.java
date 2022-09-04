@@ -5,10 +5,7 @@ import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.TaggedValue;
 import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
+import org.objectweb.asm.*;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
 
@@ -139,5 +136,15 @@ public class SpecialOpcodeRemovingMV extends MethodVisitor {
             default:
                 super.visitInsn(opcode);
         }
+    }
+
+    @Override
+    public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+        //Instrumented methods will have different signatures and can not be intrinsic candidates.
+        if (descriptor.equals("Ljdk/internal/HotSpotIntrinsicCandidate;") ||
+                descriptor.equals("Ljdk/internal/vm/annotation/IntrinsicCandidate;")) {
+            return null;
+        }
+        return super.visitAnnotation(descriptor, visible);
     }
 }
