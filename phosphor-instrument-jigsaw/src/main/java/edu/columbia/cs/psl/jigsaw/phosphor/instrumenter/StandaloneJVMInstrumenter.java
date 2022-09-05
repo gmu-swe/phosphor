@@ -24,7 +24,7 @@ public class StandaloneJVMInstrumenter {
     private static Properties toProperties(CommandLine line){
         Properties ret = new Properties();
         for(Option opt : line.getOptions()){
-            String name = opt.getArgName();
+            String name = opt.getOpt();
             String value = line.getOptionValue(name);
             if(value != null){
                 ret.setProperty(name, value);
