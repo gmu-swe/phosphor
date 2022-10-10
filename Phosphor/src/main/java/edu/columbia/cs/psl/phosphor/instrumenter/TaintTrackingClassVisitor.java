@@ -132,7 +132,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             access = access | Opcodes.ACC_PUBLIC;
         }
 
-        if (!superName.equals("java/lang/Object") && !Instrumenter.isIgnoredClass(superName)) {
+        if (superName != null && !superName.equals("java/lang/Object") && !Instrumenter.isIgnoredClass(superName)) {
             addTaintField = false;
             addTaintMethod = true;
         }
@@ -142,7 +142,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         if (addTaintField) {
             addTaintMethod = true;
         }
-        if ((superName.equals("java/lang/Object") || Instrumenter.isIgnoredClass(superName)) && !isInterface
+        if (superName != null && (superName.equals("java/lang/Object") || Instrumenter.isIgnoredClass(superName)) && !isInterface
                 && !isAnnotation) {
             generateEquals = true;
             generateHashCode = true;
@@ -190,7 +190,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         this.className = name;
         this.superName = superName;
 
-        if (Instrumenter.isIgnoredClass(superName)) {
+        if (superName != null && Instrumenter.isIgnoredClass(superName)) {
             //Might need to override stuff.
             Class c;
             try {
