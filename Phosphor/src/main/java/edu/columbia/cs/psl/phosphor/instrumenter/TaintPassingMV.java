@@ -842,6 +842,11 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         if (StringUtils.startsWith(owner, "jdk/internal/module/SystemModules")) {
             return true;
         }
+        // Needed for compatability with JProfiler's agent
+        if (StringUtils.startsWith(owner, "com/jprofiler")) {
+            return true;
+        }
+
         if (owner.equals("java/lang/invoke/MethodHandle")) {
             return true;
         }
