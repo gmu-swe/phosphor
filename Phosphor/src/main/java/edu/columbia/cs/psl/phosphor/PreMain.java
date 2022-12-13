@@ -122,8 +122,8 @@ public class PreMain {
                     cn.version = 51;
                     upgradeVersion = true;
                 }
-                if (cn.visibleAnnotations != null) {
-                    for (Object o : cn.visibleAnnotations) {
+                if (cn.invisibleAnnotations != null) {
+                    for (Object o : cn.invisibleAnnotations) {
                         AnnotationNode an = (AnnotationNode) o;
                         if (an.desc.equals(Type.getDescriptor(TaintInstrumented.class))) {
                             return classfileBuffer;
