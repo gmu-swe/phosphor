@@ -4,11 +4,15 @@ import edu.columbia.cs.psl.phosphor.runtime.MultiTainter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ServiceLoader;
 import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -132,6 +136,17 @@ public class LambdaObjTagITCase extends BaseMultiTaintClass {
 		staticRunnableMethodRan = false;
 		tryRunner(LambdaObjTagITCase::print);
 		Assert.assertTrue(staticRunnableMethodRan);
+	}
+
+	@Test
+	public void testBoundMethodHandleImpl() throws Throwable {
+		// Reproduces https://github.com/gmu-swe/phosphor/issues/188
+		final MethodType LOAD_CLASS_CLASSLOADER = MethodType.methodType(ServiceLoader.class, Class.class,
+				ClassLoader.class);
+		MethodHandles.Lookup publicLookup = MethodHandles.lookup();
+		final MethodHandle handle = publicLookup.findStatic(ServiceLoader.class, "load", LOAD_CLASS_CLASSLOADER);
+		final ServiceLoader serviceLoader = (ServiceLoader) handle.invokeExact(Test.class, Test.class.getClassLoader());
+		System.out.println(serviceLoader);
 	}
 
 }
