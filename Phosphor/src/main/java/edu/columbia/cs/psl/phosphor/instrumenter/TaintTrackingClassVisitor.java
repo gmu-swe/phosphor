@@ -669,7 +669,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             int stackFrameLocal;
             int shouldPopLocal;
             if(fetchStackFrame) {
-                ga.loadArgs();
                 //There are methods that the JDK will internally resolve to, and prefix the arguments
                 //with a handle to the underlying object. That handle won't be passed explicitly by the caller.
                 String descForStackFrame = mn.desc;
@@ -686,13 +685,53 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     ga.push(PhosphorStackFrame.hashForDesc(TaintAdapter.getMethodKeyForStackFrame(mn.name, descForStackFrame, false)));
                     STACK_FRAME_FOR_METHOD_FAST.delegateVisit(ga);
                 }
-                ga.dup();
                 stackFrameLocal = ga.newLocal(Type.getType(PhosphorStackFrame.class));
                 shouldPopLocal = ga.newLocal(Type.BOOLEAN_TYPE);
                 ga.dup();
                 GET_AND_CLEAR_CLEANUP_FLAG.delegateVisit(ga);
                 ga.storeLocal(shouldPopLocal);
                 ga.storeLocal(stackFrameLocal);
+
+                //Fix for #181: We should ensure at this point that any java.lang.Object arg is the expected wrapper type.
+                Type[] argTypes = ga.getArgumentTypes();
+                for(int i = 0; i < argTypes.length; i++){
+                    if(argTypes[i].getDescriptor().equals("Ljava/lang/Object;")){
+                        ga.loadLocal(stackFrameLocal);
+                        if (this.className.startsWith("java/lang/invoke/VarHandleGuards") && mn.name.startsWith("guard_")) {
+                            //Gross fix, we will never have the right stack frame set up, but the prev should be right
+                            ga.visitFieldInsn(Opcodes.GETFIELD, PhosphorStackFrame.INTERNAL_NAME, "prevFrame", PhosphorStackFrame.DESCRIPTOR);
+                            ga.push(i - 1); //Off by one for the VarHandle :)
+                        } else {
+                            ga.push(i);
+                        }
+                        ga.loadArg(i);
+                        GET_ARG_WRAPPER_GENERIC.delegateVisit(ga);
+                        ga.storeArg(i);
+                    }
+                }
+
+                /*
+                    Fix for #181: If this method is @CallerSensitive, then call Reflection.getCallerClass HERE, and pass
+                    it into the instrumented method so that the callerClass is the true caller, rather than this wrapper.
+                 */
+                if(mn.visibleAnnotations != null){
+                    boolean callerSensitive = false;
+                    for (AnnotationNode eachAnnotationNode : mn.visibleAnnotations) {
+                        if (eachAnnotationNode.desc.equals("Ljdk/internal/reflect/CallerSensitive;")){
+                            callerSensitive = true;
+                            break;
+                        }
+                    }
+                    if(callerSensitive) {
+                        ga.loadLocal(stackFrameLocal);
+                        ga.visitMethodInsn(Opcodes.INVOKESTATIC, "jdk/internal/reflect/Reflection", "getCallerClass", "()Ljava/lang/Class;", false);
+                        SET_CALLER_CLASS_WRAPPER.delegateVisit(ga);
+                    }
+                }
+
+                ga.loadArgs();
+                ga.loadLocal(stackFrameLocal);
+
                 if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
                     ga.dup();
                     ga.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(mn.name, descForStackFrame, false));

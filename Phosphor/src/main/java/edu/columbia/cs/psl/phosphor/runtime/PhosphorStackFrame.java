@@ -129,6 +129,9 @@ public class PhosphorStackFrame {
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.GET_ARG_WRAPPER_GENERIC)
     public Object getArgWrapper(int idx, Object actual) {
+        if(actual instanceof Object[]){
+            return getArgWrapper(idx, (Object[]) actual);
+        }
         if (actual == null || !actual.getClass().isArray()) {
             return actual;
         }
@@ -532,5 +535,27 @@ public class PhosphorStackFrame {
             return new TaggedDoubleArray(unwrapped);
         }
         return ret;
+    }
+
+    @InvokedViaInstrumentation(record = TaintMethodRecord.GET_CALLER_CLASS_WRAPPER)
+    public Class getCallerClassWrapper(Class callerClassFromReflection, Class callerOfThisHelper){
+        if(callerClassFromReflection != callerOfThisHelper){
+            //Always return whatever Reflection.getCallerClass would have returned as long as it's not possibly the wrapper
+            return callerClassFromReflection;
+        }
+        //Look to see if we have a class there..
+        if(this.wrappedReturn instanceof Class){
+            return (Class) this.wrappedReturn;
+        }
+        return callerClassFromReflection;
+    }
+
+    /**
+     * For when a wrapped method will need to call getCallerClass, this will pass the caller to this wrapper along
+     * @param theRealCaller
+     */
+    @InvokedViaInstrumentation(record = TaintMethodRecord.SET_CALLER_CLASS_WRAPPER)
+    public void setCallerClassWrapper(Class theRealCaller){
+        this.wrappedReturn = theRealCaller;
     }
 }

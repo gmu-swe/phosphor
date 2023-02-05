@@ -138,11 +138,11 @@ public class LambdaObjTagITCase extends BaseMultiTaintClass {
 		Assert.assertTrue(staticRunnableMethodRan);
 	}
 
+	static final MethodType LOAD_CLASS_CLASSLOADER = MethodType.methodType(ServiceLoader.class, Class.class,
+			ClassLoader.class);
 	@Test
 	public void testBoundMethodHandleImpl() throws Throwable {
 		// Reproduces https://github.com/gmu-swe/phosphor/issues/188
-		final MethodType LOAD_CLASS_CLASSLOADER = MethodType.methodType(ServiceLoader.class, Class.class,
-				ClassLoader.class);
 		MethodHandles.Lookup publicLookup = MethodHandles.lookup();
 		final MethodHandle handle = publicLookup.findStatic(ServiceLoader.class, "load", LOAD_CLASS_CLASSLOADER);
 		final ServiceLoader serviceLoader = (ServiceLoader) handle.invokeExact(Test.class, Test.class.getClassLoader());

@@ -73,6 +73,8 @@ public enum TaintMethodRecord implements MethodRecord {
     GET_RETURN_TAINT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnTaint", Taint.class, false),
     SET_RETURN_TAINT(INVOKEVIRTUAL, PhosphorStackFrame.class, "setReturnTaint", Void.TYPE, false, Taint.class),
     SET_ARG_WRAPPER(INVOKEVIRTUAL, PhosphorStackFrame.class, "setArgWrapper", Void.TYPE, false, Object.class, int.class),
+    SET_CALLER_CLASS_WRAPPER(INVOKEVIRTUAL, PhosphorStackFrame.class, "setCallerClassWrapper", Void.TYPE, false, Class.class),
+    GET_CALLER_CLASS_WRAPPER(INVOKEVIRTUAL, PhosphorStackFrame.class, "getCallerClassWrapper", Class.class, false, Class.class, Class.class),
     GET_ARG_WRAPPER_GENERIC(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", Object.class, false, int.class, Object.class),
     GET_ARG_WRAPPER_OBJECT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", TaggedReferenceArray.class, false, int.class, Object[].class),
     GET_ARG_WRAPPER_BOOLEAN(INVOKEVIRTUAL, PhosphorStackFrame.class, "getArgWrapper", TaggedBooleanArray.class, false, int.class, boolean[].class),

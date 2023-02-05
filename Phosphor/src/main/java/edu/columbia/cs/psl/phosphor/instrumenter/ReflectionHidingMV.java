@@ -483,6 +483,18 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
                 return;
             }
+            /*
+             * Fix for #181 - if we are in a wrapped method, and called by the wrapper, we need to get the caller class
+             * of the wrapper, not of this stack frame
+             */
+            if(owner.equals("jdk/internal/reflect/Reflection") && name.equals("getCallerClass")){
+                int phosphorStackFrame = lvs.getLocalVariableAdder().getIndexOfPhosphorStackData();
+                super.visitVarInsn(ALOAD, phosphorStackFrame);
+                super.visitMethodInsn(opcode, owner, name, desc, isInterface);
+                super.visitLdcInsn(Type.getObjectType(className));
+                GET_CALLER_CLASS_WRAPPER.delegateVisit(mv);
+                return;
+            }
             if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
                 owner = Type.getInternalName(ArrayReflectionMasker.class);
             }
