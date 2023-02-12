@@ -484,7 +484,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 return;
             }
             /*
-             * Fix for #181 - if we are in a wrapped method, and called by the wrapper, we need to get the caller class
+             * Fix for #188 - if we are in a wrapped method, and called by the wrapper, we need to get the caller class
              * of the wrapper, not of this stack frame
              */
             if(owner.equals("jdk/internal/reflect/Reflection") && name.equals("getCallerClass")){

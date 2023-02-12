@@ -692,27 +692,33 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 ga.storeLocal(shouldPopLocal);
                 ga.storeLocal(stackFrameLocal);
 
-                //Fix for #181: We should ensure at this point that any java.lang.Object arg is the expected wrapper type.
-                Type[] argTypes = ga.getArgumentTypes();
-                for(int i = 0; i < argTypes.length; i++){
-                    if(argTypes[i].getDescriptor().equals("Ljava/lang/Object;")){
-                        ga.loadLocal(stackFrameLocal);
-                        if (this.className.startsWith("java/lang/invoke/VarHandleGuards") && mn.name.startsWith("guard_")) {
-                            //Gross fix, we will never have the right stack frame set up, but the prev should be right
-                            ga.visitFieldInsn(Opcodes.GETFIELD, PhosphorStackFrame.INTERNAL_NAME, "prevFrame", PhosphorStackFrame.DESCRIPTOR);
-                            ga.push(i - 1); //Off by one for the VarHandle :)
-                        } else {
-                            ga.push(i);
+                /*
+                Fix for #188: We should ensure at this point that any java.lang.Object arg is the expected wrapper type.
+                We should *not* do that inside of Unsafe though, because Phosphor relies on the ability of getReference/putReference
+                to set underlying array fields (getting this wrong can manifest as JVM segfaults).
+                 */
+                if(!this.className.contains("Unsafe")) {
+                    Type[] argTypes = ga.getArgumentTypes();
+                    for (int i = 0; i < argTypes.length; i++) {
+                        if (argTypes[i].getDescriptor().equals("Ljava/lang/Object;")) {
+                            ga.loadLocal(stackFrameLocal);
+                            if (this.className.startsWith("java/lang/invoke/VarHandleGuards") && mn.name.startsWith("guard_")) {
+                                //Gross fix, we will never have the right stack frame set up, but the prev should be right
+                                ga.visitFieldInsn(Opcodes.GETFIELD, PhosphorStackFrame.INTERNAL_NAME, "prevFrame", PhosphorStackFrame.DESCRIPTOR);
+                                ga.push(i - 1); //Off by one for the VarHandle :)
+                            } else {
+                                ga.push(i);
+                            }
+                            ga.loadArg(i);
+                            GET_ARG_WRAPPER_GENERIC.delegateVisit(ga);
+                            ga.storeArg(i);
                         }
-                        ga.loadArg(i);
-                        GET_ARG_WRAPPER_GENERIC.delegateVisit(ga);
-                        ga.storeArg(i);
                     }
                 }
 
                 /*
-                    Fix for #181: If this method is @CallerSensitive, then call Reflection.getCallerClass HERE, and pass
-                    it into the instrumented method so that the callerClass is the true caller, rather than this wrapper.
+                 Fix for #188: If this method is @CallerSensitive, then call Reflection.getCallerClass HERE, and pass
+                 it into the instrumented method so that the callerClass is the true caller, rather than this wrapper.
                  */
                 if(mn.visibleAnnotations != null){
                     boolean callerSensitive = false;
