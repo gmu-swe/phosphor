@@ -281,8 +281,9 @@ public class LocalVariableManager extends OurLocalVariablesSorter implements Opc
             start = this.newStartLabel;
         }
         if (!Configuration.SKIP_LOCAL_VARIABLE_TABLE) {
-            if (varToShadowVar.containsKey(index)) {
-                int shadowVar = varToShadowVar.get(index);
+            int mappedIndex = remap(index, Type.getType(desc));
+            if (varToShadowVar.containsKey(mappedIndex)) {
+                int shadowVar = varToShadowVar.get(mappedIndex);
                 if (curLocalIdxToLVNode.containsKey(shadowVar)) {
                     LocalVariableNode n = curLocalIdxToLVNode.get(shadowVar);
                     uninstMV.visitLocalVariable(n.name, n.desc, n.signature, start, end, n.index);
