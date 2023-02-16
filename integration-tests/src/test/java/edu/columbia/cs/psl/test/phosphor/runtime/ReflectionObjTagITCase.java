@@ -52,6 +52,11 @@ public class ReflectionObjTagITCase extends BaseMultiTaintClass {
 		}
 
 		@SuppressWarnings("unused")
+		public ConstructorHolder(Object bools) {
+			this.bools = (boolean[]) bools;
+		}
+
+		@SuppressWarnings("unused")
 		public ConstructorHolder(boolean[] bools, boolean bool) {
 			this.bool = bool;
 			this.bools = bools;
@@ -131,6 +136,15 @@ public class ReflectionObjTagITCase extends BaseMultiTaintClass {
 		assertNotNull(instance.bools);
 		assertTrue("Expected new instance from reflected constructor to have its field set.", instance.bools[0]);
 		assertNonNullTaint(MultiTainter.getTaint(instance.bools[0]));
+	}
+
+	@Test
+	public void testNewInstanceConstructorObjectArg() throws Exception {
+		Constructor<ConstructorHolder> cons = ConstructorHolder.class.getConstructor(Object.class);
+		boolean[] arr = new boolean[] {true, true};
+		ConstructorHolder instance = cons.newInstance(arr);
+		assertNotNull(instance.bools);
+		assertTrue("Expected new instance from reflected constructor to have its field set.", instance.bools[0]);
 	}
 
 	@Test

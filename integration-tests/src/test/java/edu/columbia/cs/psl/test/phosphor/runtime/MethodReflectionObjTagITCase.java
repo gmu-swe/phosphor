@@ -37,7 +37,8 @@ public class MethodReflectionObjTagITCase extends BaseMultiTaintClass {
         @DataPoints
         public static Class<?>[][] types = new Class<?>[][] {
                 {Boolean.TYPE},
-                {boolean[].class}
+                {boolean[].class},
+                {Object.class}
         };
 
         @DataPoints
@@ -51,7 +52,11 @@ public class MethodReflectionObjTagITCase extends BaseMultiTaintClass {
             Method method = MethodHolder.class.getMethod("example", types);
             Object[] args = new Object[types.length];
             for(int i = 0; i < types.length; i++) {
-                args[i] = types[i].isArray() ? supplier.getArray(taintArguments, types[i]) : supplier.getBoxedPrimitive(taintArguments, types[i]);
+                if (types[i] == Object.class) {
+                    args[i] = supplier.getArray(taintArguments, boolean[].class);
+                } else {
+                    args[i] = types[i].isArray() ? supplier.getArray(taintArguments, types[i]) : supplier.getBoxedPrimitive(taintArguments, types[i]);
+                }
             }
             Object result = method.invoke(holder, args);
             assertTrue("Expected integer to be returned from reflected method.", result instanceof Integer);
@@ -139,6 +144,7 @@ public class MethodReflectionObjTagITCase extends BaseMultiTaintClass {
             HashSet<Method> expected = new HashSet<>();
             expected.add(MethodHolder.class.getDeclaredMethod("example", Boolean.TYPE));
             expected.add(MethodHolder.class.getDeclaredMethod("example", boolean[].class));
+            expected.add(MethodHolder.class.getDeclaredMethod("example", Object.class));
             expected.add(MethodHolder.class.getDeclaredMethod("getLast", int.class, int.class,
                     int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
                     int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
@@ -154,11 +160,12 @@ public class MethodReflectionObjTagITCase extends BaseMultiTaintClass {
         /* Checks that synthetic equals and hashcode methods added by Phosphor are hidden from Class.getDeclaredMethods. */
         @Test
         public void testHashCodeAndEqualsHiddenFromGetDeclaredMethods() {
-            String[] methodNames = new String[]{"example", "example", "getLast"};
-            Class<?>[] returnTypes = new Class<?>[]{Integer.TYPE, Integer.TYPE, Integer.TYPE};
+            String[] methodNames = new String[]{"example", "example", "example", "getLast"};
+            Class<?>[] returnTypes = new Class<?>[]{Integer.TYPE, Integer.TYPE, Integer.TYPE, Integer.TYPE};
             Class<?>[][] paramTypes = new Class<?>[][]{
                     new Class<?>[]{Boolean.TYPE},
                     new Class<?>[]{boolean[].class},
+                    new Class<?>[]{Object.class},
                     new Class<?>[] {int.class,
                             int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
                             int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class, int.class,
