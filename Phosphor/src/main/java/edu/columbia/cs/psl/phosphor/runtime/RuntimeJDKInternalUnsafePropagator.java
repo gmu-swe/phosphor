@@ -98,7 +98,11 @@ public class RuntimeJDKInternalUnsafePropagator {
             }
             if (cl != null) {
                 if (InstrumentedJREFieldHelper.get$$PHOSPHOR_OFFSET_CACHE(cl) == null) {
-                    InstrumentedJREFieldHelper.set$$PHOSPHOR_OFFSET_CACHE(cl, getOffsetPairs(unsafe, cl));
+                    try {
+                        InstrumentedJREFieldHelper.set$$PHOSPHOR_OFFSET_CACHE(cl, getOffsetPairs(unsafe, cl));
+                    } catch(ClassCircularityError err) {
+                        //See issue 190
+                    }
                 }
                 for (OffsetPair pair : InstrumentedJREFieldHelper.get$$PHOSPHOR_OFFSET_CACHE(cl)) {
                     if (pair.origFieldOffset == offset && pair.isStatic == isStatic) {
