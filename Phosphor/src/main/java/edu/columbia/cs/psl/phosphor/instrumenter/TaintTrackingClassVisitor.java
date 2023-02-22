@@ -127,11 +127,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
         isLambda = name.contains("$$Lambda$");
 
-        // Debugging - no more package-protected
-        if ((access & Opcodes.ACC_PRIVATE) == 0) {
-            access = access | Opcodes.ACC_PUBLIC;
-        }
-
         if (superName != null && !superName.equals("java/lang/Object") && !Instrumenter.isIgnoredClass(superName)) {
             addTaintField = false;
             addTaintMethod = true;
