@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.PreMain;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
@@ -127,11 +126,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         }
 
         isLambda = name.contains("$$Lambda$");
-
-        // Debugging - no more package-protected
-        if (((access & Opcodes.ACC_PRIVATE) == 0) && PreMain.DEBUG) {
-            access = access | Opcodes.ACC_PUBLIC;
-        }
 
         if (superName != null && !superName.equals("java/lang/Object") && !Instrumenter.isIgnoredClass(superName)) {
             addTaintField = false;
