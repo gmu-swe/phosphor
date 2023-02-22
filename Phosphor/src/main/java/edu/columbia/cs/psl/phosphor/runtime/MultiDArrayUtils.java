@@ -637,56 +637,56 @@ public class MultiDArrayUtils {
                 for (int i = 0; i < _in.length; i++) {
                     ret[i] = new TaggedBooleanArray((boolean[]) _in[i]);
                 }
-                return ret;
+                return _boxIfNecessary(ret);
             }
             if (tmp == Byte.TYPE) {
                 TaggedByteArray[] ret = new TaggedByteArray[_in.length];
                 for (int i = 0; i < _in.length; i++) {
                     ret[i] = new TaggedByteArray((byte[]) _in[i]);
                 }
-                return ret;
+                return _boxIfNecessary(ret);
             }
             if (tmp == Character.TYPE) {
                 TaggedCharArray[] ret = new TaggedCharArray[_in.length];
                 for (int i = 0; i < _in.length; i++) {
                     ret[i] = new TaggedCharArray((char[]) _in[i]);
                 }
-                return ret;
+                return _boxIfNecessary(ret);
             }
             if (tmp == Double.TYPE) {
                 TaggedDoubleArray[] ret = new TaggedDoubleArray[_in.length];
                 for (int i = 0; i < _in.length; i++) {
                     ret[i] = new TaggedDoubleArray((double[]) _in[i]);
                 }
-                return ret;
+                return _boxIfNecessary(ret);
             }
             if (tmp == Float.TYPE) {
                 TaggedFloatArray[] ret = new TaggedFloatArray[_in.length];
                 for (int i = 0; i < _in.length; i++) {
                     ret[i] = new TaggedFloatArray((float[]) _in[i]);
                 }
-                return ret;
+                return _boxIfNecessary(ret);
             }
             if (tmp == Integer.TYPE) {
                 TaggedIntArray[] ret = new TaggedIntArray[_in.length];
                 for (int i = 0; i < _in.length; i++) {
                     ret[i] = new TaggedIntArray((int[]) _in[i]);
                 }
-                return ret;
+                return _boxIfNecessary(ret);
             }
             if (tmp == Short.TYPE) {
                 TaggedShortArray[] ret = new TaggedShortArray[_in.length];
                 for (int i = 0; i < _in.length; i++) {
                     ret[i] = new TaggedShortArray((short[]) _in[i]);
                 }
-                return ret;
+                return _boxIfNecessary(ret);
             }
             if (tmp == Long.TYPE) {
                 TaggedLongArray[] ret = new TaggedLongArray[_in.length];
                 for (int i = 0; i < _in.length; i++) {
                     ret[i] = new TaggedLongArray((long[]) _in[i]);
                 }
-                return ret;
+                return _boxIfNecessary(ret);
             }
             throw new UnsupportedOperationException();
         } else if (in.getClass().getComponentType().getName().equals("java.lang.Object")) {
