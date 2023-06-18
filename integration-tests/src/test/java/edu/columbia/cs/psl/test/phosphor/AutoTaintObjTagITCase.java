@@ -39,6 +39,15 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		a[0] = 2;
 	}
 
+	public static int staticSource(int i){
+		return i;
+	}
+
+	public static int staticSink(int i){
+		System.out.println("sink");
+		return i;
+	}
+
 	public static void main(String[] args) {
 		AutoTaintObjTagITCase t = new AutoTaintObjTagITCase();
 		//t.sink(t.source());
@@ -243,5 +252,13 @@ public class AutoTaintObjTagITCase extends BaseMultiTaintClass {
 		AutoTaintLabel input = IgnoredTestUtil.createAutoTaintLabel("", new StackTraceElement[0]);
 		AutoTaintLabel output = roundTripSerialize(input);
 		assertEquals(input, output);
+	}
+
+	@Test
+	public void testStaticSourceAndSink() {
+		int input = staticSource(5);
+		int output = staticSink(input);
+		assertEquals(input, output);
+		assertEquals(MultiTainter.getTaint(input), MultiTainter.getTaint(output));
 	}
 }

@@ -8,6 +8,7 @@
 #phosphor/test/SourceSinkTest.sink(I)V
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.exceptionCatchingSink(I)I
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.sink(I)V
+edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.staticSink(I)V
 edu/columbia/cs/psl/test/phosphor/AutoTaintObjTagITCase.sink(Ljava/lang/String;)V
 
 edu/columbia/cs/psl/test/phosphor/AutoTaintConstructorsObjTagITCase$ExampleWithSinkConstructors.<init>(C)V
