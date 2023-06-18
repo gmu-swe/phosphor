@@ -73,7 +73,7 @@ public class SourceTaintingMV extends MethodVisitor implements Opcodes {
      * Adds code to taint the arguments passed to this method.
      */
     private void autoTaintArguments() {
-        Type[] args = Type.getArgumentTypes(desc);
+        Type[] args = Type.getArgumentTypes(TaintUtils.getOriginalDescrptor(desc));
         int idx = isStatic ? 0 : 1; // skip over the "this" argument for non-static methods
         for (int i = 0; i < args.length; i++) {
             if (args[i].getSort() == Type.OBJECT
