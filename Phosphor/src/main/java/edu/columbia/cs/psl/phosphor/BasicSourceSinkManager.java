@@ -3,11 +3,11 @@ package edu.columbia.cs.psl.phosphor;
 import edu.columbia.cs.psl.phosphor.runtime.NonModifiableClassException;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.lang.StringBuilder;
 import java.util.Scanner;
 
 public class BasicSourceSinkManager extends SourceSinkManager {
