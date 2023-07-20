@@ -2,13 +2,12 @@ package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.runtime.NonModifiableClassException;
 import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.ConcurrentHashMap;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashSet;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.lang.StringBuilder;
 import java.util.Scanner;
 
 public class BasicSourceSinkManager extends SourceSinkManager {
@@ -19,7 +18,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
     private static ConcurrentHashMap<String, Set<String>> sources = new ConcurrentHashMap<>();
     // Maps class names to a set of all the methods listed as sinks for the class
     private static ConcurrentHashMap<String, Set<String>> sinks = new ConcurrentHashMap<>();
-    // Maps class names to a set of all the  methods listed as taintThrough methods for the class
+    // Maps class names to a set of all the methods listed as taintThrough methods for the class
     private static ConcurrentHashMap<String, Set<String>> taintThrough = new ConcurrentHashMap<>();
     // Maps class names to a set of all methods listed as sources for the class or one of its supertypes or superinterfaces
     private static ConcurrentHashMap<String, Set<String>> inheritedSources = new ConcurrentHashMap<>();
@@ -29,7 +28,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
     private static ConcurrentHashMap<String, Set<String>> inheritedTaintThrough = new ConcurrentHashMap<>();
 
     // Maps class names to sets of class instances
-    private static ConcurrentHashMap<String, Set<Class<?>>> classMap = new ConcurrentHashMap<>();
+    private static final Map<String, Set<Class<?>>> classMap = new HashMap<>();
 
     /* Reads source, sink and taintThrough methods from their files into their respective maps. */
     public static void loadTaintMethods() {
@@ -163,11 +162,11 @@ public class BasicSourceSinkManager extends SourceSinkManager {
     /* Stores the specified class instance so that it can last be used to retransform the class if it's autoTaint methods
      * change as a result of a call to replaceAutoTaintMethods. */
     public static synchronized void recordClass(Class<?> clazz) {
-        if(clazz.getName() != null) {
-            String key = clazz.getName().replace(".", "/");
-            classMap.putIfAbsent(key, new HashSet<>());
-            classMap.get(key).add(clazz);
+        String key = clazz.getName().replace(".", "/");
+        if(!classMap.containsKey(key)) {
+            classMap.put(key, new HashSet<>());
         }
+        classMap.get(key).add(clazz);
     }
 
     public static synchronized java.util.LinkedList<String> replaceAutoTaintMethods(Iterable<String> src, AutoTaint type) {
