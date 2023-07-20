@@ -159,6 +159,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         if (!Instrumenter.isUnsafeClass(owner)) {
             return false;
         }
+        // Java 11 uses get/putObject instead of Reference
+        name = name.replace("Object", "Reference");
         switch (desc) {
             case "(Ljava/lang/Object;JLjava/lang/Object;)V":
                 switch (name) {
@@ -517,6 +519,8 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                     }
                 }
                 desc = "(L" + owner + ";" + desc.substring(1);
+                // Java 11 uses get/putObject instead of Reference
+                name = name.replace("Object", "Reference");
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
                 return;
             } else if (isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
@@ -628,6 +632,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         if (Configuration.IS_JAVA_8) {
             return "getObject".equals(methodName) || "getObjectVolatile".equals(methodName);
         }
+        // TODO Java 11?
         return "getReference".equals(methodName) || "getReferenceVolatile".equals(methodName);
     }
 }

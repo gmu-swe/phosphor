@@ -8,12 +8,9 @@ import jdk.tools.jlink.plugin.ResourcePoolBuilder;
 import jdk.tools.jlink.plugin.ResourcePoolEntry;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
+
 
 public class PhosphorJLinkPlugin implements Plugin {
     public static final String NAME = "phosphor-transformer";
@@ -30,8 +27,6 @@ public class PhosphorJLinkPlugin implements Plugin {
     }
 
     /**
-     * @param jvmDir     the source directory where the JDK or JRE is installed
-     * @param instJVMDir the target directory where the Phosphor-instrumented JVM should be created
      * @param properties canonicalized properties that specify the Phosphor configuration options that should set in the
      *                   created arguments
      * @return an array formatted for {@link Instrumenter#main(String[])} Instrumenter.main's} String[] argument
@@ -68,6 +63,7 @@ public class PhosphorJLinkPlugin implements Plugin {
     public ResourcePool transform(ResourcePool in, ResourcePoolBuilder out) {
         TaintUtils.VERIFY_CLASS_GENERATION = true;
         PreMain.RUNTIME_INST = false;
+        PhosphorPacker packer = new PhosphorPacker(in, phosphorJar);
         in.transformAndCopy((resourcePoolEntry) -> {
             if (resourcePoolEntry.type().equals(ResourcePoolEntry.Type.CLASS_OR_RESOURCE)) {
                 if (resourcePoolEntry.path().endsWith(".class")) {
@@ -75,40 +71,7 @@ public class PhosphorJLinkPlugin implements Plugin {
                         //if this is the module for java-base, hack it to export phosphor, and pack phosphor into the module
                         if (resourcePoolEntry.path().startsWith("/java.base")) {
                             //This is the java.base module-info.class file. Transform it, and then add in phosphor
-                            try {
-                                ZipFile phosphorZip = new ZipFile(phosphorJar);
-                                Enumeration<? extends ZipEntry> phosphorEntries = phosphorZip.entries();
-                                HashSet<String> packages = new HashSet<>();
-                                while (phosphorEntries.hasMoreElements()) {
-                                    ZipEntry pe = phosphorEntries.nextElement();
-                                    if (pe.getName().startsWith("edu/columbia/cs/psl/jigsaw/phosphor/instrumenter")
-                                            || pe.getName().endsWith("module-info.class")
-                                            || pe.getName().startsWith("org/")
-                                            || pe.getName().startsWith("edu/columbia/cs/psl/phosphor/runtime/jdk/unsupported")) {
-                                        continue;
-                                    } else if (pe.getName().endsWith(".class")) {
-                                        InputStream is = phosphorZip.getInputStream(pe);
-                                        if(Instrumenter.isPhosphorClassPatchedAtInstTime(pe.getName())){
-                                            byte[] newContent = Instrumenter.patchPhosphorClass(pe.getName(), is);
-                                            out.add(ResourcePoolEntry.create("/java.base/" + pe.getName(), newContent));
-                                        } else {
-                                            out.add(ResourcePoolEntry.create("/java.base/" + pe.getName(), is.readAllBytes()));
-                                        }
-                                        is.close();
-
-                                        //package name
-                                        packages.add(pe.getName().substring(0, pe.getName().lastIndexOf('/')));
-                                    }
-                                }
-                                phosphorZip.close();
-
-                                byte[] newContent = Instrumenter.transformJavaBaseModuleInfo(resourcePoolEntry.content(), packages);
-                                if (newContent != null) {
-                                    resourcePoolEntry = resourcePoolEntry.copyWithContent(newContent);
-                                }
-                            } catch (IOException ex) {
-                                ex.printStackTrace();
-                            }
+                            resourcePoolEntry = packer.pack(resourcePoolEntry, out);
                         }
                     } else {
                         byte[] newContent = Instrumenter.instrumentClass(resourcePoolEntry.path(), resourcePoolEntry.content(), true);
@@ -143,8 +106,6 @@ public class PhosphorJLinkPlugin implements Plugin {
             throw new AssertionError();
         }
     }
-
-
 }
 
 
