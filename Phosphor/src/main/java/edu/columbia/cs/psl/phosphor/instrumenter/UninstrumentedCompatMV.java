@@ -338,7 +338,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
             super.visitLdcInsn(name + desc.substring(0, 1 + desc.indexOf(')')));
             PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
         } else {
-            push(PhosphorStackFrame.hashForDesc(name + desc.substring(0, 1 + desc.indexOf(')'))));
+            push(PhosphorStackFrame.computeFrameHash(name, desc.substring(0, 1 + desc.indexOf(')'))));
             PREPARE_FOR_CALL_FAST.delegateVisit(mv);
         }
         Type[] args = Type.getArgumentTypes(desc);
