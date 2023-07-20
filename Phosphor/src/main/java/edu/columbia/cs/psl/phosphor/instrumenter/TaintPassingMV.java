@@ -50,6 +50,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     private boolean doNotUnboxTaints;
     private boolean isAtStartOfExceptionHandler;
     private boolean isRewrittenMethodDescriptorOrName;
+    private final boolean isHandleGuard;
 
 
     private int idxOfShouldPopPhosphorStackFrameLV;
@@ -71,6 +72,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 || (owner.equals("java/io/ObjectInputStream") && name.startsWith("defaultReadFields"));
         this.controlFlowPolicy = controlFlowPolicy;
         this.isRewrittenMethodDescriptorOrName = false;
+        this.isHandleGuard = owner.startsWith("java/lang/invoke/VarHandleGuards") && name.startsWith("guard_");
     }
 
     @Override
@@ -85,10 +87,6 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             if (this.name.equals("linkCallSite")) {
                 ensureObjsAreWrapped = true; //TODO should we always do this? just in some places? performance is what? If try everywhere, it crashes...
             }
-        }
-        boolean pullWrapperFromPrev = false;
-        if (this.className.startsWith("java/lang/invoke/VarHandleGuards") && this.methodName.startsWith("guard_")) {
-            pullWrapperFromPrev = true;
         }
 
         //Retrieve the taint tags for all arguments
@@ -136,7 +134,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 super.visitVarInsn(ALOAD, idxOfLV);
                 BOX_IF_NECESSARY.delegateVisit(mv);
                 super.visitVarInsn(ASTORE, idxOfLV);
-            } else if (pullWrapperFromPrev && args[i].getInternalName().equals("java/lang/Object")) {
+            } else if (isHandleGuard && args[i].getInternalName().equals("java/lang/Object")) {
                 super.visitInsn(DUP);
                 super.visitFieldInsn(GETFIELD, PhosphorStackFrame.INTERNAL_NAME, "prevFrame", PhosphorStackFrame.DESCRIPTOR);
                 push(i - 1);
@@ -619,7 +617,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             super.visitLdcInsn(name + desc.substring(0, 1 + desc.indexOf(')')));
             PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
         } else {
-            push(PhosphorStackFrame.hashForDesc(name + desc.substring(0, 1 + desc.indexOf(')'))));
+            push(PhosphorStackFrame.computeFrameHash(name, desc.substring(0, 1 + desc.indexOf(')'))));
             PREPARE_FOR_CALL_FAST.delegateVisit(mv);
         }
         super.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
@@ -863,6 +861,16 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     }
 
     private String prepareForCallTo(String owner, String name, String desc) {
+        if (isHandleGuard && owner.equals("java/lang/invoke/MethodHandle") && name.startsWith("linkTo")) {
+            String frameDesc = TaintUtils.getOriginalDescrptor(this.methodDesc)
+                    .replace("Ljava/lang/invoke/VarHandle;", "")
+                    .replace("Ljava/lang/invoke/VarHandle$AccessDescriptor;", "");
+            frameDesc = frameDesc.substring(0, 1 + frameDesc.indexOf(')'));
+            int hash = PhosphorStackFrame.computeLowerHash(frameDesc);
+            push(hash);
+            PREPARE_FOR_CALL_PATCHED.delegateVisit(mv);
+            return desc;
+        }
         if (isIgnoredMethod(owner, name, desc)) {
             /*
             Some methods should never get a stack frame prepared - in particular, a call to
@@ -870,19 +878,17 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
             some prior caller was trying to reach. In particular, this clearly is needed for
             MethodHandles.linkTo*, which are used by, e.g. VarHandles.
              */
-            boolean usePrevFrameInsteadOfPreparingNew = false;
-            if (className.startsWith("java/lang/invoke") && owner.equals("java/lang/invoke/MethodHandle") && name.startsWith("linkTo")) {
-                usePrevFrameInsteadOfPreparingNew = true;
-            }
-            if (usePrevFrameInsteadOfPreparingNew) {
+            if (className.startsWith("java/lang/invoke") && owner.equals("java/lang/invoke/MethodHandle")
+                    && name.startsWith("linkTo")) {
                 PREPARE_FOR_CALL_PREV.delegateVisit(mv);
             } else {
-                String methodKey = getMethodKeyForStackFrame(name, desc, Instrumenter.isPolymorphicSignatureMethod(owner, name));
                 if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
+                    String methodKey = getMethodKeyForStackFrame(name, desc, Instrumenter.isPolymorphicSignatureMethod(owner, name));
                     mv.visitLdcInsn(methodKey);
                     PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
                 } else {
-                    push(PhosphorStackFrame.hashForDesc(methodKey));
+                    push(TaintAdapter.getHashForStackFrame(name, desc,
+                            Instrumenter.isPolymorphicSignatureMethod(owner, name)));
                     PREPARE_FOR_CALL_FAST.delegateVisit(mv);
                 }
             }

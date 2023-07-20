@@ -742,11 +742,14 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             lvs.freeTmpLV(tmp[i]);
         }
     }
-    protected static String getMethodKeyForStackFrame(String name, String desc, boolean polymorphicSignatureMethod) {
+    protected static String getMethodKeyForStackFrame(String name, String desc,
+                                                      boolean polymorphicSignatureMethod) {
+        return name + getStackFrameDesc(desc, polymorphicSignatureMethod);
+    }
+
+    private static String getStackFrameDesc(String desc, boolean polymorphicSignatureMethod) {
         if (polymorphicSignatureMethod) {
-            StringBuilder sig = new StringBuilder();
-            sig.append(name);
-            sig.append('(');
+            StringBuilder sig = new StringBuilder("(");
             Type[] args = Type.getArgumentTypes(desc);
             for (Type t : args) {
                 if (t.getSort() == Type.ARRAY) {
@@ -755,28 +758,38 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
                     sig.append(t.getDescriptor());
                 }
             }
-            sig.append(')');
-            return sig.toString();
+            return sig.append(')').toString();
+        } else {
+            return desc.substring(0, 1 + desc.indexOf(')'));
         }
-        return name + desc.substring(0, 1 + desc.indexOf(')'));
+    }
+
+    protected static int getHashForStackFrame(String name, String desc, boolean polymorphicSignatureMethod) {
+        return PhosphorStackFrame.computeFrameHash(name, getStackFrameDesc(desc, polymorphicSignatureMethod));
+    }
+
+    protected  static String fixDescForStack(String className, String methodDesc) {
+        String descForStackFrame = methodDesc;
+        if (className.startsWith("java/lang/invoke/VarHandle")) {
+            // There are methods that the JDK will internally resolve to and prefix the arguments
+            // with a handle to the underlying object.
+            // Remove the parameter for the handle to the underlying object as the caller does not
+            // explicitly pass the handle.
+            if (methodDesc.startsWith("(Ljava/lang/invoke/VarHandle")) {
+                descForStackFrame = "(" + methodDesc.substring(methodDesc.indexOf(";") + 1);
+            }
+        }
+        return descForStackFrame;
     }
 
     protected void prepareMetadataLocalVariables(){
         if (this.initializePhosphorStackFrame) {
-            //There are methods that the JDK will internally resolve to, and prefix the arguments
-            //with a handle to the underlying object. That handle won't be passed explicitly by the caller.
-            String descForStackFrame = this.methodDesc;
-            if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
-                if (this.methodDesc.contains("java/lang/invoke/VarHandle")) {
-                    descForStackFrame = this.methodDesc.replace("Ljava/lang/invoke/VarHandle;", "");
-                }
-            }
-
+            String descForStackFrame = fixDescForStack(className, methodDesc);
             if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
-                super.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(this.methodName, descForStackFrame, false));
+                super.visitLdcInsn(getMethodKeyForStackFrame(this.methodName, descForStackFrame, false));
                 STACK_FRAME_FOR_METHOD_DEBUG.delegateVisit(mv);
             } else {
-                push(PhosphorStackFrame.hashForDesc(TaintAdapter.getMethodKeyForStackFrame(this.methodName, descForStackFrame, false)));
+                push(getHashForStackFrame(this.methodName, descForStackFrame, false));
                 STACK_FRAME_FOR_METHOD_FAST.delegateVisit(mv);
             }
             super.visitInsn(DUP);
@@ -784,17 +797,11 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
             super.visitInsn(POP);
             super.visitVarInsn(ASTORE, getIndexOfPhosphorStackData());
         } else if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
-            String descForStackFrame = this.methodDesc;
-            if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
-                if (this.methodDesc.contains("java/lang/invoke/VarHandle")) {
-                    descForStackFrame = this.methodDesc.replace("Ljava/lang/invoke/VarHandle;", "");
-                }
-            }
-            descForStackFrame = descForStackFrame.replace(PhosphorStackFrame.DESCRIPTOR, "");
+            String descForStackFrame = fixDescForStack(className, methodDesc)
+                    .replace(PhosphorStackFrame.DESCRIPTOR, "");
             super.visitVarInsn(ALOAD, getIndexOfPhosphorStackData());
-            super.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(this.methodName, descForStackFrame, false));
+            super.visitLdcInsn(getMethodKeyForStackFrame(this.methodName, descForStackFrame, false));
             CHECK_STACK_FRAME_TARGET.delegateVisit(mv);
-
         }
         for (int i = this.lvs.getLocalVariableAdder().getIndexOfFirstStackTaintTag(); i < this.lvs.getLocalVariableAdder().getIndexOfLastStackTaintTag(); i++) {
             TaintMethodRecord.NEW_EMPTY_TAINT.delegateVisit(mv);
