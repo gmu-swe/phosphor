@@ -519,8 +519,10 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                     }
                 }
                 desc = "(L" + owner + ";" + desc.substring(1);
-                // Java 11 uses get/putObject instead of Reference
-                name = name.replace("Object", "Reference");
+                if (isUnsafeIntrinsic(owner, name, descWithoutStackFrame)) {
+                    // Java 11 uses get/putObject instead of Reference
+                    name = name.replace("Object", "Reference");
+                }
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
                 return;
             } else if (isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
