@@ -734,6 +734,12 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
                     super.visitInsn(POP);
                     super.visitInsn(ACONST_NULL);
                 }
+            } else if(TaintUtils.isWrappedType(expected)) {
+                // Clear the arg wrapper
+                pushPhosphorStackFrame();
+                super.visitInsn(ACONST_NULL);
+                push(idxOfThisArg);
+                SET_ARG_WRAPPER.delegateVisit(mv);
             }
             super.visitVarInsn(t.getOpcode(ISTORE), tmp[i]);
         }

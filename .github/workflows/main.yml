@@ -13,13 +13,13 @@ jobs:
 #        java: [ '8', '11', '16', '17' ]
         java: [ '8', '11', '16' ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build Phosphor
-        run: mvn -B -DskipTests install
+        run: mvn -B -ntp -DskipTests install
       - name: Setup java
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
       - name: Run tests
-        run: mvn install -Ddacapo.skip=false
+        run: mvn install -ntp -Ddacapo.skip=false
