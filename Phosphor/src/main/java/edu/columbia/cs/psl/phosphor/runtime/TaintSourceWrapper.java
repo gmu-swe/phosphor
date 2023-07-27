@@ -272,7 +272,7 @@ public class TaintSourceWrapper<T extends AutoTaintLabel> {
                     if(Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
                         frame.prepareForCall("charAt(I)");
                     } else{
-                        frame.prepareForCall(PhosphorStackFrame.hashForDesc("charAt(I)"));
+                        frame.prepareForCall(PhosphorStackFrame.computeFrameHash("charAt", "(I)"));
                     }
                     char c = str.charAt(i);
                     Taint tag = frame.getReturnTaint();

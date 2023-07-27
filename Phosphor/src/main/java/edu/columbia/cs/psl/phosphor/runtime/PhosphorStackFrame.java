@@ -33,8 +33,17 @@ public class PhosphorStackFrame {
         this.needsCleanup = true;
     }
 
-    public static int hashForDesc(String intendedNextMethodDebug) {
-        return intendedNextMethodDebug.hashCode();
+    public static int computeFrameHash(String name, String desc) {
+        int upper = name.hashCode();
+        return (upper & 0xffff0000) | computeLowerHash(desc);
+    }
+
+    public static int computeLowerHash(String desc) {
+       return (desc.hashCode() & 0x0000ffff);
+    }
+
+    private void patchLowerHash(int lower) {
+       intendedNextMethodFast = (intendedNextMethodFast & 0xffff0000) | (lower & 0x0000ffff);
     }
 
     private static void setForThread(PhosphorStackFrame forThread) {
@@ -95,6 +104,16 @@ public class PhosphorStackFrame {
     @InvokedViaInstrumentation(record = TaintMethodRecord.PREPARE_FOR_CALL_PREV)
     public void prepareForCallPrev() {
         if(initialized){
+            setForThread(this.prevFrame);
+        }
+    }
+
+    @InvokedViaInstrumentation(record = TaintMethodRecord.PREPARE_FOR_CALL_PATCHED)
+    public void prepareForCallPatched(int lower) {
+        if (initialized){
+            if (this.prevFrame != null) {
+                this.prevFrame.patchLowerHash(lower);
+            }
             setForThread(this.prevFrame);
         }
     }

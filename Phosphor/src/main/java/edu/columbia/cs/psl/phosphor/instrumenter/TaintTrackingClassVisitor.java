@@ -664,20 +664,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             int stackFrameLocal;
             int shouldPopLocal;
             if(fetchStackFrame) {
-                //There are methods that the JDK will internally resolve to, and prefix the arguments
-                //with a handle to the underlying object. That handle won't be passed explicitly by the caller.
-                String descForStackFrame = mn.desc;
-                if (this.className.startsWith("java/lang/invoke/VarHandleReferences")) {
-                    if (mn.desc.contains("java/lang/invoke/VarHandle")) {
-                        descForStackFrame = mn.desc.replace("Ljava/lang/invoke/VarHandle;", "");
-                    }
-                }
-
+                String descForStackFrame = TaintAdapter.fixDescForStack(className, mn.desc);
                 if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
                     ga.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(mn.name, descForStackFrame, false));
                     STACK_FRAME_FOR_METHOD_DEBUG.delegateVisit(ga);
                 } else {
-                    ga.push(PhosphorStackFrame.hashForDesc(TaintAdapter.getMethodKeyForStackFrame(mn.name, descForStackFrame, false)));
+                    ga.push(TaintAdapter.getHashForStackFrame(mn.name, descForStackFrame, false));
                     STACK_FRAME_FOR_METHOD_FAST.delegateVisit(ga);
                 }
                 stackFrameLocal = ga.newLocal(Type.getType(PhosphorStackFrame.class));
@@ -686,7 +678,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 GET_AND_CLEAR_CLEANUP_FLAG.delegateVisit(ga);
                 ga.storeLocal(shouldPopLocal);
                 ga.storeLocal(stackFrameLocal);
-
                 /*
                 Fix for #188: We should ensure at this point that any java.lang.Object arg is the expected wrapper type.
                 We should *not* do that inside of Unsafe though, because Phosphor relies on the ability of getReference/putReference
@@ -746,7 +737,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                         ga.visitLdcInsn(TaintAdapter.getMethodKeyForStackFrame(mn.name, descToCall, false));
                         PREPARE_FOR_CALL_DEBUG.delegateVisit(ga);
                     } else {
-                        ga.push(PhosphorStackFrame.hashForDesc(TaintAdapter.getMethodKeyForStackFrame(mn.name, descToCall, false)));
+                        ga.push(TaintAdapter.getHashForStackFrame(mn.name, descToCall, false));
                         PREPARE_FOR_CALL_FAST.delegateVisit(ga);
                     }
                 }

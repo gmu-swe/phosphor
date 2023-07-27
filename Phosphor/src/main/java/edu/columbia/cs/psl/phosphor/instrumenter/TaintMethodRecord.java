@@ -62,6 +62,7 @@ public enum TaintMethodRecord implements MethodRecord {
     START_STACK_FRAME_TRACKING(INVOKESTATIC, PhosphorStackFrame.class, "initialize", Void.TYPE, false),
     PREPARE_FOR_CALL_DEBUG(INVOKEVIRTUAL, PhosphorStackFrame.class, "prepareForCall", Void.TYPE, false, String.class),
     PREPARE_FOR_CALL_FAST(INVOKEVIRTUAL, PhosphorStackFrame.class, "prepareForCall", Void.TYPE, false, int.class),
+    PREPARE_FOR_CALL_PATCHED(INVOKEVIRTUAL, PhosphorStackFrame.class, "prepareForCallPatched", Void.TYPE, false, int.class),
     PREPARE_FOR_CALL_PREV(INVOKEVIRTUAL, PhosphorStackFrame.class, "prepareForCallPrev", Void.TYPE, false),
     CHECK_STACK_FRAME_TARGET(INVOKEVIRTUAL, PhosphorStackFrame.class, "checkTarget", Void.TYPE, false, String.class),
     STACK_FRAME_FOR_METHOD_DEBUG(INVOKESTATIC, PhosphorStackFrame.class, "forMethod", PhosphorStackFrame.class, false, String.class),

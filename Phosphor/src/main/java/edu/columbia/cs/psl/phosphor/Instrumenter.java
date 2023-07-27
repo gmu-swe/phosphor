@@ -1,18 +1,14 @@
 package edu.columbia.cs.psl.phosphor;
 
-import edu.columbia.cs.psl.phosphor.instrumenter.ConfigurationEmbeddingMV;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
-import edu.columbia.cs.psl.phosphor.runtime.jdk.unsupported.UnsafeProxy;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.*;
 import org.apache.commons.cli.CommandLine;
-import org.objectweb.asm.*;
-import org.objectweb.asm.commons.ModuleHashesAttribute;
-import org.objectweb.asm.commons.ModuleResolutionAttribute;
-import org.objectweb.asm.commons.ModuleTargetAttribute;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.ModuleExportNode;
 
 import java.io.*;
 import java.lang.instrument.ClassFileTransformer;
@@ -709,148 +705,6 @@ public class Instrumenter {
         byte[] buf;
     }
 
-    public static byte[] transformJavaBaseModuleInfo(InputStream is, java.util.Collection<String> packages) throws IOException {
-        ClassNode classNode = new ClassNode();
-        ClassReader cr = new ClassReader(is);
-        java.util.List<Attribute> attrs = new java.util.ArrayList<>();
-        attrs.add(new ModuleTargetAttribute());
-        attrs.add(new ModuleResolutionAttribute());
-        attrs.add(new ModuleHashesAttribute());
-
-        cr.accept(classNode, attrs.toArray(new Attribute[0]), 0);
-        //Add export
-        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor", 0, null));
-        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/control", 0, null));
-        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/control/standard", 0, null));
-        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/runtime", 0, null));
-        classNode.module.exports.add(new ModuleExportNode("edu/columbia/cs/psl/phosphor/struct", 0, null));
-
-        //Add pac
-        classNode.module.packages.addAll(packages);
-        ClassWriter cw = new ClassWriter(0);
-        classNode.accept(cw);
-        return cw.toByteArray();
-    }
-
-    public static boolean isPhosphorClassPatchedAtInstTime(String name){
-        return name.equals("edu/columbia/cs/psl/phosphor/Configuration.class") || name.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeJDKInternalUnsafePropagator.class");
-    }
-
-    /**
-     * We do rewriting of various phosphor classes to ensure easy compilation for java < 9
-     */
-    public static byte[] patchPhosphorClass(String name, InputStream is) throws IOException {
-        if(name.equals("edu/columbia/cs/psl/phosphor/Configuration.class")){
-            return embedPhopshorConfiguration(is);
-        }
-        if (name.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeJDKInternalUnsafePropagator.class")) {
-            return transformRuntimeUnsafePropagator(is, "jdk/internal/misc/Unsafe");
-        }
-        throw new UnsupportedEncodingException("We do not plan to instrument " + name);
-    }
-
-    public static byte[] transformRuntimeUnsafePropagator(InputStream is, String targetUnsafeInternalName) throws IOException {
-        final String UNSAFE_PROXY_INTERNAL_NAME = Type.getInternalName(UnsafeProxy.class);
-        final String UNSAFE_PROXY_DESC = Type.getDescriptor(UnsafeProxy.class);
-        final String TARGET_UNSAFE_INTERNAL_NAME = targetUnsafeInternalName;
-        final String TARGET_UNSAFE_DESC = "L" + targetUnsafeInternalName + ";";
-        ClassReader cr = new ClassReader(is);
-        ClassWriter cw = new ClassWriter(cr, 0);
-        ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
-            private String patchInternalName(String in) {
-                if (in.equals(UNSAFE_PROXY_INTERNAL_NAME)) {
-                    return TARGET_UNSAFE_INTERNAL_NAME;
-                }
-                return in;
-            }
-
-            private String patchDesc(String in) {
-                if (in == null) {
-                    return null;
-                }
-                return in.replace(UNSAFE_PROXY_DESC, TARGET_UNSAFE_DESC);
-            }
-
-            @Override
-            public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                MethodVisitor mv = super.visitMethod(access, name, patchDesc(descriptor), patchDesc(signature), exceptions);
-                return new MethodVisitor(Opcodes.ASM9, mv) {
-
-                    @Override
-                    public void visitFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack) {
-                        for (int i = 0; i < numLocal; i++) {
-                            if (local[i] instanceof String) {
-                                local[i] = patchInternalName((String) local[i]);
-                            }
-                        }
-                        for (int i = 0; i < numStack; i++) {
-                            if (stack[i] instanceof String) {
-                                stack[i] = patchInternalName((String) stack[i]);
-                            }
-                        }
-                        super.visitFrame(type, numLocal, local, numStack, stack);
-                    }
-
-                    @Override
-                    public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
-                        super.visitFieldInsn(opcode, patchInternalName(owner), name, patchDesc(descriptor));
-                    }
-
-                    @Override
-                    public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-                        super.visitMethodInsn(opcode, patchInternalName(owner), name, patchDesc(descriptor), isInterface);
-                    }
-
-                    @Override
-                    public void visitTypeInsn(int opcode, String type) {
-                        super.visitTypeInsn(opcode, patchInternalName(type));
-                    }
-
-                    @Override
-                    public void visitLocalVariable(String name, String descriptor, String signature, Label start, Label end, int index) {
-                        super.visitLocalVariable(name, patchDesc(descriptor), signature, start, end, index);
-                    }
-                };
-            }
-        };
-        cr.accept(cv, 0);
-        return cw.toByteArray();
-
-    }
-    /**
-     * To boot the JVM... we need to have this flag set correctly.
-     *
-     * Default to setting it to be Java 8.
-     *
-     * In Java 9+, we pack Phosphor into the java.base module, and rewrite the configuration file
-     * to set the flag to false.
-     *
-     * @param is
-     * @return
-     * @throws IOException
-     */
-    public static byte[] embedPhopshorConfiguration(InputStream is) throws IOException {
-        ClassReader cr = new ClassReader(is);
-        ClassWriter cw = new ClassWriter(cr, 0);
-
-        ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
-            @Override
-            public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
-                if (name.equals("<clinit>")) {
-                    return new ConfigurationEmbeddingMV(mv);
-                } else {
-                    return mv;
-                }
-            }
-        };
-
-        cr.accept(cv, 0);
-        return cw.toByteArray();
-
-    }
-
-
     public static boolean isJava8JVMDir(File java_home) {
         return new File(java_home, "bin" + File.separator + "java").exists()
                 && !new File(java_home, "jmods").exists()
@@ -861,5 +715,4 @@ public class Instrumenter {
         return (Configuration.IS_JAVA_8 && "sun/misc/Unsafe".equals(className))
                 || (!Configuration.IS_JAVA_8 && "jdk/internal/misc/Unsafe".equals(className));
     }
-
 }
