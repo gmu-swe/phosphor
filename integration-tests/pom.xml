@@ -115,7 +115,7 @@
                                 <target>
                                     <property name="phosphor.jar" value="${maven.dependency.edu.gmu.swe.phosphor.Phosphor.jar.path}"/>
                                     <property name="argLine.prefix"
-                                              value="-Dphosphor.verify=true -Xbootclasspath/p:${phosphor.jar} -javaagent:${phosphor.jar}=${auto.taint}"/>
+                                              value="-Xbootclasspath/p:${phosphor.jar} -javaagent:${phosphor.jar}=${auto.taint}"/>
                                 </target>
                             </configuration>
                         </execution>
@@ -151,7 +151,7 @@
                                     <property name="phosphor.jar" value="${maven.dependency.edu.gmu.swe.phosphor.Phosphor.jar.path}"/>
                                     <property name="phosphor-javaagent.jar" value="${maven.dependency.edu.gmu.swe.phosphor.phosphor-jigsaw-javaagent.jar.path}"/>
                                     <property name="argLine.prefix"
-                                              value="-Dphosphor.verify=true -javaagent:${phosphor-javaagent.jar}=${auto.taint}"/>
+                                              value="-javaagent:${phosphor-javaagent.jar}=${auto.taint}"/>
                                 </target>
                             </configuration>
                         </execution>
