@@ -35,4 +35,5 @@ jobs:
           DEPLOY_KEY_PASSPHRASE: ${{ secrets.DEPLOY_KEY_PASSPHRASE }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
         run: bash ./deployment/deploy.sh
