@@ -23,3 +23,16 @@ jobs:
           java-version: ${{ matrix.java }}
       - name: Run tests
         run: mvn install -ntp -Ddacapo.skip=false
+  deploy:
+    runs-on: self-hosted
+    needs: build-and-test
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          DEPLOY_KEY_PASSPHRASE: ${{ secrets.DEPLOY_KEY_PASSPHRASE }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        run: bash ./deployment/deploy.sh
