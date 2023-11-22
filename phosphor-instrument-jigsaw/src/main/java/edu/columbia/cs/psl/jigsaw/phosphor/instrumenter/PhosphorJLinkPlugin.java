@@ -8,13 +8,12 @@ import jdk.tools.jlink.plugin.ResourcePoolBuilder;
 import jdk.tools.jlink.plugin.ResourcePoolEntry;
 
 import java.io.File;
-import java.net.URISyntaxException;
 import java.util.*;
 
 
 public class PhosphorJLinkPlugin implements Plugin {
     public static final String NAME = "phosphor-transformer";
-    private static File phosphorJar;
+    private Set<File> elementsToPack;
 
     @Override
     public boolean hasArguments() {
@@ -31,15 +30,15 @@ public class PhosphorJLinkPlugin implements Plugin {
      *                   created arguments
      * @return an array formatted for {@link Instrumenter#main(String[])} Instrumenter.main's} String[] argument
      */
-    public static String[] createPhosphorMainArguments(Map<String,String> properties) {
+    public static String[] createPhosphorMainArguments(Map<String, String> properties) {
         LinkedList<String> arguments = new LinkedList<>();
         Set<String> propNames = properties.keySet();
-        for(String propName : propNames) {
-            if(propName.equals("phosphor-transformer")){
+        for (String propName : propNames) {
+            if (propName.equals("phosphor-transformer")) {
                 continue;
             }
             arguments.addLast("-" + propName);
-            if(!"true".equals(properties.get(propName))) {
+            if (!"true".equals(properties.get(propName))) {
                 arguments.addLast(properties.get(propName));
             }
         }
@@ -54,8 +53,16 @@ public class PhosphorJLinkPlugin implements Plugin {
         TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
         TaintUtils.VERIFY_CLASS_GENERATION = true;
         PhosphorOption.configure(false, createPhosphorMainArguments(config));
-        phosphorJar = getPhosphorJarFile();
+        File phosphorJar = JLinkInvoker.getClassPathElement(Instrumenter.class);
         System.out.println("Embedding Phosphor from: " + phosphorJar);
+        String pack = System.getProperty(JLinkInvoker.PACK_KEY);
+        this.elementsToPack = new HashSet<>();
+        elementsToPack.add(phosphorJar);
+        if (pack != null && !pack.isEmpty()) {
+            Arrays.stream(pack.split(File.pathSeparator))
+                    .map(File::new)
+                    .forEach(elementsToPack::add);
+        }
         //TODO process args
     }
 
@@ -63,7 +70,7 @@ public class PhosphorJLinkPlugin implements Plugin {
     public ResourcePool transform(ResourcePool in, ResourcePoolBuilder out) {
         TaintUtils.VERIFY_CLASS_GENERATION = true;
         PreMain.RUNTIME_INST = false;
-        PhosphorPacker packer = new PhosphorPacker(in, phosphorJar);
+        PhosphorPacker packer = new PhosphorPacker(in, elementsToPack);
         in.transformAndCopy((resourcePoolEntry) -> {
             if (resourcePoolEntry.type().equals(ResourcePoolEntry.Type.CLASS_OR_RESOURCE)) {
                 if (resourcePoolEntry.path().endsWith(".class")) {
@@ -74,7 +81,8 @@ public class PhosphorJLinkPlugin implements Plugin {
                             resourcePoolEntry = packer.pack(resourcePoolEntry, out);
                         }
                     } else {
-                        byte[] newContent = Instrumenter.instrumentClass(resourcePoolEntry.path(), resourcePoolEntry.content(), true);
+                        byte[] newContent = Instrumenter.instrumentClass(resourcePoolEntry.path(),
+                                resourcePoolEntry.content(), true);
                         if (newContent != null) {
                             resourcePoolEntry = resourcePoolEntry.copyWithContent(newContent);
                         }
@@ -94,17 +102,6 @@ public class PhosphorJLinkPlugin implements Plugin {
     @Override
     public String getDescription() {
         return "Transforms the runtime image to be compatible with Phosphor";
-    }
-
-    /**
-     * @return a File object pointing to the JAR file for Phosphor
-     */
-    public static File getPhosphorJarFile() {
-        try {
-            return new File(Instrumenter.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-        } catch(URISyntaxException e) {
-            throw new AssertionError();
-        }
     }
 }
 
