@@ -135,7 +135,8 @@ public enum PhosphorOption {
                     Class<? extends ClassVisitor> clazz = (Class<? extends ClassVisitor>) commandLine.getParsedOptionValue(optionName);
                     Configuration.PRIOR_CLASS_VISITOR = clazz;
                 } catch(ParseException e) {
-                    System.err.println("Failed to create specified prior class visitor: " + optionName);
+                    System.err.println("Failed to create specified prior class visitor: " +
+                            commandLine.getOptionValue(optionName));
                 }
             } else {
                 Configuration.PRIOR_CLASS_VISITOR = null;
@@ -152,7 +153,8 @@ public enum PhosphorOption {
                     Class<? extends ClassVisitor> clazz = (Class<? extends ClassVisitor>) commandLine.getParsedOptionValue(optionName);
                     Configuration.POST_CLASS_VISITOR = clazz;
                 } catch(ParseException e) {
-                    System.err.println("Failed to create specified postclass visitor: " + optionName);
+                    System.err.println("Failed to create specified postclass visitor: " +
+                            commandLine.getOptionValue(optionName));
                 }
             } else {
                 Configuration.POST_CLASS_VISITOR = null;
@@ -177,7 +179,8 @@ public enum PhosphorOption {
                         Configuration.IMPLICIT_TRACKING = true;
                     }
                 } catch(Exception e) {
-                    System.err.println("Failed to create control propagation manager: " + commandLine.getOptionValue(optionName));
+                    System.err.println("Failed to create control propagation manager: "
+                            + commandLine.getOptionValue(optionName));
                 }
             } else {
                 Configuration.controlFlowManager = new StandardControlFlowManager();
