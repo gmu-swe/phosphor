@@ -124,7 +124,9 @@ public enum TaintMethodRecord implements MethodRecord {
     TAINTED_REFERENCE_ARRAY_GET(INVOKEVIRTUAL, TaggedReferenceArray.class, "get", Object.class, false, int.class, Taint.class, PhosphorStackFrame.class),
     TAINTED_SHORT_ARRAY_GET(INVOKEVIRTUAL, TaggedShortArray.class, "get", short.class, false, int.class, Taint.class, PhosphorStackFrame.class),
     // Methods from TaintSourceWrapper
-    AUTO_TAINT(INVOKEVIRTUAL, TaintSourceWrapper.class, "autoTaint", Object.class, false, Object.class, String.class, String.class, int.class);
+    AUTO_TAINT(INVOKEVIRTUAL, TaintSourceWrapper.class, "autoTaint", Object.class, false, Object.class, String.class, String.class, int.class),
+    // TaggedReferenceArray
+    TAINTED_REFERENCE_ARRAY_UNWRAP(INVOKESTATIC, TaggedReferenceArray.class, "unwrap", Object.class, false, Object.class);
 
     private final int opcode;
     private final String owner;

@@ -12,8 +12,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Array;
 
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_REFERENCE_ARRAY_GET;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.TAINTED_REFERENCE_ARRAY_SET;
+import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
 
 public final class TaggedReferenceArray extends TaggedArray {
 
@@ -233,11 +232,15 @@ public final class TaggedReferenceArray extends TaggedArray {
         return new TaggedReferenceArray(lengthTaint, array);
     }
 
-
     public static Object[] unwrap(TaggedReferenceArray obj) {
         if (obj != null) {
             return obj.val;
         }
         return null;
+    }
+
+    @InvokedViaInstrumentation(record = TAINTED_REFERENCE_ARRAY_UNWRAP)
+    public static Object unwrap(Object obj) {
+        return (obj instanceof TaggedReferenceArray) ? ((TaggedReferenceArray) obj).val : obj;
     }
 }
