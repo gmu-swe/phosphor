@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.ConfigurationEmbeddingMV;
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
 import edu.columbia.cs.psl.phosphor.runtime.jdk.unsupported.UnsafeProxy;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.ModuleHashesAttribute;
@@ -28,6 +29,8 @@ public class PhosphorPatcher {
         } else if (name.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeJDKInternalUnsafePropagator.class")) {
             return transformUnsafePropagator(new ByteArrayInputStream(content),
                     "jdk/internal/misc/Unsafe", patchUnsafeNames);
+        } else if (AsmPatchingCV.isApplicable(name)) {
+            return AsmPatchingCV.patch(content);
         } else {
             return content;
         }
@@ -166,6 +169,45 @@ public class PhosphorPatcher {
                     super.visitLocalVariable(name, patchDesc(descriptor), signature, start, end, index);
                 }
             };
+        }
+    }
+
+    private static class AsmPatchingCV extends ClassVisitor {
+        private static final String ASM_PREFIX = "edu/columbia/cs/psl/phosphor/org/objectweb/asm/";
+        private static final Type OBJECT_TYPE = Type.getType(Object.class);
+
+        public AsmPatchingCV(ClassWriter cw) {
+            super(Configuration.ASM_VERSION, cw);
+        }
+
+        @Override
+        public MethodVisitor visitMethod(
+                int access, String name, String descriptor, String signature, String[] exceptions) {
+            MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
+            return new MethodVisitor(api, mv) {
+
+                @Override
+                public void visitMethodInsn(
+                        int opcode, String owner, String name, String descriptor, boolean isInterface) {
+                    super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+                    // Ensure that the return value is unwrapped if necessary
+                    if (owner.startsWith("java/") && OBJECT_TYPE.equals(Type.getReturnType(descriptor))) {
+                        TaintMethodRecord.TAINTED_REFERENCE_ARRAY_UNWRAP.delegateVisit(mv);
+                    }
+                }
+            };
+        }
+
+        public static byte[] patch(byte[] classFileBuffer) {
+            ClassReader cr = new ClassReader(classFileBuffer);
+            ClassWriter cw = new ClassWriter(cr, 0);
+            ClassVisitor cv = new AsmPatchingCV(cw);
+            cr.accept(cv, 0);
+            return cw.toByteArray();
+        }
+
+        public static boolean isApplicable(String className) {
+            return className.startsWith(ASM_PREFIX);
         }
     }
 }
