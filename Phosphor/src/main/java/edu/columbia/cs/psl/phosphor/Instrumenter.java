@@ -11,7 +11,6 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.io.*;
-import java.lang.instrument.ClassFileTransformer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -26,14 +25,6 @@ import static edu.columbia.cs.psl.phosphor.Configuration.controlFlowManagerPacka
 import static edu.columbia.cs.psl.phosphor.Configuration.taintTagFactoryPackage;
 
 public class Instrumenter {
-    // jmod magic number and version number, taken from java.base/jdk/internal/jmod/JmodFile.java
-    private static final int JMOD_MAJOR_VERSION = 0x01;
-    private static final int JMOD_MINOR_VERSION = 0x00;
-    public static final byte[] JMOD_MAGIC_NUMBER = {
-            0x4A, 0x4D, /* JM */
-            JMOD_MAJOR_VERSION, JMOD_MINOR_VERSION, /* version 1.0 */
-    };
-
     public static ClassLoader loader;
     public static Map<String, ClassNode> classes = Collections.synchronizedMap(new HashMap<>());
     public static InputStream sourcesFile;
@@ -41,7 +32,6 @@ public class Instrumenter {
     public static InputStream taintThroughFile;
     static String curPath;
     static int n = 0;
-    private static ClassFileTransformer addlTransformer;
 
     static {
         classes.putAll(ClassSupertypeReadingTransformer.classNodes);
@@ -52,37 +42,6 @@ public class Instrumenter {
         // Prevents this class from being instantiated
     }
 
-    public static void preAnalysis() {
-
-    }
-
-    public static void finishedAnalysis() {
-        System.out.println("Analysis Completed: Beginning Instrumentation Phase");
-    }
-
-    public static boolean isCollection(String internalName) {
-        try {
-            Class<?> c;
-            if(TaintTrackingClassVisitor.IS_RUNTIME_INST && !internalName.startsWith("java/")) {
-                return false;
-            }
-            c = Class.forName(internalName.replace("/", "."), false, loader);
-            if(java.util.Collection.class.isAssignableFrom(c)) {
-                return true;
-            }
-        } catch(Throwable ex) {
-            //
-        }
-        return false;
-    }
-
-    public static boolean isClassWithHashMapTag(String clazz) {
-        return clazz.startsWith("java/lang/Boolean")
-                || clazz.startsWith("java/lang/Character")
-                || clazz.startsWith("java/lang/Byte")
-                || clazz.startsWith("java/lang/Short");
-    }
-
     public static boolean isIgnoredClass(String owner) {
         return Configuration.taintTagFactory.isIgnoredClass(owner)
                 || taintTagFactoryPackage != null && StringUtils.startsWith(owner, taintTagFactoryPackage)
@@ -90,12 +49,10 @@ public class Instrumenter {
                 || (Configuration.controlFlowManager != null && Configuration.controlFlowManager.isIgnoredClass(owner))
                 || (Configuration.ADDL_IGNORE != null && StringUtils.startsWith(owner, Configuration.ADDL_IGNORE))
                 //|| !owner.startsWith("edu/columbia/cs/psl")
-                /*
-                For these classes: HotSpot expects fields to be at hardcoded offsets of these classes. If we instrument
-                them, it will break those assumptions and segfault.
-
-                Different classes have different assumptions, and there are special cases for these elsewhere in Phosphor.
-                 */
+                // For these classes: HotSpot expects fields to be at hardcoded offsets of these classes.
+                // If we instrument them, it will break those assumptions and segfault.
+                // Different classes have different assumptions, and there are special cases for these elsewhere in
+                // Phosphor.
                 || StringUtils.startsWith(owner, "java/lang/Object")
                 || StringUtils.startsWith(owner, "java/lang/Boolean")
                 || StringUtils.startsWith(owner, "java/lang/Character")
@@ -105,22 +62,23 @@ public class Instrumenter {
                 || StringUtils.startsWith(owner, "java/lang/ref/Reference")
                 || StringUtils.startsWith(owner, "java/lang/ref/FinalReference")
                 || StringUtils.startsWith(owner, "java/lang/ref/SoftReference")
-                || StringUtils.equals(owner, "java/lang/invoke/LambdaForm") //Lambdas are hosted by this class, and when generated, will have hard-coded offsets to constant pool
-                || StringUtils.startsWith(owner, "java/lang/invoke/LambdaForm$") //Lambdas are hosted by this class, and when generated, will have hard-coded offsets to constant pool
-                /*
-                Phosphor internal methods
-                 */
+                //Lambdas are hosted by this class, and when generated, will have hard-coded offsets to constant pool
+                || StringUtils.equals(owner, "java/lang/invoke/LambdaForm")
+                //Lambdas are hosted by this class, and when generated, will have hard-coded offsets to constant pool
+                || StringUtils.startsWith(owner, "java/lang/invoke/LambdaForm$")
+                // Phosphor internal classes
                 || StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor")
                 || StringUtils.startsWith(owner, "edu/gmu/swe/phosphor/ignored")
-                /*
-                Reflection is handled by:
-                    DelagatingMethod/ConstructorAccessorImpl calls either NativeMethod/ConstructorAccessorImpl OR
-                    calls GeneratedMethod/ConstructorAccessorImpl. We do the wrapping at the delagating level.
-                    Generated code won't be instrumented. Hence, it's convenient to also not wrap the native version,
-                    so that passed params/returns line up exactly when we hit the reflected call
-                 */
+                // Reflection is handled by:
+                // DelegatingMethod/ConstructorAccessorImpl calls either NativeMethod/ConstructorAccessorImpl OR
+                // calls GeneratedMethod/ConstructorAccessorImpl.
+                // We do the wrapping at the delegating level.
+                // Generated code won't be instrumented.
+                // Hence, it's convenient to also not wrap the native version,
+                // so that passed params/returns line up exactly when we hit the reflected call
                 || StringUtils.startsWith(owner, "edu/columbia/cs/psl/phosphor/struct/TaintedWith")
-                || StringUtils.startsWith(owner, "jdk/internal/misc/UnsafeConstants"); //Java 9+ class full of hardcoded offsets
+                // Java 9+ class full of hardcoded offsets
+                || StringUtils.startsWith(owner, "jdk/internal/misc/UnsafeConstants");
     }
 
     public static byte[] instrumentClass(String path, InputStream is, boolean renameInterfaces) {
@@ -141,19 +99,12 @@ public class Instrumenter {
             buffer.flush();
             PreMain.PCLoggingTransformer transformer = new PreMain.PCLoggingTransformer();
             byte[] ret = transformer.transform(Instrumenter.loader, path, null, null, buffer.toByteArray(), false);
-            if(addlTransformer != null) {
-                byte[] ret2 = addlTransformer.transform(Instrumenter.loader, path, null, null, ret);
-                if(ret2 != null) {
-                    ret = ret2;
-                }
-            }
             curPath = null;
             return ret;
-        } catch(Exception ex) {
+        } catch(Exception e) {
             curPath = null;
-            ex.printStackTrace();
-            //return null;
-            throw new IllegalStateException();
+            e.printStackTrace();
+            throw new IllegalStateException(e);
         }
     }
 
@@ -237,37 +188,7 @@ public class Instrumenter {
         } catch(MalformedURLException e1) {
             e1.printStackTrace();
         }
-        if(args.length == 3) {
-            System.out.println("Using extra classpath file: " + args[2]);
-            try {
-                File f = new File(args[2]);
-                if(f.exists() && f.isFile()) {
-                    for(Scanner s = new Scanner(f); s.hasNextLine();) {
-                        urls.add(new File(s.nextLine()).getCanonicalFile().toURI().toURL());
-                    }
-                } else if(f.isDirectory()) {
-                    urls.add(f.toURI().toURL());
-                }
-            } catch(IOException e) {
-                e.printStackTrace();
-            }
-        } else if(args.length > 3) {
-            for(int i = 2; i < args.length; i++) {
-                File f = new File(args[i]);
-                if(!f.exists()) {
-                    System.err.println("Unable to read path " + args[i]);
-                    System.exit(-1);
-                }
-                if(f.isDirectory() && !f.getAbsolutePath().endsWith("/")) {
-                    f = new File(f.getAbsolutePath() + "/");
-                }
-                try {
-                    urls.add(f.getCanonicalFile().toURI().toURL());
-                } catch(Exception ex) {
-                    ex.printStackTrace();
-                }
-            }
-        }
+
 
         URL[] urlArray = new URL[urls.size()];
         urlArray = urls.toArray(urlArray);

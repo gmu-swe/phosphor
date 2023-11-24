@@ -1,6 +1,7 @@
 package edu.columbia.cs.psl.jigsaw.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.PhosphorPatcher;
+import edu.gmu.swe.phosphor.jlink.InstrumentUtil;
 import jdk.tools.jlink.plugin.ResourcePool;
 import jdk.tools.jlink.plugin.ResourcePoolBuilder;
 import jdk.tools.jlink.plugin.ResourcePoolEntry;
@@ -95,7 +96,7 @@ class PhosphorPacker {
                 ZipEntry entry = entries.nextElement();
                 if (shouldInclude(entry.getName())) {
                     try (InputStream is = zip.getInputStream(entry)) {
-                        byte[] content = patcher.patch(entry.getName(), is.readAllBytes());
+                        byte[] content = patcher.patch(entry.getName(), InstrumentUtil.readAllBytes(is));
                         out.add(ResourcePoolEntry.create("/java.base/" + entry.getName(), content));
                     }
                     packages.add(entry.getName().substring(0, entry.getName().lastIndexOf('/')));

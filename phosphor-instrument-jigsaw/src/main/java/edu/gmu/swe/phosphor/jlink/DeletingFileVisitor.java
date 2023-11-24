@@ -1,4 +1,4 @@
-package edu.gmu.swe.phosphor.ignored.maven;
+package edu.gmu.swe.phosphor.jlink;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -11,7 +11,6 @@ import java.nio.file.attribute.BasicFileAttributes;
  * Deletes a file tree.
  */
 public class DeletingFileVisitor extends SimpleFileVisitor<Path> {
-
     /**
      * Deletes the specified file.
      * @param file {@inheritDoc}
@@ -34,7 +33,7 @@ public class DeletingFileVisitor extends SimpleFileVisitor<Path> {
      */
     @Override
     public FileVisitResult postVisitDirectory(Path dir, IOException e) throws IOException {
-        if(e == null) {
+        if (e == null) {
             Files.delete(dir);
             return FileVisitResult.CONTINUE;
         } else {

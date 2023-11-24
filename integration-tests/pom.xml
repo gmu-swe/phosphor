@@ -10,21 +10,39 @@
         <version>0.1.0-SNAPSHOT</version>
     </parent>
     <properties>
-        <dacapo.skip>true</dacapo.skip>
-        <skipDataFlowTests>false</skipDataFlowTests>
-        <skipInstrumentationTest>false</skipInstrumentationTest>
-        <skipControlFlowTests>false</skipControlFlowTests>
+        <test.resources.dir>${project.build.testSourceDirectory}/../resources</test.resources.dir>
         <auto.taint>
-            taintSources=${basedir}/src/test/resources/taint-sources,taintSinks=${basedir}/src/test/resources/taint-sinks,taintThrough=${basedir}/src/test/resources/taint-through
+            taintSources=${test.resources.dir}/taint-sources,taintSinks=${test.resources.dir}/taint-sinks,taintThrough=${test.resources.dir}/taint-through
         </auto.taint>
-        <data.flow.cache>${project.build.directory}/cached-data-flows</data.flow.cache>
-        <instrumentation.cache>${project.build.directory}/cached-instrumentations</instrumentation.cache>
-        <control.flow.cache>${project.build.directory}/cached-control-flows</control.flow.cache>
-        <data.flow.jvm>jvm-inst-data</data.flow.jvm>
-        <control.flow.jvm>jvm-inst-control</control.flow.jvm>
+        <data.flow.jdk>${project.build.directory}/phosphor/data/jdk/</data.flow.jdk>
+        <data.flow.cache>${project.build.directory}/phosphor/data/cache</data.flow.cache>
+        <data.flow.skip>false</data.flow.skip>
     </properties>
+    <dependencies>
+        <dependency>
+            <groupId>edu.gmu.swe.phosphor</groupId>
+            <artifactId>Phosphor</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.gmu.swe.phosphor</groupId>
+            <artifactId>phosphor-jigsaw-javaagent</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
     <build>
         <plugins>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -43,47 +61,25 @@
                 <version>${project.version}</version>
                 <executions>
                     <execution>
-                        <id>data-flows</id>
+                        <id>data-flow</id>
                         <goals>
                             <goal>instrument</goal>
                         </goals>
                         <phase>none</phase>
                         <configuration>
-                            <targetName>${data.flow.jvm}</targetName>
+                            <outputDirectory>${data.flow.jdk}</outputDirectory>
+                            <linkedCaches>
+                                <linkedCache>${data.flow.cache}</linkedCache>
+                            </linkedCaches>
                             <options>
-                                <forceUnboxAcmpEq/>
-                                <withEnumsByValue/>
-                                <quiet/>
-                                <serialization/>
+                                <forceUnboxAcmpEq>true</forceUnboxAcmpEq>
+                                <withEnumsByValue>true</withEnumsByValue>
+                                <quiet>true</quiet>
+                                <serialization>true</serialization>
                                 <jvmModules>ALL-MODULE-PATH</jvmModules>
-                                <!-- minimum modules required to run integration tests (but NOT dacapo): java.base,jdk.jdwp.agent,java.instrument,jdk.unsupported-->
                             </options>
-                            <associatedCaches>
-                                <associatedCache>${data.flow.cache}</associatedCache>
-                            </associatedCaches>
-                            <reinstrumentBasedOnChecksum>false</reinstrumentBasedOnChecksum>
                         </configuration>
                     </execution>
-<!--                    <execution>-->
-<!--                        <id>control-flows</id>-->
-<!--                        <goals>-->
-<!--                            <goal>instrument</goal>-->
-<!--                        </goals>-->
-<!--                        <phase>none</phase>-->
-<!--                        <configuration>-->
-<!--                            <targetName>${control.flow.jvm}</targetName>-->
-<!--                            <options>-->
-<!--                                <controlTrack/>-->
-<!--                                <forceUnboxAcmpEq/>-->
-<!--                                <withEnumsByValue/>-->
-<!--                                <quiet/>-->
-<!--                            </options>-->
-<!--                            <associatedCaches>-->
-<!--                                <associatedCache>${control.flow.cache}</associatedCache>-->
-<!--                            </associatedCaches>-->
-<!--                            <reinstrumentBasedOnChecksum>false</reinstrumentBasedOnChecksum>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
                 </executions>
             </plugin>
         </plugins>
@@ -96,33 +92,8 @@
             </activation>
             <properties>
                 <isJava8>true</isJava8>
-                <phosphor.javaagent>${phosphor.jar}</phosphor.javaagent>
+                <phosphor.agent>${edu.gmu.swe.phosphor:Phosphor:jar}</phosphor.agent>
             </properties>
-            <build>
-                <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-antrun-plugin</artifactId>
-                    <version>1.8</version>
-                    <executions>
-                        <execution>
-                            <phase>process-resources</phase>
-                            <goals>
-                                <goal>run</goal>
-                            </goals>
-                            <configuration>
-                                <exportAntProperties>true</exportAntProperties>
-                                <target>
-                                    <property name="phosphor.jar" value="${maven.dependency.edu.gmu.swe.phosphor.Phosphor.jar.path}"/>
-                                    <property name="argLine.prefix"
-                                              value="-Xbootclasspath/p:${phosphor.jar} -javaagent:${phosphor.jar}=${auto.taint}"/>
-                                </target>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-                </plugins>
-            </build>
         </profile>
         <profile>
             <id>java9Plus</id>
@@ -131,52 +102,19 @@
             </activation>
             <properties>
                 <isJava8>false</isJava8>
-                <phosphor.javaagent>${phosphor-javaagent.jar}</phosphor.javaagent>
+                <phosphor.agent>${edu.gmu.swe.phosphor:phosphor-jigsaw-javaagent:jar}</phosphor.agent>
             </properties>
-            <build>
-                <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-antrun-plugin</artifactId>
-                    <version>1.8</version>
-                    <executions>
-                        <execution>
-                            <phase>process-resources</phase>
-                            <goals>
-                                <goal>run</goal>
-                            </goals>
-                            <configuration>
-                                <exportAntProperties>true</exportAntProperties>
-                                <target>
-                                    <property name="phosphor.jar" value="${maven.dependency.edu.gmu.swe.phosphor.Phosphor.jar.path}"/>
-                                    <property name="phosphor-javaagent.jar" value="${maven.dependency.edu.gmu.swe.phosphor.phosphor-jigsaw-javaagent.jar.path}"/>
-                                    <property name="argLine.prefix"
-                                              value="-javaagent:${phosphor-javaagent.jar}=${auto.taint}"/>
-                                </target>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-            </plugins>
-        </build>
         </profile>
         <profile>
-            <id>run-dacapo</id>
-            <activation>
-                <property>
-                    <name>dacapo.skip</name>
-                    <value>false</value>
-                </property>
-            </activation>
+            <id>dacapo</id>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>edu.gmu.swe.phosphor</groupId>
                         <artifactId>phosphor-instrument-maven-plugin</artifactId>
-                        <version>${project.version}</version>
                         <executions>
                             <execution>
-                                <id>data-flows</id>
+                                <id>data-flow</id>
                                 <phase>process-test-resources</phase>
                             </execution>
                         </executions>
@@ -192,13 +130,12 @@
                                     <goal>exec</goal>
                                 </goals>
                                 <configuration>
-                                    <skip>${dacapo.skip}</skip>
                                     <executable>${basedir}/runDacapo.sh</executable>
                                     <arguments>
                                         <argument>${project.build.directory}</argument>
-                                        <argument>${phosphor.jar}</argument>
-                                        <argument>${phosphor.javaagent}</argument>
-                                        <argument>${project.build.directory}/${data.flow.jvm}/bin/java</argument>
+                                        <argument>${edu.gmu.swe.phosphor:Phosphor:jar}</argument>
+                                        <argument>${phosphor.agent}</argument>
+                                        <argument>${data.flow.jdk}/bin/java</argument>
                                         <argument>${isJava8}</argument>
                                     </arguments>
                                 </configuration>
@@ -209,7 +146,7 @@
             </build>
         </profile>
         <profile>
-            <id>run-tests</id>
+            <id>data-flow</id>
             <activation>
                 <property>
                     <name>!skipTests</name>
@@ -220,14 +157,9 @@
                     <plugin>
                         <groupId>edu.gmu.swe.phosphor</groupId>
                         <artifactId>phosphor-instrument-maven-plugin</artifactId>
-                        <version>${project.version}</version>
                         <executions>
                             <execution>
-                                <id>data-flows</id>
-                                <phase>process-test-resources</phase>
-                            </execution>
-                            <execution>
-                                <id>control-flows</id>
+                                <id>data-flow</id>
                                 <phase>process-test-resources</phase>
                             </execution>
                         </executions>
@@ -237,34 +169,18 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>integration-test-data-flows</id>
+                                <id>data-flow</id>
                                 <configuration>
-                                    <skipTests>${skipDataFlowTests}</skipTests>
-                                    <jvm>${project.build.directory}/${data.flow.jvm}/bin/java</jvm>
+                                    <jvm>${data.flow.jdk}/bin/java</jvm>
                                     <includes>
                                         <include>**/*ObjTagITCase.java</include>
-                                    </includes>
-                                    <reuseForks>false</reuseForks>
-                                    <argLine>
-                                        ${argLine.prefix},enum,acmpeq,cacheDir=${data.flow.cache}
-                                    </argLine>
-                                </configuration>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>integration-test-instrumentation</id>
-                                <configuration>
-                                    <skipTests>${skipInstrumentationTest}</skipTests>
-                                    <jvm>${project.build.directory}/${data.flow.jvm}/bin/java</jvm>
-                                    <includes>
                                         <include>**/*InstCase.java</include>
                                     </includes>
                                     <reuseForks>false</reuseForks>
                                     <argLine>
-                                        ${argLine.prefix},enum,acmpeq,cacheDir=${instrumentation.cache}
+                                        -DphosphorCacheDirectory=${data.flow.cache}
+                                        -Xbootclasspath/a:${edu.gmu.swe.phosphor:Phosphor:jar}
+                                        -javaagent:${phosphor.agent}=${auto.taint},enum,acmpeq
                                     </argLine>
                                 </configuration>
                                 <goals>
@@ -272,40 +188,10 @@
                                     <goal>verify</goal>
                                 </goals>
                             </execution>
-<!--                            <execution>-->
-<!--                                <id>integration-test-control-flows</id>-->
-<!--                                <configuration>-->
-<!--                                    <skipTests>${skipControlFlowTests}</skipTests>-->
-<!--                                    <jvm>${project.build.directory}/${control.flow.jvm}/bin/java</jvm>-->
-<!--                                    <includes>-->
-<!--                                        <include>**/*ImplicitITCase.java</include>-->
-<!--                                    </includes>-->
-<!--                                    <reuseForks>false</reuseForks>-->
-<!--                                    <argLine>-->
-<!--                                        ${argLine.prefix},enum,acmpeq,implicitExceptions,cacheDir=${control.flow.cache}-->
-<!--                                    </argLine>-->
-<!--                                </configuration>-->
-<!--                                <goals>-->
-<!--                                    <goal>integration-test</goal>-->
-<!--                                    <goal>verify</goal>-->
-<!--                                </goals>-->
-<!--                            </execution>-->
                         </executions>
                     </plugin>
                 </plugins>
             </build>
         </profile>
     </profiles>
-    <dependencies>
-        <dependency>
-            <groupId>edu.gmu.swe.phosphor</groupId>
-            <artifactId>Phosphor</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>edu.gmu.swe.phosphor</groupId>
-            <artifactId>phosphor-jigsaw-javaagent</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-    </dependencies>
 </project>

@@ -2,31 +2,55 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>phosphor-instrument-jigsaw</artifactId>
-    <packaging>jar</packaging>
-    <description>A JLink Plugin for Creating Phosphor-instrumented JVMs</description>
+    <description>Tools for assisting in the creation of instrumented JVMs</description>
     <parent>
         <groupId>edu.gmu.swe.phosphor</groupId>
         <artifactId>phosphor-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
+    <dependencies>
+        <dependency>
+            <groupId>edu.gmu.swe.phosphor</groupId>
+            <artifactId>Phosphor</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jacoco</groupId>
+            <artifactId>org.jacoco.core</artifactId>
+            <version>0.8.11</version>
+        </dependency>
+    </dependencies>
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.0</version>
                 <configuration>
-                    <source>9</source>
-                    <target>9</target>
-                    <compilerArgs>
-                        <arg>
-                            --add-exports=jdk.jlink/jdk.tools.jlink.plugin=edu.columbia.cs.psl.jigsaw.phosphor.instrumenter
-                        </arg>
-                        <arg>
-                            --add-reads=edu.columbia.cs.psl.jigsaw.phosphor.instrumenter=ALL-UNNAMED
-                        </arg>
-                    </compilerArgs>
+                    <excludes>module-info.java</excludes>
+                    <source>8</source>
+                    <target>8</target>
                     <fork>true</fork>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-cli</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[9,)</version>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -34,10 +58,13 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Premain-Class>edu.columbia.cs.psl.jigsaw.phosphor.instrumenter.JLinkRegistrationAgent</Premain-Class>
-                            <Main-Class>edu.columbia.cs.psl.jigsaw.phosphor.instrumenter.StandaloneJVMInstrumenter</Main-Class>
+                            <Premain-Class>
+                                edu.gmu.swe.phosphor.jlink.JLinkRegistrationAgent
+                            </Premain-Class>
+                            <Main-Class>edu.gmu.swe.phosphor.jlink.InstrumentDriver</Main-Class>
                         </manifestEntries>
                     </archive>
+                    <forceCreation>true</forceCreation>
                 </configuration>
             </plugin>
             <plugin>
@@ -50,11 +77,33 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.jacoco.core</pattern>
+                                    <shadedPattern>
+                                        edu.gmu.swe.phosphor.jlink.org.jacoco.core
+                                    </shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.objectweb.asm</pattern>
+                                    <shadedPattern>
+                                        edu.gmu.swe.phosphor.jlink.org.objectweb.asm
+                                    </shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <artifactSet>
+                                <includes>
+                                    <include>org.jacoco:*</include>
+                                    <include>org.ow2.asm:*</include>
+                                </includes>
+                            </artifactSet>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
                                     <excludes>
+                                        <!-- Exclude module descriptors -->
                                         <exclude>module-info.class</exclude>
+                                        <!-- Exclude signature related files -->
                                         <exclude>META-INF/*.SF</exclude>
                                         <exclude>META-INF/*.DSA</exclude>
                                         <exclude>META-INF/*.RSA</exclude>
@@ -62,6 +111,8 @@
                                 </filter>
                             </filters>
                             <minimizeJar>false</minimizeJar>
+                            <createSourcesJar>true</createSourcesJar>
+                            <shadeSourcesContent>true</shadeSourcesContent>
                         </configuration>
                     </execution>
                 </executions>
@@ -69,9 +120,9 @@
             <plugin>
                 <groupId>org.moditect</groupId>
                 <artifactId>moditect-maven-plugin</artifactId>
-                <version>1.0.0.RC2</version>
                 <executions>
                     <execution>
+                        <!-- Add the module info file to the shaded jar -->
                         <id>add-module-info</id>
                         <phase>package</phase>
                         <goals>
@@ -81,7 +132,7 @@
                             <overwriteExistingFiles>true</overwriteExistingFiles>
                             <module>
                                 <moduleInfoFile>
-                                    src/main/java/module-info.java
+                                    ${project.build.sourceDirectory}/module-info.java
                                 </moduleInfoFile>
                             </module>
                         </configuration>
@@ -90,11 +141,4 @@
             </plugin>
         </plugins>
     </build>
-    <dependencies>
-        <dependency>
-            <groupId>edu.gmu.swe.phosphor</groupId>
-            <artifactId>Phosphor</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-    </dependencies>
 </project>

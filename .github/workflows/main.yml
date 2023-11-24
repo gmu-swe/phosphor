@@ -10,7 +10,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-#        java: [ '8', '11', '16', '17' ]
         java: [ '8', '11', '16' ]
     steps:
       - uses: actions/checkout@v3
@@ -22,7 +21,7 @@ jobs:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
       - name: Run tests
-        run: mvn install -ntp -Ddacapo.skip=false
+        run: mvn install -ntp -Pdacapo
   deploy:
     runs-on: self-hosted
     needs: build-and-test
