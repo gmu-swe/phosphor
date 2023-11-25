@@ -21,7 +21,6 @@ public final class JLinkInvoker {
         String classPath = buildClassPath(instrumentation);
         command.add(InstrumentUtil.javaHomeToJLinkExec(javaHome).getAbsolutePath());
         command.add("-J-javaagent:" + jlinkAgentJar);
-        command.add("-J-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005");
         command.add("-J--class-path=" + classPath);
         command.add("-J--add-reads=" + JLinkRegistrationAgent.MODULE_NAME + "=ALL-UNNAMED");
         command.add("-J--module-path=" + jlinkAgentJar);
