@@ -1,4 +1,4 @@
-package edu.gmu.swe.phosphor.jlink;
+package edu.gmu.swe.phosphor.instrument;
 
 import java.io.*;
 import java.security.MessageDigest;

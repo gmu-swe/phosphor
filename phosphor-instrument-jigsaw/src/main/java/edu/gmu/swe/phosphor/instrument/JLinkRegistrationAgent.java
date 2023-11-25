@@ -204,7 +204,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package edu.gmu.swe.phosphor.jlink;
+package edu.gmu.swe.phosphor.instrument;
 
 import java.lang.instrument.Instrumentation;
 import java.util.*;
@@ -213,7 +213,7 @@ import java.util.*;
  * Alters the jdk.jlink module to export the "jdk.tools.jlink.plugin" package to this class' module.
  * Alters this class' module to provide our custom JLink plugin as a service.
  */
-@SuppressWarnings("Java9ReflectionClassVisibility")
+@SuppressWarnings("Since15")
 public final class JLinkRegistrationAgent {
     public static final String MODULE_NAME = "edu.gmu.swe.phosphor.instrument";
     private static final String JLINK_MODULE_NAME = "jdk.jlink";
@@ -222,12 +222,12 @@ public final class JLinkRegistrationAgent {
 
     public static void premain(String agentArgs, Instrumentation inst) throws Exception {
         Module jlinkModule = ModuleLayer.boot().findModule(JLINK_MODULE_NAME).orElseThrow(RuntimeException::new);
-        Module customPluginModule =
-                ModuleLayer.boot().findModule(MODULE_NAME).orElseThrow(RuntimeException::new);
+        Module customPluginModule = ModuleLayer.boot().findModule(MODULE_NAME).orElseThrow(RuntimeException::new);
         Map<String, Set<Module>> extraExports = new HashMap<>();
         extraExports.put(JLINK_PLUGIN_PACKAGE_NAME, Collections.singleton(customPluginModule));
         // Alter jdk.jlink to export the Plugin API to the module containing our custom JLink plugin
-        inst.redefineModule(jlinkModule,
+        inst.redefineModule(
+                jlinkModule,
                 Collections.emptySet(),
                 extraExports,
                 Collections.emptyMap(),
@@ -237,7 +237,8 @@ public final class JLinkRegistrationAgent {
         Map<Class<?>, List<Class<?>>> extraProvides = new HashMap<>();
         extraProvides.put(jlinkPluginClass, Collections.singletonList(InstrumentJLinkPlugin.class));
         // Alter our custom JLink plugin's module to provide our custom JLink plugin as a service
-        inst.redefineModule(customPluginModule,
+        inst.redefineModule(
+                customPluginModule,
                 Collections.emptySet(),
                 Collections.emptyMap(),
                 Collections.emptyMap(),

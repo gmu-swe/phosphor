@@ -4,7 +4,6 @@ import edu.columbia.cs.psl.phosphor.struct.SinglyLinkedList;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import java.io.File;
 import java.util.*;
 
 public class OptionsUtil {
@@ -13,58 +12,46 @@ public class OptionsUtil {
      * to either true or not present in the properties, each Phosphor option with an argument is either mapped to a
      * non-null, non-empty string or not present in properties, and no other keys are present in the properties.
      *
-     * @param isRuntimeInst true if the options should be standardized against the options available during dynamic
-     *                      instrumentation, otherwise standardizes against the options available during static
-     *                      instrumentation
-     * @param properties    un-standardized properties to be standardized
+     * @param properties properties to be standardized
      * @return a standardized copy of properties
      */
-    public static Properties canonicalizeProperties(Properties properties, boolean isRuntimeInst) {
-        Set<String> propNames = properties.stringPropertyNames();
-        Properties canonicalProps = new Properties();
-        Map<String, Option> phosphorOptionMap = createPhosphorOptionMap(isRuntimeInst);
-        for (String propName : propNames) {
-            if (phosphorOptionMap.containsKey(propName)) {
-                Option option = phosphorOptionMap.get(propName);
-                if (option.hasArg()) {
-                    if (properties.getProperty(propName) != null
-                            && !properties.getProperty(propName).isEmpty()) {
-                        canonicalProps.setProperty(option.getOpt(), properties.getProperty(propName));
-                    }
-                } else {
-                    if (properties.getProperty(propName).isEmpty()
-                            || "true".equalsIgnoreCase(properties.getProperty(propName))) {
-                        canonicalProps.setProperty(option.getOpt(), "true");
-                    }
+    private static Properties standardize(Properties properties) {
+        Properties result = new Properties();
+        Map<String, Option> phosphorOptionMap = createOptionMap();
+        for (String key : properties.stringPropertyNames()) {
+            String value = properties.getProperty(key);
+            if (phosphorOptionMap.containsKey(key)) {
+                Option option = phosphorOptionMap.get(key);
+                if (option.hasArg() && value != null && !value.isEmpty()) {
+                    result.setProperty(option.getOpt(), value);
+                } else if (!option.hasArg() && (value == null || value.isEmpty() || "true".equalsIgnoreCase(value))) {
+                    result.setProperty(option.getOpt(), "true");
                 }
             } else {
-                System.err.println("Unknown Phosphor option: " + propName);
+                throw new IllegalArgumentException("Unknown option: " + key);
             }
         }
-        return canonicalProps;
+        return result;
     }
 
     /**
-     * @param isRuntimeInst true if a map of options available during dynamic instrumentation should be returned,
-     *                      otherwise a map of option available during static instrumentation should be returned
      * @return a mapping from the names of configuration options available in Phosphor to an instance of
      * org.apache.commons.cli.Option that represents that configuration option
      */
-    private static Map<String, Option> createPhosphorOptionMap(boolean isRuntimeInst) {
-        Map<String, Option> phosphorOptionMap = new HashMap<>();
-        Options options = PhosphorOption.createOptions(isRuntimeInst);
+    private static Map<String, Option> createOptionMap() {
+        Map<String, Option> map = new HashMap<>();
+        Options options = PhosphorOption.createOptions(false);
         for (Option option : options.getOptions()) {
-            phosphorOptionMap.put(option.getOpt(), option);
+            map.put(option.getOpt(), option);
             if (option.hasLongOpt()) {
-                phosphorOptionMap.put(option.getLongOpt(), option);
+                map.put(option.getLongOpt(), option);
             }
         }
-        return phosphorOptionMap;
+        return map;
     }
 
-    public static String[] createPhosphorMainArguments(
-            File inputDirectory, File outputDirectory, Properties properties) {
-        properties = canonicalizeProperties(properties, false);
+    public static String[] createPhosphorMainArguments(Properties properties) {
+        properties = standardize(properties);
         SinglyLinkedList<String> arguments = new SinglyLinkedList<>();
         Set<String> propNames = properties.stringPropertyNames();
         for (String propName : propNames) {
@@ -73,8 +60,8 @@ public class OptionsUtil {
                 arguments.addLast(properties.getProperty(propName));
             }
         }
-        arguments.addLast(inputDirectory.getAbsolutePath());
-        arguments.addLast(outputDirectory.getAbsolutePath());
+        arguments.addLast("temp/");
+        arguments.addLast("temp2/");
         return arguments.toArray(new String[0]);
     }
 

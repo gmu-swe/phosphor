@@ -1,4 +1,4 @@
-package edu.gmu.swe.phosphor.jlink;
+package edu.gmu.swe.phosphor.instrument;
 
 import org.jacoco.core.internal.InputStreams;
 import org.jacoco.core.internal.instr.SignatureRemover;
@@ -7,6 +7,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.*;
 
 public final class Instrumenter {
@@ -15,12 +16,15 @@ public final class Instrumenter {
             Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private final ConcurrentLinkedQueue<Throwable> errors = new ConcurrentLinkedQueue<>();
     private final Instrumentation instrumentation;
+    private final AtomicInteger count = new AtomicInteger(0);
+    private final boolean verbose;
 
-    public Instrumenter(Instrumentation instrumentation) {
+    public Instrumenter(Instrumentation instrumentation, boolean verbose) {
         if (instrumentation == null) {
             throw new NullPointerException();
         }
         this.instrumentation = instrumentation;
+        this.verbose = verbose;
     }
 
     public void process(File source, File target) throws IOException, InterruptedException, ExecutionException {
@@ -50,16 +54,19 @@ public final class Instrumenter {
     private void instrumentClass(File source, File target) {
         try (InputStream input = Files.newInputStream(source.toPath());
                 OutputStream output = Files.newOutputStream(target.toPath())) {
-            instrumentClass(input, output);
+            instrumentClass(InstrumentUtil.readAllBytes(input), output);
         } catch (Throwable t) {
             errors.add(t);
         }
     }
 
-    private void instrumentClass(InputStream input, OutputStream output) throws IOException {
-        byte[] buffer = InstrumentUtil.readAllBytes(input);
-        byte[] result = instrumentation.apply(buffer);
-        output.write(result == null ? buffer : result);
+    private void instrumentClass(byte[] classFileBuffer, OutputStream output) throws IOException {
+        byte[] result = instrumentation.apply(classFileBuffer);
+        output.write(result == null ? classFileBuffer : result);
+        int n;
+        if ((n = count.incrementAndGet()) % 1000 == 0 && verbose) {
+            System.out.println("Processed: " + n);
+        }
     }
 
     private void processFile(Collection<Future<Void>> futures, File source, File target)
@@ -76,13 +83,13 @@ public final class Instrumenter {
         } else {
             if (copy(source, target)) {
                 if (source.canExecute() && !target.setExecutable(true)) {
-                    errors.add(new IOException("Failed to set permissions for: " + target));
+                    errors.add(new IOException("Failed to set execute permission for: " + target));
                 }
                 if (source.canRead() && !target.setReadable(true)) {
-                    errors.add(new IOException("Failed to set permissions for: " + target));
+                    errors.add(new IOException("Failed to set read permission for: " + target));
                 }
                 if (source.canWrite() && !target.setWritable(true)) {
-                    errors.add(new IOException("Failed to set permissions for: " + target));
+                    errors.add(new IOException("Failed to set write permission for: " + target));
                 }
             }
         }
@@ -169,7 +176,7 @@ public final class Instrumenter {
                     ByteArrayInputStream in = new ByteArrayInputStream(buffer);
                     ByteArrayOutputStream out = new ByteArrayOutputStream();
                     if (entry.getName().endsWith(".class")) {
-                        instrumentClass(in, out);
+                        instrumentClass(buffer, out);
                     } else if (entry.getName().endsWith(".jar")) {
                         processZip(in, out);
                     } else if (!signatureRemover.filterEntry(entry.getName(), in, out)) {
@@ -181,6 +188,33 @@ public final class Instrumenter {
                 }
             }
             this.buffer = tempBuffer;
+        }
+    }
+
+    public static long instrument(
+            File source,
+            File target,
+            Properties options,
+            Instrumentation instrumentation,
+            boolean verbose,
+            String modules)
+            throws IOException {
+        if (target.exists()) {
+            throw new IllegalArgumentException("Target location for instrumentation already exists.");
+        }
+        if (!source.exists()) {
+            throw new IllegalArgumentException("Source location not found: " + source);
+        }
+        long startTime = System.currentTimeMillis();
+        try {
+            if (InstrumentUtil.isModularJvm(source)) {
+                JLinkInvoker.invoke(source, target, instrumentation, options, modules);
+            } else {
+                new Instrumenter(instrumentation, verbose).process(source, target);
+            }
+            return System.currentTimeMillis() - startTime;
+        } catch (IOException | InterruptedException | ExecutionException e) {
+            throw new IOException("Failed to instrument source location", e);
         }
     }
 }

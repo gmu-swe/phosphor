@@ -1,9 +1,5 @@
 package edu.gmu.swe.phosphor.instrument;
 
-import edu.gmu.swe.phosphor.jlink.DeletingFileVisitor;
-import edu.gmu.swe.phosphor.jlink.InstrumentDriver;
-import edu.gmu.swe.phosphor.jlink.InstrumentUtil;
-import edu.gmu.swe.phosphor.jlink.Instrumentation;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -18,32 +14,32 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- * Creates an instrumented Java installation.
+ * Creates an instrumented Java installation (i.e., Java Development Kit or Java Runtime Environment).
  * <p>
- * If {@link InstrumentingMojo#outputDirectory} does not exists, a new instrumented Java installation is created.
- * If {@link InstrumentingMojo#outputDirectory} exists and is not a Java installation previously created by
+ * If {@link InstrumentMojo#outputDirectory} does not exists, a new instrumented Java installation is created.
+ * If {@link InstrumentMojo#outputDirectory} exists and is not a Java installation previously created by
  * this plugin, this plugin will throw a {@link MojoExecutionException}.
- * If {@link InstrumentingMojo#outputDirectory} exists and is a Java installation previously created by this plugin,
+ * If {@link InstrumentMojo#outputDirectory} exists and is a Java installation previously created by this plugin,
  * this plugin checks whether the Java installation needs to be recreated.
- * If the {@link InstrumentingMojo#forceCreation} is {@code false} and the existing Java installation was created from
- * the same {@link InstrumentingMojo#javaHome uninstrumented Java installation} using the same
- * {@link InstrumentingMojo#instrumentationType} and {@link InstrumentingMojo#options}, then the Java installation does
+ * If the {@link InstrumentMojo#forceCreation} is {@code false} and the existing Java installation was created from
+ * the same {@link InstrumentMojo#javaHome uninstrumented Java installation} using the same
+ * {@link InstrumentMojo#instrumentationType} and {@link InstrumentMojo#options}, then the Java installation does
  * not need to be recreated and the plugin terminates.
  * Otherwise, this plugin will delete the existing Java installation and any
- * {@link InstrumentingMojo#linkedCaches linked files or directories}.
+ * {@link InstrumentMojo#linkedCaches linked files or directories}.
  * Then, this plugin will create a new instrumented Java installation.
  * <p>
  * The instrumented Java installation is created by instrumenting the Java installation located in the directory
- * {@link InstrumentingMojo#javaHome} or the Java installation used to run the Maven process if
- * {@link InstrumentingMojo#javaHome} was not specified.
- * An instance of the specified {@link InstrumentingMojo#instrumentationType instrumentation class} is created and
- * configured using the specified {@link InstrumentingMojo#options}.
+ * {@link InstrumentMojo#javaHome} or the Java installation used to run the Maven process if
+ * {@link InstrumentMojo#javaHome} was not specified.
+ * An instance of the specified {@link InstrumentMojo#instrumentationType instrumentation class} is created and
+ * configured using the specified {@link InstrumentMojo#options}.
  * This instance determines the type of instrumentation applied.
  *
- * @see edu.gmu.swe.phosphor.jlink.Instrumentation
+ * @see edu.gmu.swe.phosphor.instrument.Instrumentation
  */
 @Mojo(name = "instrument", defaultPhase = LifecyclePhase.PROCESS_TEST_RESOURCES)
-public class InstrumentingMojo extends AbstractMojo {
+public class InstrumentMojo extends AbstractMojo {
     /**
      * Directory where the Java installation to be instrumented is located.
      * If not specified, then the Java installation used to run the Maven process will be used.
@@ -80,7 +76,7 @@ public class InstrumentingMojo extends AbstractMojo {
      */
     @Parameter(
             property = "phosphor.instrumentationType",
-            defaultValue = "edu.gmu.swe.phosphor.jlink.PhosphorInstrumentation")
+            defaultValue = "edu.gmu.swe.phosphor.instrument.PhosphorInstrumentation")
     private String instrumentationType;
     /**
      * Options passed to {@link Instrumentation#configure}.
@@ -88,19 +84,16 @@ public class InstrumentingMojo extends AbstractMojo {
     @Parameter(property = "phosphor.options")
     private Properties options = new Properties();
     /**
-     * File used to store the options used by this plugin to create the instrumented Java installation
+     * A comma-separated list of Java modules to include in the instrumented Java installation.
+     * Used only for instrumenting Java 9+ installations.
      */
-    private File optionsFile;
+    @Parameter(property = "phosphor.modules", defaultValue = "ALL-MODULE-PATH")
+    private String modules;
     /**
-     * File used to store the checksum for the instrumentation used by this plugin to create the instrumented Java
-     * installation
+     * True is information about instrumentation progress should be logged.
      */
-    private File checksumFile;
-    /**
-     * File used to store the path of the uninstrumented Java installation and fully qualified name of the
-     * implementation of {@link Instrumentation} used by this plugin to create the instrumented Java installation
-     */
-    private File infoFile;
+    @Parameter(property = "phosphor.verbose", defaultValue = "false")
+    private boolean verbose;
 
     /**
      * Creates an instrumented Java installation.
@@ -112,17 +105,12 @@ public class InstrumentingMojo extends AbstractMojo {
         if (!InstrumentUtil.isJavaHome(javaHome)) {
             throw new MojoExecutionException("Expected Java installation at: " + javaHome);
         }
-        optionsFile = new File(outputDirectory, "phosphor-instrument" + File.separator + "option.properties");
-        checksumFile = new File(optionsFile.getParent(), "checksum.md5");
-        infoFile = new File(optionsFile.getParent(), "info.txt");
         Instrumentation instance = createInstrumentation();
         byte[] checksum = computeChecksum(instance);
         String info = String.format("%s%n%s", javaHome.getAbsolutePath(), instrumentationType);
-        if (InstrumentUtil.isJavaHome(outputDirectory)
-                && checksumFile.isFile()
-                && optionsFile.isFile()
-                && infoFile.isFile()) {
-            if (!forceCreation && checkMatchFiles(checksum, info)) {
+        MatchInfo match = new MatchInfo(outputDirectory);
+        if (InstrumentUtil.isJavaHome(outputDirectory) && match.exists()) {
+            if (!forceCreation && match.check(checksum, info, options)) {
                 getLog().info("Existing instrumented Java installation with correct settings found: "
                         + outputDirectory);
                 getLog().info("Skipping creation.");
@@ -130,47 +118,31 @@ public class InstrumentingMojo extends AbstractMojo {
                 if (!forceCreation) {
                     getLog().info("Existing Java installation did not have correct settings.");
                 }
-                getLog().info("Recreating Java installation : " + outputDirectory);
-                deleteExistingJdkAndLinkedCaches();
-                createInstrumentedJdk(instance, checksum, info);
+                deleteExisting();
+                instrument(instance, checksum, info, match);
             }
         } else if (outputDirectory.exists()) {
             String message = "Failed to create instrumented Java installation."
                     + " %s already exists and is not an instrumented Java installation.";
             throw new MojoExecutionException(String.format(message, outputDirectory));
         } else {
-            getLog().info("Creating Java installation : " + outputDirectory);
-            createInstrumentedJdk(instance, checksum, info);
+            instrument(instance, checksum, info, match);
         }
     }
 
     private Instrumentation createInstrumentation() throws MojoExecutionException {
         try {
-            Class<?> clazz = Class.forName(instrumentationType, true, getClass().getClassLoader());
-            Instrumentation instance = (Instrumentation) clazz.getConstructor().newInstance();
-            instance.configure(javaHome, outputDirectory, options);
-            return instance;
+            return Instrumentation.create(instrumentationType, javaHome, options);
         } catch (ClassCastException | IOException | ReflectiveOperationException e) {
             throw new MojoExecutionException(
                     "Error occurred while creating instrumentation instance: " + instrumentationType, e);
         }
     }
 
-    private boolean checkMatchFiles(byte[] checksum, String info) throws MojoExecutionException {
-        try (FileReader reader = new FileReader(optionsFile)) {
-            Properties foundOptions = new Properties();
-            foundOptions.load(reader);
-            return foundOptions.equals(options)
-                    && Arrays.equals(checksum, InstrumentUtil.readAllBytes(checksumFile))
-                    && new String(InstrumentUtil.readAllBytes(infoFile)).equals(info);
-        } catch (IOException e) {
-            throw new MojoExecutionException("Failed to read match info", e);
-        }
-    }
-
-    private void deleteExistingJdkAndLinkedCaches() throws MojoExecutionException {
+    private void deleteExisting() throws MojoExecutionException {
         try {
             Files.walkFileTree(outputDirectory.toPath(), new DeletingFileVisitor());
+            getLog().info("Deleted existing Java installation: " + outputDirectory);
             for (File file : linkedCaches) {
                 if (file.exists()) {
                     Files.walkFileTree(file.toPath(), new DeletingFileVisitor());
@@ -182,27 +154,17 @@ public class InstrumentingMojo extends AbstractMojo {
         }
     }
 
-    private void createInstrumentedJdk(Instrumentation instance, byte[] checksum, String info)
+    private void instrument(Instrumentation instance, byte[] checksum, String info, MatchInfo match)
             throws MojoExecutionException {
+        getLog().info("Creating Java installation: " + outputDirectory);
         try {
-            InstrumentDriver.instrument(javaHome, outputDirectory, instance);
+            long elapsedTime =
+                    Instrumenter.instrument(javaHome, outputDirectory, options, instance, verbose, modules);
+            getLog().info(String.format("Finished creating instrumented Java installation after %d ms", elapsedTime));
         } catch (IOException e) {
-            throw new MojoExecutionException("Failed to instrument Java instrumentation.", e);
+            throw new MojoExecutionException("Failed to create instrumented Java instrumentation.", e);
         }
-        writeMatchFiles(checksum, info);
-    }
-
-    private void writeMatchFiles(byte[] checksum, String info) throws MojoExecutionException {
-        try {
-            InstrumentUtil.ensureDirectory(optionsFile.getParentFile());
-            Files.write(checksumFile.toPath(), checksum);
-            Files.write(infoFile.toPath(), info.getBytes());
-            try (FileWriter writer = new FileWriter(optionsFile)) {
-                options.store(writer, null);
-            }
-        } catch (IOException e) {
-            throw new MojoExecutionException("Failed to write match files", e);
-        }
+        match.write(checksum, info, options);
     }
 
     private static byte[] computeChecksum(Instrumentation instrumentation) throws MojoExecutionException {
@@ -216,6 +178,63 @@ public class InstrumentingMojo extends AbstractMojo {
             return InstrumentUtil.checksum(buffer.toByteArray());
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to compute instrumentation checksum", e);
+        }
+    }
+
+    private static final class MatchInfo {
+        /**
+         * File used to store the options used to instrument a location.
+         * <p>
+         * Non-null.
+         */
+        private final File optionsFile;
+        /**
+         * File used to store the checksum for the class path of the instrumentation used to instrument a
+         * location.
+         * <p>
+         * Non-null.
+         */
+        private final File checksumFile;
+        /**
+         * File used to store the path of the source location instrumented and the fully qualified name of the
+         * implementation of {@link Instrumentation} used to instrument a location.
+         */
+        private final File infoFile;
+
+        public MatchInfo(File directory) {
+            File parent = new File(directory, "phosphor-instrument-match");
+            this.optionsFile = new File(parent, "options.properties");
+            this.checksumFile = new File(parent, "class-path.md5");
+            this.infoFile = new File(parent, "info.txt");
+        }
+
+        public boolean exists() {
+            return optionsFile.isFile() && checksumFile.isFile() && infoFile.isFile();
+        }
+
+        private boolean check(byte[] checksum, String info, Properties options) throws MojoExecutionException {
+            try (FileReader reader = new FileReader(optionsFile)) {
+                Properties foundOptions = new Properties();
+                foundOptions.load(reader);
+                return foundOptions.equals(options)
+                        && Arrays.equals(checksum, InstrumentUtil.readAllBytes(checksumFile))
+                        && new String(InstrumentUtil.readAllBytes(infoFile)).equals(info);
+            } catch (IOException e) {
+                throw new MojoExecutionException("Failed to read match info", e);
+            }
+        }
+
+        public void write(byte[] checksum, String info, Properties options) throws MojoExecutionException {
+            try {
+                InstrumentUtil.ensureDirectory(optionsFile.getParentFile());
+                Files.write(checksumFile.toPath(), checksum);
+                Files.write(infoFile.toPath(), info.getBytes());
+                try (FileWriter writer = new FileWriter(optionsFile)) {
+                    options.store(writer, null);
+                }
+            } catch (IOException e) {
+                throw new MojoExecutionException("Failed to write match info", e);
+            }
         }
     }
 }

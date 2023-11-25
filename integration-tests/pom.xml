@@ -14,9 +14,12 @@
         <auto.taint>
             taintSources=${test.resources.dir}/taint-sources,taintSinks=${test.resources.dir}/taint-sinks,taintThrough=${test.resources.dir}/taint-through
         </auto.taint>
-        <data.flow.jdk>${project.build.directory}/phosphor/data/jdk/</data.flow.jdk>
+        <data.flow.java>${project.build.directory}/phosphor/data/java/</data.flow.java>
         <data.flow.cache>${project.build.directory}/phosphor/data/cache</data.flow.cache>
         <data.flow.skip>false</data.flow.skip>
+        <phosphor.jar>${edu.gmu.swe.phosphor:Phosphor:jar}</phosphor.jar>
+        <phosphor.agent>${edu.gmu.swe.phosphor:phosphor-jigsaw-javaagent:jar}</phosphor.agent>
+        <isJava8>false</isJava8>
     </properties>
     <dependencies>
         <dependency>
@@ -33,6 +36,18 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>test-compile</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
@@ -45,13 +60,21 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
+                <artifactId>maven-enforcer-plugin</artifactId>
                 <executions>
                     <execution>
-                        <phase>test-compile</phase>
+                        <id>enforce</id>
+                        <phase>validate</phase>
                         <goals>
-                            <goal>testCompile</goal>
+                            <goal>enforce</goal>
                         </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[8,)</version>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -67,7 +90,7 @@
                         </goals>
                         <phase>none</phase>
                         <configuration>
-                            <outputDirectory>${data.flow.jdk}</outputDirectory>
+                            <outputDirectory>${data.flow.java}</outputDirectory>
                             <linkedCaches>
                                 <linkedCache>${data.flow.cache}</linkedCache>
                             </linkedCaches>
@@ -93,16 +116,6 @@
             <properties>
                 <isJava8>true</isJava8>
                 <phosphor.agent>${edu.gmu.swe.phosphor:Phosphor:jar}</phosphor.agent>
-            </properties>
-        </profile>
-        <profile>
-            <id>java9Plus</id>
-            <activation>
-                <jdk>[9,)</jdk>
-            </activation>
-            <properties>
-                <isJava8>false</isJava8>
-                <phosphor.agent>${edu.gmu.swe.phosphor:phosphor-jigsaw-javaagent:jar}</phosphor.agent>
             </properties>
         </profile>
         <profile>
@@ -133,9 +146,9 @@
                                     <executable>${basedir}/runDacapo.sh</executable>
                                     <arguments>
                                         <argument>${project.build.directory}</argument>
-                                        <argument>${edu.gmu.swe.phosphor:Phosphor:jar}</argument>
+                                        <argument>${phosphor.jar}</argument>
                                         <argument>${phosphor.agent}</argument>
-                                        <argument>${data.flow.jdk}/bin/java</argument>
+                                        <argument>${data.flow.java}/bin/java</argument>
                                         <argument>${isJava8}</argument>
                                     </arguments>
                                 </configuration>
@@ -170,23 +183,68 @@
                         <executions>
                             <execution>
                                 <id>data-flow</id>
-                                <configuration>
-                                    <jvm>${data.flow.jdk}/bin/java</jvm>
-                                    <includes>
-                                        <include>**/*ObjTagITCase.java</include>
-                                        <include>**/*InstCase.java</include>
-                                    </includes>
-                                    <reuseForks>false</reuseForks>
-                                    <argLine>
-                                        -DphosphorCacheDirectory=${data.flow.cache}
-                                        -Xbootclasspath/a:${edu.gmu.swe.phosphor:Phosphor:jar}
-                                        -javaagent:${phosphor.agent}=${auto.taint},enum,acmpeq
-                                    </argLine>
-                                </configuration>
                                 <goals>
                                     <goal>integration-test</goal>
                                     <goal>verify</goal>
                                 </goals>
+                                <configuration>
+                                    <jvm>${data.flow.java}/bin/java</jvm>
+                                    <includes>
+                                        <include>**/*ObjTagITCase.java</include>
+                                    </includes>
+                                    <reuseForks>false</reuseForks>
+                                    <argLine>
+                                        -DphosphorCacheDirectory=${data.flow.cache}
+                                        -Xbootclasspath/a:${phosphor.jar}
+                                        -javaagent:${phosphor.agent}=${auto.taint},enum,acmpeq
+                                    </argLine>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>instrument</id>
+            <activation>
+                <property>
+                    <name>!skipTests</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>edu.gmu.swe.phosphor</groupId>
+                        <artifactId>phosphor-instrument-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>data-flow</id>
+                                <phase>process-test-resources</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>instrument</id>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <jvm>${data.flow.java}/bin/java</jvm>
+                                    <includes>
+                                        <include>**/*InstCase.java</include>
+                                    </includes>
+                                    <reuseForks>false</reuseForks>
+                                    <argLine>
+                                        -Xbootclasspath/a:${phosphor.jar}
+                                        -javaagent:${phosphor.agent}=${auto.taint},enum,acmpeq
+                                    </argLine>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>

@@ -36,7 +36,7 @@ for bm in "${BENCHMARKS[@]}"; do
 #  echo "$JAVA_HOME/bin/java -cp $DACAPO_DIR Harness $bm"
 
   if [ "$IS_JAVA_8" == "true" ]; then
-    $INST_JVM -Xmx1g -Xbootclasspath/p:"$PHOSPHOR_JAR" -javaagent:"$PHOSPHOR_JAVA_AGENT" -cp "$INST_DACAPO_DIR" -Declipse.java.home="$JAVA_HOME" -Djava.awt.headless=true Harness "$bm"
+    $INST_JVM -Xmx1g -Xbootclasspath/a:"$PHOSPHOR_JAR" -javaagent:"$PHOSPHOR_JAVA_AGENT" -cp "$INST_DACAPO_DIR" -Declipse.java.home="$JAVA_HOME" -Djava.awt.headless=true Harness "$bm"
   else
     $INST_JVM -Xmx4g -javaagent:"$PHOSPHOR_JAVA_AGENT" -cp "$INST_DACAPO_DIR" -Declipse.java.home="$JAVA_HOME" -Djava.awt.headless=true Harness "$bm"
   fi

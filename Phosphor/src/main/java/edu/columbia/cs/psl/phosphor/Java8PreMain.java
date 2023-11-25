@@ -25,7 +25,7 @@ public class Java8PreMain {
 
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-            return transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
+            return transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer, null);
         }
 
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer, PhosphorStackFrame phosphorStackFrame) throws IllegalClassFormatException {

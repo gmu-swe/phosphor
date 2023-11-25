@@ -7,7 +7,7 @@ Phosphor is a system for performing dynamic taint analysis in the JVM, on commod
 Phosphor has been extensively developed since its original publication, and now includes many features and options not described in the OOPSLA 2014 paper. If you are looking to replicate our OOPSLA 2014 experiments, the easiest way to get the same version with certainty is to use this [VM Image with all relevant files here](http://academiccommons.columbia.edu/catalog/ac%3A182689), and to follow the [README with instructions for doing so here](https://www.dropbox.com/s/dmebj6k8izams6p/artifact-63-phosphor.pdf?dl=0).
 
 ### Refactoring Status and Roadmap
-This branch contains what is nearly a complete rewrite of Phosphor, using a less fragile (but slower) approach to pass taint tags between methods. It also is the first version of Phosphor to support Java9+.
+This branch contains what is nearly a complete rewrite of Phosphor, using a less fragile (but slower) approach to pass taint tags between methods. It also is the first version of Phosphor to support Java 9+.
 
 Remaining tasks for this branch before promotion:
 * Implement control tracking semantics (currently entirely unimplemented)

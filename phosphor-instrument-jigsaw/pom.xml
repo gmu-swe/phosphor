@@ -59,9 +59,11 @@
                     <archive>
                         <manifestEntries>
                             <Premain-Class>
-                                edu.gmu.swe.phosphor.jlink.JLinkRegistrationAgent
+                                edu.gmu.swe.phosphor.instrument.JLinkRegistrationAgent
                             </Premain-Class>
-                            <Main-Class>edu.gmu.swe.phosphor.jlink.InstrumentDriver</Main-Class>
+                            <Main-Class>
+                                edu.gmu.swe.phosphor.instrument.PhosphorInstrumenter
+                            </Main-Class>
                         </manifestEntries>
                     </archive>
                     <forceCreation>true</forceCreation>
@@ -81,13 +83,13 @@
                                 <relocation>
                                     <pattern>org.jacoco.core</pattern>
                                     <shadedPattern>
-                                        edu.gmu.swe.phosphor.jlink.org.jacoco.core
+                                        edu.gmu.swe.phosphor.instrument.org.jacoco.core
                                     </shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.objectweb.asm</pattern>
                                     <shadedPattern>
-                                        edu.gmu.swe.phosphor.jlink.org.objectweb.asm
+                                        edu.gmu.swe.phosphor.instrument.org.objectweb.asm
                                     </shadedPattern>
                                 </relocation>
                             </relocations>

@@ -8,9 +8,6 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-
 import static org.objectweb.asm.Opcodes.*;
 
 public class InstrumenterTest {
@@ -30,8 +27,7 @@ public class InstrumenterTest {
     @Test
     public void testAggressivelyReduceMethodSizeGetStaticThenArrayLength() {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-        cw.visit(52, ACC_PUBLIC + ACC_SUPER, "Test", null, "java/lang/Object",
-                 null);
+        cw.visit(52, ACC_PUBLIC + ACC_SUPER, "Test", null, "java/lang/Object", null);
         MethodVisitor mv;
         mv = cw.visitMethod(ACC_PUBLIC + ACC_STATIC, "example", "()V", null, null);
         mv.visitCode();
@@ -46,8 +42,8 @@ public class InstrumenterTest {
         mv.visitMaxs(1, 0);
         mv.visitEnd();
         cw.visitEnd();
-        InputStream in = new ByteArrayInputStream(cw.toByteArray());
-        Instrumenter.instrumentClass("Test", in, true);
+        byte[] classFileBuffer = cw.toByteArray();
+        new PreMain.PCLoggingTransformer().transform(null, null, null, null, classFileBuffer, false);
     }
 
     @Test
@@ -90,7 +86,7 @@ public class InstrumenterTest {
         mv.visitInsn(RETURN);
         mv.visitMaxs(-1, -1);
         mv.visitEnd();
-        InputStream in = new ByteArrayInputStream(cw.toByteArray());
-        Instrumenter.instrumentClass("Test", in, true);
+        byte[] classFileBuffer = cw.toByteArray();
+        new PreMain.PCLoggingTransformer().transform(null, null, null, null, classFileBuffer, false);
     }
 }
