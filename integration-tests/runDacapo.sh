@@ -25,7 +25,7 @@ cd "$BUILD_DIR"
 
 if [ ! -d "$INST_DACAPO_DIR" ]; then
   echo "Creating data flow instrumented dacapo"
-  java -Xmx8g -jar "$DRIVER_JAR" -forceUnboxAcmpEq -withEnumsByValue "$DACAPO_DIR" "$INST_DACAPO_DIR"
+  java -Xmx8g -jar "$DRIVER_JAR" -q -forceUnboxAcmpEq -withEnumsByValue "$DACAPO_DIR" "$INST_DACAPO_DIR"
 else
   echo "Not regenerating data flow instrumented dacapo"
 fi

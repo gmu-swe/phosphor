@@ -8,7 +8,10 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.*;
+import java.util.zip.CRC32;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 public final class Instrumenter {
     private final SignatureRemover signatureRemover = new SignatureRemover();
@@ -18,6 +21,7 @@ public final class Instrumenter {
     private final Instrumentation instrumentation;
     private final AtomicInteger count = new AtomicInteger(0);
     private final boolean verbose;
+    private final Queue<Future<?>> futures = new ConcurrentLinkedQueue<>();
 
     public Instrumenter(Instrumentation instrumentation, boolean verbose) {
         if (instrumentation == null) {
@@ -33,8 +37,7 @@ public final class Instrumenter {
         } else if (!source.isDirectory() && !isClass(source.getName()) && !isArchive(source.getName())) {
             throw new IllegalArgumentException("Unknown source file type: " + source);
         }
-        Queue<Future<Void>> futures = new LinkedList<>();
-        processFile(futures, source, destination);
+        collectFiles(source, destination);
         while (!futures.isEmpty()) {
             futures.poll().get();
         }
@@ -69,17 +72,18 @@ public final class Instrumenter {
         }
     }
 
-    private void processFile(Collection<Future<Void>> futures, File source, File destination)
-            throws IOException, InterruptedException {
+    private void collectFiles(File source, File destination) throws IOException {
         if (source.isDirectory()) {
             InstrumentUtil.ensureDirectory(destination);
             for (File child : Objects.requireNonNull(source.listFiles())) {
-                processFile(futures, child, new File(destination, child.getName()));
+                collectFiles(child, new File(destination, child.getName()));
             }
         } else if (isClass(source.getName())) {
             futures.add(executor.submit(() -> instrumentClass(source, destination), null));
         } else if (isArchive(source.getName())) {
-            processZip(Files.newInputStream(source.toPath()), Files.newOutputStream(destination.toPath()));
+            byte[] buffer = InstrumentUtil.readAllBytes(source);
+            OutputStream out = Files.newOutputStream(destination.toPath());
+            futures.add(executor.submit(() -> processZip(buffer, out), null));
         } else {
             if (copy(source, destination)) {
                 if (source.canExecute() && !destination.setExecutable(true)) {
@@ -95,52 +99,61 @@ public final class Instrumenter {
         }
     }
 
-    private void processZip(InputStream in, OutputStream out) throws IOException, InterruptedException {
-        try {
-            List<Future<ZipResult>> futures = new LinkedList<>();
-            try (ZipInputStream zin = new ZipInputStream(in)) {
-                for (ZipEntry entry; (entry = zin.getNextEntry()) != null; ) {
-                    ZipEntry finalEntry = entry;
-                    if (entry.isDirectory()) {
-                        futures.add(executor.submit(() -> new ZipResult(finalEntry, null)));
-                    } else if (!signatureRemover.removeEntry(entry.getName())) {
-                        byte[] buffer = InputStreams.readFully(zin);
-                        futures.add(executor.submit(() -> new ZipResult(finalEntry, buffer)));
-                    }
-                }
+    private void finishArchive(List<Future<ZipResult>> entries, OutputStream out) {
+        for (Future<ZipResult> future : entries) {
+            // Submit a new task to finish this archive to prevent blocking
+            if (!future.isDone()) {
+                executor.submit(() -> finishArchive(entries, out));
+                return;
             }
-            writeZipResults(out, futures);
-        } catch (IOException e) {
+        }
+        try (ZipOutputStream zos = new ZipOutputStream(out)) {
+            for (Future<ZipResult> future : entries) {
+                ZipResult result = future.get();
+                ZipEntry entry = result.entry;
+                ZipEntry outEntry = new ZipEntry(entry.getName());
+                outEntry.setMethod(entry.getMethod());
+                if (entry.getMethod() == ZipEntry.STORED) {
+                    // Uncompressed entries require entry size and CRC
+                    outEntry.setSize(result.buffer.length);
+                    outEntry.setCompressedSize(result.buffer.length);
+                    CRC32 crc = new CRC32();
+                    crc.update(result.buffer, 0, result.buffer.length);
+                    outEntry.setCrc(crc.getValue());
+                }
+                zos.putNextEntry(outEntry);
+                zos.write(result.buffer);
+                zos.closeEntry();
+            }
+            zos.finish();
+        } catch (ExecutionException | InterruptedException | IOException e) {
             errors.add(e);
-            InstrumentUtil.copy(in, out);
         }
     }
 
-    private void writeZipResults(OutputStream out, List<Future<ZipResult>> futures)
-            throws IOException, InterruptedException {
-        try (ZipOutputStream zos = new ZipOutputStream(out)) {
-            for (Future<ZipResult> future : futures) {
-                try {
-                    ZipResult result = future.get();
-                    ZipEntry entry = result.entry;
-                    ZipEntry outEntry = new ZipEntry(entry.getName());
-                    outEntry.setMethod(entry.getMethod());
-                    if (entry.getMethod() == ZipEntry.STORED) {
-                        // Uncompressed entries require entry size and CRC
-                        outEntry.setSize(result.buffer.length);
-                        outEntry.setCompressedSize(result.buffer.length);
-                        CRC32 crc = new CRC32();
-                        crc.update(result.buffer, 0, result.buffer.length);
-                        outEntry.setCrc(crc.getValue());
-                    }
-                    zos.putNextEntry(outEntry);
-                    zos.write(result.buffer);
-                    zos.closeEntry();
-                } catch (ExecutionException | ZipException e) {
-                    errors.add(e);
+    private List<Future<ZipResult>> submitZipEntries(byte[] in) throws IOException {
+        List<Future<ZipResult>> entries = new LinkedList<>();
+        try (ZipInputStream zin = new ZipInputStream(new ByteArrayInputStream(in))) {
+            for (ZipEntry entry; (entry = zin.getNextEntry()) != null; ) {
+                ZipEntry finalEntry = entry;
+                if (entry.isDirectory()) {
+                    entries.add(executor.submit(() -> new ZipResult(finalEntry, null)));
+                } else if (!signatureRemover.removeEntry(entry.getName())) {
+                    byte[] buffer = InputStreams.readFully(zin);
+                    entries.add(executor.submit(() -> new ZipResult(finalEntry, buffer)));
                 }
             }
-            zos.finish();
+        }
+        futures.addAll(entries);
+        return entries;
+    }
+
+    private void processZip(byte[] in, OutputStream out) {
+        try {
+            List<Future<ZipResult>> entries = submitZipEntries(in);
+            finishArchive(entries, out);
+        } catch (IOException e) {
+            errors.add(e);
         }
     }
 
@@ -167,7 +180,7 @@ public final class Instrumenter {
         private final ZipEntry entry;
         private final byte[] buffer;
 
-        public ZipResult(ZipEntry entry, byte[] buffer) throws IOException, InterruptedException {
+        public ZipResult(ZipEntry entry, byte[] buffer) {
             this.entry = entry;
             byte[] tempBuffer = new byte[0];
             if (buffer != null) {
@@ -178,9 +191,9 @@ public final class Instrumenter {
                     if (entry.getName().endsWith(".class")) {
                         instrumentClass(buffer, out);
                     } else if (entry.getName().endsWith(".jar")) {
-                        processZip(in, out);
+                        processZip(buffer, out);
                     } else if (!signatureRemover.filterEntry(entry.getName(), in, out)) {
-                        InstrumentUtil.copy(in, out);
+                        out.write(buffer);
                     }
                     tempBuffer = out.toByteArray();
                 } catch (IOException | RuntimeException e) {
