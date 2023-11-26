@@ -31,11 +31,6 @@
             <artifactId>phosphor-driver</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>edu.gmu.swe.phosphor</groupId>
-            <artifactId>phosphor-jigsaw-javaagent</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
     <build>
         <plugins>
