@@ -14,12 +14,12 @@ public class InstrumenterTest {
 
     @Before
     public void clearErrorFlag() {
-        PreMain.INSTRUMENTATION_EXCEPTION_OCCURRED = false;
+        Phosphor.INSTRUMENTATION_EXCEPTION_OCCURRED = false;
     }
 
     @After
     public void checkForError() {
-        if (PreMain.INSTRUMENTATION_EXCEPTION_OCCURRED) {
+        if (Phosphor.INSTRUMENTATION_EXCEPTION_OCCURRED) {
             Assert.fail("Instrumentation error occurred");
         }
     }
@@ -43,7 +43,7 @@ public class InstrumenterTest {
         mv.visitEnd();
         cw.visitEnd();
         byte[] classFileBuffer = cw.toByteArray();
-        new PreMain.PCLoggingTransformer().transform(null, null, null, null, classFileBuffer, false);
+        new PCLoggingTransformer().transform(null, null, null, null, classFileBuffer, false);
     }
 
     @Test
@@ -87,6 +87,6 @@ public class InstrumenterTest {
         mv.visitMaxs(-1, -1);
         mv.visitEnd();
         byte[] classFileBuffer = cw.toByteArray();
-        new PreMain.PCLoggingTransformer().transform(null, null, null, null, classFileBuffer, false);
+        new PCLoggingTransformer().transform(null, null, null, null, classFileBuffer, false);
     }
 }

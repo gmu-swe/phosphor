@@ -232,7 +232,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
                 try {
                     if (classMap.containsKey(className)) {
                         for (Class<?> clazz : classMap.get(className)) {
-                            PreMain.getInstrumentationHelper().retransformClasses(clazz);
+                            Phosphor.getInstrumentation().retransformClasses(clazz);
                         }
                     }
                 } catch (NonModifiableClassException e) {

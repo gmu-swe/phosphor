@@ -11,14 +11,14 @@ public final class HackyClassWriter extends ClassWriter {
 
     @Override
     protected String getCommonSuperClass(String type1, String type2) {
-        if (PreMain.RUNTIME_INST) {
+        if (Phosphor.RUNTIME_INST) {
             return "java/lang/Object";
         }
         Class<?> clazz1;
         Class<?> clazz2;
         try {
-            clazz1 = Class.forName(type1.replace('/', '.'), false, PreMain.bigLoader);
-            clazz2 = Class.forName(type2.replace('/', '.'), false, PreMain.bigLoader);
+            clazz1 = Class.forName(type1.replace('/', '.'), false, Phosphor.bigLoader);
+            clazz2 = Class.forName(type2.replace('/', '.'), false, Phosphor.bigLoader);
         } catch (Throwable t) {
             return "java/lang/Object";
         }

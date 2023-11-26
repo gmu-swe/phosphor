@@ -28,7 +28,7 @@
         </dependency>
         <dependency>
             <groupId>edu.gmu.swe.phosphor</groupId>
-            <artifactId>phosphor-instrument-jigsaw</artifactId>
+            <artifactId>phosphor-driver</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

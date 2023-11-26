@@ -7,12 +7,13 @@ INST_JVM=$4
 IS_JAVA_8=$5
 DACAPO_DIR=$BUILD_DIR/dacapo
 INST_DACAPO_DIR=$BUILD_DIR/dacapo-inst
-BENCHMARKS=(avrora fop h2 jython luindex pmd sunflow xalan) #tradebeans tradesoap are disabled in this script because of the PITA with distributing the openjdk jce.jar file with everything, then switching it in...
+BENCHMARKS=(avrora fop h2 jython luindex pmd sunflow xalan)
+#tradebeans tradesoap are disabled in this script because of the difficulty with distributing the openjdk jce.jar file with everything, then switching it in...
 #we don't run batik anymore because it's an enormous pain to automatically set up oracle java...
 #tomcat started crashing on travis
 #if you want to run them, copy the jce.jar file from an openjdk distribution of the same version into your hotspot jvm that you are going to instrument before instrumenting it.
 # (export controls are annoying)
-# eclipse doesn't work wihtout big hacks on travis
+# eclipse doesn't work without big hacks on travis
 # ..also disable lusearch because travis seems unhappy when we run it there
 HAD_ERROR=0
 if [ ! -d "$DACAPO_DIR" ]; then

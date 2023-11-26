@@ -25,12 +25,10 @@
     </scm>
     <modules>
         <module>Phosphor</module>
-        <module>phosphor-jigsaw-javaagent</module>
-        <module>phosphor-instrument-jigsaw</module>
+        <module>phosphor-driver</module>
         <module>phosphor-instrument-maven-plugin</module>
         <module>integration-tests</module>
         <module>phosphor-microbench</module>
-        <module>phosphor-distribution</module>
     </modules>
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>

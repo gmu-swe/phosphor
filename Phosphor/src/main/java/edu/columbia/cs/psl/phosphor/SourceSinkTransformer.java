@@ -3,7 +3,6 @@ package edu.columbia.cs.psl.phosphor;
 import edu.columbia.cs.psl.phosphor.instrumenter.SourceSinkTaintingClassVisitor;
 import edu.columbia.cs.psl.phosphor.runtime.NonModifiableClassException;
 import edu.columbia.cs.psl.phosphor.struct.LinkedList;
-import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -22,25 +21,6 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
     // Whether classes are in the process of being retransformed or checked for retransformation
     private static boolean isBusyRetransforming = false;
 
-    public static void main(String[] args) {
-        PhosphorOption.configure(true, args);
-
-        SourceSinkTransformer transformer = new SourceSinkTransformer();
-        try {
-            ClassReader cr = new ClassReader(new FileInputStream("z.class"));
-            ClassWriter cw = new ClassWriter(0);
-            cr.accept(cw, 0);
-            byte[] ret = transformer.transform(null, "z.class", HashMap.class, null, cw.toByteArray(), false);
-            System.out.println(ret);
-
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer, boolean isAnonymousClassDefinition) {
         if(classBeingRedefined == null) {
@@ -54,7 +34,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
             ClassReader cr = new ClassReader(classfileBuffer);
             ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             ClassVisitor cv = cw;
-            if (PreMain.DEBUG || TaintUtils.VERIFY_CLASS_GENERATION) {
+            if (Phosphor.DEBUG || TaintUtils.VERIFY_CLASS_GENERATION) {
                 cv = new CheckClassAdapter(cw, false);
             }
             PrintWriter pw = new PrintWriter(new File("lastClass-sourceSink.txt"));
@@ -66,7 +46,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
                 debug.p.print(pw);
                 pw.close();
             }
-            if (PreMain.DEBUG) {
+            if (Phosphor.DEBUG) {
                 try {
                     File f = new File("debug-source-sink/" + className + ".class");
                     f.getParentFile().mkdirs();
@@ -100,7 +80,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
                     }
                     // Check if PreMain's instrumentation has been set by a call to premain and that Configuration.init() has
                     // been called to initialize the configuration
-                    if(isBusyTransforming == 0 && !isBusyRetransforming && INITED && PreMain.getInstrumentationHelper() != null) {
+                    if(isBusyTransforming == 0 && !isBusyRetransforming && INITED && Phosphor.getInstrumentation() != null) {
                         isBusyRetransforming = true;
                         retransformQueue.addFast(clazz);
                         // Retransform clazz and any classes that were initialized before retransformation could occur.
@@ -111,7 +91,7 @@ public class SourceSinkTransformer extends PhosphorBaseTransformer {
                                 // poppedClazz represents a class or interface that is or is a subtype of a class or interface with
                                 // at least one method labeled as being a sink or source or taintThrough method
                                 if(!poppedClazz.equals(PrintStream.class)) {
-                                    PreMain.getInstrumentationHelper().retransformClasses(poppedClazz);
+                                    Phosphor.getInstrumentation().retransformClasses(poppedClazz);
                                 }
                             }
                         }

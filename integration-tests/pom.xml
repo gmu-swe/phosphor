@@ -18,7 +18,6 @@
         <data.flow.cache>${project.build.directory}/phosphor/data/cache</data.flow.cache>
         <data.flow.skip>false</data.flow.skip>
         <phosphor.jar>${edu.gmu.swe.phosphor:Phosphor:jar}</phosphor.jar>
-        <phosphor.agent>${edu.gmu.swe.phosphor:phosphor-jigsaw-javaagent:jar}</phosphor.agent>
         <isJava8>false</isJava8>
     </properties>
     <dependencies>
@@ -115,7 +114,6 @@
             </activation>
             <properties>
                 <isJava8>true</isJava8>
-                <phosphor.agent>${edu.gmu.swe.phosphor:Phosphor:jar}</phosphor.agent>
             </properties>
         </profile>
         <profile>
@@ -147,7 +145,7 @@
                                     <arguments>
                                         <argument>${project.build.directory}</argument>
                                         <argument>${phosphor.jar}</argument>
-                                        <argument>${phosphor.agent}</argument>
+                                        <argument>${phosphor.jar}</argument>
                                         <argument>${data.flow.java}/bin/java</argument>
                                         <argument>${isJava8}</argument>
                                     </arguments>
@@ -196,7 +194,7 @@
                                     <argLine>
                                         -DphosphorCacheDirectory=${data.flow.cache}
                                         -Xbootclasspath/a:${phosphor.jar}
-                                        -javaagent:${phosphor.agent}=${auto.taint},enum,acmpeq
+                                        -javaagent:${phosphor.jar}=${auto.taint},enum,acmpeq
                                     </argLine>
                                 </configuration>
                             </execution>
@@ -242,7 +240,7 @@
                                     <reuseForks>false</reuseForks>
                                     <argLine>
                                         -Xbootclasspath/a:${phosphor.jar}
-                                        -javaagent:${phosphor.agent}=${auto.taint},enum,acmpeq
+                                        -javaagent:${phosphor.jar}=${auto.taint},enum,acmpeq
                                     </argLine>
                                 </configuration>
                             </execution>
