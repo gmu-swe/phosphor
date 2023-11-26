@@ -377,7 +377,7 @@ public enum PhosphorOption {
     }
 
     public static CommandLine configure(boolean isRuntime, String[] args) {
-        String commandSynopsis = "java -jar phosphor.jar [OPTIONS] <SOURCE> <DEST>";
+        String commandSynopsis = "java -jar phosphor-driver.jar [OPTIONS] <SOURCE> <DEST>";
         Options options = createOptions(isRuntime);
         CommandLine line;
         try {
