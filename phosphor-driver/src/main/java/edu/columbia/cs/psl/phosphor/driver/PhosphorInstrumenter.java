@@ -19,6 +19,7 @@ public final class PhosphorInstrumenter {
             // The "help" option was specified
             return;
         }
+        args = line.getArgs();
         File source = new File(args[0]);
         File destination = new File(args[1]);
         instrumentation.initialize(line);

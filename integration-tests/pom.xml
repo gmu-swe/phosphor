@@ -18,12 +18,17 @@
         <data.flow.cache>${project.build.directory}/phosphor/data/cache</data.flow.cache>
         <data.flow.skip>false</data.flow.skip>
         <phosphor.jar>${edu.gmu.swe.phosphor:Phosphor:jar}</phosphor.jar>
-        <isJava8>false</isJava8>
+        <phosphor.driver.jar>${edu.gmu.swe.phosphor:phosphor-driver:jar}</phosphor.driver.jar>
     </properties>
     <dependencies>
         <dependency>
             <groupId>edu.gmu.swe.phosphor</groupId>
             <artifactId>Phosphor</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.gmu.swe.phosphor</groupId>
+            <artifactId>phosphor-driver</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -108,15 +113,6 @@
     </build>
     <profiles>
         <profile>
-            <id>java8</id>
-            <activation>
-                <jdk>1.8</jdk>
-            </activation>
-            <properties>
-                <isJava8>true</isJava8>
-            </properties>
-        </profile>
-        <profile>
             <id>dacapo</id>
             <build>
                 <plugins>
@@ -145,9 +141,8 @@
                                     <arguments>
                                         <argument>${project.build.directory}</argument>
                                         <argument>${phosphor.jar}</argument>
-                                        <argument>${phosphor.jar}</argument>
+                                        <argument>${phosphor.driver.jar}</argument>
                                         <argument>${data.flow.java}/bin/java</argument>
-                                        <argument>${isJava8}</argument>
                                     </arguments>
                                 </configuration>
                             </execution>
