@@ -1,7 +1,11 @@
 package edu.gmu.swe.phosphor.instrument;
 
-import edu.columbia.cs.psl.phosphor.*;
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.PhosphorOption;
+import edu.columbia.cs.psl.phosphor.PhosphorPatcher;
+import edu.columbia.cs.psl.phosphor.PreMain;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
+import edu.columbia.cs.psl.phosphor.org.apache.commons.cli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,16 +29,25 @@ public class PhosphorInstrumentation implements Instrumentation {
 
     @Override
     public void configure(File source, Properties options) throws IOException {
-        options.put("java8", String.valueOf(!InstrumentUtil.isModularJvm(source)));
-        String[] arguments = OptionsUtil.createPhosphorMainArguments(options);
+        options.remove("help");
+        CommandLine line = PhosphorOption.configure(options, source, new File("temp/"));
+        assert line != null;
+        initialize(line);
+    }
+
+    public void initialize(CommandLine line) throws IOException {
+        File source = new File(line.getArgs()[0]);
+        Set<Class<?>> configurationClasses = PhosphorOption.getClassOptionValues(line);
+        if (InstrumentUtil.isJavaHome(source)) {
+            Configuration.IS_JAVA_8 = !InstrumentUtil.isModularJvm(source);
+        }
         setUpClassLoader(source);
-        PhosphorOption.configure(false, arguments);
         Configuration.init();
         TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
         transformer = new PreMain.PCLoggingTransformer();
         classPathElements = new HashSet<>();
         classPathElements.add(InstrumentUtil.getClassPathElement(PreMain.class));
-        OptionsUtil.getConfigurationClasses(options).stream()
+        configurationClasses.stream()
                 .map(InstrumentUtil::getClassPathElement)
                 .forEach(classPathElements::add);
     }

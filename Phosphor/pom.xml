@@ -17,37 +17,19 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
                     <archive>
-                        <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
+                        <manifestEntries>
+                            <Premain-Class>
+                                edu.columbia.cs.psl.phosphor.Java8PreMain
+                            </Premain-Class>
+                            <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                        </manifestEntries>
                     </archive>
-                    <excludes>
-                        <exclude>java/</exclude>
-                        <exclude>sun/</exclude>
-                    </excludes>
+                    <forceCreation>true</forceCreation>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.1.1</version>
-                <configuration>
-                    <doclint>none</doclint>
-                    <quiet>true</quiet>
-                    <source>8</source>
-                    <excludePackageNames>sun.*:java.*</excludePackageNames>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadoc</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>1.6.0</version>
                 <executions>
                     <execution>
                         <id>generate-stubs</id>
@@ -95,7 +77,8 @@
                                     <excludes>
                                         <!-- These classes will be overridden
                                             by the ones inside the JAR -->
-                                        <exclude>edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/FrameNode.class
+                                        <exclude>
+                                            edu/columbia/cs/psl/phosphor/org/objectweb/asm/tree/FrameNode.class
                                         </exclude>
                                     </excludes>
                                 </filter>
@@ -109,6 +92,7 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                            <createSourcesJar>true</createSourcesJar>
                             <shadeSourcesContent>true</shadeSourcesContent>
                             <minimizeJar>true</minimizeJar>
                         </configuration>

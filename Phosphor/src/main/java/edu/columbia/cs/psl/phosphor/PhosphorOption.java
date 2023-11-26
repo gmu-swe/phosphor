@@ -7,9 +7,10 @@ import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
 import org.apache.commons.cli.*;
 import org.objectweb.asm.ClassVisitor;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.util.EnumMap;
+import java.util.*;
 
 public enum PhosphorOption {
 
@@ -369,40 +370,92 @@ public enum PhosphorOption {
                 }
             }
         }
-        for(OptionGroup group : groupMap.values()) {
+        for (OptionGroup group : groupMap.values()) {
             options.addOptionGroup(group);
         }
         return options;
     }
 
-    public static CommandLine configure(boolean forRuntimeInst, String[] args) {
-        CommandLineParser parser = new DefaultParser();
-        Options options = createOptions(forRuntimeInst);
+    public static CommandLine configure(boolean isRuntime, String[] args) {
+        String commandSynopsis = "java -jar phosphor.jar [OPTIONS] <SOURCE> <DEST>";
+        Options options = createOptions(isRuntime);
         CommandLine line;
         try {
-            line = parser.parse(options, args);
-        } catch(org.apache.commons.cli.ParseException exp) {
-            if(forRuntimeInst) {
-                System.err.println(exp.getMessage());
+            line = new DefaultParser().parse(options, args);
+        } catch (ParseException e) {
+            if (isRuntime) {
+                System.err.println(e.getMessage());
                 return null;
             }
-            HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
-            System.err.println(exp.getMessage());
-            if(exp.getMessage().contains("-multiTaint")) {
-                System.err.println("Note: the -multiTaint option has been removed, and is now enabled by default (int tags no longer exist)");
-            }
+            new HelpFormatter().printHelp(commandSynopsis, options);
+            throw new IllegalArgumentException(e);
+        }
+        if (!isRuntime && line.hasOption("help")) {
+            new HelpFormatter().printHelp(commandSynopsis, options);
             return null;
         }
-        if(!forRuntimeInst && (line.hasOption("help") || line.getArgs().length != 2)) {
-            HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp("java -jar phosphor.jar [OPTIONS] [input] [output]", options);
-            return null;
+        if (!isRuntime && line.getArgs().length != 2) {
+            new HelpFormatter().printHelp(commandSynopsis, options);
+            throw new IllegalArgumentException("Missing command line arguments");
         }
-        for(PhosphorOption phosphorOption : values()) {
-            phosphorOption.configure(forRuntimeInst, line.hasOption(phosphorOption.optionName), line);
+        for (PhosphorOption phosphorOption : values()) {
+            phosphorOption.configure(isRuntime, line.hasOption(phosphorOption.optionName), line);
         }
         return line;
+    }
+
+    public static Set<Class<?>> getClassOptionValues(CommandLine line) {
+        // This method should not be called from instrumented JVMs.
+        // Therefore, the use of JCL classes is acceptable.
+        Set<Class<?>> classes = new HashSet<>();
+        for (Option option : line.getOptions()) {
+            if (option.getType().equals(Class.class)) {
+                if (line.hasOption(option.getOpt())) {
+                    try {
+                        classes.add((Class<?>) line.getParsedOptionValue(option.getOpt()));
+                    } catch (ParseException e) {
+                        throw new IllegalArgumentException(
+                                "Failed to process " + option.getOpt() + ": " + line.getOptionValue(option.getOpt()));
+                    }
+                }
+            }
+        }
+        return classes;
+    }
+
+    public static CommandLine configure(Properties properties, File source, File destination) {
+        // This method should not be called from instrumented JVMs.
+        // Therefore, the use of JCL classes is acceptable.
+        List<String> arguments = new LinkedList<>();
+        for (String key : properties.stringPropertyNames()) {
+            String value = properties.getProperty(key);
+            if (value == null || value.isEmpty() || value.equals("true")) {
+                arguments.add("-" + key);
+            } else if (!value.equals("false")) {
+                arguments.add("-" + key);
+                arguments.add(value);
+            }
+        }
+        arguments.add(source.getAbsolutePath());
+        arguments.add(destination.getAbsolutePath());
+        return configure(false, arguments.toArray(new String[0]));
+    }
+
+    public static Properties toProperties(CommandLine line) {
+        // This method should not be called from instrumented JVMs.
+        // Therefore, the use of JCL classes is acceptable.
+        Properties properties = new Properties();
+        for (Option option : line.getOptions()) {
+            String key = option.getOpt();
+            if (line.hasOption(key)) {
+                String value = line.getOptionValue(key);
+                if (value == null) {
+                    value = "true";
+                }
+                properties.put(key, value);
+            }
+        }
+        return properties;
     }
 
     private enum PhosphorOptionGroup {
