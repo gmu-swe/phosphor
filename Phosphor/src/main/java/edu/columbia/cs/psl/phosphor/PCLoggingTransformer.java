@@ -2,6 +2,7 @@ package edu.columbia.cs.psl.phosphor;
 
 import edu.columbia.cs.psl.phosphor.instrumenter.*;
 import edu.columbia.cs.psl.phosphor.instrumenter.asm.OffsetPreservingClassReader;
+import edu.columbia.cs.psl.phosphor.mask.SerializationFixingCV;
 import edu.columbia.cs.psl.phosphor.org.objectweb.asm.commons.OurSerialVersionUIDAdder;
 import edu.columbia.cs.psl.phosphor.runtime.StringUtils;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;

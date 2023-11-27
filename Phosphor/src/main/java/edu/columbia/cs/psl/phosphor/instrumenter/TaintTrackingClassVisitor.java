@@ -8,6 +8,8 @@ import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.control.ControlStackInitializingMV;
 import edu.columbia.cs.psl.phosphor.control.ControlStackRestoringMV;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
+import edu.columbia.cs.psl.phosphor.mask.ReflectionMV;
+import edu.columbia.cs.psl.phosphor.mask.ReflectionMVFactory;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.TaintInstrumented;
 import edu.columbia.cs.psl.phosphor.runtime.TaintSourceWrapper;
@@ -245,7 +247,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
             controlStackRestoringMV = new ControlStackRestoringMV(next, rootmV, className, name, controlFlowPolicy);
             next = controlStackRestoringMV;
         }
-        ReflectionHidingMV reflectionMasker = new ReflectionHidingMV(next, className, name, isEnum);
+        ReflectionMV reflectionMasker = ReflectionMVFactory.create(next, className, name);
         PrimitiveBoxingFixer boxFixer = new PrimitiveBoxingFixer(access, className, name, instrumentedDesc, signature,
                 _exceptions, reflectionMasker, analyzer);
 
@@ -293,8 +295,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         }
         lvs.setPrimitiveArrayAnalyzer(primitiveArrayFixer);
         reflectionMasker.setLvs(lvs);
-        final MethodVisitor prev = preAnalyzer;
-        return prev;
+        return preAnalyzer;
     }
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] _exceptions) {

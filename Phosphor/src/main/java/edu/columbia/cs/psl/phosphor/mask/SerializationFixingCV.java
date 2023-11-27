@@ -1,7 +1,8 @@
-package edu.columbia.cs.psl.phosphor.instrumenter;
+package edu.columbia.cs.psl.phosphor.mask;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
+import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import org.objectweb.asm.*;
