@@ -1,6 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.PreMain;
+import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.*;
@@ -53,10 +53,8 @@ public enum TaintMethodRecord implements MethodRecord {
     PREPARE_FOR_CALL_REFLECTIVE_CONSTRUCTOR(INVOKESTATIC, ReflectionMasker.class, "prepareForCall", ReflectionMasker.ConstructorInvocationPair.class, false, Constructor.class, Object[].class, PhosphorStackFrame.class),
     IS_INSTANCE(INVOKESTATIC, ReflectionMasker.class, "isInstance", Boolean.TYPE, false, Class.class, Object.class, PhosphorStackFrame.class),
 
-    INSTRUMENT_CLASS_BYTES(INVOKESTATIC, PreMain.class, "instrumentClassBytes", byte[].class, false, byte[].class),
-    INSTRUMENT_CLASS_BYTES_ANONYMOUS(INVOKESTATIC, PreMain.class, "instrumentClassBytesAnonymous", byte[].class, false, byte[].class),
-
-
+    INSTRUMENT_CLASS_BYTES(INVOKESTATIC, Phosphor.class, "instrumentClassBytes", byte[].class, false, byte[].class),
+    INSTRUMENT_CLASS_BYTES_ANONYMOUS(INVOKESTATIC, Phosphor.class, "instrumentClassBytesAnonymous", byte[].class, false, byte[].class),
 
     //Phosphor Stack Frame
     START_STACK_FRAME_TRACKING(INVOKESTATIC, PhosphorStackFrame.class, "initialize", Void.TYPE, false),
@@ -98,9 +96,6 @@ public enum TaintMethodRecord implements MethodRecord {
     GET_RETURN_WRAPPER_LONG(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedLongArray.class, false, long[].class),
     GET_RETURN_WRAPPER_SHORT(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedShortArray.class, false, short[].class),
     GET_RETURN_WRAPPER_DOUBLE(INVOKEVIRTUAL, PhosphorStackFrame.class, "getReturnWrapper", TaggedDoubleArray.class, false, double[].class),
-
-
-
 
     // Tainted array set methods
     TAINTED_BOOLEAN_ARRAY_SET(INVOKEVIRTUAL, TaggedBooleanArray.class, "set", Void.TYPE, false, int.class, boolean.class, Taint.class, Taint.class, PhosphorStackFrame.class),

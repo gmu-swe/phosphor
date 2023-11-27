@@ -10,9 +10,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import edu.columbia.cs.psl.phosphor.Phosphor;
 import org.junit.Test;
-
-import edu.columbia.cs.psl.phosphor.PreMain;
 
 public class ReflectionImplicitITCase extends ReflectionObjTagITCase{
 
@@ -33,7 +32,7 @@ public class ReflectionImplicitITCase extends ReflectionObjTagITCase{
 	@Test
 	public void testReflectionDoesntCrash() {
 		try {
-			for (Class<?> c : PreMain.getInstrumentationHelper().getAllLoadedClasses()) {
+			for (Class<?> c : Phosphor.getInstrumentation().getAllLoadedClasses()) {
 				Set<Field> allFields = new HashSet<Field>();
 				try {
 					Field[] declaredFields = c.getDeclaredFields();

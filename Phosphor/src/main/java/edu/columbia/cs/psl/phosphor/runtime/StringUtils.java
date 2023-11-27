@@ -2,7 +2,7 @@ package edu.columbia.cs.psl.phosphor.runtime;
 
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.PreMain;
+import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
 
 /**
@@ -96,7 +96,7 @@ public class StringUtils {
     }
 
     public static boolean startsWith(String str, String prefix) {
-        if (PreMain.RUNTIME_INST) {
+        if (Phosphor.RUNTIME_INST) {
             if(Configuration.IS_JAVA_8){
                 return _startsWithJava8(str, prefix);
             } else {
@@ -112,7 +112,7 @@ public class StringUtils {
         } else if (s1 == null || s2 == null) {
             return false;
         } else {
-            if (PreMain.RUNTIME_INST) {
+            if (Phosphor.RUNTIME_INST) {
                 if (Configuration.IS_JAVA_8) {
                     return _equalsJava8(s1, s2);
                 } else {

@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.runtime.jdk.unsupported;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.PreMain;
+import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
@@ -793,7 +793,7 @@ public class RuntimeSunMiscUnsafePropagator {
     }
 
     public static Class defineClass(UnsafeProxy unsafe, String var1, byte[] var2, int var3, int var4, ClassLoader var5, ProtectionDomain var6, PhosphorStackFrame phosphorStackFrame) {
-        byte[] instrumented = PreMain.instrumentClassBytes(var2);
+        byte[] instrumented = Phosphor.instrumentClassBytes(var2);
         return unsafe.defineClass(var1, instrumented, 0, instrumented.length, var5, var6);
     }
     private enum SpecialAccessPolicy {

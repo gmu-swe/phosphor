@@ -11,7 +11,6 @@ import java.lang.reflect.Field;
 
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACONST_NULL;
-import static org.objectweb.asm.Opcodes.ASM9;
 import static org.objectweb.asm.Opcodes.DUP;
 import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
@@ -20,7 +19,7 @@ import static org.objectweb.asm.Opcodes.POP2;
 
 public class ConfigurationEmbeddingMV extends MethodVisitor  {
     public ConfigurationEmbeddingMV(MethodVisitor mv) {
-        super(ASM9, mv);
+        super(Configuration.ASM_VERSION, mv);
     }
 
     // Embed initialized Configuration class into class file.

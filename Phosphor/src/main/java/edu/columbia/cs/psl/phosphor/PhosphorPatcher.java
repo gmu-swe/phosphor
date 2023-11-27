@@ -4,23 +4,18 @@ import edu.columbia.cs.psl.phosphor.instrumenter.ConfigurationEmbeddingMV;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
 import edu.columbia.cs.psl.phosphor.runtime.jdk.unsupported.UnsafeProxy;
 import org.objectweb.asm.*;
-import org.objectweb.asm.commons.ModuleHashesAttribute;
-import org.objectweb.asm.commons.ModuleResolutionAttribute;
-import org.objectweb.asm.commons.ModuleTargetAttribute;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.ModuleExportNode;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Set;
 
 public class PhosphorPatcher {
     private final boolean patchUnsafeNames;
 
-    public PhosphorPatcher(InputStream unsafeContent) throws IOException {
-        this.patchUnsafeNames = shouldPatchUnsafeNames(unsafeContent);
+    public PhosphorPatcher(byte[] unsafeClassFileBuffer) {
+        this.patchUnsafeNames = shouldPatchUnsafeNames(unsafeClassFileBuffer);
     }
 
     public byte[] patch(String name, byte[] content) throws IOException {
@@ -36,31 +31,9 @@ public class PhosphorPatcher {
         }
     }
 
-    public byte[] transformBaseModuleInfo(InputStream in, Set<String> packages) {
-        try {
-            ClassNode classNode = new ClassNode();
-            ClassReader cr = new ClassReader(in);
-            Attribute[] attributes = new Attribute[]{new ModuleTargetAttribute(),
-                    new ModuleResolutionAttribute(),
-                    new ModuleHashesAttribute()};
-            cr.accept(classNode, attributes, 0);
-            // Add exports
-            for (String packageName : packages) {
-                classNode.module.exports.add(new ModuleExportNode(packageName, 0, null));
-            }
-            // Add packages
-            classNode.module.packages.addAll(packages);
-            ClassWriter cw = new ClassWriter(0);
-            classNode.accept(cw);
-            return cw.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static boolean shouldPatchUnsafeNames(InputStream in) throws IOException {
+    private static boolean shouldPatchUnsafeNames(byte[] in) {
         ClassNode cn = new ClassNode();
-        new ClassReader(in).accept(cn, 0);
+        new ClassReader(in).accept(cn, ClassReader.SKIP_CODE);
         for (MethodNode mn : cn.methods) {
             if (mn.name.contains("putReference")) {
                 return false;
