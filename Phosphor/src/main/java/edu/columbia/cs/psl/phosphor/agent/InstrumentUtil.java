@@ -1,6 +1,7 @@
-package edu.columbia.cs.psl.phosphor.driver;
+package edu.columbia.cs.psl.phosphor.agent;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -72,7 +73,6 @@ public final class InstrumentUtil {
         return md5Inst.digest(input);
     }
 
-
     /**
      * Creates the specified directory if it does not already exist.
      *
@@ -83,5 +83,18 @@ public final class InstrumentUtil {
         if (!dir.isDirectory() && !dir.mkdirs()) {
             throw new IOException("Failed to create directory: " + dir);
         }
+    }
+
+    public static void deleteFile(File file) throws IOException {
+        if (file.exists() && !file.delete()) {
+            throw new IOException("Failed to delete file: " + file);
+        }
+    }
+
+    public static File createTemporaryFile(String prefix, String suffix) throws IOException {
+        File file = Files.createTempFile(prefix, suffix).toFile();
+        file.deleteOnExit();
+        ensureDirectory(file.getParentFile());
+        return file;
     }
 }

@@ -9,7 +9,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 
-public class AnnotationInstCase {
+public class AnnotationInstCase extends BasePhosphorTest{
     @Test
     public void testEnum() throws ReflectiveOperationException {
         Method method = Example.class.getDeclaredMethod("x");

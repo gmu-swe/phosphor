@@ -13,7 +13,7 @@ import java.util.Properties;
 
 public class InstrumentJLinkPlugin implements Plugin {
     private Instrumentation instrumentation;
-    private Packer packer;
+    private ResourcePoolPacker packer;
 
     @Override
     public String getName() {
@@ -47,18 +47,19 @@ public class InstrumentJLinkPlugin implements Plugin {
     }
 
     @Override
-    public ResourcePool transform(ResourcePool in, ResourcePoolBuilder out) {
-        packer = new Packer(in, instrumentation);
-        in.transformAndCopy(e -> transform(e, out), out);
+    public ResourcePool transform(ResourcePool pool, ResourcePoolBuilder out) {
+        packer = new ResourcePoolPacker(instrumentation, pool, out);
+        pool.transformAndCopy(this::transform, out);
         return out.build();
     }
 
-    private ResourcePoolEntry transform(ResourcePoolEntry entry, ResourcePoolBuilder out) {
-        if (entry.type().equals(ResourcePoolEntry.Type.CLASS_OR_RESOURCE) && entry.path().endsWith(".class")) {
+    private ResourcePoolEntry transform(ResourcePoolEntry entry) {
+        if (entry.type().equals(ResourcePoolEntry.Type.CLASS_OR_RESOURCE)
+                && entry.path().endsWith(".class")) {
             if (entry.path().endsWith("module-info.class")) {
                 if (entry.path().startsWith("/java.base")) {
                     // Transform java.base's module-info.class file and pack core classes into java.base
-                    return packer.pack(entry, out);
+                    return packer.pack(entry);
                 }
             } else {
                 byte[] instrumented = instrumentation.apply(entry.contentBytes());

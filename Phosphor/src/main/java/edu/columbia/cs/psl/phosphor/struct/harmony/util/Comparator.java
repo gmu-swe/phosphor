@@ -50,8 +50,8 @@ public interface Comparator<T> {
      *            an {@code Object}.
      * @param object2
      *            a second {@code Object} to compare with {@code object1}.
-     * @return an integer < 0 if {@code object1} is less than {@code object2}, 0 if they are
-     *         equal, and > 0 if {@code object1} is greater than {@code object2}.
+     * @return an integer less than 0 if {@code object1} is less than {@code object2}, 0 if they are
+     *         equal, and greater than 0 if {@code object1} is greater than {@code object2}.
      * @throws ClassCastException
      *                if objects are not of the correct type.
      */

@@ -1,8 +1,7 @@
-package edu.columbia.cs.psl.phosphor.instrumenter;
+package edu.columbia.cs.psl.phosphor.agent;
 
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.PhosphorPatcher;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.util.CheckClassAdapter;
@@ -23,7 +22,7 @@ public class InstrumentedJREProxyGenerator {
 
         String pathToUnsafePropagator = outputDir + "/edu/columbia/cs/psl/phosphor/runtime/jdk/unsupported/RuntimeSunMiscUnsafePropagator.class";
         InputStream sunMiscUnsafeIn = new FileInputStream(pathToUnsafePropagator);
-        byte[] instrumentedUnsafe = PhosphorPatcher.transformUnsafePropagator(sunMiscUnsafeIn,
+        byte[] instrumentedUnsafe = EmbeddedPhosphorPatcher.transformUnsafePropagator(sunMiscUnsafeIn,
                 "sun/misc/Unsafe", false);
         Files.write(Paths.get(pathToUnsafePropagator), instrumentedUnsafe);
 

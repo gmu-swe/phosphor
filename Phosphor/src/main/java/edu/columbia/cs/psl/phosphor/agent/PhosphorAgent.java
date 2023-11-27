@@ -8,7 +8,6 @@ import edu.columbia.cs.psl.phosphor.runtime.NonModifiableClassException;
 import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
 
 import java.lang.instrument.ClassFileTransformer;
-import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.security.ProtectionDomain;
@@ -70,8 +69,7 @@ public final class PhosphorAgent {
                 Class<?> classBeingRedefined,
                 ProtectionDomain protectionDomain,
                 byte[] classfileBuffer,
-                PhosphorStackFrame frame)
-                throws IllegalClassFormatException {
+                PhosphorStackFrame frame) {
             return transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
         }
 
@@ -81,8 +79,7 @@ public final class PhosphorAgent {
                 String className,
                 Class<?> classBeingRedefined,
                 ProtectionDomain protectionDomain,
-                byte[] classfileBuffer)
-                throws IllegalClassFormatException {
+                byte[] classfileBuffer) {
             try {
                 if (!INITED) {
                     Configuration.init();

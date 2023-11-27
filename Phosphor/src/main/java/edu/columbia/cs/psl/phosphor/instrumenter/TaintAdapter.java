@@ -146,7 +146,7 @@ public class TaintAdapter extends MethodVisitor implements Opcodes {
     }
 
     /**
-     * Returns the type of the stack element n down from the top: n=0 -> top of
+     * Returns the type of the stack element n down from the top: n = 0 corresponds to the top of
      * stack
      */
     public Type getStackTypeAtOffset(int n) {
