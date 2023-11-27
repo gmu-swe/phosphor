@@ -19,7 +19,7 @@ public final class Phosphor {
         Phosphor.instrumentation = instrumentation;
         instrumentation.addTransformer(new ClassSupertypeReadingTransformer());
         RUNTIME_INST = true;
-        if (agentArgs != null) {
+        if (agentArgs != null || Configuration.IS_JAVA_8) {
             PhosphorOption.configure(true, parseOptions(agentArgs));
         }
         if (System.getProperty("phosphorCacheDirectory") != null) {
