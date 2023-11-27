@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.control;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
@@ -75,7 +75,7 @@ public class ControlStackInitializingMV extends MethodVisitor {
      * a control stack
      */
     private int methodNotIgnoredAndPassedControlStack(String owner, String name, String descriptor) {
-        if(!Instrumenter.isIgnoredClass(owner) && !Instrumenter.isIgnoredMethod(owner, name, descriptor)) {
+        if(!Phosphor.isIgnoredClass(owner) && !Phosphor.isIgnoredMethod(owner, name, descriptor)) {
             Type[] args = Type.getArgumentTypes(descriptor);
             for(int dist = 0; dist < args.length; dist++) {
                 Type arg = args[args.length - 1 - dist];

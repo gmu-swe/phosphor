@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
@@ -316,7 +316,7 @@ public class UninstrumentedCompatMV extends TaintAdapter {
 
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-        if (Instrumenter.isIgnoredClass(owner)) {
+        if (Phosphor.isIgnoredClass(owner)) {
             super.visitMethodInsn(opcode, owner, name, desc, itf);
             return;
         }

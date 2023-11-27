@@ -21,6 +21,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
     private static final Map<String, Set<String>> taintThrough = new HashMap<>();
     // Maps class names to sets of class instances
     private static final Map<String, Set<Class<?>>> classMap = new HashMap<>();
+    public static InputStream sourcesFile;
+    public static InputStream sinksFile;
+    public static InputStream taintThroughFile;
     // Maps class names to a set of all methods listed as sources for the class or one of its supertypes or superinterfaces
     private static Map<String, Set<String>> inheritedSources = new HashMap<>();
     // Maps class names to a set of all methods listed as sinks for the class or one of its supertypes or superinterfaces
@@ -109,9 +112,9 @@ public class BasicSourceSinkManager extends SourceSinkManager {
 
     /* Reads source, sink and taintThrough methods from their files into their respective maps. */
     public static synchronized void loadTaintMethods() {
-        readTaintMethods(Instrumenter.sourcesFile, AutoTaint.SOURCE);
-        readTaintMethods(Instrumenter.sinksFile, AutoTaint.SINK);
-        readTaintMethods(Instrumenter.taintThroughFile, AutoTaint.TAINT_THROUGH);
+        readTaintMethods(sourcesFile, AutoTaint.SOURCE);
+        readTaintMethods(sinksFile, AutoTaint.SINK);
+        readTaintMethods(taintThroughFile, AutoTaint.TAINT_THROUGH);
     }
 
     /* Provides access to the single instance of BasicSourceSinkManager */
@@ -263,7 +266,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
                 // Add any methods from this class that are directly listed as auto taint methods
                 set.addAll(baseMethods.get(className));
             }
-            ClassNode cn = Instrumenter.getClassNode(className);
+            ClassNode cn = ClassNodeCache.getClassNode(className);
             if (cn != null) {
                 if (cn.interfaces != null) {
                     // Add all auto taint methods from interfaces implemented by this class
@@ -295,7 +298,7 @@ public class BasicSourceSinkManager extends SourceSinkManager {
                 if (baseMethods.containsKey(curClassName) && baseMethods.get(curClassName).contains(methodName)) {
                     return curClassName;
                 }
-                ClassNode cn = Instrumenter.getClassNode(curClassName);
+                ClassNode cn = ClassNodeCache.getClassNode(curClassName);
                 if (cn != null) {
                     if (cn.interfaces != null) {
                         // Enqueue interfaces implemented by the current class

@@ -34,7 +34,7 @@ public final class PCLoggingTransformer extends PhosphorBaseTransformer {
         ClassReader cr = (Configuration.READ_AND_SAVE_BCI ? new OffsetPreservingClassReader(classfileBuffer)
                 : new ClassReader(classfileBuffer));
         String className = cr.getClassName();
-        if (Instrumenter.isIgnoredClass(className)) {
+        if (Phosphor.isIgnoredClass(className)) {
             switch (className) {
                 case "java/lang/Boolean":
                 case "java/lang/Byte":

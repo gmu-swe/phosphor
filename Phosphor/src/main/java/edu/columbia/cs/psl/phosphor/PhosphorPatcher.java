@@ -15,15 +15,19 @@ public class PhosphorPatcher {
     private final boolean patchUnsafeNames;
 
     public PhosphorPatcher(byte[] unsafeClassFileBuffer) {
-        this.patchUnsafeNames = shouldPatchUnsafeNames(unsafeClassFileBuffer);
+        this(shouldPatchUnsafeNames(unsafeClassFileBuffer));
+    }
+
+    public PhosphorPatcher(boolean patchUnsafeNames) {
+        this.patchUnsafeNames = patchUnsafeNames;
     }
 
     public byte[] patch(String name, byte[] content) throws IOException {
         if (name.equals("edu/columbia/cs/psl/phosphor/Configuration.class")) {
             return setConfigurationVersion(new ByteArrayInputStream(content));
         } else if (name.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeJDKInternalUnsafePropagator.class")) {
-            return transformUnsafePropagator(new ByteArrayInputStream(content),
-                    "jdk/internal/misc/Unsafe", patchUnsafeNames);
+            return transformUnsafePropagator(
+                    new ByteArrayInputStream(content), "jdk/internal/misc/Unsafe", patchUnsafeNames);
         } else if (AsmPatchingCV.isApplicable(name)) {
             return AsmPatchingCV.patch(content);
         } else {
@@ -51,8 +55,8 @@ public class PhosphorPatcher {
         ClassWriter cw = new ClassWriter(cr, 0);
         ClassVisitor cv = new ClassVisitor(Configuration.ASM_VERSION, cw) {
             @Override
-            public MethodVisitor visitMethod(int access, String name, String descriptor, String signature,
-                                             String[] exceptions) {
+            public MethodVisitor visitMethod(
+                    int access, String name, String descriptor, String signature, String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
                 if (name.equals("<clinit>")) {
                     return new ConfigurationEmbeddingMV(mv);
@@ -65,8 +69,8 @@ public class PhosphorPatcher {
         return cw.toByteArray();
     }
 
-    public static byte[] transformUnsafePropagator(InputStream in, String unsafeInternalName,
-                                                   boolean patchUnsafeNames) throws IOException {
+    public static byte[] transformUnsafePropagator(InputStream in, String unsafeInternalName, boolean patchUnsafeNames)
+            throws IOException {
         ClassReader cr = new ClassReader(in);
         ClassWriter cw = new ClassWriter(cr, 0);
         ClassVisitor cv = new UnsafePatchingCV(cw, unsafeInternalName, patchUnsafeNames);
@@ -97,12 +101,12 @@ public class PhosphorPatcher {
         }
 
         private String patchMethodName(String owner, String name) {
-            return patchNames && owner.equals(UNSAFE_PROXY_INTERNAL_NAME) ?
-                    name.replace("Reference", "Object") : name;
+            return patchNames && owner.equals(UNSAFE_PROXY_INTERNAL_NAME) ? name.replace("Reference", "Object") : name;
         }
 
         @Override
-        public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+        public MethodVisitor visitMethod(
+                int access, String name, String descriptor, String signature, String[] exceptions) {
             MethodVisitor mv = super.visitMethod(access, name, patchDesc(descriptor), patchDesc(signature), exceptions);
             return new MethodVisitor(api, mv) {
                 @Override
@@ -126,9 +130,14 @@ public class PhosphorPatcher {
                 }
 
                 @Override
-                public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-                    super.visitMethodInsn(opcode, patchInternalName(owner), patchMethodName(owner, name),
-                            patchDesc(descriptor), isInterface);
+                public void visitMethodInsn(
+                        int opcode, String owner, String name, String descriptor, boolean isInterface) {
+                    super.visitMethodInsn(
+                            opcode,
+                            patchInternalName(owner),
+                            patchMethodName(owner, name),
+                            patchDesc(descriptor),
+                            isInterface);
                 }
 
                 @Override
@@ -137,8 +146,8 @@ public class PhosphorPatcher {
                 }
 
                 @Override
-                public void visitLocalVariable(String name, String descriptor, String signature, Label start, Label end,
-                                               int index) {
+                public void visitLocalVariable(
+                        String name, String descriptor, String signature, Label start, Label end, int index) {
                     super.visitLocalVariable(name, patchDesc(descriptor), signature, start, end, index);
                 }
             };

@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
@@ -127,7 +127,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
 
         isLambda = name.contains("$$Lambda$");
 
-        if (superName != null && !superName.equals("java/lang/Object") && !Instrumenter.isIgnoredClass(superName)) {
+        if (superName != null && !superName.equals("java/lang/Object") && !Phosphor.isIgnoredClass(superName)) {
             addTaintField = false;
             addTaintMethod = true;
         }
@@ -137,7 +137,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         if (addTaintField) {
             addTaintMethod = true;
         }
-        if (superName != null && (superName.equals("java/lang/Object") || Instrumenter.isIgnoredClass(superName)) && !isInterface
+        if (superName != null && (superName.equals("java/lang/Object") || Phosphor.isIgnoredClass(superName)) && !isInterface
                 && !isAnnotation) {
             generateEquals = true;
             generateHashCode = true;
@@ -164,7 +164,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                 }
             }
         }
-        if (isNormalClass && !Instrumenter.isIgnoredClass(name) && !FIELDS_ONLY) {
+        if (isNormalClass && !Phosphor.isIgnoredClass(name) && !FIELDS_ONLY) {
             String[] newIntfcs = new String[interfaces.length + 1];
             System.arraycopy(interfaces, 0, newIntfcs, 0, interfaces.length);
             newIntfcs[interfaces.length] = Type.getInternalName(TaintedWithObjTag.class);
@@ -185,7 +185,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         this.className = name;
         this.superName = superName;
 
-        if (superName != null && Instrumenter.isIgnoredClass(superName)) {
+        if (superName != null && Phosphor.isIgnoredClass(superName)) {
             //Might need to override stuff.
             Class c;
             try {
@@ -322,7 +322,7 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
         if (className.equals("java/lang/reflect/Array") && name.equals("newArray")) {
             access = (access & ~Opcodes.ACC_PRIVATE) | Opcodes.ACC_PUBLIC;
         }
-        if (Instrumenter.isUnsafeClass(className)){
+        if (Phosphor.isUnsafeClass(className)){
             access = (access & ~Opcodes.ACC_PRIVATE) | Opcodes.ACC_PUBLIC;
         }
 

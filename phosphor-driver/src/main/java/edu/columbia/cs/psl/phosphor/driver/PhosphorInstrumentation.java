@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.driver;
 
 import edu.columbia.cs.psl.phosphor.*;
-import edu.columbia.cs.psl.phosphor.agent.PhosphorAgent;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.apache.commons.cli.CommandLine;
 
@@ -44,7 +43,7 @@ public class PhosphorInstrumentation implements Instrumentation {
         TaintTrackingClassVisitor.IS_RUNTIME_INST = false;
         transformer = new PCLoggingTransformer();
         classPathElements = new HashSet<>();
-        classPathElements.add(InstrumentUtil.getClassPathElement(PhosphorAgent.class));
+        classPathElements.add(InstrumentUtil.getClassPathElement(Phosphor.class));
         configurationClasses.stream()
                 .map(InstrumentUtil::getClassPathElement)
                 .forEach(classPathElements::add);

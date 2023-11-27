@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.ReferenceArrayTarget;
@@ -91,7 +91,7 @@ public class DefaultTaintCheckingMethodVisitor extends MethodVisitor implements 
             super.visitFieldInsn(opcode, owner, name, desc);
             return;
         }
-        if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && name.endsWith(TaintUtils.TAINT_WRAPPER_FIELD) &&
+        if(opcode == Opcodes.GETFIELD && !Phosphor.isIgnoredClass(owner) && name.endsWith(TaintUtils.TAINT_WRAPPER_FIELD) &&
                 !checkedThisFrame.contains(owner + "." + name)
                 && (owner.equals("java/lang/String") || implementsSerializable || owner.equals("java/io/BufferedInputStream")
                 || owner.equals("java/lang/AssertionStatusDirectives")
@@ -143,7 +143,7 @@ public class DefaultTaintCheckingMethodVisitor extends MethodVisitor implements 
             super.visitLabel(isOK);
             TaintAdapter.acceptFn(fn1, this);
             super.visitFieldInsn(opcode, owner, name, desc);
-        } else if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && accessedType.getSort() == Type.ARRAY && !name.equals("taint") &&
+        } else if(opcode == Opcodes.GETFIELD && !Phosphor.isIgnoredClass(owner) && accessedType.getSort() == Type.ARRAY && !name.equals("taint") &&
                 accessedType.getElementType().getSort() != Type.OBJECT && accessedType.getDimensions() == 2 && !checkedThisFrame.contains(owner + "." + name)) {
             //For 2D wrapped arrays
             //TODO
@@ -189,7 +189,7 @@ public class DefaultTaintCheckingMethodVisitor extends MethodVisitor implements 
             super.visitInsn(SWAP);
             super.visitFieldInsn(opcode, owner, name, desc);
             throw new UnsupportedOperationException();
-        } else if(opcode == Opcodes.GETFIELD && !Instrumenter.isIgnoredClass(owner) && accessedType.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_WRAPPER_FIELD) && !name.equals("taint") &&
+        } else if(opcode == Opcodes.GETFIELD && !Phosphor.isIgnoredClass(owner) && accessedType.getSort() == Type.ARRAY && !name.endsWith(TaintUtils.TAINT_WRAPPER_FIELD) && !name.equals("taint") &&
                 accessedType.getElementType().getSort() != Type.OBJECT && accessedType.getDimensions() == 3 && !checkedThisFrame.contains(owner + "." + name)) {
             super.visitInsn(SWAP);
             super.visitInsn(POP);

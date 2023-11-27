@@ -202,7 +202,7 @@ public enum PhosphorOption {
             if(isPresent) {
                 String value = commandLine.getOptionValue(optionName);
                 try {
-                    Instrumenter.sourcesFile = new FileInputStream(value);
+                    BasicSourceSinkManager.sourcesFile = new FileInputStream(value);
                 } catch(FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -215,7 +215,7 @@ public enum PhosphorOption {
             if(isPresent) {
                 String value = commandLine.getOptionValue(optionName);
                 try {
-                    Instrumenter.sinksFile = new FileInputStream(value);
+                    BasicSourceSinkManager.sinksFile = new FileInputStream(value);
                 } catch(FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -228,7 +228,7 @@ public enum PhosphorOption {
             if(isPresent) {
                 String value = commandLine.getOptionValue(optionName);
                 try {
-                    Instrumenter.taintThroughFile = new FileInputStream(value);
+                    BasicSourceSinkManager.taintThroughFile = new FileInputStream(value);
                 } catch(FileNotFoundException e) {
                     e.printStackTrace();
                 }
