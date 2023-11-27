@@ -1,6 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime;
 
-import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.instrumenter.InvokedViaInstrumentation;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
@@ -76,7 +76,7 @@ public class ReflectionMasker {
             return true;
         }
         String cName = clazz.getName().replace('.', '/');
-        if (Instrumenter.isIgnoredClass(cName)) {
+        if (Phosphor.isIgnoredClass(cName)) {
             return true;
         }
         if (StringUtils.startsWith(cName, "jdk/internal/reflect/Generated") || StringUtils.startsWith(cName, "sun/reflect/Generated")) {

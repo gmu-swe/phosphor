@@ -1,9 +1,6 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
-import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
-import edu.columbia.cs.psl.phosphor.PhosphorInstructionInfo;
-import edu.columbia.cs.psl.phosphor.TaintUtils;
+import edu.columbia.cs.psl.phosphor.*;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowPropagationPolicy;
 import edu.columbia.cs.psl.phosphor.control.OpcodesUtil;
 import edu.columbia.cs.psl.phosphor.instrumenter.analyzer.NeverNullArgAnalyzerAdapter;
@@ -268,9 +265,9 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         if (descType.getSort() == Type.ARRAY && descType.getDimensions() > 1) {
             desc = MultiDArrayUtils.getTypeForType(descType).getDescriptor();
         }
-        boolean isIgnoredTaint = Instrumenter.isIgnoredClass(owner);
+        boolean isIgnoredTaint = Phosphor.isIgnoredClass(owner);
         //|| Instrumenter.isIgnoredClassWithStubsButNoTracking(owner);
-        if (Instrumenter.isUninstrumentedField(owner, name) || isIgnoredTaint) {
+        if (Phosphor.isUninstrumentedField(owner, name) || isIgnoredTaint) {
             switch (opcode) {
                 case GETFIELD:
                 case GETSTATIC:
@@ -834,7 +831,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
     }
 
     private static boolean isIgnoredMethod(String owner, String name, String desc) {
-        if (Instrumenter.isIgnoredClass(owner) && !owner.equals("edu/columbia/cs/psl/phosphor/runtime/MultiTainter")) {
+        if (Phosphor.isIgnoredClass(owner) && !owner.equals("edu/columbia/cs/psl/phosphor/runtime/MultiTainter")) {
             return true;
         }
         if (StringUtils.startsWith(owner, "jdk/internal/module/SystemModules")) {
@@ -883,12 +880,12 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
                 PREPARE_FOR_CALL_PREV.delegateVisit(mv);
             } else {
                 if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
-                    String methodKey = getMethodKeyForStackFrame(name, desc, Instrumenter.isPolymorphicSignatureMethod(owner, name));
+                    String methodKey = getMethodKeyForStackFrame(name, desc, Phosphor.isPolymorphicSignatureMethod(owner, name));
                     mv.visitLdcInsn(methodKey);
                     PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
                 } else {
                     push(TaintAdapter.getHashForStackFrame(name, desc,
-                            Instrumenter.isPolymorphicSignatureMethod(owner, name)));
+                            Phosphor.isPolymorphicSignatureMethod(owner, name)));
                     PREPARE_FOR_CALL_FAST.delegateVisit(mv);
                 }
             }
@@ -896,7 +893,7 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         } else {
             if (Configuration.DEBUG_STACK_FRAME_WRAPPERS) {
                 super.visitInsn(DUP);
-                String methodKey = getMethodKeyForStackFrame(name, desc, Instrumenter.isPolymorphicSignatureMethod(owner, name));
+                String methodKey = getMethodKeyForStackFrame(name, desc, Phosphor.isPolymorphicSignatureMethod(owner, name));
                 mv.visitLdcInsn(methodKey);
                 PREPARE_FOR_CALL_DEBUG.delegateVisit(mv);
             }

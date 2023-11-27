@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.instrumenter;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Instrumenter;
+import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.runtime.*;
 import edu.columbia.cs.psl.phosphor.runtime.jdk.unsupported.RuntimeSunMiscUnsafePropagator;
 import org.objectweb.asm.MethodVisitor;
@@ -61,7 +61,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * that retrieves the value of a field of a Java heap object. */
     private boolean isUnsafeFieldGetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
-        if (opcode != INVOKEVIRTUAL || !Instrumenter.isUnsafeClass(owner)) {
+        if (opcode != INVOKEVIRTUAL || !Phosphor.isUnsafeClass(owner)) {
             return false;
         } else {
             if (args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
@@ -99,7 +99,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * that sets the value of a field of a Java heap object. */
     private boolean isUnsafeFieldSetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
-        if (opcode != INVOKEVIRTUAL || !Instrumenter.isUnsafeClass(owner)) {
+        if (opcode != INVOKEVIRTUAL || !Phosphor.isUnsafeClass(owner)) {
             return false;
         } else {
             if (args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
@@ -140,7 +140,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
      * for a compareAndSwap method. */
     private boolean isUnsafeCAS(String owner, String name, String nameWithoutSuffix) {
-        if (!Instrumenter.isUnsafeClass(owner)) {
+        if (!Phosphor.isUnsafeClass(owner)) {
             return false;
         } else {
             if (Configuration.IS_JAVA_8) {
@@ -156,7 +156,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
         if(Configuration.IS_JAVA_8){
             return false; //These intrinsics are only for 9+
         }
-        if (!Instrumenter.isUnsafeClass(owner)) {
+        if (!Phosphor.isUnsafeClass(owner)) {
             return false;
         }
         // Java 11 uses get/putObject instead of Reference
@@ -428,7 +428,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
     }
 
     private boolean isUnsafeCopyMemory(String owner, String name, String nameWithoutSuffix) {
-        if (Instrumenter.isUnsafeClass(owner)) {
+        if (Phosphor.isUnsafeClass(owner)) {
             switch (nameWithoutSuffix) {
                 case "copyMemory":
                 case "copySwapMemory":
@@ -472,7 +472,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
                 super.visitMethodInsn(opcode, owner, name, desc, isInterface);
             }
         } else {
-            if (patchAnonymousClasses && name.equals("defineAnonymousClass") && Instrumenter.isUnsafeClass(owner) && descWithoutStackFrame.equals("(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;")) {
+            if (patchAnonymousClasses && name.equals("defineAnonymousClass") && Phosphor.isUnsafeClass(owner) && descWithoutStackFrame.equals("(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;")) {
                 super.visitInsn(POP);
                 super.visitInsn(SWAP);
                 INSTRUMENT_CLASS_BYTES_ANONYMOUS.delegateVisit(mv);
@@ -500,7 +500,7 @@ public class ReflectionHidingMV extends MethodVisitor implements Opcodes {
             if (owner.equals("java/lang/reflect/Array") && !owner.equals(className)) {
                 owner = Type.getInternalName(ArrayReflectionMasker.class);
             }
-            if (name.equals("allocateUninitializedArray") && Instrumenter.isUnsafeClass(owner)) {
+            if (name.equals("allocateUninitializedArray") && Phosphor.isUnsafeClass(owner)) {
                 desc = "(L" + owner + ";" + desc.substring(1);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC, getRuntimeUnsafePropogatorClassName(), name, desc, false);
                 return;
