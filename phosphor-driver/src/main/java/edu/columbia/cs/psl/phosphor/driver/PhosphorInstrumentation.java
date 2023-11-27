@@ -1,6 +1,8 @@
 package edu.columbia.cs.psl.phosphor.driver;
 
 import edu.columbia.cs.psl.phosphor.*;
+import edu.columbia.cs.psl.phosphor.agent.InstrumentUtil;
+import edu.columbia.cs.psl.phosphor.agent.EmbeddedPhosphorPatcher;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.apache.commons.cli.CommandLine;
 
@@ -61,8 +63,8 @@ public class PhosphorInstrumentation implements Instrumentation {
 
     @Override
     public Patcher createPatcher(Function<String, byte[]> entryLocator) {
-        String path = "/java.base/jdk/internal/misc/Unsafe.class";
-        PhosphorPatcher patcher = new PhosphorPatcher(entryLocator.apply(path));
+            String path = "/java.base/jdk/internal/misc/Unsafe.class";
+        EmbeddedPhosphorPatcher patcher = new EmbeddedPhosphorPatcher(entryLocator.apply(path));
         return patcher::patch;
     }
 

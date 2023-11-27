@@ -1,9 +1,10 @@
 package edu.columbia.cs.psl.phosphor.driver;
 
+import edu.columbia.cs.psl.phosphor.agent.InstrumentUtil;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -39,9 +40,7 @@ public final class JLinkInvoker {
 
     private static File storeOptions(Properties options) throws IOException {
         // Write the options to a temporary file
-        File file = Files.createTempFile("phosphor-", ".properties").toFile();
-        file.deleteOnExit();
-        InstrumentUtil.ensureDirectory(file.getParentFile());
+        File file = InstrumentUtil.createTemporaryFile("phosphor-", ".properties");
         try (FileWriter writer = new FileWriter(file)) {
             options.store(writer, null);
         }

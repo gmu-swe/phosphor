@@ -192,7 +192,7 @@ public enum PhosphorOption {
             .argType(String.class)) {
         @Override
         public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
-            Configuration.CACHE = isPresent ? TransformationCache.getInstance(commandLine.getOptionValue(optionName)) :
+            Phosphor.CACHE = isPresent ? TransformationCache.getInstance(commandLine.getOptionValue(optionName)) :
                     null;
         }
     },
@@ -273,7 +273,7 @@ public enum PhosphorOption {
         @Override
         public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
             if(isPresent) {
-                Configuration.ADDL_IGNORE = commandLine.getOptionValue(optionName);
+                Configuration.IGNORE = commandLine.getOptionValue(optionName);
             }
         }
     },
@@ -295,9 +295,7 @@ public enum PhosphorOption {
             true, false).argType(String.class).alternativeName("jvmModules")) {
         @Override
         public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
-            /*
-            Only used by instrumenter, which reads properties map
-             */
+            // Only used by instrumenter, which reads properties map
         }
     };
 

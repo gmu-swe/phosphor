@@ -18,7 +18,6 @@ import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.tree.*;
 
 import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
@@ -378,28 +377,12 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     super.visitFrame(type, nLocal, local, nStack, stack);
                 }
             };
-
-            if (Configuration.extensionMethodVisitor != null) {
-                try {
-                    TaintAdapter custom = Configuration.extensionMethodVisitor.getConstructor(Integer.TYPE,
-                            String.class, String.class, String.class, String.class, String[].class, MethodVisitor.class,
-                            NeverNullArgAnalyzerAdapter.class, String.class, String.class).newInstance(access,
-                                    className, name, desc, signature, _exceptions, rawMethod, null, classSource,
-                                    classDebug);
-                    custom.setFields(fields);
-                    custom.setSuperName(superName);
-                    return custom;
-                } catch (InstantiationException | SecurityException | NoSuchMethodException | InvocationTargetException
-                        | IllegalArgumentException | IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
             return rawMethod;
         } else {
             // this is a native method. we want here to make a $taint method that will call
             // the original one.
             final MethodVisitor prev = super.visitMethod(access, name, desc, signature, _exceptions);
-            MethodNode rawMethod = new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature,
+            return new MethodNode(Configuration.ASM_VERSION, access, name, desc, signature,
                     _exceptions) {
                 @Override
                 public void visitEnd() {
@@ -410,7 +393,6 @@ public class TaintTrackingClassVisitor extends ClassVisitor {
                     }
                 }
             };
-            return rawMethod;
         }
     }
 

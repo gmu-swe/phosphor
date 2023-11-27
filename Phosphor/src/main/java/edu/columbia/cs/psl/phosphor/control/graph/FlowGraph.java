@@ -528,7 +528,7 @@ public final class FlowGraph<V> {
      * @param fontSize         value used for the fontsize attribute of the graph
      * @throws NullPointerException     if writer is null or printer is null
      * @throws IOException              if an I/O error occurs while writing to the specified writer
-     * @throws IllegalArgumentException if fontSize <= 0
+     * @throws IllegalArgumentException if fontSize &lt;= 0
      */
     public void write(Writer writer, String graphName, Comparator<V> vertexComparator,
                       Function<V, String> printer, int fontSize) throws IOException {

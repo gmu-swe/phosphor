@@ -73,8 +73,8 @@ public final class PCLoggingTransformer extends PhosphorBaseTransformer {
                     return classfileBuffer;
                 }
             }
-            if (Configuration.CACHE != null) {
-                byte[] cachedClass = Configuration.CACHE.load(className, classfileBuffer);
+            if (Phosphor.CACHE != null) {
+                byte[] cachedClass = Phosphor.CACHE.load(className, classfileBuffer);
                 if (cachedClass != null) {
                     return cachedClass;
                 }
@@ -114,8 +114,8 @@ public final class PCLoggingTransformer extends PhosphorBaseTransformer {
                     fos.write(instrumentedBytes);
                     fos.close();
                 }
-                if (Configuration.CACHE != null) {
-                    Configuration.CACHE.store(className, classfileBuffer, instrumentedBytes);
+                if (Phosphor.CACHE != null) {
+                    Phosphor.CACHE.store(className, classfileBuffer, instrumentedBytes);
                 }
                 return instrumentedBytes;
             } catch (Throwable ex) {
@@ -161,10 +161,6 @@ public final class PCLoggingTransformer extends PhosphorBaseTransformer {
                     } catch (Exception e) {
                         //
                     }
-                }
-                if (Configuration.extensionClassVisitor != null) {
-                    Constructor<? extends ClassVisitor> extra = Configuration.extensionClassVisitor.getConstructor(ClassVisitor.class, Boolean.TYPE);
-                    _cv = extra.newInstance(_cv, skipFrames);
                 }
                 if (Phosphor.DEBUG || TaintUtils.VERIFY_CLASS_GENERATION) {
                     _cv = new CheckClassAdapter(_cv, false);

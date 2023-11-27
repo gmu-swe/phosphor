@@ -14,6 +14,7 @@ public final class Phosphor {
     public static boolean INSTRUMENTATION_EXCEPTION_OCCURRED = false;
     public static ClassLoader bigLoader = Phosphor.class.getClassLoader();
     public static InstrumentationAdaptor instrumentation;
+    public static TransformationCache CACHE = null;
 
     private Phosphor() {
         throw new AssertionError("Tried to instantiate static agent class: " + getClass());
@@ -27,7 +28,7 @@ public final class Phosphor {
             PhosphorOption.configure(true, parseOptions(agentArgs));
         }
         if (System.getProperty("phosphorCacheDirectory") != null) {
-            Configuration.CACHE = TransformationCache.getInstance(System.getProperty("phosphorCacheDirectory"));
+            CACHE = TransformationCache.getInstance(System.getProperty("phosphorCacheDirectory"));
         }
         // Ensure that BasicSourceSinkManager and anything needed to call isSourceOrSinkOrTaintThrough gets initialized
         BasicSourceSinkManager.loadTaintMethods();
@@ -74,7 +75,7 @@ public final class Phosphor {
                 || taintTagFactoryPackage != null && StringUtils.startsWith(owner, taintTagFactoryPackage)
                 || controlFlowManagerPackage != null && StringUtils.startsWith(owner, controlFlowManagerPackage)
                 || (Configuration.controlFlowManager != null && Configuration.controlFlowManager.isIgnoredClass(owner))
-                || (Configuration.ADDL_IGNORE != null && StringUtils.startsWith(owner, Configuration.ADDL_IGNORE))
+                || (Configuration.IGNORE != null && StringUtils.startsWith(owner, Configuration.IGNORE))
                 // || !owner.startsWith("edu/columbia/cs/psl")
                 // For these classes: HotSpot expects fields to be at hardcoded offsets of these classes.
                 // If we instrument them, it will break those assumptions and segfault.

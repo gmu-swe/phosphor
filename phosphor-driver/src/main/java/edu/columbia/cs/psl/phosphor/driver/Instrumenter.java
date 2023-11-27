@@ -1,5 +1,6 @@
 package edu.columbia.cs.psl.phosphor.driver;
 
+import edu.columbia.cs.psl.phosphor.agent.InstrumentUtil;
 import org.jacoco.core.internal.InputStreams;
 import org.jacoco.core.internal.instr.SignatureRemover;
 

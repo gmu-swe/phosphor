@@ -728,9 +728,9 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements
      * @return a subList view of this list starting from {@code start}
      *         (inclusive), and ending with {@code end} (exclusive)
      * @throws IndexOutOfBoundsException
-     *             if (start < 0 || end > size())
+     *             if {@code (start < 0 || end > size())}
      * @throws IllegalArgumentException
-     *             if (start > end)
+     *             if {@code (start > end)}
      */
     public List<E> subList(int start, int end) {
         if (0 <= start && end <= size()) {

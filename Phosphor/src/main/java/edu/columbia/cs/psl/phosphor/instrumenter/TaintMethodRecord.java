@@ -5,6 +5,7 @@ import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
 import edu.columbia.cs.psl.phosphor.runtime.*;
 import edu.columbia.cs.psl.phosphor.struct.*;
+import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
@@ -121,7 +122,9 @@ public enum TaintMethodRecord implements MethodRecord {
     // Methods from TaintSourceWrapper
     AUTO_TAINT(INVOKEVIRTUAL, TaintSourceWrapper.class, "autoTaint", Object.class, false, Object.class, String.class, String.class, int.class),
     // TaggedReferenceArray
-    TAINTED_REFERENCE_ARRAY_UNWRAP(INVOKESTATIC, TaggedReferenceArray.class, "unwrap", Object.class, false, Object.class);
+    TAINTED_REFERENCE_ARRAY_UNWRAP(INVOKESTATIC, TaggedReferenceArray.class, "unwrap", Object.class, false, Object.class),
+    // Set
+    SET_ADD(INVOKEVIRTUAL, Set.class, "add", boolean.class, true, Object.class);
 
     private final int opcode;
     private final String owner;

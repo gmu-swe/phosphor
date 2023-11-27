@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.plugin;
 
 import edu.columbia.cs.psl.phosphor.driver.DeletingFileVisitor;
-import edu.columbia.cs.psl.phosphor.driver.InstrumentUtil;
+import edu.columbia.cs.psl.phosphor.agent.InstrumentUtil;
 import edu.columbia.cs.psl.phosphor.driver.Instrumentation;
 import edu.columbia.cs.psl.phosphor.driver.Instrumenter;
 import org.apache.maven.plugin.AbstractMojo;
