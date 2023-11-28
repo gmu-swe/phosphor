@@ -48,8 +48,9 @@ class ObjectStreamReflectionMV extends ReflectionMV {
     }
 
     public static boolean isApplicable(String className, String methodName) {
-        return (className.equals("java/io/ObjectStreamClass") || className.equals("java/io/ObjectStreamField"))
+        return (className.startsWith("java/io/ObjectStreamClass") || className.equals("java/io/ObjectStreamField"))
                 && Configuration.TAINT_THROUGH_SERIALIZATION
+                // TODO FIX
                 && !methodName.equals("getDeclaredSerialFields$$PHOSPHORTAGGED");
     }
 }
