@@ -128,7 +128,7 @@ public class RuntimeSunMiscUnsafePropagator {
 
     /* If prealloc is a wrapped primitive type, set it's taint to be the value of the field at the specified offset in the
      * other specified object. Otherwise returns the value of the field at the specified offset in the specified object. */
-    private static void getTag(UnsafeProxy unsafe, Object obj, long originalOffset, PhosphorStackFrame stackFrame, SpecialAccessPolicy policy) {
+    public static void getTag(UnsafeProxy unsafe, Object obj, long originalOffset, PhosphorStackFrame stackFrame, SpecialAccessPolicy policy) {
         stackFrame.returnTaint = Taint.emptyTaint();
         OffsetPair pair = getOffsetPair(unsafe, obj, originalOffset);
         if(pair != null && pair.tagFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
@@ -142,7 +142,7 @@ public class RuntimeSunMiscUnsafePropagator {
     /* If the specified Object value is a wrapped primitive type, puts it's taint into the field at the specified offset in the
      * other specified object. Otherwise if the specified Object value is null or a lazy array wrapper put the specified Object
      * value into the field at the specified offset in the other specified object. */
-    private static void putTag(UnsafeProxy unsafe, Object obj, long offset, Taint tag, SpecialAccessPolicy policy) {
+    public static void putTag(UnsafeProxy unsafe, Object obj, long offset, Taint tag, SpecialAccessPolicy policy) {
         OffsetPair pair = null;
         if(obj != null) {
             pair = getOffsetPair(unsafe, obj, offset);
@@ -164,7 +164,7 @@ public class RuntimeSunMiscUnsafePropagator {
     /* If the specified TaintedPrimitiveWithObjTag and TaggedArray's component types match sets a tag
      * in the specified TaggedArray at a calculated index.
      * type's match. */
-    private static void swapArrayElementTag(UnsafeProxy unsafe, TaggedArray tags, long offset, Taint valueTaint) {
+    public static void swapArrayElementTag(UnsafeProxy unsafe, TaggedArray tags, long offset, Taint valueTaint) {
         if(tags.getVal() != null && tags.getVal().getClass().isArray()) {
             Class<?> clazz = tags.getVal().getClass();
             long baseOffset = unsafe.arrayBaseOffset(clazz);
@@ -283,7 +283,7 @@ public class RuntimeSunMiscUnsafePropagator {
         return ret;
     }
 
-    private static int unsafeIndexFor(UnsafeProxy unsafe, TaggedArray array, long offset) {
+    public static int unsafeIndexFor(UnsafeProxy unsafe, TaggedArray array, long offset) {
         Class<?> clazz = array.getVal().getClass();
         long baseOffset = unsafe.arrayBaseOffset(clazz);
         long scale = unsafe.arrayIndexScale(clazz);
@@ -796,7 +796,8 @@ public class RuntimeSunMiscUnsafePropagator {
         byte[] instrumented = Phosphor.instrumentClassBytes(var2);
         return unsafe.defineClass(var1, instrumented, 0, instrumented.length, var5, var6);
     }
-    private enum SpecialAccessPolicy {
+
+    public enum SpecialAccessPolicy {
         VOLATILE,
         ORDERED,
         NONE

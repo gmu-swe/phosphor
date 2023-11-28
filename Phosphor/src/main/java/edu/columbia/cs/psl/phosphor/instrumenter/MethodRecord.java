@@ -34,11 +34,6 @@ public interface MethodRecord {
     boolean isInterface();
 
     /**
-     * @return this method's return type
-     */
-    Class<?> getReturnType();
-
-    /**
      * Tells the specified method visitor to visit a method instruction for this method.
      *
      * @param methodVisitor the method visitor that should visit this method

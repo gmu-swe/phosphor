@@ -3,6 +3,7 @@ package edu.columbia.cs.psl.phosphor.instrumenter;
 import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
 import edu.columbia.cs.psl.phosphor.control.ControlFlowStack;
+import edu.columbia.cs.psl.phosphor.mask.MaskRegistry;
 import edu.columbia.cs.psl.phosphor.runtime.*;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Set;
@@ -124,14 +125,16 @@ public enum TaintMethodRecord implements MethodRecord {
     // TaggedReferenceArray
     TAINTED_REFERENCE_ARRAY_UNWRAP(INVOKESTATIC, TaggedReferenceArray.class, "unwrap", Object.class, false, Object.class),
     // Set
-    SET_ADD(INVOKEVIRTUAL, Set.class, "add", boolean.class, true, Object.class);
+    SET_ADD(INVOKEVIRTUAL, Set.class, "add", boolean.class, true, Object.class),
+    // MaskRegistry
+    ADD_MASK(INVOKESTATIC, MaskRegistry.class, "addMask", void.class, false, String.class, String.class,
+            String.class, String.class);
 
     private final int opcode;
     private final String owner;
     private final String name;
     private final String descriptor;
     private final boolean isInterface;
-    private final Class<?> returnType;
 
     /**
      * Constructs a new method.
@@ -149,7 +152,6 @@ public enum TaintMethodRecord implements MethodRecord {
         this.name = name;
         this.isInterface = isInterface;
         this.descriptor = MethodRecord.createDescriptor(returnType, parameterTypes);
-        this.returnType = returnType;
     }
 
     /**
@@ -190,14 +192,6 @@ public enum TaintMethodRecord implements MethodRecord {
     @Override
     public boolean isInterface() {
         return isInterface;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Class<?> getReturnType() {
-        return returnType;
     }
 
     public static TaintMethodRecord getArgWrapperMethod(Type arrayType) {

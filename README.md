@@ -48,7 +48,7 @@ Remaining tasks for this branch before promotion:
    A JDK can be downloaded from [Oracle](https://www.oracle.com/java/technologies/downloads/) or
    the [Adoptium Working Group](https://adoptium.net/temurin/releases/).
 3. Set the JAVA_HOME environmental variable to the path of this JDK installation.
-   On Linux and Mac this can be done by running `export JAVA_HOME=<PATH-TO-JDK>`, where &lt;PATH-TO-JDK&gt; is the path
+   On Linux and Mac, this can be done by running `export JAVA_HOME=<PATH-TO-JDK>`, where &lt;PATH-TO-JDK&gt; is the path
    of the JDK installation.
 4. Ensure that you have installed Apache Maven 3.6.0+.
    Directions for [downloading](https://maven.apache.org/download.cgi)

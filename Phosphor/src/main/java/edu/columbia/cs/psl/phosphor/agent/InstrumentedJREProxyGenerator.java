@@ -1,48 +1,53 @@
 package edu.columbia.cs.psl.phosphor.agent;
 
-
 import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.GeneratorAdapter;
 import org.objectweb.asm.util.CheckClassAdapter;
 
-import java.io.FileInputStream;
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class InstrumentedJREProxyGenerator {
-    static String[] CLASSES = {"edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper",
-            "edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREMethodHelper"};
+    static String[] CLASSES = {
+        "edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper",
+        "edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREMethodHelper"
+    };
 
     public static void main(String[] args) throws IOException {
         String outputDir = args[0];
-        String version = System.getProperty("java.version");
-
-        String pathToUnsafePropagator = outputDir + "/edu/columbia/cs/psl/phosphor/runtime/jdk/unsupported/RuntimeSunMiscUnsafePropagator.class";
-        InputStream sunMiscUnsafeIn = new FileInputStream(pathToUnsafePropagator);
-        byte[] instrumentedUnsafe = EmbeddedPhosphorPatcher.transformUnsafePropagator(sunMiscUnsafeIn,
-                "sun/misc/Unsafe", false);
+        String pathToUnsafePropagator = outputDir
+                + "/edu/columbia/cs/psl/phosphor/runtime/jdk/unsupported/RuntimeSunMiscUnsafePropagator.class";
+        byte[] buffer = InstrumentUtil.readAllBytes(new File(pathToUnsafePropagator));
+        byte[] instrumentedUnsafe =
+                PhosphorPatcher.apply(buffer, cv -> new UnsafePatchingCV(cv, "sun/misc/Unsafe", false));
         Files.write(Paths.get(pathToUnsafePropagator), instrumentedUnsafe);
-
         for (String clazz : CLASSES) {
             String classLocation = outputDir + '/' + clazz.replace('.', '/') + ".class";
-            ClassReader cr = new ClassReader(new FileInputStream(classLocation));
+            ClassReader cr = new ClassReader(InstrumentUtil.readAllBytes(new File(classLocation)));
             ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS);
             cr.accept(
                     new CheckClassAdapter(
                             new ClassVisitor(Configuration.ASM_VERSION, cw) {
                                 @Override
-                                public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                                    MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
+                                public MethodVisitor visitMethod(
+                                        int access,
+                                        String name,
+                                        String descriptor,
+                                        String signature,
+                                        String[] exceptions) {
+                                    MethodVisitor mv =
+                                            super.visitMethod(access, name, descriptor, signature, exceptions);
                                     GeneratorAdapter ga = new GeneratorAdapter(mv, access, name, descriptor);
 
                                     ga.visitCode();
                                     if (name.equals("<clinit>")) {
                                     } else if (name.equals("<init>")) {
                                         ga.visitVarInsn(Opcodes.ALOAD, 0);
-                                        ga.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+                                        ga.visitMethodInsn(
+                                                Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
                                     } else if (name.equals("_crash")) {
                                         ga.visitInsn(Opcodes.ACONST_NULL);
                                     } else if (clazz.endsWith("FieldHelper")) {
@@ -55,7 +60,9 @@ public class InstrumentedJREProxyGenerator {
                                     ga.visitMaxs(0, 0);
                                     return ga;
                                 }
-                            }, false), ClassReader.SKIP_CODE);
+                            },
+                            false),
+                    ClassReader.SKIP_CODE);
             byte[] ret = cw.toByteArray();
             Files.write(Paths.get(classLocation), ret);
         }
@@ -69,10 +76,13 @@ public class InstrumentedJREProxyGenerator {
         }
         String fieldName = name.substring(3);
         Type actualFieldType = null;
-
         if (name.startsWith("get")) {
             ga.visitVarInsn(Opcodes.ALOAD, 0);
-            ga.visitFieldInsn(Opcodes.GETFIELD, fieldOwner, fieldName, (actualFieldType != null ? actualFieldType.getDescriptor() : returnType.getDescriptor()));
+            ga.visitFieldInsn(
+                    Opcodes.GETFIELD,
+                    fieldOwner,
+                    fieldName,
+                    (actualFieldType != null ? actualFieldType.getDescriptor() : returnType.getDescriptor()));
         } else {
             Type argType = Type.getArgumentTypes(descriptor)[1];
             ga.visitVarInsn(Opcodes.ALOAD, 0);
@@ -80,7 +90,11 @@ public class InstrumentedJREProxyGenerator {
             if (actualFieldType != null) {
                 ga.visitTypeInsn(Opcodes.CHECKCAST, actualFieldType.getInternalName());
             }
-            ga.visitFieldInsn(Opcodes.PUTFIELD, fieldOwner, fieldName, (actualFieldType != null ? actualFieldType.getDescriptor() : argType.getDescriptor()));
+            ga.visitFieldInsn(
+                    Opcodes.PUTFIELD,
+                    fieldOwner,
+                    fieldName,
+                    (actualFieldType != null ? actualFieldType.getDescriptor() : argType.getDescriptor()));
         }
     }
 
@@ -106,7 +120,7 @@ public class InstrumentedJREProxyGenerator {
         if (isInstanceMethod) {
             descriptorToInvoke = "(" + descriptor.substring(descriptor.indexOf(';') + 1);
             try {
-                Class c = Class.forName(owner.replace('/', '.'));
+                Class<?> c = Class.forName(owner.replace('/', '.'));
                 if (c.isInterface()) {
                     isIface = true;
                     opcode = Opcodes.INVOKEVIRTUAL;
@@ -115,12 +129,11 @@ public class InstrumentedJREProxyGenerator {
                 e.printStackTrace();
             }
         }
-
         Type[] args = Type.getArgumentTypes(descriptor);
         int argIdx = 0;
-        for (int i = 0; i < args.length; i++) {
-            ga.visitVarInsn(args[i].getOpcode(Opcodes.ILOAD), argIdx);
-            argIdx += args[i].getSize();
+        for (Type arg : args) {
+            ga.visitVarInsn(arg.getOpcode(Opcodes.ILOAD), argIdx);
+            argIdx += arg.getSize();
         }
         ga.visitMethodInsn(opcode, owner, methodName, descriptorToInvoke, isIface);
     }

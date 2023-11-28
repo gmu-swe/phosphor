@@ -1157,7 +1157,8 @@ public class TaintPassingMV extends TaintAdapter implements Opcodes {
         loadStackTopShadowVar();
         pushPhosphorStackFrame();
         getMethod.delegateVisit(mv);
-        if (Object.class.equals(getMethod.getReturnType()) && referenceArrayTarget != null) {
+        Type returnType = Type.getReturnType(getMethod.getDescriptor());
+        if (Type.getType(Object.class).equals(returnType) && referenceArrayTarget != null) {
             Type originalArrayType = Type.getType(referenceArrayTarget.getOriginalArrayType());
             String castTo = Type.getType(originalArrayType.getDescriptor().substring(1)).getInternalName();
             if (originalArrayType.getDimensions() == 2) {

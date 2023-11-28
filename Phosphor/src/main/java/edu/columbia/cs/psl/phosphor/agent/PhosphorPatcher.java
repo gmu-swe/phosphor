@@ -1,8 +1,13 @@
 package edu.columbia.cs.psl.phosphor.agent;
 
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.function.Function;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -28,13 +33,6 @@ public class PhosphorPatcher {
         }
     }
 
-    private static byte[] patch(String name, byte[] classFileBuffer) {
-        if (AsmPatcher.isApplicable(name)) {
-            return AsmPatcher.patch(classFileBuffer);
-        }
-        return classFileBuffer;
-    }
-
     private static void writeEntry(ZipOutputStream zos, ZipEntry entry, byte[] content) throws IOException {
         ZipEntry outEntry = new ZipEntry(entry.getName());
         outEntry.setMethod(entry.getMethod());
@@ -49,5 +47,23 @@ public class PhosphorPatcher {
         zos.putNextEntry(outEntry);
         zos.write(content);
         zos.closeEntry();
+    }
+
+    private static byte[] patch(String name, byte[] classFileBuffer) {
+        name = name.replace(".class", "");
+        if (AsmPatchingCV.isApplicable(name)) {
+            return apply(classFileBuffer, AsmPatchingCV::new);
+        } else if (MaskRegistryPatchingCV.isApplicable(name)) {
+            return apply(classFileBuffer, MaskRegistryPatchingCV::new);
+        }
+        return classFileBuffer;
+    }
+
+    public static byte[] apply(byte[] classFileBuffer, Function<ClassVisitor, ClassVisitor> visitorFactory) {
+        ClassReader cr = new ClassReader(classFileBuffer);
+        ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS);
+        ClassVisitor cv = visitorFactory.apply(cw);
+        cr.accept(cv, ClassReader.EXPAND_FRAMES);
+        return cw.toByteArray();
     }
 }

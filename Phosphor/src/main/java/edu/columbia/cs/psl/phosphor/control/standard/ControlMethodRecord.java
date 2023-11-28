@@ -93,11 +93,4 @@ public enum ControlMethodRecord implements MethodRecord {
         return isInterface;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Class<?> getReturnType() {
-        return returnType;
-    }
 }
