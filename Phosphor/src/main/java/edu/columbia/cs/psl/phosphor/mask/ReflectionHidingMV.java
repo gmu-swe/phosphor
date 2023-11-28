@@ -429,6 +429,12 @@ class ReflectionHidingMV extends ReflectionMV implements Opcodes {
     public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean isInterface) {
         Type[] args = Type.getArgumentTypes(desc);
         String descWithoutStackFrame = desc.replace(PhosphorStackFrame.DESCRIPTOR, "");
+        if ((className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream"))
+                && owner.equals("java/lang/Class")
+                && name.startsWith("isInstance")) {
+            IS_INSTANCE.delegateVisit(mv);
+            return;
+        }
         switch (owner) {
             case "jdk/internal/reflect/Reflection":
                 maskReflection(opcode, owner, name, desc, isInterface);

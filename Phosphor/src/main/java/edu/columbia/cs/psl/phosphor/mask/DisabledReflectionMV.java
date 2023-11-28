@@ -32,9 +32,6 @@ class DisabledReflectionMV extends ReflectionMV implements Opcodes {
             case "java/lang/reflect/ReflectAccess":
                 // Java >= 9
                 // TODO keep?
-            case "java/io/ObjectOutputStream":
-            case "java/io/ObjectInputStream":
-                return true;
             default:
                 return false;
         }
