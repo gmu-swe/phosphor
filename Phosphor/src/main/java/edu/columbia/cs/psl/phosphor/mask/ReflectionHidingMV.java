@@ -76,7 +76,8 @@ class ReflectionHidingMV extends ReflectionMV implements Opcodes {
             default:
                 MaskInfo mask = MaskRegistry.getMask(owner, name, desc);
                 if (mask != null) {
-                    if (!name.equals("defineClass") || patchAnonymousClasses) {
+                    if ((!name.equals("defineAnonymousClass") && !name.equals("defineClass"))
+                            || patchAnonymousClasses) {
                         mask.accept(mv);
                         return;
                     }

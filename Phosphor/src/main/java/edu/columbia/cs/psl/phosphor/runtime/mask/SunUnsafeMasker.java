@@ -16,7 +16,8 @@ import static edu.columbia.cs.psl.phosphor.runtime.mask.UnsafeMaskerHelper.*;
 @SuppressWarnings("unused")
 public final class SunUnsafeMasker {
     @Mask(owner = Unsafe.class)
-    public static Class<?> defineAnonymousClass(Object unsafe, Class<?> hostClass, byte[] data, Object[] cpPatches) {
+    public static Class<?> defineAnonymousClass(Object unsafe, Class<?> hostClass, byte[] data, Object[] cpPatches,
+                                                PhosphorStackFrame frame) {
         byte[] instrumented = Phosphor.instrumentClassBytesAnonymous(data);
         return ADAPTER.defineAnonymousClass(hostClass, instrumented, cpPatches);
     }
