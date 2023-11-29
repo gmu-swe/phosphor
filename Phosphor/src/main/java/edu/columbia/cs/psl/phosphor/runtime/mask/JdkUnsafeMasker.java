@@ -14,12 +14,7 @@ import java.lang.reflect.Modifier;
 
 /* Ensures that calls methods in UnsafeProxy that set or retrieve the value of a field of a Java heap object set and
  * retrieve both the original field and its associated taint field if it has one. */
-public class RuntimeJDKInternalUnsafePropagator {
-
-    private RuntimeJDKInternalUnsafePropagator() {
-        // Prevents this class from being instantiated
-    }
-
+public class JdkUnsafeMasker {
     /* Used to disambiguate between a static field of a given type and an instance field of java.lang.Class */
     static long LAST_INSTANCE_OFFSET_JAVA_LANG_CLASS = UnsafeProxy.INVALID_FIELD_OFFSET;
 
@@ -206,6 +201,7 @@ public class RuntimeJDKInternalUnsafePropagator {
         unsafe.copyMemory(srcAddress, destAddress, length);
     }
 
+    @SuppressWarnings("unused")
     public static void copySwapMemory(UnsafeProxy unsafe, Object srcBase, long srcOffset, Object destBase,
                                       long destOffset, long bytes, long elemSize, PhosphorStackFrame stackFrame) {
         if (srcBase instanceof TaggedArray) {
@@ -217,6 +213,7 @@ public class RuntimeJDKInternalUnsafePropagator {
         unsafe.copySwapMemory(srcBase, srcOffset, destBase, destOffset, bytes, elemSize);
     }
 
+    @SuppressWarnings("unused")
     public static void copySwapMemory(UnsafeProxy unsafe, long srcAddress, long destAddress, long bytes, long elemSize, PhosphorStackFrame stackFrame) {
         unsafe.copySwapMemory(srcAddress, destAddress, bytes, elemSize);
     }
@@ -1392,7 +1389,7 @@ public class RuntimeJDKInternalUnsafePropagator {
             if (pair != null && pair.wrappedFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
                 offset = pair.wrappedFieldOffset;
             }
-            getTag(unsafe, obj, offset, phosphorStackFrame, RuntimeJDKInternalUnsafePropagator.SpecialAccessPolicy.NONE);
+            getTag(unsafe, obj, offset, phosphorStackFrame, SpecialAccessPolicy.NONE);
             return unsafe.getReference(obj, offset);
         }
     }
@@ -1564,5 +1561,4 @@ public class RuntimeJDKInternalUnsafePropagator {
     public static void putBooleanRelease(UnsafeProxy unsafe, Object o, long offset, boolean x, PhosphorStackFrame phosphorStackFrame) {
         putBooleanVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
-
 }

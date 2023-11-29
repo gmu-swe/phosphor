@@ -277,7 +277,7 @@ public class JdkUnsafeAdapter implements UnsafeAdapter {
 
     @Override
     public void putOrderedObject(Object o, long offset, Object x) {
-        unsafe.putObjectRelease(o, offset, x);
+        unsafe.putObjectVolatile(o, offset, x);
     }
 
     @Override
@@ -292,11 +292,11 @@ public class JdkUnsafeAdapter implements UnsafeAdapter {
 
     @Override
     public void putOrderedInt(Object o, long offset, int x) {
-        unsafe.putIntRelease(o, offset, x);
+        unsafe.putIntVolatile(o, offset, x);
     }
 
     @Override
     public void putOrderedLong(Object o, long offset, long x) {
-        unsafe.putLongRelease(o, offset, x);
+        unsafe.putLongVolatile(o, offset, x);
     }
 }

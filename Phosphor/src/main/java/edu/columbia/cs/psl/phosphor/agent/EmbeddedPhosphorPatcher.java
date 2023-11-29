@@ -1,6 +1,8 @@
 package edu.columbia.cs.psl.phosphor.agent;
 
+import edu.columbia.cs.psl.phosphor.runtime.mask.JdkUnsafeMasker;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -18,7 +20,7 @@ public class EmbeddedPhosphorPatcher {
         name = name.replace(".class", "");
         if (ConfigurationEmbeddingCV.isApplicable(name)) {
             return PhosphorPatcher.apply(content, ConfigurationEmbeddingCV::new);
-        } else if (name.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeJDKInternalUnsafePropagator")) {
+        } else if (name.equals(Type.getInternalName(JdkUnsafeMasker.class))) {
             return PhosphorPatcher.apply(content, cv -> new UnsafePatchingCV(cv, patchUnsafeNames));
         } else if (JdkUnsafeAdapterPatchingCV.isApplicable(name, patchUnsafeNames)) {
             return PhosphorPatcher.apply(content, JdkUnsafeAdapterPatchingCV::new);

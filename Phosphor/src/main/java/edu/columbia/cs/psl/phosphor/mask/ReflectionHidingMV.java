@@ -4,7 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import edu.columbia.cs.psl.phosphor.mask.MaskRegistry.MaskInfo;
 import edu.columbia.cs.psl.phosphor.runtime.*;
-import edu.columbia.cs.psl.phosphor.runtime.mask.RuntimeJDKInternalUnsafePropagator;
+import edu.columbia.cs.psl.phosphor.runtime.mask.JdkUnsafeMasker;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -102,7 +102,7 @@ class ReflectionHidingMV extends ReflectionMV implements Opcodes {
         } else if (shouldPatchUnsafe(name, descWithoutStackFrame)) {
             name = name.replace("Object", "Reference");
             desc = "(L" + owner + ";" + desc.substring(1);
-            owner = Type.getInternalName(RuntimeJDKInternalUnsafePropagator.class);
+            owner = Type.getInternalName(JdkUnsafeMasker.class);
             super.visitMethodInsn(Opcodes.INVOKESTATIC, owner, name, desc, false);
         } else {
             super.visitMethodInsn(opcode, owner, name, desc, isInterface);
