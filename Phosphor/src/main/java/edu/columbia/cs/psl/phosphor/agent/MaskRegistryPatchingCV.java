@@ -44,9 +44,8 @@ public class MaskRegistryPatchingCV extends ClassVisitor {
     }
 
     private static String createKey(MethodRecordImpl record, Mask mask) {
-        String className = Type.getInternalName(mask.owner());
         String descriptor = mask.isStatic() ? record.getDescriptor() : removeFirstParameter(record.getDescriptor());
-        return MaskRegistry.getKey(className, record.getName(), descriptor);
+        return MaskRegistry.getKey(mask.owner(), record.getName(), descriptor);
     }
 
     private static String removeFirstParameter(String descriptor) {

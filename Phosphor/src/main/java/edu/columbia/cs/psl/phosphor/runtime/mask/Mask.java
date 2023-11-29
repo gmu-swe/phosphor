@@ -15,10 +15,10 @@ import java.lang.annotation.*;
  * the first parameter removed.
  */
 @Target(ElementType.METHOD)
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Repeatable(Masks.class)
 public @interface Mask {
-    Class<?> owner();
+    String owner();
 
     boolean isStatic() default false;
 }

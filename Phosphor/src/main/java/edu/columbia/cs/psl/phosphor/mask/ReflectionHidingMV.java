@@ -4,6 +4,7 @@ import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
 import edu.columbia.cs.psl.phosphor.mask.MaskRegistry.MaskInfo;
 import edu.columbia.cs.psl.phosphor.runtime.*;
+import edu.columbia.cs.psl.phosphor.runtime.mask.RuntimeJDKInternalUnsafePropagator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;

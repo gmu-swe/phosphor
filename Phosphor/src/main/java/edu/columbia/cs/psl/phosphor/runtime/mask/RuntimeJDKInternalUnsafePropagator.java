@@ -1,8 +1,10 @@
-package edu.columbia.cs.psl.phosphor.runtime;
+package edu.columbia.cs.psl.phosphor.runtime.mask;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.TaintUtils;
-import edu.columbia.cs.psl.phosphor.runtime.mask.UnsafeProxy;
+import edu.columbia.cs.psl.phosphor.runtime.MultiDArrayUtils;
+import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
+import edu.columbia.cs.psl.phosphor.runtime.Taint;
 import edu.columbia.cs.psl.phosphor.runtime.proxied.InstrumentedJREFieldHelper;
 import edu.columbia.cs.psl.phosphor.struct.*;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.StringBuilder;
@@ -190,14 +192,6 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     @SuppressWarnings("unused")
     public static void copyMemory(UnsafeProxy unsafe, Object src, long srcAddress, Object dest, long destAddress, long length, PhosphorStackFrame phosphorStackFrame) {
-        //Object srcWrapper = phosphorStackFrame.wrappedArgs[1];
-        //if(srcWrapper != null){
-        //    src = srcWrapper;
-        //}
-        //Object destWrapper = phosphorStackFrame.wrappedArgs[3];
-        //if(destWrapper != null){
-        //    dest = destWrapper;
-        //}
         if (src instanceof TaggedArray) {
             src = ((TaggedArray) src).getVal();
         }
@@ -243,49 +237,16 @@ public class RuntimeJDKInternalUnsafePropagator {
         NONE
     }
 
-    @SuppressWarnings("unused")
-
-    public static class OffsetPair {
-
-        public final long origFieldOffset;
-        public final long wrappedFieldOffset;
-        public final long tagFieldOffset;
-        public final boolean isStatic;
-
-        public OffsetPair(boolean isStatic, long origFieldOffset, long wrappedFieldOffset, long tagFieldOffset) {
-            this.isStatic = isStatic;
-            this.origFieldOffset = origFieldOffset;
-            this.tagFieldOffset = tagFieldOffset;
-            this.wrappedFieldOffset = wrappedFieldOffset;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            return other instanceof OffsetPair && this.origFieldOffset == ((OffsetPair) other).origFieldOffset && this.isStatic == ((OffsetPair) other).isStatic;
-        }
-
-        @Override
-        public int hashCode() {
-            return (int) (origFieldOffset ^ (origFieldOffset >>> 32));
-        }
-
-        @Override
-        public String toString() {
-            return String.format("{field @ %d -> tag @ %d, wrapper @ %d}", origFieldOffset, tagFieldOffset, wrappedFieldOffset);
-        }
-    }
-
     private static int unsafeIndexFor(UnsafeProxy unsafe, TaggedArray array, long offset) {
         Class<?> clazz = array.getVal().getClass();
         long baseOffset = unsafe.arrayBaseOffset(clazz);
         long scale = unsafe.arrayIndexScale(clazz);
         // Calculate the index based off the offset
-        int index = (int) ((offset - baseOffset) / scale);
-        return index;
+        return (int) ((offset - baseOffset) / scale);
     }
 
     @SuppressWarnings("unused")
-    public static int getIntUnaligned(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static int getIntUnaligned(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         if ((offset & 3) == 0) {
             return getInt(unsafe, o, offset, phosphorStackFrame);
         } else if ((offset & 1) == 0) {
@@ -300,7 +261,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static long getLongUnaligned(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static long getLongUnaligned(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         if ((offset & 7) == 0) {
             return getLong(unsafe, o, offset, phosphorStackFrame);
         } else if ((offset & 3) == 0) {
@@ -324,7 +285,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static char getCharUnaligned(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static char getCharUnaligned(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         if ((offset & 1) == 0) {
             return getChar(unsafe, o, offset, phosphorStackFrame);
         } else {
@@ -334,7 +295,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static short getShortUnaligned(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static short getShortUnaligned(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         if ((offset & 1) == 0) {
             return getShort(unsafe, o, offset, phosphorStackFrame);
         } else {
@@ -344,7 +305,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putIntUnaligned(UnsafeProxy unsafe, java.lang.Object o, long offset, int x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putIntUnaligned(UnsafeProxy unsafe, Object o, long offset, int x, PhosphorStackFrame phosphorStackFrame) {
         if ((offset & 3) == 0) {
             putInt(unsafe, o, offset, x, phosphorStackFrame);
         } else if ((offset & 1) == 0) {
@@ -361,7 +322,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putLongUnaligned(UnsafeProxy unsafe, java.lang.Object o, long offset, long x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putLongUnaligned(UnsafeProxy unsafe, Object o, long offset, long x, PhosphorStackFrame phosphorStackFrame) {
         if ((offset & 7) == 0) {
             putLong(unsafe, o, offset, x, phosphorStackFrame);
         } else if ((offset & 3) == 0) {
@@ -388,12 +349,12 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putCharUnaligned(UnsafeProxy unsafe, java.lang.Object o, long offset, char x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putCharUnaligned(UnsafeProxy unsafe, Object o, long offset, char x, PhosphorStackFrame phosphorStackFrame) {
         putShortUnaligned(unsafe, o, offset, (short) x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putShortUnaligned(UnsafeProxy unsafe, java.lang.Object o, long offset, short x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putShortUnaligned(UnsafeProxy unsafe, Object o, long offset, short x, PhosphorStackFrame phosphorStackFrame) {
         if ((offset & 1) == 0) {
             putShort(unsafe, o, offset, x, phosphorStackFrame);
         } else {
@@ -405,125 +366,125 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     //Generated from Phosphor template for get$methodTypeOpaque(Ljava/lang/Object;J)LPlaceHolder;
     @SuppressWarnings("unused")
-    public static byte getByteOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static byte getByteOpaque(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getByteVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static int getIntOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static int getIntOpaque(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getIntVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static long getLongOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static long getLongOpaque(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getLongVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static float getFloatOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static float getFloatOpaque(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getFloatVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static Object getReferenceOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static Object getReferenceOpaque(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getReferenceVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static char getCharOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static char getCharOpaque(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getCharVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static short getShortOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static short getShortOpaque(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getShortVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static double getDoubleOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static double getDoubleOpaque(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getDoubleVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean getBooleanOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean getBooleanOpaque(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getBooleanVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     //Generated from Phosphor template for compareAndExchange$methodTypeAcquire(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)LPlaceHolder;
     @SuppressWarnings("unused")
-    public static int compareAndExchangeIntAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
+    public static int compareAndExchangeIntAcquire(UnsafeProxy unsafe, Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndExchangeInt(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static byte compareAndExchangeByteAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
+    public static byte compareAndExchangeByteAcquire(UnsafeProxy unsafe, Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndExchangeByte(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static long compareAndExchangeLongAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
+    public static long compareAndExchangeLongAcquire(UnsafeProxy unsafe, Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndExchangeLong(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static Object compareAndExchangeReferenceAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
+    public static Object compareAndExchangeReferenceAcquire(UnsafeProxy unsafe, Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndExchangeReference(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static short compareAndExchangeShortAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
+    public static short compareAndExchangeShortAcquire(UnsafeProxy unsafe, Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndExchangeShort(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     //Generated from Phosphor template for get$methodTypeAcquire(Ljava/lang/Object;J)LPlaceHolder;
     @SuppressWarnings("unused")
-    public static byte getByteAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static byte getByteAcquire(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getByteVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static int getIntAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static int getIntAcquire(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getIntVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static long getLongAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static long getLongAcquire(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getLongVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static float getFloatAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static float getFloatAcquire(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getFloatVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static Object getReferenceAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static Object getReferenceAcquire(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getReferenceVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static char getCharAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static char getCharAcquire(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getCharVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static short getShortAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static short getShortAcquire(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getShortVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static double getDoubleAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static double getDoubleAcquire(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getDoubleVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean getBooleanAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean getBooleanAcquire(UnsafeProxy unsafe, Object o, long offset, PhosphorStackFrame phosphorStackFrame) {
         return getBooleanVolatile(unsafe, o, offset, phosphorStackFrame);
     }
 
     //Generated from Phosphor template for getAndAdd$methodType(Ljava/lang/Object;JLPlaceHolder;)LPlaceHolder;
     @SuppressWarnings("unused")
-    public static int getAndAddInt(UnsafeProxy unsafe, java.lang.Object o, long offset, int delta, PhosphorStackFrame phosphorStackFrame) {
+    public static int getAndAddInt(UnsafeProxy unsafe, Object o, long offset, int delta, PhosphorStackFrame phosphorStackFrame) {
         int v;
         do {
             v = getIntVolatile(unsafe, o, offset, phosphorStackFrame);
@@ -532,7 +493,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static byte getAndAddByte(UnsafeProxy unsafe, java.lang.Object o, long offset, byte delta, PhosphorStackFrame phosphorStackFrame) {
+    public static byte getAndAddByte(UnsafeProxy unsafe, Object o, long offset, byte delta, PhosphorStackFrame phosphorStackFrame) {
         byte v;
         do {
             v = getByteVolatile(unsafe, o, offset, phosphorStackFrame);
@@ -541,7 +502,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static long getAndAddLong(UnsafeProxy unsafe, java.lang.Object o, long offset, long delta, PhosphorStackFrame phosphorStackFrame) {
+    public static long getAndAddLong(UnsafeProxy unsafe, Object o, long offset, long delta, PhosphorStackFrame phosphorStackFrame) {
         long v;
         do {
             v = getLongVolatile(unsafe, o, offset, phosphorStackFrame);
@@ -550,7 +511,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static short getAndAddShort(UnsafeProxy unsafe, java.lang.Object o, long offset, short delta, PhosphorStackFrame phosphorStackFrame) {
+    public static short getAndAddShort(UnsafeProxy unsafe, Object o, long offset, short delta, PhosphorStackFrame phosphorStackFrame) {
         short v;
         do {
             v = getShortVolatile(unsafe, o, offset, phosphorStackFrame);
@@ -560,7 +521,7 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     //Generated from Phosphor template for get$methodTypeVolatile(Ljava/lang/Object;J)LPlaceHolder;
     @SuppressWarnings("unused")
-    public static byte getByteVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static byte getByteVolatile(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getByteVolatile(((TaggedArray) obj).getVal(), offset);
@@ -571,7 +532,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static int getIntVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static int getIntVolatile(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getIntVolatile(((TaggedArray) obj).getVal(), offset);
@@ -582,7 +543,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static long getLongVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static long getLongVolatile(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getLongVolatile(((TaggedArray) obj).getVal(), offset);
@@ -593,7 +554,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static float getFloatVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static float getFloatVolatile(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getFloatVolatile(((TaggedArray) obj).getVal(), offset);
@@ -604,7 +565,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static Object getReferenceVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static Object getReferenceVolatile(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getReferenceVolatile(((TaggedArray) obj).getVal(), offset);
@@ -619,7 +580,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static char getCharVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static char getCharVolatile(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getCharVolatile(((TaggedArray) obj).getVal(), offset);
@@ -630,7 +591,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static short getShortVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static short getShortVolatile(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getShortVolatile(((TaggedArray) obj).getVal(), offset);
@@ -641,7 +602,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static double getDoubleVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static double getDoubleVolatile(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getDoubleVolatile(((TaggedArray) obj).getVal(), offset);
@@ -652,7 +613,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static boolean getBooleanVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean getBooleanVolatile(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getBooleanVolatile(((TaggedArray) obj).getVal(), offset);
@@ -664,105 +625,105 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     //Generated from Phosphor template for compareAndExchange$methodTypeRelease(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)LPlaceHolder;
     @SuppressWarnings("unused")
-    public static int compareAndExchangeIntRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
+    public static int compareAndExchangeIntRelease(UnsafeProxy unsafe, Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndExchangeInt(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static byte compareAndExchangeByteRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
+    public static byte compareAndExchangeByteRelease(UnsafeProxy unsafe, Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndExchangeByte(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static long compareAndExchangeLongRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
+    public static long compareAndExchangeLongRelease(UnsafeProxy unsafe, Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndExchangeLong(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static Object compareAndExchangeReferenceRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
+    public static Object compareAndExchangeReferenceRelease(UnsafeProxy unsafe, Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndExchangeReference(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static short compareAndExchangeShortRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
+    public static short compareAndExchangeShortRelease(UnsafeProxy unsafe, Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndExchangeShort(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     //Generated from Phosphor template for weakCompareAndSet$methodTypeAcquire(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)Z
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetIntAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetIntAcquire(UnsafeProxy unsafe, Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetInt(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetByteAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetByteAcquire(UnsafeProxy unsafe, Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetByte(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetLongAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetLongAcquire(UnsafeProxy unsafe, Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetLong(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetReferenceAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetReferenceAcquire(UnsafeProxy unsafe, Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetReference(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetShortAcquire(UnsafeProxy unsafe, java.lang.Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetShortAcquire(UnsafeProxy unsafe, Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetShort(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     //Generated from Phosphor template for put$methodTypeOpaque(Ljava/lang/Object;JLPlaceHolder;)V
     @SuppressWarnings("unused")
-    public static void putByteOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, byte x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putByteOpaque(UnsafeProxy unsafe, Object o, long offset, byte x, PhosphorStackFrame phosphorStackFrame) {
         putByteVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putIntOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, int x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putIntOpaque(UnsafeProxy unsafe, Object o, long offset, int x, PhosphorStackFrame phosphorStackFrame) {
         putIntVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putLongOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, long x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putLongOpaque(UnsafeProxy unsafe, Object o, long offset, long x, PhosphorStackFrame phosphorStackFrame) {
         putLongVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putFloatOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, float x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putFloatOpaque(UnsafeProxy unsafe, Object o, long offset, float x, PhosphorStackFrame phosphorStackFrame) {
         putFloatVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putReferenceOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, Object x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putReferenceOpaque(UnsafeProxy unsafe, Object o, long offset, Object x, PhosphorStackFrame phosphorStackFrame) {
         putReferenceVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putCharOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, char x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putCharOpaque(UnsafeProxy unsafe, Object o, long offset, char x, PhosphorStackFrame phosphorStackFrame) {
         putCharVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putShortOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, short x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putShortOpaque(UnsafeProxy unsafe, Object o, long offset, short x, PhosphorStackFrame phosphorStackFrame) {
         putShortVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putDoubleOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, double x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putDoubleOpaque(UnsafeProxy unsafe, Object o, long offset, double x, PhosphorStackFrame phosphorStackFrame) {
         putDoubleVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putBooleanOpaque(UnsafeProxy unsafe, java.lang.Object o, long offset, boolean x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putBooleanOpaque(UnsafeProxy unsafe, Object o, long offset, boolean x, PhosphorStackFrame phosphorStackFrame) {
         putBooleanVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     //Generated from Phosphor template for compareAndSet$methodType(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)Z
     @SuppressWarnings("unused")
-    public static boolean compareAndSetInt(UnsafeProxy unsafe, java.lang.Object obj, long offset, int expected, int value, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean compareAndSetInt(UnsafeProxy unsafe, Object obj, long offset, int expected, int value, PhosphorStackFrame phosphorStackFrame) {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         boolean ret = false;
@@ -788,7 +749,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static boolean compareAndSetByte(UnsafeProxy unsafe, java.lang.Object obj, long offset, byte expected, byte value, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean compareAndSetByte(UnsafeProxy unsafe, Object obj, long offset, byte expected, byte value, PhosphorStackFrame phosphorStackFrame) {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         boolean ret = false;
@@ -813,7 +774,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static boolean compareAndSetLong(UnsafeProxy unsafe, java.lang.Object obj, long offset, long expected, long value, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean compareAndSetLong(UnsafeProxy unsafe, Object obj, long offset, long expected, long value, PhosphorStackFrame phosphorStackFrame) {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         boolean ret = false;
@@ -838,7 +799,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static boolean compareAndSetReference(UnsafeProxy unsafe, java.lang.Object obj, long offset, Object expected, Object value, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean compareAndSetReference(UnsafeProxy unsafe, Object obj, long offset, Object expected, Object value, PhosphorStackFrame phosphorStackFrame) {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         boolean ret = false;
@@ -881,7 +842,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static boolean compareAndSetShort(UnsafeProxy unsafe, java.lang.Object obj, long offset, short expected, short value, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean compareAndSetShort(UnsafeProxy unsafe, Object obj, long offset, short expected, short value, PhosphorStackFrame phosphorStackFrame) {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         boolean ret = false;
@@ -907,7 +868,7 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     //Generated from Phosphor template for put$methodType(Ljava/lang/Object;JLPlaceHolder;)V
     @SuppressWarnings("unused")
-    public static void putByte(UnsafeProxy unsafe, java.lang.Object obj, long offset, byte val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putByte(UnsafeProxy unsafe, Object obj, long offset, byte val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putByte(((TaggedArray) obj).getVal(), offset, val);
@@ -921,7 +882,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putInt(UnsafeProxy unsafe, java.lang.Object obj, long offset, int val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putInt(UnsafeProxy unsafe, Object obj, long offset, int val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putInt(((TaggedArray) obj).getVal(), offset, val);
@@ -935,7 +896,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putLong(UnsafeProxy unsafe, java.lang.Object obj, long offset, long val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putLong(UnsafeProxy unsafe, Object obj, long offset, long val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putLong(((TaggedArray) obj).getVal(), offset, val);
@@ -949,7 +910,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putFloat(UnsafeProxy unsafe, java.lang.Object obj, long offset, float val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putFloat(UnsafeProxy unsafe, Object obj, long offset, float val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putFloat(((TaggedArray) obj).getVal(), offset, val);
@@ -963,7 +924,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putReference(UnsafeProxy unsafe, java.lang.Object obj, long offset, Object val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putReference(UnsafeProxy unsafe, Object obj, long offset, Object val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putReference(((TaggedArray) obj).getVal(), offset, val);
@@ -992,7 +953,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putChar(UnsafeProxy unsafe, java.lang.Object obj, long offset, char val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putChar(UnsafeProxy unsafe, Object obj, long offset, char val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putChar(((TaggedArray) obj).getVal(), offset, val);
@@ -1006,7 +967,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putShort(UnsafeProxy unsafe, java.lang.Object obj, long offset, short val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putShort(UnsafeProxy unsafe, Object obj, long offset, short val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putShort(((TaggedArray) obj).getVal(), offset, val);
@@ -1020,7 +981,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putDouble(UnsafeProxy unsafe, java.lang.Object obj, long offset, double val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putDouble(UnsafeProxy unsafe, Object obj, long offset, double val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putDouble(((TaggedArray) obj).getVal(), offset, val);
@@ -1034,7 +995,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putBoolean(UnsafeProxy unsafe, java.lang.Object obj, long offset, boolean val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putBoolean(UnsafeProxy unsafe, Object obj, long offset, boolean val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putBoolean(((TaggedArray) obj).getVal(), offset, val);
@@ -1049,7 +1010,7 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     //Generated from Phosphor template for put$methodTypeVolatile(Ljava/lang/Object;JLPlaceHolder;)V
     @SuppressWarnings("unused")
-    public static void putByteVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, byte val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putByteVolatile(UnsafeProxy unsafe, Object obj, long offset, byte val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putByteVolatile(((TaggedArray) obj).getVal(), offset, val);
@@ -1063,7 +1024,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putIntVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, int val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putIntVolatile(UnsafeProxy unsafe, Object obj, long offset, int val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putIntVolatile(((TaggedArray) obj).getVal(), offset, val);
@@ -1077,7 +1038,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putLongVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, long val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putLongVolatile(UnsafeProxy unsafe, Object obj, long offset, long val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putLongVolatile(((TaggedArray) obj).getVal(), offset, val);
@@ -1091,7 +1052,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putFloatVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, float val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putFloatVolatile(UnsafeProxy unsafe, Object obj, long offset, float val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putFloatVolatile(((TaggedArray) obj).getVal(), offset, val);
@@ -1105,7 +1066,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putReferenceVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, Object val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putReferenceVolatile(UnsafeProxy unsafe, Object obj, long offset, Object val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putReferenceVolatile(((TaggedArray) obj).getVal(), offset, val);
@@ -1134,7 +1095,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putCharVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, char val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putCharVolatile(UnsafeProxy unsafe, Object obj, long offset, char val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putCharVolatile(((TaggedArray) obj).getVal(), offset, val);
@@ -1148,7 +1109,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putShortVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, short val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putShortVolatile(UnsafeProxy unsafe, Object obj, long offset, short val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putShortVolatile(((TaggedArray) obj).getVal(), offset, val);
@@ -1162,7 +1123,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putDoubleVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, double val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putDoubleVolatile(UnsafeProxy unsafe, Object obj, long offset, double val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putDoubleVolatile(((TaggedArray) obj).getVal(), offset, val);
@@ -1176,7 +1137,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static void putBooleanVolatile(UnsafeProxy unsafe, java.lang.Object obj, long offset, boolean val, PhosphorStackFrame phosphorStackFrame) {
+    public static void putBooleanVolatile(UnsafeProxy unsafe, Object obj, long offset, boolean val, PhosphorStackFrame phosphorStackFrame) {
         Taint valTaint = phosphorStackFrame.getArgTaint(3);
         if (obj instanceof TaggedArray) {
             unsafe.putBooleanVolatile(((TaggedArray) obj).getVal(), offset, val);
@@ -1191,7 +1152,7 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     //Generated from Phosphor template for compareAndExchange$methodType(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)LPlaceHolder;
     @SuppressWarnings("unused")
-    public static int compareAndExchangeInt(UnsafeProxy unsafe, java.lang.Object obj, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
+    public static int compareAndExchangeInt(UnsafeProxy unsafe, Object obj, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         int ret;
@@ -1216,7 +1177,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static byte compareAndExchangeByte(UnsafeProxy unsafe, java.lang.Object obj, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
+    public static byte compareAndExchangeByte(UnsafeProxy unsafe, Object obj, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         byte ret;
@@ -1241,7 +1202,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static long compareAndExchangeLong(UnsafeProxy unsafe, java.lang.Object obj, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
+    public static long compareAndExchangeLong(UnsafeProxy unsafe, Object obj, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         long ret;
@@ -1266,7 +1227,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static Object compareAndExchangeReference(UnsafeProxy unsafe, java.lang.Object obj, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
+    public static Object compareAndExchangeReference(UnsafeProxy unsafe, Object obj, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         Object ret = null;
@@ -1306,7 +1267,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static short compareAndExchangeShort(UnsafeProxy unsafe, java.lang.Object obj, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
+    public static short compareAndExchangeShort(UnsafeProxy unsafe, Object obj, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
         Taint valueTaint = phosphorStackFrame.getArgTaint(4);
         Taint retTaint = Taint.emptyTaint();
         short ret;
@@ -1332,7 +1293,7 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     //Generated from Phosphor template for getAndSet$methodType(Ljava/lang/Object;JLPlaceHolder;)LPlaceHolder;
     @SuppressWarnings("unused")
-    public static int getAndSetInt(UnsafeProxy unsafe, java.lang.Object o, long offset, int newValue, PhosphorStackFrame phosphorStackFrame) {
+    public static int getAndSetInt(UnsafeProxy unsafe, Object o, long offset, int newValue, PhosphorStackFrame phosphorStackFrame) {
         int v;
         do {
             v = getIntVolatile(unsafe, o, offset, phosphorStackFrame);
@@ -1341,7 +1302,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static byte getAndSetByte(UnsafeProxy unsafe, java.lang.Object o, long offset, byte newValue, PhosphorStackFrame phosphorStackFrame) {
+    public static byte getAndSetByte(UnsafeProxy unsafe, Object o, long offset, byte newValue, PhosphorStackFrame phosphorStackFrame) {
         byte v;
         do {
             v = getByteVolatile(unsafe, o, offset, phosphorStackFrame);
@@ -1350,7 +1311,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static long getAndSetLong(UnsafeProxy unsafe, java.lang.Object o, long offset, long newValue, PhosphorStackFrame phosphorStackFrame) {
+    public static long getAndSetLong(UnsafeProxy unsafe, Object o, long offset, long newValue, PhosphorStackFrame phosphorStackFrame) {
         long v;
         do {
             v = getLongVolatile(unsafe, o, offset, phosphorStackFrame);
@@ -1359,7 +1320,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static Object getAndSetReference(UnsafeProxy unsafe, java.lang.Object o, long offset, Object newValue, PhosphorStackFrame phosphorStackFrame) {
+    public static Object getAndSetReference(UnsafeProxy unsafe, Object o, long offset, Object newValue, PhosphorStackFrame phosphorStackFrame) {
         Object v;
         do {
             v = getReferenceVolatile(unsafe, o, offset, phosphorStackFrame);
@@ -1368,7 +1329,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static short getAndSetShort(UnsafeProxy unsafe, java.lang.Object o, long offset, short newValue, PhosphorStackFrame phosphorStackFrame) {
+    public static short getAndSetShort(UnsafeProxy unsafe, Object o, long offset, short newValue, PhosphorStackFrame phosphorStackFrame) {
         short v;
         do {
             v = getShortVolatile(unsafe, o, offset, phosphorStackFrame);
@@ -1378,7 +1339,7 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     //Generated from Phosphor template for get$methodType(Ljava/lang/Object;J)LPlaceHolder;
     @SuppressWarnings("unused")
-    public static byte getByte(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static byte getByte(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getByte(((TaggedArray) obj).getVal(), offset);
@@ -1389,7 +1350,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static int getInt(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static int getInt(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getInt(((TaggedArray) obj).getVal(), offset);
@@ -1400,7 +1361,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static long getLong(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static long getLong(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getLong(((TaggedArray) obj).getVal(), offset);
@@ -1411,7 +1372,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static float getFloat(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static float getFloat(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getFloat(((TaggedArray) obj).getVal(), offset);
@@ -1422,7 +1383,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static Object getReference(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static Object getReference(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getReference(((TaggedArray) obj).getVal(), offset);
@@ -1437,7 +1398,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static char getChar(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static char getChar(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getChar(((TaggedArray) obj).getVal(), offset);
@@ -1448,7 +1409,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static short getShort(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static short getShort(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getShort(((TaggedArray) obj).getVal(), offset);
@@ -1459,7 +1420,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static double getDouble(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static double getDouble(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getDouble(((TaggedArray) obj).getVal(), offset);
@@ -1470,7 +1431,7 @@ public class RuntimeJDKInternalUnsafePropagator {
     }
 
     @SuppressWarnings("unused")
-    public static boolean getBoolean(UnsafeProxy unsafe, java.lang.Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean getBoolean(UnsafeProxy unsafe, Object obj, long offset, PhosphorStackFrame phosphorStackFrame) {
         if (obj instanceof TaggedArray) {
             phosphorStackFrame.returnTaint = ((TaggedArray) obj).getTaintOrEmpty(unsafeIndexFor(unsafe, (TaggedArray) obj, offset));
             return unsafe.getBoolean(((TaggedArray) obj).getVal(), offset);
@@ -1482,125 +1443,125 @@ public class RuntimeJDKInternalUnsafePropagator {
 
     //Generated from Phosphor template for weakCompareAndSet$methodTypePlain(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)Z
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetIntPlain(UnsafeProxy unsafe, java.lang.Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetIntPlain(UnsafeProxy unsafe, Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetInt(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetBytePlain(UnsafeProxy unsafe, java.lang.Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetBytePlain(UnsafeProxy unsafe, Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetByte(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetLongPlain(UnsafeProxy unsafe, java.lang.Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetLongPlain(UnsafeProxy unsafe, Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetLong(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetReferencePlain(UnsafeProxy unsafe, java.lang.Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetReferencePlain(UnsafeProxy unsafe, Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetReference(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetShortPlain(UnsafeProxy unsafe, java.lang.Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetShortPlain(UnsafeProxy unsafe, Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetShort(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     //Generated from Phosphor template for weakCompareAndSet$methodTypeRelease(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)Z
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetIntRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetIntRelease(UnsafeProxy unsafe, Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetInt(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetByteRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetByteRelease(UnsafeProxy unsafe, Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetByte(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetLongRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetLongRelease(UnsafeProxy unsafe, Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetLong(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetReferenceRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetReferenceRelease(UnsafeProxy unsafe, Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetReference(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetShortRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetShortRelease(UnsafeProxy unsafe, Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetShort(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     //Generated from Phosphor template for weakCompareAndSet$methodType(Ljava/lang/Object;JLPlaceHolder;LPlaceHolder;)Z
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetInt(UnsafeProxy unsafe, java.lang.Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetInt(UnsafeProxy unsafe, Object o, long offset, int expected, int x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetInt(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetByte(UnsafeProxy unsafe, java.lang.Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetByte(UnsafeProxy unsafe, Object o, long offset, byte expected, byte x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetByte(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetLong(UnsafeProxy unsafe, java.lang.Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetLong(UnsafeProxy unsafe, Object o, long offset, long expected, long x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetLong(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetReference(UnsafeProxy unsafe, java.lang.Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetReference(UnsafeProxy unsafe, Object o, long offset, Object expected, Object x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetReference(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static boolean weakCompareAndSetShort(UnsafeProxy unsafe, java.lang.Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
+    public static boolean weakCompareAndSetShort(UnsafeProxy unsafe, Object o, long offset, short expected, short x, PhosphorStackFrame phosphorStackFrame) {
         return compareAndSetShort(unsafe, o, offset, expected, x, phosphorStackFrame);
     }
 
     //Generated from Phosphor template for put$methodTypeRelease(Ljava/lang/Object;JLPlaceHolder;)V
     @SuppressWarnings("unused")
-    public static void putByteRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, byte x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putByteRelease(UnsafeProxy unsafe, Object o, long offset, byte x, PhosphorStackFrame phosphorStackFrame) {
         putByteVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putIntRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, int x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putIntRelease(UnsafeProxy unsafe, Object o, long offset, int x, PhosphorStackFrame phosphorStackFrame) {
         putIntVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putLongRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, long x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putLongRelease(UnsafeProxy unsafe, Object o, long offset, long x, PhosphorStackFrame phosphorStackFrame) {
         putLongVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putFloatRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, float x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putFloatRelease(UnsafeProxy unsafe, Object o, long offset, float x, PhosphorStackFrame phosphorStackFrame) {
         putFloatVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putReferenceRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, Object x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putReferenceRelease(UnsafeProxy unsafe, Object o, long offset, Object x, PhosphorStackFrame phosphorStackFrame) {
         putReferenceVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putCharRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, char x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putCharRelease(UnsafeProxy unsafe, Object o, long offset, char x, PhosphorStackFrame phosphorStackFrame) {
         putCharVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putShortRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, short x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putShortRelease(UnsafeProxy unsafe, Object o, long offset, short x, PhosphorStackFrame phosphorStackFrame) {
         putShortVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putDoubleRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, double x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putDoubleRelease(UnsafeProxy unsafe, Object o, long offset, double x, PhosphorStackFrame phosphorStackFrame) {
         putDoubleVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
     @SuppressWarnings("unused")
-    public static void putBooleanRelease(UnsafeProxy unsafe, java.lang.Object o, long offset, boolean x, PhosphorStackFrame phosphorStackFrame) {
+    public static void putBooleanRelease(UnsafeProxy unsafe, Object o, long offset, boolean x, PhosphorStackFrame phosphorStackFrame) {
         putBooleanVolatile(unsafe, o, offset, x, phosphorStackFrame);
     }
 
