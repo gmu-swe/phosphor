@@ -21,7 +21,8 @@ public class UnsafeMaskerHelper {
         // Prevents this class from being instantiated
     }
 
-    public static final UnsafeAdapter ADAPTER = new SunUnsafeAdapter();
+    public static final UnsafeAdapter ADAPTER =
+            Configuration.IS_JAVA_8 ? new SunUnsafeAdapter() : new JdkUnsafeAdapter();
     /* Used to disambiguate between a static field of a given type and an instance field of java.lang.Class */
     static long LAST_INSTANCE_OFFSET_JAVA_LANG_CLASS = ADAPTER.getInvalidFieldOffset();
 

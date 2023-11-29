@@ -19,7 +19,6 @@
         <data.flow.skip>false</data.flow.skip>
         <phosphor.jar>${edu.gmu.swe.phosphor:Phosphor:jar}</phosphor.jar>
         <phosphor.driver.jar>${edu.gmu.swe.phosphor:phosphor-driver:jar}</phosphor.driver.jar>
-        <isJava8>false</isJava8>
     </properties>
     <dependencies>
         <dependency>
@@ -109,15 +108,6 @@
     </build>
     <profiles>
         <profile>
-            <id>java8</id>
-            <activation>
-                <jdk>1.8</jdk>
-            </activation>
-            <properties>
-                <isJava8>true</isJava8>
-            </properties>
-        </profile>
-        <profile>
             <id>dacapo</id>
             <build>
                 <plugins>
@@ -148,7 +138,6 @@
                                         <argument>${phosphor.jar}</argument>
                                         <argument>${phosphor.driver.jar}</argument>
                                         <argument>${data.flow.java}/bin/java</argument>
-                                        <argument>${isJava8}</argument>
                                     </arguments>
                                 </configuration>
                             </execution>

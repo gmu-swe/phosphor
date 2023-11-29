@@ -4,7 +4,6 @@ readonly BUILD_DIR=$1
 readonly PHOSPHOR_JAR=$2
 readonly DRIVER_JAR=$3
 readonly INST_JVM=$4
-readonly IS_JAVA_8=$5
 readonly DACAPO_DIR=$BUILD_DIR/dacapo
 readonly INST_DACAPO_DIR=$BUILD_DIR/dacapo-inst
 readonly BENCHMARKS=(avrora fop h2 jython luindex pmd sunflow xalan)
@@ -23,11 +22,6 @@ if [ ! -d "$DACAPO_DIR" ]; then
   unzip -qq dacapo-9.12-MR1-bach.jar
 fi
 cd "$BUILD_DIR"
-
-phosphor_args=""
-if [ "$IS_JAVA_8" == "true" ]; then
-  phosphor_args="-java8"
-fi
 
 if [ ! -d "$INST_DACAPO_DIR" ]; then
   echo "Creating data flow instrumented dacapo"
