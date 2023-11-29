@@ -74,6 +74,13 @@ class ReflectionHidingMV extends ReflectionMV implements Opcodes {
                 maskUnsafe(opcode, owner, name, desc, isInterface, descWithoutStackFrame);
                 return;
             default:
+                MaskInfo mask = MaskRegistry.getMask(owner, name, desc);
+                if (mask != null) {
+                    if (!name.equals("defineClass") || patchAnonymousClasses) {
+                        mask.accept(mv);
+                        return;
+                    }
+                }
                 super.visitMethodInsn(opcode, owner, name, desc, isInterface);
                 fixReturn(owner, name, name, descWithoutStackFrame);
         }
@@ -81,13 +88,6 @@ class ReflectionHidingMV extends ReflectionMV implements Opcodes {
 
     private void maskUnsafe(
             int opcode, String owner, String name, String desc, boolean isInterface, String descWithoutStackFrame) {
-        MaskInfo mask = MaskRegistry.getMask(owner, name, desc);
-        if (mask != null) {
-            if (!name.equals("defineClass") || patchAnonymousClasses) {
-                mask.accept(mv);
-                return;
-            }
-        }
         if (patchAnonymousClasses
                 && name.equals("defineAnonymousClass")
                 && descWithoutStackFrame.equals("(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;")) {
