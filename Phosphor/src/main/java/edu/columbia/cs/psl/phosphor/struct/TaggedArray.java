@@ -85,7 +85,10 @@ public abstract class TaggedArray implements Cloneable, Serializable {
     }
 
     public void setTaint(int idx, Taint valTaint) {
-        if(taints == null) {
+        if (Taint.isEmpty(valTaint) && taints == null) {
+            return;
+        }
+        if (taints == null) {
             taints = new Taint[getLength()];
         }
         taints[idx] = valTaint;

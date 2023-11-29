@@ -2,7 +2,6 @@ package edu.columbia.cs.psl.phosphor.mask;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.IS_INSTANCE;
 
@@ -23,9 +22,7 @@ class ObjectStreamReflectionMV extends ReflectionMV {
             // Even if we are not masking other methods, this must be masked
             IS_INSTANCE.delegateVisit(mv);
         } else if (owner.equals("sun/misc/Unsafe") && shouldMask(name)) {
-            owner = ReflectionMVFactory.getRuntimeUnsafePropagatorClassName();
-            super.visitMethodInsn(
-                    Opcodes.INVOKESTATIC, owner, name, "(Lsun/misc/Unsafe;" + desc.substring(1), isInterface);
+            MaskRegistry.getMask(owner, name, desc).accept(mv);
         } else {
             super.visitMethodInsn(opcode, owner, name, desc, isInterface);
         }

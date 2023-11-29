@@ -7,6 +7,7 @@ import edu.columbia.cs.psl.phosphor.instrumenter.MethodRecordImpl;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public final class MaskRegistry {
@@ -57,6 +58,10 @@ public final class MaskRegistry {
 
         public MethodRecordImpl getRecord() {
             return record;
+        }
+
+        public void accept(MethodVisitor mv) {
+            record.delegateVisit(mv);
         }
     }
 }

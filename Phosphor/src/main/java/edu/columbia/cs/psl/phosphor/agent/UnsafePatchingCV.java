@@ -1,7 +1,7 @@
 package edu.columbia.cs.psl.phosphor.agent;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.runtime.jdk.unsupported.UnsafeProxy;
+import edu.columbia.cs.psl.phosphor.runtime.mask.UnsafeProxy;
 import org.objectweb.asm.*;
 
 class UnsafePatchingCV extends ClassVisitor {

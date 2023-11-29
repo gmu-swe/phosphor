@@ -18,12 +18,6 @@ public class InstrumentedJREProxyGenerator {
 
     public static void main(String[] args) throws IOException {
         String outputDir = args[0];
-        String pathToUnsafePropagator = outputDir
-                + "/edu/columbia/cs/psl/phosphor/runtime/jdk/unsupported/RuntimeSunMiscUnsafePropagator.class";
-        byte[] buffer = InstrumentUtil.readAllBytes(new File(pathToUnsafePropagator));
-        byte[] instrumentedUnsafe =
-                PhosphorPatcher.apply(buffer, cv -> new UnsafePatchingCV(cv, "sun/misc/Unsafe", false));
-        Files.write(Paths.get(pathToUnsafePropagator), instrumentedUnsafe);
         for (String clazz : CLASSES) {
             String classLocation = outputDir + '/' + clazz.replace('.', '/') + ".class";
             ClassReader cr = new ClassReader(InstrumentUtil.readAllBytes(new File(classLocation)));
@@ -75,26 +69,14 @@ public class InstrumentedJREProxyGenerator {
             name = name.substring(6);
         }
         String fieldName = name.substring(3);
-        Type actualFieldType = null;
         if (name.startsWith("get")) {
             ga.visitVarInsn(Opcodes.ALOAD, 0);
-            ga.visitFieldInsn(
-                    Opcodes.GETFIELD,
-                    fieldOwner,
-                    fieldName,
-                    (actualFieldType != null ? actualFieldType.getDescriptor() : returnType.getDescriptor()));
+            ga.visitFieldInsn(Opcodes.GETFIELD, fieldOwner, fieldName, returnType.getDescriptor());
         } else {
             Type argType = Type.getArgumentTypes(descriptor)[1];
             ga.visitVarInsn(Opcodes.ALOAD, 0);
             ga.visitVarInsn(argType.getOpcode(Opcodes.ILOAD), 1);
-            if (actualFieldType != null) {
-                ga.visitTypeInsn(Opcodes.CHECKCAST, actualFieldType.getInternalName());
-            }
-            ga.visitFieldInsn(
-                    Opcodes.PUTFIELD,
-                    fieldOwner,
-                    fieldName,
-                    (actualFieldType != null ? actualFieldType.getDescriptor() : argType.getDescriptor()));
+            ga.visitFieldInsn(Opcodes.PUTFIELD, fieldOwner, fieldName, argType.getDescriptor());
         }
     }
 

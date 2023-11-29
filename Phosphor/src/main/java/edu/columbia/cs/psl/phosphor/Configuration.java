@@ -46,6 +46,7 @@ public class Configuration {
     public static ControlFlowManager controlFlowManager = new StandardControlFlowManager();
     public static String controlFlowManagerPackage = null;
     public static boolean QUIET_MODE = false;
+    // Option is set for Java 9+ JVM by the embedded configuration
     public static boolean IS_JAVA_8 = true;
     public static Set<String> ignoredMethods = new HashSet<>();
     public static TaintTagFactory taintTagFactory = new DataAndControlFlowTagFactory();

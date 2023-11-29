@@ -1,12 +1,9 @@
 package edu.columbia.cs.psl.phosphor.mask;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.instrumenter.LocalVariableManager;
-import edu.columbia.cs.psl.phosphor.runtime.ArrayReflectionMasker;
-import edu.columbia.cs.psl.phosphor.runtime.CharacterUtils;
-import edu.columbia.cs.psl.phosphor.runtime.PhosphorStackFrame;
-import edu.columbia.cs.psl.phosphor.runtime.ReflectionMasker;
+import edu.columbia.cs.psl.phosphor.mask.MaskRegistry.MaskInfo;
+import edu.columbia.cs.psl.phosphor.runtime.*;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -15,7 +12,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
 import static edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord.*;
-import static edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor.CONTROL_STACK_DESC;
 
 class ReflectionHidingMV extends ReflectionMV implements Opcodes {
     private final String className;
@@ -36,108 +32,96 @@ class ReflectionHidingMV extends ReflectionMV implements Opcodes {
         this.lvs = lvs;
     }
 
-    /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
-     * that retrieves the value of a field of a Java heap object. */
-    private boolean isUnsafeFieldGetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
-        if (opcode != INVOKEVIRTUAL || !Phosphor.isUnsafeClass(owner)) {
-            return false;
+    @Override
+    public void visitCode() {
+        super.visitCode();
+        if (this.className.equals("java/lang/invoke/MethodHandles$Lookup")
+                && this.methodName.startsWith("defineHiddenClass")) {
+            super.visitVarInsn(ALOAD, 1);
+            INSTRUMENT_CLASS_BYTES.delegateVisit(mv);
+            super.visitVarInsn(ASTORE, 1);
+        }
+    }
+
+    @Override
+    public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean isInterface) {
+        String descWithoutStackFrame = desc.replace(PhosphorStackFrame.DESCRIPTOR, "");
+        if ((className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream"))
+                && owner.equals("java/lang/Class")
+                && name.startsWith("isInstance")) {
+            IS_INSTANCE.delegateVisit(mv);
+            return;
+        }
+        switch (owner) {
+            case "jdk/internal/reflect/Reflection":
+                maskReflection(opcode, owner, name, desc, isInterface);
+                return;
+            case "java/lang/reflect/Array":
+                maskArray(opcode, owner, name, desc, isInterface);
+                return;
+            case "java/lang/Character":
+                maskCharacter(opcode, owner, name, desc, isInterface);
+                return;
+            case "sun/reflect/NativeMethodAccessorImpl":
+            case "jdk/internal/reflect/NativeMethodAccessorImpl":
+                maskMethodAccessor(opcode, owner, name, desc, isInterface);
+                return;
+            case "sun/reflect/NativeConstructorAccessorImpl":
+            case "jdk/internal/reflect/NativeConstructorAccessorImpl":
+                maskConstructorAccessor(opcode, owner, name, desc, isInterface);
+                return;
+            case "jdk/internal/misc/Unsafe":
+                maskUnsafe(opcode, owner, name, desc, isInterface, descWithoutStackFrame);
+                return;
+            default:
+                super.visitMethodInsn(opcode, owner, name, desc, isInterface);
+                fixReturn(owner, name, name, descWithoutStackFrame);
+        }
+    }
+
+    private void maskUnsafe(
+            int opcode, String owner, String name, String desc, boolean isInterface, String descWithoutStackFrame) {
+        MaskInfo mask = MaskRegistry.getMask(owner, name, desc);
+        if (mask != null) {
+            if (!name.equals("defineClass") || patchAnonymousClasses) {
+                mask.accept(mv);
+                return;
+            }
+        }
+        if (patchAnonymousClasses
+                && name.equals("defineAnonymousClass")
+                && descWithoutStackFrame.equals("(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;")) {
+            super.visitInsn(POP);
+            super.visitInsn(SWAP);
+            INSTRUMENT_CLASS_BYTES_ANONYMOUS.delegateVisit(mv);
+            super.visitInsn(SWAP);
+            desc = descWithoutStackFrame; // Go directly to the native call
+            super.visitMethodInsn(opcode, owner, name, desc, isInterface);
+        } else if (shouldPatchUnsafe(name, descWithoutStackFrame)) {
+            name = name.replace("Object", "Reference");
+            desc = "(L" + owner + ";" + desc.substring(1);
+            owner = Type.getInternalName(RuntimeJDKInternalUnsafePropagator.class);
+            super.visitMethodInsn(Opcodes.INVOKESTATIC, owner, name, desc, false);
         } else {
-            if (args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
-                return false;
-            }
-            if (Configuration.IS_JAVA_8) {
-                switch (nameWithoutSuffix) {
-                    case "getBoolean":
-                    case "getByte":
-                    case "getChar":
-                    case "getDouble":
-                    case "getFloat":
-                    case "getInt":
-                    case "getLong":
-                    case "getObject":
-                    case "getShort":
-                    case "getBooleanVolatile":
-                    case "getByteVolatile":
-                    case "getCharVolatile":
-                    case "getDoubleVolatile":
-                    case "getFloatVolatile":
-                    case "getLongVolatile":
-                    case "getIntVolatile":
-                    case "getObjectVolatile":
-                    case "getShortVolatile":
-                        return true;
-                    default:
-                        return false;
-                }
-            }
-            return false;
+            super.visitMethodInsn(opcode, owner, name, desc, isInterface);
         }
     }
 
-    /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
-     * that sets the value of a field of a Java heap object. */
-    private boolean isUnsafeFieldSetter(int opcode, String owner, String name, Type[] args, String nameWithoutSuffix) {
-        if (opcode != INVOKEVIRTUAL || !Phosphor.isUnsafeClass(owner)) {
-            return false;
-        } else {
-            if (args.length < 1 || !args[0].equals(Type.getType(Object.class))) {
-                return false;
-            }
-            if (Configuration.IS_JAVA_8) {
-                switch (nameWithoutSuffix) {
-                    case "putBoolean":
-                    case "putByte":
-                    case "putChar":
-                    case "putDouble":
-                    case "putFloat":
-                    case "putInt":
-                    case "putLong":
-                    case "putObject":
-                    case "putShort":
-                    case "putBooleanVolatile":
-                    case "putByteVolatile":
-                    case "putCharVolatile":
-                    case "putDoubleVolatile":
-                    case "putFloatVolatile":
-                    case "putIntVolatile":
-                    case "putLongVolatile":
-                    case "putObjectVolatile":
-                    case "putShortVolatile":
-                    case "putOrderedInt":
-                    case "putOrderedLong":
-                    case "putOrderedObject":
-                        return true;
-                    default:
-                        return false;
-                }
-            }
-            return false;
-        }
-    }
-
-    /* Returns whether a method instruction with the specified information is for a method added to Unsafe by Phosphor
-     * for a compareAndSwap method. */
-    private boolean isUnsafeCAS(String owner, String nameWithoutSuffix) {
-        if (Phosphor.isUnsafeClass(owner)) {
-            if (Configuration.IS_JAVA_8) {
-                return "compareAndSwapInt".equals(nameWithoutSuffix)
-                        || "compareAndSwapLong".equals(nameWithoutSuffix)
-                        || "compareAndSwapObject".equals(nameWithoutSuffix);
-            }
-        }
-        return false;
-    }
-
-    private boolean isUnsafeIntrinsic(String owner, String name, String desc) {
-        if (Configuration.IS_JAVA_8) {
-            return false; // These intrinsics are only for 9+
-        }
-        if (!Phosphor.isUnsafeClass(owner)) {
-            return false;
-        }
+    private boolean shouldPatchUnsafe(String name, String originalDesc) {
         // Java 11 uses get/putObject instead of Reference
         name = name.replace("Object", "Reference");
-        switch (desc) {
+        switch (name) {
+            case "allocateUninitializedArray":
+            case "copyMemory":
+            case "copySwapMemory":
+                return true;
+            default:
+                return isUnsafeIntrinsic(name, originalDesc);
+        }
+    }
+
+    private boolean isUnsafeIntrinsic(String name, String originalDesc) {
+        switch (originalDesc) {
             case "(Ljava/lang/Object;JLjava/lang/Object;)V":
                 switch (name) {
                     case "putReference":
@@ -254,9 +238,8 @@ class ReflectionHidingMV extends ReflectionMV implements Opcodes {
                         return true;
                 }
             case "(Ljava/lang/Object;JLjava/lang/Object;)Ljava/lang/Object;":
-                switch (name) {
-                    case "getAndSetReference":
-                        return true;
+                if (name.equals("getAndSetReference")) {
+                    return true;
                 }
             case "(Ljava/lang/Object;JC)V":
                 switch (name) {
@@ -403,140 +386,6 @@ class ReflectionHidingMV extends ReflectionMV implements Opcodes {
         return false;
     }
 
-    private boolean isUnsafeCopyMemory(String owner, String name, String nameWithoutSuffix) {
-        if (Phosphor.isUnsafeClass(owner)) {
-            switch (nameWithoutSuffix) {
-                case "copyMemory":
-                case "copySwapMemory":
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public void visitCode() {
-        super.visitCode();
-        if (this.className.equals("java/lang/invoke/MethodHandles$Lookup")
-                && this.methodName.startsWith("defineHiddenClass")) {
-            super.visitVarInsn(ALOAD, 1);
-            INSTRUMENT_CLASS_BYTES.delegateVisit(mv);
-            super.visitVarInsn(ASTORE, 1);
-        }
-    }
-
-    @Override
-    public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean isInterface) {
-        Type[] args = Type.getArgumentTypes(desc);
-        String descWithoutStackFrame = desc.replace(PhosphorStackFrame.DESCRIPTOR, "");
-        if ((className.equals("java/io/ObjectOutputStream") || className.equals("java/io/ObjectInputStream"))
-                && owner.equals("java/lang/Class")
-                && name.startsWith("isInstance")) {
-            IS_INSTANCE.delegateVisit(mv);
-            return;
-        }
-        switch (owner) {
-            case "jdk/internal/reflect/Reflection":
-                maskReflection(opcode, owner, name, desc, isInterface);
-                return;
-            case "java/lang/reflect/Array":
-                maskArray(opcode, owner, name, desc, isInterface);
-                return;
-            case "java/lang/Character":
-                maskCharacter(opcode, owner, name, desc, isInterface);
-                return;
-            case "sun/reflect/NativeMethodAccessorImpl":
-            case "jdk/internal/reflect/NativeMethodAccessorImpl":
-                maskMethodAccessor(opcode, owner, name, desc, isInterface);
-                return;
-            case "sun/reflect/NativeConstructorAccessorImpl":
-            case "jdk/internal/reflect/NativeConstructorAccessorImpl":
-                maskConstructorAccessor(opcode, owner, name, desc, isInterface);
-                return;
-            default:
-                if (Phosphor.isUnsafeClass(owner)) {
-                    patchUnsafe(opcode, owner, name, desc, isInterface, descWithoutStackFrame, args, name);
-                } else {
-                    super.visitMethodInsn(opcode, owner, name, desc, isInterface);
-                    fixReturn(owner, name, name, descWithoutStackFrame);
-                }
-        }
-    }
-
-    private void patchUnsafe(
-            int opcode,
-            String owner,
-            String name,
-            String desc,
-            boolean isInterface,
-            String descWithoutStackFrame,
-            Type[] args,
-            String nameWithoutSuffix) {
-        if (patchAnonymousClasses
-                && name.equals("defineAnonymousClass")
-                && descWithoutStackFrame.equals("(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;")) {
-            super.visitInsn(POP);
-            super.visitInsn(SWAP);
-            INSTRUMENT_CLASS_BYTES_ANONYMOUS.delegateVisit(mv);
-            super.visitInsn(SWAP);
-            desc = descWithoutStackFrame; // Go directly to the native call
-            super.visitMethodInsn(opcode, owner, name, desc, isInterface);
-        } else if (patchAnonymousClasses
-                && name.equals("defineClass")
-                && Configuration.IS_JAVA_8
-                && descWithoutStackFrame.equals(
-                        "(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;")) {
-            desc = "(Lsun/misc/Unsafe;" + desc.substring(1);
-            super.visitMethodInsn(
-                    Opcodes.INVOKESTATIC, ReflectionMVFactory.getRuntimeUnsafePropagatorClassName(), name, desc, false);
-        } else if (name.equals("allocateUninitializedArray")) {
-            desc = "(L" + owner + ";" + desc.substring(1);
-            super.visitMethodInsn(
-                    Opcodes.INVOKESTATIC, ReflectionMVFactory.getRuntimeUnsafePropagatorClassName(), name, desc, false);
-        } else if (isUnsafeIntrinsic(owner, name, descWithoutStackFrame)
-                || isUnsafeFieldGetter(opcode, owner, name, args, nameWithoutSuffix)) {
-            if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
-                desc = desc.replace(CONTROL_STACK_DESC, "");
-                // in control tracking mode, pop the control stack off of the stack to reuse the existing method
-                // but first, pop the null that's there for the erased return type.
-                if (isUnsafeReferenceFieldGetter(nameWithoutSuffix)) {
-                    super.visitInsn(POP);
-                }
-                super.visitInsn(SWAP);
-                super.visitInsn(POP);
-                if (isUnsafeReferenceFieldGetter(nameWithoutSuffix)) {
-                    super.visitInsn(ACONST_NULL);
-                }
-            }
-            desc = "(L" + owner + ";" + desc.substring(1);
-            if (isUnsafeIntrinsic(owner, name, descWithoutStackFrame)) {
-                // Java 11 uses get/putObject instead of Reference
-                name = name.replace("Object", "Reference");
-            }
-            super.visitMethodInsn(
-                    Opcodes.INVOKESTATIC, ReflectionMVFactory.getRuntimeUnsafePropagatorClassName(), name, desc, false);
-        } else if (isUnsafeFieldSetter(opcode, owner, name, args, nameWithoutSuffix)) {
-            if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
-                desc = desc.replace(CONTROL_STACK_DESC, "");
-                super.visitInsn(POP);
-            }
-            desc = "(L" + owner + ";" + desc.substring(1);
-            super.visitMethodInsn(
-                    Opcodes.INVOKESTATIC, ReflectionMVFactory.getRuntimeUnsafePropagatorClassName(), name, desc, false);
-        } else if (isUnsafeCAS(owner, nameWithoutSuffix) || isUnsafeCopyMemory(owner, name, nameWithoutSuffix)) {
-            if (Configuration.IMPLICIT_TRACKING || Configuration.IMPLICIT_HEADERS_NO_TRACKING) {
-                desc = desc.replace(CONTROL_STACK_DESC, "");
-                super.visitInsn(SWAP);
-                super.visitInsn(POP);
-            }
-            desc = "(L" + owner + ";" + desc.substring(1);
-            super.visitMethodInsn(
-                    INVOKESTATIC, ReflectionMVFactory.getRuntimeUnsafePropagatorClassName(), name, desc, isInterface);
-        } else {
-            super.visitMethodInsn(opcode, owner, name, desc, isInterface);
-        }
-    }
-
     private void maskReflection(int opcode, String owner, String name, String desc, boolean isInterface) {
         // If we in a wrapped method and called by the wrapper
         // get the caller class of the wrapper not this stack frame
@@ -639,13 +488,5 @@ class ReflectionHidingMV extends ReflectionMV implements Opcodes {
                 UNWRAP_RETURN.delegateVisit(mv);
             }
         }
-    }
-
-    private static boolean isUnsafeReferenceFieldGetter(String methodName) {
-        if (Configuration.IS_JAVA_8) {
-            return "getObject".equals(methodName) || "getObjectVolatile".equals(methodName);
-        }
-        // TODO Java 11?
-        return "getReference".equals(methodName) || "getReferenceVolatile".equals(methodName);
     }
 }

@@ -285,12 +285,6 @@ public enum PhosphorOption {
             }
         }
     },
-    JAVA_8(new PhosphorOptionBuilder(null, true, true).alternativeName("java8")) {
-        @Override
-        public void configure(boolean forRuntimeInst, boolean isPresent, CommandLine commandLine) {
-            Configuration.IS_JAVA_8 = isPresent;
-        }
-    },
     JVM_MODULES(new PhosphorOptionBuilder("For Java 9+ JVM generation: list of Java modules to include in instrumented JVM",
             true, false).argType(String.class).alternativeName("jvmModules")) {
         @Override

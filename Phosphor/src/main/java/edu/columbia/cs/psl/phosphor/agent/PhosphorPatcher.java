@@ -55,6 +55,8 @@ public class PhosphorPatcher {
             return apply(classFileBuffer, AsmPatchingCV::new);
         } else if (MaskRegistryPatchingCV.isApplicable(name)) {
             return apply(classFileBuffer, MaskRegistryPatchingCV::new);
+        } else if (UnsafeAdapterPatchingCV.isApplicable(name)) {
+            return apply(classFileBuffer, UnsafeAdapterPatchingCV::new);
         }
         return classFileBuffer;
     }

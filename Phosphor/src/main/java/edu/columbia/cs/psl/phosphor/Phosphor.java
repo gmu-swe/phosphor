@@ -64,9 +64,6 @@ public final class Phosphor {
                 }
             }
         }
-        if (Configuration.IS_JAVA_8) {
-            options.addLast("-java8");
-        }
         return options.toArray(new String[0]);
     }
 
@@ -172,7 +169,6 @@ public final class Phosphor {
     }
 
     public static boolean isUnsafeClass(String className) {
-        return (Configuration.IS_JAVA_8 && "sun/misc/Unsafe".equals(className))
-                || (!Configuration.IS_JAVA_8 && "jdk/internal/misc/Unsafe".equals(className));
+        return "sun/misc/Unsafe".equals(className) || "jdk/internal/misc/Unsafe".equals(className);
     }
 }

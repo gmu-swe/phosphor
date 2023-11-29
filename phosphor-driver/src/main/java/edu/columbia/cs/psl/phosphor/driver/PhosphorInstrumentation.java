@@ -1,8 +1,11 @@
 package edu.columbia.cs.psl.phosphor.driver;
 
-import edu.columbia.cs.psl.phosphor.*;
-import edu.columbia.cs.psl.phosphor.agent.InstrumentUtil;
+import edu.columbia.cs.psl.phosphor.Configuration;
+import edu.columbia.cs.psl.phosphor.PCLoggingTransformer;
+import edu.columbia.cs.psl.phosphor.Phosphor;
+import edu.columbia.cs.psl.phosphor.PhosphorOption;
 import edu.columbia.cs.psl.phosphor.agent.EmbeddedPhosphorPatcher;
+import edu.columbia.cs.psl.phosphor.agent.InstrumentUtil;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintTrackingClassVisitor;
 import edu.columbia.cs.psl.phosphor.org.apache.commons.cli.CommandLine;
 
@@ -46,9 +49,7 @@ public class PhosphorInstrumentation implements Instrumentation {
         transformer = new PCLoggingTransformer();
         classPathElements = new HashSet<>();
         classPathElements.add(InstrumentUtil.getClassPathElement(Phosphor.class));
-        configurationClasses.stream()
-                .map(InstrumentUtil::getClassPathElement)
-                .forEach(classPathElements::add);
+        configurationClasses.stream().map(InstrumentUtil::getClassPathElement).forEach(classPathElements::add);
     }
 
     @Override
@@ -63,7 +64,7 @@ public class PhosphorInstrumentation implements Instrumentation {
 
     @Override
     public Patcher createPatcher(Function<String, byte[]> entryLocator) {
-            String path = "/java.base/jdk/internal/misc/Unsafe.class";
+        String path = "/java.base/jdk/internal/misc/Unsafe.class";
         EmbeddedPhosphorPatcher patcher = new EmbeddedPhosphorPatcher(entryLocator.apply(path));
         return patcher::patch;
     }

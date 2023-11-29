@@ -161,7 +161,6 @@ If you choose, you can also use the Phosphor driver to instrument you applicatio
 application.
 This step is optional;
 Phosphor will dynamically instrument any classes not already instrumented at runtime as they are loaded by the JVM.
-If you plan to run these classes in a Java 8 JVM, you **must** add `-java8` to the list of options passed to the driver.
 If you want to Phosphor to cache classes that are dynamically instrumented, then you can add the Java option
 `-DphosphorCacheDirectory=<CACHE-DIRECTORY>` when running your application, where &lt;CACHE-DIRECTORY&gt; is the file
 path to the directory where Phosphor should store the cached instrumented class files.
