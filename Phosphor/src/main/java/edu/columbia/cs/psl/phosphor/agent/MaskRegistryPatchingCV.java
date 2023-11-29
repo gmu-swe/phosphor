@@ -1,7 +1,6 @@
 package edu.columbia.cs.psl.phosphor.agent;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
-import edu.columbia.cs.psl.phosphor.Phosphor;
 import edu.columbia.cs.psl.phosphor.instrumenter.MethodRecordImpl;
 import edu.columbia.cs.psl.phosphor.instrumenter.TaintMethodRecord;
 import edu.columbia.cs.psl.phosphor.mask.MaskRegistry;
@@ -9,19 +8,16 @@ import edu.columbia.cs.psl.phosphor.runtime.mask.Mask;
 import edu.columbia.cs.psl.phosphor.runtime.mask.SunUnsafeMasker;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.HashMap;
 import edu.columbia.cs.psl.phosphor.struct.harmony.util.Map;
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.AnnotationNode;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
+import java.lang.reflect.Method;
 
 public class MaskRegistryPatchingCV extends ClassVisitor {
     private static final String MASK_REGISTRY_INTERNAL_NAME = Type.getInternalName(MaskRegistry.class);
     private static final String TARGET_METHOD_NAME = "initialize";
-    private static final String MONITOR_DESC = Type.getDescriptor(Mask.class);
     private static final Class<?>[] MASKERS = new Class<?>[] {SunUnsafeMasker.class};
 
     public MaskRegistryPatchingCV(ClassVisitor cv) {
@@ -31,59 +27,30 @@ public class MaskRegistryPatchingCV extends ClassVisitor {
     public static Map<String, MaskRegistry.MaskInfo> readMasks() {
         Map<String, MaskRegistry.MaskInfo> map = new HashMap<>();
         for (Class<?> clazz : MASKERS) {
-            ClassNode cn = getClassNode(clazz);
-            for (MethodNode mn : cn.methods) {
-                readMasks(cn.name, mn, map);
+            for (Method method : clazz.getDeclaredMethods()) {
+                for (Mask mask : method.getAnnotationsByType(Mask.class)) {
+                    MethodRecordImpl record = new MethodRecordImpl(
+                            Opcodes.INVOKEVIRTUAL,
+                            Type.getInternalName(clazz),
+                            method.getName(),
+                            Type.getMethodDescriptor(method),
+                            false);
+                    String key = createKey(record, mask);
+                    map.put(key, new MaskRegistry.MaskInfo(record));
+                }
             }
         }
         return map;
     }
 
-    private static ClassNode getClassNode(Class<?> clazz) {
-        try {
-            ClassNode cn = new ClassNode();
-            String name = clazz.getName().replace('.', '/') + ".class";
-            ClassLoader classLoader = clazz.getClassLoader();
-            try (InputStream in = classLoader == null || Phosphor.RUNTIME_INST
-                    ? ClassLoader.getSystemResourceAsStream(name)
-                    : classLoader.getResourceAsStream(name)) {
-                if (in == null) {
-                    throw new IllegalStateException("Failed to read class: " + clazz);
-                }
-                new ClassReader(in).accept(cn, ClassReader.SKIP_CODE);
-            }
-            return cn;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read class: " + clazz, e);
-        }
-    }
-
-    private static void readMasks(String className, MethodNode mn, Map<String, MaskRegistry.MaskInfo> map) {
-        if ((mn.access & Opcodes.ACC_STATIC) != 0 && mn.invisibleAnnotations != null) {
-            MethodRecordImpl record = new MethodRecordImpl(Opcodes.INVOKESTATIC, className, mn.name, mn.desc, false);
-            for (AnnotationNode an : mn.invisibleAnnotations) {
-                if (MONITOR_DESC.equals(an.desc)) {
-                    map.put(createKey(mn, an), new MaskRegistry.MaskInfo(record));
-                }
-            }
-        }
-    }
-
-    private static String createKey(MethodNode mn, AnnotationNode an) {
-        List<Object> values = an.values;
-        String className = ((Type) values.get(1)).getInternalName();
-        String methodName = mn.name;
-        boolean isStatic = false;
-        if (values.size() == 4) {
-            isStatic = (boolean) values.get(3);
-        }
-        String descriptor = isStatic ? mn.desc : removeFirstParameter(mn.desc);
-        return MaskRegistry.getKey(className, methodName, descriptor);
+    private static String createKey(MethodRecordImpl record, Mask mask) {
+        String className = Type.getInternalName(mask.owner());
+        String descriptor = mask.isStatic() ? record.getDescriptor() : removeFirstParameter(record.getDescriptor());
+        return MaskRegistry.getKey(className, record.getName(), descriptor);
     }
 
     private static String removeFirstParameter(String descriptor) {
-        int index = descriptor.indexOf(';');
-        return '(' + descriptor.substring(index + 1);
+        return '(' + descriptor.substring(descriptor.indexOf(';') + 1);
     }
 
     @Override

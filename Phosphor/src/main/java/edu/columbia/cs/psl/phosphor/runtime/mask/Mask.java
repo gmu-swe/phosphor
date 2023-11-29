@@ -1,9 +1,6 @@
 package edu.columbia.cs.psl.phosphor.runtime.mask;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * Indicates that calls to the annotated method should be added during instrumentation to
@@ -19,6 +16,7 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.CLASS)
+@Repeatable(Masks.class)
 public @interface Mask {
     Class<?> owner();
 
