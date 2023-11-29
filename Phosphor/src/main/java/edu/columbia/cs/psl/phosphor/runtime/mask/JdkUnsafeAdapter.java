@@ -5,10 +5,6 @@ import jdk.internal.misc.Unsafe;
 import java.lang.reflect.Field;
 import java.security.ProtectionDomain;
 
-/**
- * Note that the various get/put Object methods are deprecated but present in Java 21.
- * If they are removed in future Java versions, we will need to patch these when packing the specific Java installation.
- */
 @SuppressWarnings("unused")
 public class JdkUnsafeAdapter implements UnsafeAdapter {
     private final Unsafe unsafe = Unsafe.getUnsafe();

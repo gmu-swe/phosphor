@@ -19,8 +19,9 @@ public class EmbeddedPhosphorPatcher {
         if (ConfigurationEmbeddingCV.isApplicable(name)) {
             return PhosphorPatcher.apply(content, ConfigurationEmbeddingCV::new);
         } else if (name.equals("edu/columbia/cs/psl/phosphor/runtime/RuntimeJDKInternalUnsafePropagator")) {
-            return PhosphorPatcher.apply(
-                    content, cv -> new UnsafePatchingCV(cv, "jdk/internal/misc/Unsafe", patchUnsafeNames));
+            return PhosphorPatcher.apply(content, cv -> new UnsafePatchingCV(cv, patchUnsafeNames));
+        } else if (JdkUnsafeAdapterPatchingCV.isApplicable(name, patchUnsafeNames)) {
+            return PhosphorPatcher.apply(content, JdkUnsafeAdapterPatchingCV::new);
         } else {
             return content;
         }

@@ -2,34 +2,33 @@ package edu.columbia.cs.psl.phosphor.agent;
 
 import edu.columbia.cs.psl.phosphor.Configuration;
 import edu.columbia.cs.psl.phosphor.runtime.mask.UnsafeProxy;
-import org.objectweb.asm.*;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
 
 class UnsafePatchingCV extends ClassVisitor {
     private static final String UNSAFE_PROXY_INTERNAL_NAME = Type.getInternalName(UnsafeProxy.class);
     private static final String UNSAFE_PROXY_DESC = Type.getDescriptor(UnsafeProxy.class);
-    private final String unsafeDesc;
     private final boolean patchNames;
-    private final String unsafeInternalName;
+    private final String UNSAFE_INTERNAL_NAME = "jdk/internal/misc/Unsafe";
 
-    public UnsafePatchingCV(ClassVisitor cv, String unsafeInternalName, boolean patchNames) {
+    public UnsafePatchingCV(ClassVisitor cv, boolean patchNames) {
         super(Configuration.ASM_VERSION, cv);
-        this.unsafeInternalName = unsafeInternalName;
-        this.unsafeDesc = "L" + unsafeInternalName + ";";
         this.patchNames = patchNames;
     }
 
     private String patchInternalName(String name) {
-        return UNSAFE_PROXY_INTERNAL_NAME.equals(name) ? unsafeInternalName : name;
+        return UNSAFE_PROXY_INTERNAL_NAME.equals(name) ? UNSAFE_INTERNAL_NAME : name;
     }
 
     private String patchDesc(String desc) {
-        return desc == null ? null :
-                desc.replace(UNSAFE_PROXY_DESC, unsafeDesc);
+        String UNSAFE_DESCRIPTOR = "L" + UNSAFE_INTERNAL_NAME + ";";
+        return desc == null ? null : desc.replace(UNSAFE_PROXY_DESC, UNSAFE_DESCRIPTOR);
     }
 
     private String patchMethodName(String owner, String name) {
-        return patchNames && owner.equals(UNSAFE_PROXY_INTERNAL_NAME) ?
-                name.replace("Reference", "Object") : name;
+        return patchNames && owner.equals(UNSAFE_PROXY_INTERNAL_NAME) ? name.replace("Reference", "Object") : name;
     }
 
     @Override
@@ -58,8 +57,7 @@ class UnsafePatchingCV extends ClassVisitor {
             }
 
             @Override
-            public void visitMethodInsn(
-                    int opcode, String owner, String name, String descriptor, boolean isInterface) {
+            public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
                 super.visitMethodInsn(
                         opcode,
                         patchInternalName(owner),
