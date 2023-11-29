@@ -26,6 +26,11 @@ public class SunUnsafeAdapter implements UnsafeAdapter {
     }
 
     @Override
+    public Class<?> defineAnonymousClass(Class<?> hostClass, byte[] data, Object[] cpPatches) {
+        return unsafe.defineAnonymousClass(hostClass, data, cpPatches);
+    }
+
+    @Override
     public Class<?> defineClass(
             String name, byte[] b, int off, int len, ClassLoader loader, ProtectionDomain protectionDomain) {
         // This will be fixed by the patcher

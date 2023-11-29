@@ -42,13 +42,15 @@ public final class Phosphor {
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.INSTRUMENT_CLASS_BYTES)
-    public static byte[] instrumentClassBytes(byte[] in) {
-        return new PCLoggingTransformer().transform(null, null, null, null, in, false);
+    public static byte[] instrumentClassBytes(byte[] classFileBuffer) {
+        byte[] result = new PCLoggingTransformer().transform(null, null, null, null, classFileBuffer, false);
+        return result == null ? classFileBuffer : result;
     }
 
     @InvokedViaInstrumentation(record = TaintMethodRecord.INSTRUMENT_CLASS_BYTES_ANONYMOUS)
-    public static byte[] instrumentClassBytesAnonymous(byte[] in) {
-        return new PCLoggingTransformer().transform(null, null, null, null, in, true);
+    public static byte[] instrumentClassBytesAnonymous(byte[] classFileBuffer) {
+        byte[] result = new PCLoggingTransformer().transform(null, null, null, null, classFileBuffer, true);
+        return result == null ? classFileBuffer : result;
     }
 
     private static String[] parseOptions(String agentArgs) {

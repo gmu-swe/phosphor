@@ -65,6 +65,8 @@ public interface UnsafeAdapter {
 
     int arrayIndexScale(Class<?> arrayClass);
 
+    Class<?> defineAnonymousClass(Class<?> hostClass, byte[] data, Object[] cpPatches);
+
     Class<?> defineClass(
             String name, byte[] b, int off, int len, ClassLoader loader, ProtectionDomain protectionDomain);
 
