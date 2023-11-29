@@ -367,19 +367,6 @@ public final class SunUnsafeMasker {
         }
     }
 
-    private static void putObject(Object o, long offset, Object x, SpecialAccessPolicy policy) {
-        switch (policy) {
-            case NONE:
-                ADAPTER.putObject(o, offset, x);
-                return;
-            case VOLATILE:
-                ADAPTER.putObjectVolatile(o, offset, x);
-                return;
-            default:
-                throw new IllegalArgumentException();
-        }
-    }
-
     private static Object getObjectPolicy(Object o, long offset, PhosphorStackFrame frame, SpecialAccessPolicy policy) {
         if (o instanceof TaggedReferenceArray) {
             // Push the taint from the `offset` argument to the `idx` argument for get
@@ -393,14 +380,7 @@ public final class SunUnsafeMasker {
                 offset = pair.wrappedFieldOffset;
             }
             getTag(ADAPTER, o, offset, frame, policy);
-            switch (policy) {
-                case NONE:
-                    return ADAPTER.getObject(o, offset);
-                case VOLATILE:
-                    return ADAPTER.getObjectVolatile(o, offset);
-                default:
-                    throw new IllegalArgumentException();
-            }
+            return policy.getObject(ADAPTER, o, offset);
         }
     }
 
@@ -417,16 +397,19 @@ public final class SunUnsafeMasker {
             }
             if (pair != null) {
                 if (pair.tagFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
-                    putObject(o, pair.tagFieldOffset, frame.getArgTaint(3), policy);
+                    Object x1 = frame.getArgTaint(3);
+                    policy.putObject(ADAPTER, o, pair.tagFieldOffset, x1);
                 }
                 if (pair.wrappedFieldOffset != UnsafeProxy.INVALID_FIELD_OFFSET) {
-                    putObject(o, pair.wrappedFieldOffset, x, policy);
-                    putObject(o, offset, MultiDArrayUtils.unbox1DOrNull(x), policy);
+                    policy.putObject(ADAPTER, o, pair.wrappedFieldOffset, x);
+                    Object x1 = MultiDArrayUtils.unbox1DOrNull(x);
+                    policy.putObject(ADAPTER, o, offset, x1);
                 } else {
-                    putObject(o, offset, x, policy);
+                    policy.putObject(ADAPTER, o, offset, x);
                 }
             } else {
-                putObject(o, offset, MultiDArrayUtils.unbox1DOrNull(x), policy);
+                Object x1 = MultiDArrayUtils.unbox1DOrNull(x);
+                policy.putObject(ADAPTER, o, offset, x1);
             }
         }
     }

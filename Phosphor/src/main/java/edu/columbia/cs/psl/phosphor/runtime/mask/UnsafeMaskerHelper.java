@@ -186,9 +186,4 @@ public class UnsafeMaskerHelper {
         return (int) ((offset - baseOffset) / scale);
     }
 
-    public enum SpecialAccessPolicy {
-        VOLATILE,
-        ORDERED,
-        NONE
-    }
 }
