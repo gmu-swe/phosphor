@@ -67,12 +67,12 @@ The first time you run this command, Maven will invoke the Phosphor Maven plugin
 Phosphor-instrumented Java installations.
 These instrumented Java installation are cached for future use and will not be recreated unless one of the
 Phosphor JARs, the configuration used to create them, or the value of `JAVA_HOME` changes.
-Once the Phosphor Maven plugin finishes creating the instrumented Java installations the tests will run.
+Once the Phosphor Maven plugin finishes creating the instrumented Java installations, the tests will run.
 These tests demonstrate how Phosphor can be used and are a good reference when first learning Phosphor.
 
 ## Creating an Instrumented Java Installation
 
-In order to track the flow of information through classes in the Java Class Library (JCL), such as `java.lang.String`
+To track the flow of information through classes in the Java Class Library (JCL), such as `java.lang.String`
 and `java.util.List`, Phosphor must instrument the bytecode of JCL classes.
 Therefore, the first step when using Phosphor is to create an instrumented Java installation
 (i.e., Java Development Kit or Java Runtime Environment).
@@ -83,7 +83,7 @@ Once you have obtained a Java installation, it can be instrumented either using 
 We discuss both options below.
 
 **Important note on OpenJDK vs Oracle's Java installations:**
-Oracle's Java installations requires that the JAR that contains the cryptography routines `jce.jar` be signed by
+Oracle's Java installations require that the JAR that contains the cryptography routines `jce.jar` be signed by
 Oracle for export control purposes.
 OpenJDK does not.
 Phosphor instrumentation will break these signatures.
@@ -91,11 +91,11 @@ Therefore, it is not possible to use Phosphor with Oracle's Java installation *a
 
 ### Driver
 
-The Phosphor driver can be used apply Phosphor instrumentation to Java classes in a Java installation,
+The Phosphor driver can be used to apply Phosphor instrumentation to Java classes in a Java installation,
 directory, or archive.
 If you have built Phosphor according to the directions described above in the
 section ["Building Phosphor"](#Building-Phosphor), then the driver JAR will be available at
-`phosphor-driver/target/phosphor-driver-0.1.0-SNAPSHOT.jar` relative to the root of this project.
+`phosphor-driver/target/phosphor-driver-VERSION.jar` relative to the root of this project.
 The latest snapshot of the driver JAR is available at the
 [Sonatype OSS Repository Hosting (OSSRH)](https://oss.sonatype.org/content/repositories/snapshots/edu/gmu/swe/phosphor/).
 The driver JAR can also be acquired using the Maven dependency:
@@ -174,7 +174,7 @@ application with Phosphor.
 Locate the JAR for Phosphor's Java agent.
 If you have built Phosphor according to the directions described above in the
 section ["Building Phosphor"](#Building-Phosphor), then the agent JAR will be available at
-`Phosphor/target/Phosphor-0.1.0-SNAPSHOT.jar` relative to the root of this project.
+`Phosphor/target/Phosphor-VERSION.jar` relative to the root of this project.
 The latest snapshot of the agent JAR is available at the
 [Sonatype OSS Repository Hosting (OSSRH)](https://oss.sonatype.org/content/repositories/snapshots/edu/gmu/swe/phosphor/).
 The agent JAR can also be acquired using the Maven dependency:
@@ -205,7 +205,7 @@ If running java using the `-jar` option run:
     [ options ] -jar file.jar [ argument ... ]
 ```
 
-Otherwise run:
+Otherwise, run:
 
 ```
 <INSTRUMENTED-JAVA-HOME>/bin/java \
@@ -221,9 +221,10 @@ Where:
 
 ## Interacting with Phosphor
 
-Phosphor exposes a simple API to allow to marking data with tags, and to retrieve those tags. Key functionality is
-implemented in ``edu.columbia.cs.psl.phosphor.runtime.MultiTainter``. To get or set the taint tag of a primitive type,
-developers call the taintedX or getTaint(X) method (replacing X with each of the primitive types, e.g. taintedByte,
+Phosphor exposes a simple API to allow data to be labeled with tags, and to retrieve those tags. 
+Key functionality is implemented in ``edu.columbia.cs.psl.phosphor.runtime.MultiTainter``. 
+To get or set the taint tag of a primitive type,
+developers call the taintedX or getTaint(X) method (replacing X with each of the primitive types, e.g., taintedByte,
 etc.).
 Ignore the methods ending with the suffix $$PHOSPHOR, they are used internally.
 To get or set the taint tag of an object, first cast that object to the interface TaintedWithObjTag (Phosphor changes
@@ -232,7 +233,7 @@ all classes to implement this interface), and use the get and set methods.
 You can determine if a variable is derived from a particular tainted source by examining the labels on that
 variable's `Taint` object.
 
-You *can* detaint variables with Phosphor - to do so, simply use the `MultiTainter` interface to set the taint on a
+You *can* detaint variables with Phosphor - to do so, use the `MultiTainter` interface to set the taint on a
 value to `0` (or `null`).
 
 ## Notes on control tracking
@@ -248,7 +249,7 @@ functionality. If you are interested in helping, please contact us.
 ## Contact
 
 Please email [Jonathan Bell](mailto:bellj@gmu.edu) with comments, suggestions, or questions.
-This project is still under development and we welcome any feedback.
+This project is still under development, and we welcome any feedback.
 
 ## License
 
