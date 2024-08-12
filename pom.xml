@@ -5,6 +5,7 @@
     <artifactId>phosphor-parent</artifactId>
     <version>0.1.0</version>
     <packaging>pom</packaging>
+    <name>Phosphor top level pom</name>
     <description>Dynamic Taint Tracker (Top level pom)</description>
     <licenses>
         <license>
