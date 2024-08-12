@@ -5,6 +5,7 @@
     <artifactId>phosphor-parent</artifactId>
     <version>0.1.0</version>
     <packaging>pom</packaging>
+    <description>Dynamic Taint Tracker (Top level pom)</description>
     <licenses>
         <license>
             <name>MIT License</name>
@@ -17,7 +18,7 @@
         <developer>
             <id>jbell</id>
             <name>Jonathan Bell</name>
-            <email>bellj@gmu.edu</email>
+            <email>jon@jonbell.net</email>
         </developer>
     </developers>
     <scm>
