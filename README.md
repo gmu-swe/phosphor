@@ -21,6 +21,8 @@ this [VM Image with all relevant files here](http://academiccommons.columbia.edu
 
 Phosphor currently requires Java 9+ to build, but it can also be used on Java 8.
 
+Phosphor is tested on Mac and Linux. We are aware that it does not presently work on Windows, and do not have the development resources to fix this, but welcome contributions as pull requests.
+
 ## Refactoring Status and Roadmap
 
 This branch contains what is nearly a complete rewrite of Phosphor, using a less fragile (but slower) approach to pass
