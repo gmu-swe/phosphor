@@ -1,5 +1,5 @@
 # Phosphor has been retired and succeeded by Galette
-As of June 2025, Phosphor has been officially retired in favor of our new dynamic taint trackign system for the JVM, [neu-se/galette](https://github.com/neu-se/galette). Based on the struggles that we encountered updating Phosphor to work with the newest versions of the JVM, Galette is designed from the ground-up to be fully compatible with modern JVMs. More information about Galette is available in our [FSE 2025 article](https://www.jonbell.net/preprint/fse25-galette.pdf).
+As of June 2025, Phosphor has been officially retired in favor of our new dynamic taint tracking system for the JVM, [neu-se/galette](https://github.com/neu-se/galette). Based on the struggles that we encountered updating Phosphor to work with the newest versions of the JVM, Galette is designed from the ground-up to be fully compatible with modern JVMs. More information about Galette is available in our [FSE 2025 article](https://www.jonbell.net/preprint/fse25-galette.pdf).
 
 Original README below:
 
